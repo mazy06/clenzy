@@ -53,6 +53,7 @@ class TagResolverServiceTest {
     @Mock private ReceivedFormRepository receivedFormRepository;
     @Mock private com.clenzy.repository.ManagementContractRepository managementContractRepository;
     @Mock private PricingConfigService pricingConfigService;
+    @Mock private com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine;
 
     private TagResolverService service;
 
@@ -63,10 +64,11 @@ class TagResolverServiceTest {
         com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
         EntityTagBuilders builders = new EntityTagBuilders(checkInInstructionsRepository, objectMapper);
         service = new TagResolverService(List.of(
-                new InterventionTagResolver(interventionRepository, builders),
+                new InterventionTagResolver(interventionRepository, builders, cleaningPricingEngine),
                 new ReservationTagResolver(reservationRepository, builders),
                 new ServiceRequestTagResolver(serviceRequestRepository, builders),
-                new PropertyTagResolver(propertyRepository, builders),
+                new PropertyTagResolver(propertyRepository, builders,
+                        org.mockito.Mockito.mock(com.clenzy.service.tags.CleaningQuoteTagBuilder.class)),
                 new UserTagResolver(userRepository, builders),
                 new ProviderExpenseTagResolver(providerExpenseRepository, builders),
                 new ReceivedFormTagResolver(receivedFormRepository, pricingConfigService, objectMapper),

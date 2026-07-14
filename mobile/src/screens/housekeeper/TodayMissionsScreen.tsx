@@ -3,6 +3,7 @@ import { View, Text, RefreshControl, ActivityIndicator, TouchableOpacity, Scroll
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useMissionsForDate, useMissionsForRange } from '@/hooks/useInterventions';
@@ -169,6 +170,7 @@ function DayPill({ dateStr, todayStr, selectedDate, missionCount, onPress, theme
 // ─── Main screen ──────────────────────────────────────────────────────
 
 export function TodayMissionsScreen() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const navigation = useNavigation<TodayStackNav>();
   const user = useAuthStore((s) => s.user);
@@ -413,9 +415,16 @@ export function TodayMissionsScreen() {
                   {missions.length} intervention{missions.length !== 1 ? 's' : ''}
                 </Text>
                 {dailyTotal > 0 && (
-                  <Text style={{ ...theme.typography.h4, color: theme.colors.primary.main, marginTop: 2 }}>
-                    {dailyTotal.toFixed(2).replace('.', ',')} €
-                  </Text>
+                  <>
+                    <Text style={{ ...theme.typography.h4, color: theme.colors.primary.main, marginTop: 2 }}>
+                      {dailyTotal.toFixed(2).replace('.', ',')} €
+                    </Text>
+                    {/* Sémantique honnête : montant des missions (le net versé, commission
+                        déduite, vit dans l'écran « Mes versements »). */}
+                    <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>
+                      {t('todayMissions.missionsAmount')}
+                    </Text>
+                  </>
                 )}
               </View>
             </View>

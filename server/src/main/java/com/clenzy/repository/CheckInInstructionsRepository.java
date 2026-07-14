@@ -13,6 +13,9 @@ public interface CheckInInstructionsRepository extends JpaRepository<CheckInInst
 
     Optional<CheckInInstructions> findByPropertyId(Long propertyId);
 
+    /** Chargement batch pour le mapping des listes de logements (évite le N+1 du toDto). */
+    List<CheckInInstructions> findByPropertyIdIn(List<Long> propertyIds);
+
     Optional<CheckInInstructions> findByPropertyIdAndOrganizationId(Long propertyId, Long organizationId);
 
     /**

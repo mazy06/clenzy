@@ -249,8 +249,13 @@ public class DocumentGeneratorService {
      */
     @Transactional(readOnly = true)
     public List<DocumentGenerationDto> getGenerationsByReference(ReferenceType referenceType, Long referenceId) {
+        // Audit 2026-07 F1-09 : scoper à l'organisation courante (filtre Hibernate inerte en
+        // HTTP) pour tout rôle non platform-staff — ferme la fuite cross-tenant (dont SUPERVISOR)
+        // sur les refType != INTERVENTION. Le staff plateforme conserve la vue cross-org.
+        final Long orgId = tenantContext.isSuperAdmin() ? null : tenantContext.getRequiredOrganizationId();
         return generationRepository.findByReferenceTypeAndReferenceIdOrderByCreatedAtDesc(referenceType, referenceId)
                 .stream()
+                .filter(g -> orgId == null || orgId.equals(g.getOrganizationId()))
                 .map(DocumentGenerationDto::fromEntity)
                 .toList();
     }
@@ -259,8 +264,14 @@ public class DocumentGeneratorService {
 
     @Transactional(readOnly = true)
     public Page<DocumentGenerationDto> listGenerations(Pageable pageable) {
-        return generationRepository.findAllByOrderByCreatedAtDesc(pageable)
-                .map(DocumentGenerationDto::fromEntity);
+        // Audit 2026-07 F1-02 : scoper l'historique à l'organisation courante (le filtre
+        // Hibernate organizationFilter est inerte sur les flux HTTP). Le staff plateforme
+        // (SUPER_ADMIN/SUPER_MANAGER) conserve la vue cross-org.
+        Page<com.clenzy.model.DocumentGeneration> page = tenantContext.isSuperAdmin()
+                ? generationRepository.findAllByOrderByCreatedAtDesc(pageable)
+                : generationRepository.findByOrganizationIdOrderByCreatedAtDesc(
+                        tenantContext.getRequiredOrganizationId(), pageable);
+        return page.map(DocumentGenerationDto::fromEntity);
     }
 
     @Transactional(readOnly = true)

@@ -90,6 +90,13 @@ export interface PendingAction {
    * pour préremplir la modale d'ajustement de prix. Absent si non actionnable.
    */
   actionParams?: string;
+  /**
+   * Carte informationnelle « email voyageur manquant » (scanner backend
+   * {@code guest_email_missing}) : le CTA n'exécute AUCUNE action serveur — il ouvre,
+   * côté front, le modal de fiche client (GuestCardDialog) pour compléter l'email.
+   * Nécessite un `reservationId` pour cibler la réservation. Jamais d'`/apply`.
+   */
+  opensGuestCard?: boolean;
 }
 
 // ─── Approbation inline (interrupt AG-UI, chemin live) ───────────────────────
@@ -118,6 +125,19 @@ export interface FeedEntry {
   text: string; // libellé de repli (résumé porté par l'outil, ou mock)
   /** Nom stable de l'outil → clé i18n `supervision.tools.<toolName>` (feed réel). */
   toolName?: string;
+  /**
+   * Id du message envoyé (GuestMessageLog) lié à cette entrée — présent uniquement pour
+   * les envois de message guest (ex. « Message de check-out »). Quand présent, la ligne
+   * est cliquable et ouvre une modale prévisualisant le contenu envoyé
+   * (GET /api/guest-messaging/preview/{messageLogId}).
+   */
+  messageLogId?: number;
+  /**
+   * Id de la facture liée à cette entrée — présent uniquement pour les relances
+   * de paiement (agent Finance). Quand présent, la ligne est cliquable et ouvre
+   * la modale de détail facture (payer / envoyer un lien de paiement).
+   */
+  invoiceId?: number;
   /**
    * Entrée issue de l'orchestrateur (réponse à une demande opérateur dans le
    * chat), pas d'un agent métier : rendu avec l'identité orchestrateur (icône +

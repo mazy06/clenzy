@@ -13,9 +13,13 @@ import {
   Paper,
   Divider,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Snackbar,
 } from '@mui/material';
-import {
-  Edit,
+import {  Edit,
   Home,
   LocationOn,
   Bed,
@@ -53,9 +57,11 @@ import {
   OpenInNew,
   PhotoLibrary,
   Inventory2,
+  Send,
 } from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { documentsApi } from '../../services/api/documentsApi';
 import { usePropertyDetails } from '../../hooks/usePropertyDetails';
 import type { PropertyDetailsData } from '../../hooks/usePropertyDetails';
 import PageHeader from '../../components/PageHeader';
@@ -276,6 +282,24 @@ const PropertyDetails: React.FC = () => {
   }, [photosQuery.data, id]);
 
   const [canEdit, setCanEdit] = useState(false);
+  // Devis ménage (Moteur Ménage 3A) : confirmation + envoi au propriétaire.
+  const [cleaningQuoteDialogOpen, setCleaningQuoteDialogOpen] = useState(false);
+  const [cleaningQuoteSending, setCleaningQuoteSending] = useState(false);
+  const [cleaningQuoteSnackbar, setCleaningQuoteSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+
+  const handleSendCleaningQuote = async () => {
+    setCleaningQuoteSending(true);
+    try {
+      await documentsApi.sendCleaningQuote(Number(id));
+      setCleaningQuoteSnackbar({ open: true, message: t('properties.cleaningQuote.sent'), severity: 'success' });
+      setCleaningQuoteDialogOpen(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error && err.message ? err.message : t('properties.cleaningQuote.error');
+      setCleaningQuoteSnackbar({ open: true, message, severity: 'error' });
+    } finally {
+      setCleaningQuoteSending(false);
+    }
+  };
   // Onglets de la fiche bien — `key` stable pour l'URL (?tab=<key>). L'onglet "settings" (dernier)
   // est masque sans droit d'edition ; useTabKeyParam derive l'index visible depuis la cle.
   const detailTabs = [
@@ -389,6 +413,17 @@ const PropertyDetails: React.FC = () => {
           backPath="/properties"
           actions={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              {canEdit && (
+                <Button
+                  variant="outlined"
+                  startIcon={<Send size={16} strokeWidth={1.75} />}
+                  onClick={() => setCleaningQuoteDialogOpen(true)}
+                  size="small"
+                  title={t('properties.cleaningQuote.button')}
+                >
+                  {t('properties.cleaningQuote.button')}
+                </Button>
+              )}
               {canEdit && (
                 <Button
                   variant="contained"
@@ -943,6 +978,39 @@ const PropertyDetails: React.FC = () => {
         </Box>
       )}
 
+
+      {/* Devis ménage : confirmation avant envoi au propriétaire */}
+      <Dialog open={cleaningQuoteDialogOpen} onClose={() => setCleaningQuoteDialogOpen(false)}>
+        <DialogTitle>{t('properties.cleaningQuote.confirmTitle')}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">{t('properties.cleaningQuote.confirmBody')}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button size="small" onClick={() => setCleaningQuoteDialogOpen(false)} disabled={cleaningQuoteSending}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            onClick={handleSendCleaningQuote}
+            disabled={cleaningQuoteSending}
+            startIcon={cleaningQuoteSending ? <CircularProgress size={14} color="inherit" /> : <Send size={14} strokeWidth={1.75} />}
+          >
+            {t('properties.cleaningQuote.confirmSend')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={cleaningQuoteSnackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setCleaningQuoteSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity={cleaningQuoteSnackbar.severity} variant="filled" onClose={() => setCleaningQuoteSnackbar((prev) => ({ ...prev, open: false }))}>
+          {cleaningQuoteSnackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

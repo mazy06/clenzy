@@ -94,6 +94,8 @@ export interface PricingConfig {
   monitoringClenzyInstallationPriceCents: number;
   monitoringClenzyConfigPriceCents: number;
   monitoringClenzySupportPriceCents: number;
+  /** Config JSON du moteur ménage (CleaningPricingEngine). null = défauts plateforme. */
+  cleaningEngineConfig: string | null;
   updatedAt: string | null;
 }
 

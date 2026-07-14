@@ -86,7 +86,8 @@ public class PriceSuggestionService {
      * édités, puis délègue à {@link SupervisionSuggestionService#apply} (CAS PENDING→APPLIED +
      * écriture {@code RateOverride}). Appels cross-service séparés (pas d'auto-invocation @Transactional).
      */
-    public void applyCustom(Long orgId, Long suggestionId, List<SegmentInput> segments, boolean raise) {
+    public void applyCustom(Long orgId, Long suggestionId, List<SegmentInput> segments, boolean raise,
+                            String appliedBy) {
         if (segments == null || segments.isEmpty()) {
             throw new IllegalArgumentException("Au moins un segment de prix est requis");
         }
@@ -107,7 +108,7 @@ public class PriceSuggestionService {
             throw new IllegalStateException("Sérialisation des segments impossible", e);
         }
         suggestionService.setCustomPriceParams(orgId, suggestionId, params);
-        suggestionService.apply(orgId, suggestionId);
+        suggestionService.apply(orgId, suggestionId, appliedBy);
         log.info("Prix ajusté (custom, {}) org={} suggestion={} : {} segment(s)",
                 raise ? "hausse" : "baisse", orgId, suggestionId, segments.size());
     }

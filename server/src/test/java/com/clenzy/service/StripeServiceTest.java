@@ -64,9 +64,6 @@ class StripeServiceTest {
     void setUp() throws Exception {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
-        StripeCheckoutSessionFactory checkoutSessionFactory = new StripeCheckoutSessionFactory(
-                interventionRepository, reservationRepository, serviceRequestRepository,
-                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext), stripeGateway);
         StripePaymentConfirmationService paymentConfirmationService = new StripePaymentConfirmationService(
                 interventionRepository, reservationRepository, serviceRequestRepository,
                 notificationService, serviceRequestService, walletService, ledgerService,
@@ -76,11 +73,7 @@ class StripeServiceTest {
         StripeRefundService refundService = new StripeRefundService(stripeGateway,
                 paymentStatusTransitionService, org.mockito.Mockito.mock(PaymentLedgerReversalService.class),
                 notificationService, kafkaTemplate);
-        stripeService = new StripeService(stripeGateway, checkoutSessionFactory,
-                paymentConfirmationService, refundService);
-        setField(checkoutSessionFactory, "currency", "EUR");
-        setField(checkoutSessionFactory, "successUrl", "https://ok.test");
-        setField(checkoutSessionFactory, "cancelUrl", "https://ko.test");
+        stripeService = new StripeService(stripeGateway, paymentConfirmationService, refundService);
         setField(paymentConfirmationService, "currency", "EUR");
         setField(stripeService, "stripeSecretKey", "sk_test_xxx");
         // Par defaut la transition gardee reussit (les tests d'idempotence la surchargent)
@@ -1198,151 +1191,11 @@ class StripeServiceTest {
         }
     }
 
-    @Nested
-    @DisplayName("createCheckoutSession - validation paths")
-    class CreateCheckoutSession {
-        @Test
-        void whenInterventionNotFound_thenThrows() {
-            when(interventionRepository.findById(99L)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> stripeService.createCheckoutSession(99L, BigDecimal.valueOf(100), "x@y.z"))
-                .isInstanceOf(RuntimeException.class);
-        }
-
-        @Test
-        void whenInterventionFromOtherOrg_thenAccessDenied() {
-            // findById contourne le filtre Hibernate → l'ownership org doit etre verifie explicitement
-            Intervention intervention = buildIntervention(7L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PENDING);
-            intervention.setOrganizationId(ORG_ID + 1);
-            when(interventionRepository.findById(7L)).thenReturn(Optional.of(intervention));
-
-            assertThatThrownBy(() -> stripeService.createCheckoutSession(7L, BigDecimal.valueOf(100), "x@y.z"))
-                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
-            verifyNoInteractions(stripeGateway);
-        }
-    }
-
-    @Nested
-    @DisplayName("createEmbeddedCheckoutSession - validation paths")
-    class CreateEmbeddedCheckoutSession {
-        @Test
-        void whenInterventionNotFound_thenThrows() {
-            when(interventionRepository.findById(99L)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> stripeService.createEmbeddedCheckoutSession(99L, BigDecimal.valueOf(100), "x@y.z"))
-                .isInstanceOf(RuntimeException.class);
-        }
-
-        @Test
-        void whenInterventionFromOtherOrg_thenAccessDenied() {
-            // findById contourne le filtre Hibernate → l'ownership org doit etre verifie explicitement
-            Intervention intervention = buildIntervention(8L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PENDING);
-            intervention.setOrganizationId(ORG_ID + 1);
-            when(interventionRepository.findById(8L)).thenReturn(Optional.of(intervention));
-
-            assertThatThrownBy(() -> stripeService.createEmbeddedCheckoutSession(8L, BigDecimal.valueOf(100), "x@y.z"))
-                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
-            verifyNoInteractions(stripeGateway);
-        }
-    }
-
-    @Nested
-    @DisplayName("createReservationCheckoutSession - currency resolution")
-    class CreateReservationCheckoutSession {
-        @Test
-        void whenReservationFound_thenUsesReservationCurrencyResolution() {
-            Reservation r = new Reservation();
-            r.setId(1L);
-            r.setCurrency("USD");
-            when(reservationRepository.findById(1L)).thenReturn(Optional.of(r));
-
-            // Will fail at Stripe.create(), but currency resolution path is exercised
-            try {
-                stripeService.createReservationCheckoutSession(1L, BigDecimal.valueOf(200), "g@h.com", "Guest", "Property");
-            } catch (Exception expected) {
-                // Stripe call fails — but the lookup ran
-            }
-            verify(reservationRepository).findById(1L);
-        }
-
-        @Test
-        void whenReservationNotFound_thenFallsBackToDefaultCurrency() {
-            when(reservationRepository.findById(99L)).thenReturn(Optional.empty());
-
-            try {
-                stripeService.createReservationCheckoutSession(99L, BigDecimal.valueOf(200), "g@h.com", "Guest", "Property");
-            } catch (Exception expected) {
-                // Stripe call fails — but the lookup ran
-            }
-            verify(reservationRepository).findById(99L);
-        }
-    }
-
-    @Nested
-    @DisplayName("createServiceRequestCheckoutSession - validation paths")
-    class CreateServiceRequestCheckoutSession {
-        @Test
-        void whenSrNotFound_thenThrows() {
-            when(serviceRequestRepository.findById(99L)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> stripeService.createServiceRequestCheckoutSession(99L, "u@h.com"))
-                .isInstanceOf(RuntimeException.class);
-        }
-
-        @Test
-        void whenSrNotInAwaitingPayment_thenThrows() {
-            ServiceRequest sr = buildServiceRequest(1L, RequestStatus.PENDING, PaymentStatus.PROCESSING);
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-
-            assertThatThrownBy(() -> stripeService.createServiceRequestCheckoutSession(1L, "u@h.com"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("AWAITING_PAYMENT");
-        }
-
-        @Test
-        void whenAmountInvalid_thenThrows() {
-            ServiceRequest sr = buildServiceRequest(1L, RequestStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
-            sr.setEstimatedCost(BigDecimal.ZERO);
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-
-            assertThatThrownBy(() -> stripeService.createServiceRequestCheckoutSession(1L, "u@h.com"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Montant invalide");
-        }
-
-        @Test
-        void whenAmountNull_thenThrows() {
-            ServiceRequest sr = buildServiceRequest(1L, RequestStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
-            sr.setEstimatedCost(null);
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-
-            assertThatThrownBy(() -> stripeService.createServiceRequestCheckoutSession(1L, "u@h.com"))
-                .isInstanceOf(RuntimeException.class);
-        }
-    }
-
-    @Nested
-    @DisplayName("createServiceRequestEmbeddedCheckoutSession - validation paths")
-    class CreateServiceRequestEmbedded {
-        @Test
-        void whenAmountInvalid_thenThrows() {
-            ServiceRequest sr = buildServiceRequest(1L, RequestStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
-            sr.setEstimatedCost(BigDecimal.ZERO);
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-
-            assertThatThrownBy(() -> stripeService.createServiceRequestEmbeddedCheckoutSession(1L, "u@h.com"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Montant invalide");
-        }
-
-        @Test
-        void whenSrNotFound_thenThrows() {
-            when(serviceRequestRepository.findById(99L)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> stripeService.createServiceRequestEmbeddedCheckoutSession(99L, "u@h.com"))
-                .isInstanceOf(RuntimeException.class);
-        }
-    }
+    // Les sections createCheckoutSession* / createEmbeddedCheckoutSession* /
+    // createReservationCheckoutSession* ont été supprimées : ces méthodes + la factory Stripe
+    // n'existent plus (flux migrés vers PaymentOrchestrationService). Les validations d'ownership
+    // et de montant serveur sont couvertes par InterventionPaymentService (via PaymentControllerTest)
+    // et l'orchestrateur. Idem createServiceRequest* (Vague 5) → ServiceRequestPaymentServiceTest.
 
     // ─── Idempotence des confirmations (Z3-BUGS-01 / Z3-SEC-02) ──────────────
 
@@ -1484,95 +1337,8 @@ class StripeServiceTest {
         }
     }
 
-    // ─── Montant serveur sur la creation de session (Z3-SEC-01 / Z3-BUGS-02) ─
-
-    @Nested
-    @DisplayName("createCheckoutSession - server-side amount")
-    class CreateSessionAmountChecks {
-
-        private Intervention interventionWithCost(Long id, BigDecimal cost) {
-            Intervention i = buildIntervention(id, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PENDING);
-            i.setEstimatedCost(cost);
-            return i;
-        }
-
-        @Test
-        @DisplayName("client amount different from estimatedCost -> rejected before Stripe")
-        void whenClientAmountDiffers_thenThrows() {
-            // Arrange
-            when(interventionRepository.findById(1L))
-                    .thenReturn(Optional.of(interventionWithCost(1L, new BigDecimal("500"))));
-
-            // Act & Assert
-            assertThatThrownBy(() -> stripeService.createCheckoutSession(1L, new BigDecimal("1"), "x@y.z"))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("ne correspond pas");
-            verifyNoInteractions(stripeGateway);
-        }
-
-        @Test
-        @DisplayName("missing estimatedCost -> rejected before Stripe")
-        void whenEstimatedCostMissing_thenThrows() {
-            // Arrange
-            when(interventionRepository.findById(1L))
-                    .thenReturn(Optional.of(interventionWithCost(1L, null)));
-
-            // Act & Assert
-            assertThatThrownBy(() -> stripeService.createCheckoutSession(1L, new BigDecimal("1"), "x@y.z"))
-                    .isInstanceOf(IllegalStateException.class);
-            verifyNoInteractions(stripeGateway);
-        }
-
-        @Test
-        @DisplayName("matching amount -> charges server amount converted to cents")
-        void whenAmountMatches_thenChargesServerAmountInCents() throws Exception {
-            // Arrange
-            Intervention i = interventionWithCost(1L, new BigDecimal("500.00"));
-            when(interventionRepository.findById(1L)).thenReturn(Optional.of(i));
-            com.stripe.model.checkout.Session session = mock(com.stripe.model.checkout.Session.class);
-            when(session.getId()).thenReturn("cs_new");
-            org.mockito.ArgumentCaptor<com.stripe.param.checkout.SessionCreateParams> captor =
-                    org.mockito.ArgumentCaptor.forClass(com.stripe.param.checkout.SessionCreateParams.class);
-            when(stripeGateway.createSession(captor.capture())).thenReturn(session);
-
-            // Act
-            stripeService.createCheckoutSession(1L, new BigDecimal("500.00"), "x@y.z");
-
-            // Assert
-            assertThat(captor.getValue().getLineItems().get(0).getPriceData().getUnitAmount())
-                    .isEqualTo(50000L);
-            assertThat(i.getStripeSessionId()).isEqualTo("cs_new");
-            assertThat(i.getPaymentStatus()).isEqualTo(PaymentStatus.PROCESSING);
-        }
-
-        @Test
-        @DisplayName("embedded: client amount different -> rejected before Stripe")
-        void whenEmbeddedClientAmountDiffers_thenThrows() {
-            // Arrange
-            when(interventionRepository.findById(1L))
-                    .thenReturn(Optional.of(interventionWithCost(1L, new BigDecimal("500"))));
-
-            // Act & Assert
-            assertThatThrownBy(() -> stripeService.createEmbeddedCheckoutSession(1L, new BigDecimal("0.01"), "x@y.z"))
-                    .isInstanceOf(IllegalArgumentException.class);
-            verifyNoInteractions(stripeGateway);
-        }
-
-        @Test
-        @DisplayName("null client amount -> server amount used")
-        void whenClientAmountNull_thenServerAmountUsed() throws Exception {
-            // Arrange
-            Intervention i = interventionWithCost(1L, new BigDecimal("75"));
-            when(interventionRepository.findById(1L)).thenReturn(Optional.of(i));
-            com.stripe.model.checkout.Session session = mock(com.stripe.model.checkout.Session.class);
-            when(session.getId()).thenReturn("cs_n");
-            when(stripeGateway.createSession(any())).thenReturn(session);
-
-            // Act
-            stripeService.createCheckoutSession(1L, null, "x@y.z");
-
-            // Assert
-            verify(stripeGateway).createSession(any());
-        }
-    }
+    // Les tests « montant serveur sur la création de session » (Z3-SEC-01 / Z3-BUGS-02) ont été
+    // retirés avec createCheckoutSession/createEmbeddedCheckoutSession : la garantie du montant
+    // serveur est désormais portée par InterventionPaymentService (le montant vient de l'entité,
+    // le client n'est qu'un cross-check) et l'adaptateur Stripe (StripeAmounts.toMinorUnits).
 }

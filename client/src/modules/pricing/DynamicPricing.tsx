@@ -26,6 +26,7 @@ import PricingCalendarView from './PricingCalendarView';
 import RatePlanManager from './RatePlanManager';
 import RatePlanForm from './RatePlanForm';
 import PricingOverviewView from './PricingOverviewView';
+import RestrictionsPanel from './RestrictionsPanel';
 import { calendarPricingApi } from '../../services/api/calendarPricingApi';
 import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPricingApi';
 import AiPricingRecommendations from './AiPricingRecommendations';
@@ -316,6 +317,7 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
         <Tab label={t('dynamicPricing.tabs.byProperty')} />
         <Tab label={t('dynamicPricing.tabs.overview')} />
         <Tab label={t('dynamicPricing.tabs.yield', 'Yield')} />
+        <Tab label={t('dynamicPricing.tabs.restrictions', 'Restrictions')} />
       </Tabs>
 
       {/* ─── Tab: Par propriété ─── */}
@@ -391,6 +393,9 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
 
       {/* ─── Tab: Yield (règles d'occupation, F8a) ─── */}
       {activeTab === 2 && <YieldRulesPanel />}
+
+      {/* ─── Tab: Restrictions de séjour (min/max stay, CTA/CTD → OTAs) ─── */}
+      {activeTab === 3 && <RestrictionsPanel propertyId={selectedPropertyId} />}
     </Box>
   );
 };

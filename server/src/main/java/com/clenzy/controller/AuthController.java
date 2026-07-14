@@ -62,6 +62,32 @@ public class AuthController {
     private final OrganizationService organizationService;
     private final RestTemplate restTemplate;
 
+    /** TTL du throttle de re-verification des invitations pending dans /me. */
+    private static final long PENDING_INVITATION_CHECK_TTL_MS = 2 * 60 * 1000L;
+
+    /**
+     * Dernier scan invitations par email (throttle per-instance : un scan raté
+     * sur une autre instance est simplement rejoué après TTL — sans enjeu de
+     * cohérence, l'acceptation reste idempotente).
+     */
+    private final Map<String, Long> pendingInvitationCheckAt = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private boolean shouldCheckPendingInvitations(String email) {
+        final long now = System.currentTimeMillis();
+        // Purge opportuniste pour borner la taille (utilisateurs sans org = rares).
+        if (pendingInvitationCheckAt.size() > 10_000) {
+            pendingInvitationCheckAt.clear();
+        }
+        final Long previous = pendingInvitationCheckAt.putIfAbsent(email, now);
+        if (previous == null) {
+            return true;
+        }
+        if (now - previous >= PENDING_INVITATION_CHECK_TTL_MS) {
+            return pendingInvitationCheckAt.replace(email, previous, now);
+        }
+        return false;
+    }
+
     public AuthController(UserService userService, PermissionService permissionService,
                           AuditLogService auditLogService, SecurityAuditService securityAuditService,
                           LoginProtectionService loginProtectionService,
@@ -287,11 +313,15 @@ public class AuthController {
                 }
             }
 
-            // Verifier les invitations pending meme pour les utilisateurs existants sans org
+            // Verifier les invitations pending meme pour les utilisateurs existants sans org.
+            // Throttle par email (audit perf) : /me est appele a chaque boot/refresh de
+            // session — sans garde, chaque appel rejouait un scan invitations + writes
+            // potentiels. Le cas nominal (invitation acceptee juste apres l'inscription)
+            // reste couvert : premier appel toujours verifie, re-verification apres TTL.
             if (user != null && user.getOrganizationId() == null) {
                 try {
                     String userEmail = user.getEmail();
-                    if (userEmail != null) {
+                    if (userEmail != null && shouldCheckPendingInvitations(userEmail)) {
                         invitationService.autoAcceptPendingInvitations(userEmail, user);
                     }
                 } catch (Exception invEx) {

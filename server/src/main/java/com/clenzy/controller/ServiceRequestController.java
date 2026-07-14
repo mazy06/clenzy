@@ -3,8 +3,6 @@ package com.clenzy.controller;
 import com.clenzy.dto.ServiceRequestDto;
 import com.clenzy.service.ServiceRequestPaymentService;
 import com.clenzy.service.ServiceRequestService;
-import com.clenzy.service.StripeService;
-import com.stripe.model.checkout.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -38,14 +36,11 @@ public class ServiceRequestController {
     private static final Logger log = LoggerFactory.getLogger(ServiceRequestController.class);
 
     private final ServiceRequestService service;
-    private final StripeService stripeService;
     private final ServiceRequestPaymentService serviceRequestPaymentService;
 
     public ServiceRequestController(ServiceRequestService service,
-                                    StripeService stripeService,
                                     ServiceRequestPaymentService serviceRequestPaymentService) {
         this.service = service;
-        this.stripeService = stripeService;
         this.serviceRequestPaymentService = serviceRequestPaymentService;
     }
 
@@ -140,8 +135,7 @@ public class ServiceRequestController {
             @AuthenticationPrincipal Jwt jwt) {
         try {
             String email = jwt.getClaimAsString("email");
-            Session session = stripeService.createServiceRequestCheckoutSession(id, email);
-            return ResponseEntity.ok(Map.of("checkoutUrl", session.getUrl()));
+            return ResponseEntity.ok(serviceRequestPaymentService.createPaymentSession(id, email));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", e.getMessage()));
@@ -149,18 +143,14 @@ public class ServiceRequestController {
     }
 
     @PostMapping("/{id}/create-embedded-session")
-    @Operation(summary = "Créer une session de paiement Stripe embedded pour la demande de service",
+    @Operation(summary = "Créer une session de paiement embedded pour la demande de service",
                description = "Retourne un clientSecret pour le composant EmbeddedCheckout cote frontend.")
     public ResponseEntity<?> createEmbeddedPaymentSession(
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt) {
         try {
             String email = jwt.getClaimAsString("email");
-            Session session = stripeService.createServiceRequestEmbeddedCheckoutSession(id, email);
-            return ResponseEntity.ok(Map.of(
-                "sessionId", session.getId(),
-                "clientSecret", session.getClientSecret()
-            ));
+            return ResponseEntity.ok(serviceRequestPaymentService.createEmbeddedPaymentSession(id, email));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", e.getMessage()));

@@ -2,6 +2,8 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.PricingConfigDto;
 import com.clenzy.service.PricingConfigService;
+import com.clenzy.service.PropertyService;
+import com.clenzy.service.pricing.CleaningPricingEngine;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -26,6 +28,8 @@ import static org.mockito.Mockito.*;
 class PricingConfigControllerTest {
 
     @Mock private PricingConfigService pricingConfigService;
+    @Mock private PropertyService propertyService;
+    @Mock private CleaningPricingEngine cleaningPricingEngine;
 
     private PricingConfigController controller;
 
@@ -41,7 +45,7 @@ class PricingConfigControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new PricingConfigController(pricingConfigService);
+        controller = new PricingConfigController(pricingConfigService, propertyService, cleaningPricingEngine);
     }
 
     @Nested

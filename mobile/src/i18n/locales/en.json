@@ -90,5 +90,109 @@
     "language": "Language",
     "notifications": "Notifications",
     "about": "About"
+  },
+  "anomaly": {
+    "title": "Report an issue",
+    "subtitle": "Document the problem you found",
+    "categorySection": "Issue type",
+    "severitySection": "Severity",
+    "locationSection": "Location",
+    "descriptionSection": "Description",
+    "photosSection": "Photos",
+    "categories": {
+      "DAMAGE": "Damage found",
+      "MISSING_ITEM": "Missing item",
+      "HYGIENE": "Hygiene problem",
+      "EQUIPMENT": "Faulty equipment",
+      "SAFETY": "Safety risk",
+      "OTHER": "Other"
+    },
+    "severities": {
+      "LOW": "Minor",
+      "MEDIUM": "Medium",
+      "HIGH": "Major",
+      "CRITICAL": "Critical"
+    },
+    "locationPlaceholder": "E.g. Bathroom, Kitchen, Bedroom 2…",
+    "descriptionPlaceholder": "Describe the problem you found…",
+    "photoCount_one": "{{count}} photo",
+    "photoCount_other": "{{count}} photos",
+    "submit": "Send report",
+    "successTitle": "Report sent",
+    "successMessage": "The issue has been reported to the manager.",
+    "contactManager": "Contact the manager",
+    "viewMyIssues": "View my reports",
+    "categoryRequiredTitle": "Category required",
+    "categoryRequiredMessage": "Select the issue type.",
+    "descriptionRequiredTitle": "Description required",
+    "descriptionRequiredMessage": "Describe the issue you found.",
+    "photosFailedTitle": "Photos not sent",
+    "photosFailedMessage": "The report was created, but the photos could not be uploaded.",
+    "submitError": "Could not send the report. Try again."
+  },
+  "myRates": {
+    "title": "My rates",
+    "menuLabel": "My rates",
+    "loadError": "Could not load your rates.",
+    "scoreSection": "Quality score (30 days)",
+    "scoreDetail": "{{count}} completed missions · {{proof}}% with photo proof",
+    "scoreHint": "Score = missions with an \"after\" photo × volume (5 missions = full weight).",
+    "hourlySection": "Hourly rate",
+    "referenceRate": "Platform reference rate: {{rate}} €/h",
+    "flatSection": "Flat rates per property",
+    "flatHint": "The flat rate takes precedence over the hourly rate. The range shows the platform advisory — never blocking.",
+    "noProperties": "No accessible property.",
+    "inMarket": "In market range",
+    "saveError": "Save failed.",
+    "saved": "Rates saved."
+  },
+  "myPayouts": {
+    "title": "My payouts",
+    "menuLabel": "My payouts",
+    "loadError": "Could not load your payouts.",
+    "accountSection": "Payout account",
+    "accountComplete": "Your payout account is set up: mission payouts are automatic.",
+    "accountInProgress": "Setup started but incomplete — finish it to receive your payouts.",
+    "accountNone": "Set up your payout account (Stripe) to automatically receive your mission earnings.",
+    "startOnboarding": "Set up my payouts",
+    "resumeOnboarding": "Finish setup",
+    "onboardingError": "Could not open the setup flow. Try again.",
+    "historySection": "History",
+    "noPayouts": "No payouts yet.",
+    "mission": "Mission #{{id}}",
+    "commission": "Commission −{{amount}} €",
+    "status": {
+      "SENT": "Sent",
+      "PENDING": "Pending",
+      "FAILED": "Failed",
+      "BLOCKED": "Blocked"
+    },
+    "reason": {
+      "proofMissing": "photo proof missing",
+      "onboardingIncomplete": "account setup required"
+    },
+    "completeMission": "Complete the mission (photos)",
+    "finishOnboarding": "Finish payout account setup"
+  },
+  "myIssues": {
+    "title": "My reports",
+    "menuLabel": "My reports",
+    "loadError": "Could not load your reports.",
+    "emptyTitle": "No reports",
+    "emptyDescription": "Your issue reports will appear here with their status.",
+    "status": {
+      "OPEN": "Open",
+      "QUALIFIED": "Qualified",
+      "CONVERTED": "Converted",
+      "DISMISSED": "Dismissed"
+    },
+    "suggestedCost": "Suggested cost: {{amount}} €"
+  },
+  "todayMissions": {
+    "missionsAmount": "Missions amount"
+  },
+  "mission": {
+    "scaleConform": "In line with the scale",
+    "scaleDelta": "{{delta}}% vs scale"
   }
 }

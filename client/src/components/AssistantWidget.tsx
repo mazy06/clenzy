@@ -45,7 +45,10 @@ function loadFabPosition(): FabPosition {
       const parsed = JSON.parse(raw);
       if (
         parsed &&
-        ['top', 'right', 'bottom', 'left'].includes(parsed.edge) &&
+        // Le bord HAUT n'est plus un ancrage valide (il chevauche le header/
+        // toolbar fixe de l'app). Une position 'top' persistee est rejetee ici
+        // → l'utilisateur bloque en haut repasse au defaut (bas-droite) au reload.
+        ['right', 'bottom', 'left'].includes(parsed.edge) &&
         typeof parsed.offsetPct === 'number' &&
         parsed.offsetPct >= 0 &&
         parsed.offsetPct <= 1
@@ -74,8 +77,9 @@ function saveFabPosition(pos: FabPosition): void {
 function closestEdge(x: number, y: number): FabEdge {
   const w = window.innerWidth;
   const h = window.innerHeight;
-  const distances: Record<FabEdge, number> = {
-    top: y,
+  // Bord HAUT volontairement exclu : le FAB y recouvrirait le header/toolbar
+  // fixe de l'app (barre Planning, AppBar). On ne dock qu'a gauche / droite / bas.
+  const distances: Record<Exclude<FabEdge, 'top'>, number> = {
     right: w - x - FAB_SIZE,
     bottom: h - y - FAB_SIZE,
     left: x,

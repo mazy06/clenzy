@@ -227,20 +227,46 @@ class ChannexClientTest {
     @Test
     @DisplayName("pushAvailability split en chunks de 500 et envoie tous les chunks")
     void pushAvailability_chunksBatches() {
-        // 1200 updates -> 3 chunks (500 + 500 + 200)
+        // 1200 updates a valeurs ALTERNEES (incompressibles) -> tiennent quand
+        // meme dans UN SEUL appel (cap 5000 entrees ; limite reelle Channex =
+        // 10 MB) : c'est ce qui garantit le full sync 500 j en 2 appels (certif).
         List<ChannexAvailabilityUpdate> updates = java.util.stream.IntStream.range(0, 1200)
             .mapToObj(i -> new ChannexAvailabilityUpdate("prop-1", "room-1",
                 LocalDate.of(2026, 6, 1).plusDays(i), i % 2))
             .toList();
 
-        for (int i = 0; i < 3; i++) {
-            mockServer.expect(requestTo(BASE + "/availability"))
-                .andExpect(method(HttpMethod.POST))
-                .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
-        }
+        mockServer.expect(requestTo(BASE + "/availability"))
+            .andExpect(method(HttpMethod.POST))
+            .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
 
         client.pushAvailability(updates);
         mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("pushAvailability compresse les runs en date_from/date_to + parse tasks/warnings")
+    void pushAvailability_compressesRunsAndParsesResponse() {
+        // 10 jours a availability=1 -> 1 seule entree {date_from, date_to}
+        List<ChannexAvailabilityUpdate> updates = java.util.stream.IntStream.range(0, 10)
+            .mapToObj(i -> new ChannexAvailabilityUpdate("prop-1", "room-1",
+                LocalDate.of(2026, 6, 1).plusDays(i), 1))
+            .toList();
+
+        mockServer.expect(requestTo(BASE + "/availability"))
+            .andExpect(method(HttpMethod.POST))
+            .andExpect(org.springframework.test.web.client.match.MockRestRequestMatchers.content()
+                .string(org.hamcrest.Matchers.allOf(
+                    org.hamcrest.Matchers.containsString("\"date_from\":\"2026-06-01\""),
+                    org.hamcrest.Matchers.containsString("\"date_to\":\"2026-06-10\""),
+                    org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("\"date\":\"2026-06-02\"")))))
+            .andRespond(withSuccess(
+                "{\"data\":[{\"id\":\"task-1\",\"type\":\"task\"}],\"meta\":{\"warnings\":[\"w1\"]}}",
+                MediaType.APPLICATION_JSON));
+
+        var result = client.pushAvailability(updates);
+        mockServer.verify();
+        assertThat(result.taskIds()).containsExactly("task-1");
+        assertThat(result.warnings()).containsExactly("w1");
     }
 
     @Test
@@ -414,19 +440,22 @@ class ChannexClientTest {
     }
 
     @Test
-    @DisplayName("pushRates chunke en batches de 500")
+    @DisplayName("pushRates : 750 jours a valeurs identiques -> 1 appel, 1 entree compressee")
     void pushRates_chunksBatches() {
         java.util.List<ChannexRateUpdate> updates = java.util.stream.IntStream.range(0, 750)
             .mapToObj(i -> ChannexRateUpdate.rateOnly("p", "r",
                 LocalDate.of(2026, 1, 1).plusDays(i), new BigDecimal("100")))
             .toList();
 
-        // 750 → 2 chunks (500 + 250)
-        for (int i = 0; i < 2; i++) {
-            mockServer.expect(requestTo(BASE + "/restrictions"))
-                .andExpect(method(HttpMethod.POST))
-                .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
-        }
+        // Valeurs identiques sur 750 jours consecutifs -> compression en UNE
+        // entree {date_from, date_to} -> UN SEUL appel API (full sync certif).
+        mockServer.expect(requestTo(BASE + "/restrictions"))
+            .andExpect(method(HttpMethod.POST))
+            .andExpect(org.springframework.test.web.client.match.MockRestRequestMatchers.content()
+                .string(org.hamcrest.Matchers.allOf(
+                    org.hamcrest.Matchers.containsString("\"date_from\":\"2026-01-01\""),
+                    org.hamcrest.Matchers.containsString("\"date_to\":\"2028-01-20\""))))
+            .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
 
         client.pushRates(updates);
         mockServer.verify();

@@ -123,6 +123,10 @@
       "action": "Appliquer",
       "dismiss": "Ignorer"
     },
+    "guestCard": {
+      "badge": "À compléter",
+      "cta": "Compléter la fiche client"
+    },
     "tools": {
       "ical_sync_failed": "Échec sync calendrier",
       "sensor_anomaly": "Anomalie capteur",
@@ -155,7 +159,30 @@
       "trigger_channel_sync": "Synchronisation canal lancée",
       "update_intervention_status": "Statut d'intervention mis à jour",
       "update_property_status": "Statut du logement mis à jour",
-      "update_reservation_status": "Statut de réservation mis à jour"
+      "update_reservation_status": "Statut de réservation mis à jour",
+      "yield_price_adjusted": "Tarif ajusté automatiquement (règle yield)",
+      "auto_applied": "Action appliquée automatiquement",
+      "suggestion_applied": "Suggestion validée et appliquée",
+      "concierge_replied": "Réponse envoyée au voyageur",
+      "concierge_drafted": "Brouillon de réponse voyageur préparé",
+      "owner_statement_sent": "Relevé propriétaire envoyé",
+      "deferred_payment_reminder": "Relance de paiement envoyée",
+      "SEND_MESSAGE": "Message envoyé (automatisation)",
+      "SEND_GUIDE": "Livret d'accueil envoyé (automatisation)",
+      "SEND_CHECKIN_LINK": "Lien de check-in envoyé (automatisation)",
+      "SEND_NOISE_WARNING": "Alerte bruit envoyée (automatisation)",
+      "SEND_REVIEW_REQUEST": "Demande d'avis envoyée (automatisation)",
+      "CREATE_CLEANING_REQUEST": "Ménage créé (automatisation)",
+      "CANCEL_LINKED_CLEANING_REQUEST": "Ménage lié annulé (automatisation)",
+      "CREATE_MAINTENANCE_INTERVENTION": "Intervention maintenance créée (automatisation)",
+      "NOTIFY_STAFF": "Équipe notifiée (automatisation)",
+      "REVOKE_ACCESS_CODE": "Code d'accès révoqué (automatisation)",
+      "SEND_INVOICE_REMINDER": "Relance de facture envoyée (automatisation)",
+      "SEND_OWNER_STATEMENT": "Relevé propriétaire envoyé (automatisation)",
+      "SUGGEST_DEPOSIT_REFUND": "Remboursement de caution suggéré (automatisation)",
+      "SUGGEST_DEPOSIT_RELEASE": "Libération de caution suggérée (automatisation)",
+      "NOTIFY_RATE_PARITY": "Écart de parité tarifaire signalé (automatisation)",
+      "SUGGEST_CALENDAR_BLOCK": "Blocage calendrier suggéré (automatisation)"
     },
     "approval": {
       "title": "Validation requise",
@@ -183,16 +210,68 @@
     "feed": {
       "title": "En direct",
       "empty": "Aucune action récente des agents",
-      "emptyOnboarding": "Les agents observent vos logements. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord."
+      "emptyOnboarding": "Les agents observent vos logements. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord.",
+      "openMessage": "Voir le message envoyé",
+      "openInvoice": "Voir la facture"
+    },
+    "messageModal": {
+      "title": "Message envoyé",
+      "subject": "Sujet",
+      "loading": "Chargement du message…",
+      "unavailable": "Aperçu du message indisponible.",
+      "close": "Fermer"
+    },
+    "invoiceModal": {
+      "title": "Facture",
+      "amount": "Montant TTC",
+      "dueDate": "Échéance",
+      "buyer": "Client",
+      "reservation": "Réservation",
+      "intervention": "Prestation",
+      "openBilling": "Ouvrir dans Facturation",
+      "pay": "Payer",
+      "sendLink": "Envoyer le lien de paiement",
+      "sentTo": "Lien de paiement envoyé à",
+      "notPayable": "Cette facture n’est pas (ou plus) payable en ligne.",
+      "loadError": "Facture introuvable ou inaccessible.",
+      "payError": "Lien de paiement non généré.",
+      "sendError": "Envoi impossible — aucun email client résolvable ou facture non payable.",
+      "close": "Fermer",
+      "status": {
+        "DRAFT": "Brouillon",
+        "SENT": "Envoyée",
+        "ISSUED": "Émise",
+        "PAID": "Payée",
+        "OVERDUE": "En retard",
+        "CANCELLED": "Annulée",
+        "CREDIT_NOTE": "Avoir"
+      }
     },
     "report": {
       "title": "Bilan · 30 jours",
       "titleBase": "Bilan",
       "windowDays": "{{count}} jours",
-      "win": { "day": "Jour", "week": "Sem.", "fortnight": "Quinz.", "month": "Mois" },
+      "win": {
+        "day": "Jour",
+        "week": "Sem.",
+        "fortnight": "Quinz.",
+        "month": "Mois"
+      },
       "timeSaved": "Temps gagné",
       "autoActions": "Actions auto",
-      "acceptance": "Acceptation"
+      "acceptance": "Acceptation",
+      "acceptanceByType": "Acceptation par type",
+      "decisions": "{{count}} déc.",
+      "types": {
+        "CLEANING_REQUEST": "Ménage manquant",
+        "REVIEW_DRAFT_REPLY": "Brouillon d'avis",
+        "PRICE_DROP": "Ajustement tarifaire",
+        "YIELD_PRICE_ADJUST": "Ajustement yield",
+        "CALENDAR_BLOCK": "Blocage calendrier",
+        "DEPOSIT_REFUND": "Remboursement caution",
+        "DEPOSIT_RELEASE": "Libération caution",
+        "PAYMENT_REMINDER": "Relance paiement"
+      }
     },
     "reviewDrafts": {
       "title": "Brouillons de réponse (IA)",
@@ -1635,7 +1714,31 @@
     "activeFeatures": "Options actives",
     "department": "Departement",
     "arrondissement": "Arrondissement",
-    "addressAutocomplete": "Rechercher une adresse..."
+    "addressAutocomplete": "Rechercher une adresse...",
+    "cleaningEstimator": {
+      "engineBadge": "Moteur Ménage Baitly",
+      "adopted": "Prix du logement aligné sur le conseil",
+      "adoptAsBasePrice": "Adopter comme prix du logement",
+      "currentBasePrice": "Prix du logement actuel",
+      "breakdownTitle": "Décomposition du temps",
+      "breakdown": {
+        "base": "Base (chambres)",
+        "bathrooms": "Salles de bain supplémentaires",
+        "surface": "Surface au-delà du seuil",
+        "floors": "Étages supplémentaires",
+        "exterior": "Extérieur",
+        "laundry": "Buanderie / linge",
+        "guests": "Voyageurs au-delà de 4"
+      }
+    },
+    "cleaningQuote": {
+      "button": "Devis ménage",
+      "confirmTitle": "Envoyer le devis ménage ?",
+      "confirmBody": "Le devis ménage (prix conseillé par type, fourchette et durée) sera généré en PDF et envoyé par email au propriétaire du logement. Document informatif, sans signature.",
+      "confirmSend": "Envoyer au propriétaire",
+      "sent": "Devis ménage envoyé au propriétaire",
+      "error": "Échec de l'envoi du devis ménage"
+    }
   },
   "serviceRequests": {
     "detail": {
@@ -2086,6 +2189,97 @@
     }
   },
   "reservations": {
+    "dialog": {
+      "priceVariable": "variable",
+      "editGuest": "Modifier le voyageur",
+      "nationality": "Nationalité (pays)",
+      "language": "Langue",
+      "guestNotes": "Notes",
+      "stepStay": "Logement & dates",
+      "stepTraveler": "Voyageur",
+      "stepPricing": "Tarif & prestations",
+      "stepFinalize": "Finalisation",
+      "next": "Suivant",
+      "previous": "Précédent",
+      "recapTitle": "Récapitulatif",
+      "recapProperty": "Logement",
+      "recapDates": "Dates",
+      "recapGuest": "Voyageur",
+      "recapTotal": "Total",
+      "stayDates": "Dates du séjour",
+      "traveler": "Voyageur",
+      "travelers": "Voyageurs",
+      "pricingSection": "Tarification",
+      "basePerNight": "Base / nuit (€)",
+      "customPrice": "Prix perso. (€/nuit)",
+      "discountEuro": "Réduction (€)",
+      "discountPercent": "Réduction (%)",
+      "tabCustom": "Personnalisé",
+      "tabDiscountEuro": "Réduction €",
+      "tabDiscountPercent": "Réduction %",
+      "night": "nuit",
+      "nights": "nuits",
+      "total": "Total",
+      "accommodation": "Hébergement",
+      "cleaningLine": "Ménage",
+      "touristTaxLine": "Taxe de séjour",
+      "cleaningAtCheckout": "Ménage au départ",
+      "cleaningFee": "Frais ménage (€)",
+      "touristTaxPerPerson": "Taxe / pers. / nuit (€)",
+      "estimatedCleaning": "Montant estimé du logement : {{amount}} €",
+      "notesPlaceholder": "Informations complémentaires…",
+      "searchGuest": "Rechercher un voyageur…",
+      "noGuestFound": "Aucun voyageur trouvé",
+      "typeToSearch": "Tapez au moins 2 caractères",
+      "createGuest": "Créer une fiche client",
+      "newGuest": "Nouveau voyageur",
+      "createGuestSubmit": "Créer le voyageur",
+      "createGuestError": "Erreur lors de la création",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "propertyPlaceholder": "Sélectionner un logement",
+      "propertyAutoSelected": "Propriété sélectionnée automatiquement",
+      "prevMonth": "Mois précédent",
+      "nextMonth": "Mois suivant",
+      "clearDates": "Effacer",
+      "conflictTitle": "Conflit détecté",
+      "conflictReservation": "Conflit avec la réservation de {{name}} ({{start}} → {{end}})",
+      "conflictCleaning": "Conflit avec un ménage prévu ({{start}} → {{end}})",
+      "conflictMaintenance": "Conflit avec une maintenance prévue ({{start}} → {{end}})",
+      "conflictBlocked": "Conflit avec un blocage ({{start}} → {{end}})",
+      "conflictBlocking": "Impossible de créer la réservation : conflit avec un évènement existant sur ce créneau",
+      "errorGuestRequired": "Veuillez sélectionner ou créer un voyageur",
+      "errorDatesRequired": "Veuillez sélectionner les dates",
+      "errorCreateFailed": "Erreur lors de la création",
+      "errorUpdateFailed": "Erreur lors de la mise à jour",
+      "submitCreate": "Créer la réservation",
+      "submitCreatePayment": "Créer & envoyer le lien de paiement",
+      "confirmNow": "Confirmer maintenant",
+      "requestPayment": "Demander le paiement",
+      "paymentEmail": "Email pour le lien de paiement",
+      "paymentEmailHelp": "Le lien Stripe sera envoyé à cette adresse.",
+      "confirmNowHint": "Bloque le calendrier immédiatement, génère les codes d'accès et notifie le voyageur.",
+      "requestPaymentHint": "Crée la réservation en attente et envoie un lien de paiement Stripe au voyageur ; les dates ne se bloquent qu'une fois le paiement reçu.",
+      "errorPaymentNeedsAmount": "Renseignez un montant pour demander un paiement.",
+      "errorPaymentNeedsEmail": "Un email voyageur est requis pour envoyer le lien de paiement.",
+      "paymentLinkError": "Réservation créée (en attente), mais l'envoi du lien de paiement a échoué. Réessayez, ou envoyez-le depuis la réservation.",
+      "submitCreating": "Création…",
+      "submitSaving": "Enregistrement…",
+      "modeReservation": "Réservation",
+      "modeBlock": "Blocage",
+      "blockTitle": "Bloquer une période",
+      "blockTypeLabel": "Type",
+      "blockTypeBlocked": "Bloqué (indisponible)",
+      "blockTypeMaintenance": "Maintenance / Travaux",
+      "blockReason": "Raison (optionnel)",
+      "blockReasonPlaceholder": "Ex : séjour propriétaire, travaux plomberie…",
+      "blockSubmit": "Bloquer",
+      "blockSubmitting": "Blocage…",
+      "blockNight": "nuit bloquée",
+      "blockNights": "nuits bloquées",
+      "blockErrorRequired": "Veuillez sélectionner un logement et des dates.",
+      "blockErrorFailed": "Erreur lors du blocage"
+    },
     "compliance": {
       "title": "Fiche de police",
       "primaryTraveler": "Voyageur principal",
@@ -2596,7 +2790,14 @@
     "email": "Email",
     "role": "Rôle",
     "firstName": "Prénom",
-    "lastName": "Nom"
+    "lastName": "Nom",
+    "ratesDialog": {
+      "title": "Tarifs & score",
+      "inMarket": "Dans le marché",
+      "loadError": "Impossible de charger les tarifs de ce prestataire.",
+      "saveError": "Enregistrement impossible.",
+      "saved": "Tarifs enregistrés."
+    }
   },
   "settings": {
     "title": "Paramètres",
@@ -2709,7 +2910,7 @@
       "manualNote": "Virement manuel"
     },
     "myPayout": {
-      "tabLabel": "Mes reversements",
+      "tabLabel": "Reversements propriétaire",
       "title": "Mes coordonnees de reversement",
       "subtitle": "Renseignez vos coordonnees bancaires pour recevoir vos reversements.",
       "statusLabel": "Statut",
@@ -2858,6 +3059,62 @@
         "disconnectTitle": "Déconnecter Pennylane",
         "disconnectConfirm": "Voulez-vous déconnecter Pennylane ? La synchronisation comptable sera interrompue."
       }
+    },
+    "myRates": {
+      "tabLabel": "Mes tarifs",
+      "hourlySection": "Taux horaire",
+      "hourlyRate": "Mon taux horaire",
+      "referenceRate": "Taux de référence plateforme",
+      "hourlyHint": "Appliqué aux missions ménage sans forfait : durée normée du logement × votre taux.",
+      "flatSection": "Forfaits par logement",
+      "flatHint": "Le forfait prime sur le taux horaire pour ce logement. Laissez vide pour utiliser le taux horaire.",
+      "flatFieldAria": "Forfait pour {{name}}",
+      "advisoryLine": "Conseil pour ce logement : {{min}} – {{max}} €",
+      "advisoryMedian": "médiane",
+      "inMarket": "dans le marché",
+      "vsAdvisory": "vs conseil",
+      "noProperties": "Aucun logement dans votre organisation.",
+      "save": "Enregistrer mes tarifs",
+      "saveSuccess": "Tarifs enregistrés",
+      "saveError": "Erreur lors de l'enregistrement",
+      "loadError": "Impossible de charger vos tarifs.",
+      "scoreSection": "Score qualité (30 jours)",
+      "scoreDetail": "{{count}} missions terminées · {{proof}} % avec preuve photo",
+      "scoreHint": "Score = part des missions avec photo « après » × volume (5 missions = plein régime). Il influence l'auto-assignation si votre organisation l'a activée."
+    },
+    "myProPayouts": {
+      "tabLabel": "Mes versements de missions",
+      "accountSection": "Compte de versement",
+      "accountHint": "Vos versements de missions ménage sont envoyés sur votre compte Stripe. La configuration se fait ici, sans quitter Baitly.",
+      "statusNotStarted": "non configuré",
+      "statusInProgress": "en cours",
+      "statusComplete": "configuré",
+      "startOnboarding": "Configurer mes versements",
+      "resumeOnboarding": "Reprendre la configuration",
+      "refreshStatus": "Revérifier",
+      "noPublishableKey": "Configuration Stripe absente (clé publique).",
+      "onboardingError": "Impossible de démarrer la configuration Stripe.",
+      "loadError": "Impossible de charger vos versements.",
+      "historySection": "Historique des versements",
+      "noPayouts": "Aucun versement pour le moment.",
+      "colDate": "Date",
+      "colMission": "Mission",
+      "colAmount": "Montant",
+      "colCommission": "Commission",
+      "colStatus": "Statut",
+      "status": {
+        "SENT": "envoyé",
+        "PENDING": "en cours",
+        "FAILED": "échec",
+        "BLOCKED": "bloqué"
+      },
+      "reason": {
+        "PROOF_MISSING": "preuve photo manquante",
+        "ONBOARDING_INCOMPLETE": "compte à configurer",
+        "AMOUNT_NOT_POSITIVE": "montant non positif"
+      },
+      "completeMission": "Compléter la mission",
+      "finishOnboarding": "Finaliser le compte de versement"
     }
   },
   "contracts": {
@@ -3123,6 +3380,7 @@
       "invoices": "Factures",
       "payouts": "Reversements",
       "expenses": "Dépenses",
+      "housekeeperPayouts": "Versements prestataires",
       "reportsExports": "Rapports & Exports",
       "exportsSection": "Exports comptables"
     },
@@ -3139,7 +3397,82 @@
     "subtitle": "Gestion des demandes de service et des interventions",
     "tabs": {
       "serviceRequests": "Demandes de service",
-      "interventions": "Interventions"
+      "interventions": "Interventions",
+      "issues": "Anomalies"
+    },
+    "recommended": {
+      "scale": "Barème conseillé",
+      "conform": "conforme au barème",
+      "vsScale": "vs barème"
+    }
+  },
+  "issues": {
+    "status": {
+      "open": "Ouverte",
+      "qualified": "Qualifiée",
+      "converted": "Convertie",
+      "dismissed": "Rejetée"
+    },
+    "severity": {
+      "low": "Mineure",
+      "medium": "Moyenne",
+      "high": "Élevée",
+      "critical": "Critique"
+    },
+    "filters": {
+      "all": "Toutes"
+    },
+    "columns": {
+      "date": "Date",
+      "property": "Logement",
+      "title": "Anomalie",
+      "severity": "Sévérité",
+      "suggestedCost": "Coût suggéré",
+      "status": "Statut"
+    },
+    "empty": {
+      "title": "Aucune anomalie signalée",
+      "description": "Les signalements du terrain (ménage, maintenance) apparaîtront ici pour qualification."
+    },
+    "reportedBy": "Signalée par",
+    "dismissedReason": "Motif du rejet",
+    "openServiceRequest": "Voir la demande de maintenance",
+    "qualifySection": "Qualification",
+    "fields": {
+      "category": "Catégorie",
+      "categoryHelp": "Alignée sur le catalogue travaux → chiffrage automatique",
+      "severity": "Sévérité",
+      "suggestedCost": "Coût (€)",
+      "dismissReason": "Motif de rejet (optionnel)"
+    },
+    "convertConfirm": "Créer une demande de maintenance pré-chiffrée à",
+    "convertConfirmSuffix": "confirmer ?",
+    "noCost": "chiffrage manuel",
+    "actionError": "Action impossible — vérifiez le statut de l'anomalie.",
+    "actions": {
+      "dismiss": "Rejeter",
+      "qualify": "Qualifier",
+      "convert": "Convertir en maintenance",
+      "confirmConvert": "Confirmer la conversion"
+    },
+    "create": {
+      "button": "Signaler une anomalie",
+      "title": "Signaler une anomalie",
+      "property": "Logement",
+      "selectProperty": "Sélectionner un logement",
+      "description": "Description (optionnelle)",
+      "noCategory": "Sans catégorie",
+      "submit": "Signaler",
+      "success": "Anomalie signalée",
+      "error": "Création impossible — vérifiez les champs."
+    },
+    "categories": {
+      "damage": "Dommage constaté",
+      "missing_item": "Objet manquant",
+      "hygiene": "Problème d'hygiène",
+      "equipment": "Équipement défaillant",
+      "safety": "Risque sécurité",
+      "other": "Autre"
     }
   },
   "propertiesPage": {
@@ -3293,7 +3626,8 @@
       "exterieur": "Extérieur",
       "blanchisserie": "Blanchisserie",
       "monitoring": "Monitoring",
-      "taxeSejour": "Taxe de séjour"
+      "taxeSejour": "Taxe de séjour",
+      "menage": "Ménage"
     },
     "monitoring": {
       "title": "Monitoring sonore des propriétés",
@@ -3549,6 +3883,56 @@
       "price": "Prix",
       "key": "Identifiant",
       "keyHelp": "Identifiant unique (ex: deep_cleaning, custom_prestation)"
+    },
+    "cleaning": {
+      "intro": "Le Moteur Ménage calcule un prix conseillé unique : minutes normées par composant du logement × taux horaire × multiplicateur du type de ménage. Champ vide = défaut plateforme.",
+      "workTime": "Temps de travail",
+      "baseByBedrooms": "Minutes de base selon le nombre de chambres",
+      "bedroomsN": "{{n}} ch.",
+      "bedrooms5plus": "5+ ch.",
+      "perExtraBathroom": "Par SDB supplémentaire",
+      "surfaceThreshold": "Seuil de surface",
+      "surfaceStep": "Pas de surface",
+      "surfaceStepMinutes": "Minutes par pas",
+      "perExtraFloor": "Par étage supplémentaire",
+      "exterior": "Extérieur",
+      "laundry": "Buanderie / linge",
+      "perGuestAbove4": "Par voyageur au-delà de 4",
+      "ratesAndRounding": "Taux & arrondis",
+      "hourlyRate": "Taux horaire de référence",
+      "rangePercent": "Fourchette (±)",
+      "roundTo": "Arrondi au multiple de",
+      "minPrice": "Prix plancher",
+      "cleaningTypes": "Types de ménage",
+      "simulator": "Simulateur",
+      "simulatorSavedConfigHint": "La simulation utilise la grille ENREGISTRÉE côté serveur. Sauvegardez vos modifications (bouton Enregistrer en haut) pour les voir reflétées ici.",
+      "simulatorProperty": "Logement",
+      "simulatorSelectProperty": "Sélectionner un logement",
+      "sourceOverride": "Prix du logement (override)",
+      "sourceEngine": "Conseil moteur",
+      "simulatorDate": "Date de prestation (optionnelle)",
+      "seasonal": {
+        "title": "Majorations saisonnières",
+        "hint": "Ajuste le CONSEIL moteur sur une fenêtre de dates (MM-JJ, chevauchement d'année autorisé). Les forfaits et taux horaires négociés des prestataires ne sont jamais majorés.",
+        "from": "Du",
+        "to": "Au",
+        "percent": "Ajustement",
+        "label": "Libellé",
+        "add": "Ajouter une fenêtre",
+        "remove": "Supprimer",
+        "empty": "Aucune majoration saisonnière — le conseil moteur est identique toute l'année.",
+        "formatHint": "Format MM-JJ",
+        "percentHint": "Entre -50 et +100",
+        "firstMatchHint": "Si plusieurs fenêtres couvrent une même date, la PREMIÈRE de la liste s'applique."
+      },
+      "assignment": {
+        "title": "Assignation",
+        "autoBestPro": "Auto-assigner le meilleur prestataire",
+        "autoBestProHint": "Après la sélection d'équipe, la mission est confiée au housekeeper au meilleur score qualité (30 j). Désactivé par défaut : l'assignation reste à l'équipe."
+      },
+      "sourceHousekeeperRate": "Tarif prestataire",
+      "simulatorError": "Le calcul de l'estimation a échoué — réessayez.",
+      "simulatorInsufficientData": "Données insuffisantes : renseignez au moins les chambres ou la surface du logement pour une estimation fiable."
     }
   },
   "channels": {
@@ -4906,6 +5290,43 @@
       "downloading": "Téléchargement...",
       "error": "Erreur lors du téléchargement"
     },
+    "housekeeperPayouts": {
+      "help": {
+        "title": "Versements prestataires (ménage)",
+        "description": "Versements Stripe directs aux prestataires (ménage), déclenchés automatiquement à la validation de mission. Distincts des reversements propriétaires et de la saisie de dépenses.",
+        "dismiss": "Ne plus afficher"
+      },
+      "col": {
+        "provider": "Prestataire",
+        "mission": "Mission",
+        "net": "Montant net",
+        "commission": "Commission",
+        "status": "Statut",
+        "date": "Date"
+      },
+      "provider": "Prestataire",
+      "missionRef": "Mission",
+      "statuses": {
+        "PENDING": "En attente",
+        "SENT": "Envoyé",
+        "FAILED": "Échoué",
+        "BLOCKED": "Bloqué"
+      },
+      "reasons": {
+        "PROOF_MISSING": "Preuve manquante",
+        "ONBOARDING_INCOMPLETE": "Onboarding Stripe incomplet",
+        "AMOUNT_NOT_POSITIVE": "Montant non positif"
+      },
+      "retry": "Relancer le versement",
+      "retryTitle": "Relancer le versement",
+      "retryConfirm": "Relancer le versement de {{amount}} à {{provider}} ?",
+      "retryConfirmBtn": "Relancer",
+      "retrySuccess": "Relance du versement effectuée",
+      "retryError": "Conditions du versement toujours non réunies (preuve / onboarding).",
+      "empty": "Aucun versement prestataire",
+      "emptyDescription": "Les versements apparaîtront ici automatiquement à la validation des missions de ménage.",
+      "error": "Erreur lors du chargement des versements prestataires"
+    },
     "expenses": {
       "help": {
         "title": "Comment fonctionnent les dépenses ?",
@@ -5120,7 +5541,7 @@
         "organization": "Organisation",
         "payment": "Paiement",
         "integrations": "Intégrations",
-        "payouts": "Reversements",
+        "payouts": "Reversements (plateforme)",
         "amenitiesOta": "Commodités OTA"
       },
       "subtitle": {
@@ -5134,7 +5555,9 @@
         "payment": "Fournisseurs de paiement (Stripe, PayPal, PayTabs, CMI…) et règles de répartition.",
         "integrations": "Connectez vos outils tiers : signature électronique, comptabilité, KYC, conformité légale, channels OTA.",
         "payouts": "Calendrier et règles de calcul des reversements aux propriétaires.",
-        "amenitiesOta": "Mappez les équipements détectés sur vos listings OTA (Airbnb, Booking, etc.) vers le référentiel Baitly. Créez vos propres commodités si rien ne correspond."
+        "amenitiesOta": "Mappez les équipements détectés sur vos listings OTA (Airbnb, Booking, etc.) vers le référentiel Baitly. Créez vos propres commodités si rien ne correspond.",
+        "myRates": "Votre taux horaire, vos forfaits par logement et votre score qualité.",
+        "myPayoutsPro": "Compte de versement Stripe et historique de vos versements de missions."
       }
     },
     "dashboard": {
@@ -5215,7 +5638,8 @@
         "exterieur": "Tarifs des prestations extérieures : jardinage, piscine, espaces verts.",
         "blanchisserie": "Tarification du linge : forfaits par type de pièce, lavage et livraison.",
         "monitoring": "Tarifs des offres de monitoring sonore (Minut, Roomonitor) propagés aux clients.",
-        "taxeSejour": "Barèmes de taxe de séjour de l’organisation, rapport et export par période."
+        "taxeSejour": "Barèmes de taxe de séjour de l’organisation, rapport et export par période.",
+        "menage": "Moteur Ménage : minutes normées par composant, taux horaire et fourchette du prix conseillé."
       }
     },
     "billing": {
@@ -5227,6 +5651,7 @@
         "wallets": "Solde des portefeuilles par propriétaire : mouvements, blocages, retraits et historique détaillé.",
         "payouts": "Calendrier des reversements aux propriétaires : calculs SEPA, statut, exports bancaires.",
         "expenses": "Suivi des dépenses opérationnelles par catégorie et par bien : factures fournisseurs, refacturation.",
+        "housekeeperPayouts": "Versements Stripe directs aux prestataires (ménage), déclenchés à la validation de mission — distincts des reversements propriétaires.",
         "reportsExports": "Rapport fiscal (TVA, taxes, NF 525) et exports comptables formatés pour vos outils tiers."
       }
     },
@@ -5777,6 +6202,76 @@
       "list": "Vue liste",
       "card": "Vue cartes"
     },
-    "emptyDesc": "Les règles d'automatisation apparaîtront ici."
+    "emptyDesc": "Les règles d'automatisation apparaîtront ici.",
+    "constellation": {
+      "title": "Constellation — actions automatiques",
+      "subtitle": "Les agents appliquent eux-mêmes certaines actions sûres, sous enveloppe. Le niveau de chaque agent reste le plafond ; hors enveloppe, une carte à valider est créée comme aujourd’hui.",
+      "levelNotify": "Appliquer et notifier",
+      "levelFull": "Appliquer en silence",
+      "acceptance": "Acceptation",
+      "noDecisions": "Pas encore de décision",
+      "acceptanceTooltip": "Taux d’acceptation des cartes de ce type sur 30 jours ({{count}} décisions). Activez quand il est durablement élevé.",
+      "cappedBySuggest": "Plafonné par le niveau de l’agent {{agent}} : Suggestion",
+      "cappedByNotify": "Plafonné par le niveau de l’agent {{agent}} : Agir puis notifier",
+      "cappedTooltip": "Niveau de l’agent {{agent}} : Suggestion — passez-le en « Agir puis notifier » ou « Auto » pour activer.",
+      "maxSegmentPercent": "% max / segment",
+      "maxAutoBlockDays": "Jours max (auto)",
+      "minDaysAfterCheckout": "Délai post-départ (j)",
+      "recommended": "Recommandé — {{count}} approbations consécutives",
+      "enableSuggestion": "Activer",
+      "ignoreSuggestion": "Ignorer",
+      "types": {
+        "CLEANING_REQUEST": {
+          "label": "Planifier le ménage manquant",
+          "description": "Départ de demain sans ménage : la demande est créée automatiquement (fréquence « après chaque séjour » uniquement, idempotent)."
+        },
+        "REASSIGN_CLEANING": {
+          "label": "Remplacer le prestataire désisté",
+          "description": "Prestataire ménage désisté sans remplaçant immédiat : la réassignation est relancée automatiquement (idempotent — le scheduler 15 min continue en parallèle)."
+        },
+        "REVIEW_DRAFT_REPLY": {
+          "label": "Préparer le brouillon de réponse d'avis",
+          "description": "Avis négatif : le brouillon est généré automatiquement (budget IA requis). La publication reste toujours manuelle."
+        },
+        "PRICE_DROP": {
+          "label": "Ajuster les tarifs des créneaux creux",
+          "description": "Sous le cadre yield (mode Auto, ampleur limitée, protections calendrier) : l'ajustement proposé est appliqué automatiquement."
+        },
+        "CALENDAR_BLOCK": {
+          "label": "Bloquer le calendrier (incidents bruit)",
+          "description": "Escalade bruit avérée : le calendrier est bloqué automatiquement sur une plage courte (refusé si des nuits sont réservées).",
+          "conditions": "Au plus 1 blocage automatique par logement et par 7 jours."
+        },
+        "DEPOSIT_RELEASE": {
+          "label": "Libérer la caution après le départ",
+          "description": "Séjour terminé, caution encore retenue : le hold Stripe est libéré automatiquement (aucun débit).",
+          "conditions": "Uniquement si aucune anomalie terrain n'est ouverte sur le logement."
+        },
+        "DEPOSIT_REFUND": {
+          "label": "Rembourser la caution après annulation",
+          "description": "Réservation annulée, caution encore retenue : le hold Stripe est libéré automatiquement (aucun débit).",
+          "conditions": "Uniquement si l'annulation est confirmée, sans anomalie ouverte ni débit en cours."
+        },
+        "PAYMENT_REMINDER": {
+          "label": "Relancer le paiement échoué",
+          "description": "Solde différé en échec : un lien de paiement est régénéré et envoyé automatiquement au voyageur.",
+          "conditions": "1ʳᵉ relance uniquement · 72 h min entre deux relances — les suivantes restent à valider."
+        }
+      }
+    }
+  },
+  "planning": {
+    "importChooser": {
+      "title": "Importer des réservations",
+      "subtitle": "Choisissez comment connecter vos canaux de réservation.",
+      "ical": {
+        "title": "Import iCal",
+        "description": "Importez les réservations d’un calendrier externe via un lien .ics (Airbnb, Booking, Vrbo…). Synchronisation en lecture seule."
+      },
+      "channex": {
+        "title": "Channel Manager",
+        "description": "Connectez vos OTA via Channex : réservations, tarifs et disponibilités synchronisés dans les deux sens."
+      }
+    }
   }
 }

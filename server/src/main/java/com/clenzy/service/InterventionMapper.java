@@ -132,6 +132,7 @@ public class InterventionMapper {
                .estimatedDurationHours(intervention.getEstimatedDurationHours())
                .actualDurationMinutes(intervention.getActualDurationMinutes())
                .estimatedCost(intervention.getEstimatedCost())
+               .recommendedCost(intervention.getRecommendedCost())
                .actualCost(intervention.getActualCost())
                .notes(intervention.getNotes());
 

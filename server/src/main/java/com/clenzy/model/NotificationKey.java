@@ -43,9 +43,19 @@ public enum NotificationKey {
     SERVICE_REQUEST_ESCALATION(NotificationType.ERROR, NotificationCategory.SERVICE_REQUEST, true),
     SERVICE_REQUEST_TEAM_ASSIGNED(NotificationType.SUCCESS, NotificationCategory.SERVICE_REQUEST, true),
 
+    // ─── ANOMALIE TERRAIN / ISSUE (2 cles — Moteur Menage 3C) ──────────────────
+    // ISSUE_REPORTED  : signalement terrain (housekeeper/technicien) — admins/managers org + owner.
+    // ISSUE_CONVERTED : anomalie convertie en demande de maintenance pre-chiffree — owner.
+    ISSUE_REPORTED(NotificationType.WARNING, NotificationCategory.SERVICE_REQUEST, true),
+    ISSUE_CONVERTED(NotificationType.INFO, NotificationCategory.SERVICE_REQUEST, true),
+
     // ─── PAYMENT (10 cles) ──────────────────────────────────────────────────────
 
     PAYMENT_SESSION_CREATED(NotificationType.INFO, NotificationCategory.PAYMENT, true),
+    // Moteur Ménage 3B (P9) — payout prestataire ménage.
+    PAYOUT_SENT(NotificationType.SUCCESS, NotificationCategory.PAYMENT, true),
+    PAYOUT_BLOCKED_ONBOARDING(NotificationType.WARNING, NotificationCategory.PAYMENT, true),
+    // (PAYOUT_FAILED existe déjà — section payouts owners — et est réutilisé par le payout pro.)
     PAYMENT_CONFIRMED(NotificationType.SUCCESS, NotificationCategory.PAYMENT, true),
     PAYMENT_FAILED(NotificationType.ERROR, NotificationCategory.PAYMENT, true),
     PAYMENT_GROUPED_SESSION_CREATED(NotificationType.INFO, NotificationCategory.PAYMENT, true),
@@ -76,6 +86,20 @@ public enum NotificationKey {
     CHANNEX_PRICE_DRIFT_DETECTED(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
     // Domaine 1 : divergence des restrictions de sejour (min stay / CTA / CTD) Clenzy ↔ OTA
     CHANNEX_RESTRICTION_DRIFT_DETECTED(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+    // Phase B Channex — evenements webhook additionnels :
+    // UNMAPPED_BOOKING : resa recue sur room/rate NON mappe (priorite doc — risque
+    // de double reservation tant que le mapping n'est pas corrige).
+    CHANNEX_UNMAPPED_BOOKING(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
+    // RATE_ERROR : tarifs rejetes par l'OTA (rate_error webhook).
+    CHANNEX_RATE_ERROR(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
+    // SYNC_WARNING : avertissement de sync non bloquant remonte par Channex.
+    CHANNEX_SYNC_WARNING(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+    // CHANNEL_EVENT : cycle de vie d'un canal OTA (connexion, deconnexion,
+    // activation/desactivation) — WARNING car une deconnexion stoppe la distribution.
+    CHANNEX_CHANNEL_EVENT(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+    // AIRBNB_REQUEST : demande Airbnb a traiter (reservation_request,
+    // alteration_request, inquiry) — action dans l'ecran Channex embarque.
+    CHANNEX_AIRBNB_REQUEST(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
 
     // ─── AI MODEL HEALTH (1 cle) ───────────────────────────────────────────────
     // Emise quand un modele LLM configure repond 410 Gone (EOL chez le provider).
@@ -195,10 +219,19 @@ public enum NotificationKey {
     REVIEW_RECEIVED(NotificationType.INFO, NotificationCategory.REVIEW, true),
     REVIEW_NEGATIVE_ALERT(NotificationType.WARNING, NotificationCategory.REVIEW, true),
 
-    // ─── SUPERVISION / CONSTELLATION (1 cle) ──────────────────────────────
+    // ─── SUPERVISION / CONSTELLATION (3 cles) ─────────────────────────────
     // Carte HITL actionnable (warning/critical) creee par un agent : l'operateur
     // doit la voir meme hors de l'ecran de supervision (anti « action manquee »).
     SUPERVISION_SUGGESTION(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+    // Action auto-appliquee par la constellation en niveau NOTIFY (Vague 1
+    // autonomie) : l'org est prevenue de ce qui vient d'etre fait (montant/objet
+    // dans le message) et peut corriger. En FULL (silencieux), seule une entree
+    // de feed est produite — pas de notification.
+    SUPERVISION_AUTO_APPLIED(NotificationType.INFO, NotificationCategory.SYSTEM, true),
+    // Regles de Confiance des cartes (Vague 3) : « vous avez approuve N fois de
+    // suite ce type de carte — l'automatiser ? ». Suggestion INERTE : l'humain
+    // active (menu Automatisation) ou ignore ; jamais d'activation automatique.
+    SUPERVISION_AUTO_RULE_SUGGESTED(NotificationType.INFO, NotificationCategory.SYSTEM, true),
 
     // ─── PAYOUT (7 cles) ──────────────────────────────────────────────────
     PAYOUT_BATCH_GENERATED(NotificationType.INFO, NotificationCategory.PAYMENT, true),

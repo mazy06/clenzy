@@ -37,6 +37,7 @@ public class InterventionLifecycleService {
     private final OutboxPublisher outboxPublisher;
     private final ObjectMapper objectMapper;
     private final TenantContext tenantContext;
+    private final com.clenzy.service.payout.HousekeeperPayoutService housekeeperPayoutService;
 
     public InterventionLifecycleService(InterventionRepository interventionRepository,
                                         InterventionMapper interventionMapper,
@@ -44,7 +45,8 @@ public class InterventionLifecycleService {
                                         NotificationService notificationService,
                                         OutboxPublisher outboxPublisher,
                                         ObjectMapper objectMapper,
-                                        TenantContext tenantContext) {
+                                        TenantContext tenantContext,
+                                        com.clenzy.service.payout.HousekeeperPayoutService housekeeperPayoutService) {
         this.interventionRepository = interventionRepository;
         this.interventionMapper = interventionMapper;
         this.accessPolicy = accessPolicy;
@@ -52,6 +54,7 @@ public class InterventionLifecycleService {
         this.outboxPublisher = outboxPublisher;
         this.objectMapper = objectMapper;
         this.tenantContext = tenantContext;
+        this.housekeeperPayoutService = housekeeperPayoutService;
     }
 
     /**
@@ -178,6 +181,11 @@ public class InterventionLifecycleService {
         // Notifications and outbox events AFTER save (entity has ID and state committed to JPA context)
         notifyInterventionCompleted(intervention);
         publishValidationFinMissionDocuments(intervention);
+
+        // Moteur Ménage 3B (P9) : payout du prestataire à la complétion validée par la
+        // preuve photo. Le service gère ses propres transactions + transfert post-commit ;
+        // il ne bloque JAMAIS la complétion (gate KO → record BLOCKED motivé).
+        housekeeperPayoutService.processPayoutForIntervention(intervention);
 
         return interventionMapper.convertToResponse(intervention);
     }

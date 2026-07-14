@@ -65,6 +65,7 @@ const DEFAULT_CONFIG: PricingConfig = {
   monitoringClenzyInstallationPriceCents: 0,
   monitoringClenzyConfigPriceCents: 0,
   monitoringClenzySupportPriceCents: 0,
+  cleaningEngineConfig: null,
   updatedAt: null,
 };
 

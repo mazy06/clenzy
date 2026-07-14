@@ -11,6 +11,7 @@ import {
   AccountBalance,
   Category,
   Assessment,
+  Payments,
 } from '../../icons';
 import { useTabKeyParam } from '../../components/tabKeyParam';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -27,6 +28,7 @@ import PaymentHistoryPage from '../payments/PaymentHistoryPage';
 import InvoicesList from '../invoices/InvoicesList';
 import WalletDashboard from '../finance/WalletDashboard';
 import { PayoutsTab, ExpensesTab, ExportsTab } from '../accounting/AccountingPage';
+import HousekeeperPayoutsTab from '../accounting/components/HousekeeperPayoutsTab';
 import FiscalReportSection from '../reports/FiscalReportSection';
 
 // La metadata par tab (breadcrumb + subtitle) est construite dans le composant
@@ -85,6 +87,7 @@ const BillingPage: React.FC = () => {
     { key: 'wallets',  label: t('navigation.wallets'),                                icon: <AccountBalanceWallet />,   hidden: !canViewWallets },
     { key: 'payouts',  label: t('billing.tabs.payouts', 'Reversements'),              icon: <AccountBalance />,         hidden: !canViewAccounting },
     { key: 'expenses', label: t('billing.tabs.expenses', 'Depenses'),                 icon: <Category />,               hidden: !canViewAccounting },
+    { key: 'housekeeper-payouts', label: t('billing.tabs.housekeeperPayouts', 'Versements prestataires'), icon: <Payments />, hidden: !canViewAccounting },
     { key: 'reports',  label: t('billing.tabs.reportsExports', 'Rapports & Exports'), icon: <Assessment />,             hidden: !canViewAccounting },
   ];
   const visibleTabs = tabs.filter((tab) => !tab.hidden);
@@ -109,6 +112,9 @@ const BillingPage: React.FC = () => {
     },
     [t('billing.tabs.expenses', 'Depenses')]: {
       subtitle: t('tabHeaders.billing.subtitle.expenses', 'Suivi des depenses operationnelles par categorie et par bien : factures fournisseurs, refacturation.'),
+    },
+    [t('billing.tabs.housekeeperPayouts', 'Versements prestataires')]: {
+      subtitle: t('tabHeaders.billing.subtitle.housekeeperPayouts', 'Versements Stripe directs aux prestataires (ménage), déclenchés à la validation de mission — distincts des reversements propriétaires.'),
     },
     [t('billing.tabs.reportsExports', 'Rapports & Exports')]: {
       subtitle: t('tabHeaders.billing.subtitle.reportsExports', 'Rapport fiscal (TVA, taxes, NF 525) et exports comptables formates pour vos outils tiers.'),
@@ -145,6 +151,7 @@ const BillingPage: React.FC = () => {
         {activeKey === 'wallets' && canViewWallets && <WalletDashboard embedded />}
         {activeKey === 'payouts' && canViewAccounting && <PayoutsTab />}
         {activeKey === 'expenses' && canViewAccounting && <ExpensesTab />}
+        {activeKey === 'housekeeper-payouts' && canViewAccounting && <HousekeeperPayoutsTab />}
         {activeKey === 'reports' && canViewAccounting && <ReportsExportsTab />}
       </Box>
     </PageHeaderActionsProvider>

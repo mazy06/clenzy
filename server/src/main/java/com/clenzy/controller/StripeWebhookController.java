@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.booking.service.PublicBookingService;
 import com.clenzy.integration.direct.service.DirectBookingService;
 import com.clenzy.payment.StripeGateway;
+import com.clenzy.service.ConsumerReconciledSourceTypes;
 import com.clenzy.service.InscriptionService;
 import com.clenzy.service.MobilePaymentService;
 import com.clenzy.service.PaymentOrchestrationService;
@@ -267,6 +268,19 @@ public class StripeWebhookController {
 
         logger.info("Type determine pour session {}: type={}", sessionId, type);
 
+        // Vague 2 (ADR paiement multi-provider) : les flux « payer un total » migrés vers
+        // l'orchestration (ex. paiement différé groupé) sont réconciliés de façon
+        // provider-agnostique par le consumer PAYMENT_COMPLETED (via sourceType). Ici on se
+        // contente de compléter le ledger (idempotent) et on sort — sans passer par la
+        // réconciliation Stripe-directe historique (dispatch par `type`).
+        if (isOrchestratedTotalPayment(session)) {
+            logger.info("checkout.session.completed orchestré (sourceType={}): session={} — completion ledger, "
+                    + "réconciliation via consumer PAYMENT_COMPLETED",
+                    session.getMetadata().get("sourceType"), sessionId);
+            updatePaymentTransaction(session, true);
+            return;
+        }
+
         // Z3-BUGS-10 : plus de try/catch avaleur par branche. Une exception de
         // confirmation remonte au handler principal qui retourne 500 → Stripe
         // re-livre l'evenement (les confirmations sont idempotentes).
@@ -340,6 +354,22 @@ public class StripeWebhookController {
      * If the session metadata contains a transactionRef, we update the corresponding
      * PaymentTransaction to keep it in sync with Stripe's status.
      */
+    /**
+     * Vrai si la session provient d'un flux « payer un total » orchestré (Vague 2)
+     * dont la réconciliation d'entité est portée par le consumer PAYMENT_COMPLETED
+     * (provider-agnostique), pas par le dispatch Stripe-direct de ce webhook.
+     *
+     * <p>Détection par le {@code sourceType} posé dans les metadata par
+     * l'orchestrateur (ex. paiement différé groupé). Les flux non encore migrés
+     * (sans sourceType reconnu) continuent le dispatch legacy par {@code type}.</p>
+     */
+    private boolean isOrchestratedTotalPayment(Session session) {
+        if (session.getMetadata() == null) return false;
+        // Source de vérité unique (partagée avec PaymentEventConsumer) : le contrôleur
+        // ne ré-encode plus la liste des sourceTypes réconciliés par le consumer.
+        return ConsumerReconciledSourceTypes.isReconciledByConsumer(session.getMetadata().get("sourceType"));
+    }
+
     private void updatePaymentTransaction(Session session, boolean success) {
         if (session == null || session.getMetadata() == null) return;
         String transactionRef = session.getMetadata().get("transactionRef");
@@ -368,6 +398,15 @@ public class StripeWebhookController {
 
         String sessionId = session.getId();
         String type = session.getMetadata() != null ? session.getMetadata().get("type") : null;
+
+        // Vague 2 : flux orchestré « payer un total » → completion ledger, réconciliation
+        // par le consumer PAYMENT_COMPLETED (cf. handleCheckoutCompleted).
+        if (isOrchestratedTotalPayment(session)) {
+            logger.info("async_payment_succeeded orchestré (sourceType={}): session={}",
+                    session.getMetadata().get("sourceType"), sessionId);
+            updatePaymentTransaction(session, true);
+            return;
+        }
 
         if ("hardware_purchase".equals(type)) {
             logger.info("Paiement hardware asynchrone reussi pour session: {}", sessionId);
@@ -412,6 +451,15 @@ public class StripeWebhookController {
 
         String sessionId = session.getId();
         String type = session.getMetadata() != null ? session.getMetadata().get("type") : null;
+
+        // Vague 2 : flux orchestré « payer un total » → échec ledger, réconciliation
+        // par le consumer PAYMENT_FAILED-agnostique (cf. handleCheckoutCompleted).
+        if (isOrchestratedTotalPayment(session)) {
+            logger.warn("async_payment_failed orchestré (sourceType={}): session={}",
+                    session.getMetadata().get("sourceType"), sessionId);
+            updatePaymentTransaction(session, false);
+            return;
+        }
 
         if ("inscription".equals(type)) {
             inscriptionService.markInscriptionFailed(sessionId);

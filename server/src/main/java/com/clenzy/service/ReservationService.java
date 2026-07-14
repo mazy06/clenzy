@@ -24,6 +24,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.clenzy.service.pricing.CleaningPricingEngine;
+import com.clenzy.service.pricing.CleaningPricingEngine.ResolvedCleaningPrice;
 import com.clenzy.tenant.TenantContext;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -56,6 +58,7 @@ public class ReservationService {
     private final GuestRepository guestRepository;
     private final StripeService stripeService;
     private final WebhookEventPublisher webhookEventPublisher;
+    private final CleaningPricingEngine cleaningPricingEngine;
 
     public ReservationService(ReservationRepository reservationRepository,
                               UserRepository userRepository,
@@ -76,7 +79,8 @@ public class ReservationService {
                               GuestRepository guestRepository,
                               // @Lazy : evite un cycle potentiel via les services de paiement.
                               @Lazy StripeService stripeService,
-                              WebhookEventPublisher webhookEventPublisher) {
+                              WebhookEventPublisher webhookEventPublisher,
+                              CleaningPricingEngine cleaningPricingEngine) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
@@ -95,6 +99,7 @@ public class ReservationService {
         this.guestRepository = guestRepository;
         this.stripeService = stripeService;
         this.webhookEventPublisher = webhookEventPublisher;
+        this.cleaningPricingEngine = cleaningPricingEngine;
     }
 
     /**
@@ -632,14 +637,17 @@ public class ReservationService {
         sr.setStatus(RequestStatus.PENDING);
         sr.setPriority(Priority.NORMAL);
 
-        // Use reservation cleaning fee if set, otherwise fallback to property base price
-        BigDecimal estimatedCost = managedReservation.getCleaningFee();
-        if (estimatedCost == null && property.getCleaningBasePrice() != null) {
-            estimatedCost = property.getCleaningBasePrice();
-        }
-        if (estimatedCost != null) {
-            sr.setEstimatedCost(estimatedCost);
-        }
+        // Prix : cleaningFee de la réservation prioritaire, sinon prix résolu
+        // (override logement OU conseil moteur — plus jamais null). Le conseil
+        // est snapshoté (recommended_cost) dans tous les cas.
+        ResolvedCleaningPrice resolvedPrice = cleaningPricingEngine
+                .resolveCleaningPrice(property, CleaningPricingEngine.STANDARD_CLEANING, null,
+                        managedReservation.getCheckOut());
+        BigDecimal estimatedCost = managedReservation.getCleaningFee() != null
+                ? managedReservation.getCleaningFee()
+                : resolvedPrice.amount();
+        sr.setEstimatedCost(estimatedCost);
+        sr.setRecommendedCost(resolvedPrice.quote().recommended());
         if (property.getCleaningDurationMinutes() != null) {
             sr.setEstimatedDurationHours(
                     (int) Math.ceil(property.getCleaningDurationMinutes() / 60.0));

@@ -128,12 +128,20 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
         width: colWidth,
         minWidth: colWidth,
         flexShrink: 0,
-        backgroundColor: 'var(--card)',
-        borderRight: '1px solid var(--line)',
+        // Le fond + la bordure droite (séparation 2 colonnes) ne sont PLUS sur la
+        // racine : sinon ils courent sur toute la hauteur, y compris la zone vide
+        // sous le dernier logement. Ils sont portés par le wrapper des lignes de
+        // propriété ci-dessous → sous les logements = espace vide uniforme.
       }}
     >
+      {/* Colonne visible (fond + bordure droite) bornée aux lignes de propriété :
+          la séparation 2 colonnes s'arrête au dernier logement. position:relative
+          → la poignée de resize (height:100%) est bornée à CETTE zone (les lignes)
+          et NON à la hauteur totale — sinon sa ligne verte de hover/resig courait
+          en pleine hauteur dans le vide (effet « 2 colonnes »). */}
+      <Box sx={{ position: 'relative', backgroundColor: 'var(--card)', borderRight: '1px solid var(--line)' }}>
       {/* Drag handle pour redimensionner la colonne (bord droit).
-          Hit-area de 6px, visuel discret sauf au hover/drag. */}
+          Hit-area de 6px, visuel discret sauf au hover/drag ; borné aux lignes. */}
       {onColWidthChange && (
         <Box
           onMouseDown={handleResizeMouseDown}
@@ -384,18 +392,26 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
               </Box>
             )}
           </Box>
-          {/* Spacer d'alignement : compense la hauteur de l'accordéon côté grille */}
+          {/* Spacer d'alignement : compense la hauteur de l'accordéon côté grille.
+              Fond = base SOMBRE de la constellation (et non var(--bg)) : le panneau
+              constellation (position:sticky, tiré à gauche par ml) met une frame à
+              se caler ; sans ça, la zone colonne de gauche flashait en clair une
+              fraction de seconde (« droite avant gauche »). Ici elle est déjà
+              sombre = raccord invisible avec la constellation. */}
           {expandedPropertyId === property.id && (
-            <Box sx={{ height: accordionHeight, borderBottom: '1px solid var(--line)', backgroundColor: 'var(--bg)' }} />
+            <Box sx={{ height: accordionHeight, borderBottom: '1px solid var(--line)', backgroundColor: '#0c0e2a' }} />
           )}
           </React.Fragment>
         );
       })}
-      {/* Empty filler rows — fond plat (spec : pas de zebra) */}
+      </Box>
+      {/* Zone vide sous le dernier logement : transparente, SANS bordure droite
+          → pas de « 2 colonnes », juste un espace vide (aligné sur la grille,
+          dont les lignes de remplissage sont aussi transparentes). */}
       {Array.from({ length: emptyRowCount }, (_, i) => (
         <Box
           key={`empty-${i}`}
-          sx={{ height: effectiveRowHeight, backgroundColor: 'var(--card)' }}
+          sx={{ height: effectiveRowHeight, backgroundColor: 'transparent' }}
         />
       ))}
 

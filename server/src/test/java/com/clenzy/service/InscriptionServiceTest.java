@@ -48,6 +48,8 @@ class InscriptionServiceTest {
     @Mock private PlatformPromoCodeService promoCodeService;
     @Mock private BrevoContactService brevoContactService;
     @Mock private StripeGateway stripeGateway;
+    @Mock private com.clenzy.payment.subscription.SubscriptionProviderRegistry subscriptionProviderRegistry;
+    @Mock private com.clenzy.payment.subscription.SubscriptionProvider subscriptionProvider;
 
     private InscriptionService inscriptionService;
 
@@ -57,7 +59,7 @@ class InscriptionServiceTest {
                 pendingInscriptionRepository, userRepository,
                 keycloakService, organizationService, pricingConfigService,
                 emailService, restTemplate, promoCodeService, brevoContactService,
-                stripeGateway);
+                stripeGateway, subscriptionProviderRegistry);
 
         setField(inscriptionService, "currency", "EUR");
         setField(inscriptionService, "inscriptionReturnUrl", "http://localhost:3000/inscription/success");
@@ -230,16 +232,18 @@ class InscriptionServiceTest {
             when(pricingConfigService.getAiMonthlySurchargeCents("confort")).thenReturn(2900);
             when(pendingInscriptionRepository.findByEmailAndStatus("x5@test.com", PendingInscriptionStatus.PENDING_PAYMENT))
                     .thenReturn(Optional.empty());
+            when(subscriptionProviderRegistry.resolve(any())).thenReturn(subscriptionProvider);
+            when(subscriptionProvider.createSubscriptionCheckout(any()))
+                    .thenReturn(com.clenzy.payment.PaymentResult.embedded("cs_x", "secret"));
 
-            // Act (le gateway mocke retourne null -> exception apres la creation de session)
-            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
-                    .isInstanceOf(Exception.class);
+            // Act
+            inscriptionService.initiateInscription(dto);
 
             // Assert : montant = 30 € PMS + 29 € supplément IA Confort
-            ArgumentCaptor<SessionCreateParams> captor = ArgumentCaptor.forClass(SessionCreateParams.class);
-            verify(stripeGateway).createSession(captor.capture());
-            assertThat(captor.getValue().getLineItems().get(0).getPriceData().getUnitAmount())
-                    .isEqualTo(5900L);
+            ArgumentCaptor<com.clenzy.payment.subscription.SubscriptionCheckoutRequest> captor =
+                    ArgumentCaptor.forClass(com.clenzy.payment.subscription.SubscriptionCheckoutRequest.class);
+            verify(subscriptionProvider).createSubscriptionCheckout(captor.capture());
+            assertThat(captor.getValue().unitAmountMinor()).isEqualTo(5900L);
         }
 
         @Test
@@ -918,21 +922,21 @@ class InscriptionServiceTest {
             when(pendingInscriptionRepository.findByEmailAndStatus(any(), any()))
                     .thenReturn(Optional.empty());
 
-            Session session = mock(Session.class);
-            when(session.getId()).thenReturn("cs_insc_1");
-            when(session.getClientSecret()).thenReturn("cs_insc_1_secret");
-            when(stripeGateway.createSession(any(SessionCreateParams.class))).thenReturn(session);
+            when(subscriptionProviderRegistry.resolve(any())).thenReturn(subscriptionProvider);
+            when(subscriptionProvider.createSubscriptionCheckout(any()))
+                    .thenReturn(com.clenzy.payment.PaymentResult.embedded("cs_insc_1", "cs_insc_1_secret"));
 
             Map<String, Object> result = inscriptionService.initiateInscription(dto);
 
             assertThat(result.get("clientSecret")).isEqualTo("cs_insc_1_secret");
             assertThat(result.get("sessionId")).isEqualTo("cs_insc_1");
 
-            // Les params Stripe passent par le gateway (plus de Stripe.apiKey statique)
-            ArgumentCaptor<SessionCreateParams> paramsCaptor =
-                    ArgumentCaptor.forClass(SessionCreateParams.class);
-            verify(stripeGateway).createSession(paramsCaptor.capture());
-            assertThat(paramsCaptor.getValue().getMetadata())
+            // Le checkout d'abonnement (embarqué) passe par le port SubscriptionProvider.
+            ArgumentCaptor<com.clenzy.payment.subscription.SubscriptionCheckoutRequest> paramsCaptor =
+                    ArgumentCaptor.forClass(com.clenzy.payment.subscription.SubscriptionCheckoutRequest.class);
+            verify(subscriptionProvider).createSubscriptionCheckout(paramsCaptor.capture());
+            assertThat(paramsCaptor.getValue().embedded()).isTrue();
+            assertThat(paramsCaptor.getValue().metadata())
                     .containsEntry("type", "inscription")
                     .containsEntry("email", "gateway@test.com");
 

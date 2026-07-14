@@ -64,7 +64,8 @@ export function createUploadFormData(
   type: 'before' | 'after',
 ): FormData {
   const formData = new FormData();
-  formData.append('type', type);
+  // Le backend lit le param multipart `photoType` (InterventionController.addPhotos)
+  formData.append('photoType', type);
 
   photos.forEach((photo, index) => {
     formData.append('photos', {

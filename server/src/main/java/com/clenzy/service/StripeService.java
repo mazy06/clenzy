@@ -15,14 +15,15 @@ import java.math.BigDecimal;
 
 /**
  * Facade des paiements Stripe : point d'entree transactionnel + circuit breaker
- * aux signatures historiques, qui delegue a trois collaborateurs (G1) :
+ * aux signatures historiques, qui delegue a deux collaborateurs (G1) :
  * <ul>
- *   <li>{@link StripeCheckoutSessionFactory} — creation des sessions Checkout
- *       (interventions, reservations, upsells, demandes de service) ;</li>
  *   <li>{@link StripePaymentConfirmationService} — confirmations idempotentes
  *       et marquage des echecs (webhooks + fallbacks) ;</li>
  *   <li>{@link StripeRefundService} — remboursements + contre-passation ledger.</li>
  * </ul>
+ *
+ * <p>La création des sessions Checkout a été retirée : tous les flux d'encaissement
+ * passent par {@code PaymentOrchestrationService} (multi-provider).</p>
  *
  * <p>Les annotations {@code @Transactional} / {@code @CircuitBreaker} restent
  * sur cette facade : les collaborateurs s'executent dans le contexte qu'elle
@@ -37,7 +38,6 @@ public class StripeService {
     private static final Logger log = LoggerFactory.getLogger(StripeService.class);
 
     private final StripeGateway stripeGateway;
-    private final StripeCheckoutSessionFactory checkoutSessionFactory;
     private final StripePaymentConfirmationService paymentConfirmationService;
     private final StripeRefundService refundService;
 
@@ -48,145 +48,22 @@ public class StripeService {
     private String embeddedReturnUrl;
 
     public StripeService(StripeGateway stripeGateway,
-                         StripeCheckoutSessionFactory checkoutSessionFactory,
                          StripePaymentConfirmationService paymentConfirmationService,
                          StripeRefundService refundService) {
         this.stripeGateway = stripeGateway;
-        this.checkoutSessionFactory = checkoutSessionFactory;
         this.paymentConfirmationService = paymentConfirmationService;
         this.refundService = refundService;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // Creation de sessions Checkout → StripeCheckoutSessionFactory
-    // ════════════════════════════════════════════════════════════════════════
+    // La création des sessions Checkout (interventions, réservations, upsells, demandes
+    // de service) a été retirée : tous ces flux passent désormais par
+    // PaymentOrchestrationService (multi-provider). La factory Stripe dédiée a été
+    // supprimée avec eux (Vague 2/5 + reste d'audit). StripeService ne conserve que
+    // l'interrogation de session, la confirmation et le remboursement.
 
-    /**
-     * Crée une session de paiement Stripe pour une intervention.
-     *
-     * <p>Le montant facturé est TOUJOURS résolu côté serveur depuis
-     * {@code intervention.getEstimatedCost()} (Z3-SEC-01 / Z3-BUGS-02). Le
-     * paramètre {@code amount} fourni par l'appelant n'est qu'un cross-check :
-     * s'il diffère du montant serveur, l'appel est rejeté.</p>
-     */
-    @CircuitBreaker(name = "stripe-api")
-    public Session createCheckoutSession(Long interventionId, BigDecimal amount, String customerEmail) throws StripeException {
-        return checkoutSessionFactory.createInterventionCheckoutSession(interventionId, amount, customerEmail, false);
-    }
-
-    /**
-     * Cree une session de paiement Stripe en mode EMBEDDED (inline dans l'interface).
-     * Retourne une session avec un clientSecret utilisable cote frontend
-     * via EmbeddedCheckoutProvider de @stripe/react-stripe-js.
-     *
-     * <p>Comme {@link #createCheckoutSession}, le montant facturé est résolu
-     * côté serveur ; {@code amount} n'est qu'un cross-check.</p>
-     */
-    @CircuitBreaker(name = "stripe-api")
-    public Session createEmbeddedCheckoutSession(Long interventionId, BigDecimal amount, String customerEmail) throws StripeException {
-        return checkoutSessionFactory.createInterventionCheckoutSession(interventionId, amount, customerEmail, true);
-    }
-
-    /**
-     * Crée une session de paiement Stripe pour une réservation (envoi par email au guest).
-     * Ne modifie pas la réservation (c'est le controller qui le fait).
-     */
-    @CircuitBreaker(name = "stripe-api")
-    public Session createReservationCheckoutSession(Long reservationId, BigDecimal amount,
-                                                     String customerEmail, String guestName,
-                                                     String propertyName) throws StripeException {
-        return createReservationCheckoutSession(reservationId, amount, customerEmail,
-            guestName, propertyName, null);
-    }
-
-    /**
-     * Variante avec duree de vie explicite de la session ({@code expires_at}).
-     * Utilisee par le flux booking engine {@code /reserve} + {@code /checkout} :
-     * le hold pending expire a 30 min, la session Stripe doit devenir
-     * inutilisable dans la foulee (~35 min, minimum Stripe : 30 min) — sinon un
-     * guest pouvait encore payer 24h apres la liberation des dates (reliquat
-     * revue A3). {@code expiresIn} null = comportement historique (lien de
-     * paiement email, payable 24h).
-     */
-    @CircuitBreaker(name = "stripe-api")
-    public Session createReservationCheckoutSession(Long reservationId, BigDecimal amount,
-                                                     String customerEmail, String guestName,
-                                                     String propertyName,
-                                                     java.time.Duration expiresIn) throws StripeException {
-        return checkoutSessionFactory.createReservationCheckoutSession(reservationId, amount,
-            customerEmail, guestName, propertyName, expiresIn);
-    }
-
-    /**
-     * Variante avec {@code successUrl} explicite (B3, parcours booking engine template-driven).
-     * {@code successUrl} null = {@code stripe.success-url} par defaut. L'appelant DOIT avoir valide
-     * cette URL (HTTPS + host autorise de l'org) — la factory l'utilise telle quelle.
-     */
-    @CircuitBreaker(name = "stripe-api")
-    public Session createReservationCheckoutSession(Long reservationId, BigDecimal amount,
-                                                     String customerEmail, String guestName,
-                                                     String propertyName,
-                                                     java.time.Duration expiresIn,
-                                                     String successUrl) throws StripeException {
-        return checkoutSessionFactory.createReservationCheckoutSession(reservationId, amount,
-            customerEmail, guestName, propertyName, expiresIn, successUrl);
-    }
-
-    /**
-     * Variante alimentant Stripe Radar (P2 — scoring de fraude advisory) : {@code riskMetadata}
-     * (null/vide = aucun effet) est propagé dans {@code payment_intent_data.metadata} (lu par Radar)
-     * + la metadata de session. Ne modifie jamais le montant ni les paramètres de paiement.
-     */
-    @CircuitBreaker(name = "stripe-api")
-    public Session createReservationCheckoutSession(Long reservationId, BigDecimal amount,
-                                                     String customerEmail, String guestName,
-                                                     String propertyName,
-                                                     java.time.Duration expiresIn,
-                                                     String successUrl,
-                                                     java.util.Map<String, String> riskMetadata) throws StripeException {
-        return checkoutSessionFactory.createReservationCheckoutSession(reservationId, amount,
-            customerEmail, guestName, propertyName, expiresIn, successUrl, riskMetadata);
-    }
-
-    /**
-     * Cree une session Stripe EMBEDDED pour un upsell guest (clientSecret cote livret).
-     * Chargee sur le compte plateforme comme les reservations ; la repartition part
-     * hote / part plateforme est creditee au ledger a la confirmation du paiement
-     * (cf. UpsellService.markPaidBySession via le webhook checkout.session.completed).
-     */
-    @CircuitBreaker(name = "stripe-api")
-    public Session createUpsellCheckoutSession(Long upsellOrderId, BigDecimal amount, String currencyCode,
-                                               String title, String customerEmail) throws StripeException {
-        return checkoutSessionFactory.createUpsellCheckoutSession(upsellOrderId, amount, currencyCode,
-            title, customerEmail);
-    }
-
-    /** Upsell HOSTED (redirection) — booking engine (cf. factory). */
-    @CircuitBreaker(name = "stripe-api")
-    public Session createUpsellHostedCheckoutSession(Long upsellOrderId, BigDecimal amount, String currencyCode,
-                                                     String title, String customerEmail, String successUrl) throws StripeException {
-        return checkoutSessionFactory.createUpsellHostedCheckoutSession(upsellOrderId, amount, currencyCode,
-            title, customerEmail, successUrl);
-    }
-
-    /**
-     * Cree une session de paiement Stripe pour une demande de service assignee.
-     * Le demandeur paie le montant estimatedCost de la SR.
-     */
-    @CircuitBreaker(name = "stripe-api")
-    public Session createServiceRequestCheckoutSession(Long serviceRequestId, String customerEmail) throws StripeException {
-        return checkoutSessionFactory.createServiceRequestSession(serviceRequestId, customerEmail, false);
-    }
-
-    /**
-     * Cree une session de paiement Stripe en mode EMBEDDED pour une demande de service.
-     * Identique a createEmbeddedCheckoutSession mais pour les ServiceRequest.
-     * Retourne une session avec clientSecret pour EmbeddedCheckout cote frontend.
-     */
-    @CircuitBreaker(name = "stripe-api")
-    public Session createServiceRequestEmbeddedCheckoutSession(Long serviceRequestId, String customerEmail) throws StripeException {
-        return checkoutSessionFactory.createServiceRequestSession(serviceRequestId, customerEmail, true);
-    }
+    // Les wrappers createUpsell* / createServiceRequest* ont été supprimés (Vague 5) :
+    // ces flux passent par PaymentOrchestrationService (UpsellService,
+    // ServiceRequestPaymentService). Preuve par grep : plus aucun appelant.
 
     // ════════════════════════════════════════════════════════════════════════
     // Interrogation / expiration de sessions Checkout (Z4A-BUGS-02)

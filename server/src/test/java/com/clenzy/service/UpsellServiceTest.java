@@ -40,11 +40,13 @@ class UpsellServiceTest {
     @Mock private LedgerService ledgerService;
     @Mock private MonetizationConfigService monetizationConfigService;
     @Mock private ManagementContractService managementContractService;
+    @Mock private PaymentOrchestrationService orchestrationService;
+    @Mock private org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     private UpsellService service() {
         return new UpsellService(offerRepository, orderRepository, tokenRepository, guideRepository, reservationRepository,
             stripeService, walletService, ledgerService, monetizationConfigService, managementContractService,
-            java.time.Clock.systemUTC());
+            java.time.Clock.systemUTC(), orchestrationService, transactionManager);
     }
 
     private WelcomeGuideToken validToken(Long propertyId) {

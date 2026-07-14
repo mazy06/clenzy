@@ -52,6 +52,35 @@ export interface BulkMinNightsOverrideData {
   source?: string;
 }
 
+export interface BookingRestriction {
+  id: number;
+  propertyId: number;
+  startDate: string;
+  endDate: string;
+  minStay?: number | null;
+  maxStay?: number | null;
+  closedToArrival?: boolean | null;
+  closedToDeparture?: boolean | null;
+  gapDays?: number | null;
+  advanceNoticeDays?: number | null;
+  daysOfWeek?: number[] | null;
+  priority?: number | null;
+}
+
+export interface CreateBookingRestrictionData {
+  propertyId: number;
+  startDate: string;
+  endDate: string;
+  minStay?: number | null;
+  maxStay?: number | null;
+  closedToArrival?: boolean | null;
+  closedToDeparture?: boolean | null;
+  gapDays?: number | null;
+  advanceNoticeDays?: number | null;
+  daysOfWeek?: number[] | null;
+  priority?: number | null;
+}
+
 export interface CreateRatePlanData {
   propertyId: number;
   name: string;
@@ -190,5 +219,22 @@ export const calendarPricingApi = {
   // Unblock dates on a property
   async unblockDates(propertyId: number, from: string, to: string): Promise<void> {
     return apiClient.delete(`/calendar/${propertyId}/block`, { params: { from, to } });
+  },
+
+  // ─── Booking restrictions (min/max stay, CTA/CTD) — poussées vers les OTAs ──
+  async getBookingRestrictions(propertyId: number): Promise<BookingRestriction[]> {
+    return apiClient.get<BookingRestriction[]>('/booking-restrictions', { params: { propertyId } });
+  },
+
+  async createBookingRestriction(data: CreateBookingRestrictionData): Promise<BookingRestriction> {
+    return apiClient.post<BookingRestriction>('/booking-restrictions', data);
+  },
+
+  async updateBookingRestriction(id: number, data: CreateBookingRestrictionData): Promise<BookingRestriction> {
+    return apiClient.put<BookingRestriction>(`/booking-restrictions/${id}`, data);
+  },
+
+  async deleteBookingRestriction(id: number): Promise<void> {
+    return apiClient.delete(`/booking-restrictions/${id}`);
   },
 };

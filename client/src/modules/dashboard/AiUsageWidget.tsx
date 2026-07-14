@@ -183,12 +183,21 @@ const AiUsageWidget: React.FC<AiUsageWidgetProps> = React.memo(({ layout = 'defa
         )}
       </Box>
 
-      {/* Feature bars — inline (horizontal) or stacked (vertical) */}
+      {/* Feature bars — inline = grille responsive qui WRAPPE (le catalogue IA compte
+          maintenant ~11 features ; une seule ligne flex les écrasait -> libellés chevauchés).
+          Stacked = colonne verticale. */}
       <Box
         sx={{
-          display: 'flex',
-          flexDirection: isInline ? { xs: 'column', sm: 'row' } : 'column',
-          gap: isInline ? { xs: 1.25, sm: 2 } : 1.25,
+          display: isInline ? 'grid' : 'flex',
+          ...(isInline
+            ? {
+                gridTemplateColumns: {
+                  xs: 'repeat(2, minmax(0, 1fr))',
+                  sm: 'repeat(auto-fill, minmax(170px, 1fr))',
+                },
+              }
+            : { flexDirection: 'column' }),
+          gap: isInline ? 1.5 : 1.25,
         }}
       >
         {featureEntries.map(([feature, tokens]) => {
@@ -197,13 +206,19 @@ const AiUsageWidget: React.FC<AiUsageWidgetProps> = React.memo(({ layout = 'defa
           const color = FEATURE_COLORS[feature] ?? 'var(--faint)';
 
           return (
-            <Box key={feature} sx={{ flex: isInline ? 1 : undefined, minWidth: 0 }}>
-              {/* Label row */}
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.25 }}>
-                <Typography variant="caption" fontWeight={600} fontSize="0.7rem">
+            <Box key={feature} sx={{ minWidth: 0 }}>
+              {/* Label row — le libellé tronque (ellipsis + tooltip) pour ne jamais
+                  déborder sur le compteur voisin ; le compteur ne rétrécit pas. */}
+              <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 0.5, mb: 0.25 }}>
+                <Typography variant="caption" fontWeight={600} fontSize="0.7rem" noWrap title={feature} sx={{ minWidth: 0 }}>
                   {feature}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" fontSize="0.65rem">
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  fontSize="0.65rem"
+                  sx={{ flexShrink: 0, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}
+                >
                   {formatTokenCount(tokens)}
                   {limit > 0 && ` / ${formatTokenCount(limit)}`}
                 </Typography>

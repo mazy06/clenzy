@@ -79,7 +79,7 @@ interface PendingActionDtoShape {
 
 /** Réponse de GET /api/ai/supervision/activity/{id} (feed + métriques réels). */
 interface ActivitySnapshotShape {
-  feed: Array<{ id: string; agentId: string; at: string; text: string; toolName?: string }>;
+  feed: Array<{ id: string; agentId: string; at: string; text: string; toolName?: string; messageLogId?: number | null; invoiceId?: number | null }>;
   autoActions: number;
 }
 
@@ -100,6 +100,8 @@ interface SuggestionShape {
   severity?: string | null;
   /** Params bruts de l'action (JSON segments) pour la modale d'ajustement, optionnel. */
   actionParams?: string | null;
+  /** Nom stable du scanner à l'origine (ex. `guest_email_missing`), discriminant front. */
+  tool?: string | null;
 }
 
 /** Rappel J-1 de reversement (GET /api/ai/supervision/payout-reminder, cf. PayoutReminderDto). */
@@ -139,6 +141,11 @@ export interface AgUiProviderOptions {
   currentPage?: string;
   /** Propriété sélectionnée transmise au backend (contexte UI). */
   selectedPropertyId?: number;
+  /**
+   * Ouvre le modal de fiche client (GuestCardDialog) pour une réservation. Appelé quand
+   * l'opérateur valide une carte `guest_email_missing` : action 100 % front (pas d'`/apply`).
+   */
+  onOpenGuestCard?: (reservationId: string) => void;
 }
 
 /** Agent AG-UI exposé par le backend (cf. AgUiController.AGENT_NAME). */
@@ -177,6 +184,11 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
    * « Valider » sur ces cartes = appliquer l'action serveur, pas rejeter.
    */
   private readonly applicableSuggestionIds = new Set<string>();
+  /**
+   * Cartes « email voyageur manquant » de la file courante → id de carte mappé sur son
+   * reservationId. « Valider » sur ces cartes ouvre la fiche client (front), aucun `/apply`.
+   */
+  private readonly guestCardReservationIds = new Map<string, string>();
   /** true tant qu'un run SSE est en cours → le polling se met en pause pour ne pas
    *  écraser l'état live (conversation, interrupt inline). */
   private runActive = false;
@@ -186,6 +198,10 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
   private polling = false;
   /** Flux SSE temps réel du feed/résolutions (T6/B6), hors run. */
   private eventStream: AbortController | null = null;
+  /** true tant que le flux SSE est connecté → le poll complet s'espace (fallback). */
+  private streamHealthy = false;
+  /** Horodatage du dernier snapshot complet (throttle du poll quand le SSE est sain). */
+  private lastFullRefreshAt = 0;
 
   constructor(
     private readonly propertyId: string,
@@ -203,6 +219,47 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
    * Le reste (feed, activité) se construit ensuite par les StreamEvents du moteur.
    */
   async getSnapshot(): Promise<OrchestratorSnapshot> {
+    // Rendu en DEUX TEMPS (audit perf accordéon) : la constellation s'affiche
+    // immédiatement sur le roster statique — l'ancien Promise.all des 6 fetches
+    // bloquait le skeleton jusqu'au plus lent. Les données réelles (file HITL,
+    // feed, suggestions, autonomie) arrivent juste derrière via
+    // `snapshot.refreshed` (pipeline existant du poll).
+    const base = buildPropertySnapshot(this.propertyId, 'calm');
+    void this.hydrateInBackground();
+    this.ensurePolling();
+    this.ensureEventStream();
+    return {
+      ...base,
+      online: true,
+      paused: false,
+      pending: [],
+      feed: [],
+      agents: base.agents.map((a) => ({
+        ...a,
+        status: 'veille' as const,
+        task: null,
+        reservationId: null,
+        metrics: [],
+      })),
+      dayMetrics: { timeSaved: '—', autoActions: 0, awaiting: 0 },
+      summary: 'Connexion au moteur multi-agent…',
+    };
+  }
+
+  /** Hydratation différée du snapshot réel, poussée via `snapshot.refreshed`. */
+  private async hydrateInBackground(): Promise<void> {
+    try {
+      const next = await this.buildFullSnapshot();
+      if (!this.disposed && !this.runActive) {
+        this.emit({ type: 'snapshot.refreshed', snapshot: next });
+      }
+    } catch {
+      // buildFullSnapshot est tolérant aux pannes ; on ignore tout résidu.
+    }
+  }
+
+  /** Snapshot COMPLET (6 fetches parallèles + assemblage) — chemin du poll et de l'hydratation. */
+  private async buildFullSnapshot(): Promise<OrchestratorSnapshot> {
     const base = buildPropertySnapshot(this.propertyId, 'calm');
     const [hitlPending, activity, suggestions, payoutReminder, unpaidSrCards, autonomy] = await Promise.all([
       this.fetchPending(),
@@ -254,22 +311,30 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       });
     }
     this.applicableSuggestionIds.clear();
+    this.guestCardReservationIds.clear();
     pendingQueue.push(
       ...suggestions.map((s) => {
+        const reservationId = s.reservationId != null ? String(s.reservationId) : null;
+        // Carte « email voyageur manquant » : informationnelle → « Compléter la fiche
+        // client » ouvre le modal côté front (pas d'/apply). On NE l'ajoute PAS à
+        // applicableSuggestionIds ; on retient son reservationId pour l'ouverture.
+        const opensGuestCard = s.tool === 'guest_email_missing' && reservationId != null;
+        if (opensGuestCard) this.guestCardReservationIds.set(s.id, reservationId!);
         // Suggestion actionnable : mémorise l'id → « Valider » = Appliquer (exécution serveur).
-        if (s.actionType) this.applicableSuggestionIds.add(s.id);
+        else if (s.actionType) this.applicableSuggestionIds.add(s.id);
         return {
           id: s.id,
           agentId: s.agentId as AgentId,
           title: s.title,
           motif: s.motif ?? '',
           reasoning: s.motif ?? '',
-          reservationId: s.reservationId != null ? String(s.reservationId) : null,
+          reservationId,
           createdAt: s.createdAt,
           expiresAt: s.expiresAt ?? s.createdAt,
-          applyActionType: s.actionType ?? undefined,
+          applyActionType: opensGuestCard ? undefined : (s.actionType ?? undefined),
           amountEur: s.estimatedImpactCents != null ? s.estimatedImpactCents / 100 : undefined,
           actionParams: s.actionParams ?? undefined,
+          ...(opensGuestCard ? { opensGuestCard: true } : {}),
         };
       }),
     );
@@ -298,11 +363,11 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       at: e.at,
       text: e.text,
       toolName: e.toolName,
+      ...(e.messageLogId != null ? { messageLogId: e.messageLogId } : {}),
+      ...(e.invoiceId != null ? { invoiceId: e.invoiceId } : {}),
     }));
 
-    // Démarre (une seule fois) le rafraîchissement périodique + le flux SSE temps réel.
-    this.ensurePolling();
-    this.ensureEventStream();
+    this.lastFullRefreshAt = Date.now();
 
     const awaiting = hitlPending.length + pendingQueue.length;
     return {
@@ -676,6 +741,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
         signal,
       });
       if (!response.ok || !response.body) return;
+      this.streamHealthy = true;
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -691,6 +757,8 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       }
     } catch {
       // abandon volontaire (dispose) ou perte réseau → le polling 30 s prend le relais
+    } finally {
+      this.streamHealthy = false;
     }
   }
 
@@ -718,14 +786,20 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
    */
   private async pollRefresh(): Promise<void> {
     if (this.disposed || this.runActive || this.polling) return;
+    // SSE sain → le direct est déjà couvert (feed, résolutions) : le re-fetch
+    // complet (6 requêtes) devient un simple filet de sécurité espacé à 2 min
+    // (nouvelles suggestions produites par les scans autonomes). SSE perdu →
+    // le poll 30 s redevient le baseline (comportement historique).
+    const minInterval = this.streamHealthy ? 4 * POLL_INTERVAL_MS : POLL_INTERVAL_MS;
+    if (Date.now() - this.lastFullRefreshAt < minInterval) return;
     this.polling = true;
     try {
-      const next = await this.getSnapshot();
+      const next = await this.buildFullSnapshot();
       if (!this.disposed && !this.runActive) {
         this.emit({ type: 'snapshot.refreshed', snapshot: next });
       }
     } catch {
-      // getSnapshot est déjà tolérant aux pannes ; on ignore tout résidu.
+      // buildFullSnapshot est déjà tolérant aux pannes ; on ignore tout résidu.
     } finally {
       this.polling = false;
     }
@@ -937,6 +1011,13 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
     }
     if (actionId.startsWith(PAYOUT_REMINDER_PREFIX)) {
       await this.postReminderAction(actionId, 'ack');
+      return;
+    }
+    // Carte « email voyageur manquant » : ouvre la fiche client (front), aucun effet
+    // serveur — la carte reste jusqu'à ce que le backend l'auto-résolve (email complété).
+    const guestCardResId = this.guestCardReservationIds.get(actionId);
+    if (guestCardResId) {
+      this.options.onOpenGuestCard?.(guestCardResId);
       return;
     }
     // Suggestion actionnable → applique l'action serveur (au lieu de rejeter).

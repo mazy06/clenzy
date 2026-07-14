@@ -5,20 +5,44 @@
    Texte rendu en clair (jamais de HTML).
    ============================================================ */
 
-import { Box } from '@mui/material';
-import { AutoAwesome } from '../../../icons';
+import { memo, useState, type KeyboardEvent } from 'react';
+import { Box, IconButton } from '@mui/material';
+import { AutoAwesome, ChevronDown } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { AGENT_META } from '../constants';
 import { AgentIcon } from '../renderers/agentIcon';
+import { toolIconFor } from '../renderers/toolIcon';
 import type { FeedEntry, PortfolioFeedEntry } from '../types';
+import { FeedMessageModal } from './FeedMessageModal';
+import { FeedInvoiceModal } from './FeedInvoiceModal';
 
 function hhmm(iso: string): string {
   const d = new Date(iso);
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedEntry)[] }) {
+// Mémoïsé (audit perf) : ~40 lignes MUI — ne re-rendre que quand `entries` change,
+// pas à chaque re-render du panneau (events SSE agents, toasts, report).
+export const ActivityFeed = memo(ActivityFeedInner);
+
+function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEntry)[] }) {
   const { t } = useTranslation();
+  // Détail métier replié par défaut : on ne montre que le libellé, la description
+  // (motif d'échec, montant…) s'ouvre au clic sur le chevron.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  // Message envoyé (ex. « Message de check-out ») : la ligne ouvre une modale qui
+  // prévisualise le contenu envoyé. Seules les entrées porteuses d'un `messageLogId`
+  // sont cliquables — les autres gardent leur détail dépliable (chevron).
+  const [openMessageLogId, setOpenMessageLogId] = useState<number | null>(null);
+  // Relance de paiement : la ligne ouvre la modale de détail de la facture
+  // (rattachement réservation/prestation + payer / envoyer un lien de paiement).
+  const [openInvoiceId, setOpenInvoiceId] = useState<number | null>(null);
   // Feed RÉEL : le libellé est traduit via le nom d'outil stable
   // (`supervision.tools.<toolName>`). Repli sur `text` (résumé/mock) si pas de clé.
   const labelFor = (entry: FeedEntry | PortfolioFeedEntry) =>
@@ -32,16 +56,66 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
     return text && text !== labelFor(entry) ? text : null;
   };
   return (
+    <>
     <Box data-activity-feed sx={{ display: 'flex', flexDirection: 'column' }}>
       {entries.map((entry) => {
         // Entrée orchestrateur (réponse chat) : identité d'accent + icône assistant.
         const isOrchestrator = 'orchestrator' in entry && entry.orchestrator;
         const meta = AGENT_META[entry.agentId];
+        // Icône = NATURE de l'action (toolName) ; repli sur l'icône d'agent si le
+        // toolName est absent/inconnu (résumés & entrées mock). La couleur du carré
+        // encode l'agent, donc l'icône n'a pas à le redoubler.
+        const toolIcon = isOrchestrator ? null : toolIconFor(entry.toolName, 14);
         const propertyName = 'propertyName' in entry ? entry.propertyName : undefined;
+        const messageLogId = entry.messageLogId ?? null;
+        const invoiceId = ('invoiceId' in entry ? entry.invoiceId : null) ?? null;
+        const hasMessage = messageLogId != null;
+        // Relance de paiement : cliquable vers la modale facture (le message, s'il
+        // existe aussi, garde priorité — c'est le contenu envoyé qui prime).
+        const hasInvoice = !hasMessage && invoiceId != null;
+        const clickable = hasMessage || hasInvoice;
+        const openModal = () =>
+          hasMessage ? setOpenMessageLogId(messageLogId) : setOpenInvoiceId(invoiceId);
+        // Détail dépliable réservé aux entrées SANS modale : pour les autres, la ligne
+        // ouvre la modale (le chevron ferait doublon).
+        const detail = clickable ? null : detailFor(entry);
+        const isOpen = expanded.has(entry.id);
         return (
           <Box
             key={entry.id}
-            sx={{ display: 'flex', gap: 1.25, py: 1, px: 0.5, borderBottom: '1px solid var(--line, #eef0f4)', '&:last-of-type': { borderBottom: 'none' } }}
+            {...(clickable
+              ? {
+                  role: 'button' as const,
+                  tabIndex: 0,
+                  onClick: openModal,
+                  onKeyDown: (e: KeyboardEvent) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openModal();
+                    }
+                  },
+                  'aria-label': hasMessage
+                    ? t('supervision.feed.openMessage', { defaultValue: 'Voir le message envoyé' })
+                    : t('supervision.feed.openInvoice', { defaultValue: 'Voir la facture' }),
+                }
+              : {})}
+            sx={{
+              display: 'flex',
+              gap: 1.25,
+              py: 1,
+              px: 0.5,
+              borderBottom: '1px solid var(--line, #eef0f4)',
+              '&:last-of-type': { borderBottom: 'none' },
+              ...(clickable
+                ? {
+                    cursor: 'pointer',
+                    borderRadius: '6px',
+                    transition: 'background 150ms ease',
+                    '&:hover': { background: 'var(--hover, rgba(107,138,154,0.08))' },
+                    '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '-2px' },
+                  }
+                : {}),
+            }}
           >
             <Box
               sx={{
@@ -56,17 +130,40 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
                 flexShrink: 0,
               }}
             >
-              {isOrchestrator ? <AutoAwesome size={14} strokeWidth={1.75} /> : <AgentIcon token={meta.icon} size={14} />}
+              {isOrchestrator ? <AutoAwesome size={14} strokeWidth={1.75} /> : (toolIcon ?? <AgentIcon token={meta.icon} size={14} />)}
             </Box>
-            <Box sx={{ minWidth: 0 }}>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
               <Box sx={{ fontSize: 11, color: 'var(--muted, #6b7196)', fontVariantNumeric: 'tabular-nums' }}>
                 {hhmm(entry.at)}
                 {propertyName ? ` · ${propertyName}` : ''}
               </Box>
-              <Box sx={{ fontSize: 12.5, color: 'var(--ink, #1b2240)', lineHeight: 1.4 }}>{labelFor(entry)}</Box>
-              {detailFor(entry) && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'space-between' }}>
+                <Box sx={{ fontSize: 12.5, color: 'var(--ink, #1b2240)', lineHeight: 1.4, minWidth: 0 }}>
+                  {labelFor(entry)}
+                </Box>
+                {detail && (
+                  <IconButton
+                    size="small"
+                    onClick={() => toggle(entry.id)}
+                    aria-label={t('common.details', { defaultValue: 'Détails' })}
+                    aria-expanded={isOpen}
+                    sx={{
+                      p: 0.25,
+                      color: 'var(--muted, #6b7196)',
+                      flexShrink: 0,
+                      '& svg': {
+                        transition: 'transform 200ms ease',
+                        transform: isOpen ? 'rotate(180deg)' : 'none',
+                      },
+                    }}
+                  >
+                    <ChevronDown size={14} />
+                  </IconButton>
+                )}
+              </Box>
+              {detail && isOpen && (
                 <Box sx={{ fontSize: 11.5, color: 'var(--muted, #6b7196)', lineHeight: 1.35, mt: 0.25, wordBreak: 'break-word' }}>
-                  {detailFor(entry)}
+                  {detail}
                 </Box>
               )}
             </Box>
@@ -74,5 +171,8 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
         );
       })}
     </Box>
+    <FeedMessageModal logId={openMessageLogId} onClose={() => setOpenMessageLogId(null)} />
+    <FeedInvoiceModal invoiceId={openInvoiceId} onClose={() => setOpenInvoiceId(null)} />
+    </>
   );
 }

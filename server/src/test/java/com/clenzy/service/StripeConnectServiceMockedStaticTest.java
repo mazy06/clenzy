@@ -53,7 +53,8 @@ class StripeConnectServiceMockedStaticTest {
 
     @BeforeEach
     void setUp() {
-        service = new StripeConnectService(configRepository, userRepository, stripeGateway);
+        service = new StripeConnectService(configRepository, userRepository, stripeGateway,
+                new org.springframework.beans.factory.support.StaticListableBeanFactory().getBeanProvider(com.clenzy.service.payout.HousekeeperPayoutService.class));
         ReflectionTestUtils.setField(service, "returnUrl", "https://app.clenzy.com/ret");
         ReflectionTestUtils.setField(service, "refreshUrl", "https://app.clenzy.com/ref");
     }

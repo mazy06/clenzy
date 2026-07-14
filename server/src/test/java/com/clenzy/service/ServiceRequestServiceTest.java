@@ -46,6 +46,13 @@ class ServiceRequestServiceTest {
     @Mock private ServiceRequestMapper serviceRequestMapper;
     @Mock private AssignmentEventRepository assignmentEventRepository;
     @Mock private WorkflowSettingsRepository workflowSettingsRepository;
+    @Mock
+    private com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine;
+    @Mock private com.clenzy.service.pricing.HousekeeperScoreService housekeeperScoreService;
+    @Mock private com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService;
+    @Mock private com.clenzy.service.agent.supervision.SupervisionAutoApplyService supervisionAutoApplyService;
+    @Mock private com.clenzy.service.agent.supervision.AutoApplyGate autoApplyGate;
+    @Mock private com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
 
     private TenantContext tenantContext;
     private ServiceRequestService service;
@@ -61,7 +68,10 @@ class ServiceRequestServiceTest {
                 serviceRequestRepository, userRepository, propertyRepository,
                 interventionRepository, reservationRepository, teamRepository, notificationService,
                 propertyTeamService, kafkaTemplate, tenantContext, serviceRequestMapper,
-                assignmentEventRepository, workflowSettingsRepository);
+                assignmentEventRepository, workflowSettingsRepository,
+                cleaningPricingEngine, housekeeperScoreService,
+                supervisionSuggestionService, supervisionAutoApplyService, autoApplyGate,
+                organizationAccessGuard);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -466,6 +476,59 @@ class ServiceRequestServiceTest {
         }
 
         @Test
+        @DisplayName("when reassign fails on a cleaning SR - records a REASSIGN_CLEANING HITL card")
+        void whenReassignFailsOnCleaningSr_thenHitlCardRecorded() {
+            ServiceRequest sr = buildEntity(1L, "Menage Airbnb", RequestStatus.ASSIGNED);
+            sr.setAssignedToId(50L);
+            sr.setProperty(buildProperty(20L, buildUser(10L, UserRole.HOST, "kc-10")));
+            sr.setOrganizationId(ORG_ID);
+
+            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
+            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(serviceRequestMapper.toDto(any())).thenReturn(new ServiceRequestDto());
+            // Auto-assignation désactivée → attemptAutoAssign échoue → carte HITL
+            WorkflowSettings ws = new WorkflowSettings();
+            ws.setAutoAssignInterventions(false);
+            when(workflowSettingsRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(ws));
+
+            service.refuse(1L);
+
+            verify(supervisionSuggestionService).recordActionable(
+                    eq(ORG_ID), eq(20L), eq("ops"),
+                    contains("Remplacer le prestataire"), contains("désisté"),
+                    eq(com.clenzy.service.agent.supervision.SupervisionActionType.REASSIGN_CLEANING),
+                    contains("\"serviceRequestId\":1"), isNull(), eq("warning"));
+        }
+
+        @Test
+        @DisplayName("when autonomy gate says AUTO - goes through the auto-apply pipeline")
+        void whenGateAuto_thenAutoApplyPipelineUsed() {
+            ServiceRequest sr = buildEntity(1L, "Menage Airbnb", RequestStatus.ASSIGNED);
+            sr.setAssignedToId(50L);
+            sr.setProperty(buildProperty(20L, buildUser(10L, UserRole.HOST, "kc-10")));
+            sr.setOrganizationId(ORG_ID);
+
+            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
+            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(serviceRequestMapper.toDto(any())).thenReturn(new ServiceRequestDto());
+            WorkflowSettings ws = new WorkflowSettings();
+            ws.setAutoAssignInterventions(false);
+            when(workflowSettingsRepository.findByOrganizationId(ORG_ID)).thenReturn(Optional.of(ws));
+            when(autoApplyGate.decide(eq(ORG_ID), eq("ops"),
+                    eq(com.clenzy.service.agent.supervision.SupervisionActionType.REASSIGN_CLEANING), any()))
+                    .thenReturn(com.clenzy.service.agent.supervision.AutoApplyGate.AutoDecision.AUTO_NOTIFY);
+            when(supervisionSuggestionService.recordActionableForAutoApply(
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                    .thenReturn(Optional.of(9L));
+
+            service.refuse(1L);
+
+            verify(supervisionAutoApplyService).autoApply(
+                    eq(com.clenzy.service.agent.supervision.AutoApplyGate.AutoDecision.AUTO_NOTIFY),
+                    eq(ORG_ID), eq(20L), eq("ops"), eq(9L), anyString(), anyString(), isNull());
+        }
+
+        @Test
         @DisplayName("when SR is AWAITING_PAYMENT - refuses successfully")
         void whenAwaitingPayment_thenRefuses() {
             ServiceRequest sr = buildEntity(1L, "Test", RequestStatus.AWAITING_PAYMENT);
@@ -499,6 +562,34 @@ class ServiceRequestServiceTest {
 
             assertThatThrownBy(() -> service.refuse(999L))
                     .isInstanceOf(NotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("retryAutoAssignForSupervision(orgId, srId)")
+    class RetryAutoAssignForSupervision {
+
+        @Test
+        @DisplayName("when SR already reassigned meanwhile - succeeds without new attempt (idempotent)")
+        void whenAlreadyAssigned_thenIdempotentSuccess() {
+            ServiceRequest sr = buildEntity(1L, "Menage", RequestStatus.AWAITING_PAYMENT);
+            sr.setAssignedToId(50L);
+            sr.setOrganizationId(ORG_ID);
+            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
+
+            assertThat(service.retryAutoAssignForSupervision(ORG_ID, 1L)).isTrue();
+            verify(serviceRequestRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("when SR belongs to another org - throws AccessDeniedException")
+        void whenCrossOrg_thenAccessDenied() {
+            ServiceRequest sr = buildEntity(1L, "Menage", RequestStatus.PENDING);
+            sr.setOrganizationId(42L);
+            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
+
+            assertThatThrownBy(() -> service.retryAutoAssignForSupervision(ORG_ID, 1L))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         }
     }
 

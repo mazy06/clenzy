@@ -2,9 +2,14 @@ package com.clenzy.service.agent.supervision;
 
 import com.clenzy.dto.PropertyPerformanceDto;
 import com.clenzy.model.Reservation;
+import com.clenzy.model.YieldAdjustment;
+import com.clenzy.model.YieldMode;
+import com.clenzy.model.YieldOrgConfig;
 import com.clenzy.repository.CalendarDayRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.SupervisionModuleSettingsRepository;
+import com.clenzy.repository.YieldAdjustmentRepository;
+import com.clenzy.repository.YieldOrgConfigRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,13 +52,19 @@ class BusinessAnalyticsScannerTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private CalendarDayRepository calendarDayRepository;
     @Mock private SupervisionModuleSettingsRepository moduleSettingsRepository;
+    @Mock private AutoApplyGate autoApplyGate;
+    @Mock private SupervisionAutoApplyService autoApplyService;
+    @Mock private YieldOrgConfigRepository yieldOrgConfigRepository;
+    @Mock private YieldAdjustmentRepository yieldAdjustmentRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-08T10:00:00Z"), ZoneOffset.UTC);
 
     private BusinessAnalyticsScanner scanner() {
         return new BusinessAnalyticsScanner(performanceService, suggestionService,
-                reservationRepository, calendarDayRepository, moduleSettingsRepository, objectMapper, clock);
+                reservationRepository, calendarDayRepository, moduleSettingsRepository,
+                autoApplyGate, autoApplyService, yieldOrgConfigRepository, yieldAdjustmentRepository,
+                objectMapper, clock, new BigDecimal("12"));
     }
 
     private PropertyPerformanceDto perf(double occ, String revenue, double margin) {
@@ -136,6 +147,92 @@ class BusinessAnalyticsScannerTest {
                 eq(SupervisionActionType.PRICE_DROP), params.capture(),
                 argThat(c -> c != null && c > 0), eq("info"));
         assertThat(params.getValue()).contains("\"direction\":\"up\"");
+    }
+
+    // ── Vague 1 autonomie : PRICE_DROP branché sur le cadre yield ────────────
+
+    private YieldOrgConfig yieldConfig(boolean enabled, YieldMode mode) {
+        YieldOrgConfig config = new YieldOrgConfig(ORG);
+        config.setEnabled(enabled);
+        config.setMode(mode);
+        return config;
+    }
+
+    /**
+     * Occupation faible mais créneaux libres UNIQUEMENT à ≥ 14 jours (remises 12 %
+     * et 7 % — jamais 15 %) : tous les segments restent ≤ autoHitlImpactPct (12).
+     * Le trou libre commence le 2026-07-22 (aujourd'hui fixé au 2026-07-08).
+     */
+    private void stubFreeFromJuly22() {
+        when(moduleSettingsRepository.findByOrganizationIdAndModuleKey(ORG, "rev")).thenReturn(Optional.empty());
+        when(performanceService.compute(PROP)).thenReturn(perf(20.0, "5000", 70.0));
+        when(reservationRepository.findByPropertyId(PROP, ORG)).thenReturn(List.of());
+        when(calendarDayRepository.findUnavailableDatesInRange(eq(PROP), any(), any(), eq(ORG)))
+                .thenAnswer(inv -> datesInRange(inv.getArgument(1), inv.getArgument(2),
+                        LocalDate.parse("2026-07-22"), LocalDate.parse("2026-10-07")));
+    }
+
+    @Test
+    void priceDrop_yieldModeSuggest_staysHitlCard() {
+        stubFreeFromJuly22();
+        when(yieldOrgConfigRepository.findByOrganizationId(ORG))
+                .thenReturn(Optional.of(yieldConfig(true, YieldMode.SUGGEST)));
+
+        scanner().scanProperty(ORG, PROP);
+
+        // Mode SUGGEST : jamais d'auto — carte HITL normale, le gate n'est même pas consulté.
+        verify(suggestionService).recordActionable(eq(ORG), eq(PROP), eq("rev"),
+                eq("Optimiser les tarifs des créneaux creux à venir"), anyString(),
+                eq(SupervisionActionType.PRICE_DROP), anyString(), any(), eq("warning"));
+        verifyNoInteractions(autoApplyGate, autoApplyService);
+    }
+
+    @Test
+    void priceDrop_yieldAutoButSegmentOverImpactPct_staysHitlCard() {
+        // Tout libre dès demain → le 1er segment est en last-minute (base+3 = 15 %) > 12 %.
+        when(moduleSettingsRepository.findByOrganizationIdAndModuleKey(ORG, "rev")).thenReturn(Optional.empty());
+        when(performanceService.compute(PROP)).thenReturn(perf(20.0, "5000", 70.0));
+        when(reservationRepository.findByPropertyId(PROP, ORG)).thenReturn(List.of());
+        when(calendarDayRepository.findUnavailableDatesInRange(eq(PROP), any(), any(), eq(ORG))).thenReturn(List.of());
+        when(yieldOrgConfigRepository.findByOrganizationId(ORG))
+                .thenReturn(Optional.of(yieldConfig(true, YieldMode.AUTO)));
+
+        scanner().scanProperty(ORG, PROP);
+
+        verify(suggestionService).recordActionable(eq(ORG), eq(PROP), eq("rev"),
+                eq("Optimiser les tarifs des créneaux creux à venir"), anyString(),
+                eq(SupervisionActionType.PRICE_DROP), anyString(), any(), eq("warning"));
+        verifyNoInteractions(autoApplyGate, autoApplyService);
+    }
+
+    @Test
+    void priceDrop_yieldAutoWithinImpact_andToggleOn_autoAppliesViaPipeline() {
+        stubFreeFromJuly22();
+        when(yieldOrgConfigRepository.findByOrganizationId(ORG))
+                .thenReturn(Optional.of(yieldConfig(true, YieldMode.AUTO)));
+        when(yieldAdjustmentRepository.existsByPropertyIdAndAdjustmentDayAndModeAndSkipReasonIsNull(
+                PROP, LocalDate.parse("2026-07-08"), YieldAdjustment.Mode.APPLIED)).thenReturn(false);
+        when(autoApplyGate.decide(eq(ORG), eq("rev"), eq(SupervisionActionType.PRICE_DROP), any()))
+                .thenReturn(AutoApplyGate.AutoDecision.AUTO_NOTIFY);
+        when(suggestionService.recordActionableForAutoApply(eq(ORG), eq(PROP), eq("rev"), isNull(),
+                anyString(), anyString(), eq(SupervisionActionType.PRICE_DROP), anyString(), any(), anyString()))
+                .thenReturn(Optional.of(99L));
+        when(autoApplyService.autoApply(eq(AutoApplyGate.AutoDecision.AUTO_NOTIFY), eq(ORG), eq(PROP),
+                eq("rev"), eq(99L), anyString(), anyString(), any())).thenReturn(true);
+
+        scanner().scanProperty(ORG, PROP);
+
+        // Cadre yield vert + gate vert → carte créée SANS notif pending puis auto-appliquée
+        // via le pipeline, et le cap journalier yield est armé (journal APPLIED).
+        verify(autoApplyGate).decide(eq(ORG), eq("rev"), eq(SupervisionActionType.PRICE_DROP),
+                argThat(inputs -> Integer.valueOf(12).equals(
+                        inputs.get(AutoApplyGate.INPUT_MAX_SEGMENT_ABS_PERCENT))));
+        verify(autoApplyService).autoApply(eq(AutoApplyGate.AutoDecision.AUTO_NOTIFY), eq(ORG), eq(PROP),
+                eq("rev"), eq(99L), anyString(), anyString(), any());
+        verify(yieldAdjustmentRepository).save(argThat(line ->
+                line.getMode() == YieldAdjustment.Mode.APPLIED && Long.valueOf(99L).equals(line.getSuggestionId())));
+        verify(suggestionService, org.mockito.Mockito.never()).recordActionable(
+                any(), any(), anyString(), anyString(), anyString(), anyString(), anyString(), any(), anyString());
     }
 
     /** Toutes les dates de [from, to), en excluant le trou [gapFrom, gapTo) s'il est fourni. */

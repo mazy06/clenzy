@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -106,6 +106,11 @@ interface PropertyCardProps {
    * neutre (placeholders « — »).
    */
   kpi?: PropertyKpiSummary;
+  /**
+   * Coût de ménage estimé (vrai estimateur d'intervention backend, fourni par la liste).
+   * `undefined` → section prix masquée (aucune formule frontend divergente).
+   */
+  cleaningEstimate?: number;
 }
 
 // Styles alignés sur DESIGN_BASELINE + référence maquette .pr-card (screen-properties).
@@ -330,34 +335,6 @@ export function getAmenityColor(amenity: string): AmenityChipColor {
   return AMENITY_CATEGORY_MAP[amenity] || 'default';
 }
 
-// ─── Cleaning estimation (lightweight version for cards) ────────────────────
-
-const SURFACE_TIERS: { maxSurface: number | null; base: number }[] = [
-  { maxSurface: 30, base: 35 }, { maxSurface: 50, base: 45 },
-  { maxSurface: 70, base: 55 }, { maxSurface: 100, base: 70 },
-  { maxSurface: 150, base: 90 }, { maxSurface: null, base: 110 },
-];
-
-export function estimateCleaningPrice(p: PropertyDetails): number | null {
-  const sqm = p.surfaceArea ?? 0;
-  const hasBase = p.cleaningBasePrice != null && p.cleaningBasePrice > 0;
-  if (sqm <= 0 && !hasBase) return null;
-
-  const base = hasBase
-    ? p.cleaningBasePrice!
-    : (SURFACE_TIERS.find(t => t.maxSurface === null || sqm <= t.maxSurface)?.base ?? 110);
-
-  let surcharge = 0;
-  surcharge += Math.max(0, (p.bedrooms ?? 1) - 1) * 5;
-  surcharge += Math.max(0, (p.bathrooms ?? 1) - 1) * 4;
-  if ((p.numberOfFloors ?? 0) > 1) surcharge += ((p.numberOfFloors ?? 1) - 1) * 8;
-  if (p.hasExterior) surcharge += 12;
-  if (p.hasLaundry) surcharge += 8;
-  if ((p.maxGuests ?? 2) > 4) surcharge += ((p.maxGuests ?? 2) - 4) * 3;
-
-  return Math.max(30, Math.round((base + surcharge) / 5) * 5);
-}
-
 // ─── Duration estimation (lightweight version for cards) ─────────────────────
 
 export function estimateCleaningDuration(p: PropertyDetails): number | null {
@@ -420,30 +397,26 @@ function relativeCheckoutLabel(
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit, onDelete, onView, channexMapping, onChannexBadgeClick, missingContract, onMissingContractClick, kpi }) => {
+const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit, onDelete, onView, channexMapping, onChannexBadgeClick, missingContract, onMissingContractClick, kpi, cleaningEstimate }) => {
   const navigate = useNavigate();
-  const { hasPermissionAsync } = useAuth();
+  const { user } = useAuth();
   const { t } = useTranslation();
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  // Vérifier les permissions
-  const [canEdit, setCanEdit] = useState(false);
-  const [canDelete, setCanDelete] = useState(false);
+  // Permissions : check SYNCHRONE sur user.permissions (déjà en mémoire, même
+  // source que ProtectedRoute). L'ancien hasPermissionAsync par carte déclenchait
+  // jusqu'à 2 POST /permissions/sync PAR CARTE sur la liste des logements.
+  const canEdit = useMemo(
+    () => user?.permissions?.includes('properties:edit') ?? false,
+    [user],
+  );
+  const canDelete = useMemo(
+    () => user?.permissions?.includes('properties:delete') ?? false,
+    [user],
+  );
 
-  useEffect(() => {
-    const checkPermissions = async () => {
-      const [editPerm, deletePerm] = await Promise.all([
-        hasPermissionAsync('properties:edit'),
-        hasPermissionAsync('properties:delete'),
-      ]);
-      setCanEdit(editPerm);
-      setCanDelete(deletePerm);
-    };
-    checkPermissions();
-  }, [hasPermissionAsync]);
-
-  // Estimation du prix de ménage (utilisée dans le dialog des détails).
-  const cleaningPrice = useMemo(() => estimateCleaningPrice(property), [property]);
+  // Coût de ménage : vrai estimateur backend, fourni par la liste (undefined → masqué).
+  const cleaningPrice = cleaningEstimate;
 
   // ── KPI opérationnels du mois courant (.pr-stats) ─────────────────────────
   const fmtEuro = (v: number) => <Money value={v} from="EUR" decimals={0} />;

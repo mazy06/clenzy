@@ -2,13 +2,20 @@ package com.clenzy.service.agent.supervision;
 
 import com.clenzy.dto.PropertyPerformanceDto;
 import com.clenzy.model.Reservation;
+import com.clenzy.model.YieldAdjustment;
+import com.clenzy.model.YieldMode;
+import com.clenzy.model.YieldOrgConfig;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.YieldAdjustmentRepository;
+import com.clenzy.repository.YieldOrgConfigRepository;
 import com.clenzy.service.PropertyPerformanceService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -68,23 +75,42 @@ public class BusinessAnalyticsScanner {
     private final ReservationRepository reservationRepository;
     private final com.clenzy.repository.CalendarDayRepository calendarDayRepository;
     private final com.clenzy.repository.SupervisionModuleSettingsRepository moduleSettingsRepository;
+    private final AutoApplyGate autoApplyGate;
+    private final SupervisionAutoApplyService autoApplyService;
+    private final YieldOrgConfigRepository yieldOrgConfigRepository;
+    private final YieldAdjustmentRepository yieldAdjustmentRepository;
     private final ObjectMapper objectMapper;
     private final Clock clock;
+    /**
+     * Garde-fou d'impact du cadre yield (R1, partagé avec {@code YieldRuleEngine}) :
+     * un PRICE_DROP dont un segment dépasse ce seuil n'est jamais auto-appliqué.
+     */
+    private final BigDecimal autoHitlImpactPct;
 
     public BusinessAnalyticsScanner(PropertyPerformanceService performanceService,
                                     SupervisionSuggestionService suggestionService,
                                     ReservationRepository reservationRepository,
                                     com.clenzy.repository.CalendarDayRepository calendarDayRepository,
                                     com.clenzy.repository.SupervisionModuleSettingsRepository moduleSettingsRepository,
+                                    AutoApplyGate autoApplyGate,
+                                    SupervisionAutoApplyService autoApplyService,
+                                    YieldOrgConfigRepository yieldOrgConfigRepository,
+                                    YieldAdjustmentRepository yieldAdjustmentRepository,
                                     ObjectMapper objectMapper,
-                                    Clock clock) {
+                                    Clock clock,
+                                    @Value("${clenzy.yield.v1.auto-hitl-impact-pct:12}") BigDecimal autoHitlImpactPct) {
         this.performanceService = performanceService;
         this.suggestionService = suggestionService;
         this.reservationRepository = reservationRepository;
         this.calendarDayRepository = calendarDayRepository;
         this.moduleSettingsRepository = moduleSettingsRepository;
+        this.autoApplyGate = autoApplyGate;
+        this.autoApplyService = autoApplyService;
+        this.yieldOrgConfigRepository = yieldOrgConfigRepository;
+        this.yieldAdjustmentRepository = yieldAdjustmentRepository;
         this.objectMapper = objectMapper;
         this.clock = clock;
+        this.autoHitlImpactPct = autoHitlImpactPct;
     }
 
     /** Seuils résolus pour un scan (config org du module « rev », repli sur les défauts en dur). */
@@ -313,6 +339,7 @@ public class BusinessAnalyticsScanner {
                                   double forwardOccupancy, Thresholds thr, double adr, boolean raise) {
         final List<Map<String, Object>> segments = new ArrayList<>(gaps.size());
         double totalImpact = 0;
+        int maxAbsPercent = 0;
         final StringBuilder detail = new StringBuilder();
         for (int i = 0; i < gaps.size(); i++) {
             final LocalDate from = gaps.get(i)[0];
@@ -322,6 +349,7 @@ public class BusinessAnalyticsScanner {
             // de l'occupation (plus c'est plein, plus on peut revaloriser).
             final int percent = raise ? raiseForOccupancy(forwardOccupancy, thr)
                     : discountForLeadTime(from, thr.priceDropPercent());
+            maxAbsPercent = Math.max(maxAbsPercent, percent);
             final Map<String, Object> seg = new LinkedHashMap<>();
             seg.put("from", from.toString());
             seg.put("to", toExclusive.toString()); // exclusif
@@ -354,11 +382,83 @@ public class BusinessAnalyticsScanner {
                 : String.format("Occupation de %d %% sur les %d prochains jours (seuil %d %%). %d créneau%s creux à optimiser : %s",
                         Math.round(forwardOccupancy), FORWARD_WINDOW_DAYS, (long) Math.round(thr.occupancyLow()),
                         gaps.size(), gaps.size() > 1 ? "x" : "", detail);
-        suggestionService.recordActionable(
-                orgId, propertyId, "rev",
-                title, motif,
-                SupervisionActionType.PRICE_DROP, params, impactCents > 0 ? impactCents : null,
-                raise ? "info" : "warning");
+        final String severity = raise ? "info" : "warning";
+
+        // Vague 1 autonomie : PRICE_DROP ne crée PAS de double cadre — il est branché
+        // sur le cadre yield existant (mode AUTO + ampleur ≤ auto-hitl + cap journalier)
+        // ET sur le gate supervision_auto_rules : les DEUX doivent être verts.
+        final AutoApplyGate.AutoDecision decision =
+                priceAutoDecision(orgId, propertyId, maxAbsPercent);
+        final boolean auto = decision == AutoApplyGate.AutoDecision.AUTO_NOTIFY
+                || decision == AutoApplyGate.AutoDecision.AUTO_SILENT;
+        if (!auto) {
+            suggestionService.recordActionable(
+                    orgId, propertyId, "rev",
+                    title, motif,
+                    SupervisionActionType.PRICE_DROP, params, impactCents > 0 ? impactCents : null,
+                    severity);
+            return;
+        }
+        // Auto : même pipeline d'apply que le bouton humain (CAS, exécuteur — qui applique
+        // en mode auto les protections yield : overrides MANUAL/OTA jamais écrasés, nuits
+        // BOOKED jamais re-tarifées, bornes plancher/plafond OBLIGATOIRES). Un échec de
+        // l'apply laisse la carte PENDING → repli HITL naturel.
+        suggestionService.recordActionableForAutoApply(orgId, propertyId, "rev", null,
+                        title, motif, SupervisionActionType.PRICE_DROP, params,
+                        impactCents > 0 ? impactCents : null, severity)
+                .ifPresent(suggestionId -> {
+                    final boolean applied = autoApplyService.autoApply(decision, orgId, propertyId,
+                            "rev", suggestionId, title, motif, impactCents > 0 ? impactCents : null);
+                    if (applied) {
+                        journalYieldDailyCap(orgId, propertyId, suggestionId, title);
+                    }
+                });
+    }
+
+    /**
+     * Décision d'auto-application d'un PRICE_DROP : cadre yield existant D'ABORD
+     * (kill-switch {@code YieldOrgConfig.enabled} + mode AUTO org, chaque segment
+     * ≤ {@code autoHitlImpactPct}, cap « un apply par bien et par jour » via le
+     * journal yield), PUIS le gate {@code supervision_auto_rules} (toggle du type,
+     * plafond module, enveloppe). Tout refus → carte HITL comme aujourd'hui.
+     */
+    private AutoApplyGate.AutoDecision priceAutoDecision(Long orgId, Long propertyId, int maxAbsPercent) {
+        final YieldOrgConfig config = yieldOrgConfigRepository.findByOrganizationId(orgId).orElse(null);
+        if (config == null || !config.isEnabled() || config.getMode() != YieldMode.AUTO) {
+            return AutoApplyGate.AutoDecision.CARD;
+        }
+        if (BigDecimal.valueOf(maxAbsPercent).compareTo(autoHitlImpactPct) > 0) {
+            return AutoApplyGate.AutoDecision.CARD; // bascule HITL du cadre yield (R1)
+        }
+        // Cap journalier partagé avec le moteur yield (jour serveur — le scanner ne
+        // charge pas la Property ; le journal côté yield utilise la zone du bien,
+        // l'écart éventuel d'un run nocturne reste dans le sens conservateur).
+        if (yieldAdjustmentRepository.existsByPropertyIdAndAdjustmentDayAndModeAndSkipReasonIsNull(
+                propertyId, LocalDate.now(clock), YieldAdjustment.Mode.APPLIED)) {
+            return AutoApplyGate.AutoDecision.CARD;
+        }
+        return autoApplyGate.decide(orgId, "rev", SupervisionActionType.PRICE_DROP,
+                Map.of(AutoApplyGate.INPUT_MAX_SEGMENT_ABS_PERCENT, maxAbsPercent));
+    }
+
+    /**
+     * Journalise l'auto-application dans {@code yield_adjustments} (mode APPLIED,
+     * ligne de cap sans nuit ciblée) : arme le cap « un apply par bien et par
+     * jour » pour le moteur yield ET pour le prochain scan — sans quoi un scan
+     * quotidien re-baisserait les prix en boucle. Best-effort : un échec du
+     * journal ne défait pas l'application (déjà committée), il est logué.
+     */
+    private void journalYieldDailyCap(Long orgId, Long propertyId, Long suggestionId, String title) {
+        try {
+            final YieldAdjustment line = new YieldAdjustment(
+                    orgId, propertyId, LocalDate.now(clock), YieldAdjustment.Mode.APPLIED);
+            line.setSuggestionId(suggestionId);
+            line.setReason(title.length() <= 300 ? title : title.substring(0, 300));
+            yieldAdjustmentRepository.save(line);
+        } catch (Exception e) {
+            log.warn("auto PRICE_DROP : journal du cap yield non écrit (org={} property={}) : {}",
+                    orgId, propertyId, e.getMessage());
+        }
     }
 
     /** Hausse proposée selon l'ampleur de l'occupation : plus le logement est plein, plus on revalorise. */

@@ -272,6 +272,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     const { refreshToken, accessToken } = get();
 
+    // 0. Désenregistrer le token push TANT QUE la session est encore valide
+    // (le DELETE /devices est authentifié). Best-effort borné à 1,5 s pour ne
+    // jamais retarder le logout.
+    try {
+      const { unregisterPushNotifications } = await import('@/services/push/pushService');
+      await Promise.race([
+        unregisterPushNotifications(),
+        new Promise((resolve) => setTimeout(resolve, 1500)),
+      ]);
+    } catch {
+      // Best effort — le token orphelin sera réassigné au prochain login.
+    }
+
     // 1. Clear local tokens FIRST (ensures UI unblocks immediately)
     await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
     await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);

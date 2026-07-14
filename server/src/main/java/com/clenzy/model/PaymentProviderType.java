@@ -6,6 +6,14 @@ public enum PaymentProviderType {
     CMI,
     PAYZONE,
     /**
+     * Attijari Payment (établissement de paiement d'Attijariwafa Bank, Maroc).
+     * Acquéreur carte MAD post-libéralisation CMI (2026). Utilise le même
+     * protocole que le CMI (passerelle Maroc Telecommerce est3Dgate : clientid +
+     * store_key + hash SHA-512 ver3 + callback), d'où la réutilisation de
+     * {@code CmiHashService} et du rendu {@code Est3DGateHtml}.
+     */
+    ATTIJARI,
+    /**
      * Provider PayPal retiré (décision produit — flux inopérant). Plus aucun
      * {@code PaymentProvider} actif ni endpoint de retour/webhook associé.
      *

@@ -57,7 +57,8 @@ class ChannexConnectServiceExtraTest {
             propertyRepository,
             new ChannexMetrics(new SimpleMeterRegistry()),
             new ChannexCapabilityService(),
-            priceDriftRepository
+            priceDriftRepository,
+            new com.clenzy.integration.channex.config.ChannexProperties()
         );
     }
 

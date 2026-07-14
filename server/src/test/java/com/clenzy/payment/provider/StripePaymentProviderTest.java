@@ -96,6 +96,37 @@ class StripePaymentProviderTest {
         }
 
         @Test
+        void embedded_returnsClientSecretInsteadOfRedirect() {
+            PaymentRequest request = new PaymentRequest(
+                    new BigDecimal("250.00"), "EUR", "Séjour", "u@e.com", null,
+                    null, null, "idem-emb", Map.of("type", "booking_engine"),
+                    true, 1_900_000_000L, true);
+            Session session = mock(Session.class);
+            when(session.getId()).thenReturn("cs_emb");
+            when(session.getClientSecret()).thenReturn("cs_emb_secret");
+
+            try (MockedStatic<Session> sessionStatic = mockStatic(Session.class)) {
+                sessionStatic.when(() -> Session.create(any(SessionCreateParams.class), any()))
+                        .thenReturn(session);
+
+                PaymentResult result = provider.createPayment(request);
+
+                assertThat(result.success()).isTrue();
+                assertThat(result.providerTxId()).isEqualTo("cs_emb");
+                assertThat(result.clientSecret()).isEqualTo("cs_emb_secret");
+                assertThat(result.redirectUrl()).isNull();
+                assertThat(result.presentationMode())
+                        .isEqualTo(com.clenzy.payment.PaymentPresentationMode.CLIENT_SECRET);
+            }
+        }
+
+        @Test
+        void embedded_declaresCapability() {
+            assertThat(provider.getCapabilities())
+                    .contains(com.clenzy.payment.PaymentCapability.EMBEDDED_CHECKOUT);
+        }
+
+        @Test
         void successUrlBlank_fallsBackToDefault() {
             PaymentRequest request = new PaymentRequest(
                     BigDecimal.TEN, "EUR", "T", "u@e.com", "U",

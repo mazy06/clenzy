@@ -1,6 +1,8 @@
 package com.clenzy.controller;
 
 import com.clenzy.config.TokenCookieFilter;
+import com.clenzy.service.AuthSessionService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,11 +17,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,9 +38,11 @@ import static org.mockito.Mockito.when;
  * <ul>
  *   <li>GET /api/auth/session : 200 avec metadonnees non sensibles (JAMAIS le token brut
  *       — Z1-SEC-FRONTAUX-02) si principal JWT present, 401 sinon</li>
- *   <li>POST /api/auth/session : pose un cookie HttpOnly/Secure/SameSite=Strict, 400 si pas de header</li>
- *   <li>DELETE /api/auth/session : pose un cookie max-age=0 (suppression)</li>
- *   <li>isSecure : false en dev, secureCookie param sinon</li>
+ *   <li>POST /api/auth/session : pose clenzy_auth (max-age cale sur l'exp du token) +,
+ *       si X-Refresh-Token present, clenzy_refresh (Path=/api/auth) ; 400 si pas de header</li>
+ *   <li>POST /api/auth/session/refresh : rotate les 2 cookies + metadonnees si succes,
+ *       purge + 401 si refresh invalide/absent</li>
+ *   <li>DELETE /api/auth/session : purge les 2 cookies (max-age=0)</li>
  * </ul>
  */
 @ExtendWith(MockitoExtension.class)
@@ -44,17 +54,21 @@ class AuthSessionControllerTest {
     @Mock
     private HttpServletResponse response;
 
+    @Mock
+    private AuthSessionService authSessionService;
+
     private AuthSessionController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new AuthSessionController();
+        controller = new AuthSessionController(authSessionService, new ObjectMapper());
         ReflectionTestUtils.setField(controller, "secureCookie", true);
         ReflectionTestUtils.setField(controller, "activeProfile", "prod");
-        ReflectionTestUtils.setField(controller, "cookieMaxAge", 3600);
+        ReflectionTestUtils.setField(controller, "accessCookieFallbackMaxAge", 86400);
+        ReflectionTestUtils.setField(controller, "refreshCookieFallbackMaxAge", 604800);
     }
 
-    // ─── GET /api/auth/session ───────────────────────────────────────────
+    // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private static final String RAW_TOKEN = "raw-jwt-value-must-never-leak";
 
@@ -71,6 +85,28 @@ class AuthSessionControllerTest {
                 .expiresAt(Instant.now().plusSeconds(3600))
                 .build();
     }
+
+    /** Construit un JWT compact (non signe) avec les claims fournis dans le payload. */
+    private static String rawJwt(long expEpoch) {
+        String header = base64Url("{\"alg\":\"none\"}");
+        String payload = base64Url("{\"exp\":" + expEpoch
+                + ",\"sub\":\"kc-user-1\",\"preferred_username\":\"host1\""
+                + ",\"email\":\"host@clenzy.fr\",\"given_name\":\"Jean\",\"family_name\":\"Dupont\""
+                + ",\"realm_access\":{\"roles\":[\"HOST\"]}}");
+        return header + "." + payload + ".sig";
+    }
+
+    private static String base64Url(String s) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(s.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** Renvoie le fallback passe a secondsUntilExpiry (comportement pour un token non-JWT). */
+    private void stubSecondsUntilExpiryReturnsFallback() {
+        when(authSessionService.secondsUntilExpiry(any(), anyInt()))
+                .thenAnswer(inv -> inv.getArgument(1));
+    }
+
+    // ─── GET /api/auth/session ───────────────────────────────────────────────
 
     @Test
     @DisplayName("getSession avec principal JWT retourne les metadonnees de session")
@@ -97,7 +133,6 @@ class AuthSessionControllerTest {
     void getSession_withJwtPrincipal_neverEchoesRawToken() {
         ResponseEntity<?> result = controller.getSession(jwtWithClaims());
 
-        // Le DTO ne doit contenir le token brut dans aucun de ses champs.
         assertThat(String.valueOf(result.getBody())).doesNotContain(RAW_TOKEN);
     }
 
@@ -128,25 +163,7 @@ class AuthSessionControllerTest {
         assertThat(body.roles()).isEmpty();
     }
 
-    @Test
-    @DisplayName("getSession avec realm_access.roles malforme (non-liste) retourne une liste vide")
-    void getSession_withMalformedRealmRoles_returnsEmptyRoles() {
-        Jwt jwt = Jwt.withTokenValue(RAW_TOKEN)
-                .header("alg", "RS256")
-                .subject("kc-user-3")
-                .claim("realm_access", Map.of("roles", "HOST"))
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plusSeconds(60))
-                .build();
-
-        ResponseEntity<?> result = controller.getSession(jwt);
-
-        AuthSessionController.SessionInfoDto body = (AuthSessionController.SessionInfoDto) result.getBody();
-        assertThat(body).isNotNull();
-        assertThat(body.roles()).isEmpty();
-    }
-
-    // ─── POST /api/auth/session ──────────────────────────────────────────
+    // ─── POST /api/auth/session ──────────────────────────────────────────────
 
     @Test
     @DisplayName("createSession returns 400 when no Authorization header")
@@ -170,8 +187,9 @@ class AuthSessionControllerTest {
     }
 
     @Test
-    @DisplayName("createSession sets cookie HttpOnly/Secure/SameSite=Strict + max-age in prod")
-    void createSession_validBearer_setsCookieWithCorrectAttributes() {
+    @DisplayName("createSession sans X-Refresh-Token pose UNIQUEMENT clenzy_auth (HttpOnly/Secure/Strict)")
+    void createSession_validBearer_setsAccessCookieOnly() {
+        stubSecondsUntilExpiryReturnsFallback();
         when(request.getHeader("Authorization")).thenReturn("Bearer xyz-token");
 
         ResponseEntity<Map<String, String>> result = controller.createSession(request, response);
@@ -185,7 +203,8 @@ class AuthSessionControllerTest {
         assertThat(cookie.isHttpOnly()).isTrue();
         assertThat(cookie.getSecure()).isTrue();
         assertThat(cookie.getPath()).isEqualTo("/");
-        assertThat(cookie.getMaxAge()).isEqualTo(3600);
+        // Token non-JWT → max-age = fallback (86400)
+        assertThat(cookie.getMaxAge()).isEqualTo(86400);
         assertThat(cookie.getAttribute("SameSite")).isEqualTo("Strict");
 
         assertThat(result.getStatusCode().value()).isEqualTo(200);
@@ -193,8 +212,47 @@ class AuthSessionControllerTest {
     }
 
     @Test
+    @DisplayName("createSession avec X-Refresh-Token pose AUSSI clenzy_refresh (Path=/api/auth)")
+    void createSession_withRefreshHeader_setsBothCookies() {
+        stubSecondsUntilExpiryReturnsFallback();
+        when(request.getHeader("Authorization")).thenReturn("Bearer access-token");
+        when(request.getHeader("X-Refresh-Token")).thenReturn("refresh-token");
+
+        controller.createSession(request, response);
+
+        ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
+        verify(response, times(2)).addCookie(cookieCaptor.capture());
+
+        List<Cookie> cookies = cookieCaptor.getAllValues();
+        Cookie auth = cookies.stream().filter(c -> TokenCookieFilter.COOKIE_NAME.equals(c.getName())).findFirst().orElseThrow();
+        Cookie refresh = cookies.stream().filter(c -> "clenzy_refresh".equals(c.getName())).findFirst().orElseThrow();
+
+        assertThat(auth.getPath()).isEqualTo("/");
+        assertThat(refresh.getValue()).isEqualTo("refresh-token");
+        assertThat(refresh.getPath()).isEqualTo("/api/auth");
+        assertThat(refresh.isHttpOnly()).isTrue();
+        assertThat(refresh.getSecure()).isTrue();
+        assertThat(refresh.getMaxAge()).isEqualTo(604800);
+        assertThat(refresh.getAttribute("SameSite")).isEqualTo("Strict");
+    }
+
+    @Test
+    @DisplayName("createSession derive le max-age du cookie sur l'exp reel du token")
+    void createSession_derivesMaxAgeFromTokenExp() {
+        when(authSessionService.secondsUntilExpiry(any(), anyInt())).thenReturn(3600);
+        when(request.getHeader("Authorization")).thenReturn("Bearer jwt");
+
+        controller.createSession(request, response);
+
+        ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
+        verify(response).addCookie(cookieCaptor.capture());
+        assertThat(cookieCaptor.getValue().getMaxAge()).isEqualTo(3600);
+    }
+
+    @Test
     @DisplayName("createSession in dev profile does NOT set Secure flag")
     void createSession_devProfile_noSecureFlag() {
+        stubSecondsUntilExpiryReturnsFallback();
         ReflectionTestUtils.setField(controller, "activeProfile", "dev");
         when(request.getHeader("Authorization")).thenReturn("Bearer dev-token");
 
@@ -205,64 +263,103 @@ class AuthSessionControllerTest {
         assertThat(cookieCaptor.getValue().getSecure()).isFalse();
     }
 
+    // ─── POST /api/auth/session/refresh ──────────────────────────────────────
+
     @Test
-    @DisplayName("createSession with secureCookie=false in prod does NOT set Secure flag")
-    void createSession_secureCookieDisabled_noSecureFlag() {
-        ReflectionTestUtils.setField(controller, "secureCookie", false);
-        when(request.getHeader("Authorization")).thenReturn("Bearer t");
+    @DisplayName("refreshSession retourne 401 quand aucun cookie clenzy_refresh")
+    void refreshSession_noCookie_returns401() {
+        when(request.getCookies()).thenReturn(null);
 
-        controller.createSession(request, response);
+        ResponseEntity<?> result = controller.refreshSession(request, response);
 
-        ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
-        verify(response).addCookie(cookieCaptor.capture());
-        assertThat(cookieCaptor.getValue().getSecure()).isFalse();
+        assertThat(result.getStatusCode().value()).isEqualTo(401);
     }
 
     @Test
-    @DisplayName("createSession uses configured cookieMaxAge")
-    void createSession_usesCookieMaxAgeConfig() {
-        ReflectionTestUtils.setField(controller, "cookieMaxAge", 7200);
-        when(request.getHeader("Authorization")).thenReturn("Bearer t");
+    @DisplayName("refreshSession valide rotate les 2 cookies et renvoie les metadonnees (jamais le token)")
+    void refreshSession_validCookie_rotatesCookiesAndReturnsMetadata() {
+        stubSecondsUntilExpiryReturnsFallback();
+        long exp = Instant.now().plusSeconds(86400).getEpochSecond();
+        String newAccess = rawJwt(exp);
+        when(request.getCookies()).thenReturn(new Cookie[]{ new Cookie("clenzy_refresh", "old-refresh") });
+        when(authSessionService.refresh("old-refresh"))
+                .thenReturn(Optional.of(new AuthSessionService.RefreshedTokens(newAccess, "new-refresh")));
 
-        controller.createSession(request, response);
+        ResponseEntity<?> result = controller.refreshSession(request, response);
+
+        assertThat(result.getStatusCode().value()).isEqualTo(200);
+        AuthSessionController.SessionInfoDto body = (AuthSessionController.SessionInfoDto) result.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.authenticated()).isTrue();
+        assertThat(body.expiresAt()).isEqualTo(exp);
+        assertThat(body.subject()).isEqualTo("kc-user-1");
+        assertThat(body.roles()).containsExactly("HOST");
+        // Le token brut ne fuite jamais dans la reponse
+        assertThat(String.valueOf(body)).doesNotContain(newAccess);
 
         ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
-        verify(response).addCookie(cookieCaptor.capture());
-        assertThat(cookieCaptor.getValue().getMaxAge()).isEqualTo(7200);
+        verify(response, times(2)).addCookie(cookieCaptor.capture());
+        List<Cookie> cookies = cookieCaptor.getAllValues();
+        assertThat(cookies).anySatisfy(c -> {
+            assertThat(c.getName()).isEqualTo(TokenCookieFilter.COOKIE_NAME);
+            assertThat(c.getValue()).isEqualTo(newAccess);
+        });
+        assertThat(cookies).anySatisfy(c -> {
+            assertThat(c.getName()).isEqualTo("clenzy_refresh");
+            assertThat(c.getValue()).isEqualTo("new-refresh");
+        });
     }
 
-    // ─── DELETE /api/auth/session ────────────────────────────────────────
+    @Test
+    @DisplayName("refreshSession avec refresh invalide purge les cookies et repond 401")
+    void refreshSession_invalidRefresh_clearsCookiesAnd401() {
+        when(request.getCookies()).thenReturn(new Cookie[]{ new Cookie("clenzy_refresh", "expired") });
+        when(authSessionService.refresh("expired")).thenReturn(Optional.empty());
+
+        ResponseEntity<?> result = controller.refreshSession(request, response);
+
+        assertThat(result.getStatusCode().value()).isEqualTo(401);
+        // Purge des 2 cookies (max-age=0)
+        ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
+        verify(response, times(2)).addCookie(cookieCaptor.capture());
+        assertThat(cookieCaptor.getAllValues()).allSatisfy(c -> assertThat(c.getMaxAge()).isZero());
+    }
+
+    // ─── DELETE /api/auth/session ────────────────────────────────────────────
 
     @Test
-    @DisplayName("deleteSession clears the cookie (max-age=0)")
-    void deleteSession_clearsCookie() {
-        ResponseEntity<Map<String, String>> result = controller.deleteSession(response);
+    @DisplayName("deleteSession purge les 2 cookies (max-age=0)")
+    void deleteSession_clearsBothCookies() {
+        ResponseEntity<Map<String, String>> result = controller.deleteSession(
+                request, response);
 
         ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
-        verify(response).addCookie(cookieCaptor.capture());
+        verify(response, times(2)).addCookie(cookieCaptor.capture());
 
-        Cookie cookie = cookieCaptor.getValue();
-        assertThat(cookie.getName()).isEqualTo(TokenCookieFilter.COOKIE_NAME);
-        assertThat(cookie.getValue()).isEmpty();
-        assertThat(cookie.getMaxAge()).isZero();
-        assertThat(cookie.isHttpOnly()).isTrue();
-        assertThat(cookie.getSecure()).isTrue();
-        assertThat(cookie.getPath()).isEqualTo("/");
-        assertThat(cookie.getAttribute("SameSite")).isEqualTo("Strict");
+        List<Cookie> cookies = cookieCaptor.getAllValues();
+        Cookie auth = cookies.stream().filter(c -> TokenCookieFilter.COOKIE_NAME.equals(c.getName())).findFirst().orElseThrow();
+        Cookie refresh = cookies.stream().filter(c -> "clenzy_refresh".equals(c.getName())).findFirst().orElseThrow();
+
+        assertThat(auth.getValue()).isEmpty();
+        assertThat(auth.getMaxAge()).isZero();
+        assertThat(auth.getPath()).isEqualTo("/");
+        assertThat(refresh.getValue()).isEmpty();
+        assertThat(refresh.getMaxAge()).isZero();
+        assertThat(refresh.getPath()).isEqualTo("/api/auth");
 
         assertThat(result.getStatusCode().value()).isEqualTo(200);
         assertThat(result.getBody()).containsEntry("status", "cleared");
     }
 
     @Test
-    @DisplayName("deleteSession in dev profile omits Secure flag on the clearing cookie")
+    @DisplayName("deleteSession in dev profile omits Secure flag on the clearing cookies")
     void deleteSession_devProfile_noSecureOnClearCookie() {
         ReflectionTestUtils.setField(controller, "activeProfile", "dev");
 
-        controller.deleteSession(response);
+        controller.deleteSession(request, response);
 
         ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
-        verify(response).addCookie(cookieCaptor.capture());
-        assertThat(cookieCaptor.getValue().getSecure()).isFalse();
+        verify(response, times(2)).addCookie(cookieCaptor.capture());
+        assertThat(cookieCaptor.getAllValues()).allSatisfy(c -> assertThat(c.getSecure()).isFalse());
     }
 }

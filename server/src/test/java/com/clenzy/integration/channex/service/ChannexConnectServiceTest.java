@@ -61,7 +61,8 @@ class ChannexConnectServiceTest {
             propertyRepository,
             new ChannexMetrics(new SimpleMeterRegistry()),
             new ChannexCapabilityService(),
-            priceDriftRepository
+            priceDriftRepository,
+            new com.clenzy.integration.channex.config.ChannexProperties()
         );
         // Defaut : 0 drift actif (PRICE_DRIFTS_ALIGNMENT check -> OK)
         org.mockito.Mockito.lenient().when(priceDriftRepository.findActiveByOrg(org.mockito.ArgumentMatchers.anyLong()))
@@ -296,13 +297,13 @@ class ChannexConnectServiceTest {
         when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(mapping));
 
         ChannexBookingDto b1 = new ChannexBookingDto(
-            "booking-1", "HM1", "airbnb", "chx-prop-1", "new",
+            "booking-1", null, null, "HM1", "airbnb", "chx-prop-1", "new",
             java.time.LocalDate.of(2026, 8, 1), java.time.LocalDate.of(2026, 8, 5),
             java.math.BigDecimal.valueOf(450), "EUR",
             null, List.of()
         );
         ChannexBookingDto b2 = new ChannexBookingDto(
-            "booking-2", "HM2", "booking_com", "chx-prop-1", "new",
+            "booking-2", null, null, "HM2", "booking_com", "chx-prop-1", "new",
             java.time.LocalDate.of(2026, 9, 1), java.time.LocalDate.of(2026, 9, 7),
             java.math.BigDecimal.valueOf(800), "EUR",
             null, List.of()

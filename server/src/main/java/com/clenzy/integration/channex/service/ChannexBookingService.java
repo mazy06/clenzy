@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -55,7 +56,7 @@ public class ChannexBookingService {
     private final CalendarEngine calendarEngine;
     private final NotificationService notificationService;
     private final ChannexMetrics metrics;
-    private final com.clenzy.integration.channex.client.ChannexClient channexClient;
+    private final com.clenzy.repository.CalendarDayRepository calendarDayRepository;
 
     public ChannexBookingService(ChannexPropertyMappingRepository mappingRepository,
                                    ReservationRepository reservationRepository,
@@ -64,7 +65,7 @@ public class ChannexBookingService {
                                    CalendarEngine calendarEngine,
                                    NotificationService notificationService,
                                    ChannexMetrics metrics,
-                                   com.clenzy.integration.channex.client.ChannexClient channexClient) {
+                                   com.clenzy.repository.CalendarDayRepository calendarDayRepository) {
         this.mappingRepository = mappingRepository;
         this.reservationRepository = reservationRepository;
         this.propertyRepository = propertyRepository;
@@ -72,7 +73,38 @@ public class ChannexBookingService {
         this.calendarEngine = calendarEngine;
         this.notificationService = notificationService;
         this.metrics = metrics;
-        this.channexClient = channexClient;
+        this.calendarDayRepository = calendarDayRepository;
+    }
+
+    /**
+     * Bloque le calendrier pour un booking OTA reçu, SANS jamais empoisonner la
+     * transaction courante en cas de conflit.
+     *
+     * <p>Un booking OTA est déjà confirmé côté canal : on DOIT le persister et
+     * l'acquitter, même si les dates sont déjà occupées côté Baitly (overbooking).
+     * Or {@link CalendarEngine#book} lève {@code CalendarConflictException} sur
+     * conflit, ce qui marque la transaction {@code rollback-only} et annule la
+     * persistance de la réservation → le feed ne peut jamais acquitter la révision
+     * et la re-tente en boucle (règle audit n°7 : un catch n'un-poisonne pas une
+     * transaction). On réplique donc le pré-check {@code countConflicts} (lecture
+     * seule, même sémantique) et on n'appelle {@code book()} QUE si zéro conflit ;
+     * sinon la réservation est conservée et flaguée pour intervention manuelle.</p>
+     *
+     * @return true si le calendrier a été bloqué, false si overbooking (non bloqué)
+     */
+    private boolean bookCalendarSafely(Long propertyId, LocalDate arrival, LocalDate departure,
+                                       Long reservationId, Long orgId, String source,
+                                       String bookingIdForLog) {
+        long conflicts = calendarDayRepository.countConflicts(propertyId, arrival, departure, orgId);
+        if (conflicts > 0) {
+            log.error("ChannexBooking: OVERBOOKING — {} jour(s) deja occupe(s) pour booking {} "
+                + "(reservation #{}, property {}, {}->{}). Reservation persistee ET acquittee, MAIS "
+                + "calendrier NON bloque — intervention manuelle requise.",
+                conflicts, bookingIdForLog, reservationId, propertyId, arrival, departure);
+            return false;
+        }
+        calendarEngine.book(propertyId, arrival, departure, reservationId, orgId, source, "channex-webhook");
+        return true;
     }
 
     // ─── New booking ────────────────────────────────────────────────────────
@@ -89,7 +121,9 @@ public class ChannexBookingService {
 
         ChannexPropertyMapping mapping = resolveMappingOrThrow(booking.propertyId());
         Long orgId = mapping.getOrganizationId();
-        String externalUid = EXTERNAL_UID_PREFIX + booking.id();
+        // stableBookingId : booking_id (revisions) ou id (booking direct) — jamais
+        // l'id de revision, qui change a chaque modification (doublon garanti).
+        String externalUid = EXTERNAL_UID_PREFIX + booking.stableBookingId();
 
         // Idempotence : booking deja persiste ?
         Optional<Reservation> existing = reservationRepository.findByExternalUidAndPropertyId(
@@ -97,7 +131,7 @@ public class ChannexBookingService {
         );
         if (existing.isPresent()) {
             log.info("ChannexBooking: booking {} deja persiste (reservation #{}) — skip",
-                booking.id(), existing.get().getId());
+                booking.stableBookingId(), existing.get().getId());
             metrics.recordBookingProcessed("duplicate_skip");
             return existing.get();
         }
@@ -110,40 +144,28 @@ public class ChannexBookingService {
         Reservation reservation = buildReservationFromBooking(booking, property, guest, orgId, externalUid);
         reservation = reservationRepository.save(reservation);
 
-        // Bloquer le calendrier (peut lever une exception en cas de conflit — ce qui est attendu :
-        // alerte critique pour intervention manuelle).
-        try {
-            calendarEngine.book(
-                mapping.getClenzyPropertyId(),
-                booking.arrivalDate(),
-                booking.departureDate(),
-                reservation.getId(),
-                orgId,
-                resolveCalendarSource(booking.otaName()),
-                "channex-webhook"
-            );
-        } catch (Exception e) {
-            log.error("ChannexBooking: CONFLIT calendrier pour booking {} (reservation #{}, property {}). "
-                + "Reservation creee MAIS dates non bloquees — intervention manuelle requise. Cause: {}",
-                booking.id(), reservation.getId(), mapping.getClenzyPropertyId(), e.getMessage());
-        }
+        // Bloquer le calendrier SANS empoisonner la transaction : pré-check conflit
+        // en lecture seule (cf. bookCalendarSafely / règle audit n°7). Un booking OTA
+        // sur dates occupées est conservé + acquitté, calendrier flaggué overbooking.
+        bookCalendarSafely(
+            mapping.getClenzyPropertyId(),
+            booking.arrivalDate(),
+            booking.departureDate(),
+            reservation.getId(),
+            orgId,
+            resolveCalendarSource(booking.otaName()),
+            booking.stableBookingId()
+        );
 
         log.info("ChannexBooking: reservation {} creee depuis {} (ota={}, dates {}->{}, total {} {})",
-            reservation.getConfirmationCode(), booking.id(),
+            reservation.getConfirmationCode(), booking.stableBookingId(),
             booking.otaName(), booking.arrivalDate(), booking.departureDate(),
             booking.amount(), booking.currency());
         metrics.recordBookingProcessed("new");
 
-        // Sprint A1 (Quick Win) — Acknowledge le booking aupres de Channex.
-        // Sans ack, Channex re-envoie un event non_acked_booking et certains OTAs
-        // (Airbnb notamment) interpretent ca comme "reservation perdue" -> escalations.
-        // Best-effort : un echec d'ack n'invalide pas la reservation deja creee.
-        try {
-            channexClient.acknowledgeBooking(booking.id());
-        } catch (Exception e) {
-            log.warn("ChannexBooking: ack KO booking={} (sera re-tente sur non_acked_booking event): {}",
-                booking.id(), e.getMessage());
-        }
+        // L'acquittement Channex est fait par ChannexBookingFeedService, PAR REVISION
+        // et APRES commit de la transaction (doc Channex : ack apres persistance ;
+        // regle audit : jamais d'appel HTTP externe dans une transaction DB).
 
         // Notifier l'equipe
         try {
@@ -173,14 +195,14 @@ public class ChannexBookingService {
     public Optional<Reservation> handleModification(ChannexBookingDto booking) {
         validateBookingPayload(booking);
         ChannexPropertyMapping mapping = resolveMappingOrThrow(booking.propertyId());
-        String externalUid = EXTERNAL_UID_PREFIX + booking.id();
+        String externalUid = EXTERNAL_UID_PREFIX + booking.stableBookingId();
 
         Optional<Reservation> opt = reservationRepository.findByExternalUidAndPropertyId(
             externalUid, mapping.getClenzyPropertyId()
         );
         if (opt.isEmpty()) {
             log.warn("ChannexBooking: modification recue pour booking {} introuvable cote Clenzy — "
-                + "creation a la volee", booking.id());
+                + "creation a la volee", booking.stableBookingId());
             return Optional.of(handleNewBooking(booking));
         }
 
@@ -204,24 +226,20 @@ public class ChannexBookingService {
         reservationRepository.save(reservation);
 
         if (datesChanged) {
-            try {
-                calendarEngine.book(
-                    mapping.getClenzyPropertyId(),
-                    booking.arrivalDate(),
-                    booking.departureDate(),
-                    reservation.getId(),
-                    reservation.getOrganizationId(),
-                    resolveCalendarSource(booking.otaName()),
-                    "channex-webhook"
-                );
-            } catch (Exception e) {
-                log.error("ChannexBooking: conflit lors du re-blocage apres modification booking {}: {}",
-                    booking.id(), e.getMessage());
-            }
+            // Re-blocage sans empoisonner la transaction (cf. bookCalendarSafely).
+            bookCalendarSafely(
+                mapping.getClenzyPropertyId(),
+                booking.arrivalDate(),
+                booking.departureDate(),
+                reservation.getId(),
+                reservation.getOrganizationId(),
+                resolveCalendarSource(booking.otaName()),
+                booking.stableBookingId()
+            );
         }
 
         log.info("ChannexBooking: reservation #{} modifiee depuis {} (dates_changed={})",
-            reservation.getId(), booking.id(), datesChanged);
+            reservation.getId(), booking.stableBookingId(), datesChanged);
         metrics.recordBookingProcessed("modification");
         return Optional.of(reservation);
     }
@@ -239,13 +257,13 @@ public class ChannexBookingService {
         }
 
         ChannexPropertyMapping mapping = resolveMappingOrThrow(booking.propertyId());
-        String externalUid = EXTERNAL_UID_PREFIX + booking.id();
+        String externalUid = EXTERNAL_UID_PREFIX + booking.stableBookingId();
 
         Optional<Reservation> opt = reservationRepository.findByExternalUidAndPropertyId(
             externalUid, mapping.getClenzyPropertyId()
         );
         if (opt.isEmpty()) {
-            log.warn("ChannexBooking: cancellation pour booking {} inconnu — skip", booking.id());
+            log.warn("ChannexBooking: cancellation pour booking {} inconnu — skip", booking.stableBookingId());
             return Optional.empty();
         }
 
@@ -266,7 +284,7 @@ public class ChannexBookingService {
         }
 
         log.info("ChannexBooking: reservation #{} annulee depuis Channex booking {}",
-            reservation.getId(), booking.id());
+            reservation.getId(), booking.stableBookingId());
         metrics.recordBookingProcessed("cancellation");
 
         try {

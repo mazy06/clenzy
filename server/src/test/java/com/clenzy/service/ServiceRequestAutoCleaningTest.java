@@ -40,6 +40,13 @@ class ServiceRequestAutoCleaningTest {
     @Mock private ServiceRequestMapper serviceRequestMapper;
     @Mock private AssignmentEventRepository assignmentEventRepository;
     @Mock private WorkflowSettingsRepository workflowSettingsRepository;
+    @Mock
+    private com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine;
+    @Mock private com.clenzy.service.pricing.HousekeeperScoreService housekeeperScoreService;
+    @Mock private com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService;
+    @Mock private com.clenzy.service.agent.supervision.SupervisionAutoApplyService supervisionAutoApplyService;
+    @Mock private com.clenzy.service.agent.supervision.AutoApplyGate autoApplyGate;
+    @Mock private com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
 
     private ServiceRequestService service;
 
@@ -58,7 +65,20 @@ class ServiceRequestAutoCleaningTest {
                 serviceRequestRepository, userRepository, propertyRepository,
                 interventionRepository, reservationRepository, teamRepository, notificationService,
                 propertyTeamService, kafkaTemplate, new TenantContext(), serviceRequestMapper,
-                assignmentEventRepository, workflowSettingsRepository);
+                assignmentEventRepository, workflowSettingsRepository,
+                cleaningPricingEngine, housekeeperScoreService,
+                supervisionSuggestionService, supervisionAutoApplyService, autoApplyGate,
+                organizationAccessGuard);
+
+        // Le moteur ménage est mocké : conseil 95 € (fourchette 80-110, 135 min).
+        // lenient : certains tests s'arrêtent avant le calcul (skip idempotent).
+        lenient().when(cleaningPricingEngine.resolveCleaningPrice(any(), any(), isNull(), any()))
+                .thenReturn(new com.clenzy.service.pricing.CleaningPricingEngine.ResolvedCleaningPrice(
+                        java.math.BigDecimal.valueOf(95),
+                        com.clenzy.service.pricing.CleaningPricingEngine.CleaningPriceSource.ENGINE,
+                        new com.clenzy.service.pricing.CleaningPricingEngine.CleaningQuote(
+                                135, java.math.BigDecimal.valueOf(95),
+                                java.math.BigDecimal.valueOf(80), java.math.BigDecimal.valueOf(110))));
 
         owner = new User();
         owner.setId(7L);

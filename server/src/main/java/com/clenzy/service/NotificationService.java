@@ -1,18 +1,23 @@
 package com.clenzy.service;
 
+import com.clenzy.config.KafkaConfig;
 import com.clenzy.dto.NotificationDto;
 import com.clenzy.model.*;
 import com.clenzy.repository.NotificationRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 @Service
 @Transactional
@@ -25,14 +30,38 @@ public class NotificationService {
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
 
+    /**
+     * Moteur Ménage 2B (P4) — clés poussées en PUSH MOBILE via l'outbox → Kafka
+     * ({@code notifications.send}) → FcmNotificationConsumer. Whitelist volontaire :
+     * les clés TERRAIN d'abord ; étendre ici quand un nouveau cas est validé.
+     */
+    static final Set<NotificationKey> PUSH_ENABLED_KEYS = Set.of(
+            NotificationKey.INTERVENTION_ASSIGNED_TO_USER,
+            NotificationKey.INTERVENTION_ASSIGNED_TO_TEAM,
+            NotificationKey.INTERVENTION_STARTED,
+            NotificationKey.INTERVENTION_COMPLETED,
+            NotificationKey.SERVICE_REQUEST_ESCALATION,
+            NotificationKey.ISSUE_REPORTED,
+            NotificationKey.PAYOUT_SENT,
+            // MM-4B : le pro doit voir passer le blocage onboarding sur mobile
+            // (deep link → écran Mes versements, CTA configuration).
+            NotificationKey.PAYOUT_BLOCKED_ONBOARDING);
+
+    private final OutboxPublisher outboxPublisher;
+    private final ObjectMapper objectMapper;
+
     public NotificationService(NotificationRepository notificationRepository,
                                NotificationPreferenceService preferenceService,
                                UserRepository userRepository,
-                               TenantContext tenantContext) {
+                               TenantContext tenantContext,
+                               OutboxPublisher outboxPublisher,
+                               ObjectMapper objectMapper) {
         this.notificationRepository = notificationRepository;
         this.preferenceService = preferenceService;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
+        this.outboxPublisher = outboxPublisher;
+        this.objectMapper = objectMapper;
     }
 
     // ─── Lecture ─────────────────────────────────────────────────────────────────
@@ -174,12 +203,64 @@ public class NotificationService {
             notification.setOrganizationId(organizationId);
             notification = notificationRepository.save(notification);
             log.info("Notification {} creee (ID: {}) pour l'utilisateur {}", key, notification.getId(), userId);
+            publishPushEvent(notification.getId(), userId, key, title, message, actionUrl, organizationId);
             return NotificationDto.fromEntity(notification);
         } catch (Exception e) {
             // Ne jamais laisser une erreur de notification impacter la logique metier
             log.error("Erreur lors de la creation de notification {} pour {}: {}", key, userId, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Publie l'événement PUSH mobile dans l'OUTBOX transactionnel (norme projet :
+     * même transaction que la notification in-app, envoi Kafka par l'OutboxRelay
+     * APRÈS commit — jamais d'effet externe dans la transaction). Un échec ici ne
+     * casse JAMAIS la notification in-app (catch local).
+     */
+    private void publishPushEvent(Long notificationId, String userId, NotificationKey key,
+                                  String title, String message, String actionUrl, Long organizationId) {
+        if (!PUSH_ENABLED_KEYS.contains(key)) {
+            return;
+        }
+        try {
+            // Payload aligné sur le contrat de FcmNotificationConsumer
+            // (userId, title, message, notificationType, entityId, actionUrl).
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("userId", userId);
+            payload.put("title", title);
+            payload.put("message", message);
+            payload.put("notificationType", key.name());
+            payload.put("actionUrl", actionUrl);
+            String entityId = extractEntityId(actionUrl);
+            if (entityId != null) {
+                payload.put("entityId", entityId);
+            }
+            outboxPublisher.publish(
+                    "NOTIFICATION",
+                    String.valueOf(notificationId),
+                    "PUSH_" + key.name(),
+                    KafkaConfig.TOPIC_NOTIFICATIONS,
+                    userId,
+                    objectMapper.writeValueAsString(payload),
+                    organizationId);
+        } catch (Exception e) {
+            log.warn("Publication push impossible pour la notification {} ({}): {}",
+                    notificationId, key, e.getMessage());
+        }
+    }
+
+    /** Deep-link simple : dernier segment numérique de l'actionUrl (ex. /interventions/42 → 42). */
+    private static String extractEntityId(String actionUrl) {
+        if (actionUrl == null) return null;
+        String path = actionUrl.split("[?#]")[0];
+        String[] segments = path.split("/");
+        for (int i = segments.length - 1; i >= 0; i--) {
+            if (segments[i].matches("\\d+")) {
+                return segments[i];
+            }
+        }
+        return null;
     }
 
     // ─── Helpers pour notifier des groupes ──────────────────────────────────────

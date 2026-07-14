@@ -57,6 +57,12 @@ export interface ConstellationRendererProps {
   onReportWindowChange?: (days: number) => void;
   /** Contenu empilé JUSTE SOUS le HUD (haut-gauche), ex. flux « En direct ». */
   belowHud?: ReactNode;
+  /**
+   * Rendu pleine-cellule (accordéon Planning) : le canvas couvre TOUT le parent,
+   * sans coins arrondis ni ombre portée — aucun espace vide autour. Défaut :
+   * carte arrondie (vues standalone / portefeuille).
+   */
+  flush?: boolean;
 }
 
 export type ConstellationRenderer = ComponentType<ConstellationRendererProps>;

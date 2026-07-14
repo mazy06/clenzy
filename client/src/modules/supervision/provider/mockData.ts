@@ -163,9 +163,11 @@ function buildPending(seed: number, propertyId: string): PendingAction[] {
       id: `pa-rev-${propertyId}`,
       agentId: "rev",
       title: "Baisser le tarif du 20–22 juil. de −12 %",
-      motif: "Faible demande détectée sur ce créneau (3 nuits libres à J−25).",
+      // Motif aligné sur la détection RÉELLE (BusinessAnalyticsScanner) : seuil
+      // d'occupation à venir < 55 %, pas un narratif d'événement.
+      motif: "Occupation à venir faible (42 % sur 90 j) — 3 nuits libres à J−25.",
       reasoning:
-        "3 nuits libres à J−25. Deux annonces comparables sont 9 à 14 % moins chères. Une baisse de 12 % porte la probabilité de réservation de 38 % à ~71 % sans passer sous ton prix plancher.",
+        "3 nuits libres à J−25 et occupation à venir sous le seuil de 55 %. Deux annonces comparables sont 9 à 14 % moins chères. Une baisse de 12 % porte la probabilité de réservation de 38 % à ~71 % sans passer sous ton prix plancher.",
       createdAt: isoMinutesAgo(12),
       expiresAt: isoHoursFromNow(4),
       applyActionType: "PRICE_DROP",
@@ -184,6 +186,25 @@ function buildPending(seed: number, propertyId: string): PendingAction[] {
       expiresAt: isoHoursFromNow(8),
       kind: "payment",
       amountEur: 138,
+    });
+  }
+  if (variant === 0 || variant === 2) {
+    // Carte « email voyageur manquant » (agent Communication, severity warning) : le
+    // CTA « Compléter la fiche client » ouvre le modal GuestCardDialog (action front,
+    // aucun /apply). reservationId = résa mock existante (surchargée par le provider
+    // avec une réservation réelle du planning si disponible).
+    out.push({
+      id: `guest-email-${propertyId}`,
+      agentId: "com",
+      title: "Fiche client incomplète — email voyageur manquant",
+      motif:
+        "Le voyageur arrive dans 2 jours mais aucun email n’est renseigné : les messages et documents automatiques ne pourront pas être envoyés.",
+      reasoning:
+        "Sans email voyageur, les instructions d’arrivée, le livret d’accueil et les relances ne peuvent pas partir. Complète la fiche client pour rétablir l’envoi automatique.",
+      reservationId: MOCK_RESERVATION_FAMILLE_ROUX,
+      createdAt: isoMinutesAgo(8),
+      expiresAt: isoHoursFromNow(48),
+      opensGuestCard: true,
     });
   }
   return out;
@@ -364,12 +385,16 @@ export function buildPortfolioSnapshot(): PortfolioSnapshot {
         propertyId: 'p-marais',
         propertyName: 'Duplex Marais',
         title: 'Baisser le tarif du 20–22 juil. de −12 %',
-        motif: 'Faible demande détectée (3 nuits libres à J−25).',
+        // Motifs alignés sur la détection RÉELLE (occupation à venir < 55 % /
+        // > 85 %, BusinessAnalyticsScanner) — plus de narratif « festival ».
+        motif: 'Occupation à venir faible (42 % sur 90 j) — 3 nuits libres à J−25.',
         reasoning:
           'Deux annonces comparables du Marais sont 9 à 14 % moins chères. Une baisse de 12 % porte la probabilité de réservation de 38 % à ~71 % sans descendre sous ton prix plancher.',
         reservationId: MOCK_RESERVATION_LEA_MARCHAND,
         createdAt: isoMinutesAgo(18),
         expiresAt: isoHoursFromNow(4),
+        applyActionType: 'PRICE_DROP',
+        amountEur: 46,
       },
       {
         id: 'gp-rev-montmartre',
@@ -377,11 +402,15 @@ export function buildPortfolioSnapshot(): PortfolioSnapshot {
         propertyId: 'p-montmartre',
         propertyName: 'Studio Montmartre',
         title: 'Monter le tarif du 2–4 août de +9 %',
-        motif: 'Pic de demande détecté (festival du quartier).',
+        motif: 'Occupation à venir forte (91 % sur 90 j) — 2 nuits libres seulement.',
         reasoning:
           'Le taux de recherche sur ce créneau est 2,3× supérieur à la normale et il ne reste que 2 nuits libres. +9 % reste sous le prix des 3 annonces concurrentes encore disponibles.',
         createdAt: isoMinutesAgo(9),
         expiresAt: isoHoursFromNow(5),
+        // Actionnable comme en réel : la hausse passe par le même apply que la
+        // baisse (PRICE_DROP + direction "up" côté serveur).
+        applyActionType: 'PRICE_DROP',
+        amountEur: 38,
       },
       {
         id: 'gp-ops-bastille',

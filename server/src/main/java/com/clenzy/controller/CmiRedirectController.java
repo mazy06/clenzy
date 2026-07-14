@@ -4,6 +4,7 @@ import com.clenzy.model.PaymentTransaction;
 import com.clenzy.payment.provider.CmiHashService;
 import com.clenzy.payment.provider.CmiPaymentProvider;
 import com.clenzy.payment.provider.CmiPaymentProvider.CmiCredentials;
+import com.clenzy.payment.provider.Est3DGateHtml;
 import com.clenzy.service.PaymentTransactionService;
 import com.clenzy.util.StringUtils;
 import org.slf4j.Logger;
@@ -108,78 +109,12 @@ public class CmiRedirectController {
         params.put("HASH", hash);
 
         String gatewayUrl = CmiPaymentProvider.resolveGatewayUrl(creds.sandbox());
-        String html = renderAutoSubmitHtml(gatewayUrl, params);
+        String html = Est3DGateHtml.autoSubmitForm("CMI", gatewayUrl, params);
 
         log.info("CMI redirect rendu pour txRef={} → {}", transactionRef, gatewayUrl);
         return ResponseEntity.ok()
             .contentType(MediaType.TEXT_HTML)
             .body(html);
-    }
-
-    /**
-     * Construit un HTML minimaliste qui :
-     * <ul>
-     *   <li>Affiche un spinner + texte "Redirection vers CMI..."</li>
-     *   <li>Inclut un {@code form} cache avec tous les params + HASH</li>
-     *   <li>Auto-submit en JS au {@code load} (avec fallback bouton manuel
-     *       si JS desactive)</li>
-     * </ul>
-     * Toutes les valeurs sont echappees HTML pour prevenir XSS.
-     */
-    private String renderAutoSubmitHtml(String gatewayUrl, Map<String, String> params) {
-        StringBuilder formFields = new StringBuilder();
-        params.forEach((name, value) -> {
-            formFields.append("    <input type=\"hidden\" name=\"")
-                .append(StringUtils.escapeHtml(name))
-                .append("\" value=\"")
-                .append(StringUtils.escapeHtml(value != null ? value : ""))
-                .append("\">\n");
-        });
-
-        // Note : self-contained HTML, pas de dependance externe.
-        return """
-            <!DOCTYPE html>
-            <html lang="fr">
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              <title>Redirection vers CMI</title>
-              <style>
-                body {
-                  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-                  display: flex; align-items: center; justify-content: center;
-                  min-height: 100vh; margin: 0; background: #F8FAFB; color: #2D3748;
-                }
-                .container { text-align: center; padding: 2rem; }
-                .spinner {
-                  width: 40px; height: 40px; margin: 0 auto 1.5rem;
-                  border: 3px solid #E2E8F0; border-top-color: #4A9B8E;
-                  border-radius: 50%%; animation: spin 0.8s linear infinite;
-                }
-                @keyframes spin { to { transform: rotate(360deg); } }
-                h1 { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.5rem; }
-                p { font-size: 0.875rem; color: #718096; margin: 0 0 1.5rem; }
-                button {
-                  background: #4A9B8E; color: #fff; border: 0; border-radius: 8px;
-                  padding: 0.625rem 1.25rem; font-size: 0.875rem; font-weight: 600;
-                  cursor: pointer;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="spinner" aria-hidden="true"></div>
-                <h1>Redirection vers CMI…</h1>
-                <p>Vous allez être redirigé(e) vers la page de paiement sécurisée.</p>
-                <form id="cmi-form" method="POST" action="%s">
-            %s
-                  <button type="submit">Continuer si la redirection ne se fait pas automatiquement</button>
-                </form>
-              </div>
-              <script>document.getElementById('cmi-form').submit();</script>
-            </body>
-            </html>
-            """.formatted(StringUtils.escapeHtml(gatewayUrl), formFields.toString());
     }
 
     private ResponseEntity<String> errorPage(HttpStatus status, String message) {

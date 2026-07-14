@@ -30,6 +30,7 @@ import {
   ChatBubbleOutline,
   TrendingUp,
   AccountBalance,
+  Euro,
   Payment,
   SmartToy,
   Extension,
@@ -86,6 +87,8 @@ import {
 } from '../../services/integrations/allServicesIndex';
 import OwnerPayoutSettings from './OwnerPayoutSettings';
 import MyPayoutSettings from './MyPayoutSettings';
+import MyRatesSettings from './MyRatesSettings';
+import MyProPayoutsSettings from './MyProPayoutsSettings';
 import { CURRENCY_OPTIONS } from '../../utils/currencyUtils';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
@@ -233,13 +236,15 @@ export default function Settings() {
     { key: 'general', label: t('tabHeaders.settings.tabs.general', 'Général'), icon: <TuneOutlined />, hidden: false },
     { key: 'notifications', label: t('tabHeaders.settings.tabs.notifications', 'Notifications'), icon: <Notifications />, hidden: false },
     { key: 'messaging', label: t('tabHeaders.settings.tabs.messaging', 'Messagerie'), icon: <ChatBubbleOutline />, hidden: false },
-    { key: 'my-payout', label: t('settings.myPayout.tabLabel', 'Mes reversements'), icon: <AccountBalance />, hidden: !hasAnyRole(['HOST']) },
+    { key: 'my-payout', label: t('settings.myPayout.tabLabel', 'Reversements propriétaire'), icon: <AccountBalance />, hidden: !hasAnyRole(['HOST']) },
+    { key: 'my-rates', label: t('settings.myRates.tabLabel', 'Mes tarifs'), icon: <Euro />, hidden: !hasAnyRole(['HOUSEKEEPER', 'TECHNICIAN']) },
+    { key: 'my-payouts-pro', label: t('settings.myProPayouts.tabLabel', 'Mes versements de missions'), icon: <AccountBalance />, hidden: !hasAnyRole(['HOUSEKEEPER', 'TECHNICIAN']) },
     { key: 'ai', label: t('tabHeaders.settings.tabs.ai', 'IA'), icon: <SmartToy />, hidden: !canViewAi },
     { key: 'fiscal', label: t('tabHeaders.settings.tabs.fiscal', 'Fiscal'), icon: <AccountBalance />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
     { key: 'organization', label: t('tabHeaders.settings.tabs.organization', 'Organisation'), icon: <GroupAdd />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
     { key: 'payment', label: t('tabHeaders.settings.tabs.payment', 'Paiement'), icon: <Payment />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
     { key: 'integrations', label: t('tabHeaders.settings.tabs.integrations', 'Intégrations'), icon: <Extension />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
-    { key: 'payouts', label: t('tabHeaders.settings.tabs.payouts', 'Reversements'), icon: <CalendarMonth />, hidden: !hasAnyRole(['SUPER_ADMIN']) },
+    { key: 'payouts', label: t('tabHeaders.settings.tabs.payouts', 'Reversements (plateforme)'), icon: <CalendarMonth />, hidden: !hasAnyRole(['SUPER_ADMIN']) },
     { key: 'amenities-ota', label: t('tabHeaders.settings.tabs.amenitiesOta', 'Commodités OTA'), icon: <LocalOffer />, hidden: !hasAnyRole(['HOST', 'SUPERVISOR', 'SUPER_ADMIN', 'SUPER_MANAGER']) },
   ];
   const visibleSettingsTabs = settingsTabs.filter((tab) => !tab.hidden);
@@ -258,6 +263,8 @@ export default function Settings() {
     notifications: tabIndexFromKey(settingsTabs, 'notifications'),
     messaging: tabIndexFromKey(settingsTabs, 'messaging'),
     myPayout: tabIndexFromKey(settingsTabs, 'my-payout'),
+    myRates: tabIndexFromKey(settingsTabs, 'my-rates'),
+    myPayoutsPro: tabIndexFromKey(settingsTabs, 'my-payouts-pro'),
     ai: tabIndexFromKey(settingsTabs, 'ai'),
     fiscal: tabIndexFromKey(settingsTabs, 'fiscal'),
     organization: tabIndexFromKey(settingsTabs, 'organization'),
@@ -638,8 +645,14 @@ export default function Settings() {
     [t('tabHeaders.settings.tabs.messaging', 'Messagerie')]: {
       subtitle: t('tabHeaders.settings.subtitle.messaging', 'Automatisations de messages voyageurs (check-in, bienvenue, push tarification) et templates.'),
     },
-    [t('settings.myPayout.tabLabel', 'Mes reversements')]: {
+    [t('settings.myPayout.tabLabel', 'Reversements propriétaire')]: {
       subtitle: t('tabHeaders.settings.subtitle.myPayout', 'Paramètres de vos virements bancaires : IBAN, fréquence, seuil minimum.'),
+    },
+    [t('settings.myRates.tabLabel', 'Mes tarifs')]: {
+      subtitle: t('tabHeaders.settings.subtitle.myRates', 'Votre taux horaire, vos forfaits par logement et votre score qualité.'),
+    },
+    [t('settings.myProPayouts.tabLabel', 'Mes versements de missions')]: {
+      subtitle: t('tabHeaders.settings.subtitle.myPayoutsPro', 'Compte de versement Stripe et historique de vos versements de missions.'),
     },
     [t('tabHeaders.settings.tabs.ai', 'IA')]: {
       subtitle: t('tabHeaders.settings.subtitle.ai', 'Connectez votre clé OpenAI/Anthropic ou utilisez le quota partagé. Modèles assignés par feature.'),
@@ -656,7 +669,7 @@ export default function Settings() {
     [t('tabHeaders.settings.tabs.integrations', 'Intégrations')]: {
       subtitle: t('tabHeaders.settings.subtitle.integrations', 'Connectez vos outils tiers : signature électronique, comptabilité, KYC, conformité légale, channels OTA.'),
     },
-    [t('tabHeaders.settings.tabs.payouts', 'Reversements')]: {
+    [t('tabHeaders.settings.tabs.payouts', 'Reversements (plateforme)')]: {
       subtitle: t('tabHeaders.settings.subtitle.payouts', 'Calendrier et règles de calcul des reversements aux propriétaires.'),
     },
     [t('tabHeaders.settings.tabs.amenitiesOta', 'Commodités OTA')]: {
@@ -1079,6 +1092,20 @@ export default function Settings() {
       {hasAnyRole(['HOST']) && (
         <TabPanel value={tabValue} index={tabIdx.myPayout}>
           <MyPayoutSettings />
+        </TabPanel>
+      )}
+
+      {/* ─── Onglet Mes tarifs (HOUSEKEEPER / TECHNICIAN) ──────────── */}
+      {hasAnyRole(['HOUSEKEEPER', 'TECHNICIAN']) && (
+        <TabPanel value={tabValue} index={tabIdx.myRates}>
+          <MyRatesSettings />
+        </TabPanel>
+      )}
+
+      {/* ─── Onglet Mes versements (HOUSEKEEPER / TECHNICIAN) ─────────── */}
+      {hasAnyRole(['HOUSEKEEPER', 'TECHNICIAN']) && (
+        <TabPanel value={tabValue} index={tabIdx.myPayoutsPro}>
+          <MyProPayoutsSettings />
         </TabPanel>
       )}
 

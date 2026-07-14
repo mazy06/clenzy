@@ -25,6 +25,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Onboarding et gestion des mappings Channel Manager Channex.
@@ -51,6 +52,16 @@ public class ChannexConnectController {
     private final com.clenzy.integration.channex.service.ChannexMessagingService messagingService;
     private final com.clenzy.integration.channex.service.ChannexReviewsService reviewsService;
     private final com.clenzy.integration.channex.service.ChannexStripeTokenizationService tokenService;
+    // B1 : auto-registration du webhook global (idempotent)
+    private final com.clenzy.integration.channex.service.ChannexWebhookRegistrationService webhookRegistrationService;
+    // B4 : push du contenu Clenzy -> Channex (description + photos publiques)
+    private final com.clenzy.integration.channex.service.ChannexContentPushService contentPushService;
+    // Phase C : applications, Booking CRS, availability rules par canal, Google, reporting
+    private final com.clenzy.integration.channex.service.ChannexApplicationsService applicationsService;
+    private final com.clenzy.integration.channex.service.ChannexCrsBookingService crsBookingService;
+    private final com.clenzy.integration.channex.service.ChannexAvailabilityRuleService availabilityRuleService;
+    private final com.clenzy.integration.channex.service.ChannexGoogleReadinessService googleReadinessService;
+    private final com.clenzy.integration.channex.service.ChannexBookingReportingService bookingReportingService;
 
     public ChannexConnectController(ChannexConnectService connectService,
                                       ChannexImportService importService,
@@ -62,7 +73,14 @@ public class ChannexConnectController {
                                       com.clenzy.integration.channex.client.ChannexClient channexClient,
                                       com.clenzy.integration.channex.service.ChannexMessagingService messagingService,
                                       com.clenzy.integration.channex.service.ChannexReviewsService reviewsService,
-                                      com.clenzy.integration.channex.service.ChannexStripeTokenizationService tokenService) {
+                                      com.clenzy.integration.channex.service.ChannexStripeTokenizationService tokenService,
+                                      com.clenzy.integration.channex.service.ChannexWebhookRegistrationService webhookRegistrationService,
+                                      com.clenzy.integration.channex.service.ChannexContentPushService contentPushService,
+                                      com.clenzy.integration.channex.service.ChannexApplicationsService applicationsService,
+                                      com.clenzy.integration.channex.service.ChannexCrsBookingService crsBookingService,
+                                      com.clenzy.integration.channex.service.ChannexAvailabilityRuleService availabilityRuleService,
+                                      com.clenzy.integration.channex.service.ChannexGoogleReadinessService googleReadinessService,
+                                      com.clenzy.integration.channex.service.ChannexBookingReportingService bookingReportingService) {
         this.connectService = connectService;
         this.importService = importService;
         this.tenantContext = tenantContext;
@@ -74,6 +92,13 @@ public class ChannexConnectController {
         this.messagingService = messagingService;
         this.reviewsService = reviewsService;
         this.tokenService = tokenService;
+        this.webhookRegistrationService = webhookRegistrationService;
+        this.contentPushService = contentPushService;
+        this.applicationsService = applicationsService;
+        this.crsBookingService = crsBookingService;
+        this.availabilityRuleService = availabilityRuleService;
+        this.googleReadinessService = googleReadinessService;
+        this.bookingReportingService = bookingReportingService;
     }
 
     /**
@@ -274,9 +299,10 @@ public class ChannexConnectController {
      * ou apres un changement de prix significatif).
      */
     @PostMapping("/properties/{clenzyPropertyId}/resync")
-    @Operation(summary = "Re-push complet d'une propriete (1 a 12 mois)")
+    @Operation(summary = "Re-push d'une propriete — months=0 (defaut) = FULL SYNC "
+        + "500 jours en 2 appels (doc Channex), 1-12 = fenetre restreinte")
     public ChannexSyncService.ChannexSyncResult resync(@PathVariable Long clenzyPropertyId,
-                                                        @RequestParam(defaultValue = "6") int months) {
+                                                        @RequestParam(defaultValue = "0") int months) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return connectService.resync(clenzyPropertyId, orgId, months);
     }
@@ -343,6 +369,164 @@ public class ChannexConnectController {
     /**
      * Sprint A7 — Test d'un webhook (Channex envoie un event "test" et retourne le status).
      */
+    /**
+     * B4 — Push du contenu Clenzy → Channex : description marketing + photos
+     * ayant une URL publique stable (additif, idempotent par URL). Sens inverse
+     * de {@link #resyncContent} (qui importe OTA → Clenzy).
+     */
+    @PostMapping("/properties/{clenzyPropertyId}/push-content")
+    @Operation(summary = "Pousse description + photos publiques Clenzy vers Channex")
+    public com.clenzy.integration.channex.dto.ChannexContentPushResult pushContent(
+            @PathVariable Long clenzyPropertyId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return contentPushService.pushContent(clenzyPropertyId, orgId);
+    }
+
+    // ─── Phase C : applications, Booking CRS, rules par canal, Google, reporting ───
+
+    /** C1 — Catalogue des applications Channex (Stripe Tokenization, Booking CRS, ...). */
+    @GetMapping("/applications/catalog")
+    @Operation(summary = "Catalogue des applications Channex disponibles")
+    public List<com.clenzy.integration.channex.service.ChannexApplicationsService.ApplicationView>
+            listApplicationCatalog() {
+        return applicationsService.listCatalog();
+    }
+
+    /** C1 — Applications installees sur la property Channex mappee. */
+    @GetMapping("/properties/{clenzyPropertyId}/applications")
+    @Operation(summary = "Applications installees sur la property mappee")
+    public List<com.clenzy.integration.channex.service.ChannexApplicationsService.ApplicationView>
+            listInstalledApplications(@PathVariable Long clenzyPropertyId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return applicationsService.listInstalled(clenzyPropertyId, orgId);
+    }
+
+    /** C1 — Installe une application par code (ex. booking_crs, stripe_tokenization). */
+    @PostMapping("/properties/{clenzyPropertyId}/applications/{applicationCode}")
+    @Operation(summary = "Installe une application Channex sur la property mappee")
+    public Map<String, Object> installApplication(@PathVariable Long clenzyPropertyId,
+                                                  @PathVariable String applicationCode) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        String installationId = applicationsService.install(clenzyPropertyId, orgId, applicationCode);
+        return Map.of("status", "installed", "applicationCode", applicationCode,
+            "installationId", installationId != null ? installationId : "");
+    }
+
+    /** C1 — Desinstalle une application (ownership verifie via la property). */
+    @DeleteMapping("/properties/{clenzyPropertyId}/applications/installations/{installationId}")
+    @Operation(summary = "Desinstalle une application Channex")
+    public Map<String, Object> uninstallApplication(@PathVariable Long clenzyPropertyId,
+                                                    @PathVariable String installationId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        applicationsService.uninstall(clenzyPropertyId, orgId, installationId);
+        return Map.of("status", "uninstalled", "installationId", installationId);
+    }
+
+    /**
+     * C2 — Pousse une reservation DIRECTE vers Channex via le Booking CRS
+     * (ota "Offline") — coherence multi-canal + bookings de test certification.
+     * Idempotent (une resa deja poussee n'est pas re-postee).
+     */
+    @PostMapping("/reservations/{reservationId}/push-crs")
+    @Operation(summary = "Pousse une resa directe vers Channex (Booking CRS, ota Offline)")
+    public com.clenzy.integration.channex.service.ChannexCrsBookingService.CrsPushResult
+            pushReservationToCrs(@PathVariable Long reservationId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return crsBookingService.pushReservation(reservationId, orgId);
+    }
+
+    /** C2 — Annule cote Channex le booking CRS d'une resa deja poussee. */
+    @PostMapping("/reservations/{reservationId}/cancel-crs")
+    @Operation(summary = "Annule cote Channex le booking CRS d'une resa poussee")
+    public com.clenzy.integration.channex.service.ChannexCrsBookingService.CrsPushResult
+            cancelReservationCrs(@PathVariable Long reservationId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return crsBookingService.cancelPushedReservation(reservationId, orgId);
+    }
+
+    /** C3 — Regles d'availability par canal de la property (open/close par canal). */
+    @GetMapping("/properties/{clenzyPropertyId}/channel-rules")
+    @Operation(summary = "Regles d'availability par canal (close_out) de la property")
+    public List<com.clenzy.integration.channex.service.ChannexAvailabilityRuleService.ChannelRuleView>
+            listChannelRules(@PathVariable Long clenzyPropertyId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return availabilityRuleService.list(clenzyPropertyId, orgId);
+    }
+
+    /**
+     * C3 — Ferme un ou plusieurs canaux sur une plage (arbitrage S3 : couper
+     * Airbnb seul, etc.) SANS toucher l'availability globale.
+     */
+    @PostMapping("/properties/{clenzyPropertyId}/channel-rules/close")
+    @Operation(summary = "Ferme des canaux OTA sur une plage de dates (close_out)")
+    public Map<String, Object> closeChannels(
+            @PathVariable Long clenzyPropertyId,
+            @RequestBody com.clenzy.integration.channex.service.ChannexAvailabilityRuleService.CloseChannelRequest request) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        String ruleId = availabilityRuleService.closeChannels(clenzyPropertyId, orgId, request);
+        return Map.of("status", "closed", "ruleId", ruleId != null ? ruleId : "");
+    }
+
+    /** C3 — Supprime une regle (= rouvre le canal). */
+    @DeleteMapping("/properties/{clenzyPropertyId}/channel-rules/{ruleId}")
+    @Operation(summary = "Supprime une regle d'availability par canal (rouvre le canal)")
+    public Map<String, Object> deleteChannelRule(@PathVariable Long clenzyPropertyId,
+                                                 @PathVariable String ruleId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        availabilityRuleService.deleteRule(clenzyPropertyId, orgId, ruleId);
+        return Map.of("status", "deleted", "ruleId", ruleId);
+    }
+
+    /** C4 — Diagnostic des prerequis Google Vacation Rentals (canal GHA). */
+    @GetMapping("/properties/{clenzyPropertyId}/google-readiness")
+    @Operation(summary = "Prerequis Google Vacation Rentals : checks auto + actions manuelles Channex")
+    public com.clenzy.integration.channex.service.ChannexGoogleReadinessService.GoogleReadinessReport
+            googleReadiness(@PathVariable Long clenzyPropertyId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return googleReadinessService.check(clenzyPropertyId, orgId);
+    }
+
+    /** C5 — Signale un no-show a Booking.com (fenetre : minuit arrivee -> +48h). */
+    @PostMapping("/reservations/{reservationId}/report-no-show")
+    @Operation(summary = "Signale un no-show Booking.com via Channex")
+    public com.clenzy.integration.channex.service.ChannexBookingReportingService.ReportResult
+            reportNoShow(@PathVariable Long reservationId,
+                         @RequestParam(defaultValue = "false") boolean waivedFees) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return bookingReportingService.reportNoShow(reservationId, orgId, waivedFees);
+    }
+
+    /** C5 — Signale une carte invalide (le guest recoit un delai pour corriger). */
+    @PostMapping("/reservations/{reservationId}/report-invalid-card")
+    @Operation(summary = "Signale une carte invalide Booking.com via Channex")
+    public com.clenzy.integration.channex.service.ChannexBookingReportingService.ReportResult
+            reportInvalidCard(@PathVariable Long reservationId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return bookingReportingService.reportInvalidCard(reservationId, orgId);
+    }
+
+    /** C5 — Annule la resa pour carte invalide (apres report + delai guest). */
+    @PostMapping("/reservations/{reservationId}/cancel-invalid-card")
+    @Operation(summary = "Annule une resa Booking.com pour carte invalide via Channex")
+    public com.clenzy.integration.channex.service.ChannexBookingReportingService.ReportResult
+            cancelDueInvalidCard(@PathVariable Long reservationId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return bookingReportingService.cancelDueInvalidCard(reservationId, orgId);
+    }
+
+    /**
+     * B1 — Garantit l'enregistrement du webhook GLOBAL Channex (idempotent :
+     * ne recree rien si un webhook pointe deja sur notre callback URL).
+     * Auto-execute au boot ; cet endpoint permet de re-tenter apres correction
+     * de config sans redemarrer.
+     */
+    @PostMapping("/webhooks/ensure")
+    @Operation(summary = "Enregistre le webhook global Channex si absent (idempotent)")
+    public com.clenzy.integration.channex.service.ChannexWebhookRegistrationService.RegistrationResult
+            ensureGlobalWebhook() {
+        return webhookRegistrationService.ensureGlobalWebhook();
+    }
+
     @PostMapping("/webhooks/{webhookId}/test")
     @Operation(summary = "Test la connectivite d'un webhook configure cote Channex")
     public com.fasterxml.jackson.databind.JsonNode testWebhook(@PathVariable String webhookId) {

@@ -6,7 +6,9 @@ import com.clenzy.model.NoiseAlert;
 import com.clenzy.model.Property;
 import com.clenzy.repository.NoiseAlertRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.service.agent.supervision.AutoApplyGate;
 import com.clenzy.service.agent.supervision.SupervisionActionType;
+import com.clenzy.service.agent.supervision.SupervisionAutoApplyService;
 import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import com.clenzy.service.automation.AutomationActionExecutor.ExecutionResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,13 +44,16 @@ class SuggestCalendarBlockExecutorTest {
     @Mock private NoiseAlertRepository noiseAlertRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private SupervisionSuggestionService suggestionService;
+    @Mock private AutoApplyGate autoApplyGate;
+    @Mock private SupervisionAutoApplyService autoApplyService;
 
     private SuggestCalendarBlockExecutor executor;
 
     @BeforeEach
     void setUp() {
         executor = new SuggestCalendarBlockExecutor(
-                noiseAlertRepository, propertyRepository, suggestionService, new ObjectMapper());
+                noiseAlertRepository, propertyRepository, suggestionService,
+                autoApplyGate, autoApplyService, new ObjectMapper());
     }
 
     private static AutomationRule rule() {
@@ -145,6 +150,47 @@ class SuggestCalendarBlockExecutorTest {
                 contains("\"days\":7"),
                 isNull(),
                 eq("critical"));
+    }
+
+    @Test
+    @DisplayName("V2 : gate AUTO_NOTIFY -> carte creee sans notif pending puis auto-appliquee via le pipeline")
+    void gateAllowsAuto_autoAppliesViaPipeline() {
+        when(noiseAlertRepository.findById(ALERT_ID)).thenReturn(Optional.of(alert()));
+        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property()));
+        when(autoApplyGate.decide(eq(ORG_ID), eq("ops"), eq(SupervisionActionType.CALENDAR_BLOCK),
+                eq(Map.of(AutoApplyGate.INPUT_BLOCK_DAYS, 7, AutoApplyGate.INPUT_PROPERTY_ID, PROPERTY_ID))))
+                .thenReturn(AutoApplyGate.AutoDecision.AUTO_NOTIFY);
+        when(suggestionService.recordActionableForAutoApply(eq(ORG_ID), eq(PROPERTY_ID), eq("ops"),
+                isNull(), anyString(), anyString(), eq(SupervisionActionType.CALENDAR_BLOCK),
+                anyString(), isNull(), eq("critical")))
+                .thenReturn(Optional.of(88L));
+
+        ExecutionResult result = executor.execute(rule(), ctx());
+
+        assertThat(result.skipped()).isFalse();
+        verify(autoApplyService).autoApply(eq(AutoApplyGate.AutoDecision.AUTO_NOTIFY),
+                eq(ORG_ID), eq(PROPERTY_ID), eq("ops"), eq(88L), anyString(), anyString(), isNull());
+        verify(suggestionService, org.mockito.Mockito.never()).recordActionableStrict(
+                anyLong(), anyLong(), anyString(), isNull(), anyString(), anyString(),
+                anyString(), anyString(), isNull(), anyString());
+    }
+
+    @Test
+    @DisplayName("V2 : gate CARD -> carte HITL normale, aucun auto-apply")
+    void gateSaysCard_hitlCardAsBefore() {
+        when(noiseAlertRepository.findById(ALERT_ID)).thenReturn(Optional.of(alert()));
+        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property()));
+        when(autoApplyGate.decide(eq(ORG_ID), eq("ops"), eq(SupervisionActionType.CALENDAR_BLOCK),
+                eq(Map.of(AutoApplyGate.INPUT_BLOCK_DAYS, 7, AutoApplyGate.INPUT_PROPERTY_ID, PROPERTY_ID))))
+                .thenReturn(AutoApplyGate.AutoDecision.CARD);
+        when(suggestionService.recordActionableStrict(anyLong(), anyLong(), anyString(), isNull(),
+                anyString(), anyString(), anyString(), anyString(), isNull(), anyString()))
+                .thenReturn(true);
+
+        ExecutionResult result = executor.execute(rule(), ctx());
+
+        assertThat(result.skipped()).isFalse();
+        verifyNoInteractions(autoApplyService);
     }
 
     @Test

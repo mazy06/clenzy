@@ -42,6 +42,7 @@ public class SupervisionSuggestionService {
     private final NotificationService notificationService;
     private final SupervisionRealtimePublisher realtimePublisher;
     private final com.clenzy.service.UnpaidServiceRequestCardService unpaidServiceRequestCardService;
+    private final SupervisionActivityService activityService;
     private final Clock clock;
     private final TransactionTemplate transactionTemplate;
 
@@ -50,6 +51,7 @@ public class SupervisionSuggestionService {
                                         NotificationService notificationService,
                                         SupervisionRealtimePublisher realtimePublisher,
                                         com.clenzy.service.UnpaidServiceRequestCardService unpaidServiceRequestCardService,
+                                        SupervisionActivityService activityService,
                                         Clock clock,
                                         PlatformTransactionManager transactionManager) {
         this.repository = repository;
@@ -57,6 +59,7 @@ public class SupervisionSuggestionService {
         this.notificationService = notificationService;
         this.realtimePublisher = realtimePublisher;
         this.unpaidServiceRequestCardService = unpaidServiceRequestCardService;
+        this.activityService = activityService;
         this.clock = clock;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
@@ -83,6 +86,52 @@ public class SupervisionSuggestionService {
             log.debug("supervision suggestion record failed (module={} prop={}): {}",
                     moduleKey, propertyId, e.getMessage());
         }
+    }
+
+    /**
+     * Enregistre une suggestion INFORMATIONNELLE portant une {@code reservationId} et une
+     * {@code severity} (best-effort, dédupliquée par intitulé PENDING comme {@link #record}).
+     * {@code actionType} reste {@code null} → aucune exécution serveur, aucun {@code /apply} :
+     * le front discrimine la carte sur son {@code toolName}. Utilisée par les scanners qui
+     * doivent porter la réservation liée sans rendre la carte applicable (ex. « email
+     * voyageur manquant » : le CTA ouvre la fiche client côté front).
+     */
+    @Transactional
+    public void record(Long organizationId, Long propertyId, String moduleKey,
+                       String toolName, String title, String motif,
+                       Long reservationId, String severity) {
+        if (organizationId == null || propertyId == null || moduleKey == null
+                || title == null || title.isBlank()) {
+            return;
+        }
+        String safeTitle = truncate(title.strip(), TITLE_MAX);
+        try {
+            boolean dup = repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
+                    organizationId, propertyId, moduleKey, safeTitle, SupervisionSuggestion.STATUS_PENDING);
+            if (dup) {
+                return; // déjà proposé, en attente → on ne duplique pas
+            }
+            SupervisionSuggestion s = new SupervisionSuggestion(
+                    organizationId, propertyId, moduleKey, toolName, safeTitle,
+                    truncate(motif, MOTIF_MAX), Instant.now().plus(TTL));
+            s.setReservationId(reservationId);
+            s.setSeverity(severity);
+            repository.save(s); // actionType reste null → carte informationnelle
+        } catch (Exception e) {
+            log.debug("supervision suggestion record failed (module={} prop={}): {}",
+                    moduleKey, propertyId, e.getMessage());
+        }
+    }
+
+    /**
+     * Cartes PENDING d'un scanner (par {@code toolName}) pour un logement — support de
+     * l'auto-résolution déterministe d'un scanner (fermer les cartes dont la situation
+     * ne tient plus). Lecture interne au domaine supervision (pas exposée en REST).
+     */
+    @Transactional(readOnly = true)
+    public List<SupervisionSuggestion> findPendingByTool(Long organizationId, Long propertyId, String toolName) {
+        return repository.findByOrganizationIdAndPropertyIdAndToolNameAndStatus(
+                organizationId, propertyId, toolName, SupervisionSuggestion.STATUS_PENDING);
     }
 
     /**
@@ -140,7 +189,26 @@ public class SupervisionSuggestionService {
                                                            String actionType, String actionParams,
                                                            Long estimatedImpactCents, String severity) {
         return createActionable(organizationId, propertyId, moduleKey, reservationId,
-                title, motif, actionType, actionParams, estimatedImpactCents, severity)
+                title, motif, actionType, actionParams, estimatedImpactCents, severity, true)
+                .map(SupervisionSuggestion::getId);
+    }
+
+    /**
+     * Variante de {@link #recordActionableWithId} pour le chemin d'AUTO-APPLICATION
+     * (Vague 1 autonomie) : la carte est créée avec les mêmes garanties (dédup,
+     * TTL, cooldown) mais SANS la notification « attend votre validation » — elle
+     * va être appliquée immédiatement par l'acteur système, la notification
+     * pertinente est {@code SUPERVISION_AUTO_APPLIED} (émise après succès).
+     * Si l'apply échoue ensuite, la carte reste PENDING (repli HITL naturel).
+     */
+    @Transactional
+    public java.util.Optional<Long> recordActionableForAutoApply(Long organizationId, Long propertyId,
+                                                                 String moduleKey, Long reservationId,
+                                                                 String title, String motif,
+                                                                 String actionType, String actionParams,
+                                                                 Long estimatedImpactCents, String severity) {
+        return createActionable(organizationId, propertyId, moduleKey, reservationId,
+                title, motif, actionType, actionParams, estimatedImpactCents, severity, false)
                 .map(SupervisionSuggestion::getId);
     }
 
@@ -148,6 +216,14 @@ public class SupervisionSuggestionService {
             Long organizationId, Long propertyId, String moduleKey, Long reservationId,
             String title, String motif, String actionType, String actionParams,
             Long estimatedImpactCents, String severity) {
+        return createActionable(organizationId, propertyId, moduleKey, reservationId,
+                title, motif, actionType, actionParams, estimatedImpactCents, severity, true);
+    }
+
+    private java.util.Optional<SupervisionSuggestion> createActionable(
+            Long organizationId, Long propertyId, String moduleKey, Long reservationId,
+            String title, String motif, String actionType, String actionParams,
+            Long estimatedImpactCents, String severity, boolean notifyPending) {
         if (organizationId == null || propertyId == null || moduleKey == null
                 || title == null || title.isBlank()) {
             throw new IllegalArgumentException(
@@ -177,7 +253,9 @@ public class SupervisionSuggestionService {
         s.setEstimatedImpactCents(estimatedImpactCents);
         s.setSeverity(severity);
         repository.save(s);
-        notifyIfActionable(organizationId, safeTitle, motif, severity);
+        if (notifyPending) {
+            notifyIfActionable(organizationId, safeTitle, motif, severity);
+        }
         return java.util.Optional.of(s);
     }
 
@@ -289,18 +367,26 @@ public class SupervisionSuggestionService {
      * <p>Double-clic / double-livraison : le 2e CAS ne matche rien → 400.
      * Pas de {@code @Transactional} ici : l'orchestration transactionnelle est
      * explicite via {@link TransactionTemplate} (évite l'auto-invocation proxy).</p>
+     *
+     * @param appliedBy auteur tracé de l'application : {@code user:<keycloakId>}
+     *                  (bouton humain) ou {@link SupervisionSuggestion#APPLIED_BY_AUTO}
+     *                  (auto-application Vague 1) — persisté par le CAS et visible
+     *                  de l'exécuteur (protections renforcées en mode auto).
      */
-    public void apply(Long organizationId, Long suggestionId) {
+    public void apply(Long organizationId, Long suggestionId, String appliedBy) {
         SupervisionSuggestion suggestion = transactionTemplate.execute(status -> {
             SupervisionSuggestion s = repository.findByIdAndOrganizationId(suggestionId, organizationId)
                     .orElseThrow(() -> new NotFoundException("Suggestion introuvable : " + suggestionId));
             if (s.getActionType() == null) {
                 throw new IllegalArgumentException("Cette suggestion n'est pas actionnable");
             }
-            int transitioned = repository.markApplied(suggestionId, organizationId, clock.instant());
+            int transitioned = repository.markApplied(suggestionId, organizationId, clock.instant(), appliedBy);
             if (transitioned == 0) {
                 throw new IllegalArgumentException("Suggestion déjà traitée");
             }
+            // Reflète l'auteur sur l'instance en mémoire (le CAS est un UPDATE bulk) :
+            // l'exécuteur s'en sert pour durcir les protections du chemin auto.
+            s.setAppliedBy(appliedBy);
             if (!actionExecutor.hasExternalEffect(s.getActionType())) {
                 actionExecutor.execute(s);
             }
@@ -316,6 +402,13 @@ public class SupervisionSuggestionService {
                         repository.revertApplied(suggestionId, organizationId));
                 throw e;
             }
+        }
+        // Feed « En direct » : l'apply HUMAIN laisse une trace, comme le chemin auto
+        // (`auto_applied` journalisé par SupervisionAutoApplyService — audit 2026-07 :
+        // l'action approuvée par l'opérateur n'apparaissait nulle part).
+        if (!SupervisionSuggestion.APPLIED_BY_AUTO.equals(appliedBy)) {
+            activityService.recordModuleAct(organizationId, suggestion.getPropertyId(),
+                    suggestion.getModuleKey(), "suggestion_applied", suggestion.getTitle());
         }
         // Temps réel (B6) : carte appliquée → poussée aux autres opérateurs (best-effort).
         realtimePublisher.publishPendingResolved(suggestion.getPropertyId(), suggestionId, "validated", null);
@@ -333,7 +426,8 @@ public class SupervisionSuggestionService {
                 s.getActionType(),
                 s.getEstimatedImpactCents(),
                 s.getSeverity(),
-                s.getActionParams());
+                s.getActionParams(),
+                s.getToolName());
     }
 
     private static String truncate(String value, int max) {

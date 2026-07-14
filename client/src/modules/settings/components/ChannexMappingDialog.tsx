@@ -380,7 +380,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
     setBusyPropertyId(property.id);
     setGlobalError(null);
     try {
-      await channexApi.resync(property.id, 6);
+      await channexApi.resync(property.id, 0);
       // Refresh juste le mapping concerne
       const fresh = await channexApi.getMapping(property.id);
       if (fresh) {

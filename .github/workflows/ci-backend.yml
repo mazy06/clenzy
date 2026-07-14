@@ -135,14 +135,25 @@ jobs:
           java-version: '21'
           cache: 'maven'
 
+      # Audit 2026-07 F7-01 : gate SCA BLOQUANT (avant : failBuildOnCVSS=9 + `|| true`
+      # + continue-on-error => jamais bloquant). Bloque désormais sur CVSS >= 7 (aligné
+      # sur pom.xml). Le fichier de suppression du pom (src/main/resources/owasp-
+      # suppressions.xml) s'applique — plus de référence à un fichier inexistant.
+      # NB : pour fiabiliser le téléchargement NVD, ajouter un secret NVD_API_KEY et le
+      # passer via `-DnvdApiKey` (env NVD_API_KEY) si le rate-limit NVD pose problème.
       - name: OWASP Dependency Check
         working-directory: server
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
+          # -DfailBuildOnCVSS=7 : bloque sur une vraie CVE (>= 7) quand les données NVD sont dispo.
+          # -DfailOnError=false : tolère un echec d'infrastructure (NVD 403/rate-limit sans clé API) —
+          #   sans donnees, aucun finding => le step passe (pas de faux rouge), au lieu de casser le CI.
+          # NVD_API_KEY (secret optionnel) : fiabilise l'update NVD ; sans lui, le NVD 403 souvent.
           mvn dependency-check:check -B -q \
-            -DfailBuildOnCVSS=9 \
-            -DsuppressionFile=dependency-check-suppressions.xml \
-            || true
-        continue-on-error: true
+            -DfailBuildOnCVSS=7 \
+            -DfailOnError=false \
+            ${NVD_API_KEY:+-DnvdApiKey=$NVD_API_KEY}
 
       - name: Upload dependency check report
         if: always()

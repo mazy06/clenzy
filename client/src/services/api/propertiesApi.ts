@@ -258,6 +258,42 @@ function generateMockProperties(): Property[] {
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 
+// ─── Moteur Ménage : preview (quotes par type + décomposition minutes) ────────
+
+export interface CleaningPreviewInputs {
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  squareMeters?: number | null;
+  floors?: number | null;
+  hasExterior?: boolean | null;
+  hasLaundry?: boolean | null;
+  maxGuests?: number | null;
+  /** Types demandés (défaut serveur : EXPRESS_CLEANING, CLEANING, DEEP_CLEANING). */
+  cleaningTypes?: string[];
+  /** Date de prestation optionnelle (ISO yyyy-MM-dd) — applique la majoration saisonnière. */
+  serviceDate?: string | null;
+}
+
+export interface CleaningQuoteDto {
+  durationMinutes: number;
+  recommended: number;
+  min: number;
+  max: number;
+}
+
+export interface CleaningEstimateDetail {
+  estimate: number;
+  source: 'PROPERTY_OVERRIDE' | 'ENGINE' | 'HOUSEKEEPER_RATE';
+  min: number;
+  max: number;
+  durationMinutes: number;
+}
+
+export interface CleaningPreviewResponse {
+  quotes: Record<string, CleaningQuoteDto>;
+  minutesBreakdown: Record<string, number>;
+}
+
 export const propertiesApi = {
   /** Indique si le mode mock analytics est actif. */
   isMockMode(): boolean {
@@ -327,5 +363,44 @@ export const propertiesApi = {
   getPerformanceSummaries(days?: number) {
     const query = days ? `?days=${days}` : '';
     return apiClient.get<PropertyPerformance[]>(`/properties/performance-summaries${query}`);
+  },
+
+  /**
+   * Estimation du coût de ménage — prix résolu par CleaningPricingEngine :
+   * tarif prestataire (FLAT/HOURLY) > prix ménage du logement > conseil moteur
+   * (minutes normées × taux horaire, arrondi 5 €, plancher 30 €).
+   * Montant proposé (éditable) dans la modale de réservation.
+   */
+  async getCleaningEstimate(propertyId: number): Promise<number> {
+    const res = await apiClient.get<{ estimate: number }>(`/pricing-config/cleaning-estimate/${propertyId}`);
+    return res.estimate;
+  },
+
+  /** Variante détaillée : prix résolu + provenance + fourchette + durée normée. */
+  async getCleaningEstimateDetail(propertyId: number): Promise<CleaningEstimateDetail> {
+    return apiClient.get<CleaningEstimateDetail>(`/pricing-config/cleaning-estimate/${propertyId}`);
+  },
+
+  /**
+   * Estimation ménage EN LOT (une requête pour une liste de logements) :
+   * POST /pricing-config/cleaning-estimates → { estimates: { [propertyId]: number } }.
+   * Liste vide → {} sans appel réseau.
+   */
+  /**
+   * Preview du Moteur Ménage (valeurs brouillon, sans propriété persistée) :
+   * quotes par type de ménage + décomposition des minutes par composant.
+   * Utilise la config ENREGISTRÉE côté serveur.
+   */
+  async previewCleaningEstimate(inputs: CleaningPreviewInputs): Promise<CleaningPreviewResponse> {
+    return apiClient.post<CleaningPreviewResponse>('/pricing-config/cleaning-estimate/preview', inputs);
+  },
+
+  async getCleaningEstimates(propertyIds: number[]): Promise<Record<number, number>> {
+    if (propertyIds.length === 0) return {};
+    const res = await apiClient.post<{ estimates: Record<number, number> }>(
+      '/pricing-config/cleaning-estimates',
+      { propertyIds },
+    );
+    return res.estimates ?? {};
   },
 };

@@ -1,6 +1,8 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.SupervisionAutoRuleDto;
 import com.clenzy.dto.SupervisionConfigDto;
+import com.clenzy.service.agent.supervision.SupervisionAutoRuleService;
 import com.clenzy.service.agent.supervision.SupervisionConfigService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +12,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * Config org-level de la constellation Superviseur (Settings &gt; IA).
@@ -24,11 +28,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class SupervisionConfigController {
 
     private final SupervisionConfigService configService;
+    private final SupervisionAutoRuleService autoRuleService;
     private final TenantContext tenantContext;
 
     public SupervisionConfigController(SupervisionConfigService configService,
+                                       SupervisionAutoRuleService autoRuleService,
                                        TenantContext tenantContext) {
         this.configService = configService;
+        this.autoRuleService = autoRuleService;
         this.tenantContext = tenantContext;
     }
 
@@ -45,5 +52,38 @@ public class SupervisionConfigController {
     public ResponseEntity<SupervisionConfigDto> updateConfig(@RequestBody SupervisionConfigDto request) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return ResponseEntity.ok(configService.updateConfig(orgId, request));
+    }
+
+    /**
+     * GET /api/ai/supervision/auto-rules — règles d'auto-application par type
+     * (Vague 1 autonomie) : catalogue V1 avec état effectif (défaut tout OFF)
+     * + plafond du module porteur (lecture seule, affiché quand il bride).
+     */
+    @GetMapping("/auto-rules")
+    public ResponseEntity<List<SupervisionAutoRuleDto>> getAutoRules() {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(autoRuleService.getRules(orgId));
+    }
+
+    /** PUT /api/ai/supervision/auto-rules — upsert des toggles par type (admins d'org). */
+    @PutMapping("/auto-rules")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    public ResponseEntity<List<SupervisionAutoRuleDto>> updateAutoRules(
+            @RequestBody List<SupervisionAutoRuleDto> request) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(autoRuleService.updateRules(orgId, request));
+    }
+
+    /**
+     * POST /api/ai/supervision/auto-rules/{actionType}/dismiss-suggestion —
+     * « Ignorer » la suggestion d'automatisation d'un type (Règles de Confiance
+     * des cartes, V3) : cooldown de re-suggestion 30 j. Admins d'org.
+     */
+    @org.springframework.web.bind.annotation.PostMapping("/auto-rules/{actionType}/dismiss-suggestion")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    public ResponseEntity<List<SupervisionAutoRuleDto>> dismissAutoRuleSuggestion(
+            @org.springframework.web.bind.annotation.PathVariable String actionType) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(autoRuleService.dismissSuggestion(orgId, actionType));
     }
 }

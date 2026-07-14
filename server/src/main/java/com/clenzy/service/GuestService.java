@@ -284,6 +284,28 @@ public class GuestService {
                 });
     }
 
+    /**
+     * Met à jour la fiche d'un voyageur existant (org-scopé). Applique les champs fournis :
+     * prénom/nom/langue seulement si non vides ; email/téléphone/pays/notes sont écrits tels
+     * quels (vidés si chaîne vide). Renvoie le DTO à jour, ou vide si le voyageur n'existe pas
+     * dans l'organisation.
+     */
+    public Optional<GuestDto> updateGuest(Long guestId, Long organizationId, GuestDto dto) {
+        return guestRepository.findById(guestId)
+                .filter(g -> g.getOrganizationId().equals(organizationId))
+                .map(guest -> {
+                    if (dto.firstName() != null && !dto.firstName().isBlank()) guest.setFirstName(dto.firstName().trim());
+                    if (dto.lastName() != null && !dto.lastName().isBlank()) guest.setLastName(dto.lastName().trim());
+                    if (dto.email() != null) guest.setEmail(dto.email().isBlank() ? null : dto.email().trim());
+                    if (dto.phone() != null) guest.setPhone(dto.phone().isBlank() ? null : dto.phone().trim());
+                    if (dto.countryCode() != null) guest.setCountryCode(dto.countryCode().isBlank() ? null : dto.countryCode().trim());
+                    if (dto.language() != null && !dto.language().isBlank()) guest.setLanguage(dto.language().trim());
+                    if (dto.notes() != null) guest.setNotes(dto.notes().isBlank() ? null : dto.notes().trim());
+                    guestRepository.save(guest);
+                    return toDto(guest);
+                });
+    }
+
     // ================================================================
     // Mapping DTO
     // ================================================================
@@ -295,8 +317,42 @@ public class GuestService {
                 g.getLastName(),
                 g.getEmail(),
                 g.getPhone(),
-                g.getFullName()
+                g.getFullName(),
+                g.getLanguage(),
+                g.getCountryCode(),
+                g.getNotes()
         );
+    }
+
+    /**
+     * Crée (ou déduplique) un voyageur DIRECT puis applique les infos optionnelles
+     * (langue, pays, notes) fournies au formulaire. Langue/pays sont mis à jour si
+     * fournis ; les notes ne le sont que si le voyageur n'en a pas déjà (évite d'écraser
+     * à la déduplication par email).
+     */
+    public GuestDto createDirect(GuestDto dto, Long orgId) {
+        Guest guest = findOrCreate(
+                dto.firstName(), dto.lastName(), dto.email(), dto.phone(),
+                GuestChannel.DIRECT, null, orgId);
+
+        boolean changed = false;
+        if (dto.language() != null && !dto.language().isBlank()) {
+            guest.setLanguage(dto.language().trim());
+            changed = true;
+        }
+        if (dto.countryCode() != null && !dto.countryCode().isBlank()) {
+            guest.setCountryCode(dto.countryCode().trim());
+            changed = true;
+        }
+        if (dto.notes() != null && !dto.notes().isBlank()
+                && (guest.getNotes() == null || guest.getNotes().isBlank())) {
+            guest.setNotes(dto.notes().trim());
+            changed = true;
+        }
+        if (changed) {
+            guest = guestRepository.save(guest);
+        }
+        return toDto(guest);
     }
 
     private static GuestListDto toListDto(Guest g, String organizationName) {

@@ -90,5 +90,109 @@
     "language": "Langue",
     "notifications": "Notifications",
     "about": "A propos"
+  },
+  "anomaly": {
+    "title": "Signaler une anomalie",
+    "subtitle": "Documentez le problème constaté",
+    "categorySection": "Type d'anomalie",
+    "severitySection": "Gravité",
+    "locationSection": "Localisation",
+    "descriptionSection": "Description",
+    "photosSection": "Photos",
+    "categories": {
+      "DAMAGE": "Dommage constaté",
+      "MISSING_ITEM": "Objet manquant",
+      "HYGIENE": "Problème d'hygiène",
+      "EQUIPMENT": "Équipement défaillant",
+      "SAFETY": "Risque sécurité",
+      "OTHER": "Autre"
+    },
+    "severities": {
+      "LOW": "Mineure",
+      "MEDIUM": "Moyenne",
+      "HIGH": "Importante",
+      "CRITICAL": "Critique"
+    },
+    "locationPlaceholder": "Ex : Salle de bain, Cuisine, Chambre 2…",
+    "descriptionPlaceholder": "Décrivez le problème constaté…",
+    "photoCount_one": "{{count}} photo",
+    "photoCount_other": "{{count}} photos",
+    "submit": "Envoyer le signalement",
+    "successTitle": "Signalement envoyé",
+    "successMessage": "L'anomalie a été signalée au gestionnaire.",
+    "contactManager": "Contacter le manager",
+    "viewMyIssues": "Voir mes signalements",
+    "categoryRequiredTitle": "Catégorie requise",
+    "categoryRequiredMessage": "Sélectionnez le type d'anomalie.",
+    "descriptionRequiredTitle": "Description requise",
+    "descriptionRequiredMessage": "Décrivez l'anomalie constatée.",
+    "photosFailedTitle": "Photos non envoyées",
+    "photosFailedMessage": "Le signalement est bien créé, mais les photos n'ont pas pu être envoyées.",
+    "submitError": "Impossible d'envoyer le signalement. Réessayez."
+  },
+  "myRates": {
+    "title": "Mes tarifs",
+    "menuLabel": "Mes tarifs",
+    "loadError": "Impossible de charger vos tarifs.",
+    "scoreSection": "Score qualité (30 jours)",
+    "scoreDetail": "{{count}} missions terminées · {{proof}} % avec preuve photo",
+    "scoreHint": "Score = missions avec photo « après » × volume (5 missions = plein régime).",
+    "hourlySection": "Taux horaire",
+    "referenceRate": "Taux de référence plateforme : {{rate}} €/h",
+    "flatSection": "Forfaits par logement",
+    "flatHint": "Le forfait prime sur le taux horaire. La fourchette indique le conseil plateforme — jamais bloquant.",
+    "noProperties": "Aucun logement accessible.",
+    "inMarket": "Dans le marché",
+    "saveError": "Enregistrement impossible.",
+    "saved": "Tarifs enregistrés."
+  },
+  "myPayouts": {
+    "title": "Mes versements",
+    "menuLabel": "Mes versements",
+    "loadError": "Impossible de charger vos versements.",
+    "accountSection": "Compte de versement",
+    "accountComplete": "Votre compte de versement est configuré : les versements de missions sont automatiques.",
+    "accountInProgress": "Configuration entamée mais incomplète — finalisez-la pour recevoir vos versements.",
+    "accountNone": "Configurez votre compte de versement (Stripe) pour recevoir automatiquement la rémunération de vos missions.",
+    "startOnboarding": "Configurer mes versements",
+    "resumeOnboarding": "Finaliser la configuration",
+    "onboardingError": "Ouverture de la configuration impossible. Réessayez.",
+    "historySection": "Historique",
+    "noPayouts": "Aucun versement pour le moment.",
+    "mission": "Mission #{{id}}",
+    "commission": "Commission −{{amount}} €",
+    "status": {
+      "SENT": "Envoyé",
+      "PENDING": "En cours",
+      "FAILED": "Échoué",
+      "BLOCKED": "Bloqué"
+    },
+    "reason": {
+      "proofMissing": "preuve photo manquante",
+      "onboardingIncomplete": "compte à configurer"
+    },
+    "completeMission": "Compléter la mission (photos)",
+    "finishOnboarding": "Finaliser le compte de versement"
+  },
+  "myIssues": {
+    "title": "Mes signalements",
+    "menuLabel": "Mes signalements",
+    "loadError": "Impossible de charger vos signalements.",
+    "emptyTitle": "Aucun signalement",
+    "emptyDescription": "Vos signalements d'anomalies apparaîtront ici avec leur suivi.",
+    "status": {
+      "OPEN": "Ouvert",
+      "QUALIFIED": "Qualifié",
+      "CONVERTED": "Converti",
+      "DISMISSED": "Rejeté"
+    },
+    "suggestedCost": "Coût suggéré : {{amount}} €"
+  },
+  "todayMissions": {
+    "missionsAmount": "Montant des missions"
+  },
+  "mission": {
+    "scaleConform": "Conforme au barème",
+    "scaleDelta": "{{delta}} % vs barème"
   }
 }

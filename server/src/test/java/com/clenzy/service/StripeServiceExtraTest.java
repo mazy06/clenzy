@@ -69,9 +69,6 @@ class StripeServiceExtraTest {
     void setUp() throws Exception {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(1L);
-        StripeCheckoutSessionFactory checkoutSessionFactory = new StripeCheckoutSessionFactory(
-            interventionRepository, reservationRepository, serviceRequestRepository,
-            new com.clenzy.service.access.OrganizationAccessGuard(tenantContext), stripeGateway);
         StripePaymentConfirmationService paymentConfirmationService = new StripePaymentConfirmationService(
             interventionRepository, reservationRepository, serviceRequestRepository,
             notificationService, serviceRequestService, walletService, ledgerService,
@@ -81,11 +78,7 @@ class StripeServiceExtraTest {
         StripeRefundService refundService = new StripeRefundService(stripeGateway,
             paymentStatusTransitionService, org.mockito.Mockito.mock(PaymentLedgerReversalService.class),
             notificationService, kafkaTemplate);
-        stripeService = new StripeService(stripeGateway, checkoutSessionFactory,
-            paymentConfirmationService, refundService);
-        setField(checkoutSessionFactory, "currency", "EUR");
-        setField(checkoutSessionFactory, "successUrl", "https://ok.test");
-        setField(checkoutSessionFactory, "cancelUrl", "https://ko.test");
+        stripeService = new StripeService(stripeGateway, paymentConfirmationService, refundService);
         setField(paymentConfirmationService, "currency", "EUR");
         org.mockito.Mockito.lenient()
             .when(paymentStatusTransitionService.markInterventionPaid(any())).thenReturn(true);
@@ -154,88 +147,9 @@ class StripeServiceExtraTest {
 
     // ─── Currency resolution path via Property.defaultCurrency ────────────────
 
-    @Nested
-    @DisplayName("createCheckoutSession: currency resolution property -> config fallback")
-    class CurrencyResolutionPath {
-
-        private Session sessionMock() {
-            Session session = org.mockito.Mockito.mock(Session.class);
-            when(session.getId()).thenReturn("cs_x");
-            return session;
-        }
-
-        private String capturedCurrency() throws Exception {
-            ArgumentCaptor<SessionCreateParams> captor = ArgumentCaptor.forClass(SessionCreateParams.class);
-            verify(stripeGateway).createSession(captor.capture());
-            return captor.getValue().getLineItems().get(0).getPriceData().getCurrency();
-        }
-
-        @Test
-        @DisplayName("intervention not found -> throws (resolveInterventionCurrency not even reached)")
-        void interventionNotFound_throws() {
-            when(interventionRepository.findById(123L)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> stripeService.createCheckoutSession(123L, BigDecimal.TEN, "g@h.com"))
-                .isInstanceOf(RuntimeException.class);
-        }
-
-        @Test
-        @DisplayName("property has defaultCurrency USD -> session charged in usd")
-        void propertyDefaultCurrency_resolved() throws Exception {
-            Intervention intervention = buildInterventionWithProperty(1L, "USD");
-            Session session = sessionMock();
-            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
-            when(stripeGateway.createSession(any())).thenReturn(session);
-
-            stripeService.createCheckoutSession(1L, BigDecimal.valueOf(100), "g@h.com");
-
-            assertThat(capturedCurrency()).isEqualTo("usd");
-        }
-
-        @Test
-        @DisplayName("property has blank defaultCurrency -> fallback to config currency (eur)")
-        void propertyBlankCurrency_fallsBackToConfig() throws Exception {
-            Intervention intervention = buildInterventionWithProperty(1L, "");
-            Session session = sessionMock();
-            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
-            when(stripeGateway.createSession(any())).thenReturn(session);
-
-            stripeService.createCheckoutSession(1L, BigDecimal.valueOf(100), "g@h.com");
-
-            assertThat(capturedCurrency()).isEqualTo("eur");
-        }
-
-        @Test
-        @DisplayName("intervention without property -> fallback config currency (eur)")
-        void interventionWithoutProperty_fallsBack() throws Exception {
-            Intervention intervention = new Intervention();
-            intervention.setId(2L);
-            intervention.setTitle("No-prop");
-            intervention.setProperty(null);
-            intervention.setEstimatedCost(BigDecimal.valueOf(100));
-            intervention.setOrganizationId(1L);
-            Session session = sessionMock();
-            when(interventionRepository.findById(2L)).thenReturn(Optional.of(intervention));
-            when(stripeGateway.createSession(any())).thenReturn(session);
-
-            stripeService.createCheckoutSession(2L, BigDecimal.valueOf(100), "g@h.com");
-
-            assertThat(capturedCurrency()).isEqualTo("eur");
-        }
-
-        @Test
-        @DisplayName("createEmbeddedCheckoutSession: same currency resolution chain (gbp)")
-        void createEmbeddedCheckoutSession_currencyResolution() throws Exception {
-            Intervention intervention = buildInterventionWithProperty(5L, "GBP");
-            Session session = sessionMock();
-            when(interventionRepository.findById(5L)).thenReturn(Optional.of(intervention));
-            when(stripeGateway.createSession(any())).thenReturn(session);
-
-            stripeService.createEmbeddedCheckoutSession(5L, BigDecimal.valueOf(100), "x@y.z");
-
-            assertThat(capturedCurrency()).isEqualTo("gbp");
-        }
-    }
+    // Les tests de résolution de devise du checkout (createCheckoutSession /
+    // createEmbeddedCheckoutSession) ont été retirés : ces méthodes + la factory Stripe
+    // ont été supprimées (flux migrés vers PaymentOrchestrationService).
 
     // ─── refundPayment : PaymentIntent manquant ───────────────────────────────
 

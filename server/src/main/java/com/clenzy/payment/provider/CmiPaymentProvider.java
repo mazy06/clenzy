@@ -60,6 +60,16 @@ public class CmiPaymentProvider implements PaymentProvider {
     }
 
     @Override
+    public Set<PaymentCapability> getCapabilities() {
+        // PAY uniquement : CMI n'expose PAS d'API de remboursement (les refunds se
+        // font manuellement via le back-office marchand — cf. refundPayment qui
+        // renvoie un échec). Déclarer REFUND serait mensonger (règle capacités =
+        // ne déclarer que ce qui est réellement supporté par le port). Pas de
+        // payout sortant ni de card-on-file ; capture = auto (pas de pré-autorisation).
+        return Set.of(PaymentCapability.PAY);
+    }
+
+    @Override
     public Set<String> getSupportedCountries() {
         return Set.of("MA");
     }
@@ -81,7 +91,7 @@ public class CmiPaymentProvider implements PaymentProvider {
 
             // Valide que les credentials sont presents (le hash sera calcule
             // au moment du redirect endpoint, pas ici — voir CmiRedirectController).
-            Long orgId = readOrgId(request);
+            Long orgId = PaymentAdapterSupport.requireOrgId(request, "CMI");
             CmiCredentials creds = loadCredentials(orgId);
             if (creds.storeKey == null || creds.storeKey.isBlank()) {
                 return PaymentResult.failure("CMI : store_key non configure pour l'org");
@@ -183,13 +193,6 @@ public class CmiPaymentProvider implements PaymentProvider {
         return hashService;
     }
 
-    private Long readOrgId(PaymentRequest request) {
-        if (request.metadata() == null || !request.metadata().containsKey("orgId")) {
-            throw new IllegalStateException(
-                "CMI createPayment called without orgId metadata — orchestrator must inject it");
-        }
-        return Long.parseLong(request.metadata().get("orgId"));
-    }
 
     /** Parser minimal form-urlencoded → Map. Suffisant pour les callbacks CMI. */
     private static Map<String, String> parseFormUrlEncoded(String body) {

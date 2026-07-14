@@ -14,10 +14,10 @@
    Drop-in de <PendingQueue> (mêmes props). Réutilise onValidate/onEdit.
    ============================================================ */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, Collapse, IconButton } from '@mui/material';
 import {
-  Check, ChevronDown, Timer, CreditCard, Schedule, VisibilityOff, Undo,
+  Check, ChevronDown, Timer, CreditCard, Schedule, VisibilityOff, Undo, OpenInNew,
 } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Money } from '../../../components/Money';
@@ -41,7 +41,8 @@ export interface TaskDeckQueueProps {
 
 function isPayment(a: AnyAction) { return a.kind === 'payment'; }
 function isReminder(a: AnyAction) { return a.kind === 'reminder'; }
-function isApply(a: AnyAction) { return !isPayment(a) && !isReminder(a) && Boolean(a.applyActionType); }
+function isGuestCard(a: AnyAction) { return a.opensGuestCard === true; }
+function isApply(a: AnyAction) { return !isPayment(a) && !isReminder(a) && !isGuestCard(a) && Boolean(a.applyActionType); }
 
 function remainingLabel(cd: Countdown, t: (k: string, o?: Record<string, unknown>) => string): string {
   if (cd.expired) return t('supervision.hitl.expired');
@@ -67,6 +68,7 @@ function TaskCard({
   const meta = AGENT_META[action.agentId];
   const payment = isPayment(action);
   const reminder = isReminder(action);
+  const guestCard = isGuestCard(action);
   const apply = isApply(action);
   // Baisse tarifaire multi-segment : « Ajuster » ouvre une modale (édition + prévision + apply).
   const priceAdjust = apply && action.applyActionType === 'PRICE_DROP'
@@ -96,11 +98,13 @@ function TaskCard({
         <Box sx={{ fontSize: 12, fontWeight: 500, color: 'var(--ink)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {t(meta.nameKey)}
         </Box>
-        {payment || reminder ? (
+        {payment || reminder || guestCard ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
             <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warn)' }} />
             <Box sx={{ fontSize: 10.5, fontWeight: 500, color: 'var(--warn)', whiteSpace: 'nowrap' }}>
-              {payment ? t('supervision.payment.badge', 'À régler') : t('supervision.reminder.badge', 'Rappel')}
+              {payment ? t('supervision.payment.badge', 'À régler')
+                : reminder ? t('supervision.reminder.badge', 'Rappel')
+                : t('supervision.guestCard.badge', 'À compléter')}
             </Box>
           </Box>
         ) : (
@@ -130,7 +134,7 @@ function TaskCard({
         <Button
           size="small" variant="contained" disableElevation
           onClick={priceAdjust ? () => onAdjustPrice!(action) : () => onValidate(action.id)}
-          startIcon={payment ? <CreditCard size={14} /> : <Check size={14} />}
+          startIcon={payment ? <CreditCard size={14} /> : guestCard ? <OpenInNew size={14} /> : <Check size={14} />}
           sx={{
             flex: 1, textTransform: 'none', fontWeight: 500, fontSize: 11.5, borderRadius: '10px', boxShadow: 'none',
             bgcolor: 'var(--accent)', color: 'var(--on-accent)',
@@ -148,7 +152,8 @@ function TaskCard({
             <>{t('supervision.apply.action', 'Appliquer')}{action.amountEur != null && (
               <Box component="span" sx={{ ml: 'auto', pl: 0.75 }}>+<Money value={action.amountEur} from="EUR" decimals={0} /></Box>
             )}</>
-          ) : reminder ? t('supervision.reminder.ack', 'Info reçue') : t('supervision.hitl.validate')}
+          ) : guestCard ? t('supervision.guestCard.cta', 'Compléter la fiche client')
+            : reminder ? t('supervision.reminder.ack', 'Info reçue') : t('supervision.hitl.validate')}
         </Button>
         <Button
           size="small" variant="outlined" color="inherit" onClick={() => onEdit(action.id)}
@@ -251,30 +256,34 @@ function TaskStack({
   }
 
   // Deck replié : carte du dessus + jusqu'à 3 tranches derrière + pastille de comptage.
+  // Les tranches sont PLEINE LARGEUR (pas de rétrécissement latéral) et ne laissent
+  // dépasser qu'un fin liseré de PEEK px chacune sous la carte — on les entrevoit,
+  // elles ne réservent plus un bandeau vide. Ancrées sur la hauteur RÉELLE de la
+  // carte (carte en flux + débord bas), plus de hauteur codée en dur.
   const behind = Math.min(n - 1, 3);
-  const deckHeight = 146 + behind * 12;
+  const PEEK = 6;
   return (
     <Box
       onClick={dimmed ? onClose : onOpen}
       sx={{
-        position: 'relative', height: deckHeight, cursor: 'pointer',
+        position: 'relative', cursor: 'pointer', mb: `${behind * PEEK}px`,
         filter: dimmed ? 'blur(4px)' : 'none', opacity: dimmed ? 0.45 : 1,
         transition: 'filter .35s var(--ease-out, cubic-bezier(.16,1,.3,1)), opacity .35s',
       }}
     >
-      {/* Tranches derrière */}
+      {/* Tranches derrière : même largeur que la carte, débordent de PEEK px par niveau */}
       {Array.from({ length: behind }).map((_, i) => {
         const d = i + 1;
         return (
           <Box key={d} sx={{
-            position: 'absolute', top: d * 12, left: d * 8, right: d * 8,
-            height: 128, bgcolor: 'var(--card)', border: '1px solid var(--line)', borderRadius: '16px',
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: -(d * PEEK),
+            bgcolor: 'var(--card)', border: '1px solid var(--line)', borderRadius: '16px',
             boxShadow: 'var(--shadow-sm, 0 1px 2px rgba(0,0,0,.06))', zIndex: 3 - i,
           }} />
         );
       })}
-      {/* Carte du dessus */}
-      <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5 }}>
+      {/* Carte du dessus (en flux : donne sa hauteur au deck) */}
+      <Box sx={{ position: 'relative', zIndex: 5 }}>
         <TaskCard action={actions[0]} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} />
       </Box>
       {/* Pastille de comptage */}
@@ -295,7 +304,11 @@ function TaskStack({
 
 // ─── Conteneur ────────────────────────────────────────────────────────────────
 
-export function TaskDeckQueue({ actions, onValidate, onEdit, onAdjustPrice, variant = 'floating' }: TaskDeckQueueProps) {
+// Mémoïsé (audit perf) : ne re-rendre le deck que quand la file ou les handlers
+// changent — pas à chaque re-render du panneau (report, toasts, events feed).
+export const TaskDeckQueue = memo(TaskDeckQueueInner);
+
+function TaskDeckQueueInner({ actions, onValidate, onEdit, onAdjustPrice, variant = 'floating' }: TaskDeckQueueProps) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [openType, setOpenType] = useState<AgentId | null>(null);

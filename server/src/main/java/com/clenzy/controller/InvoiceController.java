@@ -5,6 +5,7 @@ import com.clenzy.dto.InvoiceDto;
 import com.clenzy.dto.PaymentOrchestrationResult;
 import com.clenzy.model.PaymentProviderType;
 import com.clenzy.service.InvoiceGeneratorService;
+import com.clenzy.service.InvoicePaymentLinkService;
 import com.clenzy.service.InvoicePaymentService;
 import com.clenzy.service.InvoiceQueryService;
 import org.springframework.http.*;
@@ -36,13 +37,16 @@ public class InvoiceController {
 
     private final InvoiceGeneratorService invoiceGeneratorService;
     private final InvoicePaymentService invoicePaymentService;
+    private final InvoicePaymentLinkService invoicePaymentLinkService;
     private final InvoiceQueryService invoiceQueryService;
 
     public InvoiceController(InvoiceGeneratorService invoiceGeneratorService,
                               InvoicePaymentService invoicePaymentService,
+                              InvoicePaymentLinkService invoicePaymentLinkService,
                               InvoiceQueryService invoiceQueryService) {
         this.invoiceGeneratorService = invoiceGeneratorService;
         this.invoicePaymentService = invoicePaymentService;
+        this.invoicePaymentLinkService = invoicePaymentLinkService;
         this.invoiceQueryService = invoiceQueryService;
     }
 
@@ -126,6 +130,17 @@ public class InvoiceController {
         PaymentOrchestrationResult result = invoicePaymentService.payInvoice(
                 id, preferredProvider, successUrl, cancelUrl);
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Envoie par email au client concerné (voyageur / demandeur) un lien de
+     * paiement Stripe pour la facture — action de la modale facture du feed
+     * constellation. Retourne l'email destinataire pour confirmation UI.
+     */
+    @PostMapping("/{id}/send-payment-link")
+    public ResponseEntity<java.util.Map<String, String>> sendPaymentLink(@PathVariable Long id) {
+        String sentTo = invoicePaymentLinkService.sendPaymentLink(id);
+        return ResponseEntity.ok(java.util.Map.of("sentTo", sentTo));
     }
 
     /**

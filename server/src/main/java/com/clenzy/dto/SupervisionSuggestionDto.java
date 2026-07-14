@@ -15,6 +15,9 @@ package com.clenzy.dto;
  * @param severity             gravité indicative ({@code info}/{@code warning}/{@code critical}), optionnel
  * @param actionParams         paramètres bruts de l'action (JSON, ex. {@code {"segments":[…]}}) pour
  *                             préremplir la modale d'ajustement ; {@code null} si informationnelle
+ * @param tool                 nom stable du scanner à l'origine (ex. {@code guest_email_missing}),
+ *                             ou {@code null}. Discriminant côté front pour les cartes
+ *                             informationnelles à comportement dédié (ex. ouvrir la fiche client).
  */
 public record SupervisionSuggestionDto(
         String id,
@@ -27,6 +30,7 @@ public record SupervisionSuggestionDto(
         String actionType,
         Long estimatedImpactCents,
         String severity,
-        String actionParams
+        String actionParams,
+        String tool
 ) {
 }

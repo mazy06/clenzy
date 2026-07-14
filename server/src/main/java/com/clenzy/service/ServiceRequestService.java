@@ -30,6 +30,8 @@ import com.clenzy.repository.TeamRepository;
 import com.clenzy.model.Team;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.config.KafkaConfig;
+import com.clenzy.service.pricing.CleaningPricingEngine;
+import com.clenzy.service.pricing.CleaningPricingEngine.ResolvedCleaningPrice;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -76,6 +78,14 @@ public class ServiceRequestService {
     private final ServiceRequestMapper serviceRequestMapper;
     private final AssignmentEventRepository assignmentEventRepository;
     private final WorkflowSettingsRepository workflowSettingsRepository;
+    private final CleaningPricingEngine cleaningPricingEngine;
+    private final com.clenzy.service.pricing.HousekeeperScoreService housekeeperScoreService;
+    // @Lazy : la chaîne supervision dépend (transitivement, via SuggestionActionExecutor)
+    // de ce service → sans lazy, cycle de constructeurs au boot Spring.
+    private final com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService;
+    private final com.clenzy.service.agent.supervision.SupervisionAutoApplyService supervisionAutoApplyService;
+    private final com.clenzy.service.agent.supervision.AutoApplyGate autoApplyGate;
+    private final com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
 
     public ServiceRequestService(ServiceRequestRepository serviceRequestRepository,
                                   UserRepository userRepository,
@@ -89,7 +99,15 @@ public class ServiceRequestService {
                                   TenantContext tenantContext,
                                   ServiceRequestMapper serviceRequestMapper,
                                   AssignmentEventRepository assignmentEventRepository,
-                                  WorkflowSettingsRepository workflowSettingsRepository) {
+                                  WorkflowSettingsRepository workflowSettingsRepository,
+                                  CleaningPricingEngine cleaningPricingEngine,
+                                  com.clenzy.service.pricing.HousekeeperScoreService housekeeperScoreService,
+                                  @org.springframework.context.annotation.Lazy
+                                  com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService,
+                                  @org.springframework.context.annotation.Lazy
+                                  com.clenzy.service.agent.supervision.SupervisionAutoApplyService supervisionAutoApplyService,
+                                  com.clenzy.service.agent.supervision.AutoApplyGate autoApplyGate,
+                                  com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
@@ -103,6 +121,22 @@ public class ServiceRequestService {
         this.serviceRequestMapper = serviceRequestMapper;
         this.assignmentEventRepository = assignmentEventRepository;
         this.workflowSettingsRepository = workflowSettingsRepository;
+        this.cleaningPricingEngine = cleaningPricingEngine;
+        this.housekeeperScoreService = housekeeperScoreService;
+        this.supervisionSuggestionService = supervisionSuggestionService;
+        this.supervisionAutoApplyService = supervisionAutoApplyService;
+        this.autoApplyGate = autoApplyGate;
+        this.organizationAccessGuard = organizationAccessGuard;
+    }
+
+    /**
+     * Garde d'ownership fail-closed (audit 2026-07 F1-05/06/07) : {@code findById}
+     * contourne le filtre org (inerte en HTTP) — toute demande chargée par id dans
+     * un flux utilisateur doit valider l'appartenance à l'organisation courante.
+     */
+    private void requireOwnedServiceRequest(ServiceRequest sr) {
+        organizationAccessGuard.requireSameOrganization(
+                sr.getOrganizationId(), "Demande hors de votre organisation");
     }
 
     public ServiceRequestDto create(ServiceRequestDto dto) {
@@ -135,6 +169,7 @@ public class ServiceRequestService {
     public ServiceRequestDto refuse(Long serviceRequestId) {
         ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
                 .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
+        requireOwnedServiceRequest(sr);
 
         if (!RequestStatus.AWAITING_PAYMENT.equals(sr.getStatus()) && !RequestStatus.ASSIGNED.equals(sr.getStatus())) {
             throw new IllegalStateException("Seules les demandes assignees peuvent etre refusees. Statut actuel: " + sr.getStatus());
@@ -160,10 +195,88 @@ public class ServiceRequestService {
             log.warn("Notification error REFUSE: {}", e.getMessage());
         }
 
-        // Tenter une re-assignation automatique
-        attemptAutoAssign(sr);
+        // Tenter une re-assignation automatique ; en échec sur un ménage, faire
+        // remonter une carte HITL « Remplacer le prestataire » dans la constellation
+        // du logement (le scheduler 15 min continue de retenter en parallèle).
+        boolean reassigned = attemptAutoAssign(sr);
+        if (!reassigned) {
+            flagProviderReplacementNeeded(sr);
+        }
 
         return serviceRequestMapper.toDto(sr);
+    }
+
+    /**
+     * Carte HITL « Remplacer le prestataire ménage » (agent Operations) quand le
+     * prestataire s'est désisté et qu'aucun remplaçant n'est immédiatement
+     * disponible. Best-effort (dédup par intitulé côté suggestion service) ;
+     * réservée aux prestations de ménage rattachées à un logement. Même pattern
+     * d'autonomie que CleaningBackfillScheduler : le gate décide HITL vs auto —
+     * en AUTO, l'apply retente la réassignation immédiatement ; un échec laisse
+     * la carte en PENDING (repli HITL naturel).
+     */
+    private void flagProviderReplacementNeeded(ServiceRequest sr) {
+        try {
+            if (sr.getProperty() == null || sr.getServiceType() == null
+                    || !sr.getServiceType().isCleaningService()) {
+                return;
+            }
+            Long orgId = sr.getOrganizationId();
+            Long propertyId = sr.getProperty().getId();
+            String when = sr.getDesiredDate() != null
+                    ? " du " + sr.getDesiredDate().toLocalDate()
+                    : "";
+            String title = "Remplacer le prestataire ménage" + when;
+            String motif = "Le prestataire assigné s'est désisté (\"" + sr.getTitle()
+                    + "\") et aucun remplaçant n'est disponible pour l'instant.";
+            String params = "{\"serviceRequestId\":" + sr.getId() + "}";
+
+            com.clenzy.service.agent.supervision.AutoApplyGate.AutoDecision decision =
+                    autoApplyGate.decide(orgId, "ops",
+                            com.clenzy.service.agent.supervision.SupervisionActionType.REASSIGN_CLEANING,
+                            java.util.Map.of());
+            boolean auto = decision == com.clenzy.service.agent.supervision.AutoApplyGate.AutoDecision.AUTO_NOTIFY
+                    || decision == com.clenzy.service.agent.supervision.AutoApplyGate.AutoDecision.AUTO_SILENT;
+            if (!auto) {
+                supervisionSuggestionService.recordActionable(orgId, propertyId, "ops", title, motif,
+                        com.clenzy.service.agent.supervision.SupervisionActionType.REASSIGN_CLEANING,
+                        params, null, "warning");
+            } else {
+                supervisionSuggestionService.recordActionableForAutoApply(orgId, propertyId, "ops",
+                                null, title, motif,
+                                com.clenzy.service.agent.supervision.SupervisionActionType.REASSIGN_CLEANING,
+                                params, null, "warning")
+                        .ifPresent(suggestionId -> supervisionAutoApplyService.autoApply(
+                                decision, orgId, propertyId, "ops", suggestionId, title, motif, null));
+            }
+        } catch (Exception e) {
+            log.debug("Carte remplacement prestataire non créée (SR {}): {}", sr.getId(), e.getMessage());
+        }
+    }
+
+    /**
+     * Réassignation demandée par la constellation (apply d'une carte
+     * {@code REASSIGN_CLEANING}) : org-scopée strict (la suggestion porte l'org du
+     * requester). Idempotent : demande déjà réassignée entre-temps → succès.
+     *
+     * @return true si la demande est assignée (déjà ou suite à cette tentative)
+     */
+    public boolean retryAutoAssignForSupervision(Long organizationId, Long serviceRequestId) {
+        ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
+                .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
+        // findById contourne le filtre org (règle audit n°3) → garde explicite.
+        if (organizationId == null || !organizationId.equals(sr.getOrganizationId())) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Demande hors de votre organisation");
+        }
+        if (sr.getAssignedToId() != null) {
+            return true; // réassignée entre-temps (scheduler / manuel) — objectif atteint
+        }
+        if (!RequestStatus.PENDING.equals(sr.getStatus())) {
+            throw new IllegalStateException(
+                    "Demande non réassignable (statut " + sr.getStatus() + ")");
+        }
+        return attemptAutoAssignByOrgId(sr, organizationId);
     }
 
     /**
@@ -172,6 +285,7 @@ public class ServiceRequestService {
     public ServiceRequestDto manualAssign(Long serviceRequestId, Long assignedToId, String assignedToType) {
         ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
                 .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
+        requireOwnedServiceRequest(sr);
 
         if (!RequestStatus.PENDING.equals(sr.getStatus()) && !RequestStatus.AWAITING_PAYMENT.equals(sr.getStatus()) && !RequestStatus.ASSIGNED.equals(sr.getStatus())) {
             throw new IllegalStateException("Seules les demandes en attente ou en attente de paiement peuvent etre (re)assignees manuellement. Statut actuel: " + sr.getStatus());
@@ -179,6 +293,19 @@ public class ServiceRequestService {
 
         sr.setAssignedToId(assignedToId);
         sr.setAssignedToType(assignedToType);
+        // Moteur Ménage 2A : assignation d'un PRO sur une SR ménage non payée
+        // (garde de statut ci-dessus : PENDING/AWAITING_PAYMENT/ASSIGNED) →
+        // le prix pratiqué suit son tarif. Le conseil (recommendedCost) est INCHANGÉ.
+        if ("user".equals(assignedToType) && sr.getPaidAt() == null
+                && sr.getProperty() != null
+                && sr.getServiceType() != null && sr.getServiceType().isCleaningService()) {
+            var resolved = cleaningPricingEngine.resolveCleaningPrice(
+                    sr.getProperty(), sr.getServiceType().name(), assignedToId);
+            if (resolved.source() == com.clenzy.service.pricing.CleaningPricingEngine.CleaningPriceSource.HOUSEKEEPER_RATE) {
+                sr.setEstimatedCost(resolved.amount());
+                log.info("SR {} : cout reevalue au tarif du pro {} → {}", sr.getId(), assignedToId, resolved.amount());
+            }
+        }
         sr.setStatus(RequestStatus.AWAITING_PAYMENT);
         sr.setAutoAssignStatus("found");
         sr = serviceRequestRepository.save(sr);
@@ -220,6 +347,7 @@ public class ServiceRequestService {
         intervention.setScheduledDate(sr.getDesiredDate());
         intervention.setEstimatedDurationHours(sr.getEstimatedDurationHours());
         intervention.setEstimatedCost(sr.getEstimatedCost());
+        intervention.setRecommendedCost(sr.getRecommendedCost());
         intervention.setIsUrgent(sr.isUrgent());
         intervention.setStartTime(sr.getDesiredDate());
         intervention.setRequiresFollowUp(false);
@@ -275,7 +403,10 @@ public class ServiceRequestService {
             notificationService.notifyAdminsAndManagers(
                 NotificationKey.INTERVENTION_AWAITING_VALIDATION,
                 "Intervention creee apres paiement",
-                "L'intervention \"" + intervention.getTitle() + "\" a ete creee suite au paiement de la demande de service.",
+                "L'intervention \"" + intervention.getTitle() + "\" a ete creee suite au paiement de la demande de service."
+                    + (intervention.getEstimatedCost() != null
+                        ? " Cout estime: " + intervention.getEstimatedCost().stripTrailingZeros().toPlainString() + " EUR."
+                        : ""),
                 "/interventions/" + intervention.getId()
             );
         } catch (Exception e) {
@@ -311,7 +442,10 @@ public class ServiceRequestService {
 
     @Transactional(readOnly = true)
     public ServiceRequestDto getById(Long id) {
-        return serviceRequestMapper.toDto(serviceRequestRepository.findById(id).orElseThrow(() -> new NotFoundException("Service request not found")));
+        ServiceRequest sr = serviceRequestRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Service request not found"));
+        requireOwnedServiceRequest(sr);
+        return serviceRequestMapper.toDto(sr);
     }
 
     @Transactional(readOnly = true)
@@ -536,6 +670,92 @@ public class ServiceRequestService {
     /**
      * Mappe le type de service vers le type d'intervention
      */
+    /**
+     * MM-3D — auto-assignation du meilleur pro (opt-in org, défaut FALSE).
+     * APRÈS la sélection d'équipe existante (le choix d'équipe ne change pas) :
+     * si la SR est un ménage, classe les membres HOUSEKEEPER de l'équipe et pose
+     * l'assignation sur le meilleur (assignedToType=user). Classement documenté :
+     *   1) score qualité 30 j décroissant ;
+     *   2) à score proche (±10 pts) : tarif résolu le plus PROCHE de la médiane
+     *      conseil (cohérent avec l'ancrage médiane — ni le moins cher ni le plus cher) ;
+     *   3) tie-break : le moins de missions ouvertes le jour de la demande (équilibrage).
+     * Gardes : jamais d'écrasement d'un user déjà assigné ; uniquement à la
+     * création auto. L'assignation user déclenche le tarif MM-2A (même logique
+     * que manualAssign) + push INTERVENTION_ASSIGNED_TO_USER (l'email MM-2B part
+     * à la création de l'intervention, hors périmètre SR).
+     */
+    private void maybeUpgradeToBestPro(ServiceRequest sr, Long teamId) {
+        try {
+            if (!cleaningPricingEngine.isAutoAssignBestProEnabled()) return;
+            if (sr.getServiceType() == null || !sr.getServiceType().isCleaningService()) return;
+            if (sr.getProperty() == null) return;
+
+            Team team = teamRepository.findById(teamId).orElse(null);
+            if (team == null || team.getMembers() == null || team.getMembers().isEmpty()) return;
+
+            Long orgId = sr.getOrganizationId();
+            java.time.LocalDateTime day = sr.getDesiredDate() != null ? sr.getDesiredDate() : LocalDateTime.now();
+            java.time.LocalDateTime dayStart = day.toLocalDate().atStartOfDay();
+            java.time.LocalDateTime dayEnd = dayStart.plusDays(1);
+            var median = cleaningPricingEngine
+                    .quote(sr.getProperty(), sr.getServiceType().name()).recommended();
+
+            record Candidate(User user, int score, java.math.BigDecimal rateDistance, long openCount) {}
+            java.util.List<Candidate> candidates = new java.util.ArrayList<>();
+            for (var member : team.getMembers()) {
+                User user = member.getUser();
+                if (user == null || user.getRole() != UserRole.HOUSEKEEPER) continue;
+                int score = housekeeperScoreService.computeScore(user.getId(), orgId).score();
+                var resolved = cleaningPricingEngine.resolveCleaningPrice(
+                        sr.getProperty(), sr.getServiceType().name(), user.getId());
+                java.math.BigDecimal distance = resolved.amount().subtract(median).abs();
+                long open = interventionRepository.countOpenOnDay(user.getId(), orgId, dayStart, dayEnd);
+                candidates.add(new Candidate(user, score, distance, open));
+            }
+            if (candidates.isEmpty()) return;
+
+            // Classement : score desc ; à ±10 pts, distance à la médiane asc ; puis charge asc.
+            candidates.sort((a, b) -> {
+                if (Math.abs(a.score() - b.score()) > 10) {
+                    return Integer.compare(b.score(), a.score());
+                }
+                int byDistance = a.rateDistance().compareTo(b.rateDistance());
+                if (byDistance != 0) return byDistance;
+                return Long.compare(a.openCount(), b.openCount());
+            });
+            User best = candidates.get(0).user();
+
+            // Garde absolue : jamais écraser une assignation USER existante.
+            if ("user".equals(sr.getAssignedToType())) return;
+
+            sr.setAssignedToType("user");
+            sr.setAssignedToId(best.getId());
+            // Tarif MM-2A : même logique que manualAssign (source HOUSEKEEPER_RATE seulement).
+            if (sr.getPaidAt() == null) {
+                var resolved = cleaningPricingEngine.resolveCleaningPrice(
+                        sr.getProperty(), sr.getServiceType().name(), best.getId());
+                if (resolved.source() == com.clenzy.service.pricing.CleaningPricingEngine.CleaningPriceSource.HOUSEKEEPER_RATE) {
+                    sr.setEstimatedCost(resolved.amount());
+                }
+            }
+            logAssignmentEvent(sr, "AUTO_BEST_PRO", best.getId(), "user",
+                    "Meilleur pro de l'equipe " + teamId + " (score qualite)");
+            if (best.getKeycloakId() != null) {
+                String remuneration = sr.getEstimatedCost() != null
+                        ? " Remuneration: " + sr.getEstimatedCost().stripTrailingZeros().toPlainString() + " EUR."
+                        : "";
+                notificationService.send(best.getKeycloakId(), NotificationKey.INTERVENTION_ASSIGNED_TO_USER,
+                        "Mission assignee",
+                        "Vous etes assigne a la mission '" + sr.getTitle() + "'." + remuneration,
+                        "/interventions?tab=service-requests&highlight=" + sr.getId(), orgId);
+            }
+            log.info("Auto-assign best pro: user {} (team {}) for SR {}", best.getId(), teamId, sr.getId());
+        } catch (Exception e) {
+            // Best-effort : l'échec du sélecteur laisse l'assignation ÉQUIPE intacte.
+            log.warn("maybeUpgradeToBestPro failed for SR {}: {}", sr.getId(), e.getMessage());
+        }
+    }
+
     private String mapServiceTypeToInterventionType(com.clenzy.model.ServiceType serviceType) {
         if (serviceType == null) {
             return InterventionType.PREVENTIVE_MAINTENANCE.name();
@@ -635,6 +855,10 @@ public class ServiceRequestService {
             if (availableTeamId.isPresent()) {
                 sr.setAssignedToId(availableTeamId.get());
                 sr.setAssignedToType("team");
+                // MM-3D : si l'org a activé autoAssignBestPro, promeut le MEILLEUR
+                // housekeeper de l'équipe retenue en assignation user (opt-in,
+                // défaut false = comportement actuel strictement intact).
+                maybeUpgradeToBestPro(sr, availableTeamId.get());
                 sr.setStatus(RequestStatus.AWAITING_PAYMENT);
                 sr.setAutoAssignStatus("found");
                 serviceRequestRepository.save(sr);
@@ -738,6 +962,10 @@ public class ServiceRequestService {
             if (availableTeamId.isPresent()) {
                 sr.setAssignedToId(availableTeamId.get());
                 sr.setAssignedToType("team");
+                // MM-3D : si l'org a activé autoAssignBestPro, promeut le MEILLEUR
+                // housekeeper de l'équipe retenue en assignation user (opt-in,
+                // défaut false = comportement actuel strictement intact).
+                maybeUpgradeToBestPro(sr, availableTeamId.get());
                 sr.setStatus(RequestStatus.AWAITING_PAYMENT);
                 sr.setAutoAssignStatus("found");
                 serviceRequestRepository.save(sr);
@@ -893,7 +1121,13 @@ public class ServiceRequestService {
         sr.setDesiredDate(desiredDate);
         sr.setGuestCheckoutTime(desiredDate);
         sr.setEstimatedDurationHours((int) Math.ceil(ServiceType.CLEANING.getEstimatedHours()));
-        sr.setEstimatedCost(property.getCleaningBasePrice());
+        // Prix résolu (override logement prioritaire, sinon conseil moteur — plus
+        // jamais null quand cleaningBasePrice est absent) + snapshot du conseil.
+        ResolvedCleaningPrice resolvedPrice = cleaningPricingEngine
+                .resolveCleaningPrice(property, CleaningPricingEngine.STANDARD_CLEANING, null,
+                        desiredDate != null ? desiredDate.toLocalDate() : null);
+        sr.setEstimatedCost(resolvedPrice.amount());
+        sr.setRecommendedCost(resolvedPrice.quote().recommended());
         sr.setUser(owner);
         sr.setProperty(property);
         sr.setReservationId(reservationId);

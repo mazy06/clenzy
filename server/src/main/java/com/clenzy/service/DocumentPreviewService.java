@@ -196,6 +196,8 @@ public class DocumentPreviewService {
                  JUSTIFICATIF_PAIEMENT, JUSTIFICATIF_REMBOURSEMENT
                     -> List.of("intervention", "reservation");
             case MANDAT_GESTION, AUTORISATION_TRAVAUX -> List.of("property", "intervention");
+            // Devis ménage (3A) : toujours référencé sur un logement.
+            case DEVIS_MENAGE -> List.of("property");
             case BON_COMMANDE -> List.of("provider_expense", "intervention");
         };
     }

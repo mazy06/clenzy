@@ -13,4 +13,5 @@ public record SupervisionReportDto(
         long suggestionsPending,          // suggestions en attente actuellement
         double acceptanceRate,            // applied / (applied + dismissed), 0 si aucune décision
         long estimatedTimeSavedMinutes,   // ROI (heuristique documentée)
-        String estimatedTimeSaved) {}     // même valeur, format humain ("≈ 4 h 30")
+        String estimatedTimeSaved,        // même valeur, format humain ("≈ 4 h 30")
+        java.util.List<SupervisionTypeAcceptanceDto> acceptanceByType) {} // acceptation PAR TYPE (Vague 1)

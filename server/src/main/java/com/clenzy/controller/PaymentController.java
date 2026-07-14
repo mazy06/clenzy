@@ -95,7 +95,7 @@ public class PaymentController {
             throw e; // 403 via Spring Security — ne pas convertir en 500
         } catch (PaymentValidationException | IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (StripeException e) {
+        } catch (PaymentProcessingException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Erreur lors de la creation de la session embedded: " + e.getMessage());
         } catch (Exception e) {

@@ -1,15 +1,18 @@
 package com.clenzy.service;
 
+import com.clenzy.dto.PaymentOrchestrationRequest;
+import com.clenzy.dto.PaymentOrchestrationResult;
 import com.clenzy.dto.ShopCheckoutRequest;
 import com.clenzy.model.HardwareOrder;
 import com.clenzy.model.OrderStatus;
+import com.clenzy.model.PaymentProviderType;
+import com.clenzy.payment.PaymentResult;
 import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.HardwareOrderRepository;
 import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
-import com.stripe.param.checkout.SessionCreateParams;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -19,6 +22,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import java.util.List;
 import java.util.Map;
@@ -27,6 +32,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -37,6 +44,8 @@ class ShopServiceTest {
 
     @Mock private HardwareOrderRepository hardwareOrderRepository;
     @Mock private StripeGateway stripeGateway;
+    @Mock private PaymentOrchestrationService orchestrationService;
+    @Mock private PlatformTransactionManager transactionManager;
 
     private TenantContext tenantContext;
     private ObjectMapper objectMapper;
@@ -51,7 +60,8 @@ class ShopServiceTest {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
         objectMapper = new ObjectMapper();
-        service = new ShopService(hardwareOrderRepository, tenantContext, objectMapper, stripeGateway);
+        service = new ShopService(hardwareOrderRepository, tenantContext, objectMapper, stripeGateway,
+                orchestrationService, transactionManager);
         ReflectionTestUtils.setField(service, "successUrl", "http://localhost/success");
         ReflectionTestUtils.setField(service, "cancelUrl", "http://localhost/cancel");
     }
@@ -125,21 +135,26 @@ class ShopServiceTest {
     }
 
     @Nested
-    @DisplayName("createCheckoutSession - happy path with mocked Stripe")
+    @DisplayName("createCheckoutSession - happy path via orchestrateur")
     class HappyPath {
 
         @Test
-        void whenValid_thenPersistsOrderAndReturnsSessionDetails() throws StripeException {
-            Session session = mock(Session.class);
-            when(session.getId()).thenReturn("cs_test_123");
-            when(session.getUrl()).thenReturn("https://checkout.stripe.com/cs_test_123");
+        void whenValid_thenPersistsOrderAndRoutesThroughOrchestrator() {
+            when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
             when(hardwareOrderRepository.save(any(HardwareOrder.class))).thenAnswer(inv -> {
                 HardwareOrder o = inv.getArgument(0);
                 if (o.getId() == null) o.setId(42L);
                 return o;
             });
-
-            when(stripeGateway.createSession(any(SessionCreateParams.class))).thenReturn(session);
+            when(hardwareOrderRepository.findById(42L)).thenAnswer(inv -> {
+                HardwareOrder o = new HardwareOrder();
+                o.setId(42L);
+                return Optional.of(o);
+            });
+            when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class)))
+                    .thenReturn(new PaymentOrchestrationResult(null,
+                            PaymentResult.success("cs_test_123", "https://checkout.stripe.com/cs_test_123"),
+                            PaymentProviderType.STRIPE));
 
             Map<String, String> result = service.createCheckoutSession(
                     new ShopCheckoutRequest(List.of(
@@ -151,31 +166,38 @@ class ShopServiceTest {
 
             assertThat(result).containsEntry("sessionId", "cs_test_123");
             assertThat(result).containsEntry("url", "https://checkout.stripe.com/cs_test_123");
-            // Saved twice: once for PENDING order, once with stripe session id
+            // Sauvé deux fois : commande PENDING, puis rattachement de la réf de session.
             verify(hardwareOrderRepository, times(2)).save(any(HardwareOrder.class));
 
-            // T-SOLID-3 : la session est creee via le gateway avec les metadata attendues
-            ArgumentCaptor<SessionCreateParams> paramsCaptor =
-                    ArgumentCaptor.forClass(SessionCreateParams.class);
-            verify(stripeGateway).createSession(paramsCaptor.capture());
-            assertThat(paramsCaptor.getValue().getMetadata())
+            // Pas d'épinglage provider : la collecte d'adresse s'exprime en capacité
+            // SHIPPING_ADDRESS (resolver capability-aware), pas en preferredProvider.
+            ArgumentCaptor<PaymentOrchestrationRequest> reqCaptor =
+                    ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
+            verify(orchestrationService).initiatePayment(reqCaptor.capture());
+            PaymentOrchestrationRequest req = reqCaptor.getValue();
+            assertThat(req.sourceType()).isEqualTo(ShopService.SOURCE_TYPE);
+            assertThat(req.sourceId()).isEqualTo(42L);
+            assertThat(req.preferredProvider()).isNull();
+            assertThat(req.shippingAddressCountries()).contains("FR", "MA");
+            assertThat(req.metadata())
                     .containsEntry("type", "hardware_purchase")
                     .containsEntry("user_id", USER_KC_ID);
         }
 
         @Test
-        void whenStripeThrows_thenPropagatesException() throws StripeException {
+        void whenOrchestratorFails_thenThrows() {
+            when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
             when(hardwareOrderRepository.save(any(HardwareOrder.class))).thenAnswer(inv -> {
                 HardwareOrder o = inv.getArgument(0);
                 if (o.getId() == null) o.setId(1L);
                 return o;
             });
-
-            StripeException err = mock(StripeException.class);
-            when(stripeGateway.createSession(any(SessionCreateParams.class))).thenThrow(err);
+            when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class)))
+                    .thenReturn(new PaymentOrchestrationResult(null, PaymentResult.failure("Stripe down"), null));
 
             assertThatThrownBy(() -> service.createCheckoutSession(validRequest(), EMAIL, USER_KC_ID))
-                    .isInstanceOf(StripeException.class);
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Echec de creation");
         }
     }
 

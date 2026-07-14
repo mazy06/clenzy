@@ -6,6 +6,7 @@ import com.clenzy.model.Invoice;
 import com.clenzy.model.InvoiceStatus;
 import com.clenzy.model.PaymentProviderType;
 import com.clenzy.repository.InvoiceRepository;
+import com.clenzy.service.access.OrganizationAccessGuard;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,13 +25,16 @@ public class InvoicePaymentService {
     private final PaymentOrchestrationService paymentOrchestrationService;
     private final InvoiceRepository invoiceRepository;
     private final TenantContext tenantContext;
+    private final OrganizationAccessGuard organizationAccessGuard;
 
     public InvoicePaymentService(PaymentOrchestrationService paymentOrchestrationService,
                                    InvoiceRepository invoiceRepository,
-                                   TenantContext tenantContext) {
+                                   TenantContext tenantContext,
+                                   OrganizationAccessGuard organizationAccessGuard) {
         this.paymentOrchestrationService = paymentOrchestrationService;
         this.invoiceRepository = invoiceRepository;
         this.tenantContext = tenantContext;
+        this.organizationAccessGuard = organizationAccessGuard;
     }
 
     /**
@@ -41,6 +45,9 @@ public class InvoicePaymentService {
                                                    String successUrl, String cancelUrl) {
         Invoice invoice = invoiceRepository.findById(invoiceId)
             .orElseThrow(() -> new RuntimeException("Invoice not found: " + invoiceId));
+        // findById contourne le filtre org (audit 2026-07 F1-03) : garde d'ownership fail-closed.
+        organizationAccessGuard.requireSameOrganization(
+            invoice.getOrganizationId(), "Facture hors de votre organisation");
 
         // Verify invoice is payable
         if (invoice.getStatus() != InvoiceStatus.SENT
@@ -98,6 +105,9 @@ public class InvoicePaymentService {
     public Invoice sendInvoice(Long invoiceId) {
         Invoice invoice = invoiceRepository.findById(invoiceId)
             .orElseThrow(() -> new RuntimeException("Invoice not found: " + invoiceId));
+        // findById contourne le filtre org (audit 2026-07 F1-04) : garde d'ownership fail-closed.
+        organizationAccessGuard.requireSameOrganization(
+            invoice.getOrganizationId(), "Facture hors de votre organisation");
 
         if (invoice.getStatus() != InvoiceStatus.DRAFT) {
             throw new IllegalStateException(

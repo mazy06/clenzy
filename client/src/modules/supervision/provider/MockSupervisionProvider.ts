@@ -70,6 +70,12 @@ export interface MockProviderOptions {
   latencyMs?: number;
   /** Cible réelle de la comète (ex. id d'une réservation visible dans le planning). */
   cometReservationId?: string;
+  /**
+   * Ouvre le modal de fiche client (GuestCardDialog) pour une réservation. Appelé quand
+   * l'opérateur valide une carte `guest_email_missing` : action 100 % front (mock : parité
+   * avec le provider réel — aucun effet de résolution serveur).
+   */
+  onOpenGuestCard?: (reservationId: string) => void;
 }
 
 // ─── Provider par logement ───────────────────────────────────────────────────
@@ -77,6 +83,8 @@ export interface MockProviderOptions {
 export class MockSupervisionProvider implements SupervisionProvider<OrchestratorSnapshot> {
   private readonly hub = new EventHub();
   private scriptStarted = false;
+  /** Cartes « email voyageur manquant » du snapshot courant → reservationId (parité live). */
+  private readonly guestCardResId = new Map<string, string>();
 
   constructor(
     private readonly propertyId: string,
@@ -86,7 +94,20 @@ export class MockSupervisionProvider implements SupervisionProvider<Orchestrator
 
   getSnapshot(): Promise<OrchestratorSnapshot> {
     const snapshot = buildPropertySnapshot(this.propertyId, this.scenario);
-    const latency = this.options.latencyMs ?? 600;
+    // Carte « email voyageur manquant » : cible une réservation réelle du planning si
+    // fournie (cometReservationId), sinon garde le placeholder du mock. On mémorise
+    // l'association id→reservationId pour router « Valider » vers l'ouverture de la fiche.
+    this.guestCardResId.clear();
+    for (const p of snapshot.pending) {
+      if (!p.opensGuestCard) continue;
+      const resId = this.options.cometReservationId ?? p.reservationId ?? undefined;
+      if (this.options.cometReservationId) p.reservationId = this.options.cometReservationId;
+      if (resId) this.guestCardResId.set(p.id, resId);
+    }
+    // Latence simulée COURTE : elle mime un aller-retour réseau pour exercer le
+    // skeleton, sans pénaliser l'ouverture de l'accordéon (600 ms auparavant —
+    // ressenti « lent » pointé par l'audit perf).
+    const latency = this.options.latencyMs ?? 120;
     if (latency <= 0) return Promise.resolve(snapshot);
     return new Promise((resolve) => this.hub.after(latency, () => resolve(snapshot)));
   }
@@ -126,6 +147,12 @@ export class MockSupervisionProvider implements SupervisionProvider<Orchestrator
   }
 
   validatePending(actionId: string): Promise<void> {
+    // Carte « email voyageur manquant » : ouvre la fiche client (front), pas de résolution.
+    const guestCardResId = this.guestCardResId.get(actionId);
+    if (guestCardResId) {
+      this.options.onOpenGuestCard?.(guestCardResId);
+      return Promise.resolve();
+    }
     return this.resolvePending(actionId, 'validated');
   }
 

@@ -3,13 +3,13 @@ package com.clenzy.service.ical;
 import com.clenzy.dto.ICalImportDto.ICalEventPreview;
 import com.clenzy.model.Priority;
 import com.clenzy.model.Property;
-import com.clenzy.model.PropertyType;
 import com.clenzy.model.RequestStatus;
 import com.clenzy.model.ServiceRequest;
 import com.clenzy.model.ServiceType;
 import com.clenzy.model.User;
 import com.clenzy.repository.ServiceRequestRepository;
-import com.clenzy.service.PricingConfigService;
+import com.clenzy.service.pricing.CleaningPricingEngine;
+import com.clenzy.service.pricing.CleaningPricingEngine.ResolvedCleaningPrice;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +19,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Map;
 
 /**
  * Creation (ou relance) des demandes de menage liees aux reservations importees
@@ -33,14 +32,14 @@ public class ICalCleaningScheduler {
     private static final Logger log = LoggerFactory.getLogger(ICalCleaningScheduler.class);
 
     private final ServiceRequestRepository serviceRequestRepository;
-    private final PricingConfigService pricingConfigService;
+    private final CleaningPricingEngine cleaningPricingEngine;
     private final TenantContext tenantContext;
 
     public ICalCleaningScheduler(ServiceRequestRepository serviceRequestRepository,
-                                 PricingConfigService pricingConfigService,
+                                 CleaningPricingEngine cleaningPricingEngine,
                                  TenantContext tenantContext) {
         this.serviceRequestRepository = serviceRequestRepository;
-        this.pricingConfigService = pricingConfigService;
+        this.cleaningPricingEngine = cleaningPricingEngine;
         this.tenantContext = tenantContext;
     }
 
@@ -127,7 +126,11 @@ public class ICalCleaningScheduler {
             estimatedDuration = 2;
             log.debug("Property {} n'a pas de cleaningDurationMinutes, fallback a {}h", property.getName(), estimatedDuration);
         }
-        BigDecimal estimatedCost = estimateCleaningCost(property);
+        // Prix résolu (override logement OU conseil moteur) + snapshot du conseil.
+        ResolvedCleaningPrice resolvedPrice =
+                cleaningPricingEngine.resolveCleaningPrice(property,
+                        CleaningPricingEngine.STANDARD_CLEANING, null, checkOut);
+        BigDecimal estimatedCost = resolvedPrice.amount();
 
         // Instructions speciales avec UID pour dedoublonnage
         StringBuilder instructions = new StringBuilder();
@@ -163,6 +166,7 @@ public class ICalCleaningScheduler {
         serviceRequest.setStatus(RequestStatus.PENDING);
         serviceRequest.setEstimatedDurationHours(estimatedDuration);
         serviceRequest.setEstimatedCost(estimatedCost);
+        serviceRequest.setRecommendedCost(resolvedPrice.quote().recommended());
         serviceRequest.setGuestCheckoutTime(scheduledDate);
         serviceRequest.setGuestCheckinTime(LocalDateTime.of(checkOut, checkInTime));
         serviceRequest.setSpecialInstructions(specialInstructions);
@@ -178,66 +182,5 @@ public class ICalCleaningScheduler {
                 serviceRequest.getId(), reservationId, property.getName(), sourceName,
                 event.getGuestName() != null ? event.getGuestName() : "N/A");
         return serviceRequest;
-    }
-
-    /**
-     * Estime le cout de menage en euros via PricingConfigService.
-     * Formule : basePrix(forfait) x typeCoeff x surfaceCoeff x guestCoeff
-     * Prix minimum et arrondi au multiple de 5 EUR.
-     */
-    private BigDecimal estimateCleaningCost(Property property) {
-        // Prix de base depuis la config dynamique, selon le forfait du owner
-        Map<String, Integer> basePrices = pricingConfigService.getBasePrices();
-        String forfait = (property.getOwner() != null && property.getOwner().getForfait() != null)
-                ? property.getOwner().getForfait().toLowerCase() : "confort";
-        int basePrice = basePrices.getOrDefault(forfait, basePrices.getOrDefault("confort", 75));
-
-        // Coefficient type de propriete (mapper PropertyType enum -> cle PricingConfig)
-        Map<String, Double> typeCoeffs = pricingConfigService.getPropertyTypeCoeffs();
-        String propertyTypeKey = mapPropertyTypeToKey(property.getType());
-        double typeCoeff = typeCoeffs.getOrDefault(propertyTypeKey, 1.0);
-
-        // Coefficient surface (via tiers dynamiques)
-        double surfaceCoeff = property.getSquareMeters() != null
-                ? pricingConfigService.getSurfaceCoeff(property.getSquareMeters()) : 1.0;
-
-        // Coefficient capacite guests
-        Map<String, Double> guestCoeffs = pricingConfigService.getGuestCapacityCoeffs();
-        int guests = property.getMaxGuests() != null ? property.getMaxGuests() : 2;
-        String guestKey = guests <= 2 ? "1-2" : guests <= 4 ? "3-4" : guests <= 6 ? "5-6" : "7+";
-        double guestCoeff = guestCoeffs.getOrDefault(guestKey, 1.0);
-
-        double cost = basePrice * typeCoeff * surfaceCoeff * guestCoeff;
-
-        // Prix minimum
-        int minPrice = pricingConfigService.getMinPrice();
-        cost = Math.max(cost, minPrice);
-
-        // Arrondir au multiple de 5 EUR le plus proche
-        cost = Math.round(cost / 5.0) * 5.0;
-
-        log.debug("Estimation cout menage pour {} : base={} x type({})={} x surface={} x guests({})={} = {}",
-                property.getName(), basePrice, propertyTypeKey, typeCoeff, surfaceCoeff, guestKey, guestCoeff, cost);
-
-        return BigDecimal.valueOf(cost);
-    }
-
-    /**
-     * Mappe un PropertyType enum vers la cle utilisee dans PricingConfig.
-     */
-    private String mapPropertyTypeToKey(PropertyType type) {
-        if (type == null) return "autre";
-        switch (type) {
-            case APARTMENT: return "appartement";
-            case HOUSE: return "maison";
-            case STUDIO: return "studio";
-            case VILLA: return "villa";
-            case LOFT: return "loft";
-            case GUEST_ROOM: return "chambre-hote";
-            case COTTAGE: return "gite";
-            case CHALET: return "chalet";
-            case BOAT: return "bateau";
-            default: return "autre";
-        }
     }
 }

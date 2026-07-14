@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Box, Alert, Button, Tooltip, IconButton, Fab } from '@mui/material';
 import { Add, Home } from '../../icons';
 import { useNavigate } from 'react-router-dom';
@@ -169,6 +169,21 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
     () => filteredProperties.slice(page * effectivePageSize, (page + 1) * effectivePageSize),
     [filteredProperties, page, effectivePageSize]
   );
+
+  // Coûts de ménage estimés (vrai estimateur d'intervention backend) des logements
+  // visibles, en une seule requête batchée. Grid + Table les consomment (grid via
+  // PropertyCard, table via map) — plus de formule frontend divergente.
+  const cleaningEstimateIds = useMemo(
+    () => paginatedProperties.map((p) => Number(p.id)).sort((a, b) => a - b),
+    [paginatedProperties],
+  );
+  const cleaningEstimatesQuery = useQuery({
+    queryKey: ['properties-cleaning-estimates', cleaningEstimateIds],
+    queryFn: () => propertiesApi.getCleaningEstimates(cleaningEstimateIds),
+    enabled: cleaningEstimateIds.length > 0,
+    staleTime: 60_000,
+  });
+  const cleaningEstimates = cleaningEstimatesQuery.data ?? {};
 
   // ─── Map markers (from filtered properties with coordinates) ─────
   const mapMarkers: PropertyMarker[] = useMemo(
@@ -415,6 +430,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           page={page}
           onPageChange={setPage}
           channexMappings={channexMappings}
+          cleaningEstimates={cleaningEstimates}
           onDelete={handleDeleteRequest}
           onDiagnose={openDiagnoseFor}
           canManageContracts={canManageContracts}
@@ -431,6 +447,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           onPageChange={setPage}
           onRowsPerPageChange={(rows) => { setRowsPerPage(rows); setPage(0); }}
           channexMappings={channexMappings}
+          cleaningEstimates={cleaningEstimates}
           canManageContracts={canManageContracts}
           missingContractIds={missingContractIds}
           onMissingContractClick={openContractModal}

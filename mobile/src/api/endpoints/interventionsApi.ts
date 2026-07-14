@@ -26,6 +26,8 @@ export interface Intervention {
   afterPhotosUrls?: string[];
   validatedRooms?: string;
   estimatedCost?: number;
+  /** Prix conseil plateforme (moteur ménage) snapshoté à la création — badge barème. */
+  recommendedCost?: number;
   actualCost?: number;
   estimatedDurationHours?: number;
   paymentStatus?: 'PENDING' | 'PROCESSING' | 'PAID' | 'FAILED' | 'REFUNDED' | 'CANCELLED';

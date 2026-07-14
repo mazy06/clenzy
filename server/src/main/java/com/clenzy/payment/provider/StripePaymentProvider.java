@@ -32,9 +32,44 @@ public class StripePaymentProvider implements PaymentProvider {
     @Value("${stripe.cancel-url:}")
     private String defaultCancelUrl;
 
+    // Audit 2026-07 F9-01 : allow-list des origines de redirection paiement (anti open-redirect).
+    // Une URL de retour hors allow-list retombe sur le défaut (fail-safe, ne casse pas le flux).
+    @Value("${cors.allowed-origins:https://app.clenzy.fr,https://clenzy.fr,https://www.clenzy.fr}")
+    private String allowedRedirectOriginsCsv;
+
+    /** Retourne {@code provided} si son origine (scheme://host[:port]) est allow-listée, sinon {@code fallback}. */
+    private String sanitizeReturnUrl(String provided, String fallback) {
+        if (provided == null || provided.isBlank()) {
+            return fallback;
+        }
+        try {
+            java.net.URI uri = java.net.URI.create(provided.trim());
+            String origin = uri.getScheme() + "://" + uri.getAuthority();
+            for (String allowed : allowedRedirectOriginsCsv.split(",")) {
+                if (origin.equalsIgnoreCase(allowed.trim())) {
+                    return provided;
+                }
+            }
+        } catch (RuntimeException malformed) {
+            // URL invalide (ex. javascript:) -> repli sur le défaut.
+        }
+        log.warn("URL de retour paiement hors allow-list, repli sur le défaut");
+        return fallback;
+    }
+
     @Override
     public PaymentProviderType getProviderType() {
         return PaymentProviderType.STRIPE;
+    }
+
+    @Override
+    public Set<PaymentCapability> getCapabilities() {
+        // Stripe couvre toute la palette : paiement, pré-autorisation (caution),
+        // remboursement, payout (Connect), card-on-file, checkout embarqué et
+        // collecte d'adresse de livraison.
+        return Set.of(PaymentCapability.PAY, PaymentCapability.PREAUTH,
+                PaymentCapability.REFUND, PaymentCapability.PAYOUT, PaymentCapability.CUSTOMER,
+                PaymentCapability.EMBEDDED_CHECKOUT, PaymentCapability.SHIPPING_ADDRESS);
     }
 
     @Override
@@ -50,14 +85,15 @@ public class StripePaymentProvider implements PaymentProvider {
     @Override
     @CircuitBreaker(name = "stripe-api")
     public PaymentResult createPayment(PaymentRequest request) {
+        if (request.embedded()) {
+            return createEmbeddedPayment(request);
+        }
         try {
             log.info("Creating Stripe payment: {} {}", request.amount(), request.currency());
 
-            // Use request URLs, fallback to config defaults
-            String successUrl = (request.successUrl() != null && !request.successUrl().isBlank())
-                ? request.successUrl() : defaultSuccessUrl;
-            String cancelUrl = (request.cancelUrl() != null && !request.cancelUrl().isBlank())
-                ? request.cancelUrl() : defaultCancelUrl;
+            // Use request URLs (validées contre l'allow-list, audit F9-01), fallback to config defaults
+            String successUrl = sanitizeReturnUrl(request.successUrl(), defaultSuccessUrl);
+            String cancelUrl = sanitizeReturnUrl(request.cancelUrl(), defaultCancelUrl);
 
             com.stripe.param.checkout.SessionCreateParams.Builder builder =
                 com.stripe.param.checkout.SessionCreateParams.builder()
@@ -83,8 +119,34 @@ public class StripePaymentProvider implements PaymentProvider {
                 builder.setCustomerEmail(request.customerEmail());
             }
 
-            if (request.metadata() != null) {
+            // Collecte d'adresse de livraison (biens physiques : shop hardware).
+            if (request.shippingAddressCountries() != null && !request.shippingAddressCountries().isEmpty()) {
+                com.stripe.param.checkout.SessionCreateParams.ShippingAddressCollection.Builder shipping =
+                    com.stripe.param.checkout.SessionCreateParams.ShippingAddressCollection.builder();
+                for (String country : request.shippingAddressCountries()) {
+                    shipping.addAllowedCountry(
+                        com.stripe.param.checkout.SessionCreateParams.ShippingAddressCollection.AllowedCountry.valueOf(
+                            country.toUpperCase()));
+                }
+                builder.setShippingAddressCollection(shipping.build());
+            }
+
+            if (request.metadata() != null && !request.metadata().isEmpty()) {
                 builder.putAllMetadata(request.metadata());
+                // Miroir sur le PaymentIntent : les métadonnées de session ne se propagent
+                // PAS automatiquement à la charge/PI. On les recopie pour (a) Stripe Radar
+                // (règles lues sur le PaymentIntent, ex. scoring de fraude du booking engine)
+                // et (b) la traçabilité sur la charge.
+                builder.setPaymentIntentData(
+                    com.stripe.param.checkout.SessionCreateParams.PaymentIntentData.builder()
+                        .putAllMetadata(request.metadata())
+                        .build());
+            }
+
+            // Expiration de la session (ex. ~35 min pour le checkout booking engine) —
+            // null = défaut Stripe (24h).
+            if (request.expiresAtEpochSeconds() != null) {
+                builder.setExpiresAt(request.expiresAtEpochSeconds());
             }
 
             com.stripe.model.checkout.Session session = com.stripe.model.checkout.Session.create(
@@ -94,6 +156,69 @@ public class StripePaymentProvider implements PaymentProvider {
             return PaymentResult.success(session.getId(), session.getUrl());
         } catch (com.stripe.exception.StripeException e) {
             log.error("Stripe createPayment failed: {}", e.getMessage());
+            return PaymentResult.failure("Stripe error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Crée une session Stripe Checkout en mode <strong>embarqué</strong> (inline) et
+     * renvoie son {@code clientSecret} (pas de redirection). Honore l'expiration
+     * demandée et, si {@code saveCardForFutureUse}, enregistre la carte off-session
+     * (customer + setup_future_usage) pour une mise en place de caution ultérieure.
+     */
+    private PaymentResult createEmbeddedPayment(PaymentRequest request) {
+        try {
+            log.info("Creating Stripe embedded payment: {} {} (saveCard={})",
+                request.amount(), request.currency(), request.saveCardForFutureUse());
+
+            com.stripe.param.checkout.SessionCreateParams.Builder builder =
+                com.stripe.param.checkout.SessionCreateParams.builder()
+                    .setMode(com.stripe.param.checkout.SessionCreateParams.Mode.PAYMENT)
+                    .setUiMode(com.stripe.param.checkout.SessionCreateParams.UiMode.EMBEDDED)
+                    .setRedirectOnCompletion(
+                        com.stripe.param.checkout.SessionCreateParams.RedirectOnCompletion.NEVER)
+                    .addPaymentMethodType(com.stripe.param.checkout.SessionCreateParams.PaymentMethodType.CARD)
+                    .addLineItem(
+                        com.stripe.param.checkout.SessionCreateParams.LineItem.builder()
+                            .setQuantity(1L)
+                            .setPriceData(
+                                com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.builder()
+                                    .setCurrency(request.currency().toLowerCase())
+                                    .setUnitAmount(StripeAmounts.toMinorUnits(request.amount()))
+                                    .setProductData(
+                                        com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                            .setName(request.description() != null ? request.description() : "Payment")
+                                            .build())
+                                    .build())
+                            .build());
+
+            if (request.expiresAtEpochSeconds() != null) {
+                builder.setExpiresAt(request.expiresAtEpochSeconds());
+            }
+            if (request.customerEmail() != null) {
+                builder.setCustomerEmail(request.customerEmail());
+            }
+            // Caution : enregistre la carte (customer + off-session) pour un hold manuel ultérieur.
+            if (request.saveCardForFutureUse()) {
+                builder
+                    .setCustomerCreation(com.stripe.param.checkout.SessionCreateParams.CustomerCreation.ALWAYS)
+                    .setPaymentIntentData(
+                        com.stripe.param.checkout.SessionCreateParams.PaymentIntentData.builder()
+                            .setSetupFutureUsage(
+                                com.stripe.param.checkout.SessionCreateParams.PaymentIntentData.SetupFutureUsage.OFF_SESSION)
+                            .build());
+            }
+            if (request.metadata() != null) {
+                builder.putAllMetadata(request.metadata());
+            }
+
+            com.stripe.model.checkout.Session session = com.stripe.model.checkout.Session.create(
+                builder.build(),
+                com.stripe.net.RequestOptions.builder().setApiKey(secretKey).build());
+
+            return PaymentResult.embedded(session.getId(), session.getClientSecret());
+        } catch (com.stripe.exception.StripeException e) {
+            log.error("Stripe embedded createPayment failed: {}", e.getMessage());
             return PaymentResult.failure("Stripe error: " + e.getMessage());
         }
     }

@@ -14,6 +14,7 @@ import com.clenzy.payment.PaymentResult;
 import com.clenzy.repository.DocumentTemplateRepository;
 import com.clenzy.repository.InvoiceRepository;
 import com.clenzy.service.InvoiceGeneratorService;
+import com.clenzy.service.InvoicePaymentLinkService;
 import com.clenzy.service.InvoicePaymentService;
 import com.clenzy.service.InvoicePdfService;
 import com.clenzy.service.InvoiceQueryService;
@@ -42,6 +43,7 @@ class InvoiceControllerTest {
     @Mock private InvoiceGeneratorService invoiceGeneratorService;
     @Mock private InvoicePdfService invoicePdfService;
     @Mock private InvoicePaymentService invoicePaymentService;
+    @Mock private InvoicePaymentLinkService invoicePaymentLinkService;
     @Mock private InvoiceRepository invoiceRepository;
     @Mock private DocumentTemplateRepository documentTemplateRepository;
     @Mock private TenantContext tenantContext;
@@ -53,6 +55,7 @@ class InvoiceControllerTest {
         // Pattern Vague A : service REEL construit au-dessus des mocks repository/tenant
         // pour garder la couverture bout-en-bout (isolation org du telechargement PDF).
         controller = new InvoiceController(invoiceGeneratorService, invoicePaymentService,
+                invoicePaymentLinkService,
                 new InvoiceQueryService(invoiceRepository, documentTemplateRepository,
                         invoicePdfService, tenantContext));
     }

@@ -30,6 +30,7 @@ class NotificationServiceTest {
     @Mock private NotificationPreferenceService preferenceService;
     @Mock private UserRepository userRepository;
     @Mock private TenantContext tenantContext;
+    @Mock private com.clenzy.service.OutboxPublisher outboxPublisher;
 
     private NotificationService service;
 
@@ -45,8 +46,8 @@ class NotificationServiceTest {
                 notificationRepository,
                 preferenceService,
                 userRepository,
-                tenantContext
-        );
+                tenantContext,
+                outboxPublisher, new com.fasterxml.jackson.databind.ObjectMapper());
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────

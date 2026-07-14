@@ -54,15 +54,24 @@ public interface AutomationActionExecutor {
      * Resultat explicite d'une execution : effectuee, sautee avec une raison lisible,
      * ou re-planifiee ({@code rescheduledAt} non null → le moteur remet l'execution en
      * PENDING a cette echeance au lieu d'un statut terminal).
+     *
+     * <p>{@code refId} : reference metier optionnelle produite par l'execution (ex. id du
+     * {@code GuestMessageLog} cree par un envoi de message), pour que le moteur puisse la
+     * rattacher au journal de la constellation. Null pour la plupart des actions.</p>
      */
-    record ExecutionResult(boolean skipped, String detail, LocalDateTime rescheduledAt) {
+    record ExecutionResult(boolean skipped, String detail, LocalDateTime rescheduledAt, Long refId) {
 
         public static ExecutionResult executed() {
-            return new ExecutionResult(false, null, null);
+            return new ExecutionResult(false, null, null, null);
+        }
+
+        /** Execution effectuee ayant produit une reference metier (ex. id du message envoye). */
+        public static ExecutionResult executed(Long refId) {
+            return new ExecutionResult(false, null, null, refId);
         }
 
         public static ExecutionResult skipped(String reason) {
-            return new ExecutionResult(true, reason, null);
+            return new ExecutionResult(true, reason, null, null);
         }
 
         /**
@@ -71,7 +80,7 @@ public interface AutomationActionExecutor {
          * Ne consomme PAS l'execution one-shot, contrairement a skipped/executed.
          */
         public static ExecutionResult rescheduled(LocalDateTime at, String reason) {
-            return new ExecutionResult(false, reason, Objects.requireNonNull(at, "rescheduledAt"));
+            return new ExecutionResult(false, reason, Objects.requireNonNull(at, "rescheduledAt"), null);
         }
     }
 }

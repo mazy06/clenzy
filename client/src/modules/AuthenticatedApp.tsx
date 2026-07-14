@@ -1,8 +1,11 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import ProtectedRoute from '../components/ProtectedRoute';
 import SmartRedirect from '../components/SmartRedirect';
 import RouteFallback from '../components/RouteFallback';
+import { useAuth } from '../hooks/useAuth';
+import { warmHotRoutes } from './routePrefetch';
 
 // Pages : chargées en lazy (code-splitting par route). Chaque page + son sous-arbre devient un
 // chunk séparé → sort le module booking-engine/studio et les dialogs paiements du bundle initial.
@@ -144,6 +147,24 @@ const ManagementContractsPage = lazy(() => import('./contracts/ManagementContrac
 
 
 const AuthenticatedApp: React.FC = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Warm-up au montage : les données du Planning (route d'atterrissage) partent
+  // immédiatement, en parallèle du téléchargement du chunk de la page ; les
+  // chunks des routes fréquentes se préchargent pendant l'idle.
+  // Import DYNAMIQUE : un import statique de usePlanningData tirerait le data
+  // layer du planning dans le chunk d'entrée (+64 KB constatés au build).
+  useEffect(() => {
+    void import('./planning/hooks/usePlanningData')
+      .then((m) => m.prefetchPlanningProperties(queryClient, user))
+      .catch(() => { /* prefetch best-effort — la page fetchera elle-même */ });
+    warmHotRoutes();
+    // Volontairement au mount uniquement : le prefetch est idempotent (même
+    // clé react-query) et user est garanti présent quand ce composant rend.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <Suspense fallback={<RouteFallback />}>
     <Routes>

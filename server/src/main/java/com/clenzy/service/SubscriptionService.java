@@ -2,13 +2,16 @@ package com.clenzy.service;
 
 import com.clenzy.dto.InscriptionDto;
 import com.clenzy.model.User;
+import com.clenzy.payment.PaymentResult;
 import com.clenzy.payment.StripeGateway;
+import com.clenzy.payment.subscription.SubscriptionCheckoutRequest;
+import com.clenzy.payment.subscription.SubscriptionInterval;
+import com.clenzy.payment.subscription.SubscriptionProviderRegistry;
 import com.clenzy.repository.UserRepository;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.SubscriptionCancelParams;
-import com.stripe.param.checkout.SessionCreateParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +40,7 @@ public class SubscriptionService {
     private final AuditLogService auditLogService;
     private final PricingConfigService pricingConfigService;
     private final StripeGateway stripeGateway;
+    private final SubscriptionProviderRegistry subscriptionProviderRegistry;
 
     @Value("${stripe.currency}")
     private String currency;
@@ -45,11 +49,13 @@ public class SubscriptionService {
     private String frontendUrl;
 
     public SubscriptionService(UserRepository userRepository, AuditLogService auditLogService,
-                               PricingConfigService pricingConfigService, StripeGateway stripeGateway) {
+                               PricingConfigService pricingConfigService, StripeGateway stripeGateway,
+                               SubscriptionProviderRegistry subscriptionProviderRegistry) {
         this.userRepository = userRepository;
         this.auditLogService = auditLogService;
         this.pricingConfigService = pricingConfigService;
         this.stripeGateway = stripeGateway;
+        this.subscriptionProviderRegistry = subscriptionProviderRegistry;
     }
 
     /**
@@ -102,61 +108,38 @@ public class SubscriptionService {
             }
         }
 
-        // Creer une nouvelle session Stripe Checkout
+        // Checkout d'abonnement HÉBERGÉ via le port SubscriptionProvider (Vague 3).
         String forfaitDisplayName = target.substring(0, 1).toUpperCase() + target.substring(1);
+        boolean hasCustomer = user.getStripeCustomerId() != null && !user.getStripeCustomerId().isEmpty();
 
-        SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
-                .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
-                .setSuccessUrl(frontendUrl + "/dashboard?upgrade=success")
-                .setCancelUrl(frontendUrl + "/dashboard?upgrade=cancelled")
-                .addLineItem(
-                        SessionCreateParams.LineItem.builder()
-                                .setQuantity(1L)
-                                .setPriceData(
-                                        SessionCreateParams.LineItem.PriceData.builder()
-                                                .setCurrency(currency.toLowerCase())
-                                                .setUnitAmount((long) priceInCents)
-                                                .setRecurring(
-                                                        SessionCreateParams.LineItem.PriceData.Recurring.builder()
-                                                                .setInterval(SessionCreateParams.LineItem.PriceData.Recurring.Interval.MONTH)
-                                                                .build()
-                                                )
-                                                .setProductData(
-                                                        SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                                                .setName("Baitly - Upgrade " + forfaitDisplayName)
-                                                                .setDescription("Mise a niveau vers le forfait " + forfaitDisplayName
-                                                                        + " - Acces au planning, import iCal et interventions automatiques")
-                                                                .build()
-                                                )
-                                                .build()
-                                )
-                                .build()
-                )
-                // Metadata pour identifier dans le webhook
-                .putMetadata("type", "upgrade")
-                .putMetadata("userId", user.getId().toString())
-                .putMetadata("forfait", target)
-                .putMetadata("previousForfait", currentForfait)
-                .setSubscriptionData(
-                        SessionCreateParams.SubscriptionData.builder()
-                                .putMetadata("type", "upgrade")
-                                .putMetadata("userId", user.getId().toString())
-                                .putMetadata("forfait", target)
-                                .build()
-                );
+        Map<String, String> metadata = new java.util.HashMap<>();
+        metadata.put("type", "upgrade");
+        metadata.put("userId", user.getId().toString());
+        metadata.put("forfait", target);
+        metadata.put("previousForfait", currentForfait);
 
-        // Utiliser le customer Stripe existant si disponible
-        if (user.getStripeCustomerId() != null && !user.getStripeCustomerId().isEmpty()) {
-            paramsBuilder.setCustomer(user.getStripeCustomerId());
-        } else {
-            paramsBuilder.setCustomerEmail(user.getEmail());
+        SubscriptionCheckoutRequest request = new SubscriptionCheckoutRequest(
+                priceInCents,
+                currency,
+                SubscriptionInterval.MONTH,
+                1L,
+                "Baitly - Upgrade " + forfaitDisplayName,
+                "Mise a niveau vers le forfait " + forfaitDisplayName
+                        + " - Acces au planning, import iCal et interventions automatiques",
+                hasCustomer ? null : user.getEmail(),
+                hasCustomer ? user.getStripeCustomerId() : null,
+                false,                                              // hébergé
+                frontendUrl + "/dashboard?upgrade=success",
+                frontendUrl + "/dashboard?upgrade=cancelled",
+                null,                                               // pas de coupon
+                metadata);
+
+        PaymentResult result = subscriptionProviderRegistry.resolve(currency).createSubscriptionCheckout(request);
+        if (!result.success()) {
+            throw new RuntimeException("Echec de creation de la session d'abonnement: " + result.errorMessage());
         }
-
-        Session session = stripeGateway.createSession(paramsBuilder.build());
-
-        log.info("Session Stripe Checkout upgrade creee: {} pour user {}", session.getId(), user.getEmail());
-
-        return Map.of("checkoutUrl", session.getUrl());
+        log.info("Session d'abonnement upgrade creee: {} pour user {}", result.providerTxId(), user.getEmail());
+        return Map.of("checkoutUrl", result.redirectUrl());
     }
 
     /**

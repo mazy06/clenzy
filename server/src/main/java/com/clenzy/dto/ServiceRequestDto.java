@@ -32,6 +32,8 @@ public class ServiceRequestDto {
     public String preferredTimeSlot;
     public Integer estimatedDurationHours;
     public BigDecimal estimatedCost;
+    /** Prix conseil plateforme (moteur ménage) snapshoté à la création — lecture seule. */
+    public BigDecimal recommendedCost;
     /** Devis structure (maintenance). Le total est recalcule cote serveur. */
     public List<QuoteLineDto> quoteLines;
     /** Mode de chiffrage maintenance : "DIRECT" (devis) ou "DIAGNOSTIC". */

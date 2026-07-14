@@ -277,6 +277,19 @@ public class PricingConfigService {
         return dto.getMinPrice() != null ? dto.getMinPrice() : DEFAULT_MIN_PRICE;
     }
 
+    /**
+     * Config JSON brute du moteur menage (CleaningPricingEngine) de l'org courante.
+     * NULL = jamais personnalisee -> le moteur applique ses defauts Java.
+     */
+    @Transactional(readOnly = true)
+    public String getCleaningEngineConfigJson() {
+        Long orgId = tenantContext.getOrganizationId();
+        Optional<PricingConfig> config = orgId != null
+                ? repository.findTopByOrganizationIdOrderByIdDesc(orgId)
+                : repository.findTopByOrderByIdDesc();
+        return config.map(PricingConfig::getCleaningEngineConfig).orElse(null);
+    }
+
     // ─── Devis pricing computation (used by TagResolverService) ────────────
 
     /** Remise standard sur l'engagement annuel (paiement en une fois). */
@@ -508,6 +521,8 @@ public class PricingConfigService {
         dto.setAvailablePrestations(parseListJson(entity.getAvailablePrestations(), new TypeReference<List<PricingConfigDto.PrestationOption>>() {}));
         dto.setAvailableSurcharges(parseListJson(entity.getAvailableSurcharges(), new TypeReference<List<PricingConfigDto.SurchargeOption>>() {}));
 
+        dto.setCleaningEngineConfig(entity.getCleaningEngineConfig());
+
         dto.setUpdatedAt(entity.getUpdatedAt() != null ? entity.getUpdatedAt().toString() : null);
 
         return dto;
@@ -530,6 +545,9 @@ public class PricingConfigService {
         }
         if (dto.getSurfaceTiers() != null) {
             entity.setSurfaceTiers(toJson(dto.getSurfaceTiers()));
+        }
+        if (dto.getCleaningEngineConfig() != null) {
+            entity.setCleaningEngineConfig(dto.getCleaningEngineConfig());
         }
 
         if (dto.getBasePriceEssentiel() != null) entity.setBasePriceEssentiel(dto.getBasePriceEssentiel());

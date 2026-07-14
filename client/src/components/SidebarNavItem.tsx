@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, ListItemButton, Tooltip, useTheme } from '@mui/material';
 import type { MenuItem } from '../hooks/useNavigationMenu';
+import { prefetchRoute } from '../modules/routePrefetch';
 
 interface SidebarNavItemProps {
   item: MenuItem;
@@ -42,9 +43,36 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
       })
     : item.icon;
 
+  // En mode réduit, la pastille est ancrée AU COIN HAUT-DROIT DE L'ICÔNE
+  // (wrapper relatif à la taille de l'icône), pas au bouton — sinon, l'icône
+  // étant centrée dans le rail, la pastille flottait au-dessus.
+  const iconWithBadge = hasBadge && isCollapsed ? (
+    <Box component="span" sx={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+      {icon}
+      <Box
+        component="span"
+        sx={{
+          position: 'absolute',
+          top: -2,
+          insetInlineEnd: -2,
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          backgroundColor: badgeBg,
+          border: '1.5px solid var(--nav-bg)',
+          pointerEvents: 'none',
+        }}
+      />
+    </Box>
+  ) : icon;
+
   const content = (
     <ListItemButton
       onClick={() => onClick(item.path)}
+      // Précharge le chunk de la page dès l'intention de navigation (survol /
+      // focus clavier) : le clic n'attend plus le téléchargement du chunk.
+      onMouseEnter={() => prefetchRoute(item.path)}
+      onFocus={() => prefetchRoute(item.path)}
       sx={{
         height: 36,
         minHeight: 36,
@@ -62,7 +90,7 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
           ? '0 6px 18px -6px color-mix(in srgb, var(--accent) 55%, transparent)'
           : 'none',
         transition: 'background .14s, color .14s',
-        '& > svg': {
+        '& svg': {
           width: 17,
           height: 17,
           flexShrink: 0,
@@ -72,7 +100,7 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
         '&:hover': {
           backgroundColor: isActive ? 'var(--accent)' : 'var(--nav-hover)',
           color: isActive ? 'var(--on-accent)' : 'var(--nav-strong)',
-          '& > svg': { color: isActive ? 'var(--on-accent)' : 'var(--nav-strong)' },
+          '& svg': { color: isActive ? 'var(--on-accent)' : 'var(--nav-strong)' },
         },
         '&.Mui-focusVisible': {
           outline: '2px solid var(--accent)',
@@ -81,11 +109,11 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
         },
         '@media (prefers-reduced-motion: reduce)': {
           transition: 'none',
-          '& > svg': { transition: 'none' },
+          '& svg': { transition: 'none' },
         },
       }}
     >
-      {icon}
+      {iconWithBadge}
       {!isCollapsed && (
         <Box
           component="span"
@@ -100,43 +128,27 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
           {item.text}
         </Box>
       )}
-      {/* Pastille compteur (.ct) — en réduit : point 8px sans chiffre */}
-      {hasBadge && (
-        isCollapsed ? (
-          <Box
-            component="span"
-            sx={{
-              position: 'absolute',
-              top: 3,
-              insetInlineEnd: 10,
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              backgroundColor: badgeBg,
-              border: '1.5px solid var(--nav-bg)',
-            }}
-          />
-        ) : (
-          <Box
-            component="span"
-            sx={{
-              marginInlineStart: 'auto',
-              minWidth: 18,
-              height: 18,
-              px: '5px',
-              borderRadius: '9px',
-              fontSize: '10.5px',
-              fontWeight: 700,
-              color: '#fff',
-              backgroundColor: badgeBg,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {item.badge! > 99 ? '99+' : item.badge}
-          </Box>
-        )
+      {/* Compteur (mode étendu). En réduit, le point est ancré au coin de l'icône ci-dessus. */}
+      {hasBadge && !isCollapsed && (
+        <Box
+          component="span"
+          sx={{
+            marginInlineStart: 'auto',
+            minWidth: 18,
+            height: 18,
+            px: '5px',
+            borderRadius: '9px',
+            fontSize: '10.5px',
+            fontWeight: 700,
+            color: '#fff',
+            backgroundColor: badgeBg,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {item.badge! > 99 ? '99+' : item.badge}
+        </Box>
       )}
     </ListItemButton>
   );

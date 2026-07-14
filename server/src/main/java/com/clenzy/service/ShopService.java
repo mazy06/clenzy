@@ -1,5 +1,7 @@
 package com.clenzy.service;
 
+import com.clenzy.dto.PaymentOrchestrationRequest;
+import com.clenzy.dto.PaymentOrchestrationResult;
 import com.clenzy.dto.ShopCheckoutRequest;
 import com.clenzy.model.HardwareCatalog;
 import com.clenzy.model.HardwareOrder;
@@ -9,15 +11,17 @@ import com.clenzy.repository.HardwareOrderRepository;
 import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
-import com.stripe.param.checkout.SessionCreateParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,10 +33,18 @@ public class ShopService {
 
     private static final Logger log = LoggerFactory.getLogger(ShopService.class);
 
+    /** {@code sourceType} de la {@code PaymentTransaction} d'une commande de matériel IoT. */
+    public static final String SOURCE_TYPE = "HARDWARE_ORDER";
+    /** Pays de livraison autorisés (biens physiques). */
+    private static final List<String> SHIPPING_COUNTRIES = List.of("FR", "BE", "CH", "MA", "ES");
+
     private final HardwareOrderRepository hardwareOrderRepository;
     private final TenantContext tenantContext;
     private final ObjectMapper objectMapper;
     private final StripeGateway stripeGateway;
+    private final PaymentOrchestrationService orchestrationService;
+    /** Création commande + rattachement session en transactions courtes (appel provider hors tx). */
+    private final TransactionTemplate writeTx;
 
     @Value("${stripe.success-url}")
     private String successUrl;
@@ -43,58 +55,52 @@ public class ShopService {
     public ShopService(HardwareOrderRepository hardwareOrderRepository,
                        TenantContext tenantContext,
                        ObjectMapper objectMapper,
-                       StripeGateway stripeGateway) {
+                       StripeGateway stripeGateway,
+                       PaymentOrchestrationService orchestrationService,
+                       PlatformTransactionManager transactionManager) {
         this.hardwareOrderRepository = hardwareOrderRepository;
         this.tenantContext = tenantContext;
         this.objectMapper = objectMapper;
         this.stripeGateway = stripeGateway;
+        this.orchestrationService = orchestrationService;
+        this.writeTx = new TransactionTemplate(transactionManager);
     }
 
     /**
-     * Cree une session Stripe Checkout pour un achat de materiel IoT.
-     * Les prix sont resolus cote serveur depuis HardwareCatalog (jamais depuis le frontend).
+     * Crée une session de paiement (orchestrée) pour un achat de matériel IoT.
+     * Les prix sont résolus côté serveur depuis HardwareCatalog (jamais depuis le frontend).
+     *
+     * <p>La collecte d'adresse de livraison est exprimée en <strong>capacité</strong>
+     * ({@code SHIPPING_ADDRESS}) : le resolver route vers un provider capable (Stripe
+     * aujourd'hui, tout PSP qui déclarera la capacité demain — aucun épinglage en dur).
+     * Le montant est facturé en une ligne unique (le détail par SKU reste dans
+     * {@code order.itemsJson}). Complétion inchangée via le webhook {@code type=hardware_purchase}
+     * (relecture du shipping via {@code retrieveSession}, Stripe-spécifique tant qu'un
+     * seul provider déclare la capacité).</p>
+     *
+     * <p>NOT_SUPPORTED (règle #2) : appel provider hors transaction ; création commande +
+     * rattachement session en transactions courtes.</p>
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public Map<String, String> createCheckoutSession(ShopCheckoutRequest request,
-                                                      String customerEmail,
-                                                      String keycloakId) throws StripeException {
+                                                     String customerEmail,
+                                                     String keycloakId) {
         if (request.items() == null || request.items().isEmpty()) {
             throw new IllegalArgumentException("Le panier est vide");
         }
 
         final Long orgId = tenantContext.getRequiredOrganizationId();
 
-        // Validate SKUs and build line items from server-side catalog prices
-        final List<SessionCreateParams.LineItem> lineItems = new ArrayList<>();
+        // Validation SKU + total depuis le catalogue serveur (Z3-SEC-01, jamais le montant client).
         final List<Map<String, Object>> itemDetails = new ArrayList<>();
-        int totalAmount = 0;
-
+        int totalAmountCents = 0;
         for (ShopCheckoutRequest.CartItem cartItem : request.items()) {
             if (cartItem.quantity() < 1) {
                 throw new IllegalArgumentException("Quantite invalide pour SKU: " + cartItem.sku());
             }
-
             final HardwareCatalog.Product product = HardwareCatalog.findBySku(cartItem.sku())
                 .orElseThrow(() -> new IllegalArgumentException("SKU inconnu: " + cartItem.sku()));
-
-            totalAmount += product.priceInCents() * cartItem.quantity();
-
-            lineItems.add(
-                SessionCreateParams.LineItem.builder()
-                    .setQuantity((long) cartItem.quantity())
-                    .setPriceData(
-                        SessionCreateParams.LineItem.PriceData.builder()
-                            .setCurrency("eur")
-                            .setUnitAmount((long) product.priceInCents())
-                            .setProductData(
-                                SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                    .setName(product.name())
-                                    .setDescription("SKU: " + product.sku())
-                                    .build()
-                            )
-                            .build()
-                    )
-                    .build()
-            );
+            totalAmountCents += product.priceInCents() * cartItem.quantity();
 
             final Map<String, Object> detail = new HashMap<>();
             detail.put("sku", product.sku());
@@ -104,52 +110,64 @@ public class ShopService {
             itemDetails.add(detail);
         }
 
-        // Persist order with PENDING status
-        final HardwareOrder order = new HardwareOrder();
-        order.setOrganizationId(orgId);
-        order.setUserId(keycloakId);
-        order.setStatus(OrderStatus.PENDING);
-        order.setTotalAmount(totalAmount);
-        order.setCurrency("eur");
-        order.setItemsJson(serializeItems(itemDetails));
-        hardwareOrderRepository.save(order);
+        final int totalAmount = totalAmountCents;
+        final int itemCount = request.items().size();
+        // Création de la commande PENDING en transaction courte.
+        final HardwareOrder order = writeTx.execute(status -> {
+            HardwareOrder o = new HardwareOrder();
+            o.setOrganizationId(orgId);
+            o.setUserId(keycloakId);
+            o.setStatus(OrderStatus.PENDING);
+            o.setTotalAmount(totalAmount);
+            o.setCurrency("eur");
+            o.setItemsJson(serializeItems(itemDetails));
+            return hardwareOrderRepository.save(o);
+        });
 
-        // Create Stripe Checkout Session
-        final SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
-            .setMode(SessionCreateParams.Mode.PAYMENT)
-            .setSuccessUrl(successUrl)
-            .setCancelUrl(cancelUrl)
-            .setCustomerEmail(customerEmail)
-            .putMetadata("type", "hardware_purchase")
-            .putMetadata("order_id", order.getId().toString())
-            .putMetadata("user_id", keycloakId)
-            .putMetadata("org_id", orgId.toString())
-            .setShippingAddressCollection(
-                SessionCreateParams.ShippingAddressCollection.builder()
-                    .addAllowedCountry(SessionCreateParams.ShippingAddressCollection.AllowedCountry.FR)
-                    .addAllowedCountry(SessionCreateParams.ShippingAddressCollection.AllowedCountry.BE)
-                    .addAllowedCountry(SessionCreateParams.ShippingAddressCollection.AllowedCountry.CH)
-                    .addAllowedCountry(SessionCreateParams.ShippingAddressCollection.AllowedCountry.MA)
-                    .addAllowedCountry(SessionCreateParams.ShippingAddressCollection.AllowedCountry.ES)
-                    .build()
-            );
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("type", "hardware_purchase");
+        metadata.put("order_id", order.getId().toString());
+        metadata.put("user_id", keycloakId);
+        metadata.put("org_id", orgId.toString());
 
-        for (SessionCreateParams.LineItem lineItem : lineItems) {
-            paramsBuilder.addLineItem(lineItem);
+        PaymentOrchestrationRequest orchRequest = new PaymentOrchestrationRequest(
+            BigDecimal.valueOf(totalAmount).movePointLeft(2), // cents → unités
+            "eur",
+            SOURCE_TYPE,
+            order.getId(),
+            "Materiel IoT — " + itemCount + " article(s)",
+            customerEmail,
+            null,                                  // résolu par capacité SHIPPING_ADDRESS (pas d'épinglage)
+            successUrl,
+            cancelUrl,
+            metadata,
+            "HARDWARE-ORDER-" + order.getId(),
+            false,                                 // embedded
+            null,                                  // expiresAt
+            false,                                 // saveCard
+            SHIPPING_COUNTRIES);                   // collecte d'adresse de livraison
+
+        PaymentOrchestrationResult result = orchestrationService.initiatePayment(orchRequest);
+        if (!result.isSuccess()) {
+            String err = result.paymentResult() != null ? result.paymentResult().errorMessage() : "erreur inconnue";
+            throw new IllegalStateException("Echec de creation du paiement de la commande materiel: " + err);
         }
 
-        final Session session = stripeGateway.createSession(paramsBuilder.build());
+        final String providerTxId = result.paymentResult().providerTxId();
+        writeTx.executeWithoutResult(status -> {
+            HardwareOrder fresh = hardwareOrderRepository.findById(order.getId()).orElse(null);
+            if (fresh != null) {
+                fresh.setStripeSessionId(providerTxId);
+                hardwareOrderRepository.save(fresh);
+            }
+        });
 
-        // Update order with Stripe session ID
-        order.setStripeSessionId(session.getId());
-        hardwareOrderRepository.save(order);
-
-        log.info("Checkout session creee pour commande hardware: orderId={}, sessionId={}, total={}c",
-            order.getId(), session.getId(), totalAmount);
+        log.info("Session de paiement matériel créée via orchestrateur: orderId={}, sessionId={}, total={}c",
+            order.getId(), providerTxId, totalAmount);
 
         return Map.of(
-            "sessionId", session.getId(),
-            "url", session.getUrl()
+            "sessionId", providerTxId,
+            "url", result.paymentResult().redirectUrl()
         );
     }
 

@@ -123,6 +123,10 @@
       "action": "تطبيق",
       "dismiss": "تجاهل"
     },
+    "guestCard": {
+      "badge": "للإكمال",
+      "cta": "أكمل بطاقة النزيل"
+    },
     "tools": {
       "ical_sync_failed": "فشل مزامنة التقويم",
       "sensor_anomaly": "شذوذ في المستشعر",
@@ -155,7 +159,30 @@
       "trigger_channel_sync": "تم تشغيل مزامنة القناة",
       "update_intervention_status": "تم تحديث حالة التدخل",
       "update_property_status": "تم تحديث حالة العقار",
-      "update_reservation_status": "تم تحديث حالة الحجز"
+      "update_reservation_status": "تم تحديث حالة الحجز",
+      "yield_price_adjusted": "تم تعديل السعر تلقائيًا (قاعدة العائد)",
+      "auto_applied": "تم تنفيذ الإجراء تلقائيًا",
+      "suggestion_applied": "تمت الموافقة على الاقتراح وتنفيذه",
+      "concierge_replied": "أُرسل الرد إلى الضيف",
+      "concierge_drafted": "أُعدّت مسودة رد للضيف",
+      "owner_statement_sent": "أُرسل كشف حساب المالك",
+      "deferred_payment_reminder": "أُرسل تذكير بالدفع",
+      "SEND_MESSAGE": "أُرسلت رسالة (أتمتة)",
+      "SEND_GUIDE": "أُرسل دليل الترحيب (أتمتة)",
+      "SEND_CHECKIN_LINK": "أُرسل رابط تسجيل الوصول (أتمتة)",
+      "SEND_NOISE_WARNING": "أُرسل تنبيه الضجيج (أتمتة)",
+      "SEND_REVIEW_REQUEST": "أُرسل طلب تقييم (أتمتة)",
+      "CREATE_CLEANING_REQUEST": "أُنشئ تنظيف (أتمتة)",
+      "CANCEL_LINKED_CLEANING_REQUEST": "أُلغي التنظيف المرتبط (أتمتة)",
+      "CREATE_MAINTENANCE_INTERVENTION": "أُنشئ تدخل صيانة (أتمتة)",
+      "NOTIFY_STAFF": "أُبلغ الفريق (أتمتة)",
+      "REVOKE_ACCESS_CODE": "أُلغي رمز الدخول (أتمتة)",
+      "SEND_INVOICE_REMINDER": "أُرسل تذكير بالفاتورة (أتمتة)",
+      "SEND_OWNER_STATEMENT": "أُرسل كشف حساب المالك (أتمتة)",
+      "SUGGEST_DEPOSIT_REFUND": "اقتُرح استرداد التأمين (أتمتة)",
+      "SUGGEST_DEPOSIT_RELEASE": "اقتُرح تحرير التأمين (أتمتة)",
+      "NOTIFY_RATE_PARITY": "أُبلغ عن فجوة في تكافؤ الأسعار (أتمتة)",
+      "SUGGEST_CALENDAR_BLOCK": "اقتُرح حظر التقويم (أتمتة)"
     },
     "approval": {
       "title": "مطلوب موافقة",
@@ -183,16 +210,68 @@
     "feed": {
       "title": "مباشر",
       "empty": "لا توجد إجراءات حديثة للوكلاء",
-      "emptyOnboarding": "يراقب الوكلاء عقاراتك. ستظهر هنا إجراءاتهم واقتراحاتهم بانتظار موافقتك — لا يُنفَّذ شيء دون موافقتك."
+      "emptyOnboarding": "يراقب الوكلاء عقاراتك. ستظهر هنا إجراءاتهم واقتراحاتهم بانتظار موافقتك — لا يُنفَّذ شيء دون موافقتك.",
+      "openMessage": "عرض الرسالة المُرسَلة",
+      "openInvoice": "عرض الفاتورة"
+    },
+    "messageModal": {
+      "title": "الرسالة المُرسَلة",
+      "subject": "الموضوع",
+      "loading": "جارٍ تحميل الرسالة…",
+      "unavailable": "معاينة الرسالة غير متاحة.",
+      "close": "إغلاق"
+    },
+    "invoiceModal": {
+      "title": "الفاتورة",
+      "amount": "المبلغ شامل الضريبة",
+      "dueDate": "تاريخ الاستحقاق",
+      "buyer": "العميل",
+      "reservation": "الحجز",
+      "intervention": "الخدمة",
+      "openBilling": "فتح في الفوترة",
+      "pay": "دفع",
+      "sendLink": "إرسال رابط الدفع",
+      "sentTo": "أُرسل رابط الدفع إلى",
+      "notPayable": "هذه الفاتورة غير قابلة للدفع عبر الإنترنت.",
+      "loadError": "الفاتورة غير موجودة أو يتعذر الوصول إليها.",
+      "payError": "لم يتم إنشاء رابط الدفع.",
+      "sendError": "تعذر الإرسال — لا يوجد بريد إلكتروني للعميل أو الفاتورة غير قابلة للدفع.",
+      "close": "إغلاق",
+      "status": {
+        "DRAFT": "مسودة",
+        "SENT": "مُرسلة",
+        "ISSUED": "صادرة",
+        "PAID": "مدفوعة",
+        "OVERDUE": "متأخرة",
+        "CANCELLED": "ملغاة",
+        "CREDIT_NOTE": "إشعار دائن"
+      }
     },
     "report": {
       "title": "الحصيلة · 30 يومًا",
       "titleBase": "الحصيلة",
       "windowDays": "{{count}} يومًا",
-      "win": { "day": "يوم", "week": "أسبوع", "fortnight": "أسبوعان", "month": "شهر" },
+      "win": {
+        "day": "يوم",
+        "week": "أسبوع",
+        "fortnight": "أسبوعان",
+        "month": "شهر"
+      },
       "timeSaved": "الوقت الموفَّر",
       "autoActions": "إجراءات تلقائية",
-      "acceptance": "القبول"
+      "acceptance": "القبول",
+      "acceptanceByType": "القبول حسب النوع",
+      "decisions": "{{count}} قرارًا",
+      "types": {
+        "CLEANING_REQUEST": "تنظيف مفقود",
+        "REVIEW_DRAFT_REPLY": "مسودّة رد على تقييم",
+        "PRICE_DROP": "تعديل السعر",
+        "YIELD_PRICE_ADJUST": "تعديل العائد",
+        "CALENDAR_BLOCK": "حظر التقويم",
+        "DEPOSIT_REFUND": "استرداد التأمين",
+        "DEPOSIT_RELEASE": "تحرير التأمين",
+        "PAYMENT_REMINDER": "تذكير بالدفع"
+      }
     },
     "reviewDrafts": {
       "title": "مسودّات الرد (ذكاء اصطناعي)",
@@ -1609,7 +1688,31 @@
     "activeFeatures": "الخيارات النشطة",
     "department": "المحافظة",
     "arrondissement": "الدائرة",
-    "addressAutocomplete": "البحث عن عنوان..."
+    "addressAutocomplete": "البحث عن عنوان...",
+    "cleaningEstimator": {
+      "engineBadge": "محرك التنظيف Baitly",
+      "adopted": "سعر السكن مطابق للتوصية",
+      "adoptAsBasePrice": "اعتماده كسعر للسكن",
+      "currentBasePrice": "سعر السكن الحالي",
+      "breakdownTitle": "تفصيل الوقت",
+      "breakdown": {
+        "base": "الأساس (الغرف)",
+        "bathrooms": "حمّامات إضافية",
+        "surface": "مساحة فوق العتبة",
+        "floors": "طوابق إضافية",
+        "exterior": "الخارج",
+        "laundry": "الغسيل",
+        "guests": "ضيوف فوق 4"
+      }
+    },
+    "cleaningQuote": {
+      "button": "عرض سعر التنظيف",
+      "confirmTitle": "إرسال عرض سعر التنظيف؟",
+      "confirmBody": "سيتم إنشاء عرض سعر التنظيف (السعر الموصى به لكل نوع، النطاق والمدة) بصيغة PDF وإرساله بالبريد إلى مالك السكن. مستند معلوماتي بدون توقيع.",
+      "confirmSend": "إرسال إلى المالك",
+      "sent": "تم إرسال عرض سعر التنظيف إلى المالك",
+      "error": "فشل إرسال عرض سعر التنظيف"
+    }
   },
   "serviceRequests": {
     "detail": {
@@ -2060,6 +2163,97 @@
     }
   },
   "reservations": {
+    "dialog": {
+      "priceVariable": "متغير",
+      "editGuest": "تعديل المسافر",
+      "nationality": "الجنسية (البلد)",
+      "language": "اللغة",
+      "guestNotes": "ملاحظات",
+      "stepStay": "السكن والتواريخ",
+      "stepTraveler": "المسافر",
+      "stepPricing": "السعر والخدمات",
+      "stepFinalize": "الإنهاء",
+      "next": "التالي",
+      "previous": "السابق",
+      "recapTitle": "الملخص",
+      "recapProperty": "السكن",
+      "recapDates": "التواريخ",
+      "recapGuest": "المسافر",
+      "recapTotal": "الإجمالي",
+      "stayDates": "تواريخ الإقامة",
+      "traveler": "المسافر",
+      "travelers": "المسافرون",
+      "pricingSection": "التسعير",
+      "basePerNight": "الأساس / ليلة (€)",
+      "customPrice": "سعر مخصص (€/ليلة)",
+      "discountEuro": "خصم (€)",
+      "discountPercent": "خصم (%)",
+      "tabCustom": "مخصص",
+      "tabDiscountEuro": "خصم €",
+      "tabDiscountPercent": "خصم %",
+      "night": "ليلة",
+      "nights": "ليالٍ",
+      "total": "الإجمالي",
+      "accommodation": "الإقامة",
+      "cleaningLine": "التنظيف",
+      "touristTaxLine": "ضريبة الإقامة",
+      "cleaningAtCheckout": "تنظيف عند المغادرة",
+      "cleaningFee": "رسوم التنظيف (€)",
+      "touristTaxPerPerson": "الضريبة / شخص / ليلة (€)",
+      "estimatedCleaning": "التقدير للعقار: {{amount}} €",
+      "notesPlaceholder": "معلومات إضافية…",
+      "searchGuest": "ابحث عن مسافر…",
+      "noGuestFound": "لم يتم العثور على مسافر",
+      "typeToSearch": "اكتب حرفين على الأقل",
+      "createGuest": "إنشاء بطاقة عميل",
+      "newGuest": "مسافر جديد",
+      "createGuestSubmit": "إنشاء مسافر",
+      "createGuestError": "خطأ أثناء الإنشاء",
+      "firstName": "الاسم الأول",
+      "lastName": "اسم العائلة",
+      "propertyPlaceholder": "اختر عقارًا",
+      "propertyAutoSelected": "تم اختيار العقار تلقائيًا",
+      "prevMonth": "الشهر السابق",
+      "nextMonth": "الشهر التالي",
+      "clearDates": "مسح",
+      "conflictTitle": "تم اكتشاف تعارض",
+      "conflictReservation": "تعارض مع حجز {{name}} ({{start}} ← {{end}})",
+      "conflictCleaning": "تعارض مع تنظيف مجدول ({{start}} ← {{end}})",
+      "conflictMaintenance": "تعارض مع صيانة مجدولة ({{start}} ← {{end}})",
+      "conflictBlocked": "تعارض مع فترة محجوبة ({{start}} ← {{end}})",
+      "conflictBlocking": "تعذّر إنشاء الحجز: تعارض مع حدث قائم في هذه الفترة",
+      "errorGuestRequired": "يرجى اختيار أو إنشاء مسافر",
+      "errorDatesRequired": "يرجى اختيار التواريخ",
+      "errorCreateFailed": "خطأ أثناء الإنشاء",
+      "errorUpdateFailed": "خطأ أثناء التحديث",
+      "submitCreate": "إنشاء الحجز",
+      "submitCreatePayment": "إنشاء وإرسال رابط الدفع",
+      "confirmNow": "تأكيد الآن",
+      "requestPayment": "طلب الدفع",
+      "paymentEmail": "بريد إلكتروني لرابط الدفع",
+      "paymentEmailHelp": "سيُرسل رابط Stripe إلى هذا العنوان.",
+      "confirmNowHint": "يحجب التقويم فورًا، ويُنشئ رموز الدخول ويُشعر الضيف.",
+      "requestPaymentHint": "يُنشئ الحجز كمعلّق ويرسل رابط دفع Stripe إلى الضيف؛ لا تُحجب التواريخ إلا بعد استلام الدفع.",
+      "errorPaymentNeedsAmount": "أدخل مبلغًا لطلب الدفع.",
+      "errorPaymentNeedsEmail": "بريد الضيف الإلكتروني مطلوب لإرسال رابط الدفع.",
+      "paymentLinkError": "تم إنشاء الحجز (معلّق)، لكن فشل إرسال رابط الدفع. أعد المحاولة أو أرسله من الحجز.",
+      "submitCreating": "جارٍ الإنشاء…",
+      "submitSaving": "جارٍ الحفظ…",
+      "modeReservation": "حجز",
+      "modeBlock": "حظر",
+      "blockTitle": "حظر فترة",
+      "blockTypeLabel": "النوع",
+      "blockTypeBlocked": "محظور (غير متاح)",
+      "blockTypeMaintenance": "صيانة / أعمال",
+      "blockReason": "السبب (اختياري)",
+      "blockReasonPlaceholder": "مثال: إقامة المالك، أعمال سباكة…",
+      "blockSubmit": "حظر",
+      "blockSubmitting": "جارٍ الحظر…",
+      "blockNight": "ليلة محظورة",
+      "blockNights": "ليالٍ محظورة",
+      "blockErrorRequired": "يرجى اختيار عقار وتواريخ.",
+      "blockErrorFailed": "فشل حظر الفترة"
+    },
     "compliance": {
       "title": "بطاقة الشرطة",
       "primaryTraveler": "المسافر الرئيسي",
@@ -2569,7 +2763,14 @@
     "email": "البريد الإلكتروني",
     "role": "الدور",
     "firstName": "الاسم الأول",
-    "lastName": "اسم العائلة"
+    "lastName": "اسم العائلة",
+    "ratesDialog": {
+      "title": "الأسعار والنتيجة",
+      "inMarket": "ضمن نطاق السوق",
+      "loadError": "تعذر تحميل أسعار مقدم الخدمة هذا.",
+      "saveError": "تعذر الحفظ.",
+      "saved": "تم حفظ الأسعار."
+    }
   },
   "settings": {
     "title": "الإعدادات",
@@ -2654,7 +2855,7 @@
       "manualNote": "تحويل يدوي"
     },
     "myPayout": {
-      "tabLabel": "تحويلاتي",
+      "tabLabel": "تحويلات المالك",
       "title": "بيانات التحويل الخاصة بي",
       "subtitle": "أدخل بياناتك البنكية لاستلام تحويلاتك.",
       "statusLabel": "الحالة",
@@ -2803,6 +3004,62 @@
         "disconnectTitle": "قطع اتصال Pennylane",
         "disconnectConfirm": "هل تريد قطع اتصال Pennylane؟ سيتم إيقاف المزامنة المحاسبية."
       }
+    },
+    "myRates": {
+      "tabLabel": "أسعاري",
+      "hourlySection": "سعر الساعة",
+      "hourlyRate": "سعر ساعتي",
+      "referenceRate": "السعر المرجعي للمنصة",
+      "hourlyHint": "يُطبَّق على مهام التنظيف بدون سعر ثابت: المدة المعيارية للسكن × سعرك.",
+      "flatSection": "أسعار ثابتة لكل سكن",
+      "flatHint": "السعر الثابت يتقدّم على سعر الساعة لهذا السكن. اتركه فارغًا لاستخدام سعر الساعة.",
+      "flatFieldAria": "سعر ثابت لـ {{name}}",
+      "advisoryLine": "التوصية لهذا السكن: {{min}} – {{max}} €",
+      "advisoryMedian": "الوسيط",
+      "inMarket": "ضمن السوق",
+      "vsAdvisory": "مقابل التوصية",
+      "noProperties": "لا توجد مساكن في مؤسستك.",
+      "save": "حفظ أسعاري",
+      "saveSuccess": "تم حفظ الأسعار",
+      "saveError": "خطأ أثناء الحفظ",
+      "loadError": "تعذّر تحميل أسعارك.",
+      "scoreSection": "نتيجة الجودة (30 يومًا)",
+      "scoreDetail": "{{count}} مهمة مكتملة · {{proof}}٪ مع إثبات بالصور",
+      "scoreHint": "النتيجة = نسبة المهام مع صورة «بعد» × الحجم (5 مهام = الوزن الكامل). تؤثر على الإسناد التلقائي إذا فعّلته منظمتك."
+    },
+    "myProPayouts": {
+      "tabLabel": "مدفوعات مهامي",
+      "accountSection": "حساب الدفع",
+      "accountHint": "تُرسل مدفوعات مهام التنظيف إلى حسابك في Stripe. يتم الإعداد هنا دون مغادرة Baitly.",
+      "statusNotStarted": "غير مُعد",
+      "statusInProgress": "قيد الإعداد",
+      "statusComplete": "مُعد",
+      "startOnboarding": "إعداد مدفوعاتي",
+      "resumeOnboarding": "استئناف الإعداد",
+      "refreshStatus": "إعادة التحقق",
+      "noPublishableKey": "إعداد Stripe مفقود (المفتاح العام).",
+      "onboardingError": "تعذّر بدء إعداد Stripe.",
+      "loadError": "تعذّر تحميل مدفوعاتك.",
+      "historySection": "سجل المدفوعات",
+      "noPayouts": "لا مدفوعات بعد.",
+      "colDate": "التاريخ",
+      "colMission": "المهمة",
+      "colAmount": "المبلغ",
+      "colCommission": "العمولة",
+      "colStatus": "الحالة",
+      "status": {
+        "SENT": "أُرسل",
+        "PENDING": "قيد المعالجة",
+        "FAILED": "فشل",
+        "BLOCKED": "محجوب"
+      },
+      "reason": {
+        "PROOF_MISSING": "إثبات الصور مفقود",
+        "ONBOARDING_INCOMPLETE": "يلزم إعداد الحساب",
+        "AMOUNT_NOT_POSITIVE": "مبلغ غير موجب"
+      },
+      "completeMission": "أكمل المهمة",
+      "finishOnboarding": "أكمل إعداد حساب الدفع"
     }
   },
   "contracts": {
@@ -3068,6 +3325,7 @@
       "invoices": "الفواتير",
       "payouts": "التحويلات",
       "expenses": "المصاريف",
+      "housekeeperPayouts": "تحويلات المزودين",
       "reportsExports": "التقارير والتصدير",
       "exportsSection": "التصدير المحاسبي"
     }
@@ -3077,7 +3335,82 @@
     "subtitle": "إدارة طلبات الخدمة والتدخلات",
     "tabs": {
       "serviceRequests": "طلبات الخدمة",
-      "interventions": "التدخلات"
+      "interventions": "التدخلات",
+      "issues": "البلاغات"
+    },
+    "recommended": {
+      "scale": "الجدول الموصى به",
+      "conform": "مطابق للجدول",
+      "vsScale": "مقابل الجدول"
+    }
+  },
+  "issues": {
+    "status": {
+      "open": "مفتوح",
+      "qualified": "مؤهَّل",
+      "converted": "محوَّل",
+      "dismissed": "مرفوض"
+    },
+    "severity": {
+      "low": "طفيفة",
+      "medium": "متوسطة",
+      "high": "مرتفعة",
+      "critical": "حرجة"
+    },
+    "filters": {
+      "all": "الكل"
+    },
+    "columns": {
+      "date": "التاريخ",
+      "property": "العقار",
+      "title": "البلاغ",
+      "severity": "الخطورة",
+      "suggestedCost": "التكلفة المقترحة",
+      "status": "الحالة"
+    },
+    "empty": {
+      "title": "لا توجد بلاغات",
+      "description": "ستظهر هنا بلاغات الميدان (تنظيف، صيانة) للتأهيل."
+    },
+    "reportedBy": "أبلغ عنه",
+    "dismissedReason": "سبب الرفض",
+    "openServiceRequest": "عرض طلب الصيانة",
+    "qualifySection": "التأهيل",
+    "fields": {
+      "category": "الفئة",
+      "categoryHelp": "متوافقة مع كتالوج الأعمال → تسعير تلقائي",
+      "severity": "الخطورة",
+      "suggestedCost": "التكلفة (€)",
+      "dismissReason": "سبب الرفض (اختياري)"
+    },
+    "convertConfirm": "إنشاء طلب صيانة مسعَّر مسبقًا بمبلغ",
+    "convertConfirmSuffix": "تأكيد؟",
+    "noCost": "تسعير يدوي",
+    "actionError": "تعذر تنفيذ الإجراء — تحقق من حالة البلاغ.",
+    "actions": {
+      "dismiss": "رفض",
+      "qualify": "تأهيل",
+      "convert": "تحويل إلى صيانة",
+      "confirmConvert": "تأكيد التحويل"
+    },
+    "create": {
+      "button": "الإبلاغ عن خلل",
+      "title": "الإبلاغ عن خلل",
+      "property": "السكن",
+      "selectProperty": "اختر سكنًا",
+      "description": "الوصف (اختياري)",
+      "noCategory": "بدون فئة",
+      "submit": "إبلاغ",
+      "success": "تم الإبلاغ عن الخلل",
+      "error": "تعذر الإنشاء — تحقق من الحقول."
+    },
+    "categories": {
+      "damage": "ضرر ملحوظ",
+      "missing_item": "غرض مفقود",
+      "hygiene": "مشكلة نظافة",
+      "equipment": "معدات معطلة",
+      "safety": "خطر على السلامة",
+      "other": "أخرى"
     }
   },
   "propertiesPage": {
@@ -3112,7 +3445,17 @@
     },
     "tarification": {
       "subtitle": {
-        "taxeSejour": "أسعار ضريبة الإقامة الخاصة بالمنظمة، تقرير وتصدير حسب الفترة."
+        "taxeSejour": "أسعار ضريبة الإقامة الخاصة بالمنظمة، تقرير وتصدير حسب الفترة.",
+        "menage": "محرك التنظيف: دقائق معيارية لكل مكوّن، سعر الساعة ونطاق السعر الموصى به."
+      }
+    },
+    "settings": {
+      "tabs": {
+        "payouts": "التحويلات (المنصة)"
+      },
+      "subtitle": {
+        "myRates": "سعر ساعتك، أسعارك الثابتة لكل سكن ونتيجة الجودة.",
+        "myPayoutsPro": "حساب الدفع Stripe وسجل مدفوعات مهامك."
       }
     }
   },
@@ -3245,7 +3588,8 @@
       "exterieur": "الخارجي",
       "blanchisserie": "المغسلة",
       "monitoring": "المراقبة",
-      "taxeSejour": "ضريبة الإقامة"
+      "taxeSejour": "ضريبة الإقامة",
+      "menage": "التنظيف"
     },
     "monitoring": {
       "title": "مراقبة الضوضاء في العقارات",
@@ -3495,6 +3839,56 @@
       "price": "السعر",
       "key": "المعرّف",
       "keyHelp": "معرّف فريد (مثال: deep_cleaning, custom_prestation)"
+    },
+    "cleaning": {
+      "intro": "يحسب محرك التنظيف سعرًا موصى به واحدًا: دقائق معيارية لكل مكوّن × سعر الساعة × معامل نوع التنظيف. الحقل الفارغ = الإعداد الافتراضي للمنصة.",
+      "workTime": "وقت العمل",
+      "baseByBedrooms": "الدقائق الأساسية حسب عدد الغرف",
+      "bedroomsN": "{{n}} غرفة",
+      "bedrooms5plus": "5+ غرف",
+      "perExtraBathroom": "لكل حمّام إضافي",
+      "surfaceThreshold": "عتبة المساحة",
+      "surfaceStep": "خطوة المساحة",
+      "surfaceStepMinutes": "دقائق لكل خطوة",
+      "perExtraFloor": "لكل طابق إضافي",
+      "exterior": "الخارج",
+      "laundry": "الغسيل",
+      "perGuestAbove4": "لكل ضيف فوق 4",
+      "ratesAndRounding": "الأسعار والتقريب",
+      "hourlyRate": "سعر الساعة المرجعي",
+      "rangePercent": "النطاق (±)",
+      "roundTo": "التقريب إلى مضاعف",
+      "minPrice": "الحد الأدنى للسعر",
+      "cleaningTypes": "أنواع التنظيف",
+      "simulator": "المحاكي",
+      "simulatorSavedConfigHint": "تستخدم المحاكاة الشبكة المحفوظة على الخادم. احفظ تعديلاتك (زر الحفظ في الأعلى) لرؤيتها هنا.",
+      "simulatorProperty": "السكن",
+      "simulatorSelectProperty": "اختر سكنًا",
+      "sourceOverride": "سعر السكن (مخصص)",
+      "sourceEngine": "توصية المحرك",
+      "simulatorDate": "تاريخ الخدمة (اختياري)",
+      "seasonal": {
+        "title": "الزيادات الموسمية",
+        "hint": "تعدّل توصية المحرك خلال نافذة تواريخ (شهر-يوم، يسمح بامتداد السنة). أسعار مقدمي الخدمة المتفاوض عليها لا تُعدَّل أبدًا.",
+        "from": "من",
+        "to": "إلى",
+        "percent": "التعديل",
+        "label": "التسمية",
+        "add": "إضافة نافذة",
+        "remove": "حذف",
+        "empty": "لا توجد زيادة موسمية — توصية المحرك ثابتة طوال السنة.",
+        "formatHint": "الصيغة: شهر-يوم",
+        "percentHint": "بين -50 و +100",
+        "firstMatchHint": "إذا غطت عدة نوافذ التاريخ نفسه، تُطبَّق الأولى في القائمة."
+      },
+      "assignment": {
+        "title": "الإسناد",
+        "autoBestPro": "إسناد تلقائي لأفضل مقدم خدمة",
+        "autoBestProHint": "بعد اختيار الفريق، تُسنَد المهمة إلى عامل التنظيف صاحب أفضل نتيجة جودة (30 يومًا). معطّل افتراضيًا: يبقى الإسناد للفريق."
+      },
+      "sourceHousekeeperRate": "سعر مقدم الخدمة",
+      "simulatorError": "فشل حساب التقدير — أعد المحاولة.",
+      "simulatorInsufficientData": "بيانات غير كافية: أدخل عدد الغرف أو المساحة على الأقل للحصول على تقدير موثوق."
     }
   },
   "channels": {
@@ -4800,6 +5194,43 @@
       "downloading": "جارٍ التحميل...",
       "error": "خطأ أثناء التحميل"
     },
+    "housekeeperPayouts": {
+      "help": {
+        "title": "تحويلات المزودين (التنظيف)",
+        "description": "تحويلات Stripe مباشرة إلى مزودي (التنظيف)، تُطلَق تلقائيًا عند إتمام المهمة. تختلف عن تحويلات المالكين وعن إدخال المصاريف.",
+        "dismiss": "عدم الإظهار مجددًا"
+      },
+      "col": {
+        "provider": "المزوّد",
+        "mission": "المهمة",
+        "net": "المبلغ الصافي",
+        "commission": "العمولة",
+        "status": "الحالة",
+        "date": "التاريخ"
+      },
+      "provider": "المزوّد",
+      "missionRef": "المهمة",
+      "statuses": {
+        "PENDING": "قيد الانتظار",
+        "SENT": "أُرسل",
+        "FAILED": "فشل",
+        "BLOCKED": "محظور"
+      },
+      "reasons": {
+        "PROOF_MISSING": "إثبات مفقود",
+        "ONBOARDING_INCOMPLETE": "إعداد Stripe غير مكتمل",
+        "AMOUNT_NOT_POSITIVE": "مبلغ غير موجب"
+      },
+      "retry": "إعادة إرسال التحويل",
+      "retryTitle": "إعادة إرسال التحويل",
+      "retryConfirm": "إعادة إرسال تحويل بمبلغ {{amount}} إلى {{provider}}؟",
+      "retryConfirmBtn": "إعادة الإرسال",
+      "retrySuccess": "تم تشغيل إعادة إرسال التحويل",
+      "retryError": "شروط التحويل غير مستوفاة بعد (الإثبات / الإعداد).",
+      "empty": "لا توجد تحويلات للمزودين",
+      "emptyDescription": "ستظهر التحويلات هنا تلقائيًا عند إتمام مهام التنظيف.",
+      "error": "خطأ أثناء تحميل تحويلات المزودين"
+    },
     "expenses": {
       "help": {
         "title": "كيف تعمل المصاريف؟",
@@ -5473,6 +5904,76 @@
       "list": "عرض القائمة",
       "card": "عرض البطاقات"
     },
-    "emptyDesc": "ستظهر قواعد الأتمتة هنا."
+    "emptyDesc": "ستظهر قواعد الأتمتة هنا.",
+    "constellation": {
+      "title": "الكوكبة — إجراءات تلقائية",
+      "subtitle": "يطبّق الوكلاء بأنفسهم بعض الإجراءات الآمنة ضمن حدود محددة. يبقى مستوى كل وكيل هو السقف؛ وخارج الحدود تُنشأ بطاقة للمصادقة كما هو الحال اليوم.",
+      "levelNotify": "تطبيق مع إشعار",
+      "levelFull": "تطبيق صامت",
+      "acceptance": "القبول",
+      "noDecisions": "لا قرارات بعد",
+      "acceptanceTooltip": "معدل قبول بطاقات هذا النوع خلال 30 يومًا ({{count}} قرارًا). فعِّله عندما يبقى مرتفعًا باستمرار.",
+      "cappedBySuggest": "محدود بمستوى الوكيل {{agent}}: اقتراح",
+      "cappedByNotify": "محدود بمستوى الوكيل {{agent}}: تصرَّف ثم أشعِر",
+      "cappedTooltip": "مستوى الوكيل {{agent}}: اقتراح — غيِّره إلى «تصرَّف ثم أشعِر» أو «تلقائي» للتفعيل.",
+      "maxSegmentPercent": "٪ الأقصى / مقطع",
+      "maxAutoBlockDays": "أيام قصوى (تلقائي)",
+      "minDaysAfterCheckout": "مهلة بعد المغادرة (أيام)",
+      "recommended": "موصى به — {{count}} موافقات متتالية",
+      "enableSuggestion": "تفعيل",
+      "ignoreSuggestion": "تجاهل",
+      "types": {
+        "CLEANING_REQUEST": {
+          "label": "جدولة التنظيف المفقود",
+          "description": "مغادرة الغد بلا تنظيف: يُنشأ الطلب تلقائيًا (تكرار «بعد كل إقامة» فقط، بلا تكرار)."
+        },
+        "REASSIGN_CLEANING": {
+          "label": "استبدال مقدم الخدمة المنسحب",
+          "description": "انسحب مقدم خدمة التنظيف دون بديل فوري: تُعاد محاولة الإسناد تلقائيًا (idempotent — يواصل المجدول كل 15 دقيقة المحاولة بالتوازي)."
+        },
+        "REVIEW_DRAFT_REPLY": {
+          "label": "تحضير مسودّة الرد على التقييم",
+          "description": "تقييم سلبي: تُولَّد المسودّة تلقائيًا (يتطلب رصيد ذكاء اصطناعي). يبقى النشر يدويًا دائمًا."
+        },
+        "PRICE_DROP": {
+          "label": "تعديل أسعار الفترات الراكدة",
+          "description": "ضمن إطار العائد (وضع تلقائي، سعة محدودة، حماية التقويم): يُطبَّق التعديل المقترح تلقائيًا."
+        },
+        "CALENDAR_BLOCK": {
+          "label": "حظر التقويم (حوادث الضجيج)",
+          "description": "تصعيد ضجيج مؤكد: يُحظر التقويم تلقائيًا لفترة قصيرة (يُرفض إذا كانت هناك ليالٍ محجوزة).",
+          "conditions": "حظر تلقائي واحد كحد أقصى لكل عقار كل 7 أيام."
+        },
+        "DEPOSIT_RELEASE": {
+          "label": "تحرير التأمين بعد المغادرة",
+          "description": "انتهت الإقامة والتأمين ما زال محجوزًا: يُحرَّر حجز Stripe تلقائيًا (بدون أي خصم).",
+          "conditions": "فقط إذا لم تكن هناك أي مشكلة ميدانية مفتوحة على العقار."
+        },
+        "DEPOSIT_REFUND": {
+          "label": "استرداد التأمين بعد الإلغاء",
+          "description": "أُلغي الحجز والتأمين ما زال محجوزًا: يُحرَّر حجز Stripe تلقائيًا (بدون أي خصم).",
+          "conditions": "فقط إذا تأكد الإلغاء، دون مشكلة مفتوحة أو خصم جارٍ."
+        },
+        "PAYMENT_REMINDER": {
+          "label": "إعادة إرسال تذكير الدفع الفاشل",
+          "description": "فشل دفع الرصيد المؤجل: يُنشأ رابط دفع جديد ويُرسل تلقائيًا إلى الضيف.",
+          "conditions": "التذكير الأول فقط · 72 ساعة كحد أدنى بين تذكيرين — ما يليه يبقى يدويًا."
+        }
+      }
+    }
+  },
+  "planning": {
+    "importChooser": {
+      "title": "استيراد الحجوزات",
+      "subtitle": "اختر طريقة ربط قنوات الحجز الخاصة بك.",
+      "ical": {
+        "title": "استيراد iCal",
+        "description": "استورد الحجوزات من تقويم خارجي عبر رابط .ics (Airbnb وBooking وVrbo…). مزامنة للقراءة فقط."
+      },
+      "channex": {
+        "title": "مدير القنوات",
+        "description": "اربط منصات الحجز عبر Channex: مزامنة الحجوزات والأسعار والتوافر في الاتجاهين."
+      }
+    }
   }
 }

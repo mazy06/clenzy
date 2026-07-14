@@ -2,6 +2,7 @@ package com.clenzy.integration.channex.client;
 
 import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.config.ChannexProperties;
+import com.clenzy.integration.channex.dto.ChannexAriPushResult;
 import com.clenzy.integration.channex.dto.ChannexAvailabilityUpdate;
 import com.clenzy.integration.channex.dto.ChannexChannelDto;
 import com.clenzy.integration.channex.dto.ChannexCreateChannelRequest;
@@ -563,6 +564,46 @@ public class ChannexClient {
     }
 
     /**
+     * Cree une photo cote Channex (API publique Photos) :
+     * {@code POST /photos}. L'URL doit etre PUBLIQUE et STABLE (la doc exige
+     * des URLs perennes — Channex les re-telecharge pour les OTAs).
+     *
+     * @return l'id Channex de la photo creee (null si non retourne)
+     */
+    public String createPhoto(String channexPropertyId, String photoUrl,
+                              int position, String description) {
+        String url = props.getBaseUrl() + "/photos";
+        Map<String, Object> photo = new LinkedHashMap<>();
+        photo.put("url", photoUrl);
+        photo.put("property_id", channexPropertyId);
+        photo.put("position", position);
+        photo.put("kind", "photo");
+        if (description != null && !description.isBlank()) {
+            photo.put("description", description);
+        }
+        JsonNode response = exchange(HttpMethod.POST, url, Map.of("photo", photo), JsonNode.class);
+        String id = response != null ? response.path("data").path("id").asText(null) : null;
+        log.info("Channex: photo creee id={} property={} position={}", id, channexPropertyId, position);
+        return id;
+    }
+
+    /**
+     * Met a jour la description marketing d'une property :
+     * {@code PUT /properties/:id} avec {@code content.description} UNIQUEMENT
+     * (surtout pas {@code content.photos} : une liste non vide REMPLACE tout
+     * le set de photos cote Channex — piege documente).
+     */
+    public void updatePropertyDescription(String channexPropertyId, String description) {
+        String url = props.getBaseUrl() + "/properties/" + channexPropertyId;
+        Map<String, Object> body = Map.of(
+            "property", Map.of("content", Map.of("description", description))
+        );
+        exchange(HttpMethod.PUT, url, body, Void.class);
+        log.info("Channex: description mise a jour property={} ({} chars)",
+            channexPropertyId, description.length());
+    }
+
+    /**
      * Catalogue global des facilities Channex (~180 entries standards).
      * Endpoint {@code GET /property_facilities/options} (collection non
      * filtrable par property — c'est un catalogue de reference).
@@ -767,6 +808,218 @@ public class ChannexClient {
             }).orElse(false);
     }
 
+    // ─── Webhooks (API publique, doc Webhook Collection) ────────────────────
+
+    /**
+     * Liste les webhooks du compte : {@code GET /webhooks}.
+     * Retourne les nodes {@code data[]} (id + attributes.callback_url, ...).
+     */
+    public List<JsonNode> listWebhooks() {
+        String url = props.getBaseUrl() + "/webhooks?pagination[limit]=100";
+        JsonNode response = exchange(HttpMethod.GET, url, null, JsonNode.class);
+        List<JsonNode> webhooks = new ArrayList<>();
+        if (response != null && response.path("data").isArray()) {
+            for (JsonNode node : response.path("data")) {
+                webhooks.add(node);
+            }
+        }
+        return webhooks;
+    }
+
+    /**
+     * Enregistre un webhook GLOBAL (API publique) : {@code POST /webhooks}.
+     *
+     * <p>Points de la doc a ne pas rater :</p>
+     * <ul>
+     *   <li>{@code property_id: null} + {@code is_global: true} → tous les
+     *       events de toutes les proprietes du compte (le payload contient
+     *       property_id) ;</li>
+     *   <li>{@code is_active} est {@code false} PAR DEFAUT cote Channex —
+     *       l'oublier rend le webhook muet ;</li>
+     *   <li>pas de signature HMAC : le secret partage passe en header custom
+     *       ({@code X-Channex-Token}, valide par ChannexSignatureValidator) ;</li>
+     *   <li>{@code send_data: false} : le webhook est un TRIGGER, la donnee
+     *       est re-lue via le feed/API (pattern impose par la doc).</li>
+     * </ul>
+     *
+     * @param callbackUrl URL publique du controller webhook Clenzy
+     * @param eventMask   {@code "*"} ou liste separee par {@code ;}
+     * @param secretToken valeur du header {@code X-Channex-Token}
+     * @return l'id Channex du webhook cree
+     */
+    public String registerGlobalWebhook(String callbackUrl, String eventMask, String secretToken) {
+        String url = props.getBaseUrl() + "/webhooks";
+        Map<String, Object> webhook = new LinkedHashMap<>();
+        webhook.put("callback_url", callbackUrl);
+        webhook.put("event_mask", eventMask);
+        webhook.put("property_id", null);
+        webhook.put("is_global", true);
+        webhook.put("is_active", true);
+        webhook.put("send_data", false);
+        if (secretToken != null && !secretToken.isBlank()) {
+            webhook.put("headers", Map.of("X-Channex-Token", secretToken));
+        }
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("webhook", webhook);
+
+        JsonNode response = exchange(HttpMethod.POST, url, body, JsonNode.class);
+        String id = response != null ? response.path("data").path("id").asText(null) : null;
+        log.info("Channex: webhook global enregistre id={} url={} mask={}", id, callbackUrl, eventMask);
+        return id;
+    }
+
+    // ─── Applications (doc Applications API) ────────────────────────────────
+
+    /** Catalogue des applications Channex disponibles : {@code GET /applications}. */
+    public List<JsonNode> listApplications() {
+        return fetchDataArray("/applications");
+    }
+
+    /** Applications installees (tout le compte) : {@code GET /applications/installed}. */
+    public List<JsonNode> listInstalledApplications() {
+        return fetchDataArray("/applications/installed");
+    }
+
+    /**
+     * Installe une application sur une property :
+     * {@code POST /applications/install} — utiliser {@code application_code}
+     * (ex. {@code stripe_tokenization}, {@code booking_crs}, {@code channex_messages}),
+     * PAS l'id (piege documente). Certaines apps sont payantes cote Channex.
+     *
+     * @return l'installation_id (necessaire pour desinstaller)
+     */
+    public String installApplication(String channexPropertyId, String applicationCode) {
+        String url = props.getBaseUrl() + "/applications/install";
+        Map<String, Object> body = Map.of("application_installation", Map.of(
+            "property_id", channexPropertyId,
+            "application_code", applicationCode
+        ));
+        JsonNode response = exchange(HttpMethod.POST, url, body, JsonNode.class);
+        String id = response != null ? response.path("data").path("id").asText(null) : null;
+        log.info("Channex: application {} installee sur property={} (installation={})",
+            applicationCode, channexPropertyId, id);
+        return id;
+    }
+
+    /** Desinstalle une application : {@code DELETE /applications/:installation_id/uninstall}. */
+    public void uninstallApplication(String installationId) {
+        String url = props.getBaseUrl() + "/applications/" + installationId + "/uninstall";
+        exchange(HttpMethod.DELETE, url, null, Void.class);
+        log.info("Channex: application desinstallee installation={}", installationId);
+    }
+
+    // ─── Booking CRS (doc Booking CRS API — app booking_crs requise) ────────
+
+    /**
+     * Cree un booking OFFLINE cote Channex (resa directe Baitly poussee pour
+     * la coherence multi-canal, ou booking de test pour la certification) :
+     * {@code POST /bookings}. Creation ASYNCHRONE cote Channex : un GET
+     * immediat apres le 201 peut repondre 404 (documente).
+     *
+     * @return l'id Channex du booking cree (pour modification/annulation)
+     */
+    public String createCrsBooking(Map<String, Object> bookingPayload) {
+        String url = props.getBaseUrl() + "/bookings";
+        JsonNode response = exchange(HttpMethod.POST, url,
+            Map.of("booking", bookingPayload), JsonNode.class);
+        String id = response != null ? response.path("data").path("id").asText(null) : null;
+        log.info("Channex CRS: booking cree id={}", id);
+        return id;
+    }
+
+    /**
+     * Modifie/annule un booking via le CRS (logique diff-based cote Channex) :
+     * {@code PUT /bookings/:id}. Pour annuler : {@code status: "cancelled"}.
+     */
+    public void updateCrsBooking(String channexBookingId, Map<String, Object> bookingPayload) {
+        String url = props.getBaseUrl() + "/bookings/" + channexBookingId;
+        exchange(HttpMethod.PUT, url, Map.of("booking", bookingPayload), Void.class);
+        log.info("Channex CRS: booking {} mis a jour (status={})",
+            channexBookingId, bookingPayload.get("status"));
+    }
+
+    // ─── Channel Availability Rules (open/close par canal) ──────────────────
+
+    /**
+     * Regles d'availability PAR CANAL d'une property :
+     * {@code GET /channel_availability_rules?filter[property_id]=}.
+     * Permet de fermer/limiter UN canal sans toucher l'ARI global.
+     */
+    public List<JsonNode> listChannelAvailabilityRules(String channexPropertyId) {
+        return fetchDataArray("/channel_availability_rules?filter[property_id]=" + channexPropertyId);
+    }
+
+    /**
+     * Cree une regle d'availability par canal : {@code POST /channel_availability_rules}.
+     * Payload : {@code {channel_availability_rule: {title, type: "close_out",
+     * affected_channels[], affected_room_types[], days[], start_date, end_date,
+     * property_id}}}.
+     *
+     * @return l'id Channex de la regle creee
+     */
+    public String createChannelAvailabilityRule(Map<String, Object> rulePayload) {
+        String url = props.getBaseUrl() + "/channel_availability_rules";
+        JsonNode response = exchange(HttpMethod.POST, url,
+            Map.of("channel_availability_rule", rulePayload), JsonNode.class);
+        String id = response != null ? response.path("data").path("id").asText(null) : null;
+        log.info("Channex: channel availability rule creee id={} property={}",
+            id, rulePayload.get("property_id"));
+        return id;
+    }
+
+    /** Supprime une regle d'availability par canal : {@code DELETE /channel_availability_rules/:id}. */
+    public void deleteChannelAvailabilityRule(String ruleId) {
+        String url = props.getBaseUrl() + "/channel_availability_rules/" + ruleId;
+        exchange(HttpMethod.DELETE, url, null, Void.class);
+        log.info("Channex: channel availability rule supprimee id={}", ruleId);
+    }
+
+    // ─── Reporting Booking.com (no-show / carte invalide) ───────────────────
+
+    /**
+     * Signale un no-show a Booking.com : {@code POST /bookings/:id/no_show}.
+     * Fenetre autorisee : de minuit du jour d'arrivee a +48 h. 422
+     * {@code method_not_supported} si le canal ne le supporte pas.
+     *
+     * @param waivedFees true si l'hote renonce aux frais de no-show
+     */
+    public void reportNoShow(String channexBookingId, boolean waivedFees) {
+        String url = props.getBaseUrl() + "/bookings/" + channexBookingId + "/no_show";
+        exchange(HttpMethod.POST, url,
+            Map.of("no_show_report", Map.of("waived_fees", waivedFees)), Void.class);
+        log.info("Channex: no-show signale booking={} waivedFees={}", channexBookingId, waivedFees);
+    }
+
+    /** Signale une carte invalide (Booking.com) : {@code POST /bookings/:id/invalid_card}. */
+    public void reportInvalidCard(String channexBookingId) {
+        String url = props.getBaseUrl() + "/bookings/" + channexBookingId + "/invalid_card";
+        exchange(HttpMethod.POST, url, null, Void.class);
+        log.info("Channex: carte invalide signalee booking={}", channexBookingId);
+    }
+
+    /**
+     * Annule une resa pour carte invalide (Booking.com) :
+     * {@code POST /bookings/:id/cancel_due_invalid_card} — a n'utiliser
+     * qu'apres {@link #reportInvalidCard} et le delai laisse au guest.
+     */
+    public void cancelDueInvalidCard(String channexBookingId) {
+        String url = props.getBaseUrl() + "/bookings/" + channexBookingId + "/cancel_due_invalid_card";
+        exchange(HttpMethod.POST, url, null, Void.class);
+        log.info("Channex: annulation carte invalide booking={}", channexBookingId);
+    }
+
+    /** Helper : GET d'une collection JSON:API → nodes {@code data[]}. */
+    private List<JsonNode> fetchDataArray(String path) {
+        JsonNode response = exchange(HttpMethod.GET, props.getBaseUrl() + path, null, JsonNode.class);
+        List<JsonNode> nodes = new ArrayList<>();
+        if (response != null && response.path("data").isArray()) {
+            for (JsonNode node : response.path("data")) {
+                nodes.add(node);
+            }
+        }
+        return nodes;
+    }
+
     /**
      * Helper : parse une reponse JSON:API collection {@code {"data":[...]}} vers
      * une liste de DTOs. Chaque element de data a la forme
@@ -797,26 +1050,29 @@ public class ChannexClient {
 
     /**
      * Push d'un batch d'updates de disponibilite vers Channex.
-     * Split automatique en chunks de 500 si la liste depasse la limite.
+     *
+     * <p>Les dates consecutives a valeur identique sont compressees en entrees
+     * {@code date_from}/{@code date_to} : un full sync 500 jours tient ainsi en
+     * 1 seul appel (exigence de certification — la limite reelle de Channex est
+     * 10 MB par payload, pas un nombre d'entrees). Split en chunks de
+     * {@value #ARI_MAX_ENTRIES_PER_CALL} entrees par securite.</p>
+     *
+     * @return task IDs Channex (traitement asynchrone) + warnings de validation
+     *         (les entrees fautives sont ignorees cote Channex, pas le batch)
      */
-    public void pushAvailability(List<ChannexAvailabilityUpdate> updates) {
-        if (updates == null || updates.isEmpty()) return;
+    public ChannexAriPushResult pushAvailability(List<ChannexAvailabilityUpdate> updates) {
+        if (updates == null || updates.isEmpty()) return ChannexAriPushResult.empty();
 
-        for (List<ChannexAvailabilityUpdate> chunk : chunked(updates, 500)) {
+        List<Map<String, Object>> entries = compressAvailability(updates);
+        ChannexAriPushResult result = ChannexAriPushResult.empty();
+        for (List<Map<String, Object>> chunk : chunked(entries, ARI_MAX_ENTRIES_PER_CALL)) {
             String url = props.getBaseUrl() + "/availability";
-            Map<String, Object> body = Map.of(
-                "values", chunk.stream().map(u -> Map.<String, Object>of(
-                    "property_id", u.channexPropertyId(),
-                    "room_type_id", u.channexRoomTypeId(),
-                    "date", u.date().toString(),
-                    "availability", u.availability()
-                )).toList()
-            );
-            // Void.class : Channex renvoie un array de resultats pour les batches,
-            // pas un objet — et on n'utilise pas le retour de toute facon.
-            exchange(HttpMethod.POST, url, body, Void.class);
+            JsonNode response = exchange(HttpMethod.POST, url, Map.of("values", chunk), JsonNode.class);
+            result = result.merge(parseAriResponse(response));
         }
-        log.info("Channex: pushed {} availability updates", updates.size());
+        log.info("Channex: pushed {} availability updates ({} entrees compressees, {} tasks, {} warnings)",
+            updates.size(), entries.size(), result.taskIds().size(), result.warnings().size());
+        return result;
     }
 
     // ─── Rates ──────────────────────────────────────────────────────────────
@@ -824,31 +1080,156 @@ public class ChannexClient {
     /**
      * Push d'un batch d'updates de tarifs vers Channex.
      * Inclut optionnellement les restrictions (min stay, closed-to-arrival/departure).
+     *
+     * <p>Meme logique de compression que {@link #pushAvailability} : les dates
+     * consecutives a valeurs identiques (rate + 4 restrictions) deviennent des
+     * entrees {@code date_from}/{@code date_to} → full sync en 1 appel.</p>
+     *
+     * @return task IDs Channex + warnings de validation (a journaliser)
      */
-    public void pushRates(List<ChannexRateUpdate> updates) {
-        if (updates == null || updates.isEmpty()) return;
+    public ChannexAriPushResult pushRates(List<ChannexRateUpdate> updates) {
+        if (updates == null || updates.isEmpty()) return ChannexAriPushResult.empty();
 
-        for (List<ChannexRateUpdate> chunk : chunked(updates, 500)) {
+        List<Map<String, Object>> entries = compressRates(updates);
+        ChannexAriPushResult result = ChannexAriPushResult.empty();
+        for (List<Map<String, Object>> chunk : chunked(entries, ARI_MAX_ENTRIES_PER_CALL)) {
             String url = props.getBaseUrl() + "/restrictions";
-            Map<String, Object> body = Map.of(
-                "values", chunk.stream().map(u -> {
-                    Map<String, Object> entry = new LinkedHashMap<>();
-                    entry.put("property_id", u.channexPropertyId());
-                    entry.put("rate_plan_id", u.channexRatePlanId());
-                    entry.put("date", u.date().toString());
-                    entry.put("rate", normalize(u.rate()));
-                    if (u.minStayThrough() != null) entry.put("min_stay_through", u.minStayThrough());
-                    if (u.minStayArrival() != null) entry.put("min_stay_arrival", u.minStayArrival());
-                    if (u.closedToArrival() != null) entry.put("closed_to_arrival", u.closedToArrival());
-                    if (u.closedToDeparture() != null) entry.put("closed_to_departure", u.closedToDeparture());
-                    return entry;
-                }).toList()
-            );
-            // Void.class : Channex renvoie un array de resultats pour les batches,
-            // pas un objet — et on n'utilise pas le retour de toute facon.
-            exchange(HttpMethod.POST, url, body, Void.class);
+            JsonNode response = exchange(HttpMethod.POST, url, Map.of("values", chunk), JsonNode.class);
+            result = result.merge(parseAriResponse(response));
         }
-        log.info("Channex: pushed {} rate updates", updates.size());
+        log.info("Channex: pushed {} rate updates ({} entrees compressees, {} tasks, {} warnings)",
+            updates.size(), entries.size(), result.taskIds().size(), result.warnings().size());
+        return result;
+    }
+
+    // ─── ARI : compression + parsing de reponse ─────────────────────────────
+
+    /**
+     * Nombre max d'entrees par appel ARI. La limite documentee de Channex est
+     * 10 MB par payload JSON (~200 octets/entree → ~50k entrees) ; 5000 laisse
+     * une marge confortable tout en garantissant le full sync 500 jours en
+     * 1 appel availability + 1 appel restrictions (certification, test n°1).
+     */
+    private static final int ARI_MAX_ENTRIES_PER_CALL = 5000;
+
+    /**
+     * Compresse les updates d'availability : runs de dates consecutives a valeur
+     * identique par (property, room_type) → entrees {@code date_from}/{@code date_to}.
+     */
+    private static List<Map<String, Object>> compressAvailability(List<ChannexAvailabilityUpdate> updates) {
+        List<ChannexAvailabilityUpdate> sorted = new ArrayList<>(updates);
+        sorted.sort(java.util.Comparator
+            .comparing(ChannexAvailabilityUpdate::channexPropertyId)
+            .thenComparing(ChannexAvailabilityUpdate::channexRoomTypeId)
+            .thenComparing(ChannexAvailabilityUpdate::date));
+
+        List<Map<String, Object>> out = new ArrayList<>();
+        int i = 0;
+        while (i < sorted.size()) {
+            ChannexAvailabilityUpdate run = sorted.get(i);
+            java.time.LocalDate runEnd = run.date();
+            int j = i + 1;
+            while (j < sorted.size()) {
+                ChannexAvailabilityUpdate next = sorted.get(j);
+                boolean sameSeries = next.channexPropertyId().equals(run.channexPropertyId())
+                    && next.channexRoomTypeId().equals(run.channexRoomTypeId())
+                    && next.availability() == run.availability()
+                    && next.date().equals(runEnd.plusDays(1));
+                if (!sameSeries) break;
+                runEnd = next.date();
+                j++;
+            }
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("property_id", run.channexPropertyId());
+            entry.put("room_type_id", run.channexRoomTypeId());
+            putDateOrRange(entry, run.date(), runEnd);
+            entry.put("availability", run.availability());
+            out.add(entry);
+            i = j;
+        }
+        return out;
+    }
+
+    /**
+     * Compresse les updates de rates : runs de dates consecutives a valeurs
+     * identiques (rate normalise + min stays + CTA/CTD) par (property, rate_plan).
+     */
+    private static List<Map<String, Object>> compressRates(List<ChannexRateUpdate> updates) {
+        List<ChannexRateUpdate> sorted = new ArrayList<>(updates);
+        sorted.sort(java.util.Comparator
+            .comparing(ChannexRateUpdate::channexPropertyId)
+            .thenComparing(ChannexRateUpdate::channexRatePlanId)
+            .thenComparing(ChannexRateUpdate::date));
+
+        List<Map<String, Object>> out = new ArrayList<>();
+        int i = 0;
+        while (i < sorted.size()) {
+            ChannexRateUpdate run = sorted.get(i);
+            java.time.LocalDate runEnd = run.date();
+            int j = i + 1;
+            while (j < sorted.size()) {
+                ChannexRateUpdate next = sorted.get(j);
+                if (!sameRateSeries(run, next) || !next.date().equals(runEnd.plusDays(1))) break;
+                runEnd = next.date();
+                j++;
+            }
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("property_id", run.channexPropertyId());
+            entry.put("rate_plan_id", run.channexRatePlanId());
+            putDateOrRange(entry, run.date(), runEnd);
+            entry.put("rate", normalize(run.rate()));
+            if (run.minStayThrough() != null) entry.put("min_stay_through", run.minStayThrough());
+            if (run.minStayArrival() != null) entry.put("min_stay_arrival", run.minStayArrival());
+            if (run.closedToArrival() != null) entry.put("closed_to_arrival", run.closedToArrival());
+            if (run.closedToDeparture() != null) entry.put("closed_to_departure", run.closedToDeparture());
+            if (run.maxStay() != null) entry.put("max_stay", run.maxStay());
+            out.add(entry);
+            i = j;
+        }
+        return out;
+    }
+
+    /** Egalite de serie pour la compression rates (BigDecimal via compareTo, jamais equals). */
+    private static boolean sameRateSeries(ChannexRateUpdate a, ChannexRateUpdate b) {
+        if (!b.channexPropertyId().equals(a.channexPropertyId())
+            || !b.channexRatePlanId().equals(a.channexRatePlanId())) return false;
+        boolean sameRate = (a.rate() == null && b.rate() == null)
+            || (a.rate() != null && b.rate() != null && a.rate().compareTo(b.rate()) == 0);
+        return sameRate
+            && java.util.Objects.equals(a.minStayThrough(), b.minStayThrough())
+            && java.util.Objects.equals(a.minStayArrival(), b.minStayArrival())
+            && java.util.Objects.equals(a.closedToArrival(), b.closedToArrival())
+            && java.util.Objects.equals(a.closedToDeparture(), b.closedToDeparture())
+            && java.util.Objects.equals(a.maxStay(), b.maxStay());
+    }
+
+    private static void putDateOrRange(Map<String, Object> entry,
+                                       java.time.LocalDate from, java.time.LocalDate to) {
+        if (from.equals(to)) {
+            entry.put("date", from.toString());
+        } else {
+            entry.put("date_from", from.toString());
+            entry.put("date_to", to.toString());
+        }
+    }
+
+    /**
+     * Extrait task IDs + warnings d'une reponse ARI Channex
+     * ({@code {"data":[{"id","type":"task"}], "meta":{"warnings":[...]}}}).
+     * Les erreurs de validation arrivent en 200 OK via {@code meta.warnings} —
+     * les ignorer revient a perdre silencieusement des entrees.
+     */
+    private static ChannexAriPushResult parseAriResponse(JsonNode response) {
+        if (response == null) return ChannexAriPushResult.empty();
+        List<String> tasks = new ArrayList<>();
+        for (JsonNode d : response.path("data")) {
+            if (d.hasNonNull("id")) tasks.add(d.get("id").asText());
+        }
+        List<String> warnings = new ArrayList<>();
+        for (JsonNode w : response.path("meta").path("warnings")) {
+            warnings.add(w.isTextual() ? w.asText() : w.toString());
+        }
+        return new ChannexAriPushResult(tasks, warnings);
     }
 
     /**
@@ -937,6 +1318,48 @@ public class ChannexClient {
         String url = props.getBaseUrl() + "/bookings/" + bookingId + "/ack";
         exchange(HttpMethod.POST, url, null, Void.class);
         log.info("Channex: booking acknowledged id={}", bookingId);
+    }
+
+    // ─── Booking revisions (flux primaire doc Channex) ──────────────────────
+
+    /**
+     * Feed des booking revisions NON acquittees — mecanisme primaire de
+     * reception des reservations selon la doc Channex (les webhooks ne sont
+     * qu'un declencheur : ordre non garanti, livraison best-effort).
+     *
+     * <p>{@code GET /booking_revisions/feed} renvoie toutes les revisions en
+     * attente d'ack, triees par {@code inserted_at} croissant. Une revision
+     * disparait du feed une fois acquittee via {@link #ackBookingRevision}.</p>
+     *
+     * @param limit taille de page (max 100 cote Channex)
+     * @return les nodes {@code data[]} (chacun : id + attributes = revision)
+     */
+    public List<JsonNode> fetchBookingRevisionsFeed(int limit) {
+        int safeLimit = Math.min(Math.max(1, limit), 100);
+        String url = props.getBaseUrl() + "/booking_revisions/feed"
+            + "?order[inserted_at]=asc&pagination[limit]=" + safeLimit;
+        JsonNode response = exchange(HttpMethod.GET, url, null, JsonNode.class);
+        List<JsonNode> revisions = new ArrayList<>();
+        if (response != null && response.path("data").isArray()) {
+            for (JsonNode node : response.path("data")) {
+                revisions.add(node);
+            }
+        }
+        return revisions;
+    }
+
+    /**
+     * Acquitte une booking revision : {@code POST /booking_revisions/:id/ack}.
+     *
+     * <p>A appeler UNIQUEMENT apres persistance reussie de la reservation en
+     * base (exigence doc/certification). Une revision non acquittee est
+     * re-servie par le feed, puis Channex alerte ({@code non_acked_booking})
+     * au bout de 30 minutes.</p>
+     */
+    public void ackBookingRevision(String revisionId) {
+        String url = props.getBaseUrl() + "/booking_revisions/" + revisionId + "/ack";
+        exchange(HttpMethod.POST, url, null, Void.class);
+        log.info("Channex: booking revision acknowledged id={}", revisionId);
     }
 
     /**
@@ -1345,6 +1768,8 @@ public class ChannexClient {
         if (path.contains("/rate_plans/") && method == HttpMethod.PUT) return "update_rate_plan_settings";
         if (path.endsWith("/availability")) return "push_availability";
         if (path.endsWith("/restrictions")) return "push_rates";
+        if (path.contains("/booking_revisions/") && path.endsWith("/ack")) return "ack_booking_revision";
+        if (path.contains("/booking_revisions/feed")) return "booking_revisions_feed";
         if (path.contains("/bookings/") && path.endsWith("/ack")) return "acknowledge_booking";
         if (path.contains("/bookings/")) return "get_booking";
         if (path.startsWith("/bookings") || path.contains("/bookings?")) return "list_bookings";

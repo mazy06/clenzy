@@ -59,6 +59,8 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
     private static final List<TemplateSeed> SEEDS = List.of(
             new TemplateSeed(DocumentType.DEVIS, "seed/document-templates/devis-clenzy.odt",
                     "Devis Clenzy", "Devis Clenzy.odt"),
+            new TemplateSeed(DocumentType.DEVIS_MENAGE, "seed/document-templates/devis-menage-clenzy.odt",
+                    "Devis Menage Clenzy", "Devis Menage Clenzy.odt"),
             new TemplateSeed(DocumentType.FACTURE, "seed/document-templates/facture-clenzy.odt",
                     "Facture Clenzy", "Facture Clenzy.odt"),
             new TemplateSeed(DocumentType.AUTORISATION_TRAVAUX, "seed/document-templates/autorisation-travaux-clenzy.odt",

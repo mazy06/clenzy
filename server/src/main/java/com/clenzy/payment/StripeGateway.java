@@ -149,6 +149,16 @@ public class StripeGateway {
         return AccountLink.create(params, requestOptions(null));
     }
 
+    public com.stripe.model.Account retrieveAccount(String accountId) throws StripeException {
+        return com.stripe.model.Account.retrieve(accountId, requestOptions(null));
+    }
+
+    /** Account Session — onboarding Connect EMBARQUÉ (composants @stripe/connect-js). */
+    public com.stripe.model.AccountSession createAccountSession(
+            com.stripe.param.AccountSessionCreateParams params) throws StripeException {
+        return com.stripe.model.AccountSession.create(params, requestOptions(null));
+    }
+
     private RequestOptions requestOptions(String idempotencyKey) {
         RequestOptions.RequestOptionsBuilder builder = RequestOptions.builder()
             .setApiKey(stripeSecretKey);

@@ -37,6 +37,7 @@ class SupervisionSuggestionServiceApplyTest {
 
     private static final Long ORG_ID = 1L;
     private static final Long SUGGESTION_ID = 50L;
+    private static final String APPLIED_BY = "user:test";
 
     @Mock private SupervisionSuggestionRepository repository;
     @Mock private SuggestionActionExecutor actionExecutor;
@@ -44,6 +45,7 @@ class SupervisionSuggestionServiceApplyTest {
     @Mock private SupervisionRealtimePublisher realtimePublisher;
     @Mock private com.clenzy.service.UnpaidServiceRequestCardService unpaidServiceRequestCardService;
     @Mock private PlatformTransactionManager transactionManager;
+    @Mock private SupervisionActivityService activityService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -53,7 +55,7 @@ class SupervisionSuggestionServiceApplyTest {
     void setUp() {
         service = new SupervisionSuggestionService(
                 repository, actionExecutor, notificationService, realtimePublisher,
-                unpaidServiceRequestCardService, clock, transactionManager);
+                unpaidServiceRequestCardService, activityService, clock, transactionManager);
     }
 
     private static SupervisionSuggestion suggestion(String actionType) {
@@ -70,10 +72,10 @@ class SupervisionSuggestionServiceApplyTest {
         when(repository.findByIdAndOrganizationId(SUGGESTION_ID, ORG_ID))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.apply(ORG_ID, SUGGESTION_ID))
+        assertThatThrownBy(() -> service.apply(ORG_ID, SUGGESTION_ID, APPLIED_BY))
                 .isInstanceOf(NotFoundException.class);
         verify(actionExecutor, never()).execute(any());
-        verify(repository, never()).markApplied(any(), any(), any());
+        verify(repository, never()).markApplied(any(), any(), any(), any());
     }
 
     @Test
@@ -82,10 +84,10 @@ class SupervisionSuggestionServiceApplyTest {
         when(repository.findByIdAndOrganizationId(SUGGESTION_ID, ORG_ID))
                 .thenReturn(Optional.of(suggestion(null)));
 
-        assertThatThrownBy(() -> service.apply(ORG_ID, SUGGESTION_ID))
+        assertThatThrownBy(() -> service.apply(ORG_ID, SUGGESTION_ID, APPLIED_BY))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("pas actionnable");
-        verify(repository, never()).markApplied(any(), any(), any());
+        verify(repository, never()).markApplied(any(), any(), any(), any());
     }
 
     @Test
@@ -93,9 +95,9 @@ class SupervisionSuggestionServiceApplyTest {
     void alreadyApplied_rejected() {
         when(repository.findByIdAndOrganizationId(SUGGESTION_ID, ORG_ID))
                 .thenReturn(Optional.of(suggestion(SupervisionActionType.DEPOSIT_REFUND)));
-        when(repository.markApplied(eq(SUGGESTION_ID), eq(ORG_ID), any(Instant.class))).thenReturn(0);
+        when(repository.markApplied(eq(SUGGESTION_ID), eq(ORG_ID), any(Instant.class), eq(APPLIED_BY))).thenReturn(0);
 
-        assertThatThrownBy(() -> service.apply(ORG_ID, SUGGESTION_ID))
+        assertThatThrownBy(() -> service.apply(ORG_ID, SUGGESTION_ID, APPLIED_BY))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("déjà traitée");
         verify(actionExecutor, never()).execute(any());
@@ -106,10 +108,10 @@ class SupervisionSuggestionServiceApplyTest {
     void dbOnlyAction_executedInTransaction() {
         SupervisionSuggestion s = suggestion(SupervisionActionType.CALENDAR_BLOCK);
         when(repository.findByIdAndOrganizationId(SUGGESTION_ID, ORG_ID)).thenReturn(Optional.of(s));
-        when(repository.markApplied(eq(SUGGESTION_ID), eq(ORG_ID), any(Instant.class))).thenReturn(1);
+        when(repository.markApplied(eq(SUGGESTION_ID), eq(ORG_ID), any(Instant.class), eq(APPLIED_BY))).thenReturn(1);
         when(actionExecutor.hasExternalEffect(SupervisionActionType.CALENDAR_BLOCK)).thenReturn(false);
 
-        service.apply(ORG_ID, SUGGESTION_ID);
+        service.apply(ORG_ID, SUGGESTION_ID, APPLIED_BY);
 
         verify(actionExecutor).execute(s);
         verify(repository, never()).revertApplied(any(), any());
@@ -120,10 +122,10 @@ class SupervisionSuggestionServiceApplyTest {
     void externalAction_executedAfterCasCommit() {
         SupervisionSuggestion s = suggestion(SupervisionActionType.DEPOSIT_REFUND);
         when(repository.findByIdAndOrganizationId(SUGGESTION_ID, ORG_ID)).thenReturn(Optional.of(s));
-        when(repository.markApplied(eq(SUGGESTION_ID), eq(ORG_ID), any(Instant.class))).thenReturn(1);
+        when(repository.markApplied(eq(SUGGESTION_ID), eq(ORG_ID), any(Instant.class), eq(APPLIED_BY))).thenReturn(1);
         when(actionExecutor.hasExternalEffect(SupervisionActionType.DEPOSIT_REFUND)).thenReturn(true);
 
-        service.apply(ORG_ID, SUGGESTION_ID);
+        service.apply(ORG_ID, SUGGESTION_ID, APPLIED_BY);
 
         verify(actionExecutor).execute(s);
         // Le CAS a ete committe (transaction 1) avant l'appel Stripe : succes -> pas de compensation.
@@ -136,16 +138,65 @@ class SupervisionSuggestionServiceApplyTest {
     void externalActionFailure_revertsToPending() {
         SupervisionSuggestion s = suggestion(SupervisionActionType.DEPOSIT_RELEASE);
         when(repository.findByIdAndOrganizationId(SUGGESTION_ID, ORG_ID)).thenReturn(Optional.of(s));
-        when(repository.markApplied(eq(SUGGESTION_ID), eq(ORG_ID), any(Instant.class))).thenReturn(1);
+        when(repository.markApplied(eq(SUGGESTION_ID), eq(ORG_ID), any(Instant.class), eq(APPLIED_BY))).thenReturn(1);
         when(actionExecutor.hasExternalEffect(SupervisionActionType.DEPOSIT_RELEASE)).thenReturn(true);
         doThrow(new IllegalStateException("Stripe indisponible")).when(actionExecutor).execute(s);
 
-        assertThatThrownBy(() -> service.apply(ORG_ID, SUGGESTION_ID))
+        assertThatThrownBy(() -> service.apply(ORG_ID, SUGGESTION_ID, APPLIED_BY))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Stripe");
 
         // La suggestion redevient actionnable : l'operateur peut re-tenter.
         verify(repository).revertApplied(SUGGESTION_ID, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("apply auto (Vague 1) : l'acteur systeme est trace par le CAS et visible de l'executeur")
+    void autoApply_tracesSystemActor() {
+        SupervisionSuggestion s = suggestion(SupervisionActionType.CLEANING_REQUEST);
+        when(repository.findByIdAndOrganizationId(SUGGESTION_ID, ORG_ID)).thenReturn(Optional.of(s));
+        when(repository.markApplied(eq(SUGGESTION_ID), eq(ORG_ID), any(Instant.class),
+                eq(SupervisionSuggestion.APPLIED_BY_AUTO))).thenReturn(1);
+        when(actionExecutor.hasExternalEffect(SupervisionActionType.CLEANING_REQUEST)).thenReturn(false);
+
+        service.apply(ORG_ID, SUGGESTION_ID, SupervisionSuggestion.APPLIED_BY_AUTO);
+
+        // L'auteur est reflete sur l'instance passee a l'executeur (protections auto).
+        assertThat(s.getAppliedBy()).isEqualTo(SupervisionSuggestion.APPLIED_BY_AUTO);
+        verify(actionExecutor).execute(s);
+        verify(repository, never()).revertApplied(any(), any());
+    }
+
+    @Test
+    @DisplayName("recordActionableForAutoApply : memes garanties, mais AUCUNE notification « en attente »")
+    void recordActionableForAutoApply_doesNotNotifyPending() {
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
+                any(), any(), any(), any(), any())).thenReturn(false);
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
+                any(), any(), any(), any(), any(), any())).thenReturn(false);
+
+        service.recordActionableForAutoApply(ORG_ID, 10L, "ops", 100L, "Menage manquant", "motif",
+                SupervisionActionType.CLEANING_REQUEST, "{}", null, "warning");
+
+        verify(repository).save(any(SupervisionSuggestion.class));
+        // La carte va etre auto-appliquee : pas de « attend votre validation » contradictoire.
+        verify(notificationService, never()).notifyAdminsAndManagersByOrgId(
+                any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("recordActionableForAutoApply : cooldown dismiss respecte (pas de re-creation)")
+    void recordActionableForAutoApply_respectsDismissCooldown() {
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
+                any(), any(), any(), any(), any())).thenReturn(false);
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
+                any(), any(), any(), any(), any(), any())).thenReturn(true);
+
+        var id = service.recordActionableForAutoApply(ORG_ID, 10L, "ops", null, "Menage manquant",
+                "motif", SupervisionActionType.CLEANING_REQUEST, "{}", null, "warning");
+
+        assertThat(id).isEmpty();
+        verify(repository, never()).save(any());
     }
 
     @Test

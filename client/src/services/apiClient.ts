@@ -37,23 +37,38 @@ export interface RequestOptions {
 
 let refreshPromise: Promise<boolean> | null = null;
 
-async function refreshTokenOnce(): Promise<boolean> {
+/**
+ * Renouvelle la session (mutex partage). Deux chemins complementaires :
+ *  1. `keycloak.refreshToken` present (login recent, meme onglet, sans reload)
+ *     → refresh JS classique via `updateToken`.
+ *  2. Sinon — mode degrade apres un hard refresh, quand le token JS a disparu
+ *     de la memoire (cf. keycloak.ts) — → refresh COTE SERVEUR via le cookie
+ *     HttpOnly `clenzy_refresh` (POST /api/auth/session/refresh). C'est ce
+ *     second chemin qui corrige les deconnexions au rechargement : avant, sans
+ *     `keycloak.refreshToken`, tout refresh etait abandonne.
+ *
+ * Exporte pour le refresh PROACTIF (cf. keycloak.ts) en plus de l'intercepteur 401.
+ */
+export function refreshSession(): Promise<boolean> {
   if (refreshPromise) return refreshPromise;
 
   refreshPromise = (async () => {
     try {
-      if (!keycloak.authenticated || !keycloak.refreshToken) return false;
-      const refreshed = await keycloak.updateToken(30);
-      if (refreshed && keycloak.token) {
-        // Sync the fresh token to the HttpOnly cookie (source of truth).
-        // Le token vit aussi en memoire dans keycloak.token pour les
-        // callers qui injectent encore manuellement un header Authorization.
-        await syncTokenCookie(keycloak.token);
-        return true;
+      // Chemin 1 : refresh token encore en memoire JS
+      if (keycloak.authenticated && keycloak.refreshToken) {
+        try {
+          await keycloak.updateToken(60);
+          if (keycloak.token) {
+            await syncTokenCookie(keycloak.token, keycloak.refreshToken);
+            return true;
+          }
+        } catch {
+          // updateToken a echoue (refresh token expire cote Keycloak) :
+          // on tente quand meme le cookie serveur ci-dessous.
+        }
       }
-      return false;
-    } catch {
-      return false;
+      // Chemin 2 : refresh cote serveur via le cookie HttpOnly clenzy_refresh
+      return await backendRefresh();
     } finally {
       refreshPromise = null;
     }
@@ -62,22 +77,59 @@ async function refreshTokenOnce(): Promise<boolean> {
   return refreshPromise;
 }
 
+/**
+ * Renouvelle la session cote serveur depuis le cookie HttpOnly clenzy_refresh.
+ * Aucun token ne transite en JS. En cas de succes, on met a jour l'`exp` du
+ * `tokenParsed` Keycloak (mode degrade) pour que le refresh proactif se re-arme
+ * sur la nouvelle expiration plutot que sur l'ancienne (sinon : boucle serree).
+ */
+async function backendRefresh(): Promise<boolean> {
+  try {
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/auth/session/refresh`;
+    const resp = await fetch(url, { method: 'POST', credentials: 'include' });
+    if (!resp.ok) return false;
+    const data = (await resp.json().catch(() => null)) as { expiresAt?: number } | null;
+    if (data?.expiresAt && keycloak.tokenParsed) {
+      keycloak.tokenParsed.exp = data.expiresAt;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Alias historique conserve pour l'intercepteur 401 ci-dessous. */
+function refreshTokenOnce(): Promise<boolean> {
+  return refreshSession();
+}
+
 // ─── HttpOnly Cookie Sync ───────────────────────────────────────────────────
 
 /**
  * Syncs the JWT to a server-side HttpOnly cookie.
  * Called after login and after each token refresh.
  * The server sets Set-Cookie: clenzy_auth=<token>; HttpOnly; Secure; SameSite=Strict.
+ *
+ * Quand `refreshToken` est fourni (typiquement au login / apres un updateToken),
+ * il est transmis UNE fois via le header `X-Refresh-Token` pour que le backend
+ * le stocke dans le cookie HttpOnly `clenzy_refresh`. Ce cookie permet ensuite
+ * de renouveler la session cote serveur (POST /api/auth/session/refresh), y
+ * compris apres un hard refresh ou un echec de check-sso — sans jamais exposer
+ * le refresh token au JS au-dela de ce transfert initial.
  */
-export async function syncTokenCookie(token: string): Promise<void> {
+export async function syncTokenCookie(token: string, refreshToken?: string): Promise<void> {
   try {
     const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/auth/session`;
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+    if (refreshToken) {
+      headers['X-Refresh-Token'] = refreshToken;
+    }
     await fetch(url, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include', // Accept the Set-Cookie from server
     });
   } catch {

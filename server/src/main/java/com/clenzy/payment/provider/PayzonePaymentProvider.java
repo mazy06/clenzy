@@ -64,6 +64,13 @@ public class PayzonePaymentProvider implements PaymentProvider {
     }
 
     @Override
+    public Set<PaymentCapability> getCapabilities() {
+        // PAY + REFUND uniquement : pas de payout sortant ni de card-on-file,
+        // capture = auto (pas de vraie pré-autorisation).
+        return Set.of(PaymentCapability.PAY, PaymentCapability.REFUND);
+    }
+
+    @Override
     public Set<String> getSupportedCountries() {
         return Set.of("MA");
     }
@@ -77,7 +84,7 @@ public class PayzonePaymentProvider implements PaymentProvider {
     @CircuitBreaker(name = "payzone-api")
     public PaymentResult createPayment(PaymentRequest request) {
         try {
-            Long orgId = readOrgId(request);
+            Long orgId = PaymentAdapterSupport.requireOrgId(request, "Payzone");
             PayzoneCredentials creds = loadCredentials(orgId);
 
             String successUrl = request.successUrl() != null && !request.successUrl().isBlank()
@@ -193,7 +200,7 @@ public class PayzonePaymentProvider implements PaymentProvider {
             mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
             byte[] computed = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
             String computedHex = HexFormat.of().formatHex(computed);
-            return constantTimeEquals(computedHex, signature.trim());
+            return WebhookSignatures.constantTimeEqualsIgnoreCase(computedHex, signature.trim());
         } catch (Exception e) {
             log.error("Payzone webhook signature verification failed", e);
             return false;
@@ -201,14 +208,6 @@ public class PayzonePaymentProvider implements PaymentProvider {
     }
 
     // ─── Helpers internes ──────────────────────────────────────────────────
-
-    private Long readOrgId(PaymentRequest request) {
-        if (request.metadata() == null || !request.metadata().containsKey("orgId")) {
-            throw new IllegalStateException(
-                "Payzone createPayment called without orgId metadata — orchestrator must inject it");
-        }
-        return Long.parseLong(request.metadata().get("orgId"));
-    }
 
     private PayzoneCredentials loadCredentials(Long orgId) {
         PaymentMethodConfig config = configService.getOrCreateConfig(orgId, PaymentProviderType.PAYZONE);
@@ -225,17 +224,6 @@ public class PayzonePaymentProvider implements PaymentProvider {
         String failureUrl = json != null && json.get("defaultFailureUrl") instanceof String s ? s : null;
         boolean sandbox = Boolean.TRUE.equals(config.getSandboxMode());
         return new PayzoneCredentials(apiKey, sandbox, webhookUrl, successUrl, failureUrl);
-    }
-
-    private static boolean constantTimeEquals(String a, String b) {
-        if (a.length() != b.length()) return false;
-        int diff = 0;
-        String ac = a.toLowerCase();
-        String bc = b.toLowerCase();
-        for (int i = 0; i < ac.length(); i++) {
-            diff |= ac.charAt(i) ^ bc.charAt(i);
-        }
-        return diff == 0;
     }
 
     private record PayzoneCredentials(

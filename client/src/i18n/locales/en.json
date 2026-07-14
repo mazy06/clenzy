@@ -123,6 +123,10 @@
       "action": "Apply",
       "dismiss": "Dismiss"
     },
+    "guestCard": {
+      "badge": "To complete",
+      "cta": "Complete guest details"
+    },
     "tools": {
       "ical_sync_failed": "Calendar sync failed",
       "sensor_anomaly": "Sensor anomaly",
@@ -155,7 +159,30 @@
       "trigger_channel_sync": "Channel sync triggered",
       "update_intervention_status": "Intervention status updated",
       "update_property_status": "Property status updated",
-      "update_reservation_status": "Reservation status updated"
+      "update_reservation_status": "Reservation status updated",
+      "yield_price_adjusted": "Rate adjusted automatically (yield rule)",
+      "auto_applied": "Action applied automatically",
+      "suggestion_applied": "Suggestion approved and applied",
+      "concierge_replied": "Reply sent to the guest",
+      "concierge_drafted": "Guest reply draft prepared",
+      "owner_statement_sent": "Owner statement sent",
+      "deferred_payment_reminder": "Payment reminder sent",
+      "SEND_MESSAGE": "Message sent (automation)",
+      "SEND_GUIDE": "Welcome guide sent (automation)",
+      "SEND_CHECKIN_LINK": "Check-in link sent (automation)",
+      "SEND_NOISE_WARNING": "Noise warning sent (automation)",
+      "SEND_REVIEW_REQUEST": "Review request sent (automation)",
+      "CREATE_CLEANING_REQUEST": "Cleaning created (automation)",
+      "CANCEL_LINKED_CLEANING_REQUEST": "Linked cleaning cancelled (automation)",
+      "CREATE_MAINTENANCE_INTERVENTION": "Maintenance intervention created (automation)",
+      "NOTIFY_STAFF": "Staff notified (automation)",
+      "REVOKE_ACCESS_CODE": "Access code revoked (automation)",
+      "SEND_INVOICE_REMINDER": "Invoice reminder sent (automation)",
+      "SEND_OWNER_STATEMENT": "Owner statement sent (automation)",
+      "SUGGEST_DEPOSIT_REFUND": "Deposit refund suggested (automation)",
+      "SUGGEST_DEPOSIT_RELEASE": "Deposit release suggested (automation)",
+      "NOTIFY_RATE_PARITY": "Rate parity gap flagged (automation)",
+      "SUGGEST_CALENDAR_BLOCK": "Calendar block suggested (automation)"
     },
     "approval": {
       "title": "Approval required",
@@ -183,16 +210,68 @@
     "feed": {
       "title": "Live",
       "empty": "No recent agent actions",
-      "emptyOnboarding": "The agents are watching your properties. Their actions and suggestions to approve will appear here — nothing runs without your consent."
+      "emptyOnboarding": "The agents are watching your properties. Their actions and suggestions to approve will appear here — nothing runs without your consent.",
+      "openMessage": "View the message sent",
+      "openInvoice": "View the invoice"
+    },
+    "messageModal": {
+      "title": "Message sent",
+      "subject": "Subject",
+      "loading": "Loading message…",
+      "unavailable": "Message preview unavailable.",
+      "close": "Close"
+    },
+    "invoiceModal": {
+      "title": "Invoice",
+      "amount": "Total incl. tax",
+      "dueDate": "Due date",
+      "buyer": "Customer",
+      "reservation": "Reservation",
+      "intervention": "Service",
+      "openBilling": "Open in Billing",
+      "pay": "Pay",
+      "sendLink": "Send payment link",
+      "sentTo": "Payment link sent to",
+      "notPayable": "This invoice is not (or no longer) payable online.",
+      "loadError": "Invoice not found or inaccessible.",
+      "payError": "Payment link not generated.",
+      "sendError": "Sending failed — no resolvable customer email or invoice not payable.",
+      "close": "Close",
+      "status": {
+        "DRAFT": "Draft",
+        "SENT": "Sent",
+        "ISSUED": "Issued",
+        "PAID": "Paid",
+        "OVERDUE": "Overdue",
+        "CANCELLED": "Cancelled",
+        "CREDIT_NOTE": "Credit note"
+      }
     },
     "report": {
       "title": "Report · 30 days",
       "titleBase": "Report",
       "windowDays": "{{count}} days",
-      "win": { "day": "Day", "week": "Week", "fortnight": "Fortn.", "month": "Month" },
+      "win": {
+        "day": "Day",
+        "week": "Week",
+        "fortnight": "Fortn.",
+        "month": "Month"
+      },
       "timeSaved": "Time saved",
       "autoActions": "Auto actions",
-      "acceptance": "Acceptance"
+      "acceptance": "Acceptance",
+      "acceptanceByType": "Acceptance by type",
+      "decisions": "{{count}} dec.",
+      "types": {
+        "CLEANING_REQUEST": "Missing cleaning",
+        "REVIEW_DRAFT_REPLY": "Review reply draft",
+        "PRICE_DROP": "Price adjustment",
+        "YIELD_PRICE_ADJUST": "Yield adjustment",
+        "CALENDAR_BLOCK": "Calendar block",
+        "DEPOSIT_REFUND": "Deposit refund",
+        "DEPOSIT_RELEASE": "Deposit release",
+        "PAYMENT_REMINDER": "Payment reminder"
+      }
     },
     "reviewDrafts": {
       "title": "Reply drafts (AI)",
@@ -1610,7 +1689,31 @@
     "activeFeatures": "Active options",
     "department": "Department",
     "arrondissement": "District",
-    "addressAutocomplete": "Search for an address..."
+    "addressAutocomplete": "Search for an address...",
+    "cleaningEstimator": {
+      "engineBadge": "Baitly Cleaning Engine",
+      "adopted": "Property price aligned with recommendation",
+      "adoptAsBasePrice": "Adopt as property price",
+      "currentBasePrice": "Current property price",
+      "breakdownTitle": "Time breakdown",
+      "breakdown": {
+        "base": "Base (bedrooms)",
+        "bathrooms": "Extra bathrooms",
+        "surface": "Surface above threshold",
+        "floors": "Extra floors",
+        "exterior": "Exterior",
+        "laundry": "Laundry / linen",
+        "guests": "Guests above 4"
+      }
+    },
+    "cleaningQuote": {
+      "button": "Cleaning quote",
+      "confirmTitle": "Send the cleaning quote?",
+      "confirmBody": "The cleaning quote (recommended price per type, range and duration) will be generated as a PDF and emailed to the property owner. Informational document, no signature.",
+      "confirmSend": "Send to owner",
+      "sent": "Cleaning quote sent to the owner",
+      "error": "Failed to send the cleaning quote"
+    }
   },
   "serviceRequests": {
     "detail": {
@@ -2061,6 +2164,97 @@
     }
   },
   "reservations": {
+    "dialog": {
+      "priceVariable": "variable",
+      "editGuest": "Edit traveler",
+      "nationality": "Nationality (country)",
+      "language": "Language",
+      "guestNotes": "Notes",
+      "stepStay": "Stay & dates",
+      "stepTraveler": "Traveler",
+      "stepPricing": "Pricing & extras",
+      "stepFinalize": "Finalize",
+      "next": "Next",
+      "previous": "Back",
+      "recapTitle": "Summary",
+      "recapProperty": "Property",
+      "recapDates": "Dates",
+      "recapGuest": "Traveler",
+      "recapTotal": "Total",
+      "stayDates": "Stay dates",
+      "traveler": "Traveler",
+      "travelers": "Travelers",
+      "pricingSection": "Pricing",
+      "basePerNight": "Base / night (€)",
+      "customPrice": "Custom price (€/night)",
+      "discountEuro": "Discount (€)",
+      "discountPercent": "Discount (%)",
+      "tabCustom": "Custom",
+      "tabDiscountEuro": "Discount €",
+      "tabDiscountPercent": "Discount %",
+      "night": "night",
+      "nights": "nights",
+      "total": "Total",
+      "accommodation": "Accommodation",
+      "cleaningLine": "Cleaning",
+      "touristTaxLine": "Tourist tax",
+      "cleaningAtCheckout": "Cleaning at checkout",
+      "cleaningFee": "Cleaning fee (€)",
+      "touristTaxPerPerson": "Tax / person / night (€)",
+      "estimatedCleaning": "Property estimate: {{amount}} €",
+      "notesPlaceholder": "Additional information…",
+      "searchGuest": "Search for a guest…",
+      "noGuestFound": "No guest found",
+      "typeToSearch": "Type at least 2 characters",
+      "createGuest": "Create a guest record",
+      "newGuest": "New traveler",
+      "createGuestSubmit": "Create guest",
+      "createGuestError": "Error while creating",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "propertyPlaceholder": "Select a property",
+      "propertyAutoSelected": "Property auto-selected",
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "clearDates": "Clear",
+      "conflictTitle": "Conflict detected",
+      "conflictReservation": "Conflict with {{name}}'s reservation ({{start}} → {{end}})",
+      "conflictCleaning": "Conflict with a scheduled cleaning ({{start}} → {{end}})",
+      "conflictMaintenance": "Conflict with scheduled maintenance ({{start}} → {{end}})",
+      "conflictBlocked": "Conflict with a block ({{start}} → {{end}})",
+      "conflictBlocking": "Cannot create the reservation: conflict with an existing event in this slot",
+      "errorGuestRequired": "Please select or create a guest",
+      "errorDatesRequired": "Please select the dates",
+      "errorCreateFailed": "Error while creating",
+      "errorUpdateFailed": "Error while updating",
+      "submitCreate": "Create reservation",
+      "submitCreatePayment": "Create & send payment link",
+      "confirmNow": "Confirm now",
+      "requestPayment": "Request payment",
+      "paymentEmail": "Email for the payment link",
+      "paymentEmailHelp": "The Stripe link will be sent to this address.",
+      "confirmNowHint": "Blocks the calendar immediately, generates access codes and notifies the guest.",
+      "requestPaymentHint": "Creates the reservation as pending and sends a Stripe payment link to the guest; the dates are only blocked once payment is received.",
+      "errorPaymentNeedsAmount": "Enter an amount to request a payment.",
+      "errorPaymentNeedsEmail": "A guest email is required to send the payment link.",
+      "paymentLinkError": "Reservation created (pending), but sending the payment link failed. Retry, or send it from the reservation.",
+      "submitCreating": "Creating…",
+      "submitSaving": "Saving…",
+      "modeReservation": "Reservation",
+      "modeBlock": "Block",
+      "blockTitle": "Block a period",
+      "blockTypeLabel": "Type",
+      "blockTypeBlocked": "Blocked (unavailable)",
+      "blockTypeMaintenance": "Maintenance / Works",
+      "blockReason": "Reason (optional)",
+      "blockReasonPlaceholder": "E.g. owner stay, plumbing works…",
+      "blockSubmit": "Block",
+      "blockSubmitting": "Blocking…",
+      "blockNight": "night blocked",
+      "blockNights": "nights blocked",
+      "blockErrorRequired": "Please select a property and dates.",
+      "blockErrorFailed": "Failed to block the period"
+    },
     "compliance": {
       "title": "Police record",
       "primaryTraveler": "Primary traveler",
@@ -2571,7 +2765,14 @@
     "email": "Email",
     "role": "Role",
     "firstName": "First name",
-    "lastName": "Last name"
+    "lastName": "Last name",
+    "ratesDialog": {
+      "title": "Rates & score",
+      "inMarket": "In market range",
+      "loadError": "Could not load this provider's rates.",
+      "saveError": "Save failed.",
+      "saved": "Rates saved."
+    }
   },
   "settings": {
     "title": "Settings",
@@ -2684,7 +2885,7 @@
       "manualNote": "Manual transfer"
     },
     "myPayout": {
-      "tabLabel": "My payouts",
+      "tabLabel": "Owner payouts",
       "title": "My payout details",
       "subtitle": "Enter your bank details to receive your payouts.",
       "statusLabel": "Status",
@@ -2833,6 +3034,62 @@
         "disconnectTitle": "Disconnect Pennylane",
         "disconnectConfirm": "Do you want to disconnect Pennylane? Accounting sync will be stopped."
       }
+    },
+    "myRates": {
+      "tabLabel": "My rates",
+      "hourlySection": "Hourly rate",
+      "hourlyRate": "My hourly rate",
+      "referenceRate": "Platform reference rate",
+      "hourlyHint": "Applied to cleaning missions without a flat rate: standardized property duration × your rate.",
+      "flatSection": "Flat rates per property",
+      "flatHint": "The flat rate takes precedence over the hourly rate for that property. Leave empty to use the hourly rate.",
+      "flatFieldAria": "Flat rate for {{name}}",
+      "advisoryLine": "Advisory for this property: {{min}} – {{max}} €",
+      "advisoryMedian": "median",
+      "inMarket": "in market",
+      "vsAdvisory": "vs advisory",
+      "noProperties": "No properties in your organization.",
+      "save": "Save my rates",
+      "saveSuccess": "Rates saved",
+      "saveError": "Error while saving",
+      "loadError": "Unable to load your rates.",
+      "scoreSection": "Quality score (30 days)",
+      "scoreDetail": "{{count}} completed missions · {{proof}}% with photo proof",
+      "scoreHint": "Score = share of missions with an \"after\" photo × volume (5 missions = full weight). It influences auto-assignment if your organization enabled it."
+    },
+    "myProPayouts": {
+      "tabLabel": "My mission payouts",
+      "accountSection": "Payout account",
+      "accountHint": "Your cleaning mission payouts are sent to your Stripe account. Setup happens here, without leaving Baitly.",
+      "statusNotStarted": "not set up",
+      "statusInProgress": "in progress",
+      "statusComplete": "set up",
+      "startOnboarding": "Set up my payouts",
+      "resumeOnboarding": "Resume setup",
+      "refreshStatus": "Re-check",
+      "noPublishableKey": "Stripe configuration missing (publishable key).",
+      "onboardingError": "Unable to start Stripe setup.",
+      "loadError": "Unable to load your payouts.",
+      "historySection": "Payout history",
+      "noPayouts": "No payouts yet.",
+      "colDate": "Date",
+      "colMission": "Mission",
+      "colAmount": "Amount",
+      "colCommission": "Commission",
+      "colStatus": "Status",
+      "status": {
+        "SENT": "sent",
+        "PENDING": "pending",
+        "FAILED": "failed",
+        "BLOCKED": "blocked"
+      },
+      "reason": {
+        "PROOF_MISSING": "photo proof missing",
+        "ONBOARDING_INCOMPLETE": "account setup required",
+        "AMOUNT_NOT_POSITIVE": "non-positive amount"
+      },
+      "completeMission": "Complete the mission",
+      "finishOnboarding": "Finish payout account setup"
     }
   },
   "contracts": {
@@ -3098,6 +3355,7 @@
       "invoices": "Invoices",
       "payouts": "Payouts",
       "expenses": "Expenses",
+      "housekeeperPayouts": "Provider payouts",
       "reportsExports": "Reports & Exports",
       "exportsSection": "Accounting Exports"
     },
@@ -3114,7 +3372,82 @@
     "subtitle": "Manage service requests and interventions",
     "tabs": {
       "serviceRequests": "Service Requests",
-      "interventions": "Interventions"
+      "interventions": "Interventions",
+      "issues": "Issues"
+    },
+    "recommended": {
+      "scale": "Recommended scale",
+      "conform": "on scale",
+      "vsScale": "vs scale"
+    }
+  },
+  "issues": {
+    "status": {
+      "open": "Open",
+      "qualified": "Qualified",
+      "converted": "Converted",
+      "dismissed": "Dismissed"
+    },
+    "severity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "filters": {
+      "all": "All"
+    },
+    "columns": {
+      "date": "Date",
+      "property": "Property",
+      "title": "Issue",
+      "severity": "Severity",
+      "suggestedCost": "Suggested cost",
+      "status": "Status"
+    },
+    "empty": {
+      "title": "No reported issues",
+      "description": "Field reports (cleaning, maintenance) will appear here for qualification."
+    },
+    "reportedBy": "Reported by",
+    "dismissedReason": "Dismissal reason",
+    "openServiceRequest": "View maintenance request",
+    "qualifySection": "Qualification",
+    "fields": {
+      "category": "Category",
+      "categoryHelp": "Aligned with the works catalog → automatic pricing",
+      "severity": "Severity",
+      "suggestedCost": "Cost (€)",
+      "dismissReason": "Dismissal reason (optional)"
+    },
+    "convertConfirm": "Create a pre-priced maintenance request at",
+    "convertConfirmSuffix": "confirm?",
+    "noCost": "manual pricing",
+    "actionError": "Action failed — check the issue status.",
+    "actions": {
+      "dismiss": "Dismiss",
+      "qualify": "Qualify",
+      "convert": "Convert to maintenance",
+      "confirmConvert": "Confirm conversion"
+    },
+    "create": {
+      "button": "Report an issue",
+      "title": "Report an issue",
+      "property": "Property",
+      "selectProperty": "Select a property",
+      "description": "Description (optional)",
+      "noCategory": "No category",
+      "submit": "Report",
+      "success": "Issue reported",
+      "error": "Creation failed — check the fields."
+    },
+    "categories": {
+      "damage": "Damage found",
+      "missing_item": "Missing item",
+      "hygiene": "Hygiene problem",
+      "equipment": "Faulty equipment",
+      "safety": "Safety risk",
+      "other": "Other"
     }
   },
   "propertiesPage": {
@@ -3268,7 +3601,8 @@
       "exterieur": "Outdoor",
       "blanchisserie": "Laundry",
       "monitoring": "Monitoring",
-      "taxeSejour": "Tourist tax"
+      "taxeSejour": "Tourist tax",
+      "menage": "Cleaning"
     },
     "monitoring": {
       "title": "Property Noise Monitoring",
@@ -3524,6 +3858,56 @@
       "price": "Price",
       "key": "Identifier",
       "keyHelp": "Unique identifier (e.g., deep_cleaning, custom_service)"
+    },
+    "cleaning": {
+      "intro": "The Cleaning Engine computes a single recommended price: standardized minutes per property component × hourly rate × cleaning-type multiplier. Empty field = platform default.",
+      "workTime": "Work time",
+      "baseByBedrooms": "Base minutes by bedroom count",
+      "bedroomsN": "{{n}} bd.",
+      "bedrooms5plus": "5+ bd.",
+      "perExtraBathroom": "Per extra bathroom",
+      "surfaceThreshold": "Surface threshold",
+      "surfaceStep": "Surface step",
+      "surfaceStepMinutes": "Minutes per step",
+      "perExtraFloor": "Per extra floor",
+      "exterior": "Exterior",
+      "laundry": "Laundry / linen",
+      "perGuestAbove4": "Per guest above 4",
+      "ratesAndRounding": "Rates & rounding",
+      "hourlyRate": "Reference hourly rate",
+      "rangePercent": "Range (±)",
+      "roundTo": "Round to multiple of",
+      "minPrice": "Price floor",
+      "cleaningTypes": "Cleaning types",
+      "simulator": "Simulator",
+      "simulatorSavedConfigHint": "The simulation uses the SAVED grid on the server. Save your changes (Save button at the top) to see them reflected here.",
+      "simulatorProperty": "Property",
+      "simulatorSelectProperty": "Select a property",
+      "sourceOverride": "Property price (override)",
+      "sourceEngine": "Engine recommendation",
+      "simulatorDate": "Service date (optional)",
+      "seasonal": {
+        "title": "Seasonal adjustments",
+        "hint": "Adjusts the engine RECOMMENDATION over a date window (MM-DD, year wrap allowed). Negotiated provider flat and hourly rates are never adjusted.",
+        "from": "From",
+        "to": "To",
+        "percent": "Adjustment",
+        "label": "Label",
+        "add": "Add a window",
+        "remove": "Remove",
+        "empty": "No seasonal adjustment — the engine recommendation is the same all year.",
+        "formatHint": "MM-DD format",
+        "percentHint": "Between -50 and +100",
+        "firstMatchHint": "If several windows cover the same date, the FIRST one in the list applies."
+      },
+      "assignment": {
+        "title": "Assignment",
+        "autoBestPro": "Auto-assign the best professional",
+        "autoBestProHint": "After team selection, the mission goes to the housekeeper with the best quality score (30 d). Off by default: assignment stays with the team."
+      },
+      "sourceHousekeeperRate": "Provider rate",
+      "simulatorError": "The estimate could not be computed — try again.",
+      "simulatorInsufficientData": "Insufficient data: fill in at least the bedrooms or the surface of the property for a reliable estimate."
     }
   },
   "channels": {
@@ -4879,6 +5263,43 @@
       "downloading": "Downloading...",
       "error": "Error during download"
     },
+    "housekeeperPayouts": {
+      "help": {
+        "title": "Provider payouts (cleaning)",
+        "description": "Direct Stripe payouts to (cleaning) providers, triggered automatically on mission completion. Distinct from owner payouts and expense entry.",
+        "dismiss": "Don't show again"
+      },
+      "col": {
+        "provider": "Provider",
+        "mission": "Mission",
+        "net": "Net amount",
+        "commission": "Commission",
+        "status": "Status",
+        "date": "Date"
+      },
+      "provider": "Provider",
+      "missionRef": "Mission",
+      "statuses": {
+        "PENDING": "Pending",
+        "SENT": "Sent",
+        "FAILED": "Failed",
+        "BLOCKED": "Blocked"
+      },
+      "reasons": {
+        "PROOF_MISSING": "Proof missing",
+        "ONBOARDING_INCOMPLETE": "Stripe onboarding incomplete",
+        "AMOUNT_NOT_POSITIVE": "Non-positive amount"
+      },
+      "retry": "Retry payout",
+      "retryTitle": "Retry payout",
+      "retryConfirm": "Retry the payout of {{amount}} to {{provider}}?",
+      "retryConfirmBtn": "Retry",
+      "retrySuccess": "Payout retry triggered",
+      "retryError": "Payout conditions still not met (proof / onboarding).",
+      "empty": "No provider payout",
+      "emptyDescription": "Payouts will appear here automatically when cleaning missions are completed.",
+      "error": "Error loading provider payouts"
+    },
     "expenses": {
       "help": {
         "title": "How do expenses work?",
@@ -5093,7 +5514,7 @@
         "organization": "Organization",
         "payment": "Payment",
         "integrations": "Integrations",
-        "payouts": "Payouts",
+        "payouts": "Payouts (platform)",
         "amenitiesOta": "OTA Amenities"
       },
       "subtitle": {
@@ -5107,7 +5528,9 @@
         "payment": "Payment providers (Stripe, PayPal, PayTabs, CMI…) and split rules.",
         "integrations": "Connect your third-party tools: e-signature, accounting, KYC, legal compliance, OTA channels.",
         "payouts": "Schedule and calculation rules for owner payouts.",
-        "amenitiesOta": "Map amenities detected on your OTA listings (Airbnb, Booking, etc.) to the Baitly reference. Create your own amenities if nothing matches."
+        "amenitiesOta": "Map amenities detected on your OTA listings (Airbnb, Booking, etc.) to the Baitly reference. Create your own amenities if nothing matches.",
+        "myRates": "Your hourly rate, per-property flat rates and quality score.",
+        "myPayoutsPro": "Stripe payout account and history of your mission payouts."
       }
     },
     "dashboard": {
@@ -5188,7 +5611,8 @@
         "exterieur": "Outdoor services pricing: gardening, pool, green spaces.",
         "blanchisserie": "Linen pricing: packages per item type, washing and delivery.",
         "monitoring": "Noise monitoring offers pricing (Minut, Roomonitor) propagated to clients.",
-        "taxeSejour": "Organization tourist tax rates, report and export by period."
+        "taxeSejour": "Organization tourist tax rates, report and export by period.",
+        "menage": "Cleaning Engine: standardized minutes per component, hourly rate and recommended price range."
       }
     },
     "billing": {
@@ -5200,6 +5624,7 @@
         "wallets": "Wallet balance per owner: movements, holds, withdrawals and detailed history.",
         "payouts": "Owner payouts schedule: SEPA calculations, status, bank exports.",
         "expenses": "Tracking operational expenses by category and property: supplier invoices, rebilling.",
+        "housekeeperPayouts": "Direct Stripe payouts to (cleaning) providers, triggered on mission completion — distinct from owner payouts.",
         "reportsExports": "Fiscal report (VAT, taxes, NF 525) and accounting exports formatted for your third-party tools."
       }
     },
@@ -5750,6 +6175,76 @@
       "list": "List view",
       "card": "Card view"
     },
-    "emptyDesc": "Automation rules will appear here."
+    "emptyDesc": "Automation rules will appear here.",
+    "constellation": {
+      "title": "Constellation — automatic actions",
+      "subtitle": "Agents apply certain safe actions themselves, within an envelope. Each agent's level remains the ceiling; outside the envelope, a card to validate is created as today.",
+      "levelNotify": "Apply and notify",
+      "levelFull": "Apply silently",
+      "acceptance": "Acceptance",
+      "noDecisions": "No decisions yet",
+      "acceptanceTooltip": "Acceptance rate of this card type over 30 days ({{count}} decisions). Enable it once it stays consistently high.",
+      "cappedBySuggest": "Capped by the {{agent}} agent level: Suggest",
+      "cappedByNotify": "Capped by the {{agent}} agent level: Act then notify",
+      "cappedTooltip": "{{agent}} agent level: Suggest — switch it to \"Act then notify\" or \"Auto\" to enable.",
+      "maxSegmentPercent": "Max % / segment",
+      "maxAutoBlockDays": "Max days (auto)",
+      "minDaysAfterCheckout": "Post-checkout delay (d)",
+      "recommended": "Recommended — {{count}} consecutive approvals",
+      "enableSuggestion": "Enable",
+      "ignoreSuggestion": "Ignore",
+      "types": {
+        "CLEANING_REQUEST": {
+          "label": "Schedule missing cleaning",
+          "description": "Tomorrow's checkout without cleaning: the request is created automatically (\"after each stay\" frequency only, idempotent)."
+        },
+        "REASSIGN_CLEANING": {
+          "label": "Replace a withdrawn provider",
+          "description": "Cleaning provider withdrew with no immediate replacement: reassignment is retried automatically (idempotent — the 15-min scheduler keeps retrying in parallel)."
+        },
+        "REVIEW_DRAFT_REPLY": {
+          "label": "Prepare review reply draft",
+          "description": "Negative review: the draft is generated automatically (AI budget required). Publishing always stays manual."
+        },
+        "PRICE_DROP": {
+          "label": "Adjust prices on low-demand slots",
+          "description": "Under the yield frame (Auto mode, bounded magnitude, calendar protections): the proposed adjustment is applied automatically."
+        },
+        "CALENDAR_BLOCK": {
+          "label": "Block calendar (noise incidents)",
+          "description": "Confirmed noise escalation: the calendar is blocked automatically on a short range (refused if nights are booked).",
+          "conditions": "At most 1 automatic block per property per 7 days."
+        },
+        "DEPOSIT_RELEASE": {
+          "label": "Release deposit after checkout",
+          "description": "Stay over, deposit still held: the Stripe hold is released automatically (no charge).",
+          "conditions": "Only when no field issue is open on the property."
+        },
+        "DEPOSIT_REFUND": {
+          "label": "Refund deposit after cancellation",
+          "description": "Reservation cancelled, deposit still held: the Stripe hold is released automatically (no charge).",
+          "conditions": "Only when cancellation is confirmed, with no open issue nor pending charge."
+        },
+        "PAYMENT_REMINDER": {
+          "label": "Retry failed payment reminder",
+          "description": "Deferred balance failed: a payment link is regenerated and sent automatically to the guest.",
+          "conditions": "1st reminder only · 72 h min between reminders — subsequent ones stay manual."
+        }
+      }
+    }
+  },
+  "planning": {
+    "importChooser": {
+      "title": "Import reservations",
+      "subtitle": "Choose how to connect your booking channels.",
+      "ical": {
+        "title": "iCal import",
+        "description": "Import reservations from an external calendar via an .ics link (Airbnb, Booking, Vrbo…). Read-only synchronization."
+      },
+      "channex": {
+        "title": "Channel Manager",
+        "description": "Connect your OTAs through Channex: reservations, rates and availability synced both ways."
+      }
+    }
   }
 }

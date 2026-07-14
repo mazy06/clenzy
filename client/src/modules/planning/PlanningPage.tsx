@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Box, CircularProgress, Alert, Typography, Button, Tooltip, IconButton, useMediaQuery, useTheme } from '@mui/material';
-import { CalendarMonth, Add, CloudDownload, Lock, Fullscreen, FullscreenExit } from '../../icons';
+import { CalendarMonth, Add, CloudDownload, Fullscreen, FullscreenExit } from '../../icons';
 import EmptyState from '../../components/EmptyState';
 import PageHeader from '../../components/PageHeader';
 import HeaderSearchField from '../../components/HeaderSearchField';
@@ -9,10 +9,11 @@ import PlanningToolbar from './PlanningToolbar';
 import PlanningFilterButton from './PlanningFilterButton';
 import PlanningTimeline from './PlanningTimeline';
 import PlanningActionPanel from './PlanningActionPanel';
-import PlanningQuickCreateDialog from './PlanningQuickCreateDialog';
-import BlockPeriodDialog from './BlockPeriodDialog';
+import ReservationDialog from '../../components/reservations/ReservationDialog';
 import PlanningPaginationBar from './PlanningPaginationBar';
 import ICalImportModal from '../dashboard/ICalImportModal';
+import ImportSourceChooserDialog from './ImportSourceChooserDialog';
+import ChannexMappingDialog from '../settings/components/ChannexMappingDialog';
 import { usePlanningNavigation } from './hooks/usePlanningNavigation';
 import { useInfiniteTimeline } from './hooks/useInfiniteTimeline';
 import { usePlanningData } from './hooks/usePlanningData';
@@ -21,6 +22,7 @@ import { usePlanningLayout } from './hooks/usePlanningLayout';
 import { usePlanningSelection } from './hooks/usePlanningSelection';
 import { usePlanningDrag } from './hooks/usePlanningDrag';
 import { useReservationUpdate } from './hooks/useReservationUpdate';
+import { useUserPreference } from '../../hooks/useUserPreference';
 import { useInterventionActions } from './hooks/useInterventionActions';
 import { usePlanningPagination } from './hooks/usePlanningPagination';
 import { usePlanningPricing } from './hooks/usePlanningPricing';
@@ -29,7 +31,7 @@ import { usePlanningChannelSync } from './hooks/usePlanningChannelSync';
 import { useResizablePropertyColWidth } from './hooks/useResizablePropertyColWidth';
 import { useUrgencyAnimation } from './hooks/useUrgencyAnimation';
 import { ACTION_PANEL_WIDTH, PLANNING_CHANNEL_KEYS, PLANNING_STATUS_KEYS } from './constants';
-import { formatMonthYear, toDateStr, addDays } from './utils/dateUtils';
+import { formatMonthYear } from './utils/dateUtils';
 import type { PlanningChannelKey } from './constants';
 import type { PlanningEvent, PlanningProperty } from './types';
 import type { ReservationStatus } from '../../services/api';
@@ -51,11 +53,15 @@ import { isMockEnabled } from '../../services/storageService';
 const PlanningPage: React.FC = () => {
   const queryClient = useQueryClient();
 
-  // iCal import modal
+  // Import : choix du mécanisme (iCal ponctuel vs Channel Manager Channex),
+  // puis modale du flux retenu.
+  const [importChooserOpen, setImportChooserOpen] = useState(false);
   const [icalModalOpen, setIcalModalOpen] = useState(false);
+  const [channelManagerOpen, setChannelManagerOpen] = useState(false);
 
-  // Block period dialog
-  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+  // Création « libre » (bouton +) : ouvre le ReservationDialog SANS logement verrouillé
+  // → le sélecteur de logement s'affiche dans le corps (Réservation ET Blocage via le toggle).
+  const [createOpen, setCreateOpen] = useState(false);
 
   // Navigation (dates, zoom, density)
   const nav = usePlanningNavigation();
@@ -78,11 +84,30 @@ const PlanningPage: React.FC = () => {
   // Fenêtre du bilan de la constellation, alignée sur le zoom du planning.
   const reportWindowDays = nav.zoom === 'week' ? 7 : nav.zoom === 'fortnight' ? 15 : 30;
   const [supervisionScope, setSupervisionScope] = useState<SupervisionScope>('property');
-  const [expandedPropertyId, setExpandedPropertyId] = useState<number | null>(null);
+  // Logement dont la constellation est déployée : PERSISTÉ en préférence UI
+  // (user_ui_preferences, cross-devices) → l'accordéon reste ouvert au reload
+  // et à la reconnexion. Arbre Storage §2 (préférence ad-hoc par écran).
+  // `null` = tous repliés. Un id périmé (logement filtré/supprimé) est inoffensif :
+  // orderedProperties le laisse passer et renderExpanded ne matche jamais.
+  const [expandedPropertyId, setExpandedPropertyId, { reset: resetExpandedProperty }] =
+    useUserPreference<number | null>('planning.expandedPropertyId', null);
+  // Ouverture pilotée du modal « Fiche client » depuis une carte de la constellation
+  // (« email voyageur manquant ») : signal contrôlé transmis à PlanningActionPanel →
+  // PanelFooterActions. Remis à null une fois consommé (permet une réouverture).
+  const [autoOpenGuestCardReservationId, setAutoOpenGuestCardReservationId] = useState<string | null>(null);
   const createPortfolioProvider = useCallback(() => new MockPortfolioProvider(), []);
   const handleToggleExpanded = useCallback((propertyId: number) => {
-    setExpandedPropertyId((prev) => (prev === propertyId ? null : propertyId));
-  }, []);
+    // Fermer = SUPPRIMER la préférence (retour au défaut null), et NON setPref(null) :
+    // un PUT à corps null est envoyé sans body (apiClient : `if (body)`) → le backend
+    // (@RequestBody requis) le rejette en 400, l'erreur est avalée et l'ancien id
+    // survivait → la constellation se rouvrait au reload. deletePref envoie un DELETE
+    // (sans corps, accepté) ET est immédiat (pas de debounce perdu au hard-reload du logout).
+    if (expandedPropertyId === propertyId) {
+      resetExpandedProperty();
+    } else {
+      setExpandedPropertyId(propertyId);
+    }
+  }, [expandedPropertyId, setExpandedPropertyId, resetExpandedProperty]);
   // Mode « Vue d'ensemble » : masque la grille + les contrôles propres au planning.
   const isOverview = canSupervise && supervisionScope === 'portfolio';
 
@@ -253,26 +278,13 @@ const PlanningPage: React.FC = () => {
     closeQuickCreate,
   } = usePlanningSelection(filteredEvents);
 
-  // « + Réservation » (header) : réutilise le flux quick-create existant
-  // (PlanningQuickCreateDialog). Le dialog est lié à UNE propriété (pas de
-  // sélecteur interne) : on préselectionne le premier logement visible avec
-  // un séjour aujourd'hui → demain ; les dates restent modifiables dans le dialog.
+  // « + Réservation » (header) : ouvre le ReservationDialog en création LIBRE — aucun
+  // logement préselectionné, l'utilisateur choisit le logement (et les dates) dans le
+  // modal, en mode Réservation ou Blocage. Les clics sur une cellule/résa continuent
+  // d'ouvrir le dialog verrouillé sur le logement concerné (via openQuickCreate).
   const handleCreateReservation = useCallback(() => {
-    const prop = filteredProperties[0] ?? properties[0];
-    if (!prop) return;
-    const today = new Date();
-    openQuickCreate({
-      propertyId: prop.id,
-      propertyName: prop.name,
-      startDate: toDateStr(today),
-      endDate: toDateStr(addDays(today, 1)),
-      nightlyPrice: prop.nightlyPrice ?? 0,
-      defaultCheckInTime: prop.defaultCheckInTime,
-      defaultCheckOutTime: prop.defaultCheckOutTime,
-      cleaningFrequency: prop.cleaningFrequency,
-      cleaningBasePrice: prop.cleaningBasePrice,
-    });
-  }, [filteredProperties, properties, openQuickCreate]);
+    setCreateOpen(true);
+  }, []);
 
   // Handle event click: SR blocks redirect to linked reservation's Paiement tab
   const handleEventClick = useCallback((event: PlanningEvent) => {
@@ -288,6 +300,24 @@ const PlanningPage: React.FC = () => {
     }
     selectEvent(event);
   }, [filteredEvents, selectEvent, setPanelTab]);
+
+  // Ouvre la fiche client d'une réservation depuis la carte « email voyageur manquant » :
+  // sélectionne la réservation (ouvre PlanningActionPanel) PUIS arme l'ouverture du modal
+  // GuestCardDialog. Le handler exposé au provider DOIT rester stable (le provider ne se
+  // recrée pas — cf. deps `[property.id]`), donc on passe par une ref « dernière valeur »
+  // qui lit les données courantes sans changer d'identité.
+  const openGuestCardRef = useRef<(reservationId: string) => void>(() => {});
+  openGuestCardRef.current = (reservationId: string) => {
+    const resEvent = filteredEvents.find(
+      (e) => e.type === 'reservation' && e.reservation && String(e.reservation.id) === String(reservationId),
+    );
+    if (!resEvent) return;
+    selectEvent(resEvent);
+    setAutoOpenGuestCardReservationId(String(reservationId));
+  };
+  const handleOpenGuestCard = useCallback((reservationId: string) => {
+    openGuestCardRef.current(reservationId);
+  }, []);
 
   // Reservation update (dates & times from panel, with validation)
   // Conflict validation must run against the FULL event set, not the UI-filtered one,
@@ -563,14 +593,6 @@ const PlanningPage: React.FC = () => {
                   activeStatuses={activeStatuses}
                   onToggleStatus={toggleStatus}
                 />
-                <Tooltip title="Bloquer une période (indisponible)" arrow>
-                  <IconButton
-                    aria-label="Bloquer une période"
-                    onClick={() => setBlockDialogOpen(true)}
-                  >
-                    <Lock size={18} strokeWidth={1.75} />
-                  </IconButton>
-                </Tooltip>
                 <Tooltip title={nav.isFullscreen ? 'Quitter le plein écran' : 'Plein écran'} arrow>
                   <IconButton
                     aria-label={nav.isFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
@@ -579,10 +601,10 @@ const PlanningPage: React.FC = () => {
                     {nav.isFullscreen ? <FullscreenExit size={18} strokeWidth={1.75} /> : <Fullscreen size={18} strokeWidth={1.75} />}
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Importer les réservations via un lien iCal (.ics)" arrow>
+                <Tooltip title="Importer des réservations (iCal) ou connecter vos canaux (Channel Manager)" arrow>
                   <IconButton
-                    aria-label="Importer iCal"
-                    onClick={() => setIcalModalOpen(true)}
+                    aria-label="Importer des réservations ou connecter vos canaux"
+                    onClick={() => setImportChooserOpen(true)}
                   >
                     <CloudDownload size={18} strokeWidth={1.85} />
                   </IconButton>
@@ -702,6 +724,7 @@ const PlanningPage: React.FC = () => {
             renderExpanded={
               canSupervise
                 ? (property: PlanningProperty) => {
+                    const mockMode = isMockEnabled('planning') || !isSupervisionLiveEnabled();
                     const firstResa = visibleEvents.find(
                       (e) => e.type === 'reservation' && e.propertyId === property.id && e.reservation,
                     );
@@ -714,16 +737,25 @@ const PlanningPage: React.FC = () => {
                           // Mode démo planning OU live désactivé → provider MOCK
                           // (constellation + « En direct » alimentés par des données
                           // fictives variées par logement). Sinon → moteur réel.
-                          isMockEnabled('planning') || !isSupervisionLiveEnabled()
-                            ? new MockSupervisionProvider(String(property.id), { cometReservationId }, 'demo')
+                          mockMode
+                            ? new MockSupervisionProvider(
+                                String(property.id),
+                                { cometReservationId, onOpenGuestCard: handleOpenGuestCard },
+                                'demo',
+                              )
                             : new AgUiSupervisionProvider(String(property.id), {
                                 selectedPropertyId: Number(property.id),
                                 currentPage: '/planning',
+                                onOpenGuestCard: handleOpenGuestCard,
                               })
                         }
-                        deps={[property.id, cometReservationId]}
+                        // cometReservationId ne pilote QUE le mock : en live, l'inclure
+                        // dans les deps détruisait/recréait le provider (teardown SSE +
+                        // re-snapshot) quand les réservations finissaient de charger.
+                        deps={mockMode ? [property.id, cometReservationId] : [property.id]}
                         propertyId={property.id}
                         reportWindowDays={reportWindowDays}
+                        flush
                       />
                     );
                   }
@@ -776,14 +808,47 @@ const PlanningPage: React.FC = () => {
         onGenerateInvoice={generateInvoice}
         onPaymentComplete={handlePaymentComplete}
         onDuplicateReservation={duplicateReservation}
+        autoOpenGuestCardForReservationId={autoOpenGuestCardReservationId}
+        onGuestCardAutoOpenHandled={() => setAutoOpenGuestCardReservationId(null)}
       />
 
-      {/* Quick Create Dialog */}
-      <PlanningQuickCreateDialog
-        open={!!quickCreateData}
-        data={quickCreateData}
-        onClose={closeQuickCreate}
+      {/* Quick Create Dialog — création verrouillée (clic cellule/résa) OU création libre
+          (bouton +, sélecteur de logement dans le corps). Sert aussi le mode « Blocage »
+          via le toggle interne Réservation/Blocage (le blocage de période a fusionné ici). */}
+      <ReservationDialog
+        mode="create"
+        open={!!quickCreateData || createOpen}
+        onClose={() => {
+          closeQuickCreate();
+          setCreateOpen(false);
+        }}
+        lockedProperty={
+          quickCreateData
+            ? {
+                id: quickCreateData.propertyId,
+                name: quickCreateData.propertyName,
+                nightlyPrice: quickCreateData.nightlyPrice,
+                defaultCheckInTime: quickCreateData.defaultCheckInTime,
+                defaultCheckOutTime: quickCreateData.defaultCheckOutTime,
+                cleaningBasePrice: quickCreateData.cleaningBasePrice,
+                cleaningFrequency: quickCreateData.cleaningFrequency,
+              }
+            : undefined
+        }
+        initialDates={
+          quickCreateData
+            ? { checkIn: quickCreateData.startDate, checkOut: quickCreateData.endDate }
+            : undefined
+        }
         events={filteredEvents}
+      />
+
+      {/* Choix du mécanisme d'import : iCal ponctuel OU Channel Manager (Channex) */}
+      <ImportSourceChooserDialog
+        open={importChooserOpen}
+        onClose={() => setImportChooserOpen(false)}
+        onChooseIcal={() => setIcalModalOpen(true)}
+        onChooseChannelManager={() => setChannelManagerOpen(true)}
       />
 
       {/* iCal Import Modal */}
@@ -792,15 +857,8 @@ const PlanningPage: React.FC = () => {
         onClose={() => setIcalModalOpen(false)}
       />
 
-      {/* Block Period Dialog */}
-      <BlockPeriodDialog
-        open={blockDialogOpen}
-        onClose={() => setBlockDialogOpen(false)}
-        propertyId={null}
-        startDate={null}
-        endDate={null}
-        properties={properties}
-      />
+      {/* Channel Manager : même modale guidée Channex que le bouton du Dashboard */}
+      <ChannexMappingDialog open={channelManagerOpen} guided onClose={() => setChannelManagerOpen(false)} />
     </Box>
   );
 };
