@@ -103,6 +103,7 @@ public class WhatsAppTemplateController {
      * nouvelle ligne (fork du template systeme parent). Sinon : update le body.</p>
      */
     @PutMapping("/{key}/{language}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','ADMIN','HOST')")
     public ResponseEntity<WhatsAppTemplateContentDto> upsertOverride(
             @PathVariable String key,
             @PathVariable String language,
@@ -127,6 +128,7 @@ public class WhatsAppTemplateController {
      * 404 si pas d'override (rien a supprimer).
      */
     @DeleteMapping("/{key}/{language}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','ADMIN','HOST')")
     public ResponseEntity<Void> removeOverride(@PathVariable String key, @PathVariable String language) {
         Long orgId = tenantContext.getRequiredOrganizationId();
 
@@ -148,6 +150,7 @@ public class WhatsAppTemplateController {
      * Les variables non fournies sont laissees telles quelles (visibles dans le preview).</p>
      */
     @PostMapping("/{key}/{language}/preview")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','ADMIN','HOST')")
     public ResponseEntity<PreviewResponse> preview(
             @PathVariable String key,
             @PathVariable String language,

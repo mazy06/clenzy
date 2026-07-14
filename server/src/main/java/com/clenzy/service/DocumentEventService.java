@@ -67,7 +67,8 @@ public class DocumentEventService {
             ReferenceType referenceType = parseReferenceType(referenceTypeStr);
 
             log.info("Processing document generation event: type={}, ref={}#{}, emailTo={}, orgId={}",
-                    documentType, referenceType, referenceId, emailTo, organizationId);
+                    documentType, referenceType, referenceId,
+                    com.clenzy.util.PiiMasker.maskEmail(emailTo), organizationId);
 
             generatorService.generateFromEvent(documentType, referenceId, referenceType, emailTo, organizationId);
 

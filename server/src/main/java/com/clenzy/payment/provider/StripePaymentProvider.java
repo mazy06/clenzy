@@ -32,6 +32,31 @@ public class StripePaymentProvider implements PaymentProvider {
     @Value("${stripe.cancel-url:}")
     private String defaultCancelUrl;
 
+    // Audit 2026-07 F9-01 : allow-list des origines de redirection paiement (anti open-redirect).
+    // Une URL de retour hors allow-list retombe sur le défaut (fail-safe, ne casse pas le flux).
+    @Value("${cors.allowed-origins:https://app.clenzy.fr,https://clenzy.fr,https://www.clenzy.fr}")
+    private String allowedRedirectOriginsCsv;
+
+    /** Retourne {@code provided} si son origine (scheme://host[:port]) est allow-listée, sinon {@code fallback}. */
+    private String sanitizeReturnUrl(String provided, String fallback) {
+        if (provided == null || provided.isBlank()) {
+            return fallback;
+        }
+        try {
+            java.net.URI uri = java.net.URI.create(provided.trim());
+            String origin = uri.getScheme() + "://" + uri.getAuthority();
+            for (String allowed : allowedRedirectOriginsCsv.split(",")) {
+                if (origin.equalsIgnoreCase(allowed.trim())) {
+                    return provided;
+                }
+            }
+        } catch (RuntimeException malformed) {
+            // URL invalide (ex. javascript:) -> repli sur le défaut.
+        }
+        log.warn("URL de retour paiement hors allow-list, repli sur le défaut");
+        return fallback;
+    }
+
     @Override
     public PaymentProviderType getProviderType() {
         return PaymentProviderType.STRIPE;
@@ -66,11 +91,9 @@ public class StripePaymentProvider implements PaymentProvider {
         try {
             log.info("Creating Stripe payment: {} {}", request.amount(), request.currency());
 
-            // Use request URLs, fallback to config defaults
-            String successUrl = (request.successUrl() != null && !request.successUrl().isBlank())
-                ? request.successUrl() : defaultSuccessUrl;
-            String cancelUrl = (request.cancelUrl() != null && !request.cancelUrl().isBlank())
-                ? request.cancelUrl() : defaultCancelUrl;
+            // Use request URLs (validées contre l'allow-list, audit F9-01), fallback to config defaults
+            String successUrl = sanitizeReturnUrl(request.successUrl(), defaultSuccessUrl);
+            String cancelUrl = sanitizeReturnUrl(request.cancelUrl(), defaultCancelUrl);
 
             com.stripe.param.checkout.SessionCreateParams.Builder builder =
                 com.stripe.param.checkout.SessionCreateParams.builder()
