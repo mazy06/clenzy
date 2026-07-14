@@ -46,6 +46,7 @@ public class ServiceRequestPaymentService {
     private final StripeService stripeService;
     private final StripeGateway stripeGateway;
     private final PaymentOrchestrationService orchestrationService;
+    private final com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
     /** Marquage PROCESSING atomique HORS de l'appel provider. */
     private final TransactionTemplate transactionTemplate;
 
@@ -56,11 +57,13 @@ public class ServiceRequestPaymentService {
                                         StripeService stripeService,
                                         StripeGateway stripeGateway,
                                         PaymentOrchestrationService orchestrationService,
+                                        com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard,
                                         PlatformTransactionManager transactionManager) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.stripeService = stripeService;
         this.stripeGateway = stripeGateway;
         this.orchestrationService = orchestrationService;
+        this.organizationAccessGuard = organizationAccessGuard;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
@@ -135,6 +138,9 @@ public class ServiceRequestPaymentService {
     private ServiceRequest loadPayableServiceRequest(Long serviceRequestId) {
         ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
             .orElseThrow(() -> new NotFoundException("Demande de service non trouvee: " + serviceRequestId));
+        // findById contourne le filtre org (audit 2026-07 F1-08) : garde d'ownership fail-closed.
+        organizationAccessGuard.requireSameOrganization(
+            sr.getOrganizationId(), "Demande hors de votre organisation");
         if (sr.getStatus() != RequestStatus.AWAITING_PAYMENT) {
             throw new IllegalStateException(
                 "La demande de service doit etre en statut AWAITING_PAYMENT pour proceder au paiement. "
@@ -159,6 +165,9 @@ public class ServiceRequestPaymentService {
     public Map<String, String> checkPaymentStatus(Long id) throws StripeException {
         ServiceRequest sr = serviceRequestRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Demande de service non trouvee: " + id));
+        // findById contourne le filtre org (audit 2026-07 F1-08) : garde d'ownership fail-closed.
+        organizationAccessGuard.requireSameOrganization(
+                sr.getOrganizationId(), "Demande hors de votre organisation");
 
         // Already paid?
         if (sr.getPaymentStatus() == PaymentStatus.PAID) {

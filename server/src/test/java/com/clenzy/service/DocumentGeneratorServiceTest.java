@@ -267,8 +267,11 @@ class DocumentGeneratorServiceTest {
     @DisplayName("listGenerations")
     class ListGenerations {
         @Test void whenCalled_thenReturnsPage() {
+            // Audit 2026-07 F1-02 : rôle non platform-staff -> historique scopé à l'org courante.
             Page<DocumentGeneration> page = new PageImpl<>(List.of());
-            when(generationRepository.findAllByOrderByCreatedAtDesc(any(Pageable.class))).thenReturn(page);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(generationRepository.findByOrganizationIdOrderByCreatedAtDesc(eq(1L), any(Pageable.class)))
+                    .thenReturn(page);
 
             Page<DocumentGenerationDto> result = service.listGenerations(Pageable.unpaged());
             assertThat(result.getContent()).isEmpty();
@@ -689,6 +692,9 @@ class DocumentGeneratorServiceTest {
             g.setDocumentType(DocumentType.FACTURE);
             g.setReferenceType(ReferenceType.RESERVATION);
             g.setReferenceId(100L);
+            // Audit 2026-07 F1-09 : scoping org — la génération appartient à l'org courante.
+            g.setOrganizationId(1L);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
 
             when(generationRepository.findByReferenceTypeAndReferenceIdOrderByCreatedAtDesc(
                     ReferenceType.RESERVATION, 100L)).thenReturn(List.of(g));

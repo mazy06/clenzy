@@ -50,13 +50,14 @@ class ServiceRequestPaymentServiceTest {
     @Mock private StripeGateway stripeGateway;
     @Mock private PaymentOrchestrationService orchestrationService;
     @Mock private PlatformTransactionManager transactionManager;
+    @Mock private com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
 
     private ServiceRequestPaymentService service;
 
     @BeforeEach
     void setUp() throws Exception {
         service = new ServiceRequestPaymentService(serviceRequestRepository, stripeService,
-                stripeGateway, orchestrationService, transactionManager);
+                stripeGateway, orchestrationService, organizationAccessGuard, transactionManager);
         Field f = ServiceRequestPaymentService.class.getDeclaredField("currency");
         f.setAccessible(true);
         f.set(service, "EUR");
