@@ -29,7 +29,7 @@ class SiteSnapshotServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new SiteSnapshotService();
+        service = new SiteSnapshotService(org.mockito.Mockito.mock(PinnedSiteFetcher.class));
     }
 
     // ───────────────────── validateUrl (via captureSnapshot) ────────────────────
