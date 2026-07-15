@@ -24,22 +24,28 @@ const euro = (cents: number) => (cents / 100).toLocaleString(undefined, { style:
 
 export default function AiCreditsPaywall({ open, onClose, title, message, balanceMillicredits }: AiCreditsPaywallProps) {
   const [packs, setPacks] = useState<CreditPack[] | null>(null);
-  const [balance, setBalance] = useState<number | null>(balanceMillicredits ?? null);
+  // Le solde affiche est derive : prop connue > solde recharge en arriere-plan.
+  const [fetchedBalance, setFetchedBalance] = useState<number | null>(null);
+  const balance = balanceMillicredits ?? fetchedBalance;
   const [selected, setSelected] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setError(null);
-    setBalance(balanceMillicredits ?? null);
     aiCreditsApi.getPacks()
       .then((p) => { setPacks(p); setSelected(p[Math.min(1, p.length - 1)]?.key ?? p[0]?.key ?? null); })
       .catch(() => setPacks([]));
     if (balanceMillicredits == null) {
-      aiCreditsApi.getBalance().then((b) => setBalance(b.totalMillicredits)).catch(() => {});
+      aiCreditsApi.getBalance().then((b) => setFetchedBalance(b.totalMillicredits)).catch(() => {});
     }
   }, [open, balanceMillicredits]);
+
+  // Purge l'erreur a la fermeture (event handler, pas d'effet de sync).
+  const handleClose = () => {
+    setError(null);
+    onClose();
+  };
 
   const handleBuy = async () => {
     if (!selected || busy) return;
@@ -55,7 +61,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
   };
 
   return (
-    <Dialog open={open} onClose={busy ? undefined : onClose} maxWidth="sm" fullWidth
+    <Dialog open={open} onClose={busy ? undefined : handleClose} maxWidth="sm" fullWidth
       PaperProps={{ sx: { borderRadius: 'var(--radius-lg)' } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 3, pt: 2.5, pb: 1 }}>
         <Box sx={{ display: 'grid', placeItems: 'center', width: 34, height: 34, borderRadius: '10px', bgcolor: 'var(--accent-soft)', color: 'var(--accent)', flexShrink: 0 }}>
@@ -64,7 +70,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
         <Box sx={{ flex: 1, fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-bold)', color: 'var(--ink)' }}>
           {title ?? 'Crédits IA insuffisants'}
         </Box>
-        <IconButton onClick={onClose} size="small" aria-label="Fermer" disabled={busy} sx={{ color: 'var(--muted)' }}><X size={18} /></IconButton>
+        <IconButton onClick={handleClose} size="small" aria-label="Fermer" disabled={busy} sx={{ color: 'var(--muted)' }}><X size={18} /></IconButton>
       </Box>
 
       <DialogContent sx={{ pt: 0.5, px: 3, pb: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -112,7 +118,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
         )}
 
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, pt: 0.5 }}>
-          <Button onClick={onClose} disabled={busy} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Annuler</Button>
+          <Button onClick={handleClose} disabled={busy} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Annuler</Button>
           <Button variant="contained" disableElevation onClick={handleBuy} disabled={!selected || busy}
             startIcon={busy ? <CircularProgress size={15} color="inherit" /> : <Sparkles size={16} strokeWidth={2} />}
             endIcon={!busy ? <ArrowRight size={16} strokeWidth={2} /> : undefined}

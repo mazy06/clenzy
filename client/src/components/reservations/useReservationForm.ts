@@ -384,6 +384,11 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
   }, [open, showPropertySelector, isPlatformStaff, propertiesQuery.data, propertyId]);
 
   // ── Init state on open ──────────────────────────────────────────────────
+  // Reset-a-l'ouverture DELIBERE (pattern dialog-init) : rouvrir le dialog doit
+  // produire un formulaire frais (edit = valeurs de la resa, create = defauts +
+  // code de confirmation genere). L'alternative canonique (remount via key chez
+  // les consommateurs) restructurerait un flux metier critique pour eliminer un
+  // flash deja masque par l'animation d'ouverture — non pertinent ici.
   useEffect(() => {
     if (!open) return;
 
