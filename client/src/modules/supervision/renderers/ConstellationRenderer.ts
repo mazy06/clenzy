@@ -58,6 +58,16 @@ export interface ConstellationRendererProps {
   /** Contenu empilé JUSTE SOUS le HUD (haut-gauche), ex. flux « En direct ». */
   belowHud?: ReactNode;
   /**
+   * Mode COMPACT (conteneur étroit, mesuré par le parent) : les surcouches
+   * (HUD, belowHud, hitl) se replient en rail de pastilles + tiroir bas — la
+   * constellation reste dégagée. Défaut : présentation étalée (desktop).
+   */
+  compact?: boolean;
+  /** File HITL (cartes « à valider ») affichée dans le tiroir du mode compact. */
+  hitl?: ReactNode;
+  /** Nb d'actions en attente — badge de la pastille « À traiter ». */
+  hitlCount?: number;
+  /**
    * Rendu pleine-cellule (accordéon Planning) : le canvas couvre TOUT le parent,
    * sans coins arrondis ni ombre portée — aucun espace vide autour. Défaut :
    * carte arrondie (vues standalone / portefeuille).

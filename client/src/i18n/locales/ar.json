@@ -300,6 +300,9 @@
       "bulk": "معالجة الكل",
       "undo": "تراجع",
       "undoBulk": "تمت المعالجة — {{count}} بطاقة"
+    },
+    "compact": {
+      "hitl": "للمعالجة"
     }
   },
   "channexGuided": {

@@ -18,6 +18,7 @@ import { keyframes } from '@emotion/react';
 import { useTheme } from '@mui/material/styles';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { Close } from '../../../icons';
 import { AGENT_META, STATUS } from '../constants';
 import { computeConstellationLayout } from '../core/geometry';
 import { useElementSize } from '../core/useElementSize';
@@ -42,6 +43,8 @@ const stPulse = keyframes`0% { transform: scale(1); opacity: .8; } 100% { transf
 const waitRing = keyframes`0% { transform: scale(.78); opacity: .7; } 100% { transform: scale(1.5); opacity: 0; }`;
 // flux le long du faisceau actif : la délégation « streame » du cœur vers l'agent
 const beamFlow = keyframes`from { stroke-dashoffset: 0; } to { stroke-dashoffset: -20; }`;
+// tiroir bas du mode compact : glisse depuis le bas (ease-out quint)
+const sheetUp = keyframes`from { transform: translateY(14%); opacity: 0; } to { transform: none; opacity: 1; }`;
 
 // ─── Canvas sombre (tokens handoff §7) ───────────────────────────────────────
 
@@ -702,6 +705,178 @@ const Root = styled.div<{ $flush?: boolean }>`
     box-shadow: 0 0 0 3px rgba(255, 90, 95, 0.25);
   }
 
+  /* ── Mode COMPACT (conteneur étroit) : rail de pastilles + tiroir bas ──
+     Les surcouches (HUD / En direct / HITL) se replient en 3 pastilles en haut
+     du canvas ; un clic ouvre un tiroir bas avec le contenu complet. La
+     constellation reste dégagée. PERF : mêmes contraintes que le HUD — fonds
+     quasi opaques, JAMAIS de backdrop-filter au-dessus du canvas animé. */
+  .cst__rail {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    /* au-dessus du voile du tiroir (z 8) : on peut basculer directement
+       d'un tiroir à l'autre sans refermer d'abord */
+    z-index: 9;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .cst__cpill {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(20, 24, 58, 0.92);
+    color: #e7e9fb;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 22px -12px rgba(0, 0, 0, 0.6);
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+  }
+  .cst__cpill:hover {
+    background: rgba(30, 34, 72, 0.96);
+  }
+  .cst__cpill:focus-visible {
+    outline: 2px solid #9b9bf6;
+    outline-offset: 2px;
+  }
+  .cst__cpill.on {
+    border-color: rgba(155, 155, 246, 0.8);
+    background: rgba(51, 48, 124, 0.96);
+    color: #fff;
+  }
+  .cst__cpill--hitl {
+    border-color: rgba(240, 178, 75, 0.45);
+    color: #ffd9a0;
+  }
+  .cst__cpill--hitl.on {
+    border-color: #f0b24b;
+    background: rgba(84, 60, 16, 0.92);
+    color: #ffe3b8;
+  }
+  .cst__cpillcount {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0b24b;
+    color: #3c2a05;
+    font-size: 11px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  /* alerte (esc/err) sur la pastille Orchestrateur repliée */
+  .cst__cpillalert {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ff5a5f;
+    box-shadow: 0 0 0 3px rgba(255, 90, 95, 0.25);
+  }
+  /* voile cliquable derrière le tiroir : ferme au tap hors du tiroir */
+  .cst__sheetveil {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    border: 0;
+    padding: 0;
+    background: rgba(6, 7, 24, 0.35);
+    cursor: default;
+  }
+  .cst__sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9;
+    max-height: 68%;
+    display: flex;
+    flex-direction: column;
+    background: rgba(20, 24, 58, 0.97);
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -14px 38px -18px rgba(0, 0, 0, 0.7);
+    animation: ${sheetUp} 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .cst__sheethandle {
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.22);
+    margin: 8px auto 2px;
+    flex-shrink: 0;
+  }
+  .cst__sheethead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px 8px;
+    flex-shrink: 0;
+    font-size: 13px;
+    font-weight: 800;
+    color: #fff;
+  }
+  .cst__sheetclose {
+    margin-left: auto;
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: #aab0dc;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .cst__sheetclose:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+  .cst__sheetclose:focus-visible {
+    outline: 2px solid #9b9bf6;
+  }
+  .cst__sheetbody {
+    padding: 0 14px 14px;
+    overflow-y: auto;
+    min-height: 0;
+    overscroll-behavior: contain;
+  }
+  /* Le HUD réutilisé DANS le tiroir : on aplatit sa carte (le tiroir est déjà
+     une surface) et on masque la légende-tooltip (hover inexistant au tactile,
+     et elle serait rognée par le scroll du corps). */
+  .cst__sheet .cst__hud {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
+  .cst__sheet .cst__legend {
+    display: none;
+  }
+  /* Idem pour la carte du flux « En direct » (belowHud) : aplatie dans le
+     tiroir (pas de carte-dans-carte), titre masqué (déjà en en-tête). */
+  .cst__sheet [data-feed-card] {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+  }
+  .cst__sheet [data-feed-title] {
+    display: none;
+  }
+
   /* légende + indice focus */
   /* Légende = tooltip révélé au survol du HUD, ancré juste dessous. */
   .cst__legend {
@@ -955,6 +1130,57 @@ const Root = styled.div<{ $flush?: boolean }>`
     border-color: rgba(220, 38, 38, 0.38);
     color: #a32d2d;
   }
+  html:not([data-theme='dark']) & .cst__cpill {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(43, 63, 73, 0.14);
+    color: #2b3a44;
+    box-shadow: 0 8px 22px -14px rgba(43, 63, 73, 0.35);
+  }
+  html:not([data-theme='dark']) & .cst__cpill:hover {
+    background: #ffffff;
+  }
+  html:not([data-theme='dark']) & .cst__cpill.on {
+    background: #5b5bd6;
+    border-color: #5b5bd6;
+    color: #fff;
+  }
+  html:not([data-theme='dark']) & .cst__cpill--hitl {
+    border-color: rgba(199, 125, 46, 0.5);
+    color: #8a5a1d;
+  }
+  html:not([data-theme='dark']) & .cst__cpill--hitl.on {
+    background: #c77d2e;
+    border-color: #c77d2e;
+    color: #fff;
+  }
+  html:not([data-theme='dark']) & .cst__cpillcount {
+    background: #c77d2e;
+    color: #fff;
+  }
+  html:not([data-theme='dark']) & .cst__cpill.on .cst__cpillcount {
+    background: rgba(255, 255, 255, 0.24);
+  }
+  html:not([data-theme='dark']) & .cst__sheetveil {
+    background: rgba(43, 63, 73, 0.25);
+  }
+  html:not([data-theme='dark']) & .cst__sheet {
+    background: #ffffff;
+    border-top-color: rgba(43, 63, 73, 0.12);
+    box-shadow: 0 -14px 38px -22px rgba(43, 63, 73, 0.4);
+  }
+  html:not([data-theme='dark']) & .cst__sheethandle {
+    background: rgba(43, 63, 73, 0.18);
+  }
+  html:not([data-theme='dark']) & .cst__sheethead {
+    color: #1c2b33;
+  }
+  html:not([data-theme='dark']) & .cst__sheetclose {
+    color: #5d7a8a;
+  }
+  html:not([data-theme='dark']) & .cst__sheetclose:hover {
+    background: rgba(43, 63, 73, 0.08);
+    color: #1c2b33;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .cst__spin,
@@ -967,7 +1193,8 @@ const Root = styled.div<{ $flush?: boolean }>`
     .sat__stat.esc::after,
     .sat__stat.err::after,
     .sat__ring,
-    .wire-flow {
+    .wire-flow,
+    .cst__sheet {
       animation: none !important;
     }
   }
@@ -1001,12 +1228,19 @@ function FramerConstellationInner({
   reportWindow,
   onReportWindowChange,
   belowHud,
+  compact,
+  hitl,
+  hitlCount,
   flush,
 }: ConstellationRendererProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const prefersReduced = useReducedMotion();
   const [ref, size] = useElementSize<HTMLDivElement>();
+
+  // Mode compact : quel tiroir est ouvert (un seul à la fois, null = fermé).
+  const [sheet, setSheet] = useState<'hud' | 'live' | 'hitl' | null>(null);
+  const toggleSheet = (key: 'hud' | 'live' | 'hitl') => setSheet((s) => (s === key ? null : key));
 
   // Tooltip d'agent PORTALISÉ dans <body> : le canvas est en `overflow:hidden`
   // et vit dans une pile z-index basse → un tooltip CSS interne serait rogné en
@@ -1035,6 +1269,102 @@ function FramerConstellationInner({
   const rootClass = ['cst', 'night', focused ? 'focus' : '', online ? '' : 'offline', paused ? 'paused' : '']
     .filter(Boolean)
     .join(' ');
+
+  // Carte HUD « Orchestrateur » — rendue dans la colonne haut-gauche (desktop)
+  // OU dans le tiroir bas (mode compact), à l'identique.
+  const hudCard = (
+    <div className="cst__hud">
+      <div className="cst__hudtop">
+        <span className="cst__pulse" />
+        <span className="cst__hudtitle">
+          {t('supervision.hud.orchestrator')} · {online ? t('supervision.hud.active') : t('supervision.states.offline')}
+        </span>
+        {headerAction ? <span className="cst__hudaction">{headerAction}</span> : null}
+      </div>
+      <div className="cst__hudrow">
+        <b>{hud.agentsCount}</b> {t('supervision.hud.agents')}
+        <i />
+        <b>{hud.actingCount}</b> {t('supervision.hud.acting')}
+        <i />
+        <b className="amber">{hud.awaitingCount}</b> {t('supervision.hud.awaiting')}
+      </div>
+      {/* Bilan de valeur — fenêtre alignée sur le zoom du planning. */}
+      {report && (
+        <div className="cst__hudbilan">
+          <div className="cst__hudbilanhead">
+            <span className="cst__hudbilantitle">{t('supervision.report.titleBase', 'Bilan')}</span>
+            {onReportWindowChange ? (
+              <span className="cst__winseg" role="group" aria-label={t('supervision.report.titleBase', 'Bilan')}>
+                {REPORT_WINDOWS.map((opt) => (
+                  <button
+                    key={opt.days}
+                    type="button"
+                    className={(reportWindow ?? report.windowDays) === opt.days ? 'on' : ''}
+                    aria-pressed={(reportWindow ?? report.windowDays) === opt.days}
+                    onClick={() => onReportWindowChange(opt.days)}
+                  >
+                    {t(opt.key, opt.fallback)}
+                  </button>
+                ))}
+              </span>
+            ) : (
+              <span>· {t('supervision.report.windowDays', {
+                count: report.windowDays,
+                defaultValue: '{{count}} jours',
+              })}</span>
+            )}
+          </div>
+          <div className="cst__hudbilanrow">
+            <div className="cst__hudstat">
+              <b>{report.estimatedTimeSaved}</b>
+              <span>{t('supervision.report.timeSaved', 'Temps gagné')}</span>
+            </div>
+            <div className="cst__hudstat">
+              <b>{report.autoActions}</b>
+              <span>{t('supervision.report.autoActions', 'Actions auto')}</span>
+            </div>
+            <div className="cst__hudstat">
+              <b>{Math.round(report.acceptanceRate * 100)} %</b>
+              <span>{t('supervision.report.acceptance', 'Acceptation')}</span>
+            </div>
+          </div>
+        </div>
+      )}
+      {attentionCount > 0 && (
+        <div className="cst__attention">
+          <span className="cst__attentiondot" />
+          {t('supervision.attention', { count: attentionCount })}
+        </div>
+      )}
+      {/* Légende des statuts — révélée en tooltip au SURVOL du HUD (masquée dans le tiroir). */}
+      <div className="cst__legend" role="tooltip">
+        <span className="cst__lg">
+          <i className="dotsmall act" />
+          {t('supervision.legend.acting')}
+        </span>
+        <span className="cst__lg">
+          <i className="dotsmall wait" />
+          {t('supervision.legend.awaiting')}
+        </span>
+        <span className="cst__lg">
+          <i className="dotsmall think" />
+          {t('supervision.legend.thinking')}
+        </span>
+        <span className="cst__lg">
+          <i className="dotsmall veil" />
+          {t('supervision.legend.idle')}
+        </span>
+      </div>
+    </div>
+  );
+
+  // Titre du tiroir ouvert (mode compact).
+  const sheetTitle =
+    sheet === 'hud'
+      ? t('supervision.hud.orchestrator')
+      : sheet === 'live'
+        ? t('supervision.feed.title')
+        : t('supervision.compact.hitl', 'À traiter');
 
   return (
     <Root ref={ref} $flush={flush} className={rootClass} data-supervision-constellation role="group" aria-label={t('supervision.title')}>
@@ -1180,97 +1510,89 @@ function FramerConstellationInner({
         </span>
       </button>
 
-      {/* Colonne haut-gauche : HUD résumé (« Orchestrateur · actif ») + flux
-          « En direct » empilé juste dessous (slot belowHud). */}
-      <div className="cst__topleft">
-        {/* HUD résumé — le bouton « Scanner » (icône) est posé à droite du titre. */}
-        <div className="cst__hud">
-          <div className="cst__hudtop">
-            <span className="cst__pulse" />
-            <span className="cst__hudtitle">
-              {t('supervision.hud.orchestrator')} · {online ? t('supervision.hud.active') : t('supervision.states.offline')}
-            </span>
-            {headerAction ? <span className="cst__hudaction">{headerAction}</span> : null}
-          </div>
-          <div className="cst__hudrow">
-            <b>{hud.agentsCount}</b> {t('supervision.hud.agents')}
-            <i />
-            <b>{hud.actingCount}</b> {t('supervision.hud.acting')}
-            <i />
-            <b className="amber">{hud.awaitingCount}</b> {t('supervision.hud.awaiting')}
-          </div>
-          {/* Bilan de valeur — fenêtre alignée sur le zoom du planning. */}
-          {report && (
-            <div className="cst__hudbilan">
-              <div className="cst__hudbilanhead">
-                <span className="cst__hudbilantitle">{t('supervision.report.titleBase', 'Bilan')}</span>
-                {onReportWindowChange ? (
-                  <span className="cst__winseg" role="group" aria-label={t('supervision.report.titleBase', 'Bilan')}>
-                    {REPORT_WINDOWS.map((opt) => (
-                      <button
-                        key={opt.days}
-                        type="button"
-                        className={(reportWindow ?? report.windowDays) === opt.days ? 'on' : ''}
-                        aria-pressed={(reportWindow ?? report.windowDays) === opt.days}
-                        onClick={() => onReportWindowChange(opt.days)}
-                      >
-                        {t(opt.key, opt.fallback)}
-                      </button>
-                    ))}
-                  </span>
-                ) : (
-                  <span>· {t('supervision.report.windowDays', {
-                    count: report.windowDays,
-                    defaultValue: '{{count}} jours',
-                  })}</span>
-                )}
-              </div>
-              <div className="cst__hudbilanrow">
-                <div className="cst__hudstat">
-                  <b>{report.estimatedTimeSaved}</b>
-                  <span>{t('supervision.report.timeSaved', 'Temps gagné')}</span>
-                </div>
-                <div className="cst__hudstat">
-                  <b>{report.autoActions}</b>
-                  <span>{t('supervision.report.autoActions', 'Actions auto')}</span>
-                </div>
-                <div className="cst__hudstat">
-                  <b>{Math.round(report.acceptanceRate * 100)} %</b>
-                  <span>{t('supervision.report.acceptance', 'Acceptation')}</span>
-                </div>
-              </div>
-            </div>
-          )}
-          {attentionCount > 0 && (
-            <div className="cst__attention">
-              <span className="cst__attentiondot" />
-              {t('supervision.attention', { count: attentionCount })}
-            </div>
-          )}
-          {/* Légende des statuts — révélée en tooltip au SURVOL du HUD. */}
-          <div className="cst__legend" role="tooltip">
-            <span className="cst__lg">
-              <i className="dotsmall act" />
-              {t('supervision.legend.acting')}
-            </span>
-            <span className="cst__lg">
-              <i className="dotsmall wait" />
-              {t('supervision.legend.awaiting')}
-            </span>
-            <span className="cst__lg">
-              <i className="dotsmall think" />
-              {t('supervision.legend.thinking')}
-            </span>
-            <span className="cst__lg">
-              <i className="dotsmall veil" />
-              {t('supervision.legend.idle')}
-            </span>
-          </div>
+      {/* Desktop : colonne haut-gauche — HUD résumé (« Orchestrateur · actif »)
+          + flux « En direct » empilé juste dessous (slot belowHud). */}
+      {!compact && (
+        <div className="cst__topleft">
+          {hudCard}
+          {belowHud ? <div className="cst__belowhud">{belowHud}</div> : null}
         </div>
-        {belowHud ? <div className="cst__belowhud">{belowHud}</div> : null}
-      </div>
+      )}
 
-      <div className="cst__focushint">{t('supervision.hud.focusHint')}</div>
+      {/* Compact : rail de pastilles — la constellation reste dégagée, chaque
+          surcouche s'ouvre au clic dans le tiroir bas. */}
+      {compact && (
+        <div className="cst__rail">
+          <button
+            type="button"
+            className={`cst__cpill${sheet === 'hud' ? ' on' : ''}`}
+            aria-expanded={sheet === 'hud'}
+            onClick={() => toggleSheet('hud')}
+          >
+            <span className="cst__pulse" />
+            {t('supervision.hud.orchestrator')}
+            {attentionCount > 0 && <span className="cst__cpillalert" />}
+          </button>
+          {belowHud ? (
+            <button
+              type="button"
+              className={`cst__cpill${sheet === 'live' ? ' on' : ''}`}
+              aria-expanded={sheet === 'live'}
+              onClick={() => toggleSheet('live')}
+            >
+              <span className="cst__pilldot" />
+              {t('supervision.feed.title')}
+            </button>
+          ) : null}
+          {hitl && (hitlCount ?? 0) > 0 ? (
+            <button
+              type="button"
+              className={`cst__cpill cst__cpill--hitl${sheet === 'hitl' ? ' on' : ''}`}
+              aria-expanded={sheet === 'hitl'}
+              onClick={() => toggleSheet('hitl')}
+            >
+              {t('supervision.compact.hitl', 'À traiter')}
+              <span className="cst__cpillcount">{hitlCount}</span>
+            </button>
+          ) : null}
+        </div>
+      )}
+
+      {/* Compact : tiroir bas (un seul ouvert à la fois) + voile de fermeture.
+          La constellation reste visible et animée au-dessus du tiroir. */}
+      {compact && sheet && (
+        <>
+          <button
+            type="button"
+            className="cst__sheetveil"
+            aria-label={t('common.close', 'Fermer')}
+            onClick={() => setSheet(null)}
+          />
+          <div className="cst__sheet" role="dialog" aria-label={sheetTitle}>
+            <span className="cst__sheethandle" aria-hidden="true" />
+            <div className="cst__sheethead">
+              {sheetTitle}
+              {sheet === 'hitl' && (hitlCount ?? 0) > 0 ? (
+                <span className="cst__cpillcount">{hitlCount}</span>
+              ) : null}
+              <button
+                type="button"
+                className="cst__sheetclose"
+                aria-label={t('common.close', 'Fermer')}
+                onClick={() => setSheet(null)}
+              >
+                <Close size={16} />
+              </button>
+            </div>
+            {/* data-vertical-scroll : le planning ne détourne pas la molette ici. */}
+            <div className="cst__sheetbody" data-vertical-scroll>
+              {sheet === 'hud' ? hudCard : sheet === 'live' ? belowHud : hitl}
+            </div>
+          </div>
+        </>
+      )}
+
+      {!compact && <div className="cst__focushint">{t('supervision.hud.focusHint')}</div>}
 
       {/* Tooltip PORTALISÉ dans <body> (position:fixed) → au-dessus du canvas
           (overflow) ET du planning (z-index très élevé). Ancré au-dessus de

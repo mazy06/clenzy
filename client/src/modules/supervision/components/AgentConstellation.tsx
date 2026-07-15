@@ -35,6 +35,11 @@ export interface AgentConstellationProps {
   onReportWindowChange?: (days: number) => void;
   /** Contenu empilé juste sous le HUD (ex. flux « En direct »). */
   belowHud?: ReactNode;
+  /** Mode compact (conteneur étroit) : pastilles + tiroir bas (cf. renderer). */
+  compact?: boolean;
+  /** File HITL affichée dans le tiroir du mode compact + son compteur. */
+  hitl?: ReactNode;
+  hitlCount?: number;
   /** Rendu pleine-cellule (accordéon Planning) : canvas sans arrondi ni ombre. */
   flush?: boolean;
 }
@@ -92,6 +97,9 @@ export function AgentConstellation({
   reportWindow,
   onReportWindowChange,
   belowHud,
+  compact,
+  hitl,
+  hitlCount,
   flush,
 }: AgentConstellationProps) {
   const [focused, setFocused] = useState(false);
@@ -114,6 +122,9 @@ export function AgentConstellation({
       reportWindow={reportWindow}
       onReportWindowChange={onReportWindowChange}
       belowHud={belowHud}
+      compact={compact}
+      hitl={hitl}
+      hitlCount={hitlCount}
       flush={flush}
     />
   );
