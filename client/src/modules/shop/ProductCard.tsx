@@ -33,6 +33,8 @@ const BADGE_STYLES: Record<string, { bg: string; color: string }> = {
 const DEFAULT_TINT = '#6B8A9A';
 const KIT_TINT = '#4A9B8E';
 
+const formatPrice = (cents: number) => <Money value={cents / 100} from="EUR" />;
+
 // ─── Props ───────────────────────────────────────────────────────────────────
 
 interface ProductCardProps {
@@ -56,8 +58,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const badgeStyle = product.badge ? BADGE_STYLES[product.badge] : null;
   const palette = PRODUCT_PALETTE[product.icon];
   const tint = isKit ? KIT_TINT : palette?.tint ?? DEFAULT_TINT;
-
-  const formatPrice = (cents: number) => <Money value={cents / 100} from="EUR" />;
 
   const savingsPct =
     product.originalPrice && product.originalPrice > product.price

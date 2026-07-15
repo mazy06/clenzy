@@ -39,6 +39,8 @@ const SOURCE_COLORS: Record<string, string> = {
   PROPERTY_DEFAULT: '#8BA0B3',
 };
 
+const getSourceColor = (source: string): string => SOURCE_COLORS[source] ?? '#8BA0B3';
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface PricingCalendarViewProps {
@@ -243,8 +245,6 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
     },
     [minNightsMutation],
   );
-
-  const getSourceColor = (source: string): string => SOURCE_COLORS[source] ?? '#8BA0B3';
 
   const selectedDatesSet = new Set(selectedDates);
 

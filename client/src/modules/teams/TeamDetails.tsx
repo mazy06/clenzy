@@ -40,6 +40,15 @@ interface Team {
   updatedAt?: string;
 }
 
+const getInterventionTypeIcon = (type: string) => {
+  switch (type) {
+    case 'CLEANING': return <CleaningServices />;
+    case 'MAINTENANCE': return <Build />;
+    case 'REPAIR': return <Build />;
+    default: return <Group />;
+  }
+};
+
 const TeamDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -74,15 +83,6 @@ const TeamDetails: React.FC = () => {
 
   const handleEdit = () => {
     navigate(`/teams/${id}/edit`);
-  };
-
-  const getInterventionTypeIcon = (type: string) => {
-    switch (type) {
-      case 'CLEANING': return <CleaningServices />;
-      case 'MAINTENANCE': return <Build />;
-      case 'REPAIR': return <Build />;
-      default: return <Group />;
-    }
   };
 
 

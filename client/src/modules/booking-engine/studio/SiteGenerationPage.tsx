@@ -77,6 +77,16 @@ function briefCompleteness(b: Partial<SiteGenerationBrief>): { score: number; hi
   return { score: Math.round((got / total) * 100), hints: missing.slice(0, 2).map((m) => m.h) };
 }
 
+const uniqueConfigName = async (base: string): Promise<string> => {
+  try {
+    const configs = await bookingEngineApi.listConfigs();
+    const taken = new Set(configs.map((c) => c.name));
+    if (!taken.has(base)) return base;
+    for (let i = 2; i <= 99; i += 1) { const n = `${base} ${i}`; if (!taken.has(n)) return n; }
+    return `${base} ${Date.now().toString(36)}`;
+  } catch { return base; }
+};
+
 export default function SiteGenerationPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -166,16 +176,6 @@ export default function SiteGenerationPage() {
     } finally {
       setDsBusy(false);
     }
-  };
-
-  const uniqueConfigName = async (base: string): Promise<string> => {
-    try {
-      const configs = await bookingEngineApi.listConfigs();
-      const taken = new Set(configs.map((c) => c.name));
-      if (!taken.has(base)) return base;
-      for (let i = 2; i <= 99; i += 1) { const n = `${base} ${i}`; if (!taken.has(n)) return n; }
-      return `${base} ${Date.now().toString(36)}`;
-    } catch { return base; }
   };
 
   const handleSubmit = async () => {

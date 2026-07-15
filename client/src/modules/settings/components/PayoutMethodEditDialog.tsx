@@ -58,6 +58,18 @@ const WARM = 'var(--warn)';
 
 const IBAN_REGEX = /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/;
 
+const extractErrorMessage = (e: unknown): string => {
+  if (e instanceof Error && e.message) return e.message;
+  // ApiClient peut wrapper l'erreur backend dans { message, status, body }
+  if (typeof e === 'object' && e !== null) {
+    const err = e as { message?: string; body?: { error?: string; message?: string } };
+    if (err.body?.error) return err.body.error;
+    if (err.body?.message) return err.body.message;
+    if (err.message) return err.message;
+  }
+  return 'Erreur inconnue lors de la sauvegarde.';
+};
+
 const METHOD_OPTIONS: Array<{
   value: PayoutMethod;
   label: string;
@@ -290,18 +302,6 @@ export default function PayoutMethodEditDialog({
     // Redirige le browser vers le SCA bancaire
     window.location.href = response.redirectUrl;
     return true;
-  };
-
-  const extractErrorMessage = (e: unknown): string => {
-    if (e instanceof Error && e.message) return e.message;
-    // ApiClient peut wrapper l'erreur backend dans { message, status, body }
-    if (typeof e === 'object' && e !== null) {
-      const err = e as { message?: string; body?: { error?: string; message?: string } };
-      if (err.body?.error) return err.body.error;
-      if (err.body?.message) return err.body.message;
-      if (err.message) return err.message;
-    }
-    return 'Erreur inconnue lors de la sauvegarde.';
   };
 
   const handleSave = async () => {

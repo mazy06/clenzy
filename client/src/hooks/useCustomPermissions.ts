@@ -24,36 +24,36 @@ interface CustomPermissionsProviderProps {
   children: ReactNode;
 }
 
+// Permissions de base ADMIN (partagees entre SUPER_ADMIN et ADMIN)
+const adminPermissions = [
+  'dashboard:view',
+  'properties:view', 'properties:create', 'properties:edit', 'properties:delete',
+  'service-requests:view', 'service-requests:create', 'service-requests:edit', 'service-requests:delete',
+  'interventions:view', 'interventions:create', 'interventions:edit', 'interventions:delete',
+  'teams:view', 'teams:create', 'teams:edit', 'teams:delete',
+  'portfolios:view', 'portfolios:manage',
+  'settings:view', 'settings:edit',
+  'users:manage',
+  'reports:view',
+  'tarification:view', 'tarification:edit',
+];
+
+const managerPermissions = [
+  'dashboard:view',
+  'properties:view', 'properties:create', 'properties:edit',
+  'service-requests:view', 'service-requests:create', 'service-requests:edit',
+  'interventions:view', 'interventions:create', 'interventions:edit',
+  'teams:view', 'teams:create', 'teams:edit',
+  'portfolios:view', 'portfolios:manage',
+  'settings:view',
+  'users:view',
+  'reports:view',
+  'tarification:view', 'tarification:edit',
+];
+
 export const CustomPermissionsProvider: React.FC<CustomPermissionsProviderProps> = ({ children }) => {
   const [customPermissions, setCustomPermissions] = useState<Record<string, string[]>>({});
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
-
-  // Permissions de base ADMIN (partagees entre SUPER_ADMIN et ADMIN)
-  const adminPermissions = [
-    'dashboard:view',
-    'properties:view', 'properties:create', 'properties:edit', 'properties:delete',
-    'service-requests:view', 'service-requests:create', 'service-requests:edit', 'service-requests:delete',
-    'interventions:view', 'interventions:create', 'interventions:edit', 'interventions:delete',
-    'teams:view', 'teams:create', 'teams:edit', 'teams:delete',
-    'portfolios:view', 'portfolios:manage',
-    'settings:view', 'settings:edit',
-    'users:manage',
-    'reports:view',
-    'tarification:view', 'tarification:edit',
-  ];
-
-  const managerPermissions = [
-    'dashboard:view',
-    'properties:view', 'properties:create', 'properties:edit',
-    'service-requests:view', 'service-requests:create', 'service-requests:edit',
-    'interventions:view', 'interventions:create', 'interventions:edit',
-    'teams:view', 'teams:create', 'teams:edit',
-    'portfolios:view', 'portfolios:manage',
-    'settings:view',
-    'users:view',
-    'reports:view',
-    'tarification:view', 'tarification:edit',
-  ];
 
   const defaultRolePermissions: Record<string, string[]> = {
     SUPER_ADMIN: [...adminPermissions],

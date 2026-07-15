@@ -46,6 +46,9 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
 /** Locales supportées par le Studio (alignées sur GrapesStudio). */
 const SUPPORTED_LOCALES = ['fr', 'en', 'ar'] as const;
 
+/** Langues cibles d'un article = locales supportées hors langue de l'article (vide = langue par défaut). */
+const postTargets = (p: BlogPost) => SUPPORTED_LOCALES.filter((l) => l !== (p.locale ?? 'fr'));
+
 export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
   const { t } = useTranslation();
   const { notify } = useNotification();
@@ -93,9 +96,6 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
     await reload();
     return result;
   };
-
-  /** Langues cibles d'un article = locales supportées hors langue de l'article (vide = langue par défaut). */
-  const postTargets = (p: BlogPost) => SUPPORTED_LOCALES.filter((l) => l !== (p.locale ?? 'fr'));
 
   if (error) {
     return (

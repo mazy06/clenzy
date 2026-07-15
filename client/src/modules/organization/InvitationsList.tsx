@@ -73,6 +73,43 @@ interface Props {
   refreshTrigger: number; // incrementer pour forcer un refresh
 }
 
+const getStatusChip = (status: string) => {
+  const style = STATUS_STYLE[status] ?? { ...DEFAULT_STATUS_STYLE, label: status };
+  const { Icon, fg, bg, label } = style;
+  return (
+    <Chip
+      icon={Icon ? <Icon size={11} strokeWidth={2} /> : undefined}
+      label={label}
+      size="small"
+      sx={{
+        backgroundColor: bg,
+        color: fg,
+        '& .MuiChip-icon': { color: fg, ml: '6px', mr: '-2px' },
+      }}
+    />
+  );
+};
+
+// Format compact : jj/mm/aa au lieu de jj/mm/aaaa pour gagner ~2 chars/cellule
+const formatShortDate = (iso: string) => {
+  const d = new Date(iso);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${dd}/${mm}/${yy}`;
+};
+
+const CELL_SX = {
+  fontSize: '0.75rem',
+  whiteSpace: 'nowrap',
+  py: 0.75,
+  px: 1,
+} as const;
+// Email cell : shrinkable + ellipsis pour eviter de pousser la table et clipper les actions
+const CELL_EMAIL_SX = { fontSize: '0.75rem', py: 0.75, px: 1, maxWidth: 0, width: '100%' } as const;
+// Entete : l'overline vient du theme global (MuiTableCell head) — on ne garde que l'espacement
+const HEAD_CELL_SX = { whiteSpace: 'nowrap', py: 0.75, px: 1 } as const;
+
 export default function InvitationsList({ organizationId, refreshTrigger }: Props) {
   const [invitations, setInvitations] = useState<InvitationDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,23 +187,6 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
     }
   };
 
-  const getStatusChip = (status: string) => {
-    const style = STATUS_STYLE[status] ?? { ...DEFAULT_STATUS_STYLE, label: status };
-    const { Icon, fg, bg, label } = style;
-    return (
-      <Chip
-        icon={Icon ? <Icon size={11} strokeWidth={2} /> : undefined}
-        label={label}
-        size="small"
-        sx={{
-          backgroundColor: bg,
-          color: fg,
-          '& .MuiChip-icon': { color: fg, ml: '6px', mr: '-2px' },
-        }}
-      />
-    );
-  };
-
   const getRoleLabel = getOrgRoleLabel;
 
   if (loading) {
@@ -192,26 +212,6 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
       </Typography>
     );
   }
-
-  // Format compact : jj/mm/aa au lieu de jj/mm/aaaa pour gagner ~2 chars/cellule
-  const formatShortDate = (iso: string) => {
-    const d = new Date(iso);
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yy = String(d.getFullYear()).slice(-2);
-    return `${dd}/${mm}/${yy}`;
-  };
-
-  const CELL_SX = {
-    fontSize: '0.75rem',
-    whiteSpace: 'nowrap',
-    py: 0.75,
-    px: 1,
-  } as const;
-  // Email cell : shrinkable + ellipsis pour eviter de pousser la table et clipper les actions
-  const CELL_EMAIL_SX = { fontSize: '0.75rem', py: 0.75, px: 1, maxWidth: 0, width: '100%' } as const;
-  // Entete : l'overline vient du theme global (MuiTableCell head) — on ne garde que l'espacement
-  const HEAD_CELL_SX = { whiteSpace: 'nowrap', py: 0.75, px: 1 } as const;
 
   // Invitation associee au modal pour personnaliser le message (email destinataire).
   const pendingInvitation =

@@ -190,6 +190,19 @@ function formatReservationRange(r: GuideReservationRef, locale: string): string 
   return ci || co || '';
 }
 
+// Rotation (deg) / lift (px) d'une carte d'éventail — fan symétrique pour un nombre VARIABLE de cartes.
+const fanTip = (i: number, n: number): number => (n <= 1 ? 0 : +(((n - 1) / 2 - i) * 3).toFixed(2));
+const fanLift = (i: number, n: number): number => (n <= 1 ? 0 : +(Math.abs(i - (n - 1) / 2) * 6).toFixed(1));
+
+// Structures de contenu (éventail) — préréglages de sections du livret.
+const LIVRET_STRUCTURES: { id: string; name: string; desc: string; icon: typeof Zap; badge?: string }[] = [
+  { id: 'essentiel', name: "L'Essentiel", desc: 'Wifi, arrivée & départ', icon: Zap, badge: 'Rapide' },
+  { id: 'complet', name: 'Complet', desc: 'Toutes les sections pré-remplies', icon: LayoutGrid },
+  { id: 'cityguide', name: 'City Guide', desc: 'Quartier & recommandations', icon: MapPin },
+  { id: 'longue', name: 'Longue durée', desc: 'Infos pratiques étendues', icon: CalendarDays },
+  { id: 'conciergerie', name: 'Conciergerie', desc: 'Expériences & services payants', icon: ConciergeBell },
+];
+
 const WelcomeGuideAdmin: React.FC = () => {
   const { t, currentLanguage } = useTranslation();
   const { isPlatformStaff, user } = useAuth();
@@ -388,9 +401,6 @@ const WelcomeGuideAdmin: React.FC = () => {
     if (structureId) { openCreate({ theme: selectedThemeId ?? DEFAULT_THEME }); return; }
     void handleGenerateGuide();
   };
-  // Rotation (deg) / lift (px) d'une carte d'éventail — fan symétrique pour un nombre VARIABLE de cartes.
-  const fanTip = (i: number, n: number): number => (n <= 1 ? 0 : +(((n - 1) / 2 - i) * 3).toFixed(2));
-  const fanLift = (i: number, n: number): number => (n <= 1 ? 0 : +(Math.abs(i - (n - 1) / 2) * 6).toFixed(1));
 
   // Champ IA du livret (gated STUDIO_ASSIST) : génère un brouillon complet (message d'accueil + sections
   // + recommandations du quartier) depuis la description/URL saisie, puis ouvre le formulaire pré-rempli
@@ -729,15 +739,6 @@ const WelcomeGuideAdmin: React.FC = () => {
   );
 
   // ─── Render: list ──────────────────────────────────────────────────────────
-  // Structures de contenu (éventail) — préréglages de sections du livret.
-  const LIVRET_STRUCTURES: { id: string; name: string; desc: string; icon: typeof Zap; badge?: string }[] = [
-    { id: 'essentiel', name: "L'Essentiel", desc: 'Wifi, arrivée & départ', icon: Zap, badge: 'Rapide' },
-    { id: 'complet', name: 'Complet', desc: 'Toutes les sections pré-remplies', icon: LayoutGrid },
-    { id: 'cityguide', name: 'City Guide', desc: 'Quartier & recommandations', icon: MapPin },
-    { id: 'longue', name: 'Longue durée', desc: 'Infos pratiques étendues', icon: CalendarDays },
-    { id: 'conciergerie', name: 'Conciergerie', desc: 'Expériences & services payants', icon: ConciergeBell },
-  ];
-
   const renderList = () => {
     const q = livretQuery.trim().toLowerCase();
     const filtered = q

@@ -14,6 +14,64 @@ const COUNTRY_OPTIONS = ['FR', 'GB', 'US', 'DE', 'ES', 'IT', 'MA', 'BE', 'CH', '
 // Langues supportées pour la communication voyageur.
 const LANGUAGE_OPTIONS = ['fr', 'en', 'ar', 'es', 'de', 'it'];
 
+// Stepper -/valeur/+ cohérent (voyageurs et enfants).
+const renderStepper = (
+  value: number,
+  onDec: () => void,
+  onInc: () => void,
+  decDisabled: boolean,
+  incDisabled: boolean,
+  ariaLabel: string,
+) => (
+  <Box
+    sx={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px',
+      backgroundColor: 'var(--field)',
+      border: '1px solid var(--field-line)',
+      borderRadius: '10px',
+      padding: '3px',
+      flexShrink: 0,
+    }}
+  >
+    <Box component="button" type="button" aria-label={`${ariaLabel} −`} onClick={onDec} disabled={decDisabled} sx={STEP_BTN_SX}>
+      <RemoveIcon size={15} strokeWidth={1.75} />
+    </Box>
+    <Box
+      sx={{
+        fontFamily: 'var(--font-display)',
+        fontSize: '15px',
+        fontWeight: 600,
+        color: 'var(--ink)',
+        minWidth: 28,
+        textAlign: 'center',
+        userSelect: 'none',
+        fontVariantNumeric: 'tabular-nums',
+      }}
+    >
+      {value}
+    </Box>
+    <Box component="button" type="button" aria-label={`${ariaLabel} +`} onClick={onInc} disabled={incDisabled} sx={STEP_BTN_SX}>
+      <AddIcon size={15} strokeWidth={1.75} />
+    </Box>
+  </Box>
+);
+
+// Champ en lecture seule (infos d'un voyageur — édition de réservation uniquement).
+const roField = (label: string, value?: string | null, multiline = false) => (
+  <TextField
+    label={label}
+    value={value || '—'}
+    disabled
+    fullWidth
+    multiline={multiline}
+    minRows={multiline ? 2 : undefined}
+    InputLabelProps={{ shrink: true }}
+    sx={multiline ? COMPACT_TEXTAREA_SX : COMPACT_FIELD_SX}
+  />
+);
+
 /**
  * Voyageur.
  * - Création : recherche d'un voyageur existant (préremplit) + champs TOUJOURS éditables.
@@ -22,64 +80,6 @@ const LANGUAGE_OPTIONS = ['fr', 'en', 'ar', 'es', 'de', 'it'];
  */
 const GuestSection: React.FC<Props> = ({ form }) => {
   const { t } = useTranslation();
-
-  // Stepper -/valeur/+ cohérent (voyageurs et enfants).
-  const renderStepper = (
-    value: number,
-    onDec: () => void,
-    onInc: () => void,
-    decDisabled: boolean,
-    incDisabled: boolean,
-    ariaLabel: string,
-  ) => (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px',
-        backgroundColor: 'var(--field)',
-        border: '1px solid var(--field-line)',
-        borderRadius: '10px',
-        padding: '3px',
-        flexShrink: 0,
-      }}
-    >
-      <Box component="button" type="button" aria-label={`${ariaLabel} −`} onClick={onDec} disabled={decDisabled} sx={STEP_BTN_SX}>
-        <RemoveIcon size={15} strokeWidth={1.75} />
-      </Box>
-      <Box
-        sx={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '15px',
-          fontWeight: 600,
-          color: 'var(--ink)',
-          minWidth: 28,
-          textAlign: 'center',
-          userSelect: 'none',
-          fontVariantNumeric: 'tabular-nums',
-        }}
-      >
-        {value}
-      </Box>
-      <Box component="button" type="button" aria-label={`${ariaLabel} +`} onClick={onInc} disabled={incDisabled} sx={STEP_BTN_SX}>
-        <AddIcon size={15} strokeWidth={1.75} />
-      </Box>
-    </Box>
-  );
-
-  // Champ en lecture seule (infos d'un voyageur — édition de réservation uniquement).
-  const roField = (label: string, value?: string | null, multiline = false) => (
-    <TextField
-      label={label}
-      value={value || '—'}
-      disabled
-      fullWidth
-      multiline={multiline}
-      minRows={multiline ? 2 : undefined}
-      InputLabelProps={{ shrink: true }}
-      sx={multiline ? COMPACT_TEXTAREA_SX : COMPACT_FIELD_SX}
-    />
-  );
 
   const guestChip = (
     <Chip

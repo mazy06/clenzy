@@ -34,6 +34,19 @@ import {
 
 const ACCENT = 'var(--accent)';
 
+const fieldSx = {
+  fontSize: '0.78rem',
+  borderRadius: '8px',
+  height: 34,
+  '& .MuiOutlinedInput-root': { height: 34, fontSize: '0.78rem' },
+  '& .MuiOutlinedInput-input': { py: 0 },
+  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
+  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)' },
+  '&.Mui-focused .MuiOutlinedInput-notchedOutline, & .Mui-focused .MuiOutlinedInput-notchedOutline': {
+    borderColor: ACCENT,
+  },
+};
+
 interface IntegrationsHeaderProps {
   selectedCategoryId: string | null;
   onCategoryChange: (categoryId: string | null) => void;
@@ -71,19 +84,6 @@ export default function IntegrationsHeader({
         document.getElementById(domId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
-  };
-
-  const fieldSx = {
-    fontSize: '0.78rem',
-    borderRadius: '8px',
-    height: 34,
-    '& .MuiOutlinedInput-root': { height: 34, fontSize: '0.78rem' },
-    '& .MuiOutlinedInput-input': { py: 0 },
-    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
-    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)' },
-    '&.Mui-focused .MuiOutlinedInput-notchedOutline, & .Mui-focused .MuiOutlinedInput-notchedOutline': {
-      borderColor: ACCENT,
-    },
   };
 
   return (

@@ -91,6 +91,8 @@ function getNoiseStatus(level: number): { label: string; color: 'success' | 'war
   return { label: 'Critique', color: 'error', icon: <ErrorIcon size={14} strokeWidth={1.75} /> };
 }
 
+const hourLabel = (h: number) => `${h.toString().padStart(2, '0')}:00`;
+
 // ─── Custom Tooltip ─────────────────────────────────────────────────────────
 
 interface CustomTooltipProps {
@@ -184,7 +186,6 @@ const ThresholdLinesRenderer: React.FC<ThresholdLinesRendererProps> = ({
     return plotArea.y + plotArea.height * (1 - (value - yMin) / (yMax - yMin));
   };
 
-  const hourLabel = (h: number) => `${h.toString().padStart(2, '0')}:00`;
   const hasLabel = (label: string) => categories.includes(label);
 
   /**

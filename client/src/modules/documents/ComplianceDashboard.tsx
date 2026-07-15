@@ -89,6 +89,16 @@ export interface ComplianceDashboardRef {
   searchByNumber: (number: string) => void;
 }
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const formatDate = (dateStr: string | null) => {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleDateString('fr-FR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+};
+
 const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
   const { t } = useTranslation();
   const { hasAnyRole } = useAuth();
@@ -118,8 +128,6 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
   const error = actionError || (statsError ? t('documents.compliance.loadError') : null);
 
   // ─── Auto-verification: check all templates sequentially on load ───
-  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
   const runAutoCheck = useCallback(async (templateList: typeof templates) => {
     if (templateList.length === 0) return;
     setAutoCheckRunning(true);
@@ -200,14 +208,6 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
     } catch {
       setActionError(t('documents.compliance.countryChangeError'));
     }
-  };
-
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return '\u2014';
-    return new Date(dateStr).toLocaleDateString('fr-FR', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    });
   };
 
   if (loading) {

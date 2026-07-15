@@ -66,6 +66,22 @@ interface TeamFormData {
   coverageZones: CoverageZone[];
 }
 
+const teamServiceCategories = [
+  { value: 'CLEANING', label: 'Nettoyage', icon: <AutoAwesome size={18} strokeWidth={1.75} /> },
+  { value: 'MAINTENANCE', label: 'Maintenance', icon: <Build size={18} strokeWidth={1.75} /> },
+  { value: 'OTHER', label: 'Autre', icon: <Category size={18} strokeWidth={1.75} /> },
+];
+
+const roleOptions = [
+  { value: 'HOUSEKEEPER', label: 'Agent de ménage' },
+  { value: 'TECHNICIAN', label: 'Technicien' },
+  { value: 'LAUNDRY', label: 'Blanchisserie' },
+  { value: 'EXTERIOR_TECH', label: 'Tech. extérieur' },
+  { value: 'SUPERVISOR', label: 'Superviseur' },
+  { value: 'SUPER_MANAGER', label: 'Super Manager' },
+  { value: 'MANAGER', label: 'Manager' },
+];
+
 const TeamEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -235,22 +251,6 @@ const TeamEdit: React.FC = () => {
     setError(null);
     updateMutation.mutate(formData);
   };
-
-  const teamServiceCategories = [
-    { value: 'CLEANING', label: 'Nettoyage', icon: <AutoAwesome size={18} strokeWidth={1.75} /> },
-    { value: 'MAINTENANCE', label: 'Maintenance', icon: <Build size={18} strokeWidth={1.75} /> },
-    { value: 'OTHER', label: 'Autre', icon: <Category size={18} strokeWidth={1.75} /> },
-  ];
-
-  const roleOptions = [
-    { value: 'HOUSEKEEPER', label: 'Agent de ménage' },
-    { value: 'TECHNICIAN', label: 'Technicien' },
-    { value: 'LAUNDRY', label: 'Blanchisserie' },
-    { value: 'EXTERIOR_TECH', label: 'Tech. extérieur' },
-    { value: 'SUPERVISOR', label: 'Superviseur' },
-    { value: 'SUPER_MANAGER', label: 'Super Manager' },
-    { value: 'MANAGER', label: 'Manager' },
-  ];
 
   if (loading) {
     return (

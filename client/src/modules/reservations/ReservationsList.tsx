@@ -73,15 +73,16 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+const formatPrice = (price: number | undefined, currency = 'EUR') => {
+  if (price === undefined || price === null) return '-';
+  return <Money value={price} from={currency} />;
+};
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const ReservationsList: React.FC = () => {
   const { t } = useTranslation();
   const { notify } = useNotification();
-  const formatPrice = (price: number | undefined, currency = 'EUR') => {
-    if (price === undefined || price === null) return '-';
-    return <Money value={price} from={currency} />;
-  };
 
   const {
     reservations,

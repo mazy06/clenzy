@@ -38,6 +38,33 @@ interface TeamMembersListProps {
 
 type SortBy = 'name' | 'role';
 
+const getRoleHex = (role: string): string => {
+  // Palette Baitly validee (alignee UsersList / orgRoleLabels)
+  const roleHexMap: Record<string, string> = {
+    housekeeper: '#4A9B8E',
+    technician: '#6B8A9A',
+    supervisor: '#7BA3C2',
+    manager: '#D4A574',
+    laundry: '#8A8378',
+    exterior_tech: '#6B8A9A',
+    leader: '#7B68A8',
+  };
+  return roleHexMap[role?.toLowerCase()] || '#8A8378';
+};
+
+const getRoleColor = (role: string): ChipColor => {
+  const roleColors: Record<string, ChipColor> = {
+    housekeeper: 'success',
+    technician: 'primary',
+    supervisor: 'warning',
+    manager: 'error',
+    laundry: 'default',
+    exterior_tech: 'primary',
+    leader: 'secondary',
+  };
+  return roleColors[role?.toLowerCase()] || 'default';
+};
+
 const TeamMembersList: React.FC<TeamMembersListProps> = ({
   members,
   teamId,
@@ -113,33 +140,6 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
       leader: "Chef d'équipe",
     };
     return roleLabels[role?.toLowerCase()] || role;
-  };
-
-  const getRoleHex = (role: string): string => {
-    // Palette Baitly validee (alignee UsersList / orgRoleLabels)
-    const roleHexMap: Record<string, string> = {
-      housekeeper: '#4A9B8E',
-      technician: '#6B8A9A',
-      supervisor: '#7BA3C2',
-      manager: '#D4A574',
-      laundry: '#8A8378',
-      exterior_tech: '#6B8A9A',
-      leader: '#7B68A8',
-    };
-    return roleHexMap[role?.toLowerCase()] || '#8A8378';
-  };
-
-  const getRoleColor = (role: string): ChipColor => {
-    const roleColors: Record<string, ChipColor> = {
-      housekeeper: 'success',
-      technician: 'primary',
-      supervisor: 'warning',
-      manager: 'error',
-      laundry: 'default',
-      exterior_tech: 'primary',
-      leader: 'secondary',
-    };
-    return roleColors[role?.toLowerCase()] || 'default';
   };
 
   return (

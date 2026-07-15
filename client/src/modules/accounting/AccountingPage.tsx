@@ -673,9 +673,10 @@ const EXPENSE_STATUS_OPTIONS: { value: ExpenseStatus | ''; label: string; labelK
 
 const CATEGORY_OPTIONS: ExpenseCategory[] = ['CLEANING', 'MAINTENANCE', 'LAUNDRY', 'SUPPLIES', 'LANDSCAPING', 'OTHER'];
 
+const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={currency} />;
+
 export const ExpensesTab: React.FC = () => {
   const { t } = useTranslation();
-  const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={currency} />;
   const queryClient = useQueryClient();
 
   // Filters

@@ -38,6 +38,23 @@ interface Props {
 
 const ROWS_PER_PAGE = 5;
 
+const getInitials = (member: OrganizationMemberDto): string => {
+  const first = member.firstName?.[0] || '';
+  const last = member.lastName?.[0] || '';
+  return (first + last).toUpperCase() || member.email?.[0]?.toUpperCase() || '?';
+};
+
+const getMemberName = (member: OrganizationMemberDto): string => {
+  return `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email;
+};
+
+const CELL_NOWRAP_SX = { whiteSpace: 'nowrap' as const, py: 0.75, px: 1 };
+// Membre cell : shrinkable + ellipsis. `maxWidth: 0` + `width: '100%'` est le trick CSS pour
+// qu'une cellule <td> accepte text-overflow:ellipsis sur ses enfants tout en remplissant
+// l'espace disponible. Sans ça, l'email long pousse la table et la colonne Actions se fait
+// clipper par le `overflow: hidden` du SettingsSection.
+const CELL_MEMBER_SX = { py: 0.75, px: 1, maxWidth: 0, width: '100%' };
+
 export default function MembersList({ organizationId, refreshTrigger, onMemberChanged }: Props) {
   const { hasAnyRole, user } = useAuth();
   const [members, setMembers] = useState<OrganizationMemberDto[]>([]);
@@ -89,16 +106,6 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
     onMemberChanged?.();
   };
 
-  const getInitials = (member: OrganizationMemberDto): string => {
-    const first = member.firstName?.[0] || '';
-    const last = member.lastName?.[0] || '';
-    return (first + last).toUpperCase() || member.email?.[0]?.toUpperCase() || '?';
-  };
-
-  const getMemberName = (member: OrganizationMemberDto): string => {
-    return `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email;
-  };
-
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
@@ -129,13 +136,6 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
   const canManage = isPlatformStaff || isOrgAdmin;
 
   const paginatedMembers = members.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
-
-  const CELL_NOWRAP_SX = { whiteSpace: 'nowrap' as const, py: 0.75, px: 1 };
-  // Membre cell : shrinkable + ellipsis. `maxWidth: 0` + `width: '100%'` est le trick CSS pour
-  // qu'une cellule <td> accepte text-overflow:ellipsis sur ses enfants tout en remplissant
-  // l'espace disponible. Sans ça, l'email long pousse la table et la colonne Actions se fait
-  // clipper par le `overflow: hidden` du SettingsSection.
-  const CELL_MEMBER_SX = { py: 0.75, px: 1, maxWidth: 0, width: '100%' };
 
   return (
     <>
