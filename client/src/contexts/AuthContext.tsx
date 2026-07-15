@@ -313,7 +313,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       window.removeEventListener('permissions-updated', handlePermissionsUpdated);
       permissionSyncService.shutdown();
     };
-  }, []);
+    // permissionSyncService est un singleton (getInstance) : identite stable,
+    // l'effet reste de fait mount-only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permissionSyncService]);
 
   // ─── Helpers de role/permission ──────────────────────────────────────────
 

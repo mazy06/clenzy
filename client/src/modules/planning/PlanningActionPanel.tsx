@@ -191,6 +191,9 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
   // Auto-reset to valid tab when event type changes
   const validTabs = useMemo(
     () => (event ? getValidTabs(event.type) : []),
+    // Dep fine volontaire : seul event.type est lu ; dependre de l'objet event
+    // recreerait l'array a chaque re-fetch du planning.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [event?.type],
   );
 
@@ -198,7 +201,8 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
     if (event && !validTabs.includes(activeTab)) {
       onTabChange('info');
     }
-  }, [event?.id, event?.type]);
+    // Garde `includes` + 'info' present dans toutes les configs : converge en 1 pas.
+  }, [event, validTabs, activeTab, onTabChange]);
 
   if (!event) return null;
 

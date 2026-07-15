@@ -1469,7 +1469,8 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
     if (!ed) return;
     widgetSkinOnRef.current = true;
     ensureWidgetSkin(ed, configBtVars(cfg.config));
-  }, [cfg.config?.primaryColor, cfg.config?.fontFamily, cfg.config?.designTokens, cfg.config?.designCssVariables]);
+    // configBtVars lit cfg.config entier : dependre de l'objet evite toute staleness.
+  }, [cfg.config]);
   const handleInsertFunnel = useCallback((widgetIds: string[]) => {
     const ed = editorRef.current;
     if (ed) insertFunnel(ed, widgetIds);

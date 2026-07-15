@@ -528,7 +528,10 @@ const PlanningPage: React.FC = () => {
     requestAnimationFrame(() => {
       timeline.scrollToDate(new Date(selectedEvent.startDate));
     });
-  }, [selectedEvent?.id, selection.panelOpen, timeline]);
+    // Deps fines volontaires : dependre de l'objet selectedEvent re-scrollerait
+    // a chaque re-fetch du planning (nouvelle identite). id + startDate couvrent
+    // tout ce que l'effet lit.
+  }, [selectedEvent?.id, selectedEvent?.startDate, selection.panelOpen, timeline]);
 
   // Sous-titre du header : mois visible (synchronisé au scroll), capitalisé.
   const visibleMonthLabel = formatMonthYear(visibleMonthDate);

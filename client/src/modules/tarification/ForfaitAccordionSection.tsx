@@ -191,7 +191,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
       setNewSurchargeKey('');
       setNewSurchargeLabel('');
       setAddSurchargeOpen(false);
-    }, [newSurchargeKey, newSurchargeLabel, onAddSurcharge]);
+    }, [newSurchargeKey, newSurchargeLabel, onAddSurcharge, currencySymbol]);
 
     const includedPrestationSet = new Set(forfait.includedPrestations || []);
     const extraPrestationSet = new Set(forfait.extraPrestations || []);

@@ -84,7 +84,9 @@ export const useLayoutState = (): UseLayoutStateReturn => {
         error: errorMessage
       }));
     }
-  }, [user?.id, checkRoleFunctions, checkCanRender]);
+    // `user` vient d'un useState (identite stable) : dependre de l'objet capte
+    // aussi les mises a jour de permissions a id constant.
+  }, [user, checkRoleFunctions, checkCanRender]);
 
   // Fonction pour effacer les erreurs
   const clearError = useCallback(() => {
@@ -117,7 +119,8 @@ export const useLayoutState = (): UseLayoutStateReturn => {
         canRender: false
       }));
     }
-  }, [user?.id, authLoading, checkRoleFunctions, checkCanRender]);
+    // Idem : identite stable via useState -> pas de boucle, sync complete.
+  }, [user, authLoading, checkRoleFunctions, checkCanRender]);
 
   // Mémoriser l'état pour éviter les re-renders inutiles
   const memoizedState = useMemo(() => state, [state]);

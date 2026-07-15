@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -197,6 +197,22 @@ export default function AcceptInvitationPage() {
     loadInfo();
   }, [token]);
 
+  // ─── Actions ──────────────────────────────────────────────────────────────
+
+  const handleAccept = useCallback(async () => {
+    if (!token) return;
+    setState('accepting');
+
+    try {
+      await invitationsApi.accept(token);
+      setState('complete_profile');
+    } catch (err: unknown) {
+      const apiErr = err as { message?: string };
+      setError(apiErr.message || 'Erreur lors de l\'acceptation de l\'invitation.');
+      setState('error');
+    }
+  }, [token]);
+
   // 2. Si on revient authentifie avec un token en sessionStorage, accepter automatiquement
   useEffect(() => {
     const storedToken = sessionStorage.getItem('pending_invitation_token');
@@ -210,23 +226,8 @@ export default function AcceptInvitationPage() {
       }
       handleAccept();
     }
-  }, [isAuthenticated, state]);
-
-  // ─── Actions ──────────────────────────────────────────────────────────────
-
-  const handleAccept = async () => {
-    if (!token) return;
-    setState('accepting');
-
-    try {
-      await invitationsApi.accept(token);
-      setState('complete_profile');
-    } catch (err: unknown) {
-      const apiErr = err as { message?: string };
-      setError(apiErr.message || 'Erreur lors de l\'acceptation de l\'invitation.');
-      setState('error');
-    }
-  };
+    // One-shot par design : removeItem vide sessionStorage avant tout re-run.
+  }, [isAuthenticated, state, invitation, handleAccept]);
 
   const handleLoginAndAccept = () => {
     if (!token) return;

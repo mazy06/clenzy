@@ -254,7 +254,9 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
       testMutation.reset();
       saveMutation.reset();
     }
-  }, [open, editModel]);
+    // mutation.reset est une reference stable en react-query v5 : l'effet reste
+    // effectivement "reset a l'ouverture" (open/editModel).
+  }, [open, editModel, testMutation.reset, saveMutation.reset]);
 
   // When provider changes, update base URL and reset model
   const handleProviderChange = (newProvider: string) => {
