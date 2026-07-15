@@ -16,6 +16,13 @@ interface Props {
 // (param distinct du ?tab= top-level). Cles : items / laundry / quotes.
 const INVENTORY_SUBTABS = [{ key: 'items' }, { key: 'laundry' }, { key: 'quotes' }];
 
+// Sous-onglets niveau 2 — pattern pilules .s-subtab (fond --field, actif accent-soft/accent).
+const subtabs = [
+  { label: 'Inventaire du logement', icon: <Inventory2 size={15} strokeWidth={1.75} /> },
+  { label: 'Linge de maison', icon: <LocalLaundryService size={15} strokeWidth={1.75} /> },
+  { label: 'Devis / Factures', icon: <Receipt size={15} strokeWidth={1.75} /> },
+];
+
 export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
   const [subTab, setSubTab] = useTabKeyParam(INVENTORY_SUBTABS, { param: 'subtab' });
 
@@ -34,13 +41,6 @@ export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
       </Box>
     );
   }
-
-  // Sous-onglets niveau 2 — pattern pilules .s-subtab (fond --field, actif accent-soft/accent).
-  const subtabs = [
-    { label: 'Inventaire du logement', icon: <Inventory2 size={15} strokeWidth={1.75} /> },
-    { label: 'Linge de maison', icon: <LocalLaundryService size={15} strokeWidth={1.75} /> },
-    { label: 'Devis / Factures', icon: <Receipt size={15} strokeWidth={1.75} /> },
-  ];
 
   return (
     <Box>

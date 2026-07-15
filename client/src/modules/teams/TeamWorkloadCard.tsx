@@ -119,16 +119,6 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
     CANCELLED: t('interventions.statuses.CANCELLED'),
   };
 
-  // Couleurs data par statut — palette Baitly desaturee
-  const statusColors: Record<string, string> = {
-    PENDING: '#D4A574',
-    AWAITING_VALIDATION: '#7B68A8',
-    AWAITING_PAYMENT: '#C97A7A',
-    IN_PROGRESS: '#7BA3C2',
-    COMPLETED: '#4A9B8E',
-    CANCELLED: '#8A8378',
-  };
-
   const chartData = Object.entries(statusCounts).map(([status, count]) => ({
     name: statusLabels[status] || status,
     value: count,

@@ -17,6 +17,13 @@ const VALID_DAYS = Array.from({ length: 28 }, (_, i) => i + 1);
 
 const ACCENT = 'var(--accent)';
 
+const sameDays = (a: number[], b: number[]) => {
+  if (a.length !== b.length) return false;
+  const sortedA = [...a].sort((x, y) => x - y);
+  const sortedB = [...b].sort((x, y) => x - y);
+  return sortedA.every((v, i) => v === sortedB[i]);
+};
+
 export interface PayoutScheduleHandle {
   save: () => Promise<void>;
   hasChanges: () => boolean;
@@ -63,13 +70,6 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
       setSelectedDays((prev) =>
         prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort((a, b) => a - b),
       );
-    };
-
-    const sameDays = (a: number[], b: number[]) => {
-      if (a.length !== b.length) return false;
-      const sortedA = [...a].sort((x, y) => x - y);
-      const sortedB = [...b].sort((x, y) => x - y);
-      return sortedA.every((v, i) => v === sortedB[i]);
     };
 
     const hasChanges = () => {

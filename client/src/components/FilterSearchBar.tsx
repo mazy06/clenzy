@@ -117,6 +117,30 @@ const COUNTER_SX = {
   fontVariantNumeric: 'tabular-nums',
 } as const;
 
+const renderFilter = (filterKey: string, filter: FilterConfig) => {
+  if (!filter) return null;
+
+  return (
+    <FormControl key={filterKey} size="small" sx={FILTER_SX} fullWidth>
+      <InputLabel>{filter.label || filterKey}</InputLabel>
+      <Select
+        value={filter.value}
+        label={filter.label || filterKey}
+        onChange={(e) => filter.onChange(e.target.value)}
+      >
+        {filter.options.map((option: FilterOption) => (
+          <MenuItem key={option.value} value={option.value} sx={MENU_ITEM_SX}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              {option.icon}
+              {option.label}
+            </Box>
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+};
+
 // Segmented (bascule de vue) — pattern .s-seg (PlanningToolbar) : conteneur
 // --field r10 p3, bouton actif fond --card + texte accent + ombre 0 1px 3px
 const VIEW_TOGGLE_GROUP_SX = {
@@ -189,29 +213,6 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
     return result;
   }, [filters]);
 
-  const renderFilter = (filterKey: string, filter: FilterConfig) => {
-    if (!filter) return null;
-
-    return (
-      <FormControl key={filterKey} size="small" sx={FILTER_SX} fullWidth>
-        <InputLabel>{filter.label || filterKey}</InputLabel>
-        <Select
-          value={filter.value}
-          label={filter.label || filterKey}
-          onChange={(e) => filter.onChange(e.target.value)}
-        >
-          {filter.options.map((option: FilterOption) => (
-            <MenuItem key={option.value} value={option.value} sx={MENU_ITEM_SX}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                {option.icon}
-                {option.label}
-              </Box>
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-    );
-  };
 
   const content = (
     <>

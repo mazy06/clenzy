@@ -25,6 +25,17 @@ import '../studio/openDesignCanvas.css';
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
+// Nom unique de booking engine (le backend impose l'unicité org+nom → 400 sinon). Suffixe contre la liste.
+const uniqueEngineName = async (base: string): Promise<string> => {
+  try {
+    const configs = await bookingEngineApi.listConfigs();
+    const taken = new Set(configs.map((c) => c.name));
+    if (!taken.has(base)) return base;
+    for (let i = 2; i <= 99; i += 1) { const n = `${base} ${i}`; if (!taken.has(n)) return n; }
+    return `${base} ${Date.now().toString(36)}`;
+  } catch { return base; }
+};
+
 export default function DesignSystemCreatePage() {
   const navigate = useNavigate();
   const location = useLocation();

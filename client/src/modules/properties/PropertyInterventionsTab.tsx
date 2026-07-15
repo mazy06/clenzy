@@ -145,6 +145,9 @@ interface PropertyInterventionsTabProps {
   propertyId: string;
 }
 
+const isSameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
 export default function PropertyInterventionsTab({ interventions, propertyId: _propertyId }: PropertyInterventionsTabProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -194,9 +197,6 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
   const cells = useMemo(() => buildCalendarGrid(monthAnchor), [monthAnchor]);
   const selectedDayKey = dateKey(selectedDay);
   const selectedDayItems = byDay.get(selectedDayKey) ?? [];
-
-  const isSameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
   const prevMonth = () => setMonthAnchor((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1));
   const nextMonth = () => setMonthAnchor((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1));

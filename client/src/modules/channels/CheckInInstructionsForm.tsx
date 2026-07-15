@@ -70,6 +70,10 @@ function parseAccessPhotos(json: string | null | undefined): AccessPhoto[] {
   }
 }
 
+// Slug stable du tag email d'un code additionnel — DOIT correspondre au back (TemplateInterpolationService.slugify).
+const slugify = (label: string) =>
+  (label || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
 // ─── Section card ───────────────────────────────────────────────────────────
 
 interface SectionCardProps {
@@ -297,10 +301,6 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
       setFetchingLock(false);
     }
   }, [propertyId, handleChange, t]);
-
-  // Slug stable du tag email d'un code additionnel — DOIT correspondre au back (TemplateInterpolationService.slugify).
-  const slugify = (label: string) =>
-    (label || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 
   const addExtraCode = () => { setExtraCodes((prev) => [...prev, { label: '', code: '' }]); setDirty(true); setSuccess(false); };
   const updateExtraCode = (i: number, field: 'label' | 'code', value: string) => {

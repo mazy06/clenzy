@@ -138,13 +138,14 @@ function formatNextDate(iso: string | null): string | null {
 
 const fmtPercent = (v: number) => `${Math.round(v * 100)}%`;
 
+const fmtCurrency = (v: number) => <Money value={v} from="EUR" />;
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onReady }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
-  const fmtCurrency = (v: number) => <Money value={v} from="EUR" />;
 
   const [dismissed, setDismissed] = useState(
     () => getItem(STORAGE_KEYS.CONTRACT_CTA_DISMISSED) === 'true',

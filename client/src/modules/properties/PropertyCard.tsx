@@ -379,6 +379,27 @@ function relativeCheckoutLabel(
   return time ? `${when} ${time}` : when;
 }
 
+const fmtEuro = (v: number) => <Money value={v} from="EUR" decimals={0} />;
+
+// Obtenir l'icône du type de propriété
+const getPropertyTypeIcon = (type: string, size: number = 48) => {
+  const iconProps = { size, color: 'var(--accent)', strokeWidth: 1.75 };
+  switch (type.toLowerCase()) {
+    case 'appartement':
+    case 'apartment':
+      return <Apartment {...iconProps} />;
+    case 'maison':
+    case 'house':
+      return <Home {...iconProps} />;
+    case 'villa':
+      return <Villa {...iconProps} />;
+    case 'studio':
+      return <Hotel {...iconProps} />;
+    default:
+      return <Home {...iconProps} />;
+  }
+};
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit, onDelete, onView, channexMapping, onChannexBadgeClick, missingContract, onMissingContractClick, kpi, cleaningEstimate }) => {
@@ -403,7 +424,6 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
   const cleaningPrice = cleaningEstimate;
 
   // ── KPI opérationnels du mois courant (.pr-stats) ─────────────────────────
-  const fmtEuro = (v: number) => <Money value={v} from="EUR" decimals={0} />;
   const kpiCells = [
     { value: kpi ? `${Math.round(kpi.occupancyRate * 100)}%` : '—', label: t('properties.kpi.occupancy') },
     { value: kpi && kpi.adr > 0 ? fmtEuro(kpi.adr) : '—', label: t('properties.kpi.adr') },
@@ -432,25 +452,6 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
         : kpi?.operationalStatus === 'available'
           ? { icon: <CheckCircle size={13} strokeWidth={2} />, color: 'var(--ok)', strong: t('properties.ops.available'), rest: '' }
           : null;
-
-  // Obtenir l'icône du type de propriété
-  const getPropertyTypeIcon = (type: string, size: number = 48) => {
-    const iconProps = { size, color: 'var(--accent)', strokeWidth: 1.75 };
-    switch (type.toLowerCase()) {
-      case 'appartement':
-      case 'apartment':
-        return <Apartment {...iconProps} />;
-      case 'maison':
-      case 'house':
-        return <Home {...iconProps} />;
-      case 'villa':
-        return <Villa {...iconProps} />;
-      case 'studio':
-        return <Hotel {...iconProps} />;
-      default:
-        return <Home {...iconProps} />;
-    }
-  };
 
   const handleViewDetails = () => {
     if (onView) {

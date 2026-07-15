@@ -51,6 +51,10 @@ function formatDate(iso: string): string {
   }
 }
 
+const handleDownload = (filename: string) => {
+  databaseAdminApi.downloadBackup(filename);
+};
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const DatabaseAdminPage: React.FC = () => {
@@ -100,10 +104,6 @@ const DatabaseAdminPage: React.FC = () => {
     } finally {
       setCreating(false);
     }
-  };
-
-  const handleDownload = (filename: string) => {
-    databaseAdminApi.downloadBackup(filename);
   };
 
   const handleDelete = async (filename: string) => {

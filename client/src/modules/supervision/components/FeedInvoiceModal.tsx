@@ -33,6 +33,15 @@ interface FeedInvoiceModalProps {
   onClose: () => void;
 }
 
+const row = (label: string, value: ReactNode) => (
+  <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.5 }}>
+    <Typography variant="body2" color="text.secondary">{label}</Typography>
+    <Typography variant="body2" component="div" sx={{ fontWeight: 600, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+      {value}
+    </Typography>
+  </Box>
+);
+
 export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -105,15 +114,6 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
       setSending(false);
     }
   };
-
-  const row = (label: string, value: ReactNode) => (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.5 }}>
-      <Typography variant="body2" color="text.secondary">{label}</Typography>
-      <Typography variant="body2" component="div" sx={{ fontWeight: 600, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-        {value}
-      </Typography>
-    </Box>
-  );
 
   return (
     <Dialog open={invoiceId != null} onClose={onClose} maxWidth="xs" fullWidth>

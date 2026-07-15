@@ -58,6 +58,20 @@ const COMPANION_FIELDS: (keyof DeclarantDraft)[] = [
   'idDocumentNumber',
 ];
 
+// Ordre d'affichage stable des champs (identité → naissance → nationalité → résidence → pièce).
+const FIELD_ORDER: (keyof DeclarantDraft)[] = [
+  'firstName',
+  'lastName',
+  'maidenName',
+  'birthDate',
+  'birthPlace',
+  'nationality',
+  'residenceAddress',
+  'residenceCountry',
+  'idDocumentType',
+  'idDocumentNumber',
+];
+
 /** Codes ISO 3166-1 alpha-2 — localisés à l'affichage via Intl.DisplayNames (langue du livret). */
 const ISO_COUNTRY_CODES: string[] = [
   'AD', 'AE', 'AF', 'AL', 'AM', 'AO', 'AR', 'AT', 'AU', 'AZ', 'BA', 'BD', 'BE', 'BF', 'BG', 'BH',
@@ -340,20 +354,6 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
       </FieldShell>
     );
   };
-
-  // Ordre d'affichage stable des champs (identité → naissance → nationalité → résidence → pièce).
-  const FIELD_ORDER: (keyof DeclarantDraft)[] = [
-    'firstName',
-    'lastName',
-    'maidenName',
-    'birthDate',
-    'birthPlace',
-    'nationality',
-    'residenceAddress',
-    'residenceCountry',
-    'idDocumentType',
-    'idDocumentNumber',
-  ];
 
   return (
     <div className="wb" data-theme={normalizeTheme(theme)} dir={dir} style={{ height: '100%' }}>

@@ -46,6 +46,22 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+const rateSummary = (config: TouristTaxConfig): string => {
+  if (config.calculationMode === 'PERCENTAGE_OF_RATE') {
+    const pct = config.percentageRate != null ? (config.percentageRate * 100).toFixed(2) : '—';
+    const cap = config.capPerPersonNight != null ? ` (≤ ${num(config.capPerPersonNight)} €)` : '';
+    return `${pct} %${cap}`;
+  }
+  return config.ratePerPerson != null ? `${num(config.ratePerPerson)} €` : '—';
+};
+
+const surchargeSummary = (config: TouristTaxConfig): string => {
+  const dep = config.departmentalSurchargePct ?? 0;
+  const reg = config.regionalSurchargePct ?? 0;
+  if (dep === 0 && reg === 0) return '—';
+  return `${dep > 0 ? `+${dep} %` : ''}${dep > 0 && reg > 0 ? ' ' : ''}${reg > 0 ? `+${reg} %` : ''}`;
+};
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 /**
@@ -105,22 +121,6 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
       default:
         return config.calculationMode;
     }
-  };
-
-  const rateSummary = (config: TouristTaxConfig): string => {
-    if (config.calculationMode === 'PERCENTAGE_OF_RATE') {
-      const pct = config.percentageRate != null ? (config.percentageRate * 100).toFixed(2) : '—';
-      const cap = config.capPerPersonNight != null ? ` (≤ ${num(config.capPerPersonNight)} €)` : '';
-      return `${pct} %${cap}`;
-    }
-    return config.ratePerPerson != null ? `${num(config.ratePerPerson)} €` : '—';
-  };
-
-  const surchargeSummary = (config: TouristTaxConfig): string => {
-    const dep = config.departmentalSurchargePct ?? 0;
-    const reg = config.regionalSurchargePct ?? 0;
-    if (dep === 0 && reg === 0) return '—';
-    return `${dep > 0 ? `+${dep} %` : ''}${dep > 0 && reg > 0 ? ' ' : ''}${reg > 0 ? `+${reg} %` : ''}`;
   };
 
   // ─── Rapport ────────────────────────────────────────────────────────────

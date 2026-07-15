@@ -123,6 +123,12 @@ function isValidPercent(value: number | undefined): boolean {
   return value != null && value >= -50 && value <= 100;
 }
 
+const numOrUndef = (value: string): number | undefined => {
+  if (value.trim() === '') return undefined;
+  const n = parseFloat(value);
+  return isNaN(n) ? undefined : n;
+};
+
 const NUM_FIELD_SX = {
   '& .MuiOutlinedInput-input': { fontVariantNumeric: 'tabular-nums' },
 } as const;
@@ -152,12 +158,6 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
     onUpdate({
       cleaningEngineConfig: Object.keys(pruned).length > 0 ? JSON.stringify(pruned) : null,
     });
-  };
-
-  const numOrUndef = (value: string): number | undefined => {
-    if (value.trim() === '') return undefined;
-    const n = parseFloat(value);
-    return isNaN(n) ? undefined : n;
   };
 
   const setRoot = (key: 'hourlyRate' | 'rangePercent' | 'roundTo' | 'minPrice', value: string) =>

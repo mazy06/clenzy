@@ -316,6 +316,11 @@ function GIcon({ name, size = 20, color = 'var(--terra-deep)' }: { name: string;
 
 /* ───────── Hero carousel + lightbox (inchangés) ───────── */
 
+const navBtn = (side: 'left' | 'right'): React.CSSProperties => ({
+  position: 'absolute', top: '50%', [side]: 12, transform: 'translateY(-50%)', width: 42, height: 42, borderRadius: 999,
+  border: 'none', background: 'rgba(255,255,255,.16)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+});
+
 function HeroLightbox({ images, index, setIndex, onClose }: {
   images: string[]; index: number; setIndex: React.Dispatch<React.SetStateAction<number>>; onClose: () => void;
 }) {
@@ -331,10 +336,6 @@ function HeroLightbox({ images, index, setIndex, onClose }: {
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [images.length]);
-  const navBtn = (side: 'left' | 'right'): React.CSSProperties => ({
-    position: 'absolute', top: '50%', [side]: 12, transform: 'translateY(-50%)', width: 42, height: 42, borderRadius: 999,
-    border: 'none', background: 'rgba(255,255,255,.16)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-  });
   return (
     <div onClick={onClose}
       onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}

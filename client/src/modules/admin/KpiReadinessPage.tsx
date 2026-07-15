@@ -58,6 +58,14 @@ const STATUS_TOKEN: Record<KpiStatus, { fg: string; bg: string }> = {
   CRITICAL: { fg: 'var(--err)', bg: 'var(--err-soft)' },
 };
 
+const formatTimestamp = (ts: string): string => {
+  try {
+    return new Date(ts).toLocaleString();
+  } catch {
+    return ts;
+  }
+};
+
 const KPI_TOOLTIPS: Record<string, string> = {
   UPTIME: 'Disponibilite du serveur backend. Mesure le pourcentage de temps ou le service repond correctement aux health checks.',
   CALENDAR_LATENCY_P95: 'Temps de propagation des modifications de calendrier vers les channels (Airbnb, iCal). Le P95 represente le temps maximum pour 95% des synchronisations.',
@@ -434,14 +442,6 @@ const KpiReadinessPage: React.FC = () => {
       // best-effort : on n'echoue pas si une partie du refresh rate
     }
   }, []);
-
-  const formatTimestamp = (ts: string): string => {
-    try {
-      return new Date(ts).toLocaleString();
-    } catch {
-      return ts;
-    }
-  };
 
   // Format history points for chart
   const chartData = history?.points.map((p) => ({

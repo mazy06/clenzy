@@ -50,6 +50,9 @@ interface PanelReservationComplianceProps {
   reservationId: number;
 }
 
+const statusTokens = (status: DeclarationStatus) =>
+  status === 'SUBMITTED' ? STATUS_TONES.ok : STATUS_TONES.warn;
+
 const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({ reservationId }) => {
   const { t } = useTranslation();
   const [rowState, setRowState] = useState<Record<number, RowState>>({});
@@ -64,9 +67,6 @@ const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({
 
   // N'affiche rien tant qu'il n'y a aucune déclaration (gère aussi le loading silencieux).
   if (declarations.length === 0) return null;
-
-  const statusTokens = (status: DeclarationStatus) =>
-    status === 'SUBMITTED' ? STATUS_TONES.ok : STATUS_TONES.warn;
 
   const statusLabel = (status: DeclarationStatus) =>
     status === 'SUBMITTED'

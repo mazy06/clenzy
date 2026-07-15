@@ -13,6 +13,14 @@ import SenderEmailRow from './components/SenderEmailRow';
  *  - toggle d'envoi des emails de devis aux prospects,
  *  - suivi de la liste d'attente (total + places fondateur + liste des inscrits).
  */
+const fmtDate = (d: string) => {
+  try {
+    return new Date(d).toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    });
+  } catch { return d; }
+};
+
 const LaunchSettingsSection: React.FC = () => {
   const { data: settings, isLoading } = usePlatformSettings();
   const setProspectEmails = useSetProspectDevisEmails();
@@ -22,14 +30,6 @@ const LaunchSettingsSection: React.FC = () => {
   const { data: stats } = useWaitlistStats();
   const [showList, setShowList] = useState(false);
   const { data: list } = useWaitlistList(showList);
-
-  const fmtDate = (d: string) => {
-    try {
-      return new Date(d).toLocaleDateString('fr-FR', {
-        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-      });
-    } catch { return d; }
-  };
 
   const founderSpots = stats?.founderSpots ?? 20;
 

@@ -83,6 +83,42 @@ type PageState =
   | 'accepted'
   | 'error';
 
+const getRoleLabel = (role: string) => {
+  switch (role) {
+    case 'OWNER': return 'Proprietaire';
+    case 'SUPER_ADMIN': return 'Super Administrateur';
+    case 'ADMIN': return 'Administrateur';
+    case 'SUPER_MANAGER': return 'Super Manager';
+    case 'MANAGER': return 'Manager';
+    case 'SUPERVISOR': return 'Superviseur';
+    case 'TECHNICIAN': return 'Technicien';
+    case 'HOUSEKEEPER': return 'Agent de ménage';
+    case 'LAUNDRY': return 'Blanchisserie';
+    case 'EXTERIOR_TECH': return 'Tech. Extérieur';
+    case 'HOST': return 'Propriétaire';
+    case 'MEMBER': return 'Membre';
+    default: return role;
+  }
+};
+
+const getRoleColor = (role: string): 'primary' | 'secondary' | 'default' | 'error' | 'info' | 'success' | 'warning' => {
+  switch (role) {
+    case 'OWNER': return 'error';
+    case 'SUPER_ADMIN': return 'error';
+    case 'ADMIN': return 'warning';
+    case 'SUPER_MANAGER': return 'secondary';
+    case 'MANAGER': return 'info';
+    case 'SUPERVISOR': return 'info';
+    case 'TECHNICIAN': return 'primary';
+    case 'HOUSEKEEPER': return 'default';
+    case 'LAUNDRY': return 'default';
+    case 'EXTERIOR_TECH': return 'primary';
+    case 'HOST': return 'success';
+    case 'MEMBER': return 'default';
+    default: return 'default';
+  }
+};
+
 export default function AcceptInvitationPage() {
   // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
   const { isRtl } = useGeoAuthLanguage();
@@ -284,43 +320,6 @@ export default function AcceptInvitationPage() {
     }
   };
 
-  // ─── Role label ───────────────────────────────────────────────────────────
-
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'OWNER': return 'Proprietaire';
-      case 'SUPER_ADMIN': return 'Super Administrateur';
-      case 'ADMIN': return 'Administrateur';
-      case 'SUPER_MANAGER': return 'Super Manager';
-      case 'MANAGER': return 'Manager';
-      case 'SUPERVISOR': return 'Superviseur';
-      case 'TECHNICIAN': return 'Technicien';
-      case 'HOUSEKEEPER': return 'Agent de ménage';
-      case 'LAUNDRY': return 'Blanchisserie';
-      case 'EXTERIOR_TECH': return 'Tech. Extérieur';
-      case 'HOST': return 'Propriétaire';
-      case 'MEMBER': return 'Membre';
-      default: return role;
-    }
-  };
-
-  const getRoleColor = (role: string): 'primary' | 'secondary' | 'default' | 'error' | 'info' | 'success' | 'warning' => {
-    switch (role) {
-      case 'OWNER': return 'error';
-      case 'SUPER_ADMIN': return 'error';
-      case 'ADMIN': return 'warning';
-      case 'SUPER_MANAGER': return 'secondary';
-      case 'MANAGER': return 'info';
-      case 'SUPERVISOR': return 'info';
-      case 'TECHNICIAN': return 'primary';
-      case 'HOUSEKEEPER': return 'default';
-      case 'LAUNDRY': return 'default';
-      case 'EXTERIOR_TECH': return 'primary';
-      case 'HOST': return 'success';
-      case 'MEMBER': return 'default';
-      default: return 'default';
-    }
-  };
 
   // ─── Render ───────────────────────────────────────────────────────────────
 

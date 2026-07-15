@@ -127,6 +127,29 @@ const userStatuses = USER_STATUS_OPTIONS.map(option => ({
   color: option.color
 }));
 
+const getRoleInfo = (role: string) => {
+  return userRoles.find(r => r.value === role) || userRoles[0];
+};
+
+// Rôles affichés dans l'Annuaire : on montre LES DEUX — le rôle plateforme
+// (User.role) ET le rôle d'org (organizationRole) — pour lever l'ambiguïté.
+const getOrgRoleInfo = (user: User) =>
+  user.organizationRole && orgRoleDisplay[user.organizationRole]
+    ? orgRoleDisplay[user.organizationRole]
+    : null;
+
+const getStatusInfo = (status: string) => {
+  return userStatuses.find(s => s.value === status) || userStatuses[0];
+};
+
+const formatDate = (dateString: string): string => {
+  return new Date(dateString).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+};
+
 // Données mockées supprimées - utilisation de l'API uniquement
 
 export interface UsersListHandle {
@@ -278,29 +301,6 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
     } else {
       setDeleteDialogOpen(false);
     }
-  };
-
-  const getRoleInfo = (role: string) => {
-    return userRoles.find(r => r.value === role) || userRoles[0];
-  };
-
-  // Rôles affichés dans l'Annuaire : on montre LES DEUX — le rôle plateforme
-  // (User.role) ET le rôle d'org (organizationRole) — pour lever l'ambiguïté.
-  const getOrgRoleInfo = (user: User) =>
-    user.organizationRole && orgRoleDisplay[user.organizationRole]
-      ? orgRoleDisplay[user.organizationRole]
-      : null;
-
-  const getStatusInfo = (status: string) => {
-    return userStatuses.find(s => s.value === status) || userStatuses[0];
-  };
-
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
   };
 
   const filteredUsers = users.filter((u) => {

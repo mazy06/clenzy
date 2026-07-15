@@ -41,6 +41,16 @@ interface InterventionsListProps {
   filtersContainer?: HTMLElement | null;
 }
 
+const iconButtonSx = {
+  p: 0.5,
+  borderRadius: '9px',
+  border: '1px solid',
+  borderColor: 'var(--line-2)',
+  color: 'var(--muted)',
+  '&:hover': { bgcolor: 'var(--hover)', borderColor: 'var(--faint)', color: 'var(--ink)' },
+  '& .MuiSvgIcon-root': { fontSize: 18 },
+} as const;
+
 export default function InterventionsList({ embedded = false, actionsContainer, filtersContainer }: InterventionsListProps) {
   const {
     // State
@@ -267,16 +277,6 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
       label: option.label,
     })),
   ];
-
-  const iconButtonSx = {
-    p: 0.5,
-    borderRadius: '9px',
-    border: '1px solid',
-    borderColor: 'var(--line-2)',
-    color: 'var(--muted)',
-    '&:hover': { bgcolor: 'var(--hover)', borderColor: 'var(--faint)', color: 'var(--ink)' },
-    '& .MuiSvgIcon-root': { fontSize: 18 },
-  } as const;
 
   const actionButtons = (
     <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>

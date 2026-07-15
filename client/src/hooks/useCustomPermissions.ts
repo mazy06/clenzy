@@ -51,45 +51,45 @@ const managerPermissions = [
   'tarification:view', 'tarification:edit',
 ];
 
+const defaultRolePermissions: Record<string, string[]> = {
+  SUPER_ADMIN: [...adminPermissions],
+  SUPER_MANAGER: [...managerPermissions],
+  HOST: [
+    'dashboard:view',
+    'properties:view', 'properties:create', 'properties:edit',
+    'service-requests:view', 'service-requests:create',
+    'interventions:view',
+  ],
+  TECHNICIAN: [
+    'dashboard:view',
+    'interventions:view', 'interventions:edit',
+    'teams:view',
+  ],
+  HOUSEKEEPER: [
+    'dashboard:view',
+    'interventions:view', 'interventions:edit',
+    'teams:view',
+  ],
+  SUPERVISOR: [
+    'dashboard:view',
+    'interventions:view', 'interventions:edit',
+    'teams:view', 'teams:edit',
+  ],
+  LAUNDRY: [
+    'dashboard:view',
+    'interventions:view', 'interventions:edit',
+    'teams:view',
+  ],
+  EXTERIOR_TECH: [
+    'dashboard:view',
+    'interventions:view', 'interventions:edit',
+    'teams:view',
+  ],
+};
+
 export const CustomPermissionsProvider: React.FC<CustomPermissionsProviderProps> = ({ children }) => {
   const [customPermissions, setCustomPermissions] = useState<Record<string, string[]>>({});
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
-
-  const defaultRolePermissions: Record<string, string[]> = {
-    SUPER_ADMIN: [...adminPermissions],
-    SUPER_MANAGER: [...managerPermissions],
-    HOST: [
-      'dashboard:view',
-      'properties:view', 'properties:create', 'properties:edit',
-      'service-requests:view', 'service-requests:create',
-      'interventions:view',
-    ],
-    TECHNICIAN: [
-      'dashboard:view',
-      'interventions:view', 'interventions:edit',
-      'teams:view',
-    ],
-    HOUSEKEEPER: [
-      'dashboard:view',
-      'interventions:view', 'interventions:edit',
-      'teams:view',
-    ],
-    SUPERVISOR: [
-      'dashboard:view',
-      'interventions:view', 'interventions:edit',
-      'teams:view', 'teams:edit',
-    ],
-    LAUNDRY: [
-      'dashboard:view',
-      'interventions:view', 'interventions:edit',
-      'teams:view',
-    ],
-    EXTERIOR_TECH: [
-      'dashboard:view',
-      'interventions:view', 'interventions:edit',
-      'teams:view',
-    ],
-  };
 
   const togglePermission = useCallback((role: string, permission: string) => {
     setCustomPermissions(prev => {

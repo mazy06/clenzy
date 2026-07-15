@@ -54,6 +54,12 @@ const getForfaitShortLabel = (t: TFunction, key: string): string => {
   return t(`auth.inscriptionConfirm.forfaits.${key}`, fallbacks[key] || key);
 };
 
+const FORFAIT_COLORS: Record<string, string> = {
+  essentiel: '#6B8A9A',
+  confort: '#A6C0CE',
+  premium: '#5A7684',
+};
+
 export default function InscriptionConfirm() {
   const { t } = useTranslation();
   // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
@@ -152,12 +158,6 @@ export default function InscriptionConfirm() {
         setError(apiErr.message || t('auth.inscriptionConfirm.submitErrorGeneric', 'Une erreur est survenue. Veuillez reessayer.'));
       }
     }
-  };
-
-  const FORFAIT_COLORS: Record<string, string> = {
-    essentiel: '#6B8A9A',
-    confort: '#A6C0CE',
-    premium: '#5A7684',
   };
 
   return (

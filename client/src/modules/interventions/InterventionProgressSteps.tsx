@@ -185,6 +185,41 @@ const StepperHeader: React.FC<{
   </Box>
 );
 
+const handleDownloadPdf = async (doc: DocumentGeneration) => {
+  await documentsApi.downloadGeneration(doc.id, doc.fileName);
+};
+
+const recapCardSx = {
+  p: 2.5,
+  borderRadius: '14px',
+  bgcolor: 'var(--card)',
+  border: '1px solid',
+  borderColor: 'color-mix(in srgb, var(--ok) 30%, transparent)',
+  transition: 'border-color 0.2s',
+  '&:hover': { borderColor: 'var(--line-2)' },
+  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+};
+
+const docCardSx = {
+  display: 'flex',
+  alignItems: { xs: 'flex-start', sm: 'center' },
+  flexDirection: { xs: 'column', sm: 'row' },
+  justifyContent: 'space-between',
+  gap: { xs: 1.5, sm: 1 },
+  p: 2,
+  borderRadius: '14px',
+  bgcolor: 'var(--card)',
+  border: '1px solid',
+  borderColor: 'var(--line)',
+  cursor: 'pointer',
+  transition: 'border-color 0.2s, box-shadow 0.2s',
+  '&:hover': {
+    borderColor: 'var(--line-2)',
+    boxShadow: 'var(--shadow-card)',
+  },
+  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+};
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
@@ -248,10 +283,6 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       window.URL.revokeObjectURL(pdfUrl);
       setPdfUrl(null);
     }
-  };
-
-  const handleDownloadPdf = async (doc: DocumentGeneration) => {
-    await documentsApi.downloadGeneration(doc.id, doc.fileName);
   };
 
   // Detect reopened state: intervention was reopened if all rooms validated
@@ -472,37 +503,6 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       </Box>
     </Box>
   );
-
-  const recapCardSx = {
-    p: 2.5,
-    borderRadius: '14px',
-    bgcolor: 'var(--card)',
-    border: '1px solid',
-    borderColor: 'color-mix(in srgb, var(--ok) 30%, transparent)',
-    transition: 'border-color 0.2s',
-    '&:hover': { borderColor: 'var(--line-2)' },
-    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-  };
-
-  const docCardSx = {
-    display: 'flex',
-    alignItems: { xs: 'flex-start', sm: 'center' },
-    flexDirection: { xs: 'column', sm: 'row' },
-    justifyContent: 'space-between',
-    gap: { xs: 1.5, sm: 1 },
-    p: 2,
-    borderRadius: '14px',
-    bgcolor: 'var(--card)',
-    border: '1px solid',
-    borderColor: 'var(--line)',
-    cursor: 'pointer',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
-    '&:hover': {
-      borderColor: 'var(--line-2)',
-      boxShadow: 'var(--shadow-card)',
-    },
-    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-  };
 
   const renderRecap = () => (
     <Box>

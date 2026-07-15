@@ -19,6 +19,16 @@ interface AvatarUploaderProps {
 const MAX_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
+const validate = (file: File): string | null => {
+  if (!ACCEPTED_TYPES.includes(file.type)) {
+    return 'Format non supporté (JPEG, PNG, WebP ou GIF uniquement)';
+  }
+  if (file.size > MAX_BYTES) {
+    return 'Fichier trop volumineux (5 Mo maximum)';
+  }
+  return null;
+};
+
 /**
  * Avatar uploader — drag-and-drop or click-to-upload, with delete.
  *
@@ -40,16 +50,6 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
   const photoUrl = user.profilePictureUrl
     ? usersApi.profilePictureUrl(user.id, user.updatedAt ?? null)
     : null;
-
-  const validate = (file: File): string | null => {
-    if (!ACCEPTED_TYPES.includes(file.type)) {
-      return 'Format non supporté (JPEG, PNG, WebP ou GIF uniquement)';
-    }
-    if (file.size > MAX_BYTES) {
-      return 'Fichier trop volumineux (5 Mo maximum)';
-    }
-    return null;
-  };
 
   const upload = async (file: File) => {
     const issue = validate(file);

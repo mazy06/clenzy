@@ -202,6 +202,19 @@ const StepIndicator: React.FC<{ steps: string[]; activeStep: number }> = ({ step
   </Box>
 );
 
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-';
+  try {
+    return new Date(dateStr).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
+};
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImportSuccess }) => {
@@ -349,21 +362,6 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
       onImportSuccess?.();
     } catch {
       // Error is handled by importMutation.error
-    }
-  };
-
-  // ─── Format date ──────────────────────────────────────────────────────
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    try {
-      return new Date(dateStr).toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
-    } catch {
-      return dateStr;
     }
   };
 

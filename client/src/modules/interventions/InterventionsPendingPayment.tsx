@@ -60,6 +60,30 @@ interface Intervention {
   createdAt: string;
 }
 
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '--';
+  try {
+    return new Date(dateStr).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
+};
+
+const getTypeLabel = (type: string) => {
+  const labels: Record<string, string> = {
+    CLEANING: 'Menage',
+    DEEP_CLEANING: 'Menage complet',
+    MAINTENANCE: 'Maintenance',
+    REPAIR: 'Reparation',
+    INSPECTION: 'Inspection',
+  };
+  return labels[type] || type;
+};
+
 const InterventionsPendingPayment: React.FC = () => {
   const { user, isHost } = useAuth();
   const { t } = useTranslation();
@@ -119,30 +143,6 @@ const InterventionsPendingPayment: React.FC = () => {
     setPaymentTarget(null);
     setProcessingPayment(null);
     loadInterventions(); // Recharger la liste apres paiement
-  };
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '--';
-    try {
-      return new Date(dateStr).toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
-    } catch {
-      return dateStr;
-    }
-  };
-
-  const getTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      CLEANING: 'Menage',
-      DEEP_CLEANING: 'Menage complet',
-      MAINTENANCE: 'Maintenance',
-      REPAIR: 'Reparation',
-      INSPECTION: 'Inspection',
-    };
-    return labels[type] || type;
   };
 
   // Total a payer

@@ -118,6 +118,29 @@ export interface UnifiedHistoryTabRef {
   openGenerate: () => void;
 }
 
+/** Determine si le log a un destinataire utilisable pour un renvoi. */
+const hasRecipient = (log: GuestMessageLog): boolean => {
+  const r = (log.recipient || '').trim();
+  if (!r || r === 'N/A' || r === '—') return false;
+  if (log.channel === 'EMAIL') return r.includes('@');
+  return true;
+};
+
+const formatDate = (dateStr: string): string => {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleString('fr-FR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+};
+
+const formatFileSize = (bytes?: number) => {
+  if (!bytes) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
@@ -297,14 +320,6 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
     }
   };
 
-  /** Determine si le log a un destinataire utilisable pour un renvoi. */
-  const hasRecipient = (log: GuestMessageLog): boolean => {
-    const r = (log.recipient || '').trim();
-    if (!r || r === 'N/A' || r === '—') return false;
-    if (log.channel === 'EMAIL') return r.includes('@');
-    return true;
-  };
-
   const handleUpdateEmailAndResend = async () => {
     if (!editEmailLog || !editEmailValue.trim() || !editEmailLog.guestId) return;
     try {
@@ -336,21 +351,6 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
       .finally(() => { if (!cancelled) setPreviewLoading(false); });
     return () => { cancelled = true; };
   }, [detailLog]);
-
-  const formatDate = (dateStr: string): string => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleString('fr-FR', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    });
-  };
-
-  const formatFileSize = (bytes?: number) => {
-    if (!bytes) return '';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
 
   const isLoading = messagesLoading || docsLoading;
 

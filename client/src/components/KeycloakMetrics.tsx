@@ -49,6 +49,25 @@ const displayValueSx = (color: string) => ({
   color,
 });
 
+const getStatusColor = (value: number, threshold: number) => {
+  if (value <= threshold * 0.7) return 'success';
+  if (value <= threshold) return 'warning';
+  return 'error';
+};
+
+const getPerformanceColor = (value: number, isLowerBetter = false) => {
+  if (isLowerBetter) {
+    return value <= 100 ? 'success' : value <= 200 ? 'warning' : 'error';
+  }
+  return value >= 90 ? 'success' : value >= 70 ? 'warning' : 'error';
+};
+
+const getCoverageColor = (percent: number): 'success' | 'warning' | 'error' => {
+  if (percent >= 80) return 'success';
+  if (percent >= 60) return 'warning';
+  return 'error';
+};
+
 const KeycloakMetrics: React.FC = () => {
   const [metrics, setMetrics] = useState<KeycloakMetricsResponse | null>(null);
   const [coverage, setCoverage] = useState<TestCoverageMetrics | null>(null);
@@ -127,25 +146,6 @@ const KeycloakMetrics: React.FC = () => {
       </Alert>
     );
   }
-
-  const getStatusColor = (value: number, threshold: number) => {
-    if (value <= threshold * 0.7) return 'success';
-    if (value <= threshold) return 'warning';
-    return 'error';
-  };
-
-  const getPerformanceColor = (value: number, isLowerBetter = false) => {
-    if (isLowerBetter) {
-      return value <= 100 ? 'success' : value <= 200 ? 'warning' : 'error';
-    }
-    return value >= 90 ? 'success' : value >= 70 ? 'warning' : 'error';
-  };
-
-  const getCoverageColor = (percent: number): 'success' | 'warning' | 'error' => {
-    if (percent >= 80) return 'success';
-    if (percent >= 60) return 'warning';
-    return 'error';
-  };
 
   return (
     <Box>

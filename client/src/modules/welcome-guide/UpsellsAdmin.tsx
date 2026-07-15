@@ -172,6 +172,17 @@ function compressImageToDataUrl(file: File, maxSize: number, quality: number): P
   });
 }
 
+// Active un handler au clavier (Enter / Espace) — lignes & cartes cliquables.
+// Garde-fou : ne déclenche que si l'élément lui-même a le focus (et non un
+// bouton interne : statut, « Ajouter »), pour éviter une double action.
+const onActivate = (fn: () => void) => (e: React.KeyboardEvent) => {
+  if (e.target !== e.currentTarget) return;
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    fn();
+  }
+};
+
 const UpsellsAdmin: React.FC = () => {
   const { t } = useTranslation();
   const { properties } = usePropertiesList();
@@ -479,17 +490,6 @@ const UpsellsAdmin: React.FC = () => {
       : properties.find((p) => String(p.id) === String(id))?.name ?? `#${id}`;
 
   const orderStatusLabel = (status: string) => t(`upsells.status.${status}`, status);
-
-  // Active un handler au clavier (Enter / Espace) — lignes & cartes cliquables.
-  // Garde-fou : ne déclenche que si l'élément lui-même a le focus (et non un
-  // bouton interne : statut, « Ajouter »), pour éviter une double action.
-  const onActivate = (fn: () => void) => (e: React.KeyboardEvent) => {
-    if (e.target !== e.currentTarget) return;
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      fn();
-    }
-  };
 
   const editingOffer = edit.id != null ? offers.find((o) => o.id === edit.id) ?? null : null;
 

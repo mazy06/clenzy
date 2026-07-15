@@ -200,6 +200,9 @@ interface PanelOperationsProps {
   onNavigate?: (view: import('../types').PanelView) => void;
 }
 
+/** Helper to build a composite key for an assignee option */
+const assigneeKey = (opt: AssigneeOption) => `${opt.type}-${opt.id}`;
+
 const PanelOperations: React.FC<PanelOperationsProps> = ({
   event,
   allEvents,
@@ -379,9 +382,6 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
 
   /** The target intervention for assign / priority buttons */
   const targetIntervention = intervention || (linkedInterventions.length > 0 ? linkedInterventions[0] : null);
-
-  /** Helper to build a composite key for an assignee option */
-  const assigneeKey = (opt: AssigneeOption) => `${opt.type}-${opt.id}`;
 
   /** Find the assignee option matching a composite key */
   const findAssignee = (key: string): AssigneeOption | undefined =>

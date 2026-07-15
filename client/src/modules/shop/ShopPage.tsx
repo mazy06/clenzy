@@ -18,6 +18,14 @@ import PageHeader from '../../components/PageHeader';
 
 const ACCENT = '#4A9B8E'; // teinte du badge icône PageHeader (prop hex requise)
 
+const categoryTranslationKeys: Record<string, string> = {
+  all: 'shop.allProducts',
+  kit: 'shop.kits',
+  noise: 'shop.noiseMonitoring',
+  lock: 'shop.locks',
+  environment: 'shop.environment',
+};
+
 const ShopPage: React.FC = () => {
   const { t } = useTranslation();
 
@@ -100,14 +108,6 @@ const ShopPage: React.FC = () => {
     setSnackbarOpen(true);
     setDrawerOpen(false);
   }, [cart]);
-
-  const categoryTranslationKeys: Record<string, string> = {
-    all: 'shop.allProducts',
-    kit: 'shop.kits',
-    noise: 'shop.noiseMonitoring',
-    lock: 'shop.locks',
-    environment: 'shop.environment',
-  };
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {

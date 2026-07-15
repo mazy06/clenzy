@@ -54,6 +54,42 @@ interface PaymentHistoryPageProps {
   embedded?: boolean;
 }
 
+const formatDate = (dateStr: string) => {
+  try {
+    return new Date(dateStr).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
+};
+
+// ── Statuts → tokens sémantiques Signature (chips -soft : texte couleur + fond -soft) ──
+const STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
+  PAID: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
+  PENDING: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+  PROCESSING: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+  FAILED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+  REFUNDED: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+  // Neutre : pas de token sémantique dédié — repli muted/hover (pattern manquant signalé)
+  CANCELLED: { fg: 'var(--muted)', bg: 'var(--hover)' },
+};
+
+/** Chip -soft : texte couleur + fond -soft (pilule/typo via thème global MuiChip) */
+const chipSx = (fg: string, bg: string) => ({
+  backgroundColor: bg,
+  color: fg,
+  '& .MuiChip-icon': { color: fg, marginLeft: '6px' },
+});
+
+/** Row styling — status passe par le chip dans la colonne dédiée, pas un side-stripe.
+ *  Le hover --hover vient du thème global MuiTableRow. */
+const getRowSx = (_status: PaymentRecord['status']) => ({
+  cursor: 'pointer',
+});
+
 const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -269,29 +305,6 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
-  const formatDate = (dateStr: string) => {
-    try {
-      return new Date(dateStr).toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
-    } catch {
-      return dateStr;
-    }
-  };
-
-  // ── Statuts → tokens sémantiques Signature (chips -soft : texte couleur + fond -soft) ──
-  const STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
-    PAID: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-    PENDING: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-    PROCESSING: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-    FAILED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-    REFUNDED: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-    // Neutre : pas de token sémantique dédié — repli muted/hover (pattern manquant signalé)
-    CANCELLED: { fg: 'var(--muted)', bg: 'var(--hover)' },
-  };
-
   const STATUS_LABEL: Record<string, string> = {
     PAID: t('payments.history.paid'),
     PENDING: t('payments.history.pending'),
@@ -300,13 +313,6 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
     REFUNDED: t('payments.history.refunded'),
     CANCELLED: t('payments.history.cancelled'),
   };
-
-  /** Chip -soft : texte couleur + fond -soft (pilule/typo via thème global MuiChip) */
-  const chipSx = (fg: string, bg: string) => ({
-    backgroundColor: bg,
-    color: fg,
-    '& .MuiChip-icon': { color: fg, marginLeft: '6px' },
-  });
 
   const getStatusChip = (status: PaymentRecord['status']) => {
     const tk = STATUS_TOKEN[status] ?? STATUS_TOKEN.CANCELLED;
@@ -346,12 +352,6 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
       />
     );
   };
-
-  /** Row styling — status passe par le chip dans la colonne dédiée, pas un side-stripe.
-   *  Le hover --hover vient du thème global MuiTableRow. */
-  const getRowSx = (_status: PaymentRecord['status']) => ({
-    cursor: 'pointer',
-  });
 
   // ─── Summary cards ────────────────────────────────────────────────────────
 

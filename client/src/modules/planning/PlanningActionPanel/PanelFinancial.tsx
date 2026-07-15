@@ -269,6 +269,17 @@ interface PanelFinancialProps {
   onPaymentComplete?: () => void;
 }
 
+// ── Formatters ─────────────────────────────────────────────────────────
+const fmtDate = (iso: string) => {
+  try {
+    return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch { return iso; }
+};
+
+// Nœud (glyphe de devise pour SAR/MAD). Pour un contexte chaîne pure, utiliser
+// convertAndFormat directement (cf. snackbars).
+const fmtCurrency = (val: number) => <Money value={val} from="EUR" />;
+
 const PanelFinancial: React.FC<PanelFinancialProps> = ({
   event,
   interventions,
@@ -670,17 +681,6 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     setPaymentModalOpen(false);
     setPaymentModalTarget(null);
   }, []);
-
-  // ── Formatters ─────────────────────────────────────────────────────────
-  const fmtDate = (iso: string) => {
-    try {
-      return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    } catch { return iso; }
-  };
-
-  // Nœud (glyphe de devise pour SAR/MAD). Pour un contexte chaîne pure, utiliser
-  // convertAndFormat directement (cf. snackbars).
-  const fmtCurrency = (val: number) => <Money value={val} from="EUR" />;
 
   const isICalImport = reservation && (reservation.source === 'airbnb' || reservation.source === 'booking' || reservation.source === 'other');
   const hasTotalPrice = totalPrice > 0;

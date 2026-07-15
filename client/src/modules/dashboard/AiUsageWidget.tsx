@@ -24,6 +24,21 @@ const FEATURE_COLORS: Record<string, string> = {
   SENTIMENT: 'var(--err)',
 };
 
+const cardSx = {
+  border: '1px solid var(--line)',
+  borderRadius: 'var(--radius-lg)',
+  p: 1.5,
+  transition: 'border-color 0.15s ease',
+  '&:hover': { borderColor: 'var(--line-2)' },
+} as const;
+
+const headerSx = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 1,
+  mb: 1.5,
+} as const;
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function isAiNotConfiguredError(error: unknown): boolean {
@@ -53,21 +68,6 @@ const AiUsageWidget: React.FC<AiUsageWidgetProps> = React.memo(({ layout = 'defa
   const { data, isLoading, isError, error } = useAiUsageStats();
 
   const isInline = layout === 'inline';
-
-  const cardSx = {
-    border: '1px solid var(--line)',
-    borderRadius: 'var(--radius-lg)',
-    p: 1.5,
-    transition: 'border-color 0.15s ease',
-    '&:hover': { borderColor: 'var(--line-2)' },
-  } as const;
-
-  const headerSx = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 1,
-    mb: 1.5,
-  } as const;
 
   // ── Loading state ───────────────────────────────────────────────────
   if (isLoading) {

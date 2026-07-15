@@ -252,6 +252,17 @@ function formatTime(time: string | undefined): string {
   return time.substring(0, 5);
 }
 
+// Onglets de la fiche bien — `key` stable pour l'URL (?tab=<key>). L'onglet "settings" (dernier)
+// est masque sans droit d'edition ; useTabKeyParam derive l'index visible depuis la cle.
+const detailTabs = [
+  { key: 'overview', hidden: false },
+  { key: 'interventions', hidden: false },
+  { key: 'channels', hidden: false },
+  { key: 'check-in', hidden: false },
+  { key: 'photos', hidden: false },
+  { key: 'inventory', hidden: false },
+];
+
 // ─── Main component ─────────────────────────────────────────────────────────
 
 const PropertyDetails: React.FC = () => {
@@ -300,16 +311,6 @@ const PropertyDetails: React.FC = () => {
       setCleaningQuoteSending(false);
     }
   };
-  // Onglets de la fiche bien — `key` stable pour l'URL (?tab=<key>). L'onglet "settings" (dernier)
-  // est masque sans droit d'edition ; useTabKeyParam derive l'index visible depuis la cle.
-  const detailTabs = [
-    { key: 'overview', hidden: false },
-    { key: 'interventions', hidden: false },
-    { key: 'channels', hidden: false },
-    { key: 'check-in', hidden: false },
-    { key: 'photos', hidden: false },
-    { key: 'inventory', hidden: false },
-  ];
   const [tabValue, setTabValue] = useTabKeyParam(detailTabs);
   const [channelStatus, setChannelStatus] = useState<{ airbnb: { linked: boolean; syncEnabled: boolean; lastSyncAt: string | null; status: string } } | null>(null);
 
