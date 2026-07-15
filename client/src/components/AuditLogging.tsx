@@ -145,9 +145,9 @@ const AuditLogging: React.FC = () => {
     fetchAuditLogs();
   }, [fetchAuditLogs]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     fetchAuditLogs();
-  };
+  }, [fetchAuditLogs]);
 
   // Register page-header actions + last-update timestamp.
   useEffect(() => {
@@ -162,7 +162,7 @@ const AuditLogging: React.FC = () => {
       </Box>,
     );
     return () => setHeaderActions(null);
-  }, [setHeaderActions, loading, fetchAuditLogs]);
+  }, [setHeaderActions, loading, handleRefresh]);
 
   useEffect(() => {
     setHeaderLastUpdate(lastUpdate);

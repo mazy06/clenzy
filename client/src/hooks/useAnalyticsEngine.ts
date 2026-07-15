@@ -113,7 +113,7 @@ export function useAnalyticsEngine({ period, interventions, enabled = true }: Us
   });
 
   const reservations = useMemo(() => reservationsQuery.data || [], [reservationsQuery.data]);
-  const properties = propertiesQuery.data || [];
+  const properties = useMemo(() => propertiesQuery.data || [], [propertiesQuery.data]);
   const serviceRequests = serviceRequestsQuery.data || [];
   const loading = enabled
     && (reservationsQuery.isLoading || propertiesQuery.isLoading || (isMock && interventionsQuery.isLoading));

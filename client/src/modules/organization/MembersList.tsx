@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -69,7 +69,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
   const [changeRoleMember, setChangeRoleMember] = useState<OrganizationMemberDto | null>(null);
   const [removeMember, setRemoveMember] = useState<OrganizationMemberDto | null>(null);
 
-  const loadMembers = async () => {
+  const loadMembers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -89,12 +89,12 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
     } finally {
       setLoading(false);
     }
-  };
+  }, [organizationId]);
 
   useEffect(() => {
     setPage(0);
     loadMembers();
-  }, [organizationId, refreshTrigger]);
+  }, [organizationId, refreshTrigger, loadMembers]);
 
   const handleRoleChanged = () => {
     loadMembers();

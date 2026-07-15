@@ -71,8 +71,9 @@ const FiscalReportSection: React.FC = () => {
   const summary: VatSummary | undefined = activeQuery.data;
 
   const yearOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear();
     const years = [];
-    for (let y = now.getFullYear(); y >= now.getFullYear() - 4; y--) {
+    for (let y = currentYear; y >= currentYear - 4; y--) {
       years.push(y);
     }
     return years;

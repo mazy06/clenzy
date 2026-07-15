@@ -48,25 +48,24 @@ export default function SendMessageDialog({
 
   useEffect(() => {
     if (open) {
+      const loadTemplates = async () => {
+        try {
+          setLoading(true);
+          const data = await guestMessagingApi.getTemplates();
+          setTemplates(data.filter((tpl) => tpl.isActive));
+        } catch {
+          setError(t('messaging.send.loadError'));
+        } finally {
+          setLoading(false);
+        }
+      };
       loadTemplates();
       setSelectedTemplateId('');
       setChannel('EMAIL');
       setError(null);
       setSuccess(false);
     }
-  }, [open]);
-
-  const loadTemplates = async () => {
-    try {
-      setLoading(true);
-      const data = await guestMessagingApi.getTemplates();
-      setTemplates(data.filter((tpl) => tpl.isActive));
-    } catch (err) {
-      setError(t('messaging.send.loadError'));
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [open, t]);
 
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
 

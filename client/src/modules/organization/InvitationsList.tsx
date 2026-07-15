@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { getOrgRoleLabel, getOrgRoleHex, getOrgRoleIcon } from '../../utils/orgRoleLabels';
 import {
   Box,
@@ -119,7 +119,7 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
   // Remplace l'ancien window.confirm() natif par le composant projet ConfirmationModal.
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
 
-  const loadInvitations = async () => {
+  const loadInvitations = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -131,13 +131,13 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
     } finally {
       setLoading(false);
     }
-  };
+  }, [organizationId]);
 
   useEffect(() => {
     if (organizationId) {
       loadInvitations();
     }
-  }, [organizationId, refreshTrigger]);
+  }, [organizationId, refreshTrigger, loadInvitations]);
 
   const handleCancel = async (invitationId: number) => {
     setActionLoading(invitationId);
