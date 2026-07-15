@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Autocomplete,
   Box,
@@ -223,7 +223,8 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
   const [showKey, setShowKey] = useState(false);
   const [testResult, setTestResult] = useState<null | 'success' | 'error'>(null);
   const [catalog, setCatalog] = useState<AiCatalogModel[]>([]);
-  const [nameTouched, setNameTouched] = useState(false);
+  // Flag « nom édité manuellement » jamais lu au render : ref (pas de re-render).
+  const nameTouchedRef = useRef(false);
 
   const testMutation = useTestPlatformModel();
   const saveMutation = useSavePlatformModel();
@@ -239,13 +240,13 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
         setProvider(editModel.provider);
         setModelId(editModel.modelId);
         setBaseUrl(editModel.baseUrl || PROVIDER_BASE_URLS[editModel.provider] || '');
-        setNameTouched(true);
+        nameTouchedRef.current = true;
       } else {
         setName('');
         setProvider('');
         setModelId('');
         setBaseUrl('');
-        setNameTouched(false);
+        nameTouchedRef.current = false;
       }
       setApiKey('');
       setShowKey(false);
@@ -265,7 +266,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
     setModelId('');
     setTestResult(null);
     setCatalog([]);
-    if (!nameTouched) setName('');
+    if (!nameTouchedRef.current) setName('');
   };
 
   const handleTest = () => {
@@ -335,7 +336,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
   // Sélection d'un modèle (preset ou catalogue) : pré-remplit le nom si non édité.
   const applyModelSelection = (mid: string) => {
     setModelId(mid);
-    if (!nameTouched && mid) setName(autoNameFromModel(mid));
+    if (!nameTouchedRef.current && mid) setName(autoNameFromModel(mid));
   };
 
   // "Où trouver ma clé" : page du modèle NVIDIA (panneau Get API Key) si un modèle
@@ -368,7 +369,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
           <TextField
             label={t('settings.ai.platform.name')}
             value={name}
-            onChange={(e) => { setName(e.target.value); setNameTouched(true); }}
+            onChange={(e) => { setName(e.target.value); nameTouchedRef.current = true; }}
             fullWidth
             size="small"
             placeholder="ex: Design - Qwen Coder"

@@ -85,8 +85,9 @@ export default function MessageTemplateEditor({
   }, []);
 
   // Champ actif (subject ou body) pour decider ou inserer la variable au click.
-  // Default: body — c'est la zone la plus large/utilisee.
-  const [activeField, setActiveField] = useState<'subject' | 'body'>('body');
+  // Default: body — c'est la zone la plus large/utilisee. Instance value lue
+  // uniquement dans le handler : ref (pas de re-render a chaque focus).
+  const activeFieldRef = useRef<'subject' | 'body'>('body');
   // Refs vers les <input>/<textarea> sous-jacents pour insérer une variable
   // à la position du curseur (et non en fin de champ).
   const subjectRef = useRef<HTMLInputElement>(null);
@@ -94,7 +95,7 @@ export default function MessageTemplateEditor({
 
   const handleInsertVariable = (key: string) => {
     const variable = `{${key}}`;
-    const isSubject = activeField === 'subject';
+    const isSubject = activeFieldRef.current === 'subject';
     const el = isSubject ? subjectRef.current : bodyRef.current;
     const value = isSubject ? subject : body;
     const setValue = isSubject ? setSubject : setBody;
@@ -229,7 +230,7 @@ export default function MessageTemplateEditor({
                   label={t('messaging.templates.editor.subject')}
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  onFocus={() => setActiveField('subject')}
+                  onFocus={() => { activeFieldRef.current = 'subject'; }}
                   inputRef={subjectRef}
                   size="small"
                   required
@@ -242,7 +243,7 @@ export default function MessageTemplateEditor({
                   label={t('messaging.templates.editor.body')}
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  onFocus={() => setActiveField('body')}
+                  onFocus={() => { activeFieldRef.current = 'body'; }}
                   inputRef={bodyRef}
                   multiline
                   rows={12}

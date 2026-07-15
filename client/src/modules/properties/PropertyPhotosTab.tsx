@@ -124,7 +124,8 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
   const [isDragOver, setIsDragOver] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<PropertyPhoto | null>(null);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
+  // Flag d'upload jamais lu au render : ref servant de garde anti-double-upload.
+  const uploadingRef = useRef(false);
 
   // ── Load photos from API on mount ────────────────────────────────────────
   useEffect(() => {
@@ -148,7 +149,8 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
   // ── Upload files via API ─────────────────────────────────────────────────
   const addFiles = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    setUploading(true);
+    if (uploadingRef.current) return; // anti double-upload
+    uploadingRef.current = true;
     let uploaded = 0;
     let skippedTooLarge = 0;
     let skippedNotImage = 0;
@@ -180,7 +182,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
         }
       }
     } finally {
-      setUploading(false);
+      uploadingRef.current = false;
     }
     if (skippedTooLarge > 0) {
       notify.warning(`${skippedTooLarge} photo(s) ignorée(s) : taille > 10 Mo`);

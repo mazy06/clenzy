@@ -77,7 +77,8 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
   const { t } = useTranslation();
   const theme = useTheme();
 
-  const [appConfig, setAppConfig] = useState<MetaAppConfig | null>(null);
+  // Config Meta app lue uniquement dans le handler de lancement : ref.
+  const appConfigRef = useRef<MetaAppConfig | null>(null);
   const [sdkReady, setSdkReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
@@ -155,7 +156,7 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
         setLoading(true);
         const cfg = await whatsAppConfigApi.getMetaAppConfig();
         if (cancelled) return;
-        setAppConfig(cfg);
+        appConfigRef.current = cfg;
         await loadFbSdk(cfg.appId, cfg.graphApiVersion);
         if (cancelled) return;
         setSdkReady(true);
@@ -180,6 +181,7 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
   }, [loadFbSdk]);
 
   const handleSignup = useCallback(() => {
+    const appConfig = appConfigRef.current;
     if (!appConfig || !window.FB) return;
     setSigningIn(true);
     setError(null);
@@ -215,7 +217,7 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
         extras: { feature: 'whatsapp_embedded_signup' },
       }
     );
-  }, [appConfig, t]);
+  }, [t]);
 
   // ─── Rendus ─────────────────────────────────────────────────────
 

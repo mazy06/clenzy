@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -119,7 +119,9 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   const isEditMode = mode === 'edit' || !!serviceRequestId;
 
   const [isLoading, setIsLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  // Flag de sauvegarde jamais lu au render : ref servant de garde anti-double-submit
+  // (un double-clic creerait une demande de service en doublon).
+  const savingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -391,7 +393,8 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
       return;
     }
 
-    setSaving(true);
+    if (savingRef.current) return; // anti double-submit
+    savingRef.current = true;
     setError(null);
 
     try {
@@ -460,7 +463,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
       const errorPrefix = isEditMode ? t('serviceRequests.updateErrorDetails') : t('serviceRequests.errors.createErrorDetails');
       setError(errorPrefix + ': ' + message);
     } finally {
-      setSaving(false);
+      savingRef.current = false;
     }
   };
 

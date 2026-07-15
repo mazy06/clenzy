@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -127,7 +127,8 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [minNightsDialogOpen, setMinNightsDialogOpen] = useState(false);
-  const [selectionAnchor, setSelectionAnchor] = useState<string | null>(null);
+  // Ancre de selection (shift-click / drag) lue uniquement en handlers : ref.
+  const selectionAnchorRef = useRef<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
   const queryClient = useQueryClient();
@@ -191,25 +192,27 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
   const handleCellMouseDown = useCallback(
     (dateStr: string, event: React.MouseEvent) => {
       if (!selectedPropertyId) return;
-      if (event.shiftKey && selectionAnchor) {
-        setSelectedDates(rangeBetween(selectionAnchor, dateStr));
+      const anchor = selectionAnchorRef.current;
+      if (event.shiftKey && anchor) {
+        setSelectedDates(rangeBetween(anchor, dateStr));
         return;
       }
-      setSelectionAnchor(dateStr);
+      selectionAnchorRef.current = dateStr;
       setSelectedDates([dateStr]);
       setIsDragging(true);
     },
-    [selectedPropertyId, selectionAnchor, rangeBetween],
+    [selectedPropertyId, rangeBetween],
   );
 
   // Survol pendant le glisser : étend la plage depuis l'ancre → sélection de plage
   // « cliquer-glisser » sans passer par le formulaire de droite.
   const handleCellMouseEnter = useCallback(
     (dateStr: string) => {
-      if (!isDragging || !selectionAnchor) return;
-      setSelectedDates(rangeBetween(selectionAnchor, dateStr));
+      const anchor = selectionAnchorRef.current;
+      if (!isDragging || !anchor) return;
+      setSelectedDates(rangeBetween(anchor, dateStr));
     },
-    [isDragging, selectionAnchor, rangeBetween],
+    [isDragging, rangeBetween],
   );
 
   // Fin du glisser, où que le curseur soit relâché.

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -107,7 +107,6 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
     transactionCount: 0,
   });
   const [totalElements, setTotalElements] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
 
   // Host filter (ADMIN/MANAGER)
   const [hostsList, setHostsList] = useState<HostOption[]>([]);
@@ -134,7 +133,9 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
   // Send payment link state (reservations)
   const [sendingPaymentLink, setSendingPaymentLink] = useState<number | null>(null);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
-  const [emailDialogTarget, setEmailDialogTarget] = useState<PaymentRecord | null>(null);
+  // Cible du dialog email : instance value lue uniquement dans les handlers
+  // (l'ouverture du dialog est pilotee par emailDialogOpen) — ref, pas de re-render.
+  const emailDialogTargetRef = useRef<PaymentRecord | null>(null);
   const [emailInput, setEmailInput] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
 
@@ -190,7 +191,6 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
 
       setPayments(records);
       setTotalElements(search.trim() ? records.length : historyRes.totalElements);
-      setTotalPages(search.trim() ? Math.ceil(records.length / rowsPerPage) : historyRes.totalPages);
       setSummary(summaryRes);
     } catch {
       setError('Erreur lors du chargement des paiements');
@@ -231,7 +231,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
   };
 
   const openEmailDialog = (payment: PaymentRecord) => {
-    setEmailDialogTarget(payment);
+    emailDialogTargetRef.current = payment;
     setEmailInput(payment.guestEmail || '');
     setEmailError(null);
     setEmailDialogOpen(true);
@@ -253,7 +253,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
       setPayError(null);
       await reservationsApi.sendPaymentLink(payment.referenceId, email || undefined);
       setEmailDialogOpen(false);
-      setEmailDialogTarget(null);
+      emailDialogTargetRef.current = null;
       loadData();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erreur lors de l'envoi du lien de paiement";
@@ -271,14 +271,15 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
   };
 
   const handleEmailDialogConfirm = () => {
-    if (!emailDialogTarget) return;
+    const target = emailDialogTargetRef.current;
+    if (!target) return;
     const trimmed = emailInput.trim();
     if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
       setEmailError('Veuillez saisir une adresse email valide');
       return;
     }
     setEmailError(null);
-    doSendPaymentLink(emailDialogTarget, trimmed);
+    doSendPaymentLink(target, trimmed);
   };
 
   const handleRefundClick = (payment: PaymentRecord) => {
@@ -773,7 +774,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
       {/* Dialog de saisie d'email pour envoi du lien de paiement */}
       <Dialog
         open={emailDialogOpen}
-        onClose={() => { setEmailDialogOpen(false); setEmailDialogTarget(null); setEmailError(null); }}
+        onClose={() => { setEmailDialogOpen(false); emailDialogTargetRef.current = null; setEmailError(null); }}
         maxWidth="xs"
         fullWidth
       >
@@ -800,7 +801,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         </DialogContent>
         <DialogActions>
           <Button
-            onClick={() => { setEmailDialogOpen(false); setEmailDialogTarget(null); setEmailError(null); }}
+            onClick={() => { setEmailDialogOpen(false); emailDialogTargetRef.current = null; setEmailError(null); }}
             size="small"
           >
             Annuler

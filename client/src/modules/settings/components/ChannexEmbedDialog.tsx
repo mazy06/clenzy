@@ -74,7 +74,8 @@ export default function ChannexEmbedDialog({
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [interacted, setInteracted] = useState(false);
+  // Flag « interaction eue » lu uniquement au close : ref, pas de re-render.
+  const interactedRef = useRef(false);
   // Cle utilisee pour forcer le reload de l'iframe (cas typique : UI Channex
   // figee sur "Await your action" alors que l'OAuth a deja reussi en backend).
   const [iframeKey, setIframeKey] = useState(0);
@@ -97,7 +98,7 @@ export default function ChannexEmbedDialog({
       setEmbedUrl(prefetchedEmbedUrl);
       setLoading(false);
       setError(null);
-      setInteracted(false);
+      interactedRef.current = false;
       return;
     }
 
@@ -107,7 +108,7 @@ export default function ChannexEmbedDialog({
     setLoading(true);
     setError(null);
     setEmbedUrl(null);
-    setInteracted(false);
+    interactedRef.current = false;
 
     channexApi
       .getEmbedUrl(clenzyPropertyId, 'fr', channelCode ?? undefined)
@@ -161,7 +162,7 @@ export default function ChannexEmbedDialog({
       if (typeof data === 'object' && data !== null) {
         const type = String(data.type || data.event || '').toLowerCase();
         if (type.includes('channel') || type.includes('connect')) {
-          setInteracted(true);
+          interactedRef.current = true;
         }
       }
     };
@@ -173,7 +174,7 @@ export default function ChannexEmbedDialog({
   // 3. A la fermeture, si l'utilisateur a interagi avec un channel → trigger pullBookings parent
   const handleClose = () => {
     onClose();
-    if (interacted && onClosedAfterConnection) {
+    if (interactedRef.current && onClosedAfterConnection) {
       onClosedAfterConnection();
     }
   };

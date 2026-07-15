@@ -309,7 +309,8 @@ const PublicGuide: React.FC = () => {
   const [upsells, setUpsells] = useState<PublicUpsell[]>([]);
   const [payingUpsell, setPayingUpsell] = useState<PublicUpsell | null>(null);
   const [payClientSecret, setPayClientSecret] = useState<string | null>(null);
-  const [payOrderId, setPayOrderId] = useState<number | null>(null);
+  // Id de commande upsell lu uniquement dans le handler de confirmation : ref.
+  const payOrderIdRef = useRef<number | null>(null);
   const [paySuccess, setPaySuccess] = useState(false);
   const [payError, setPayError] = useState(false);
   const [conciergeOpen, setConciergeOpen] = useState(false);
@@ -546,13 +547,13 @@ const PublicGuide: React.FC = () => {
     if (!token) return;
     setPayingUpsell(u);
     setPayClientSecret(null);
-    setPayOrderId(null);
+    payOrderIdRef.current = null;
     setPaySuccess(false);
     setPayError(false);
     const res = await startUpsellCheckout(token, u.offerId);
     if (res) {
       setPayClientSecret(res.clientSecret);
-      setPayOrderId(res.orderId);
+      payOrderIdRef.current = res.orderId;
     } else {
       setPayError(true);
     }
@@ -560,13 +561,14 @@ const PublicGuide: React.FC = () => {
 
   const onPayComplete = () => {
     setPaySuccess(true);
-    if (token && payOrderId != null) confirmUpsellPayment(token, payOrderId);
+    const orderId = payOrderIdRef.current;
+    if (token && orderId != null) confirmUpsellPayment(token, orderId);
   };
 
   const closePay = () => {
     setPayingUpsell(null);
     setPayClientSecret(null);
-    setPayOrderId(null);
+    payOrderIdRef.current = null;
     setPaySuccess(false);
     setPayError(false);
   };

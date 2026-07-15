@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -165,7 +165,8 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
   const [createdId, setCreatedId] = useState<number | null>(null);
   // Édition : DTO complet récupéré au chargement, réutilisé au submit pour ne pas
   // nuller les champs non exposés par le formulaire (accessNotes, urgent, actualCost…).
-  const [editingRaw, setEditingRaw] = useState<Record<string, unknown> | null>(null);
+  // Payload brut de la demande en edition : lu uniquement au submit : ref.
+  const editingRawRef = useRef<Record<string, unknown> | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
 
   // ── Conflict detection state ────────────────────────────────────────────
@@ -214,7 +215,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
       setActiveStep(0);
       setError(null);
       setCreatedId(null);
-      setEditingRaw(null);
+      editingRawRef.current = null;
       setConflictMembers([]);
       setConflictInfo(null);
       setUserConflictInfo(null);
@@ -265,7 +266,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
     serviceRequestsApi.getById(editingServiceRequestId)
       .then((sr) => {
         if (cancelled) return;
-        setEditingRaw(sr as unknown as Record<string, unknown>);
+        editingRawRef.current = sr as unknown as Record<string, unknown>;
         reset({
           title: sr.title || '',
           description: sr.description || '',
@@ -742,7 +743,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
       // En édition on repart du DTO complet pour préserver les champs non exposés
       // par le formulaire (accessNotes, urgent, actualCost…) et le statut courant.
       const backendData: Record<string, unknown> = {
-        ...(isEditMode && editingRaw ? editingRaw : {}),
+        ...(isEditMode && editingRawRef.current ? editingRawRef.current : {}),
         title: formData.title,
         description: formData.description,
         propertyId,
@@ -752,7 +753,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
         estimatedDurationHours: formData.estimatedDurationHours,
         desiredDate,
         userId: formData.userId ?? user?.databaseId ?? null,
-        status: isEditMode ? (formData.status ?? (editingRaw?.status as string | undefined) ?? 'PENDING') : 'PENDING',
+        status: isEditMode ? (formData.status ?? (editingRawRef.current?.status as string | undefined) ?? 'PENDING') : 'PENDING',
       };
 
       // Chiffrage maintenance : le serveur est autoritatif sur le montant à régler.
@@ -797,7 +798,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [propertyId, reservationId, user?.databaseId, canAssignForProperty, isCleaningCategory, isEditMode, editingServiceRequestId, editingRaw, onCreated, onClose]);
+  }, [propertyId, reservationId, user?.databaseId, canAssignForProperty, isCleaningCategory, isEditMode, editingServiceRequestId, onCreated, onClose]);
 
   const handleConfirm = useCallback(() => {
     rhfHandleSubmit(onSubmit)();

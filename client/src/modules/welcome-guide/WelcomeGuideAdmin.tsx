@@ -254,7 +254,8 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [propertyId, setPropertyId] = useState<string>('');
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState<string>('fr');
-  const [brandingColor, setBrandingColor] = useState<string>(DEFAULT_COLOR);
+  // Couleur de marque : passthrough load->save, jamais affichee au render : ref.
+  const brandingColorRef = useRef<string>(DEFAULT_COLOR);
   const [theme, setTheme] = useState<string>(DEFAULT_THEME);
   // Sélection « studio » (parité Booking Engine) : structure obligatoire → thème (gated) → le bouton ↑ crée.
   const [structureId, setStructureId] = useState<string | null>(null);
@@ -373,7 +374,7 @@ const WelcomeGuideAdmin: React.FC = () => {
     setPropertyId('');
     setTitle('');
     setLanguage(tplLang);
-    setBrandingColor(DEFAULT_COLOR);
+    brandingColorRef.current = DEFAULT_COLOR;
     setTheme(opts?.theme ?? DEFAULT_THEME);
     setHeroPhotoIds([]);
     setHeroTouched(false);
@@ -455,7 +456,7 @@ const WelcomeGuideAdmin: React.FC = () => {
     setPropertyId(g.propertyId != null ? String(g.propertyId) : '');
     setTitle(g.title);
     setLanguage(g.language || 'fr');
-    setBrandingColor(g.brandingColor || DEFAULT_COLOR);
+    brandingColorRef.current = g.brandingColor || DEFAULT_COLOR;
     setTheme(g.theme || DEFAULT_THEME);
     setHeroPhotoIds(parseHeroPhotoIds(g.heroPhotoIds));
     setHeroTouched(true); // édition : on respecte la sélection sauvegardée (pas d'auto-défaut)
@@ -500,7 +501,7 @@ const WelcomeGuideAdmin: React.FC = () => {
         sections: serializeSections(sections),
         pois: serializePois(pois),
         curatedActivities: serializeActivities(curatedActivities),
-        brandingColor,
+        brandingColor: brandingColorRef.current,
         theme,
         heroPhotoIds: JSON.stringify(heroPhotoIds),
         welcomeMessage: welcomeMessage.trim() || null,
