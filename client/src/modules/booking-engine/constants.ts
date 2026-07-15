@@ -1,30 +1,4 @@
 import type { DesignTokens } from '../../services/api/bookingEngineApi';
-import { CURRENCY_OPTIONS as CURRENCY_OPTIONS_PMS } from '../../utils/currencyUtils';
-
-// ─── Language / Currency / Font Options ─────────────────────────────────────
-
-export const LANGUAGE_OPTIONS = [
-  { value: 'fr', label: 'Français' },
-  { value: 'en', label: 'English' },
-  { value: 'ar', label: 'العربية' },
-];
-
-/** Currencies managed by the PMS — imported from shared utils. */
-export const CURRENCY_OPTIONS = CURRENCY_OPTIONS_PMS.map((c) => ({
-  value: c.code,
-  label: `${c.code} — ${c.label.replace(/ \(.*\)$/, '')}`,
-}));
-
-export const FONT_OPTIONS = [
-  { value: '', label: 'Par défaut (système)' },
-  { value: 'Poppins', label: 'Poppins' },
-  { value: 'Inter', label: 'Inter' },
-  { value: 'Roboto', label: 'Roboto' },
-  { value: 'Open Sans', label: 'Open Sans' },
-  { value: 'Montserrat', label: 'Montserrat' },
-  { value: 'Lato', label: 'Lato' },
-  { value: 'Nunito', label: 'Nunito' },
-];
 
 // ─── Design Presets ─────────────────────────────────────────────────────────
 

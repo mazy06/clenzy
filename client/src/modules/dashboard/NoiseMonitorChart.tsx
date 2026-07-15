@@ -117,10 +117,10 @@ const NoiseTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) 
       <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>
         {label}
       </Typography>
-      {payload.map((entry, idx) => {
+      {payload.map((entry) => {
         const status = getNoiseStatus(entry.value);
         return (
-          <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
+          <Box key={entry.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: entry.color, flexShrink: 0 }} />
             <Typography sx={{ fontSize: '0.6875rem', flex: 1 }}>{entry.name}</Typography>
             <Chip

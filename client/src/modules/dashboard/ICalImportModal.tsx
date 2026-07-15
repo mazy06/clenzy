@@ -635,8 +635,8 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               </TableRow>
             </TableHead>
             <TableBody>
-              {allEvents.map((event: ICalEventPreview, index: number) => (
-                <TableRow key={`evt-${index}`} hover sx={{ '&:last-child td': { border: 0 } }}>
+              {allEvents.map((event: ICalEventPreview) => (
+                <TableRow key={`${event.uid}-${event.dtStart}`} hover sx={{ '&:last-child td': { border: 0 } }}>
                   <TableCell>{formatDate(event.dtStart)}</TableCell>
                   <TableCell>{formatDate(event.dtEnd)}</TableCell>
                   <TableCell align="center">

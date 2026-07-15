@@ -92,9 +92,9 @@ export default function TechnicianTravaux() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const payload: ServicePriceConfig[] = rows
-        .filter((r) => r.offered)
-        .map((r) => ({ interventionType: r.interventionType, basePrice: r.price, enabled: true }));
+      const payload: ServicePriceConfig[] = rows.flatMap((r) =>
+        r.offered ? [{ interventionType: r.interventionType, basePrice: r.price, enabled: true }] : [],
+      );
       const saved = await technicianPrestationsApi.updateMine(payload);
       // Re-merge avec le catalogue courant pour rester pré-listé.
       const catalogue = await technicianPrestationsApi.catalogue().catch(() => [] as ServicePriceConfig[]);

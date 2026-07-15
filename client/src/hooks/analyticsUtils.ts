@@ -63,15 +63,6 @@ export function makeTrend(current: number, previous: number): TrendValue {
   return { value: current, previous, growth: calcGrowth(current, previous) };
 }
 
-export function filterByPeriod<T extends { checkIn: string; checkOut: string }>(
-  reservations: T[],
-  days: number,
-): T[] {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - days);
-  return reservations.filter((r) => new Date(r.checkIn) >= cutoff || new Date(r.checkOut) >= cutoff);
-}
-
 export function stdDev(values: number[]): number {
   if (values.length === 0) return 0;
   const avg = values.reduce((a, b) => a + b, 0) / values.length;

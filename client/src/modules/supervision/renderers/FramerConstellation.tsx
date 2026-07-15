@@ -1086,11 +1086,11 @@ function FramerConstellationInner({
           ))}
           {/* flux « délégation en direct » — uniquement sur les faisceaux actifs, off en reduced-motion */}
           {!prefersReduced &&
-            layout.beams
-              .filter((b) => b.active)
-              .map((b) => (
-                <path key={`flow-${b.id}`} className={`wire-flow ${b.status}`} d={`M ${b.x1} ${b.y1} L ${b.x2} ${b.y2}`} />
-              ))}
+            layout.beams.flatMap((b) =>
+              b.active
+                ? [<path key={`flow-${b.id}`} className={`wire-flow ${b.status}`} d={`M ${b.x1} ${b.y1} L ${b.x2} ${b.y2}`} />]
+                : [],
+            )}
         </svg>
 
         <div className="cst__sats">

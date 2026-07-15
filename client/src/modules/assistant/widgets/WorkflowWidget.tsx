@@ -170,7 +170,7 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
             }}
           >
             {stepsForStepper.map((step, idx) => (
-              <Step key={`${step.label}-${idx}`} completed={idx < currentIdx || isCompleted}>
+              <Step key={step.label} completed={idx < currentIdx || isCompleted}>
                 <StepLabel>{step.label}</StepLabel>
               </Step>
             ))}

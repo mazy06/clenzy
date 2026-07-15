@@ -85,11 +85,15 @@ const InterventionFormAssignment: React.FC<InterventionFormAssignmentProps> = Re
                     label={t('interventions.fields.assignedUser')}
                     size="small"
                   >
-                    {users.filter(user => ['TECHNICIAN', 'EXTERIOR_TECH', 'LAUNDRY', 'SUPERVISOR', 'SUPER_MANAGER'].includes(user.role)).map((user) => (
-                      <MenuItem key={user.id} value={user.id}>
-                        <Typography variant="body2">{user.firstName} {user.lastName} ({user.role})</Typography>
-                      </MenuItem>
-                    ))}
+                    {users.flatMap((user) =>
+                      ['TECHNICIAN', 'EXTERIOR_TECH', 'LAUNDRY', 'SUPERVISOR', 'SUPER_MANAGER'].includes(user.role)
+                        ? [
+                            <MenuItem key={user.id} value={user.id}>
+                              <Typography variant="body2">{user.firstName} {user.lastName} ({user.role})</Typography>
+                            </MenuItem>,
+                          ]
+                        : [],
+                    )}
                   </Select>
                 </FormControl>
               )}

@@ -516,12 +516,15 @@ const TeamEdit: React.FC = () => {
                   >
                     {availableUsers && availableUsers.length > 0 ? (
                       availableUsers
-                        .filter((user) => !(formData.members || []).some(m => m.userId === user.id))
-                        .map((user) => (
-                          <MenuItem key={user.id} value={user.id.toString()}>
-                            {user.firstName} {user.lastName} ({user.email})
-                          </MenuItem>
-                        ))
+                        .flatMap((user) =>
+                          (formData.members || []).some(m => m.userId === user.id)
+                            ? []
+                            : [
+                                <MenuItem key={user.id} value={user.id.toString()}>
+                                  {user.firstName} {user.lastName} ({user.email})
+                                </MenuItem>,
+                              ],
+                        )
                     ) : (
                       <MenuItem disabled>Aucun utilisateur disponible</MenuItem>
                     )}

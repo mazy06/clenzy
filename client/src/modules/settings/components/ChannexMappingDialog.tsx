@@ -1190,7 +1190,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                   }}
                 />
                 <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
-                  Creation automatique <span style={{ color: ACCENT, fontSize: '0.7rem', fontWeight: 700 }}>RECOMMANDE</span>
+                  Creation automatique <span style={{ color: ACCENT, fontSize: '0.75rem', fontWeight: 700 }}>RECOMMANDE</span>
                 </Typography>
               </Box>
               <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', ml: 3, mt: 0.5 }}>

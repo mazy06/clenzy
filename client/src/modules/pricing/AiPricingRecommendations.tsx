@@ -163,9 +163,9 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
         </Box>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          {data.map((rec, idx) => (
+          {data.map((rec) => (
             <Box
-              key={idx}
+              key={rec.date}
               sx={{
                 display: 'flex',
                 alignItems: 'center',

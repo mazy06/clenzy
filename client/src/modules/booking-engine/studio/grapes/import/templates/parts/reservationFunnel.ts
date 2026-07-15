@@ -17,12 +17,6 @@
  * ⚠️ Le titre par étape vit DANS le funnel (cz-rf-head) → la page ne doit pas re-titrer.
  */
 
-/** Variables de thème alimentées par le template (avec fallbacks). */
-export const RESERVATION_FUNNEL_TOKENS = [
-  '--rf-accent', '--rf-accent-soft', '--rf-on-accent', '--rf-surface',
-  '--rf-ink', '--rf-body', '--rf-muted', '--rf-line', '--rf-soft', '--rf-radius',
-] as const;
-
 /** CSS STRUCTURE + MÉCANISME (réutilisable). Le thème vient des `--rf-*` ; ici, uniquement layout + wizard. */
 export const RESERVATION_FUNNEL_CSS = `/* Funnel de réservation — STRUCTURE + MÉCANISME (thème alimenté par le template via --rf-*). */
 .cz-rf {

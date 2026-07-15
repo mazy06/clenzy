@@ -690,18 +690,17 @@ export function computeBusinessAlerts(
     });
   }
 
-  propertyPerf
-    .filter((p) => p.occupancyRate < 30)
-    .forEach((p) => {
-      alerts.push({
-        id: `alert-prop-${p.propertyId}`,
-        severity: 'info',
-        title: `${p.name} — occupation tres basse`,
-        description: `${p.occupancyRate}% d'occupation. Revoir l'annonce ou le prix.`,
-        action: 'Revoir le listing',
-        route: `/properties/${p.propertyId}`,
-      });
+  for (const p of propertyPerf) {
+    if (p.occupancyRate >= 30) continue;
+    alerts.push({
+      id: `alert-prop-${p.propertyId}`,
+      severity: 'info',
+      title: `${p.name} — occupation tres basse`,
+      description: `${p.occupancyRate}% d'occupation. Revoir l'annonce ou le prix.`,
+      action: 'Revoir le listing',
+      route: `/properties/${p.propertyId}`,
     });
+  }
 
   return alerts.sort((a, b) => {
     const order: Record<AlertSeverity, number> = { critical: 0, warning: 1, info: 2 };

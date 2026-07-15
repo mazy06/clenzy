@@ -142,22 +142,20 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
   // ── Filter categories + prospects ──
   const filteredCategories = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return categories
-      .filter((cat) => categoryFilter === 'all' || cat.key === categoryFilter)
-      .map((cat) => ({
-        ...cat,
-        prospects: cat.prospects.filter((p) => {
-          if (statusFilter !== 'all' && p.status !== statusFilter) return false;
-          if (q) {
-            const name = (p.name || '').toLowerCase();
-            const city = (p.city || '').toLowerCase();
-            const specialty = (p.specialty || '').toLowerCase();
-            if (!name.includes(q) && !city.includes(q) && !specialty.includes(q)) return false;
-          }
-          return true;
-        }),
-      }))
-      .filter((cat) => cat.prospects.length > 0);
+    return categories.flatMap((cat) => {
+      if (categoryFilter !== 'all' && cat.key !== categoryFilter) return [];
+      const prospects = cat.prospects.filter((p) => {
+        if (statusFilter !== 'all' && p.status !== statusFilter) return false;
+        if (q) {
+          const name = (p.name || '').toLowerCase();
+          const city = (p.city || '').toLowerCase();
+          const specialty = (p.specialty || '').toLowerCase();
+          if (!name.includes(q) && !city.includes(q) && !specialty.includes(q)) return false;
+        }
+        return true;
+      });
+      return prospects.length > 0 ? [{ ...cat, prospects }] : [];
+    });
   }, [categories, search, statusFilter, categoryFilter]);
 
   const totalProspects = filteredCategories.reduce((sum, c) => sum + c.prospects.length, 0);

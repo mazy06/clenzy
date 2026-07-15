@@ -125,7 +125,7 @@ const FiscalReportSection: React.FC = () => {
               sx={{ minWidth: 140 }}
             >
               {MONTHS.map((m, i) => (
-                <MenuItem key={i + 1} value={i + 1}>{m}</MenuItem>
+                <MenuItem key={m} value={i + 1}>{m}</MenuItem>
               ))}
             </TextField>
           )}
@@ -222,8 +222,8 @@ const FiscalReportSection: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {summary.breakdown.map((row, i) => (
-                    <TableRow key={i} hover>
+                  {summary.breakdown.map((row) => (
+                    <TableRow key={`${row.taxCategory}-${row.taxName}-${row.taxRate}`} hover>
                       <TableCell sx={CELL_SX}>{row.taxCategory}</TableCell>
                       <TableCell sx={CELL_SX}>{row.taxName}</TableCell>
                       <TableCell sx={CELL_SX} align="right">{formatTaxRate(row.taxRate)}</TableCell>

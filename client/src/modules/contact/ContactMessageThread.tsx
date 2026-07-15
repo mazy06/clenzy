@@ -136,7 +136,8 @@ const ContactMessageThread: React.FC<ContactMessageThreadProps> = ({
   // Computed lightbox data
   const lightboxPhotos = (() => {
     const photos: string[] = [];
-    (message.attachments || []).filter(isImageAttachment).forEach(a => {
+    (message.attachments || []).forEach(a => {
+      if (!isImageAttachment(a)) return;
       const url = imageUrls[a.id];
       if (url) photos.push(url);
     });
@@ -144,7 +145,8 @@ const ContactMessageThread: React.FC<ContactMessageThreadProps> = ({
   })();
 
   const lightboxIdxMap: Record<string, number> = {};
-  (message.attachments || []).filter(isImageAttachment).forEach(a => {
+  (message.attachments || []).forEach(a => {
+    if (!isImageAttachment(a)) return;
     const url = imageUrls[a.id];
     if (url) { lightboxIdxMap[a.id] = Object.keys(lightboxIdxMap).length; }
   });

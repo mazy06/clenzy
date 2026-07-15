@@ -120,6 +120,65 @@ const fieldStyle = (invalid: boolean): React.CSSProperties => ({
   outline: 'none',
 });
 
+const iconBadgeStyle: React.CSSProperties = {
+  width: 56,
+  height: 56,
+  borderRadius: 999,
+  background: 'var(--terra-bg)',
+  color: 'var(--terra-deep)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginBottom: 16,
+};
+
+const removeCompanionButtonStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 5,
+  border: '1px solid var(--line)',
+  background: 'var(--surface)',
+  borderRadius: 999,
+  padding: '6px 12px',
+  color: 'var(--ink-soft)',
+  fontFamily: 'var(--sans)',
+  fontSize: 12.5,
+  fontWeight: 600,
+  cursor: 'pointer',
+};
+
+const addCompanionButtonStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  border: '1.5px dashed var(--terra-soft)',
+  background: 'transparent',
+  borderRadius: 14,
+  padding: '12px 16px',
+  color: 'var(--terra-deep)',
+  fontFamily: 'var(--sans)',
+  fontSize: 13.5,
+  fontWeight: 700,
+  cursor: 'pointer',
+  width: '100%',
+  justifyContent: 'center',
+  marginBottom: 18,
+};
+
+const submitErrorStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 9,
+  background: 'var(--terra-bg)',
+  color: 'var(--terra-deep)',
+  border: '1px solid var(--terra-soft)',
+  borderRadius: 12,
+  padding: '11px 14px',
+  fontSize: 13.5,
+  lineHeight: 1.45,
+  marginBottom: 14,
+};
+
 export interface GuideDeclarationFormProps {
   lang: Lang;
   labels: GuideLabels;
@@ -154,26 +213,24 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
     return set;
   }, [missingSet]);
 
-  const fieldLabel = useMemo<Record<keyof DeclarantDraft, string>>(
-    () => ({
-      firstName: L.fFirstName,
-      lastName: L.fLastName,
-      maidenName: L.fMaidenName,
-      birthDate: L.fBirthDate,
-      birthPlace: L.fBirthPlace,
-      nationality: L.fNationality,
-      residenceAddress: L.fResidenceAddress,
-      residenceCountry: L.fResidenceCountry,
-      idDocumentType: L.fIdDocumentType,
-      idDocumentNumber: L.fIdDocumentNumber,
-    }),
-    [L],
-  );
+  const fieldLabel: Record<keyof DeclarantDraft, string> = {
+    firstName: L.fFirstName,
+    lastName: L.fLastName,
+    maidenName: L.fMaidenName,
+    birthDate: L.fBirthDate,
+    birthPlace: L.fBirthPlace,
+    nationality: L.fNationality,
+    residenceAddress: L.fResidenceAddress,
+    residenceCountry: L.fResidenceCountry,
+    idDocumentType: L.fIdDocumentType,
+    idDocumentNumber: L.fIdDocumentNumber,
+  };
 
-  const docTypeLabel = useMemo<Record<IdDocumentType, string>>(
-    () => ({ PASSPORT: L.docPassport, ID_CARD: L.docIdCard, RESIDENCE_PERMIT: L.docResidencePermit }),
-    [L],
-  );
+  const docTypeLabel: Record<IdDocumentType, string> = {
+    PASSPORT: L.docPassport,
+    ID_CARD: L.docIdCard,
+    RESIDENCE_PERMIT: L.docResidencePermit,
+  };
 
   const fieldsFor = (index: number): Set<keyof DeclarantDraft> =>
     index === 0 ? primaryFields : new Set<keyof DeclarantDraft>(COMPANION_FIELDS);
@@ -236,13 +293,14 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
           type="date"
           value={value}
           dir="ltr"
+          aria-label={fieldLabel[key]}
           onChange={(e) => update(index, key, e.target.value)}
           style={fieldStyle(invalid)}
         />
       );
     } else if (key === 'nationality' || key === 'residenceCountry') {
       control = (
-        <select id={fieldId} value={value} onChange={(e) => update(index, key, e.target.value)} style={{ ...fieldStyle(invalid), cursor: 'pointer' }}>
+        <select id={fieldId} value={value} aria-label={fieldLabel[key]} onChange={(e) => update(index, key, e.target.value)} style={{ ...fieldStyle(invalid), cursor: 'pointer' }}>
           <option value="">{L.selectPlaceholder}</option>
           {countries.map((c) => (
             <option key={c.code} value={c.code}>
@@ -253,7 +311,7 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
       );
     } else if (key === 'idDocumentType') {
       control = (
-        <select id={fieldId} value={value} onChange={(e) => update(index, key, e.target.value)} style={{ ...fieldStyle(invalid), cursor: 'pointer' }}>
+        <select id={fieldId} value={value} aria-label={fieldLabel[key]} onChange={(e) => update(index, key, e.target.value)} style={{ ...fieldStyle(invalid), cursor: 'pointer' }}>
           <option value="">{L.selectPlaceholder}</option>
           {ID_DOCUMENT_TYPES.map((t) => (
             <option key={t} value={t}>
@@ -269,6 +327,7 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
           type="text"
           value={value}
           autoComplete="off"
+          aria-label={fieldLabel[key]}
           onChange={(e) => update(index, key, e.target.value)}
           style={fieldStyle(invalid)}
         />
@@ -302,19 +361,7 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
         <div className="wb-rise" style={{ maxWidth: 440, margin: '0 auto' }}>
           {/* En-tête rassurant */}
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 999,
-                background: 'var(--terra-bg)',
-                color: 'var(--terra-deep)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 16,
-              }}
-            >
+            <div style={iconBadgeStyle}>
               <ShieldCheck size={26} strokeWidth={1.6} />
             </div>
             <div className="wb-eyebrow" style={{ marginBottom: 8 }}>{L.declEyebrow}</div>
@@ -336,20 +383,7 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
                       type="button"
                       className="wb-pressable"
                       onClick={() => removeCompanion(index)}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 5,
-                        border: '1px solid var(--line)',
-                        background: 'var(--surface)',
-                        borderRadius: 999,
-                        padding: '6px 12px',
-                        color: 'var(--ink-soft)',
-                        fontFamily: 'var(--sans)',
-                        fontSize: 12.5,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
+                      style={removeCompanionButtonStyle}
                     >
                       <Trash2 size={14} strokeWidth={1.8} /> {L.declRemove}
                     </button>
@@ -374,44 +408,13 @@ const GuideDeclarationForm: React.FC<GuideDeclarationFormProps> = ({ lang, label
             type="button"
             className="wb-pressable"
             onClick={addCompanion}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              border: '1.5px dashed var(--terra-soft)',
-              background: 'transparent',
-              borderRadius: 14,
-              padding: '12px 16px',
-              color: 'var(--terra-deep)',
-              fontFamily: 'var(--sans)',
-              fontSize: 13.5,
-              fontWeight: 700,
-              cursor: 'pointer',
-              width: '100%',
-              justifyContent: 'center',
-              marginBottom: 18,
-            }}
+            style={addCompanionButtonStyle}
           >
             <UserPlus size={17} strokeWidth={1.8} /> {L.declAddCompanion}
           </button>
 
           {submitError ? (
-            <div
-              role="alert"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 9,
-                background: 'var(--terra-bg)',
-                color: 'var(--terra-deep)',
-                border: '1px solid var(--terra-soft)',
-                borderRadius: 12,
-                padding: '11px 14px',
-                fontSize: 13.5,
-                lineHeight: 1.45,
-                marginBottom: 14,
-              }}
-            >
+            <div role="alert" style={submitErrorStyle}>
               <AlertCircle size={17} strokeWidth={1.8} style={{ flexShrink: 0 }} />
               {submitError}
             </div>

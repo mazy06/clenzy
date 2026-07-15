@@ -239,7 +239,7 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
             const accent = ACCENT_TOKENS[accentKey];
             return (
               <Box
-                key={i}
+                key={step.title}
                 sx={{
                   display: 'flex',
                   alignItems: 'flex-start',

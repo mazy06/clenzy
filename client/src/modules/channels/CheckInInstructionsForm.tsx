@@ -60,9 +60,10 @@ function parseAccessPhotos(json: string | null | undefined): AccessPhoto[] {
   try {
     const arr = JSON.parse(json);
     return Array.isArray(arr)
-      ? arr
-          .filter((p) => p && typeof p.key === 'string')
-          .map((p) => ({ key: p.key as string, caption: typeof p.caption === 'string' ? p.caption : '' }))
+      ? arr.flatMap((p) =>
+          p && typeof p.key === 'string'
+            ? [{ key: p.key as string, caption: typeof p.caption === 'string' ? p.caption : '' }]
+            : [])
       : [];
   } catch {
     return [];

@@ -106,8 +106,7 @@ function deriveSeries(items: Array<{ name: string;[key: string]: string | number
   if (items.length === 0) return [];
   const sample = items[0];
   return Object.keys(sample)
-    .filter((k) => k !== 'name' && typeof sample[k] === 'number')
-    .map((k) => ({ key: k, label: humanize(k) }));
+    .flatMap((k) => (k !== 'name' && typeof sample[k] === 'number' ? [{ key: k, label: humanize(k) }] : []));
 }
 
 function humanize(key: string): string {

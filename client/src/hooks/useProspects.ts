@@ -42,13 +42,3 @@ export function useUpdateProspect() {
     },
   });
 }
-
-export function useDeleteProspect() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => prospectsApi.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: prospectsKeys.all });
-    },
-  });
-}

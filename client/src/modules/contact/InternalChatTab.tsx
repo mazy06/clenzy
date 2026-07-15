@@ -245,7 +245,8 @@ const InternalChatTab: React.FC<{ archived?: boolean; listHeaderSlot?: React.Rea
 
     let active = true;
     messages.forEach((msg) => {
-      (msg.attachments || []).filter(isImageAttachment).forEach((att) => {
+      (msg.attachments || []).forEach((att) => {
+        if (!isImageAttachment(att)) return;
         const key = `${msg.id}-${att.id}`;
         contactApi
           .getAttachmentBlobUrl(msg.id, att.id)
@@ -280,7 +281,8 @@ const InternalChatTab: React.FC<{ archived?: boolean; listHeaderSlot?: React.Rea
     if (!messages) return [];
     const photos: string[] = [];
     messages.forEach((msg) => {
-      (msg.attachments || []).filter(isImageAttachment).forEach((att) => {
+      (msg.attachments || []).forEach((att) => {
+        if (!isImageAttachment(att)) return;
         const url = imageUrls[`${msg.id}-${att.id}`];
         if (url) photos.push(url);
       });

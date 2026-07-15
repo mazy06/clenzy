@@ -13,15 +13,6 @@ export const fiscalReportingKeys = {
 
 // ─── Hooks ──────────────────────────────────────────────────────────────────
 
-export function useVatSummary(from: string, to: string) {
-  return useQuery({
-    queryKey: fiscalReportingKeys.vatSummary(from, to),
-    queryFn: () => fiscalReportingApi.getVatSummary(from, to),
-    enabled: !!from && !!to,
-    staleTime: 120_000,
-  });
-}
-
 export function useMonthlyVatSummary(year: number, month: number) {
   return useQuery({
     queryKey: fiscalReportingKeys.monthly(year, month),

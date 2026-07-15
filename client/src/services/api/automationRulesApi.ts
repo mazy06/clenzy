@@ -267,12 +267,6 @@ export function stringifyGraceHours(hours: number | undefined): string {
     : '';
 }
 
-export const CHANNEL_TYPE_COLORS: Record<MessageChannelType, string> = {
-  EMAIL: '#1976d2',
-  SMS: '#4A9B8E',
-  WHATSAPP: '#25D366',
-};
-
 // ─── API ────────────────────────────────────────────────────────────────────
 
 export const automationRulesApi = {

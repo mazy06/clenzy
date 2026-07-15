@@ -32,12 +32,3 @@ export function isSupervisionLiveEnabled(): boolean {
   // Live par défaut : seul un opt-out EXPLICITE (`false`/`0`) repasse en mock.
   return env !== 'false' && env !== '0';
 }
-
-/** Dev : force le mode pour la session courante (sans rebuild). */
-export function setSupervisionLive(enabled: boolean): void {
-  try {
-    sessionStorage.setItem(SESSION_KEY, enabled ? 'true' : 'false');
-  } catch {
-    /* no-op */
-  }
-}

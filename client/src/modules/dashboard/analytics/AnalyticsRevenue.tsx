@@ -109,8 +109,8 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
                           paddingAngle={2} dataKey="value"
                           cornerRadius={3} stroke="none"
                         >
-                          {data.byChannel.map((entry, i) => (
-                            <Cell key={i} fill={entry.color} />
+                          {data.byChannel.map((entry) => (
+                            <Cell key={entry.name} fill={entry.color} />
                           ))}
                         </Pie>
                         <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => convertAndFormat(Number(v), 'EUR')} />

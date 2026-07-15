@@ -88,13 +88,13 @@ function render(
   // l'éditeur (aperçu sans réseau) et redouble le filtrage server-side (cf. PublicBookingService).
   const f = s.filters;
   if (f) {
-    if (f.types.length) { const t = f.types.map((x) => x.toLowerCase()); list = list.filter((p) => p.type != null && t.includes(p.type.toLowerCase())); }
+    if (f.types.length) { const t = new Set(f.types.map((x) => x.toLowerCase())); list = list.filter((p) => p.type != null && t.has(p.type.toLowerCase())); }
     if (f.minPrice != null) { const v = f.minPrice; list = list.filter((p) => p.priceFrom != null && p.priceFrom >= v); }
     if (f.maxPrice != null) { const v = f.maxPrice; list = list.filter((p) => p.priceFrom != null && p.priceFrom <= v); }
     if (f.minBedrooms != null) { const v = f.minBedrooms; list = list.filter((p) => p.bedroomCount != null && p.bedroomCount >= v); }
     if (f.minBathrooms != null) { const v = f.minBathrooms; list = list.filter((p) => p.bathroomCount != null && p.bathroomCount >= v); }
     if (f.minGuests != null) { const v = f.minGuests; list = list.filter((p) => p.maxGuests != null && p.maxGuests >= v); }
-    if (f.amenities.length) { const want = f.amenities.map((x) => x.toLowerCase()); list = list.filter((p) => { const has = (p.amenities ?? []).map((x) => x.toLowerCase()); return want.every((w) => has.includes(w)); }); }
+    if (f.amenities.length) { const want = f.amenities.map((x) => x.toLowerCase()); list = list.filter((p) => { const has = new Set((p.amenities ?? []).map((x) => x.toLowerCase())); return want.every((w) => has.has(w)); }); }
   }
   if (limit > 0) list = list.slice(0, limit);
   const paginate = pageSize > 0 && list.length > pageSize;
@@ -140,9 +140,10 @@ function render(
   const cardBasis = cols > 0 ? `calc((100% - ${(cols - 1) * 12}px) / ${cols})` : scrollBasis;
   const sizeForScroll = (el: HTMLElement) => { if (scroll) { el.style.flex = `0 0 ${cardBasis}`; el.style.minWidth = cols > 0 ? '180px' : '240px'; } };
 
+  const wishlistSet = new Set(s.wishlist);
   visible.forEach(p => {
     const active = p.id === s.selectedPropertyId;
-    const el = card(p, active, s.displayCurrency, i18n, state, baseUrl, options, s.wishlist.includes(p.id));
+    const el = card(p, active, s.displayCurrency, i18n, state, baseUrl, options, wishlistSet.has(p.id));
     sizeForScroll(el);
     listWrap.appendChild(el);
   });

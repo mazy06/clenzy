@@ -121,7 +121,12 @@ function parseOfferIdSelection(json: string | null | undefined): number[] | null
   if (!json) return null;
   try {
     const arr = JSON.parse(json);
-    return Array.isArray(arr) ? arr.map(Number).filter((n) => Number.isFinite(n)) : null;
+    return Array.isArray(arr)
+      ? arr.flatMap((v) => {
+          const n = Number(v);
+          return Number.isFinite(n) ? [n] : [];
+        })
+      : null;
   } catch {
     return null;
   }
@@ -677,19 +682,21 @@ const WelcomeGuideAdmin: React.FC = () => {
   const addSuggested = () => {
     setPois((prev) => [
       ...prev,
-      ...suggest.items
-        .filter((_, i) => suggest.selected.has(i))
-        .map((sug, i) => ({
-          id: `poi-${Date.now()}-${i}`,
-          category: sug.category,
-          name: sug.name,
-          type: '',
-          address: sug.address ?? '',
-          lat: sug.lat,
-          lng: sug.lng,
-          note: '',
-          featured: false,
-        })),
+      ...suggest.items.flatMap((sug, i) =>
+        suggest.selected.has(i)
+          ? [{
+              id: `poi-${Date.now()}-${i}`,
+              category: sug.category,
+              name: sug.name,
+              type: '',
+              address: sug.address ?? '',
+              lat: sug.lat,
+              lng: sug.lng,
+              note: '',
+              featured: false,
+            }]
+          : [],
+      ),
     ]);
     setSuggest({ open: false, loading: false, items: [], selected: new Set() });
   };
@@ -956,29 +963,33 @@ const WelcomeGuideAdmin: React.FC = () => {
     (o) => o.active && (o.propertyId == null || String(o.propertyId) === propertyId),
   );
   // Sélection par livret : null = tous affichés ; sinon uniquement les ids cochés.
-  const isOfferShown = (id: number) => upsellOfferIds === null || upsellOfferIds.includes(id);
+  const upsellOfferIdSet = upsellOfferIds === null ? null : new Set(upsellOfferIds);
+  const isOfferShown = (id: number) => upsellOfferIdSet === null || upsellOfferIdSet.has(id);
   const toggleOfferShown = (id: number) => {
     const base = upsellOfferIds === null ? applicableOffers.map((o) => o.id) : upsellOfferIds;
     const next = isOfferShown(id) ? base.filter((x) => x !== id) : [...base, id];
     const allIds = applicableOffers.map((o) => o.id);
+    const nextSet = new Set(next);
     // Tout coché → null (= « tous », les futurs services apparaissent automatiquement).
-    setUpsellOfferIds(allIds.length === next.length && allIds.every((x) => next.includes(x)) ? null : next);
+    setUpsellOfferIds(allIds.length === next.length && allIds.every((x) => nextSet.has(x)) ? null : next);
   };
-  const previewUpsells: PublicUpsell[] = applicableOffers
-    .filter((o) => isOfferShown(o.id))
-    .map((o) => ({
-      offerId: o.id,
-      type: o.type,
-      title: o.title,
-      description: o.description,
-      price: o.price,
-      currency: o.currency,
-      imageUrl: o.imageUrl,
-      bundleItems: o.bundleOfferIds
-        ? o.bundleOfferIds.split(',').map((x) => x.trim()).filter(Boolean)
-            .map((id) => applicableOffers.find((c) => String(c.id) === id)?.title).filter((x): x is string => !!x)
-        : [],
-    }));
+  const previewUpsells: PublicUpsell[] = applicableOffers.flatMap((o) =>
+    isOfferShown(o.id)
+      ? [{
+          offerId: o.id,
+          type: o.type,
+          title: o.title,
+          description: o.description,
+          price: o.price,
+          currency: o.currency,
+          imageUrl: o.imageUrl,
+          bundleItems: o.bundleOfferIds
+            ? o.bundleOfferIds.split(',').map((x) => x.trim()).filter(Boolean)
+                .map((id) => applicableOffers.find((c) => String(c.id) === id)?.title).filter((x): x is string => !!x)
+            : [],
+        }]
+      : [],
+  );
   const previewModel: WelcomeBookModel = {
     title: title.trim() || previewProperty?.name || t('welcomeGuide.preview.sampleTitle', 'Votre logement'),
     welcomeMessage: welcomeMessage.trim() || null,
@@ -1087,7 +1098,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             const active = i === step;
             const done = i < step;
             return (
-              <Tooltip key={i} title={label} arrow>
+              <Tooltip key={label} title={label} arrow>
                 <Box
                   role="button"
                   aria-label={label}
@@ -2307,8 +2318,8 @@ const WelcomeGuideAdmin: React.FC = () => {
                     {t('welcomeGuide.stats.topActivities', 'Activités les plus cliquées')}
                   </Typography>
                   <Stack spacing={0.75}>
-                    {stats.data.topActivities.map((a, i) => (
-                      <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                    {stats.data.topActivities.map((a) => (
+                      <Box key={a.label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
                         <Typography variant="body2" noWrap>
                           {a.label}
                         </Typography>

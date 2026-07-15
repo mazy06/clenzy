@@ -91,8 +91,8 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ data }) => {
           },
         }}
       >
-        {items.map((item, idx) => (
-          <WeatherDayTile key={`${item.date}-${idx}`} item={item} />
+        {items.map((item) => (
+          <WeatherDayTile key={item.date} item={item} />
         ))}
       </Box>
     </Box>

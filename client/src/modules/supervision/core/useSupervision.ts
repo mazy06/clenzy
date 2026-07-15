@@ -62,11 +62,13 @@ export function useSupervision(
   const providerRef = useRef<SupervisionProvider | null>(null);
   const reloadRef = useRef<() => void>(() => {});
   const factoryRef = useRef(factory);
-  factoryRef.current = factory;
   const onActingRef = useRef(options.onActing);
-  onActingRef.current = options.onActing;
   const onResolvedRef = useRef(options.onResolved);
-  onResolvedRef.current = options.onResolved;
+  useEffect(() => {
+    factoryRef.current = factory;
+    onActingRef.current = options.onActing;
+    onResolvedRef.current = options.onResolved;
+  }, [factory, options.onActing, options.onResolved]);
   const reconnectDelay = options.reconnectDelayMs ?? 3000;
 
   useEffect(() => {

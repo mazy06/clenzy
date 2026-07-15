@@ -108,9 +108,10 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
     const visible: BarLayout[] = [];
     const blocked: BarLayout[] = [];
     for (const l of barLayouts) {
+      const event = l.event;
       // Plage bloquée : rendue en bande de cellules grisées (PlanningBlockedBand),
       // jamais en brique d'événement — un blocage n'est pas un séjour.
-      if (l.event.type === 'blocked') {
+      if (event.type === 'blocked') {
         blocked.push(l);
         continue;
       }
@@ -118,15 +119,15 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
       // (linkedReservationId), soit d'une SERVICE REQUEST « A payer »
       // (reservationId) — les deux doivent s'afficher DANS la brique de leur
       // réservation.
-      const isInterventionType = l.event.type === 'cleaning' || l.event.type === 'maintenance';
-      const attachable = l.event.intervention || l.event.serviceRequest;
+      const isInterventionType = event.type === 'cleaning' || event.type === 'maintenance';
+      const attachable = event.intervention || event.serviceRequest;
       if (isInterventionType && attachable) {
-        const linkedReservationId = l.event.intervention?.linkedReservationId
-          ?? l.event.serviceRequest?.reservationId;
+        const linkedReservationId = event.intervention?.linkedReservationId
+          ?? event.serviceRequest?.reservationId;
         const attachedResId = resolveAttachedReservationId(
           {
-            propertyId: l.event.propertyId,
-            startDate: l.event.startDate,
+            propertyId: event.propertyId,
+            startDate: event.startDate,
             linkedReservationId,
           },
           loadedReservations,
@@ -136,9 +137,9 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
           if (host) {
             const arr = linked.get(host.event.id);
             if (arr) {
-              arr.push(l.event);
+              arr.push(event);
             } else {
-              linked.set(host.event.id, [l.event]);
+              linked.set(host.event.id, [event]);
             }
           }
           // Rattachée mais brique hôte non rendue : on ne rend rien.
@@ -172,17 +173,19 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
 
   // Stable refs for values used in document-level listeners
   const daysRef = useRef(days);
-  daysRef.current = days;
   const dayWidthRef = useRef(dayWidth);
-  dayWidthRef.current = dayWidth;
   const onEmptyClickRef = useRef(onEmptyClick);
-  onEmptyClickRef.current = onEmptyClick;
   const propertyRef = useRef(property);
-  propertyRef.current = property;
   const pricingMapRef = useRef(pricingMap);
-  pricingMapRef.current = pricingMap;
   const allEventsRef = useRef(allEvents);
-  allEventsRef.current = allEvents;
+  useEffect(() => {
+    daysRef.current = days;
+    dayWidthRef.current = dayWidth;
+    onEmptyClickRef.current = onEmptyClick;
+    propertyRef.current = property;
+    pricingMapRef.current = pricingMap;
+    allEventsRef.current = allEvents;
+  }, [days, dayWidth, onEmptyClick, property, pricingMap, allEvents]);
 
   // ── Red flash / blocked state for rejected selections ────────────────────
   const [selectionError, setSelectionError] = useState(false);
@@ -481,7 +484,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
         if (!weekend && !today) return null;
         return (
           <Box
-            key={idx}
+            key={day.getTime()}
             sx={{
               position: 'absolute',
               left: idx * dayWidth,
@@ -636,7 +639,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
 
         return (
           <Box
-            key={`cell-info-${idx}`}
+            key={`cell-info-${dateStr}`}
             sx={{
               position: 'absolute',
               left: idx * dayWidth,

@@ -351,10 +351,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (!prevUser) return null;
             const currentPerms = prevUser.permissions || [];
             const newPerms = syncData.permissions || [];
+            const currentPermsSet = new Set(currentPerms);
+            const newPermsSet = new Set(newPerms);
             if (
               currentPerms.length === newPerms.length &&
-              currentPerms.every((p: string) => newPerms.includes(p)) &&
-              newPerms.every((p: string) => currentPerms.includes(p))
+              currentPerms.every((p: string) => newPermsSet.has(p)) &&
+              newPerms.every((p: string) => currentPermsSet.has(p))
             ) {
               return prevUser;
             }
@@ -377,7 +379,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const hasAnyRole = useCallback((roles: string[]): boolean => {
     if (!user) return false;
-    return roles.some((role) => user.roles.includes(role));
+    const userRoles = new Set(user.roles);
+    return roles.some((role) => userRoles.has(role));
   }, [user]);
 
   const isSuperAdmin = useCallback((): boolean => hasAnyRole(['SUPER_ADMIN']), [hasAnyRole]);

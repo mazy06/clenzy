@@ -20,26 +20,6 @@ export function useInvoices(filters?: InvoiceFilters) {
   });
 }
 
-export function useInvoice(id: number) {
-  return useQuery({
-    queryKey: invoiceKeys.detail(id),
-    queryFn: () => invoicesApi.get(id),
-    enabled: id > 0,
-    staleTime: 60_000,
-  });
-}
-
-export function useGenerateInvoice() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (reservationId: number) => invoicesApi.generateFromReservation(reservationId),
-    onSuccess: (_result, reservationId) => {
-      queryClient.invalidateQueries({ queryKey: invoiceKeys.all });
-      trackEvent.invoiceGenerated({ type: 'reservation', reservationId });
-    },
-  });
-}
-
 export function useIssueInvoice() {
   const queryClient = useQueryClient();
   return useMutation({

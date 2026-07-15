@@ -38,12 +38,14 @@ function formatFileSize(bytes: number): string {
   return `${size} ${units[i]}`;
 }
 
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('fr-FR', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
 function formatDate(iso: string): string {
   try {
-    return new Intl.DateTimeFormat('fr-FR', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }).format(new Date(iso));
+    return DATE_TIME_FORMATTER.format(new Date(iso));
   } catch {
     return iso;
   }

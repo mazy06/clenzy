@@ -146,7 +146,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
 
   // ── Écriture d'un champ : parse → modif → prune → re-stringify → onUpdate ──
   const write = (mutate: (d: EngineConfigDraft) => void) => {
-    const next: EngineConfigDraft = JSON.parse(JSON.stringify(draft));
+    const next: EngineConfigDraft = structuredClone(draft);
     mutate(next);
     const pruned = pruneDraft(next);
     onUpdate({
@@ -620,10 +620,10 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
                     {t('properties.cleaningEstimator.breakdownTitle')}
                   </Typography>
                 </Box>
-                {BREAKDOWN_KEYS
-                  .map((key) => ({ key, minutes: previewQuery.data.minutesBreakdown?.[key] ?? 0 }))
-                  .filter(({ key, minutes }) => key === 'base' || minutes > 0)
-                  .map(({ key, minutes }) => (
+                {BREAKDOWN_KEYS.flatMap((key) => {
+                  const minutes = previewQuery.data.minutesBreakdown?.[key] ?? 0;
+                  if (!(key === 'base' || minutes > 0)) return [];
+                  return [
                     <Box key={key} sx={{ display: 'flex', justifyContent: 'space-between', px: 1.75, py: 0.6, borderTop: '1px solid var(--line)' }}>
                       <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
                         {t(`properties.cleaningEstimator.breakdown.${key}`)}
@@ -631,8 +631,9 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
                       <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
                         {minutes} min
                       </Typography>
-                    </Box>
-                  ))}
+                    </Box>,
+                  ];
+                })}
               </Box>
             </>
           )}

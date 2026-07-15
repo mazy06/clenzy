@@ -78,6 +78,8 @@ const ClientPropertyAssignmentForm: React.FC = () => {
   }
 
   const getStepContent = (step: number) => {
+    const selectedClientsSet = new Set(selectedClients);
+    const selectedPropertiesSet = new Set(selectedProperties);
     switch (step) {
       case 0:
         return (
@@ -131,8 +133,9 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                 value={selectedClients}
                 onChange={(e) => {
                   const values = e.target.value as number[];
-                  const lastAdded = values.find(v => !selectedClients.includes(v));
-                  const lastRemoved = selectedClients.find(v => !values.includes(v));
+                  const valuesSet = new Set(values);
+                  const lastAdded = values.find(v => !selectedClientsSet.has(v));
+                  const lastRemoved = selectedClients.find(v => !valuesSet.has(v));
                   if (lastAdded) handleClientToggle(lastAdded);
                   if (lastRemoved) handleClientToggle(lastRemoved);
                 }}
@@ -152,7 +155,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                 {hostUsers.map((client) => (
                   <MenuItem key={client.id} value={client.id}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Checkbox checked={selectedClients.includes(client.id)} size="small" />
+                      <Checkbox checked={selectedClientsSet.has(client.id)} size="small" />
                       <Avatar sx={{ width: 24, height: 24, fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px' }}>
                         {client.firstName.charAt(0)}{client.lastName.charAt(0)}
                       </Avatar>
@@ -210,12 +213,12 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                 {properties.map((property) => (
                   <Grid item xs={12} sm={6} md={4} key={property.id}>
                     <Card
-                      variant={selectedProperties.includes(property.id) ? 'elevation' : 'outlined'}
+                      variant={selectedPropertiesSet.has(property.id) ? 'elevation' : 'outlined'}
                       sx={{
                         cursor: 'pointer',
                         borderRadius: 2,
-                        border: selectedProperties.includes(property.id) ? 2 : 1,
-                        borderColor: selectedProperties.includes(property.id) ? 'var(--accent)' : 'var(--line)',
+                        border: selectedPropertiesSet.has(property.id) ? 2 : 1,
+                        borderColor: selectedPropertiesSet.has(property.id) ? 'var(--accent)' : 'var(--line)',
                         transition: 'border-color 0.2s ease',
                         '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                         '&:hover': {
@@ -227,7 +230,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                       <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
                           <Checkbox
-                            checked={selectedProperties.includes(property.id)}
+                            checked={selectedPropertiesSet.has(property.id)}
                             onChange={() => handlePropertyToggle(property.id)}
                             size="small"
                             sx={{ p: 0.25, mr: 0.75 }}
@@ -270,8 +273,8 @@ const ClientPropertyAssignmentForm: React.FC = () => {
         );
 
       case 3: {
-        const selectedClientsData = hostUsers.filter(c => selectedClients.includes(c.id));
-        const selectedPropertiesData = properties.filter(p => selectedProperties.includes(p.id));
+        const selectedClientsData = hostUsers.filter(c => selectedClientsSet.has(c.id));
+        const selectedPropertiesData = properties.filter(p => selectedPropertiesSet.has(p.id));
         const selectedManagerData = managers.find(m => m.id === selectedManager);
 
         return (

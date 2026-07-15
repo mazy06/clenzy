@@ -98,10 +98,11 @@ export class MockSupervisionProvider implements SupervisionProvider<Orchestrator
     // fournie (cometReservationId), sinon garde le placeholder du mock. On mémorise
     // l'association id→reservationId pour router « Valider » vers l'ouverture de la fiche.
     this.guestCardResId.clear();
+    const cometReservationId = this.options.cometReservationId;
     for (const p of snapshot.pending) {
       if (!p.opensGuestCard) continue;
-      const resId = this.options.cometReservationId ?? p.reservationId ?? undefined;
-      if (this.options.cometReservationId) p.reservationId = this.options.cometReservationId;
+      const resId = cometReservationId ?? p.reservationId ?? undefined;
+      if (cometReservationId) p.reservationId = cometReservationId;
       if (resId) this.guestCardResId.set(p.id, resId);
     }
     // Latence simulée COURTE : elle mime un aller-retour réseau pour exercer le

@@ -41,14 +41,3 @@ export const configureConsole = (): void => {
   };
 
 };
-
-// Fonction pour restaurer la console originale
-export const restoreConsole = (): void => {
-  const win = window as Window & { originalConsoleError?: typeof console.error; originalConsoleWarn?: typeof console.warn };
-  if (win.originalConsoleError) {
-    console.error = win.originalConsoleError;
-  }
-  if (win.originalConsoleWarn) {
-    console.warn = win.originalConsoleWarn;
-  }
-};

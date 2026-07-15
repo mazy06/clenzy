@@ -58,9 +58,11 @@ const CURRENCY_PAIRS = [
   { base: 'SAR', target: 'MAD', label: 'SAR → MAD' },
 ];
 
+const DATE_FORMATTER = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' });
+
 function formatDate(iso: string): string {
   try {
-    return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(new Date(iso));
+    return DATE_FORMATTER.format(new Date(iso));
   } catch {
     return iso;
   }
@@ -214,7 +216,7 @@ export default function ExchangeRateHistoryPage() {
             sx={{ minWidth: 180 }}
           >
             {CURRENCY_PAIRS.map((p, i) => (
-              <MenuItem key={i} value={i}>
+              <MenuItem key={p.label} value={i}>
                 {p.label}
               </MenuItem>
             ))}

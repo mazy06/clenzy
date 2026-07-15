@@ -48,8 +48,8 @@ function render(container: HTMLElement, s: WidgetState, i18n: I18n): void {
 
   // Line items
   p.lines
-    .filter(l => l.type !== 'total')
     .forEach(line => {
+      if (line.type === 'total') return;
       const row = document.createElement('div');
       row.className = 'cb-price-line';
 

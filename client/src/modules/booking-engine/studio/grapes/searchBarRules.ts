@@ -39,9 +39,6 @@ const ORDER = SEARCH_BAR_WIDGETS.map((w) => w.id);
 const REQUIRED_ID = 'booking-search-button';
 const CRITERION_IDS = SEARCH_BAR_WIDGETS.filter((w) => w.isCriterion).map((w) => w.id);
 
-/** Sélection PAR DÉFAUT du composeur : Dates + Voyageurs (recommandés) + Bouton (obligatoire). */
-export const SEARCH_BAR_DEFAULT: string[] = ['booking-dates', 'booking-guests', REQUIRED_ID];
-
 export interface SearchBarWarning {
   message: string;
 }
@@ -60,10 +57,6 @@ export function validateSearchBar(ids: string[]): SearchBarWarning[] {
     out.push({ message: `« ${widgetLabel(id)} » est en double — un widget au plus une fois.` });
   }
   return out;
-}
-
-export function isSearchBarValid(ids: string[]): boolean {
-  return validateSearchBar(ids).length === 0;
 }
 
 /** Trie une sélection selon l'ordre canonique (critères → options → bouton en dernier). */
@@ -95,18 +88,18 @@ const SB_FIELDS: Record<string, SbFieldMeta> = {
 export function buildSearchBarHtml(ids: string[], filterSubs?: string[] | null): string {
   const ordered = orderSearchWidgets(ids);
   const parts = ordered
-    .filter((id) => id !== REQUIRED_ID)
-    .map((id) => {
+    .flatMap((id) => {
+      if (id === REQUIRED_ID) return [];
       // « Filtre » = bouton ICÔNE compact (pas un champ libellé) + sous-filtres choisis/ordonnés (props `subs`).
       if (id === 'booking-filter') {
         const props = filterSubs && filterSubs.length
           ? ` data-clenzy-props='${JSON.stringify({ subs: filterSubs })}'`
           : '';
-        return `<div class="sb__icon" data-clenzy-widget="booking-filter"${props}></div>`;
+        return [`<div class="sb__icon" data-clenzy-widget="booking-filter"${props}></div>`];
       }
       const meta = SB_FIELDS[id] ?? { label: widgetLabel(id), icon: '' };
-      return `<div class="sb__field"><span class="sb__label">${meta.label}</span>`
-        + `<div class="sb__control">${meta.icon}<div data-clenzy-widget="${id}"></div></div></div>`;
+      return [`<div class="sb__field"><span class="sb__label">${meta.label}</span>`
+        + `<div class="sb__control">${meta.icon}<div data-clenzy-widget="${id}"></div></div></div>`];
     })
     .join('');
   const cta = ids.includes(REQUIRED_ID) ? `<div class="sb__cta" data-clenzy-widget="${REQUIRED_ID}"></div>` : '';

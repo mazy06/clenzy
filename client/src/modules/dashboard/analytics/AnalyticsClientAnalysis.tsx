@@ -74,8 +74,8 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
                           paddingAngle={2} dataKey="value"
                           cornerRadius={3} stroke="none"
                         >
-                          {data.bySource.map((entry, i) => (
-                            <Cell key={i} fill={entry.color} />
+                          {data.bySource.map((entry) => (
+                            <Cell key={entry.name} fill={entry.color} />
                           ))}
                         </Pie>
                         <Tooltip contentStyle={TOOLTIP_STYLE} />

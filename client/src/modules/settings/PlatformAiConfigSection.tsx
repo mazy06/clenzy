@@ -1158,14 +1158,18 @@ export default function PlatformAiConfigSection() {
   // Providers connectes (cle org BYOK validee OU cle partagee plateforme dispo)
   // proposables comme modele de n'importe quelle feature. L'agent IA les utilise
   // en priorite (cf. AiKeyResolver) — on les rend donc selectionnables explicitement.
-  const connectedProviders: ConnectedProviderOption[] = (keyStatus || [])
-    .filter((k) => k.valid)
-    .map((k) => ({
-      provider: k.provider,
-      label: PROVIDER_LABELS[k.provider] || k.provider,
-      model: k.modelOverride || null,
-      source: k.source,
-    }));
+  const connectedProviders: ConnectedProviderOption[] = (keyStatus || []).flatMap((k) =>
+    k.valid
+      ? [
+          {
+            provider: k.provider,
+            label: PROVIDER_LABELS[k.provider] || k.provider,
+            model: k.modelOverride || null,
+            source: k.source,
+          },
+        ]
+      : [],
+  );
 
   const handleOpenAdd = () => {
     setEditModel(null);

@@ -27,9 +27,9 @@ export function useMissingContractCount(enabled = true): MissingContracts {
   });
 
   return useMemo(() => {
-    const missingPropertyIds = (properties ?? [])
-      .filter((p) => !propertyIds.has(p.id))
-      .map((p) => p.id);
+    const missingPropertyIds = (properties ?? []).flatMap((p) =>
+      propertyIds.has(p.id) ? [] : [p.id],
+    );
     return { count: missingPropertyIds.length, missingPropertyIds };
   }, [properties, propertyIds]);
 }

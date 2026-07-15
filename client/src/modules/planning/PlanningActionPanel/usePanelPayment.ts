@@ -78,9 +78,7 @@ export function usePanelPayment(
       const data = await paymentsApi.getHistory({ size: 20 });
       // Filter by property-related interventions
       const propertyInterventionIds = new Set(
-        (interventions || [])
-          .filter((i) => i.propertyId === propertyId)
-          .map((i) => i.id),
+        (interventions || []).flatMap((i) => (i.propertyId === propertyId ? [i.id] : [])),
       );
       setPaymentHistory(
         data.content.filter((r) => r.referenceId != null && propertyInterventionIds.has(r.referenceId)),

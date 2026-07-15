@@ -524,9 +524,9 @@ const PropertyDetails: React.FC = () => {
               <Typography sx={{ ...SECTION_TITLE_SX, mb: 0, mr: 0.5 }}>
                 {t('properties.addOnServices.title')}
               </Typography>
-              {featureChips.map((chip, i) => (
+              {featureChips.map((chip) => (
                 <Chip
-                  key={i}
+                  key={chip.label}
                   label={chip.label}
                   size="small"
                   sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}
@@ -541,9 +541,9 @@ const PropertyDetails: React.FC = () => {
               <Typography sx={{ ...SECTION_TITLE_SX, mb: 0, mr: 0.5 }}>
                 {t('properties.amenities.title')}
               </Typography>
-              {property.amenities.map((amenity, index) => (
+              {property.amenities.map((amenity) => (
                 <Chip
-                  key={index}
+                  key={amenity}
                   label={t(`properties.amenities.items.${amenity}`)}
                   size="small"
                   sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}
@@ -821,8 +821,8 @@ const PropertyDetails: React.FC = () => {
                     {/* Compact fields: 2 columns */}
                     {compactFields.length > 0 && (
                       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: fullWidthFields.length > 0 ? 1 : 0 }}>
-                        {compactFields.map((field, idx) => (
-                          <Box key={idx} sx={INFO_ROW_SX}>
+                        {compactFields.map((field) => (
+                          <Box key={field.label} sx={INFO_ROW_SX}>
                             {field.icon}
                             <Box sx={{ flex: 1 }}>
                               <Typography sx={INFO_LABEL_SX}>{field.label}</Typography>
@@ -834,8 +834,8 @@ const PropertyDetails: React.FC = () => {
                     )}
 
                     {/* Full-width fields */}
-                    {fullWidthFields.map((field, idx) => (
-                      <React.Fragment key={idx}>
+                    {fullWidthFields.map((field) => (
+                      <React.Fragment key={field.label}>
                         <Divider sx={{ my: 0.5 }} />
                         <Box sx={INFO_ROW_SX}>
                           {field.icon}

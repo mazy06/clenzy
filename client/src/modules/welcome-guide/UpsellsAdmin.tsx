@@ -602,7 +602,7 @@ const UpsellsAdmin: React.FC = () => {
   const renderDetail = () => {
     if (!selected) return null;
     const backBtn = (
-      <button className="back" onClick={() => setSelected(null)}>
+      <button type="button" className="back" onClick={() => setSelected(null)}>
         <ArrowLeft size={16} strokeWidth={2} /> {t('upsells.detail.back', 'Services payants')}
       </button>
     );
@@ -627,7 +627,7 @@ const UpsellsAdmin: React.FC = () => {
               </div>
             </div>
             <div className="dhead__act">
-              <button className="btn-ghost" onClick={() => handlePreview({ title: offer.title, description: offer.description, price: offer.price, currency: offer.currency, imageUrl: offer.imageUrl })}><Eye size={16} strokeWidth={2} /> {t('upsells.detail.preview', 'Aperçu')}</button>
+              <button type="button" className="btn-ghost" onClick={() => handlePreview({ title: offer.title, description: offer.description, price: offer.price, currency: offer.currency, imageUrl: offer.imageUrl })}><Eye size={16} strokeWidth={2} /> {t('upsells.detail.preview', 'Aperçu')}</button>
               <Button variant="contained" size="small" startIcon={<Edit size={16} strokeWidth={2} />} onClick={() => openEdit(offer)}>
                 {t('upsells.detail.edit', 'Modifier')}
               </Button>
@@ -668,12 +668,12 @@ const UpsellsAdmin: React.FC = () => {
                   <div className="dist__row">
                     <span className="ic l"><BookOpen size={18} strokeWidth={2} /></span>
                     <div className="t"><b>{t('upsells.detail.guideChannel', "Livret d'accueil")}</b><small>{t('upsells.detail.guideChannelHint', 'Affiché dans la marketplace du livret')}</small></div>
-                    <button className={`switch ${ch.livret ? '' : 'off'}`} disabled={chanBusy} aria-label={t('upsells.detail.guideChannel', "Livret d'accueil")} onClick={() => setChannel(offer, 'livret', !ch.livret)} />
+                    <button type="button" className={`switch ${ch.livret ? '' : 'off'}`} disabled={chanBusy} aria-label={t('upsells.detail.guideChannel', "Livret d'accueil")} onClick={() => setChannel(offer, 'livret', !ch.livret)} />
                   </div>
                   <div className="dist__row">
                     <span className="ic b"><Network size={18} strokeWidth={2} /></span>
                     <div className="t"><b>{t('upsells.detail.bookingChannel', 'Booking Engine')}</b><small>{t('upsells.detail.bookingChannelHint', 'Proposé en extra au paiement')}</small></div>
-                    <button className={`switch ${ch.booking ? '' : 'off'}`} disabled={chanBusy} aria-label={t('upsells.detail.bookingChannel', 'Booking Engine')} onClick={() => setChannel(offer, 'booking', !ch.booking)} />
+                    <button type="button" className={`switch ${ch.booking ? '' : 'off'}`} disabled={chanBusy} aria-label={t('upsells.detail.bookingChannel', 'Booking Engine')} onClick={() => setChannel(offer, 'booking', !ch.booking)} />
                   </div>
                 </div>
                 <div className="scope-line"><Home size={15} strokeWidth={2} /> {t('upsells.detail.scope', 'Appliqué à')} <strong style={{ marginLeft: 4 }}>{propertyName(offer.propertyId)}</strong></div>
@@ -938,9 +938,9 @@ const UpsellsAdmin: React.FC = () => {
               fullWidth
               SelectProps={{ multiple: true }}
             >
-              {offers.filter((o) => o.id !== edit.id).map((o) => (
-                <MenuItem key={o.id} value={String(o.id)}>{o.title}</MenuItem>
-              ))}
+              {offers.flatMap((o) =>
+                o.id !== edit.id ? [<MenuItem key={o.id} value={String(o.id)}>{o.title}</MenuItem>] : [],
+              )}
             </TextField>
             <Box>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>

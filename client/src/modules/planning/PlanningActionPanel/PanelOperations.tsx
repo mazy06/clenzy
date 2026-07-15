@@ -1698,8 +1698,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               </ListSubheader>
             ) : null}
             {assigneeOptions
-              .filter((o) => o.type === 'user')
-              .map((opt) => (
+              .flatMap((opt) => (opt.type === 'user' ? [(
                 <MenuItem key={assigneeKey(opt)} value={assigneeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                     <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={16} strokeWidth={1.75} /></Box>
@@ -1715,7 +1714,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                     </Box>
                   </Box>
                 </MenuItem>
-              ))}
+              )] : []))}
             {/* Teams section */}
             {(teamsData as PortfolioTeam[] | undefined)?.length ? (
               <ListSubheader sx={{ fontSize: '0.6875rem', lineHeight: '28px', color: 'text.secondary', fontWeight: 700 }}>
@@ -1723,8 +1722,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               </ListSubheader>
             ) : null}
             {assigneeOptions
-              .filter((o) => o.type === 'team')
-              .map((opt) => (
+              .flatMap((opt) => (opt.type === 'team' ? [(
                 <MenuItem key={assigneeKey(opt)} value={assigneeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                     <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Groups size={16} strokeWidth={1.75} /></Box>
@@ -1740,7 +1738,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                     </Box>
                   </Box>
                 </MenuItem>
-              ))}
+              )] : []))}
             {assigneeOptions.length === 0 && (
               <MenuItem disabled sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
                 Aucun intervenant ou équipe disponible

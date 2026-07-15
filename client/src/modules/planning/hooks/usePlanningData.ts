@@ -439,7 +439,7 @@ export function usePlanningData(
     const loStr = toDateStr(lo);
     const hiStr = toDateStr(hi);
     const set = new Set(
-      chunks.filter((c) => c.from <= hiStr && c.to >= loStr).map((c) => c.from),
+      chunks.flatMap((c) => (c.from <= hiStr && c.to >= loStr ? [c.from] : [])),
     );
     // Navigation loin d'aujourd'hui : aucun chunk proche → tout est prioritaire.
     return set.size > 0 ? set : new Set(chunks.map((c) => c.from));

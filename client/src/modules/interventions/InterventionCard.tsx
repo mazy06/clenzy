@@ -346,8 +346,8 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
 
         {/* Bande de KPI : échéance / avancement / durée */}
         <Box sx={styles.statsBand}>
-          {kpiCells.map((cell, idx) => (
-            <Box key={idx} sx={styles.statCell}>
+          {kpiCells.map((cell) => (
+            <Box key={cell.label} sx={styles.statCell}>
               <Typography sx={{ ...styles.statValue, ...(cell.color ? { color: cell.color } : {}) }}>
                 {cell.value}
               </Typography>

@@ -603,13 +603,14 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
 
         {/* « + » : propose les champs non encore ajoutés pour un prompt complet et standardisé. */}
         <Menu anchorEl={addAnchor} open={!!addAnchor} onClose={() => setAddAnchor(null)}>
-          {PROMPT_OPTIONS.filter((o) => !activeOptions.includes(o.id)).map((o) => {
+          {PROMPT_OPTIONS.flatMap((o) => {
+            if (activeOptions.includes(o.id)) return [];
             const Icon = o.icon;
-            return (
+            return [(
               <MenuItem key={o.id} onClick={() => addOption(o.id)} sx={{ fontSize: 13, gap: 1 }}>
                 <Icon size={15} strokeWidth={2} /> {o.label}
               </MenuItem>
-            );
+            )];
           })}
           {PROMPT_OPTIONS.every((o) => activeOptions.includes(o.id)) && (
             <MenuItem disabled sx={{ fontSize: 13 }}>Tous les champs sont ajoutés</MenuItem>

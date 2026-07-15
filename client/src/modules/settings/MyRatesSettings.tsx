@@ -131,9 +131,10 @@ export default function MyRatesSettings() {
 
   const handleSave = () => {
     const hourlyAmount = hourly.trim() !== '' && !isNaN(parseFloat(hourly)) ? parseFloat(hourly) : null;
-    const flatRates = Object.entries(flats)
-      .map(([propertyId, value]) => ({ propertyId: Number(propertyId), amount: parseFloat(value) }))
-      .filter((entry) => !isNaN(entry.amount) && entry.amount > 0);
+    const flatRates = Object.entries(flats).flatMap(([propertyId, value]) => {
+      const amount = parseFloat(value);
+      return !isNaN(amount) && amount > 0 ? [{ propertyId: Number(propertyId), amount }] : [];
+    });
     saveMutation.mutate({ hourlyAmount, flatRates });
   };
 

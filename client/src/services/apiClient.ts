@@ -156,9 +156,11 @@ export async function clearTokenCookie(): Promise<void> {
 
 function buildQueryString(params?: Record<string, string | number | boolean | undefined | null>): string {
   if (!params) return '';
-  const filtered = Object.entries(params)
-    .filter(([, value]) => value !== undefined && value !== null && value !== '')
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+  const filtered = Object.entries(params).flatMap(([key, value]) =>
+    value !== undefined && value !== null && value !== ''
+      ? [`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`]
+      : [],
+  );
   return filtered.length > 0 ? `?${filtered.join('&')}` : '';
 }
 

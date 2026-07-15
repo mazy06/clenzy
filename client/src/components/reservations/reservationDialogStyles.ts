@@ -187,23 +187,6 @@ export const BTN_PRIMARY_SX = {
   '&:disabled': { opacity: 0.45, cursor: 'not-allowed' },
 } as const;
 
-/** Lien accent (.rm-link) */
-export const LINK_SX = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '8px',
-  fontSize: '12.5px',
-  fontWeight: 600,
-  color: 'var(--accent)',
-  cursor: 'pointer',
-  background: 'none',
-  border: 0,
-  padding: 0,
-  fontFamily: 'inherit',
-  alignSelf: 'flex-start',
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-} as const;
-
 /** Segmented (.rm-status / .rm-tariftabs) — conteneur */
 export const SEG_WRAP_SX = {
   display: 'inline-flex',

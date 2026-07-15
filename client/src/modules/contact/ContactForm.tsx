@@ -255,23 +255,26 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                         if (typeof value === 'string') return option.id === value || option.email === value;
                         return option.id === value.id;
                       }}
-                      renderOption={(props, option) => (
-                        <li {...props} key={typeof option === 'string' ? option : option.id}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <PersonIcon fontSize="small" />
-                            <Box>
-                              <Typography variant="body2">
-                                {typeof option === 'string' ? option : `${option.firstName} ${option.lastName}`}
-                              </Typography>
-                              {typeof option !== 'string' && (
-                                <Typography variant="caption" color="text.secondary">
-                                  {option.email} - {option.role}
+                      renderOption={(props, option) => {
+                        const { key, ...optionProps } = props;
+                        return (
+                          <li key={key} {...optionProps}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <PersonIcon fontSize="small" />
+                              <Box>
+                                <Typography variant="body2">
+                                  {typeof option === 'string' ? option : `${option.firstName} ${option.lastName}`}
                                 </Typography>
-                              )}
+                                {typeof option !== 'string' && (
+                                  <Typography variant="caption" color="text.secondary">
+                                    {option.email} - {option.role}
+                                  </Typography>
+                                )}
+                              </Box>
                             </Box>
-                          </Box>
-                        </li>
-                      )}
+                          </li>
+                        );
+                      }}
                       renderInput={(params) => (
                         <TextField
                           {...params}

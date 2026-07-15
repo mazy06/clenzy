@@ -95,8 +95,8 @@ export const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data }) => {
                 paddingAngle={2}
                 dataKey="value"
               >
-                {items.map((entry, idx) => (
-                  <Cell key={`cell-${idx}`} fill={entry.color} />
+                {items.map((entry) => (
+                  <Cell key={entry.name} fill={entry.color} />
                 ))}
                 <Label
                   content={(props) => (

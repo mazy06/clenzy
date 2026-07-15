@@ -58,9 +58,10 @@ export default function AmenityIconPicker({
   const filteredGroups = useMemo<IconGroup[]>(() => {
     if (!query.trim()) return ICON_CATALOG;
     const q = query.toLowerCase();
-    return ICON_CATALOG
-      .map((g) => ({ ...g, icons: g.icons.filter((name) => name.toLowerCase().includes(q)) }))
-      .filter((g) => g.icons.length > 0);
+    return ICON_CATALOG.flatMap((g) => {
+      const icons = g.icons.filter((name) => name.toLowerCase().includes(q));
+      return icons.length > 0 ? [{ ...g, icons }] : [];
+    });
   }, [query]);
 
   // Liste plate (cross-groupes) des icones actuellement visibles — base pour

@@ -343,7 +343,7 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
               </TableHead>
               <TableBody>
                 {config.surfaceTiers.map((tier, index) => (
-                  <TableRow key={index}>
+                  <TableRow key={tier.label}>
                     <TableCell>
                       <Chip label={tier.label} size="small" variant="outlined" color={index === config.surfaceTiers.length - 1 ? 'error' : 'default'} />
                     </TableCell>

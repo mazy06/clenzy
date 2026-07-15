@@ -65,7 +65,7 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
       >
         {visible.map((url, i) => (
           <Box
-            key={i}
+            key={url}
             onClick={() => { setLightboxIndex(i); setLightboxOpen(true); }}
             sx={{
               position: 'relative',

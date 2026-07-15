@@ -221,6 +221,9 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
       });
     }, [selectedProperty]);
 
+    const includedPrestationsSet = useMemo(() => new Set(includedPrestations || []), [includedPrestations]);
+    const extraPrestationsSet = useMemo(() => new Set(extraPrestations || []), [extraPrestations]);
+
     // Un type concret (non OTHER) — y compris après reset du formulaire — sort du
     // mode « Autre » personnalisé.
     React.useEffect(() => {
@@ -621,8 +624,8 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
             <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
               {availablePrestations.map((p) => {
                 const isActive = activePrestations.has(p.key);
-                const isIncluded = (includedPrestations || []).includes(p.key);
-                const isExtra = (extraPrestations || []).includes(p.key);
+                const isIncluded = includedPrestationsSet.has(p.key);
+                const isExtra = extraPrestationsSet.has(p.key);
                 const count = p.type === 'count' && selectedProperty
                   ? (selectedProperty[p.propertyField] as number)
                   : undefined;

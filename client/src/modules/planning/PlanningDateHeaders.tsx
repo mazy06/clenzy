@@ -74,12 +74,12 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
           scroll) — plus de rangée mois dans la grille. Le nom complet
           (jour + numero + mois + annee) reste au hover via Tooltip. */}
       <Box sx={{ display: 'flex', height: DATE_HEADER_HEIGHT, width: totalGridWidth }}>
-          {days.map((day, idx) => {
+          {days.map((day) => {
             const today = isToday(day);
             const weekend = isWeekend(day);
             return (
               <Tooltip
-                key={idx}
+                key={day.getTime()}
                 title={formatFullDate(day)}
                 placement="top"
                 arrow

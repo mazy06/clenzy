@@ -44,20 +44,18 @@ function splitBlocks(paragraph: string): Array<{ kind: 'text' | 'list'; lines: s
 function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   let last = 0;
-  let i = 0;
   for (const match of text.matchAll(INLINE_TOKEN)) {
     const index = match.index ?? 0;
     if (index > last) nodes.push(text.slice(last, index));
     const token = match[0];
     if (token.startsWith('**')) {
-      nodes.push(<strong key={`${keyPrefix}-b${i}`}>{token.slice(2, -2)}</strong>);
+      nodes.push(<strong key={`${keyPrefix}-b${index}`}>{token.slice(2, -2)}</strong>);
     } else if (token.startsWith('*')) {
-      nodes.push(<strong key={`${keyPrefix}-b${i}`}>{token.slice(1, -1)}</strong>);
+      nodes.push(<strong key={`${keyPrefix}-b${index}`}>{token.slice(1, -1)}</strong>);
     } else {
-      nodes.push(<em key={`${keyPrefix}-i${i}`}>{token.slice(1, -1)}</em>);
+      nodes.push(<em key={`${keyPrefix}-i${index}`}>{token.slice(1, -1)}</em>);
     }
     last = index + token.length;
-    i++;
   }
   if (last < text.length) nodes.push(text.slice(last));
   return nodes;

@@ -61,9 +61,10 @@ const DirectoryPage: React.FC = () => {
   // Build visible tabs based on user permissions
   const visibleTabs = useMemo(() => {
     if (!user?.permissions) return [];
+    const userRoles = new Set(user.roles ?? []);
     return ALL_TABS.filter((tab) => {
       if (!user.permissions!.includes(tab.permission)) return false;
-      if (tab.roles && !tab.roles.some((r) => user.roles?.includes(r))) return false;
+      if (tab.roles && !tab.roles.some((r) => userRoles.has(r))) return false;
       return true;
     });
   }, [user?.permissions, user?.roles]);

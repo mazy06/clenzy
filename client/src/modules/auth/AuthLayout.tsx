@@ -545,7 +545,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                 flexShrink: 0,
               }}
             >
-              {SLIDES.map((_, i) => {
+              {SLIDES.map((slide, i) => {
                 const isActive = i === slideIndex;
                 // Dots : white-translucent en photo mode pour contraster
                 // avec le bg fonce. Primary en sober mode.
@@ -558,7 +558,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                   : alpha(primary, 0.45);
                 return (
                   <Box
-                    key={i}
+                    key={slide.tagline}
                     component="button"
                     type="button"
                     role="tab"

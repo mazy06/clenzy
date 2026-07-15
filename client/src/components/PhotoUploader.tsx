@@ -297,10 +297,10 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           </Typography>
           <ImageList cols={columns} gap={8}>
             {existingPhotos.map((url, index) => (
-              <ImageListItem key={`existing-${index}`}>
+              <ImageListItem key={url}>
                 <img
                   src={url}
-                  alt={`Photo existante ${index + 1}`}
+                  alt={`Apercu existant ${index + 1}`}
                   loading="lazy"
                   style={{
                     width: '100%',

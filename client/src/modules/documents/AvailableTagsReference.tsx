@@ -315,15 +315,15 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
 
   // Filtrer les catégories et tags selon la recherche
   const filteredCategories = useMemo(() =>
-    TAG_CATEGORIES.map((category) => ({
-      ...category,
-      tags: category.tags.filter(
+    TAG_CATEGORIES.flatMap((category) => {
+      const tags = category.tags.filter(
         (t) =>
           !search ||
           t.tag.toLowerCase().includes(search.toLowerCase()) ||
           t.description.toLowerCase().includes(search.toLowerCase())
-      ),
-    })).filter((category) => category.tags.length > 0),
+      );
+      return tags.length > 0 ? [{ ...category, tags }] : [];
+    }),
   [search]);
 
   const totalTags = TAG_CATEGORIES.reduce((sum, c) => sum + c.tags.length, 0);

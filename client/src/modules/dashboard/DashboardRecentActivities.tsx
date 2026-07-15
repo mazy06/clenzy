@@ -79,9 +79,9 @@ const DashboardRecentActivities: React.FC<DashboardRecentActivitiesProps> = ({ a
             </Typography>
           ) : (
             <List sx={{ py: 0 }}>
-              {activities.map((activity, index) => (
+              {activities.map((activity) => (
                 <ListItem
-                  key={index}
+                  key={`${activity.category}-${activity.id}`}
                   sx={{
                     px: 0,
                     py: 1,

@@ -307,9 +307,9 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
           {new Date(label).toLocaleString()}
         </Typography>
       )}
-      {payload.map((entry, index) => (
+      {payload.map((entry) => (
         <Typography
-          key={index}
+          key={entry.name}
           sx={{ display: 'block', fontSize: '11.5px', fontWeight: 600 }}
         >
           {entry.name}: {typeof entry.value === 'number' ? entry.value.toFixed(1) : entry.value}

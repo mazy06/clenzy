@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Box,
@@ -98,10 +98,14 @@ export default function PublicOwnerConstellation() {
   }, [token]);
 
   const locale = i18n.language?.startsWith('fr') ? 'fr-FR' : i18n.language?.startsWith('ar') ? 'ar' : 'en-GB';
-  const euros = (value: number) =>
-    new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value ?? 0);
-  const dateLabel = (iso: string) =>
-    new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(new Date(iso));
+  const euros = useMemo(() => {
+    const fmt = new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+    return (value: number) => fmt.format(value ?? 0);
+  }, [locale]);
+  const dateLabel = useMemo(() => {
+    const fmt = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' });
+    return (iso: string) => fmt.format(new Date(iso));
+  }, [locale]);
 
   if (state === 'loading') {
     return (

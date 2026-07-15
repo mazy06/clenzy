@@ -175,7 +175,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
   // Plage inclusive entre deux dates du mois affiché (ordre visuel du calendrier).
   const rangeBetween = useCallback(
     (anchor: string, target: string): string[] => {
-      const allDates = calendarCells.filter((c) => c.inMonth).map((c) => c.dateStr);
+      const allDates = calendarCells.flatMap((c) => (c.inMonth ? [c.dateStr] : []));
       const a = allDates.indexOf(anchor);
       const b = allDates.indexOf(target);
       if (a < 0 || b < 0) return [target];
@@ -246,6 +246,8 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
 
   const getSourceColor = (source: string): string => SOURCE_COLORS[source] ?? '#8BA0B3';
 
+  const selectedDatesSet = new Set(selectedDates);
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, flex: 1 }}>
       {/* ── Month navigation ── */}
@@ -312,7 +314,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', flex: 1 }}>
             {calendarCells.map((cell) => {
               const pricing = pricingMap.get(cell.dateStr);
-              const isSelected = selectedDates.includes(cell.dateStr);
+              const isSelected = selectedDatesSet.has(cell.dateStr);
               const isToday = cell.dateStr === todayISO;
               const sourceColor = pricing ? getSourceColor(pricing.priceSource) : '#8BA0B3';
 

@@ -264,9 +264,9 @@ const UserProfilePage: React.FC = () => {
                   {user.email}
                 </Typography>
                 <Box display="flex" gap={1}>
-                  {user.roles?.map((role, index) => (
+                  {user.roles?.map((role) => (
                     <Chip
-                      key={index}
+                      key={role}
                       label={role.toUpperCase()}
                       size="small"
                       sx={{

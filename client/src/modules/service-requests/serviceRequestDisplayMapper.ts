@@ -19,8 +19,3 @@ export function formatDateShort(dateStr: string): string {
   if (!dateStr) return '—';
   return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
-
-export function formatPrice(price: number | undefined, symbol: string): string {
-  if (price === undefined || price === null) return '—';
-  return `${price}${symbol}`;
-}

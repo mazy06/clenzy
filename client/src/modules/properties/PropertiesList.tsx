@@ -107,7 +107,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
   const missingContractIds = useMemo(
     () => new Set(
       canManageContracts
-        ? properties.filter((p) => !contractedPropertyIds.has(Number(p.id))).map((p) => Number(p.id))
+        ? properties.flatMap((p) => (contractedPropertyIds.has(Number(p.id)) ? [] : [Number(p.id)]))
         : [],
     ),
     [canManageContracts, properties, contractedPropertyIds],

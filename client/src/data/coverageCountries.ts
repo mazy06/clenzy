@@ -73,10 +73,6 @@ export const SAUDI_CITIES: string[] = [
   'Yanbu',
 ];
 
-export function getCountryByCode(code: string): CoverageCountry | undefined {
-  return COVERAGE_COUNTRIES.find((c) => c.code === code);
-}
-
 export function getCitiesForCountry(code: string): string[] {
   switch (code) {
     case 'MA':

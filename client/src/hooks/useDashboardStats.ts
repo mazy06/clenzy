@@ -153,9 +153,9 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
       if (userRole === 'HOST' && currentUserId) {
         if (propertiesData) {
           const properties: ApiProperty[] = (propertiesData as PaginatedResponse<ApiProperty>).content || (propertiesData as ApiProperty[]) || [];
-          hostPropertyIds = properties
-            .filter((p: ApiProperty) => p.ownerId === currentUserId)
-            .map((p: ApiProperty) => p.id);
+          hostPropertyIds = properties.flatMap((p: ApiProperty) =>
+            p.ownerId === currentUserId ? [p.id] : [],
+          );
         }
       }
 
@@ -171,8 +171,7 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
           // Récupérer les propriétés via les portefeuilles
           if (assocData.portfolios) {
             managerPropertyIds = assocData.portfolios
-              .flatMap((portfolio) => portfolio.properties || [])
-              .map((prop) => prop.id);
+              .flatMap((portfolio) => (portfolio.properties || []).map((prop) => prop.id));
           }
           // Récupérer les utilisateurs
           if (assocData.users) {
@@ -190,6 +189,11 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
         // On laisse userTeamIds vide pour l'instant, le filtrage se fera via les interventions
       }
 
+      const hostPropertyIdSet = new Set(hostPropertyIds);
+      const managerPropertyIdSet = new Set(managerPropertyIds);
+      const managerUserIdSet = new Set(managerUserIds);
+      const managerTeamIdSet = new Set(managerTeamIds);
+
       // Ajouter les propriétés récemment créées
       if (propertiesData && (['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'].includes(userRole || ''))) {
         const properties: ApiProperty[] = (propertiesData as PaginatedResponse<ApiProperty>).content || (propertiesData as ApiProperty[]) || [];
@@ -199,12 +203,12 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
         if (userRole === 'HOST') {
           // HOST : seulement ses propres propriétés
           filteredProperties = properties.filter((p: ApiProperty) =>
-            hostPropertyIds.includes(p.id)
+            hostPropertyIdSet.has(p.id)
           );
         } else if (['SUPER_MANAGER'].includes(userRole || '')) {
           // Manager : seulement les propriétés de ses portefeuilles
           filteredProperties = properties.filter((p: ApiProperty) =>
-            managerPropertyIds.includes(p.id)
+            managerPropertyIdSet.has(p.id)
           );
         }
         // ADMIN : toutes les propriétés (déjà dans filteredProperties)
@@ -239,8 +243,8 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
         if (['SUPER_MANAGER'].includes(userRole || '')) {
           // MANAGER : demandes liées à ses portefeuilles ou créées par ses utilisateurs
           filteredRequests = requests.filter((req: ApiServiceRequest) =>
-            managerPropertyIds.includes(req.propertyId || 0) ||
-            managerUserIds.includes(req.userId || 0)
+            managerPropertyIdSet.has(req.propertyId || 0) ||
+            managerUserIdSet.has(req.userId || 0)
           );
         }
         // Pour HOST, HOUSEKEEPER, TECHNICIAN et ADMIN, le backend filtre déjà
@@ -360,14 +364,14 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
         if (userRole === 'HOST') {
           // HOST : seulement les interventions liées à ses propriétés
           filteredInterventions = interventions.filter((int: ApiIntervention) =>
-            hostPropertyIds.includes(int.propertyId || 0)
+            hostPropertyIdSet.has(int.propertyId || 0)
           );
         } else if (['SUPER_MANAGER'].includes(userRole || '')) {
           // MANAGER : interventions liées à ses portefeuilles ou assignées à ses équipes/utilisateurs
           filteredInterventions = interventions.filter((int: ApiIntervention) =>
-            managerPropertyIds.includes(int.propertyId || 0) ||
-            (int.assignedToType === 'team' && managerTeamIds.includes(int.assignedToId || 0)) ||
-            (int.assignedToType === 'user' && managerUserIds.includes(int.assignedToId || 0))
+            managerPropertyIdSet.has(int.propertyId || 0) ||
+            (int.assignedToType === 'team' && managerTeamIdSet.has(int.assignedToId || 0)) ||
+            (int.assignedToType === 'user' && managerUserIdSet.has(int.assignedToId || 0))
           );
         } else if (['HOUSEKEEPER', 'TECHNICIAN', 'LAUNDRY', 'EXTERIOR_TECH'].includes(userRole || '')) {
           // HOUSEKEEPER/TECHNICIAN/LAUNDRY/EXTERIOR_TECH : les interventions sont déjà filtrées par le backend
@@ -406,7 +410,7 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
           let filteredUsers = users;
           if (['SUPER_MANAGER'].includes(userRole || '')) {
             filteredUsers = users.filter((u: ApiUser) =>
-              managerUserIds.includes(u.id)
+              managerUserIdSet.has(u.id)
             );
           }
 
@@ -447,7 +451,7 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
           let filteredTeams = teams;
           if (['SUPER_MANAGER'].includes(userRole || '')) {
             filteredTeams = teams.filter((teamItem: ApiTeam) =>
-              managerTeamIds.includes(teamItem.id)
+              managerTeamIdSet.has(teamItem.id)
             );
           }
 

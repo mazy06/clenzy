@@ -306,9 +306,9 @@ const DashboardCharts: React.FC<DashboardChartsProps> = React.memo(({ charts, lo
                         cornerRadius={4}
                         stroke="none"
                       >
-                        {byStatus.map((entry, index) => (
+                        {byStatus.map((entry) => (
                           <Cell
-                            key={`cell-${index}`}
+                            key={entry.name}
                             fill={entry.color || CHART_PRIMARY}
                           />
                         ))}

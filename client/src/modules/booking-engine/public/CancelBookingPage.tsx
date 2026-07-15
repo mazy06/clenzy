@@ -28,6 +28,9 @@ interface CancelResult {
 
 type Step = 'form' | 'preview' | 'done';
 
+const fmt = (amount: number, currency: string | null) =>
+  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency || 'EUR' }).format(amount);
+
 export default function CancelBookingPage() {
   const { apiKey } = useParams<{ apiKey: string }>();
   const [code, setCode] = useState('');
@@ -40,9 +43,6 @@ export default function CancelBookingPage() {
 
   const base = `${API_BASE}/public/booking/widget/booking`;
   const headers = { 'Content-Type': 'application/json', 'X-Booking-Key': apiKey ?? '' };
-
-  const fmt = (amount: number, currency: string | null) =>
-    new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency || 'EUR' }).format(amount);
 
   const loadPreview = () => {
     if (!code.trim() || !email.trim()) { setError('Code et email requis.'); return; }

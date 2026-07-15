@@ -118,7 +118,7 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
       >
         <img
           src={photos[currentIndex]}
-          alt={`Photo ${currentIndex + 1}`}
+          alt={`Aperçu ${currentIndex + 1}`}
           style={{
             maxWidth: '100%',
             maxHeight: '100%',

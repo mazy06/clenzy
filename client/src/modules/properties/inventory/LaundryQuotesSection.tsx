@@ -155,8 +155,8 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {quote.lines.map((line, idx) => (
-                                  <TableRow key={idx}>
+                                {quote.lines.map((line) => (
+                                  <TableRow key={line.key}>
                                     <TableCell>{line.label}</TableCell>
                                     <TableCell align="center">{line.quantity}</TableCell>
                                     <TableCell align="right"><Money value={Number(line.unitPrice)} from="EUR" /></TableCell>

@@ -198,14 +198,16 @@ const RatePlanFormDialog: React.FC<RatePlanFormDialogProps> = ({
               {t('dynamicPricing.ratePlan.daysOfWeek')}
             </Typography>
             <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-              {dayNames.map((label, idx) => {
+              {(() => {
+              const daysOfWeekSet = new Set(daysOfWeek);
+              return dayNames.map((label, idx) => {
                 const dayValue = idx + 1;
                 return (
                   <FormControlLabel
-                    key={dayValue}
+                    key={label}
                     control={
                       <Checkbox
-                        checked={daysOfWeek.includes(dayValue)}
+                        checked={daysOfWeekSet.has(dayValue)}
                         onChange={() => toggleDay(dayValue)}
                         size="small"
                       />
@@ -214,7 +216,8 @@ const RatePlanFormDialog: React.FC<RatePlanFormDialogProps> = ({
                     sx={{ mr: 0 }}
                   />
                 );
-              })}
+              });
+              })()}
             </Box>
           </Box>
 

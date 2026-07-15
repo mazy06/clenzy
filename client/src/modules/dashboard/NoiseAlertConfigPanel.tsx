@@ -163,7 +163,10 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
     staleTime: 60_000,
   });
   const properties = React.useMemo(
-    () => extractApiList<Property>(propertiesQuery.data).filter(p => propertyIds.includes(p.id)),
+    () => {
+      const propertyIdSet = new Set(propertyIds);
+      return extractApiList<Property>(propertiesQuery.data).filter(p => propertyIdSet.has(p.id));
+    },
     [propertiesQuery.data, propertyIds],
   );
 

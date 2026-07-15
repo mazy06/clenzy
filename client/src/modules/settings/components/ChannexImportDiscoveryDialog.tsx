@@ -332,13 +332,14 @@ export default function ChannexImportDiscoveryDialog({
         details: [
           ...(importResult?.details ?? []),
           ...diff.toDisconnect
-            .filter((p) => !disconnectErrors.some((e) => e.startsWith(p.title)))
-            .map((p) => ({
-              channexPropertyId: p.channexPropertyId,
-              status: 'CREATED' as const, // reuse type, on differencie via message
-              clenzyPropertyId: p.clenzyPropertyId,
-              message: `Desimportee : "${p.title}" (Property Baitly conservee, sync hub arretee)`,
-            })),
+            .flatMap((p) => !disconnectErrors.some((e) => e.startsWith(p.title))
+              ? [{
+                  channexPropertyId: p.channexPropertyId,
+                  status: 'CREATED' as const, // reuse type, on differencie via message
+                  clenzyPropertyId: p.clenzyPropertyId,
+                  message: `Desimportee : "${p.title}" (Property Baitly conservee, sync hub arretee)`,
+                }]
+              : []),
         ],
       });
 
@@ -694,14 +695,14 @@ export default function ChannexImportDiscoveryDialog({
                 </Typography>
                 <Stack spacing={1}>
                   {CHANNEX_OTA_OPTIONS
-                    .map((option) => {
+                    .flatMap((option) => {
                       const existing = connectedOtas.find(
                         (ota) => ota.otaName.toLowerCase() === option.apiChannelName.toLowerCase()
                           || ota.otaName.toLowerCase() === option.name.toLowerCase()
                       );
-                      if (!existing) return null;
+                      if (!existing) return [];
                       const isLoading = settingUpOta === option.code;
-                      return (
+                      return [
                         <ButtonBase
                           key={option.code}
                           onClick={() => handleSetupOauth(option.code, existing.channelId)}
@@ -756,10 +757,9 @@ export default function ChannexImportDiscoveryDialog({
                               ? <CircularProgress size={14} thickness={5} sx={{ color: option.brandColor }} />
                               : <Typography variant="caption" sx={{ fontWeight: 600 }}>→</Typography>}
                           </Box>
-                        </ButtonBase>
-                      );
-                    })
-                    .filter(Boolean)}
+                        </ButtonBase>,
+                      ];
+                    })}
                 </Stack>
               </>
             )}
@@ -1073,8 +1073,7 @@ export default function ChannexImportDiscoveryDialog({
                 </Typography>
                 <Stack spacing={0.5}>
                   {importResult.details
-                    .filter((d) => d.status !== 'CREATED')
-                    .map((d) => (
+                    .flatMap((d) => d.status !== 'CREATED' ? [
                       <Stack
                         key={d.channexPropertyId}
                         direction="row"
@@ -1089,8 +1088,8 @@ export default function ChannexImportDiscoveryDialog({
                         <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }} noWrap>
                           {d.channexPropertyId.slice(0, 8)} : {d.message}
                         </Typography>
-                      </Stack>
-                    ))}
+                      </Stack>,
+                    ] : [])}
                 </Stack>
               </Box>
             )}

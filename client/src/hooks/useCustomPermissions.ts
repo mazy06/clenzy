@@ -93,11 +93,7 @@ export const CustomPermissionsProvider: React.FC<CustomPermissionsProviderProps>
 
   const togglePermission = useCallback((role: string, permission: string) => {
     setCustomPermissions(prev => {
-      if (!prev[role]) {
-        prev[role] = [...(defaultRolePermissions[role] || [])];
-      }
-      
-      const currentPermissions = prev[role];
+      const currentPermissions = prev[role] ?? [...(defaultRolePermissions[role] || [])];
       if (currentPermissions.includes(permission)) {
         return {
           ...prev,

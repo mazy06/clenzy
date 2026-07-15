@@ -14,9 +14,6 @@ import { apiClient } from '../apiClient';
  * et le cast cote frontend (TypeScript). Le backend stocke en JSONB.</p>
  */
 
-/** Limite cote serveur (cf. UserUiPreferencesController#MAX_VALUE_LENGTH). */
-export const PREF_MAX_VALUE_LENGTH = 16_384;
-
 const BASE = '/me/ui-preferences';
 
 export const userUiPreferencesApi = {

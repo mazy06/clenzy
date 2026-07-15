@@ -104,14 +104,17 @@ const GuestSection: React.FC<Props> = ({ form }) => {
       freeSolo={false}
       options={form.searchResults}
       getOptionLabel={(option) => option.fullName}
-      renderOption={(props, option) => (
-        <Box component="li" {...props} key={option.id}>
-          <Box>
-            <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>{option.fullName}</Typography>
-            {option.email && <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>{option.email}</Typography>}
+      renderOption={(props, option) => {
+        const { key, ...optionProps } = props;
+        return (
+          <Box component="li" key={key} {...optionProps}>
+            <Box>
+              <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>{option.fullName}</Typography>
+              {option.email && <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>{option.email}</Typography>}
+            </Box>
           </Box>
-        </Box>
-      )}
+        );
+      }}
       inputValue={form.guestSearchQuery}
       onInputChange={(_, val) => form.setGuestSearchQuery(val)}
       value={null}

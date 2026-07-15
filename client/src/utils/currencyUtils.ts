@@ -46,17 +46,19 @@ export function formatAmount(
   }).format(amount);
 }
 
+const TAX_RATE_FORMAT = new Intl.NumberFormat('fr-FR', {
+  style: 'percent',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 1,
+});
+
 /**
  * Format a tax rate as a percentage.
  * Input: 0.10 → "10 %", 0.20 → "20 %"
  */
 export function formatTaxRate(rate: number | null | undefined): string {
   if (rate == null) return '—';
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'percent',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 1,
-  }).format(rate);
+  return TAX_RATE_FORMAT.format(rate);
 }
 
 /**

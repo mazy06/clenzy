@@ -134,14 +134,6 @@ export function useDocumentTypes() {
   });
 }
 
-export function useTagCategories() {
-  return useQuery({
-    queryKey: documentKeys.tagCategories(),
-    queryFn: () => documentsApi.getTagCategories(),
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
 // ─── Compliance ─────────────────────────────────────────────────────────────
 
 export function useComplianceStats() {

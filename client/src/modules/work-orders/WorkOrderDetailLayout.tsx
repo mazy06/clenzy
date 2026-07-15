@@ -487,8 +487,8 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
             </Box>
           </Grid>
         )}
-        {vm.extraMetrics?.map((m, i) => (
-          <Grid item xs={6} sm={4} md={2} key={`extra-metric-${i}`}>
+        {vm.extraMetrics?.map((m) => (
+          <Grid item xs={6} sm={4} md={2} key={`extra-metric-${m.label}`}>
             <Box sx={METRIC_CARD_SX}>
               <Box component="span" sx={{ display: 'inline-flex', color: m.tone ?? 'var(--accent)', mb: 0.25 }}>{m.icon}</Box>
               <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px', ...(m.tone ? { color: m.tone } : {}) }}>
@@ -594,9 +594,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               <>
                 <Divider sx={{ my: 0.75 }} />
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                  {propertyTags.map((tag, idx) => (
+                  {propertyTags.map((tag) => (
                     <Chip
-                      key={idx}
+                      key={tag.label}
                       icon={tag.icon}
                       label={tag.label}
                       size="small"
@@ -769,8 +769,8 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               </>
             )}
 
-            {vm.extraTimeRows?.map((row, i) => (
-              <React.Fragment key={`time-row-${i}`}>
+            {vm.extraTimeRows?.map((row) => (
+              <React.Fragment key={`time-row-${row.label}`}>
                 <Divider sx={{ my: 0.5 }} />
                 <Box sx={INFO_ROW_SX}>
                   <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}>{row.icon}</Box>

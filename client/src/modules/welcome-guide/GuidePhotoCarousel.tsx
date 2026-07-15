@@ -47,8 +47,9 @@ export default function GuidePhotoCarousel({
   const slides = useMemo(() => {
     if (!photos.length || propertyId == null) return [] as { id: number; url: string }[];
     const prio = priorityIds.filter((id) => photos.some((p) => p.id === id));
+    const prioSet = new Set(prio);
     const rest = photos
-      .filter((p) => !prio.includes(p.id))
+      .filter((p) => !prioSet.has(p.id))
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((p) => p.id);
     return [...prio, ...rest].map((id) => ({ id, url: propertyPhotosApi.getPhotoUrl(propertyId, id) }));

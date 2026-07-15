@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Typography, Chip, Skeleton } from '@mui/material';
 import { CleaningServices, TrendingUp, Timer, CheckCircle } from '../../icons';
 import { useWatch } from 'react-hook-form';
@@ -270,7 +270,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
 
   const hasEnoughData = (squareMeters ?? 0) > 0 || (bedroomCount ?? 0) > 0;
 
-  const inputs: CleaningPreviewInputs = {
+  const inputs: CleaningPreviewInputs = useMemo(() => ({
     bedrooms: bedroomCount ?? null,
     bathrooms: bathroomCount ?? null,
     squareMeters: squareMeters ?? null,
@@ -278,7 +278,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
     hasExterior: hasExterior ?? null,
     hasLaundry: hasLaundry ?? null,
     maxGuests: maxGuests ?? null,
-  };
+  }), [bedroomCount, bathroomCount, squareMeters, numberOfFloors, hasExterior, hasLaundry, maxGuests]);
   const debouncedInputs = useDebouncedValue(inputs, 400);
 
   // Preview moteur (config org enregistrée). Repli silencieux : en erreur, on
@@ -301,9 +301,10 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
     && Number(cleaningBasePrice) === Number(recommendedStandard);
 
   const breakdownEntries = preview
-    ? BREAKDOWN_KEYS
-        .map((key) => ({ key, minutes: preview.minutesBreakdown?.[key] ?? 0 }))
-        .filter(({ key, minutes }) => key === 'base' || minutes > 0)
+    ? BREAKDOWN_KEYS.flatMap((key) => {
+        const minutes = preview.minutesBreakdown?.[key] ?? 0;
+        return key === 'base' || minutes > 0 ? [{ key, minutes }] : [];
+      })
     : [];
 
   // ─── Render ─────────────────────────────────────────────────────────────

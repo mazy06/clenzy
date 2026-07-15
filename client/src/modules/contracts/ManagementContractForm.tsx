@@ -436,7 +436,7 @@ interface SplitPreviewBarProps {
  * La barre est entièrement réactive à `commissionRate` (mise à jour instantanée
  * dès que l'utilisateur tape).
  */
-export const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, splitRatios }) => {
+const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, splitRatios }) => {
   const commissionPct = (commissionRate ?? 0) * 100;
   const hasCommission = commissionPct > 0;
 

@@ -355,17 +355,20 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   useEffect(() => {
     if (!reservation) return;
     if (reservation.paymentStatus === 'PAID' && reservation.totalPrice > 0) {
+      // Don't duplicate if already has a PAID Stripe entry
+      if (payments.some((p) => p.status === 'PAID' && p.reference?.startsWith('STRIPE-'))) return;
+      const stripePayment: LocalPayment = {
+        id: ++mockFinancialId,
+        amount: reservation.totalPrice,
+        method: 'card',
+        date: reservation.paidAt || reservation.checkIn,
+        status: 'PAID' as const,
+        reference: `STRIPE-${reservation.id}`,
+      };
       setPayments((prev) => {
-        // Don't duplicate if already has a PAID Stripe entry
+        // Guard again against the latest state to avoid a duplicate on a race
         if (prev.some((p) => p.status === 'PAID' && p.reference?.startsWith('STRIPE-'))) return prev;
-        return [{
-          id: ++mockFinancialId,
-          amount: reservation.totalPrice,
-          method: 'card',
-          date: reservation.paidAt || reservation.checkIn,
-          status: 'PAID' as const,
-          reference: `STRIPE-${reservation.id}`,
-        }];
+        return [stripePayment];
       });
     }
   }, [reservation?.id, reservation?.paymentStatus]);

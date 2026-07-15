@@ -77,7 +77,7 @@ const PanelHistory: React.FC<PanelHistoryProps> = ({ event }) => {
         <Box>
           {timelineItems.map((item, idx) => (
             <Box
-              key={idx}
+              key={item.label}
               sx={{
                 display: 'flex',
                 alignItems: 'center',

@@ -298,6 +298,8 @@ const PermissionConfig: React.FC = () => {
     );
   }
 
+  const rolePermissionSet = new Set(rolePermissions?.permissions ?? []);
+
   return (
     <Box>
       <PageHeader
@@ -460,7 +462,7 @@ const PermissionConfig: React.FC = () => {
                 <Grid item xs={3}>
                   <Box sx={{ textAlign: 'center', p: 1 }}>
                     <Typography variant="h6" color="error.main" sx={{ fontWeight: 600, mb: 0.5 }}>
-                      {allPermissions.filter(p => !rolePermissions.permissions.includes(p)).length}
+                      {allPermissions.filter(p => !rolePermissionSet.has(p)).length}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       Inactives
@@ -473,7 +475,7 @@ const PermissionConfig: React.FC = () => {
                     <Typography variant="h6" color="warning.main" sx={{ fontWeight: 600, mb: 0.5 }}>
                       {Object.keys(permissionsByModule).filter(module => {
                         const modulePermissions = permissionsByModule[module as keyof typeof permissionsByModule];
-                        return modulePermissions.some(permission => rolePermissions.permissions.includes(permission));
+                        return modulePermissions.some(permission => rolePermissionSet.has(permission));
                       }).length} / {Object.keys(permissionsByModule).length}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
@@ -529,7 +531,7 @@ const PermissionConfig: React.FC = () => {
                 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                   {Object.entries(permissionsByModule).map(([moduleName, permissions]) => {
-                    const activeCount = permissions.filter(p => rolePermissions.permissions.includes(p)).length;
+                    const activeCount = permissions.filter(p => rolePermissionSet.has(p)).length;
                     const allActive = activeCount === permissions.length;
                     const noneActive = activeCount === 0;
 
@@ -586,7 +588,7 @@ const PermissionConfig: React.FC = () => {
                         <AccordionDetails sx={{ px: 2, pt: 0, pb: 2 }}>
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                             {permissions.map((permission) => {
-                              const isActive = rolePermissions.permissions.includes(permission);
+                              const isActive = rolePermissionSet.has(permission);
                               return (
                                 <Box
                                   key={permission}

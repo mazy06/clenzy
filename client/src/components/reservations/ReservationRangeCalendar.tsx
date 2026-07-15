@@ -84,7 +84,7 @@ const CLEAR_LINK_SX = {
 } as const;
 
 /** Champ date flottant cliquable (Arrivée / Départ) — affichage + cible de sélection. */
-export const FloatDateField: React.FC<{
+const FloatDateField: React.FC<{
   label: string;
   value: string;
   active: boolean;

@@ -203,7 +203,7 @@ export function useSitePages(configId: number | undefined, editLocale?: string):
     if (home) {
       blankHome = await sitesApi.updatePage(site.id, home.id, { ...home, blocks: '' });
     }
-    const removedIds = new Set(pages.filter((p) => !home || p.id !== home.id).map((p) => p.id));
+    const removedIds = new Set(pages.flatMap((p) => (!home || p.id !== home.id) ? [p.id] : []));
     setAllPages((prev) => {
       const kept = prev.filter((p) => !removedIds.has(p.id));
       return blankHome ? kept.map((p) => (p.id === blankHome!.id ? blankHome! : p)) : kept;

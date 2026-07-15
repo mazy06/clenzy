@@ -173,15 +173,19 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
 
   const mapMarkers: PropertyMarker[] = useMemo(
     () =>
-      filteredServiceRequests
-        .filter((r) => r.propertyLatitude && r.propertyLongitude)
-        .map((r) => ({
-          lat: r.propertyLatitude!,
-          lng: r.propertyLongitude!,
-          name: `${r.title} — ${r.propertyName}`,
-          id: Number(r.id),
-          type: 'property' as const,
-        })),
+      filteredServiceRequests.flatMap((r) =>
+        r.propertyLatitude && r.propertyLongitude
+          ? [
+              {
+                lat: r.propertyLatitude!,
+                lng: r.propertyLongitude!,
+                name: `${r.title} — ${r.propertyName}`,
+                id: Number(r.id),
+                type: 'property' as const,
+              },
+            ]
+          : [],
+      ),
     [filteredServiceRequests],
   );
 

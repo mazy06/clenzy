@@ -570,8 +570,8 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
 
           {/* Bande de KPI opérationnels (.pr-stats) — occupation / ADR / revenu */}
           <Box sx={styles.statsBand}>
-            {kpiCells.map((metric, idx) => (
-              <Box key={idx} sx={styles.statCell}>
+            {kpiCells.map((metric) => (
+              <Box key={metric.label} sx={styles.statCell}>
                 <Typography sx={styles.statValue}>{metric.value}</Typography>
                 <Typography sx={styles.statLabel}>{metric.label}</Typography>
               </Box>
@@ -681,9 +681,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                   { icon: <BathroomIcon size={18} strokeWidth={1.75} />, value: property.bathrooms, label: 'Salles de bain' },
                   { icon: <SquareFoot size={18} strokeWidth={1.75} />, value: `${property.surfaceArea} m²`, label: 'Surface' },
                   { icon: <PersonIcon size={18} strokeWidth={1.75} />, value: property.maxGuests, label: 'Voyageurs max' },
-                ].map((item, idx) => (
+                ].map((item) => (
                   <Box
-                    key={idx}
+                    key={item.label}
                     sx={styles.dialogMetricBox}
                   >
                     <Box sx={{ color: 'var(--accent)', display: 'flex' }}>{item.icon}</Box>
@@ -739,9 +739,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                     Commodités
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                    {property.amenities.map((amenity, index) => (
+                    {property.amenities.map((amenity) => (
                       <Chip
-                        key={index}
+                        key={amenity}
                         label={t(`properties.amenities.items.${amenity}`)}
                         size="small"
                         sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}

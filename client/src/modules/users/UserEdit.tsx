@@ -557,21 +557,24 @@ const UserEdit: React.FC = () => {
                 onChange={(_event, newValue) => setSelectedOrg(newValue)}
                 getOptionLabel={(option) => option.name}
                 isOptionEqualToValue={(option, value) => option.id === value.id}
-                renderOption={(props, option) => (
-                  <li {...props} key={option.id}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
-                        <Business size={16} strokeWidth={1.75} />
+                renderOption={(props, option) => {
+                  const { key, ...optionProps } = props;
+                  return (
+                    <li key={key} {...optionProps}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+                          <Business size={16} strokeWidth={1.75} />
+                        </Box>
+                        <Typography variant="body2" sx={{ flex: 1 }}>
+                          {option.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
+                        </Typography>
                       </Box>
-                      <Typography variant="body2" sx={{ flex: 1 }}>
-                        {option.name}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
-                      </Typography>
-                    </Box>
-                  </li>
-                )}
+                    </li>
+                  );
+                }}
                 renderInput={(params) => (
                   <TextField
                     {...params}

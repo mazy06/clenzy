@@ -4,8 +4,6 @@ import {
   Typography,
   Button,
   Alert,
-  LinearProgress,
-  Slider,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -20,87 +18,7 @@ import PhotoUploader from '../../components/PhotoUploader';
 import { useTranslation } from '../../hooks/useTranslation';
 
 // ============================================================
-// 1. ProgressDialog
-// ============================================================
-
-export interface ProgressDialogProps {
-  open: boolean;
-  onClose: () => void;
-  progressValue: number;
-  onProgressChange: (value: number) => void;
-  onSubmit: () => void;
-  updating: boolean;
-}
-
-export const ProgressDialog: React.FC<ProgressDialogProps> = ({
-  open,
-  onClose,
-  progressValue,
-  onProgressChange,
-  onSubmit,
-  updating
-}) => {
-  const { t } = useTranslation();
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle>
-        {t('interventions.dialogs.progressTitle')}
-      </DialogTitle>
-      <DialogContent>
-        <Box sx={{ pt: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {t('interventions.dialogs.progressDescription')}
-          </Typography>
-          <Box sx={{ px: 2 }}>
-            <Slider
-              value={progressValue}
-              onChange={(_, newValue) => onProgressChange(newValue as number)}
-              min={0}
-              max={100}
-              step={5}
-              marks={[
-                { value: 0, label: '0%' },
-                { value: 25, label: '25%' },
-                { value: 50, label: '50%' },
-                { value: 75, label: '75%' },
-                { value: 100, label: '100%' }
-              ]}
-              valueLabelDisplay="on"
-              sx={{ mb: 2 }}
-            />
-          </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-            <LinearProgress
-              variant="determinate"
-              value={progressValue}
-              sx={{ width: '100%', height: 8, borderRadius: 4 }}
-            />
-          </Box>
-        </Box>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>
-          {t('interventions.dialogs.cancel')}
-        </Button>
-        <Button
-          onClick={onSubmit}
-          variant="contained"
-          disabled={updating}
-        >
-          {updating ? t('interventions.dialogs.updating') : t('interventions.dialogs.update')}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-};
-
-// ============================================================
-// 2. NotesDialog
+// NotesDialog
 // ============================================================
 
 export interface NotesDialogProps {

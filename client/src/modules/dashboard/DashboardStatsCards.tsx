@@ -105,8 +105,8 @@ const DashboardStatsCards: React.FC<DashboardStatsCardsProps> = React.memo(({ st
           </Alert>
         </Grid>
       ) : (
-        stats.map((stat, index) => (
-          <Grid item xs={6} sm={6} md={3} key={index}>
+        stats.map((stat) => (
+          <Grid item xs={6} sm={6} md={3} key={stat.title}>
             <Card sx={CARD_SX}>
               <CardActionArea onClick={() => navigate(stat.route)}>
                 <CardContent sx={CARD_CONTENT_SX}>

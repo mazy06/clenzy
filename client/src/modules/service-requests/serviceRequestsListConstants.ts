@@ -18,9 +18,6 @@ export const PAGINATION_SX = {
   },
 } as const;
 
-export const LIST_ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
-export const LIST_DEFAULT_ROWS = 10;
-
 export const LIST_PAPER_SX = {
   border: '1px solid var(--line)',
   boxShadow: 'none',

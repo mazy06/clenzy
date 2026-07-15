@@ -422,9 +422,9 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
         {/* Chips caractéristiques du logement */}
         {propertyTags.length > 0 && (
           <Box sx={TAGS_CONTAINER_SX}>
-            {propertyTags.map((tag, idx) => (
+            {propertyTags.map((tag) => (
               <Chip
-                key={idx}
+                key={tag.label}
                 icon={tag.icon}
                 label={tag.label}
                 size="small"

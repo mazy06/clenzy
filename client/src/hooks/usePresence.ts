@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
 import StompService from '../services/StompService';
@@ -52,7 +52,6 @@ export function usePresence(userIds: string[]): PresenceMap {
   });
 
   // Subscribe once to the global presence topic. Subsequent calls patch the cache.
-  const subIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (!user?.id) return;
     const stomp = StompService.getInstance();
@@ -76,12 +75,10 @@ export function usePresence(userIds: string[]): PresenceMap {
         },
       );
     });
-    subIdRef.current = subId;
 
     return () => {
-      if (subIdRef.current) {
-        stomp.unsubscribe(subIdRef.current);
-        subIdRef.current = null;
+      if (subId) {
+        stomp.unsubscribe(subId);
       }
     };
   }, [user?.id, queryClient]);

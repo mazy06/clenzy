@@ -78,11 +78,11 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
         renderTags={(val: readonly string[], getTagProps) =>
           val.map((option, index) => {
             const isSelf = option.trim().toLowerCase() === SENDER;
-            const tagProps = getTagProps({ index });
+            const { key, ...tagProps } = getTagProps({ index });
             return (
               <Chip
+                key={key}
                 {...tagProps}
-                key={option}
                 label={option}
                 size="small"
                 color={isSelf ? 'warning' : 'default'}

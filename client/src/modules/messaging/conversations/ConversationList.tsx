@@ -336,10 +336,10 @@ export default function ConversationList({
         </Box>
         <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
           {subTabs
-            .filter((tab) => !tab.hidden)
-            .map((tab) => {
+            .flatMap((tab) => {
+              if (tab.hidden) return [];
               const active = filter === tab.value;
-              return (
+              return [
                 <Box
                   key={tab.value}
                   component="button"
@@ -358,8 +358,8 @@ export default function ConversationList({
                   }}
                 >
                   {tab.label}
-                </Box>
-              );
+                </Box>,
+              ];
             })}
         </Box>
       </Box>

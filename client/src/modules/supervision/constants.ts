@@ -89,12 +89,6 @@ export function maxPriorityStatus(statuses: readonly AgentStatus[]): AgentStatus
 
 // ─── Autonomie ───────────────────────────────────────────────────────────────
 
-export const AUTO_LABEL: Record<AutonomyLevel, string> = {
-  suggest: 'supervision.autonomy.suggest',
-  notify: 'supervision.autonomy.notify',
-  full: 'supervision.autonomy.full',
-};
-
 export const DEFAULT_AUTONOMY: AutonomyLevel = 'notify';
 
 /**

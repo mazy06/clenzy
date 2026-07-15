@@ -66,9 +66,11 @@ export default function ServicesCatalog({
   const allItems: Item[] = useMemo(() => {
     const q = search.trim().toLowerCase();
     const internal: Item[] = offers.map((o) => ({ kind: 'internal', o }));
-    const partner: Item[] = experiences
-      .filter((e) => !q || e.title.toLowerCase().includes(q) || e.desc.toLowerCase().includes(q))
-      .map((e) => ({ kind: 'partner', e }));
+    const partner: Item[] = experiences.flatMap((e) =>
+      !q || e.title.toLowerCase().includes(q) || e.desc.toLowerCase().includes(q)
+        ? [{ kind: 'partner', e } as Item]
+        : [],
+    );
     return [...internal, ...partner];
   }, [offers, experiences, search]);
 

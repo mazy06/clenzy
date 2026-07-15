@@ -168,9 +168,9 @@ export const nominatimApi = {
       // Filtrer strictement les communes (cities/towns/villages/municipalities).
       // On exclut administrative/country/state/region car ils peuvent matcher des pays ou regions.
       const VALID_CITY_TYPES = new Set(['city', 'town', 'village', 'municipality', 'hamlet', 'suburb']);
-      return data
-        .filter((r) => VALID_CITY_TYPES.has(r.type))
-        .map(parseNominatimResult);
+      return data.flatMap((r) =>
+        VALID_CITY_TYPES.has(r.type) ? [parseNominatimResult(r)] : [],
+      );
     } catch {
       return [];
     }

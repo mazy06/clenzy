@@ -312,7 +312,9 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
 
   // Ref for translation function to avoid re-triggering loadAll when `t` changes identity
   const tRef = useRef(t);
-  tRef.current = t;
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
 
   const loadAll = useCallback(async () => {
     const t = tRef.current;
@@ -351,9 +353,9 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
       const currentUserId = user?.id ? parseInt(user.id) : null;
 
       if (userRole === 'HOST' && currentUserId) {
-        hostPropertyIds = properties
-          .filter((p) => p.ownerId === currentUserId)
-          .map((p) => p.id);
+        hostPropertyIds = properties.flatMap((p) =>
+          p.ownerId === currentUserId ? [p.id] : [],
+        );
       }
 
       if (['SUPER_MANAGER'].includes(userRole) && currentUserId) {
@@ -362,14 +364,18 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
           if (assocData.teams) managerTeamIds = assocData.teams.map((team) => team.id);
           if (assocData.portfolios) {
             managerPropertyIds = assocData.portfolios
-              .flatMap((portfolio) => portfolio.properties || [])
-              .map((prop) => prop.id);
+              .flatMap((portfolio) => (portfolio.properties || []).map((prop) => prop.id));
           }
           if (assocData.users) managerUserIds = assocData.users.map((u) => u.id);
         } catch {
           // ignore
         }
       }
+
+      const hostPropertyIdSet = new Set(hostPropertyIds);
+      const managerPropertyIdSet = new Set(managerPropertyIds);
+      const managerUserIdSet = new Set(managerUserIds);
+      const managerTeamIdSet = new Set(managerTeamIds);
 
       // ── 3. Compute Stats KPI ─────────────────────────────────────────
       const thirtyDaysAgo = new Date();
@@ -454,8 +460,8 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
       // Properties
       if (['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'].includes(userRole)) {
         let filteredProps = properties;
-        if (userRole === 'HOST') filteredProps = properties.filter((p) => hostPropertyIds.includes(p.id));
-        else if (['SUPER_MANAGER'].includes(userRole)) filteredProps = properties.filter((p) => managerPropertyIds.includes(p.id));
+        if (userRole === 'HOST') filteredProps = properties.filter((p) => hostPropertyIdSet.has(p.id));
+        else if (['SUPER_MANAGER'].includes(userRole)) filteredProps = properties.filter((p) => managerPropertyIdSet.has(p.id));
 
         filteredProps.forEach((prop) => {
           activityItems.push({
@@ -476,7 +482,7 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
         let filteredReqs = requests;
         if (['SUPER_MANAGER'].includes(userRole)) {
           filteredReqs = requests.filter((req) =>
-            managerPropertyIds.includes(req.propertyId || 0) || managerUserIds.includes(req.userId || 0)
+            managerPropertyIdSet.has(req.propertyId || 0) || managerUserIdSet.has(req.userId || 0)
           );
         }
 
@@ -538,12 +544,12 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
       {
         let filteredInts = interventions;
         if (userRole === 'HOST') {
-          filteredInts = interventions.filter((int) => hostPropertyIds.includes(int.propertyId || 0));
+          filteredInts = interventions.filter((int) => hostPropertyIdSet.has(int.propertyId || 0));
         } else if (['SUPER_MANAGER'].includes(userRole)) {
           filteredInts = interventions.filter((int) =>
-            managerPropertyIds.includes(int.propertyId || 0) ||
-            (int.assignedToType === 'team' && managerTeamIds.includes(int.assignedToId || 0)) ||
-            (int.assignedToType === 'user' && managerUserIds.includes(int.assignedToId || 0))
+            managerPropertyIdSet.has(int.propertyId || 0) ||
+            (int.assignedToType === 'team' && managerTeamIdSet.has(int.assignedToId || 0)) ||
+            (int.assignedToType === 'user' && managerUserIdSet.has(int.assignedToId || 0))
           );
         }
 
@@ -565,7 +571,7 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
       // Users (admin/manager only, not for HOST)
       if (userRole !== 'HOST' && (['SUPER_ADMIN', 'SUPER_MANAGER'].includes(userRole))) {
         let filteredUsers = users;
-        if (['SUPER_MANAGER'].includes(userRole)) filteredUsers = users.filter((u) => managerUserIds.includes(u.id));
+        if (['SUPER_MANAGER'].includes(userRole)) filteredUsers = users.filter((u) => managerUserIdSet.has(u.id));
 
         filteredUsers.forEach((apiUser) => {
           const fullName = apiUser.firstName && apiUser.lastName
@@ -597,7 +603,7 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
       // Teams (admin/manager only, not for HOST)
       if (userRole !== 'HOST' && (['SUPER_ADMIN', 'SUPER_MANAGER'].includes(userRole))) {
         let filteredTeams = teams;
-        if (['SUPER_MANAGER'].includes(userRole)) filteredTeams = teams.filter((teamItem) => managerTeamIds.includes(teamItem.id));
+        if (['SUPER_MANAGER'].includes(userRole)) filteredTeams = teams.filter((teamItem) => managerTeamIdSet.has(teamItem.id));
 
         filteredTeams.forEach((team) => {
           activityItems.push({

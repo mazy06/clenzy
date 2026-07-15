@@ -263,6 +263,7 @@ export function useInterventionsList() {
   const filteredInterventions = useMemo(() => {
     if (!Array.isArray(interventions) || interventions.length === 0) return [];
 
+    const userRoles = new Set(user?.roles ?? []);
     return interventions.filter((intervention) => {
       if (!intervention || typeof intervention !== 'object') return false;
       if (!intervention.id || !intervention.title || !intervention.description || !intervention.type || !intervention.status || !intervention.priority) return false;
@@ -274,7 +275,7 @@ export function useInterventionsList() {
       let roleFilter = true;
       if (canEditInterventions) {
         roleFilter = true;
-      } else if (user?.roles?.includes('HOST')) {
+      } else if (userRoles.has('HOST')) {
         roleFilter = true;
       } else {
         if (intervention.assignedToType) {

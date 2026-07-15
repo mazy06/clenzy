@@ -94,13 +94,15 @@ export function StatusChangeDialog({
             label="Nouveau statut"
             size="small"
           >
-            {statuses
-              .filter(status => status.value !== 'all')
-              .map((status) => (
-                <MenuItem key={status.value} value={status.value}>
-                  {status.label}
-                </MenuItem>
-              ))}
+            {statuses.flatMap((status) =>
+              status.value === 'all'
+                ? []
+                : [
+                    <MenuItem key={status.value} value={status.value}>
+                      {status.label}
+                    </MenuItem>,
+                  ],
+            )}
           </Select>
         </FormControl>
       </DialogContent>
@@ -255,83 +257,6 @@ export function AssignDialog({
 // ============================================================================
 // VALIDATE CONFIRM DIALOG
 // ============================================================================
-
-interface ValidateConfirmDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  selectedRequest: ServiceRequest | null;
-  validating: boolean;
-  t: (key: string, params?: Record<string, unknown>) => string;
-}
-
-export function ValidateConfirmDialog({
-  open,
-  onClose,
-  onConfirm,
-  selectedRequest,
-  validating,
-  t,
-}: ValidateConfirmDialogProps) {
-  return (
-    <Dialog
-      open={open}
-      onClose={() => {
-        if (!validating) {
-          onClose();
-        }
-      }}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Box component="span" sx={{ display: "inline-flex", color: "success.main" }}><CheckCircle size={20} strokeWidth={1.75} /></Box>
-        {t('serviceRequests.validateAndCreateIntervention')}
-      </DialogTitle>
-      <DialogContent>
-        {selectedRequest && (
-          <Box>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              {t('serviceRequests.confirmValidation', { title: selectedRequest.title })}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              {t('serviceRequests.validateAndCreateInterventionDescription')}
-            </Typography>
-            {selectedRequest.assignedToName && (
-              <Box sx={{ mt: 2, p: 1.5, bgcolor: 'var(--field)', border: '1px solid var(--field-line)', borderRadius: '9px' }}>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                  {selectedRequest.assignedToType === 'team' ? t('serviceRequests.fields.team') : t('serviceRequests.fields.assignedToUser')}
-                </Typography>
-                <Typography variant="body2" fontWeight={600}>
-                  {selectedRequest.assignedToName}
-                </Typography>
-              </Box>
-            )}
-          </Box>
-        )}
-      </DialogContent>
-      <DialogActions>
-        <Button
-          onClick={onClose}
-          disabled={validating}
-          size="small"
-        >
-          {t('common.cancel')}
-        </Button>
-        <Button
-          onClick={onConfirm}
-          variant="contained"
-          color="success"
-          disabled={validating}
-          size="small"
-          startIcon={validating ? <CircularProgress size={16} /> : <CheckCircle size={18} strokeWidth={1.75} />}
-        >
-          {validating ? t('common.processing') : t('common.confirm')}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
 
 // ============================================================================
 // ERROR DIALOG

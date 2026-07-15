@@ -170,7 +170,8 @@ const TeamForm: React.FC = () => {
   const getFilteredUsers = () => {
     const selectedCategory = teamServiceCategories.find(cat => cat.value === watchedInterventionType);
     if (!selectedCategory) return users;
-    return users.filter(user => selectedCategory.roles.includes(user.role?.toUpperCase()));
+    const roleSet = new Set(selectedCategory.roles);
+    return users.filter(user => roleSet.has(user.role?.toUpperCase()));
   };
 
   // Rôles disponibles dans l'équipe (en MAJUSCULES pour matcher le backend)

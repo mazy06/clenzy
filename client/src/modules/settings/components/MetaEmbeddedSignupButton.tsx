@@ -87,7 +87,9 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
   // Ref pour eviter de re-init le SDK si le composant remount
   const fbInitialisedRef = useRef(false);
   const onSuccessRef = useRef(onSuccess);
-  onSuccessRef.current = onSuccess;
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
 
   /**
    * Charge le script SDK FB une fois (puis cache pour les remounts).

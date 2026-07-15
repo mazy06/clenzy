@@ -98,14 +98,6 @@ export function check(): SVGSVGElement {
   return el;
 }
 
-export function alertCircle(): SVGSVGElement {
-  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  circle.setAttribute('cx', '12');
-  circle.setAttribute('cy', '12');
-  circle.setAttribute('r', '10');
-  return svg('0 0 24 24', circle, line('12', '8', '12', '12'), line('12', '16', '12.01', '16'));
-}
-
 export function calendar(): SVGSVGElement {
   const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
   rect.setAttribute('x', '3');
@@ -146,27 +138,10 @@ export function star(filled = true): SVGSVGElement {
   if (filled) el.setAttribute('fill', 'currentColor');
   return el;
 }
-/** Flèche droite (CTA). */
-export function arrowRight(): SVGSVGElement {
-  return svg('0 0 24 24', line('5', '12', '19', '12'), polyline('12 5 19 12 12 19'));
-}
-/** Bouclier coché (confiance / réservation directe). */
-export function shieldCheck(): SVGSVGElement {
-  return svg('0 0 24 24', path('M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'), polyline('9 12 11 14 15 10'));
-}
 /** Lit double (nombre de chambres). */
 export function bedDouble(): SVGSVGElement {
   return svg('0 0 24 24', path('M2 11v8'), path('M22 11v8'), path('M2 11h20'), path('M4 11V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4'), path('M6 11V9a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v2'), path('M13 11V9a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v2'));
 }
-/** Dièse (référence de réservation). */
-export function hash(): SVGSVGElement {
-  return svg('0 0 24 24', line('4', '9', '20', '9'), line('4', '15', '20', '15'), line('10', '3', '8', '21'), line('16', '3', '14', '21'));
-}
-/** Téléchargement (reçu). */
-export function download(): SVGSVGElement {
-  return svg('0 0 24 24', path('M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'), polyline('7 10 12 15 17 10'), line('12', '15', '12', '3'));
-}
-
 /** Épingle de localisation (ville du logement). */
 export function mapPin(): SVGSVGElement {
   return svg('0 0 24 24',

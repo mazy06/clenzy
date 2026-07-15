@@ -135,13 +135,6 @@ export interface StepNotes {
 }
 
 // Local utility functions (not duplicated in shared utils)
-export const formatCurrency = (amount: number, currency: string = 'EUR') => {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency,
-  }).format(amount);
-};
-
 export const parsePhotos = (photosString: string | undefined): string[] => {
   if (!photosString) return [];
   try {

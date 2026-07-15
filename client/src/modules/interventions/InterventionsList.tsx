@@ -149,14 +149,17 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
   const mapMarkers: PropertyMarker[] = useMemo(
     () =>
       filteredInterventions
-        .filter((i) => i.propertyLatitude && i.propertyLongitude)
-        .map((i) => ({
-          lat: i.propertyLatitude!,
-          lng: i.propertyLongitude!,
-          name: `${i.title} — ${i.propertyName}`,
-          id: i.id,
-          type: 'property' as const,
-        })),
+        .flatMap((i) =>
+          i.propertyLatitude && i.propertyLongitude
+            ? [{
+                lat: i.propertyLatitude!,
+                lng: i.propertyLongitude!,
+                name: `${i.title} — ${i.propertyName}`,
+                id: i.id,
+                type: 'property' as const,
+              }]
+            : [],
+        ),
     [filteredInterventions],
   );
 

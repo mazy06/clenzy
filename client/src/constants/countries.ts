@@ -20,24 +20,8 @@ export const COUNTRIES: Country[] = [
   { code: 'SA', name: 'Arabie Saoudite', flag: '🇸🇦' },
 ];
 
-export const DEFAULT_COUNTRY = COUNTRIES[0]; // France
-
 /** Map d'acces rapide par code ISO. */
 export const COUNTRY_BY_CODE: Record<string, Country> = COUNTRIES.reduce(
   (acc, c) => ({ ...acc, [c.code]: c }),
   {}
 );
-
-/**
- * Retourne le pays correspondant a un nom (recherche insensible a la casse / accents).
- * Utile pour deduire le code ISO depuis l'ancien champ texte libre.
- */
-export function findCountryByName(name: string | null | undefined): Country | null {
-  if (!name) return null;
-  const normalized = name
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .trim();
-  return COUNTRIES.find((c) => c.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') === normalized) ?? null;
-}

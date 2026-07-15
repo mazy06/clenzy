@@ -42,8 +42,10 @@ function componentToHtml(raw: unknown): string {
   if (str(node.type) === 'textnode') return escapeHtml(str(node.content));
   const tag = str(node.tagName) || 'div';
   const classes = asArr(node.classes)
-    .map((c) => (asObj(c) ? str((asObj(c) as Record<string, unknown>).name) : str(c)))
-    .filter(Boolean);
+    .flatMap((c) => {
+      const name = asObj(c) ? str((asObj(c) as Record<string, unknown>).name) : str(c);
+      return name ? [name] : [];
+    });
   const attrsObj = asObj(node.attributes) ?? {};
   const attrs: string[] = [];
   if (classes.length) attrs.push(`class="${escapeHtml(classes.join(' '))}"`);

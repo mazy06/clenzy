@@ -140,15 +140,14 @@ export default function CalendarPage() {
     if (!Array.isArray(interventions)) return [];
 
     return interventions
-      .filter((intervention) => {
-        if (!intervention || !intervention.id) return false;
-        if (selectedStatus !== 'all' && intervention.status !== selectedStatus) return false;
-        if (selectedType !== 'all' && intervention.type !== selectedType) return false;
-        if (selectedPriority !== 'all' && intervention.priority !== selectedPriority) return false;
-        return true;
-      })
-      .filter((intervention) => !!intervention.scheduledDate)
-      .map(mapToEvent);
+      .flatMap((intervention) => {
+        if (!intervention || !intervention.id) return [];
+        if (selectedStatus !== 'all' && intervention.status !== selectedStatus) return [];
+        if (selectedType !== 'all' && intervention.type !== selectedType) return [];
+        if (selectedPriority !== 'all' && intervention.priority !== selectedPriority) return [];
+        if (!intervention.scheduledDate) return [];
+        return [mapToEvent(intervention)];
+      });
   }, [interventions, selectedStatus, selectedType, selectedPriority]);
 
   // -----------------------------------------------------------------------

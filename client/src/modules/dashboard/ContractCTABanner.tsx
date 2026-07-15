@@ -454,7 +454,7 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
         {benefits.map((b, i) => (
           <Box
-            key={i}
+            key={b.label}
             sx={{
               display: 'flex',
               alignItems: 'center',
