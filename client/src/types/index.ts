@@ -79,7 +79,6 @@ export {
   USER_STATUS_OPTIONS,
   Priority,
   PRIORITY_OPTIONS,
-  StatusUtils,
 } from './statusEnums';
 
 export type {
@@ -95,7 +94,6 @@ export type {
 export {
   InterventionType,
   INTERVENTION_TYPE_OPTIONS,
-  InterventionTypeUtils,
 } from './interventionTypes';
 
 export type {

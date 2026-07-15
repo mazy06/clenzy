@@ -32,20 +32,6 @@ export function formatCurrency(
   }
 }
 
-/**
- * Format an amount without the currency symbol (plain number).
- */
-export function formatAmount(
-  amount: number | null | undefined,
-  locale: string = 'fr-FR',
-): string {
-  if (amount == null) return '—';
-  return new Intl.NumberFormat(locale, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
-
 const TAX_RATE_FORMAT = new Intl.NumberFormat('fr-FR', {
   style: 'percent',
   minimumFractionDigits: 0,

@@ -319,22 +319,6 @@ const styles = {
   },
 } as const;
 
-// ─── Amenity → category color mapping ───────────────────────────────────────
-
-type AmenityChipColor = 'primary' | 'success' | 'info' | 'warning' | 'secondary' | 'default';
-
-const AMENITY_CATEGORY_MAP: Record<string, AmenityChipColor> = {
-  WIFI: 'primary', TV: 'primary', AIR_CONDITIONING: 'primary', HEATING: 'primary',
-  EQUIPPED_KITCHEN: 'success', DISHWASHER: 'success', MICROWAVE: 'success', OVEN: 'success',
-  WASHING_MACHINE: 'info', DRYER: 'info', IRON: 'info', HAIR_DRYER: 'info',
-  PARKING: 'warning', POOL: 'warning', JACUZZI: 'warning', GARDEN_TERRACE: 'warning', BARBECUE: 'warning',
-  SAFE: 'secondary', BABY_BED: 'secondary', HIGH_CHAIR: 'secondary',
-};
-
-export function getAmenityColor(amenity: string): AmenityChipColor {
-  return AMENITY_CATEGORY_MAP[amenity] || 'default';
-}
-
 // ─── Duration estimation (lightweight version for cards) ─────────────────────
 
 export function estimateCleaningDuration(p: PropertyDetails): number | null {

@@ -21,7 +21,7 @@ import { formatFieldValue, toList } from './formatters';
 // ─── Primitives .fr-* (référence « Messagerie Formulaires », section B) ──────
 
 /** .fr-sec — overline + filet. */
-export function FrSection({ title }: { title: string }) {
+function FrSection({ title }: { title: string }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: '9px', m: '26px 0 14px' }}>
       <Typography component="span" sx={{

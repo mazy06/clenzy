@@ -10,7 +10,7 @@ import React from 'react';
  *
  * Deux formes :
  *   - `EmailMarkdownPreview` : composant React (nœuds, aucune injection HTML) — pour l'UI.
- *   - `renderEmailMarkdown` : chaîne HTML (entrée échappée) — pour les iframes `srcDoc`.
+ *   - `renderServerEmailPreview` : chaîne HTML — pour les iframes `srcDoc`.
  */
 
 const INLINE_TOKEN = /(\*\*[^*\n]+?\*\*|\*[^*\n]+?\*|_[^_\n]+?_)/g;
@@ -101,11 +101,6 @@ function escapeHtml(text: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
-}
-
-/** Convertit le corps plain text + mini-markdown en HTML (entrée échappée) pour un iframe. */
-export function renderEmailMarkdown(text: string): string {
-  return renderMarkdownInternal(text, true);
 }
 
 /**

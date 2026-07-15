@@ -37,27 +37,6 @@ export const SEARCH_BAR_WIDGETS: SearchWidgetSpec[] = [
 
 const ORDER = SEARCH_BAR_WIDGETS.map((w) => w.id);
 const REQUIRED_ID = 'booking-search-button';
-const CRITERION_IDS = SEARCH_BAR_WIDGETS.filter((w) => w.isCriterion).map((w) => w.id);
-
-export interface SearchBarWarning {
-  message: string;
-}
-
-/** Valide une barre de recherche (Standard). `[]` = valide. Non bloquant côté canvas, bloquant à l'insert. */
-export function validateSearchBar(ids: string[]): SearchBarWarning[] {
-  const out: SearchBarWarning[] = [];
-  if (!ids.includes(REQUIRED_ID)) {
-    out.push({ message: 'Ajoutez un Bouton Rechercher (le déclencheur de la recherche).' });
-  }
-  if (!ids.some((id) => CRITERION_IDS.includes(id))) {
-    out.push({ message: 'Ajoutez au moins un critère : Recherche ville, Dates ou Type de logement.' });
-  }
-  const dups = ids.filter((id, i) => ids.indexOf(id) !== i);
-  for (const id of [...new Set(dups)]) {
-    out.push({ message: `« ${widgetLabel(id)} » est en double — un widget au plus une fois.` });
-  }
-  return out;
-}
 
 /** Trie une sélection selon l'ordre canonique (critères → options → bouton en dernier). */
 export function orderSearchWidgets(ids: string[]): string[] {

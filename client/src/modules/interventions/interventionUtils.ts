@@ -1,11 +1,7 @@
 // Re-export shared utilities for backward compatibility
 export {
-  getInterventionStatusColor as getStatusColor,
   getInterventionStatusLabel as getStatusLabel,
-  getInterventionStatusHex as getStatusHex,
-  getInterventionPriorityColor as getPriorityColor,
   getInterventionPriorityLabel as getPriorityLabel,
-  getInterventionPriorityHex as getPriorityHex,
   getInterventionTypeLabel as getTypeLabel,
   getInterventionTypeHex as getTypeHex,
 } from '../../utils/statusUtils';

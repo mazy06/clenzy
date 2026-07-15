@@ -113,11 +113,3 @@ export const STATUS_TOKENS: Record<DeviceStatusLevel, { color: string; soft: str
   offline: { color: 'var(--muted)', soft: 'var(--hover)' },
   unknown: { color: 'var(--muted)', soft: 'var(--hover)' },
 };
-
-export const STATUS_LABELS: Record<DeviceStatusLevel, string> = {
-  ok: 'En ligne',
-  warning: 'Attention',
-  critical: 'Alerte',
-  offline: 'Hors ligne',
-  unknown: 'Inconnu',
-};
