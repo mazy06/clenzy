@@ -465,6 +465,7 @@ const TemplateDetails: React.FC = () => {
                   <iframe
                     title="Aperçu PDF du template"
                     src={previewUrl}
+                    sandbox="allow-same-origin"
                     style={{ width: '100%', height: '100%', border: 0 }}
                   />
                 ) : !previewLoading && (
