@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { propertiesApi, interventionsApi } from '../services/api';
+import { propertiesApi } from '../services/api/propertiesApi';
+import { interventionsApi } from '../services/api/interventionsApi';
 import { serviceRequestsApi } from '../services/api/serviceRequestsApi';
 import type { ServiceRequest } from '../services/api/serviceRequestsApi';
 import type { Property } from '../services/api/propertiesApi';

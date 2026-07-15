@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
 import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../hooks/useAuth';
-import { propertiesApi, managersApi, reservationsApi, serviceRequestsApi } from '../../../services/api';
+import { propertiesApi } from '../../../services/api/propertiesApi';
+import { managersApi } from '../../../services/api/portfoliosApi';
+import { reservationsApi } from '../../../services/api/reservationsApi';
+import { serviceRequestsApi } from '../../../services/api/serviceRequestsApi';
 import { calendarPricingApi } from '../../../services/api/calendarPricingApi';
 import type { CalendarBlockedDay } from '../../../services/api/calendarPricingApi';
 import type { Property, Reservation, ReservationStatus, PlanningIntervention, PlanningServiceRequest } from '../../../services/api';

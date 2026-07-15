@@ -5,7 +5,8 @@ import { Settings2 } from 'lucide-react';
 import OAuthProviderCard, { type OAuthApiAdapter } from './OAuthProviderCard';
 import TuyaProjectConfigDialog from './TuyaProjectConfigDialog';
 import NetatmoProjectConfigDialog from './NetatmoProjectConfigDialog';
-import { tuyaApi, minutApi, netatmoApi } from '../../../services/api';
+import { tuyaApi, minutApi } from '../../../services/api/noiseApi';
+import { netatmoApi } from '../../../services/api/netatmoApi';
 
 /**
  * Section « Objets connectés (IoT) » de l'onglet Intégrations : connexion des comptes

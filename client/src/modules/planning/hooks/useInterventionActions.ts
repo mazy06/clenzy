@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { reservationsApi, interventionsApi } from '../../../services/api';
+import { reservationsApi } from '../../../services/api/reservationsApi';
+import { interventionsApi } from '../../../services/api/interventionsApi';
 import type { PlanningIntervention } from '../../../services/api';
 import type { PlanningEvent } from '../types';
 import { planningKeys } from './usePlanningData';

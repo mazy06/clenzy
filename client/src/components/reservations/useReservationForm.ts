@@ -2,7 +2,10 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
-import { reservationsApi, guestsApi, propertiesApi, calendarPricingApi } from '../../services/api';
+import { reservationsApi } from '../../services/api/reservationsApi';
+import { guestsApi } from '../../services/api/guestsApi';
+import { propertiesApi } from '../../services/api/propertiesApi';
+import { calendarPricingApi } from '../../services/api/calendarPricingApi';
 import { touristTaxApi } from '../../services/api/touristTaxApi';
 import type {
   Reservation,

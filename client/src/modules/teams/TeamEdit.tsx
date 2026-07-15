@@ -37,7 +37,8 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import { teamsApi, usersApi } from '../../services/api';
+import { teamsApi } from '../../services/api/teamsApi';
+import { usersApi } from '../../services/api/usersApi';
 import type { CoverageZone, TeamFormData as ApiTeamFormData } from '../../services/api/teamsApi';
 import type { User } from '../../services/api/usersApi';
 import { extractApiList } from '../../types';

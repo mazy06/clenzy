@@ -1,7 +1,9 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
-import { propertiesApi, managersApi, reservationsApi } from '../services/api';
+import { propertiesApi } from '../services/api/propertiesApi';
+import { managersApi } from '../services/api/portfoliosApi';
+import { reservationsApi } from '../services/api/reservationsApi';
 import type { Property, Reservation, ReservationStatus, PlanningIntervention, PlanningInterventionType } from '../services/api';
 
 // ─── Types ───────────────────────────────────────────────────────────────────

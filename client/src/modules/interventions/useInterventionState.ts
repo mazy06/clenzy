@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import { interventionsApi, propertiesApi } from '../../services/api';
+import { interventionsApi } from '../../services/api/interventionsApi';
+import { propertiesApi } from '../../services/api/propertiesApi';
 import { interventionsKeys } from './useInterventionsList';
 import {
   InterventionDetailsData,

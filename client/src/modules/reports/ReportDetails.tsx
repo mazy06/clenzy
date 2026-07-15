@@ -64,16 +64,14 @@ import PageHeader from '../../components/PageHeader';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 import PeriodSegmented from './PeriodSegmented';
 import DashboardErrorBoundary from '../dashboard/DashboardErrorBoundary';
-import {
-  AnalyticsGlobalPerformance,
-  AnalyticsRevenue,
-  AnalyticsAlerts,
-  AnalyticsRecommendations,
-  AnalyticsOccupancy,
-  AnalyticsClientAnalysis,
-  AnalyticsPropertyPerformance,
-  AnalyticsBenchmark,
-} from '../dashboard/analytics';
+import AnalyticsGlobalPerformance from '../dashboard/analytics/AnalyticsGlobalPerformance';
+import AnalyticsRevenue from '../dashboard/analytics/AnalyticsRevenue';
+import AnalyticsAlerts from '../dashboard/analytics/AnalyticsAlerts';
+import AnalyticsRecommendations from '../dashboard/analytics/AnalyticsRecommendations';
+import AnalyticsOccupancy from '../dashboard/analytics/AnalyticsOccupancy';
+import AnalyticsClientAnalysis from '../dashboard/analytics/AnalyticsClientAnalysis';
+import AnalyticsPropertyPerformance from '../dashboard/analytics/AnalyticsPropertyPerformance';
+import AnalyticsBenchmark from '../dashboard/analytics/AnalyticsBenchmark';
 import AnalyticsWidgetCard from '../dashboard/analytics/AnalyticsWidgetCard';
 import { Money } from '../../components/Money';
 import type { DashboardPeriod, DateFilterOption } from '../dashboard/DashboardDateFilter';

@@ -11,7 +11,11 @@ import {
 import { ArrowBack } from "../../icons";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { serviceRequestsApi, propertiesApi, usersApi, teamsApi, reservationsApi } from '../../services/api';
+import { serviceRequestsApi } from '../../services/api/serviceRequestsApi';
+import { propertiesApi } from '../../services/api/propertiesApi';
+import { usersApi } from '../../services/api/usersApi';
+import { teamsApi } from '../../services/api/teamsApi';
+import { reservationsApi } from '../../services/api/reservationsApi';
 import type { Reservation } from '../../services/api';
 import apiClient from '../../services/apiClient';
 import { useTranslation } from '../../hooks/useTranslation';
