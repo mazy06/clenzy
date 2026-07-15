@@ -45,7 +45,7 @@ import type { ForfaitConfig, ServicePriceConfig } from '../../../services/api/pr
 import { technicianPrestationsApi } from '../../../services/api/technicianPrestationsApi';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { serviceRequestSchema } from '../../../schemas';
+import { serviceRequestSchema } from '../../../schemas/serviceRequestSchema';
 import type { ServiceRequestFormValues } from '../../../schemas';
 import { INTERVENTION_TYPE_OPTIONS } from '../../../types/interventionTypes';
 import { computeEstimatedDuration, formatDuration, computeRangeFromForfait } from '../../service-requests/ServiceRequestPriceEstimate';

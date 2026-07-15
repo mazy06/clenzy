@@ -40,7 +40,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { usersApi, type UserFormData as ApiUserFormData } from '../../services/api/usersApi';
 import { organizationsApi, type OrganizationDto } from '../../services/api/organizationsApi';
 import { UserStatus, USER_STATUS_OPTIONS } from '../../types/statusEnums';
-import { userSchema } from '../../schemas';
+import { userSchema } from '../../schemas/userSchema';
 import PageHeader from '../../components/PageHeader';
 
 // Keep exported interface for backward compatibility

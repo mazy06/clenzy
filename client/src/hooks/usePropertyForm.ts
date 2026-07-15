@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { propertiesApi } from '../services/api/propertiesApi';
 import { usersApi } from '../services/api/usersApi';
 import type { Property } from '../services/api';
-import { propertySchema } from '../schemas';
+import { propertySchema } from '../schemas/propertySchema';
 import type { PropertyFormValues } from '../schemas';
 import { extractApiList } from '../types';
 import { propertyDetailsKeys } from './usePropertyDetails';

@@ -36,7 +36,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { contactApi } from '../../services/api/contactApi';
 import apiClient from '../../services/apiClient';
 import { useTranslation } from '../../hooks/useTranslation';
-import { contactSchema } from '../../schemas';
+import { contactSchema } from '../../schemas/contactSchema';
 import type { ContactFormValues } from '../../schemas';
 import PageHeader from '../../components/PageHeader';
 import ContactTemplates from './ContactTemplates';

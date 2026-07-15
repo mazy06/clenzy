@@ -43,7 +43,7 @@ import type { TeamFormData as ApiTeamFormData } from '../../services/api/teamsAp
 import { extractApiList } from '../../types';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
-import { teamSchema, type TeamFormValues, type TeamFormInput } from '../../schemas';
+import { teamSchema, type TeamFormValues, type TeamFormInput } from '../../schemas/teamSchema';
 import { teamsKeys } from './useTeamsList';
 import { FRENCH_DEPARTMENTS, getArrondissementsForDepartment, hasArrondissements } from '../../data/frenchDepartments';
 import { COVERAGE_COUNTRIES, getCitiesForCountry } from '../../data/coverageCountries';

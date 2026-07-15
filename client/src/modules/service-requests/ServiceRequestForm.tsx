@@ -23,7 +23,7 @@ import { pricingConfigApi } from '../../services/api/pricingConfigApi';
 import type { ForfaitConfig } from '../../services/api/pricingConfigApi';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { serviceRequestSchema } from '../../schemas';
+import { serviceRequestSchema } from '../../schemas/serviceRequestSchema';
 import type { ServiceRequestFormValues } from '../../schemas';
 
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
