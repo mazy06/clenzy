@@ -88,7 +88,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
     staleTime: 30_000,
   });
 
-  const interventions = interventionsQuery.data ?? [];
+  const interventions = useMemo(() => interventionsQuery.data ?? [], [interventionsQuery.data]);
 
   // Count interventions per member
   const memberInterventionCounts = useMemo(() => {

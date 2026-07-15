@@ -70,7 +70,7 @@ export function useTeamsList() {
     staleTime: 30_000,
   });
 
-  const teams = teamsQuery.data ?? [];
+  const teams = useMemo(() => teamsQuery.data ?? [], [teamsQuery.data]);
   const loading = teamsQuery.isLoading;
   const error = teamsQuery.isError
     ? ((teamsQuery.error as { status?: number })?.status === 401

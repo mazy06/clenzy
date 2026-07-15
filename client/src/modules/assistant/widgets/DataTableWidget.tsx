@@ -32,7 +32,7 @@ interface DataTableWidgetProps {
  * lignes au filet `--line`, hover `--hover`, valeurs 12.5px tabular-nums.</p>
  */
 export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName }) => {
-  const items = data.items ?? [];
+  const items = useMemo(() => data.items ?? [], [data.items]);
   const MAX_ROWS = 8;
   const visibleItems = items.slice(0, MAX_ROWS);
   const hiddenCount = Math.max(

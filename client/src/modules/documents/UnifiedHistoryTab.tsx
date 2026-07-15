@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import {
   Box,
   Button,
@@ -176,7 +176,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
   const { data: docData, isLoading: docsLoading, refetch: refetchDocs } = useGenerations(docPage, docSize);
   const verifyMutation = useVerifyDocumentIntegrity();
 
-  const generations = docData?.content ?? [];
+  const generations = useMemo(() => docData?.content ?? [], [docData?.content]);
   const docTotalElements = docData?.totalElements ?? 0;
 
   // Deep-link notification : surligne la ligne ciblee (?highlight=<generationId>)

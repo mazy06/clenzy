@@ -121,7 +121,7 @@ const InterventionsPendingPayment: React.FC = () => {
     staleTime: 30_000,
   });
 
-  const interventions = interventionsQuery.data ?? [];
+  const interventions = useMemo(() => interventionsQuery.data ?? [], [interventionsQuery.data]);
   const loading = interventionsQuery.isLoading;
 
   const loadInterventions = () => {

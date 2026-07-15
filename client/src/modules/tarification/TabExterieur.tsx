@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -36,7 +36,7 @@ export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol
   const { t } = useTranslation();
   const { currency } = useCurrency();
 
-  const items = config.exterieurConfig || [];
+  const items = useMemo(() => config.exterieurConfig || [], [config.exterieurConfig]);
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newItemName, setNewItemName] = useState('');

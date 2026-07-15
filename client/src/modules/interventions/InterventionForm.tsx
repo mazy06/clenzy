@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -186,8 +186,8 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
     staleTime: 30_000,
   });
 
-  const properties = propertiesQuery.data ?? [];
-  const users = usersQuery.data ?? [];
+  const properties = useMemo(() => propertiesQuery.data ?? [], [propertiesQuery.data]);
+  const users = useMemo(() => usersQuery.data ?? [], [usersQuery.data]);
   const teams = teamsQuery.data ?? [];
   const isLoading = propertiesQuery.isLoading || usersQuery.isLoading || teamsQuery.isLoading || (isEditMode && interventionQuery.isLoading);
 

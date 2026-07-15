@@ -254,7 +254,7 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
     staleTime: 2 * 60 * 1000,
   });
 
-  const properties = propertiesQuery.data ?? [];
+  const properties = useMemo(() => propertiesQuery.data ?? [], [propertiesQuery.data]);
   const propertyIds = useMemo(() => properties.map((p) => p.id), [properties]);
 
   // Query 2: Reservations for current date range

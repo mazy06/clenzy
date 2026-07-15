@@ -122,7 +122,7 @@ export function useInterventionsList() {
     staleTime: 30_000,
   });
 
-  const interventions = interventionsQuery.data ?? [];
+  const interventions = useMemo(() => interventionsQuery.data ?? [], [interventionsQuery.data]);
   const loading = interventionsQuery.isLoading;
   const error = interventionsQuery.isError
     ? ((interventionsQuery.error as { status?: number; message?: string })?.status === 401
