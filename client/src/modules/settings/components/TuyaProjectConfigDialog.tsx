@@ -14,7 +14,7 @@ import {
   Typography,
 } from '@mui/material';
 import { KeyRound } from 'lucide-react';
-import { tuyaApi, type TuyaConfigStatus } from '../../../services/api';
+import { tuyaApi, type TuyaConfigStatus } from '../../../services/api/noiseApi';
 
 /**
  * Dialog de configuration du <b>projet Tuya Cloud</b> (credentials plateforme) : Access ID + Access

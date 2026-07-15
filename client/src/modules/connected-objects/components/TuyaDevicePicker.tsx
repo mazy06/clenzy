@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Box, TextField, MenuItem, Alert, CircularProgress, Typography } from '@mui/material';
-import { tuyaApi } from '../../../services/api';
+import { tuyaApi } from '../../../services/api/noiseApi';
 import DevicePairingGuide from './DevicePairingGuide';
 
 interface TuyaDevicePickerProps {

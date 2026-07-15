@@ -28,7 +28,7 @@ import DashboardDateFilter from './DashboardDateFilter';
 import DashboardErrorBoundary from './DashboardErrorBoundary';
 import DashboardOverview from './DashboardOverview';
 import UpgradeBanner from './UpgradeBanner';
-import { AnalyticsSimulator } from './analytics';
+import AnalyticsSimulator from './analytics/AnalyticsSimulator';
 import { getVisibleTabs } from '../../config/dashboardConfig';
 import ChannexMappingDialog from '../settings/components/ChannexMappingDialog';
 import type { DashboardPeriod, DateFilterOption } from './DashboardDateFilter';

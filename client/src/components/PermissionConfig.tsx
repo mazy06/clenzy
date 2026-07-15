@@ -52,7 +52,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useRolePermissions } from '../hooks/useRolePermissions';
 import { usePermissionRefresh } from '../hooks/usePermissionRefresh';
 import PermissionEffectsDemo from './PermissionEffectsDemo';
-import { permissionsApi } from '../services/api';
+import { permissionsApi } from '../services/api/permissionsApi';
 
 // ─── Role tabs config ────────────────────────────────────────────────────────
 

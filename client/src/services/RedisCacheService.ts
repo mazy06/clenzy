@@ -1,4 +1,4 @@
-import { permissionsApi } from './api';
+import { permissionsApi } from './api/permissionsApi';
 
 export class RedisCacheService {
   private static instance: RedisCacheService;

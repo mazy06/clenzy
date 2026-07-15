@@ -6,7 +6,7 @@ import type { Control, UseFormSetValue } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
 import { Money } from '../../components/Money';
-import { propertiesApi } from '../../services/api';
+import { propertiesApi } from '../../services/api/propertiesApi';
 import type { CleaningPreviewInputs, CleaningPreviewResponse } from '../../services/api/propertiesApi';
 import type { PropertyFormValues } from '../../schemas';
 

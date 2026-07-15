@@ -1,4 +1,4 @@
-import { permissionsApi } from './api';
+import { permissionsApi } from './api/permissionsApi';
 
 export interface PermissionUpdate {
   userId: string;

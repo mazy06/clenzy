@@ -3,7 +3,7 @@ import {
   Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Link, TextField, Typography,
 } from '@mui/material';
 import { KeyRound } from 'lucide-react';
-import { netatmoApi, type NetatmoConfigStatus } from '../../../services/api';
+import { netatmoApi, type NetatmoConfigStatus } from '../../../services/api/netatmoApi';
 
 /**
  * Dialog de configuration de l'<b>app Netatmo</b> (credentials OAuth plateforme) : Client ID +

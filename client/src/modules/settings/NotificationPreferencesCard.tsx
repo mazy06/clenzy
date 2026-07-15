@@ -31,7 +31,7 @@ import {
   Home,
   Email,
 } from '../../icons';
-import { notificationPreferencesApi, type NotificationPreferencesMap } from '../../services/api';
+import { notificationPreferencesApi, type NotificationPreferencesMap } from '../../services/api/notificationPreferencesApi';
 
 // ─── Constantes: groupement des cles par categorie ────────────────────────────
 

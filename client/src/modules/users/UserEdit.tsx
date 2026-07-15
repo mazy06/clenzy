@@ -29,7 +29,7 @@ import {
 } from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { usersApi, type User, type UserFormData } from '../../services/api';
+import { usersApi, type User, type UserFormData } from '../../services/api/usersApi';
 import { organizationsApi, OrganizationDto } from '../../services/api/organizationsApi';
 import PageHeader from '../../components/PageHeader';
 import type { ChipColor } from '../../types';

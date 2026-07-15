@@ -19,7 +19,7 @@ import {
 import { ExpandMore, Timer, Euro, CleaningServices, Speed, CalendarMonth, AutoAwesome, Add, Close } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
-import { propertiesApi } from '../../services/api';
+import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property, CleaningPreviewResponse, CleaningEstimateDetail } from '../../services/api/propertiesApi';
 import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';

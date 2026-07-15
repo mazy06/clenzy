@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { permissionsApi } from '../services/api';
+import { permissionsApi } from '../services/api/permissionsApi';
 
 export const usePermissionRefresh = () => {
   // Fonction pour rafraîchir les permissions d'un utilisateur

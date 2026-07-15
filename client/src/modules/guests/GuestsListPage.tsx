@@ -20,7 +20,7 @@ import {
   People as PeopleIcon,
 } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
-import { guestsApi } from '../../services/api';
+import { guestsApi } from '../../services/api/guestsApi';
 import type { GuestListDto } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';

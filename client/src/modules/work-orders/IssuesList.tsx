@@ -28,7 +28,7 @@ import { Add, OpenInNew, Refresh, ReportProblem } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { MANAGER_ROLES } from '../../constants/roles';
-import { propertiesApi } from '../../services/api';
+import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property } from '../../services/api/propertiesApi';
 import { extractApiList } from '../../types';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';

@@ -11,7 +11,7 @@ import { useConnectedObjects } from './useConnectedObjects';
 import { DEVICE_KINDS, DEVICE_KIND_ORDER } from './deviceRegistry';
 import DeviceCard from './components/DeviceCard';
 import AddDeviceWizard from './components/AddDeviceWizard';
-import { netatmoApi } from '../../services/api';
+import { netatmoApi } from '../../services/api/netatmoApi';
 import type { DeviceAction, DeviceKind } from './types';
 
 const GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))', gap: 1 } as const;

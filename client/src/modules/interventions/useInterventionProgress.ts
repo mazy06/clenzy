@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAccessToken } from '../../keycloak';
-import { interventionsApi } from '../../services/api';
+import { interventionsApi } from '../../services/api/interventionsApi';
 import { buildApiUrl } from '../../config/api';
 import { interventionsKeys } from './useInterventionsList';
 import {

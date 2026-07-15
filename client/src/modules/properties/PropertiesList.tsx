@@ -19,7 +19,7 @@ import ChannexFullDisconnectDialog from '../settings/components/ChannexFullDisco
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
 import { usePropertiesList, propertiesListKeys } from '../../hooks/usePropertiesList';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
-import { propertiesApi } from '../../services/api';
+import { propertiesApi } from '../../services/api/propertiesApi';
 import { useContractedPropertyIds } from '../../hooks/useContractedPropertyIds';
 import ManagementContractFormModal from '../contracts/ManagementContractFormModal';
 import { ICON_BUTTON_SX, ITEMS_PER_PAGE, LIST_DEFAULT_ROWS } from './propertiesListConstants';

@@ -9,7 +9,7 @@ import {
   Snackbar,
 } from '@mui/material';
 import { Mail } from '../../icons';
-import { usersApi } from '../../services/api';
+import { usersApi } from '../../services/api/usersApi';
 
 /**
  * Card de gestion des preferences marketing — actuellement uniquement l'opt-in

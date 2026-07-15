@@ -10,7 +10,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { interventionSchema, type InterventionFormValues } from '../../schemas';
+import { interventionSchema, type InterventionFormValues } from '../../schemas/interventionSchema';
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi, propertiesApi, usersApi, teamsApi } from '../../services/api';
 import apiClient from '../../services/apiClient';

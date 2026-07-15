@@ -11,7 +11,7 @@ import {
   LinearProgress,
 } from '@mui/material';
 import { CheckCircle, ArrowBack, HourglassTop, ErrorOutline } from "../../icons";
-import { paymentsApi } from '../../services/api';
+import { paymentsApi } from '../../services/api/paymentsApi';
 import { useTranslation } from '../../hooks/useTranslation';
 
 const MAX_ATTEMPTS = 5;

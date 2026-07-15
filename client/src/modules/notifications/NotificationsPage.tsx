@@ -23,7 +23,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAsync } from '../../hooks/useAsync';
-import { notificationsApi } from '../../services/api';
+import { notificationsApi } from '../../services/api/notificationsApi';
 import type { Notification } from '../../services/api';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';

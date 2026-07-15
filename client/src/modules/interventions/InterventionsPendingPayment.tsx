@@ -27,7 +27,7 @@ import {
 } from '../../icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import { interventionsApi } from '../../services/api';
+import { interventionsApi } from '../../services/api/interventionsApi';
 import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';

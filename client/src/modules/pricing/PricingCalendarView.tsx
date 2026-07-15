@@ -12,7 +12,7 @@ import { ChevronRight as ChevronRightIcon } from '../../icons';
 import { CalendarMonth as CalendarMonthIcon, NightsStay } from '../../icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
-import { calendarPricingApi } from '../../services/api';
+import { calendarPricingApi } from '../../services/api/calendarPricingApi';
 import type { CalendarPricingDay } from '../../services/api/calendarPricingApi';
 import { minNightsKeys } from '../planning/hooks/usePlanningMinNights';
 import EmptyState from '../../components/EmptyState';

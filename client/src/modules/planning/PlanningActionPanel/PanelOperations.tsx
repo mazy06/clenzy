@@ -60,7 +60,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PlanningEvent } from '../types';
 import { INTERVENTION_TYPE_TOKEN_COLORS } from '../constants';
 import type { PlanningIntervention } from '../../../services/api';
-import { managersApi } from '../../../services/api';
+import { managersApi } from '../../../services/api/portfoliosApi';
 import type { PortfolioTeam, OperationalUser } from '../../../services/api';
 import { interventionsApi } from '../../../services/api/interventionsApi';
 import { Money } from '../../../components/Money';

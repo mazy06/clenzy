@@ -1,6 +1,6 @@
 import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { interventionsApi } from '../../services/api';
+import { interventionsApi } from '../../services/api/interventionsApi';
 import { interventionsKeys } from './useInterventionsList';
 import {
   InterventionDetailsData,

@@ -59,7 +59,7 @@ import FilterSearchBar from '../../components/FilterSearchBar';
 import ExportButton from '../../components/ExportButton';
 import StatTile from '../../components/StatTile';
 import EmptyState from '../../components/EmptyState';
-import { usersApi, type UserFormData } from '../../services/api';
+import { usersApi, type UserFormData } from '../../services/api/usersApi';
 import { userAvatarSrc } from '../../services/api/usersApi';
 import { extractApiList } from '../../types';
 import apiClient from '../../services/apiClient';

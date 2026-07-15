@@ -27,7 +27,7 @@ import {
   Chat,
 } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
-import { propertiesApi } from '../../services/api';
+import { propertiesApi } from '../../services/api/propertiesApi';
 import { extractApiList } from '../../types';
 import type { Property } from '../../services/api/propertiesApi';
 import {

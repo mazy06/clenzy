@@ -27,7 +27,7 @@ import PageHeader from '../../components/PageHeader';
 import CalendarEventDialog from './CalendarEventDialog';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
-import { interventionsApi, Intervention } from '../../services/api';
+import { interventionsApi, Intervention } from '../../services/api/interventionsApi';
 import { extractApiList } from '../../types';
 import type { ApiError } from '../../services/apiClient';
 import {

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { permissionsApi } from '../services/api';
+import { permissionsApi } from '../services/api/permissionsApi';
 import type { ApiError } from '../services/apiClient';
 import PermissionSyncService from '../services/PermissionSyncService';
 

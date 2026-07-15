@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { propertiesApi } from '../services/api';
+import { propertiesApi } from '../services/api/propertiesApi';
 import type { Property as ApiProperty } from '../services/api/propertiesApi';
 import { extractApiList } from '../types';
 

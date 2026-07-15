@@ -33,7 +33,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
 import { useAuth } from '../../hooks/useAuth';
-import { contactApi } from '../../services/api';
+import { contactApi } from '../../services/api/contactApi';
 import apiClient from '../../services/apiClient';
 import { useTranslation } from '../../hooks/useTranslation';
 import { contactSchema } from '../../schemas';

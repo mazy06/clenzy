@@ -14,7 +14,7 @@ import {
 } from '../../icons';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
-import { interventionsApi } from '../../services/api';
+import { interventionsApi } from '../../services/api/interventionsApi';
 import type { Intervention } from '../../services/api';
 import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';

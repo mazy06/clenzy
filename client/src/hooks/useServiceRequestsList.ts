@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { serviceRequestsApi } from '../services/api';
+import { serviceRequestsApi } from '../services/api/serviceRequestsApi';
 import type { ServiceRequestApiResponse, ServiceRequest } from '../modules/service-requests/serviceRequestsUtils';
 
 // ============================================================================

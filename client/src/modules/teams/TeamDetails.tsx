@@ -19,7 +19,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import { teamsApi } from '../../services/api';
+import { teamsApi } from '../../services/api/teamsApi';
 import type { TeamMember } from '../../services/api';
 import PageHeader from '../../components/PageHeader';
 import TeamWorkloadCard from './TeamWorkloadCard';

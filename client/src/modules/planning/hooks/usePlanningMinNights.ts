@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQueries } from '@tanstack/react-query';
-import { calendarPricingApi } from '../../../services/api';
+import { calendarPricingApi } from '../../../services/api/calendarPricingApi';
 import type { MinNightsOverride } from '../../../services/api';
 import { getOverlappingChunks, toDateStr } from '../utils/dateUtils';
 import { DATA_CHUNK_SIZE_DAYS } from '../constants';
