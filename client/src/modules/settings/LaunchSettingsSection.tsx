@@ -57,12 +57,16 @@ const LaunchSettingsSection: React.FC = () => {
             onChange={(c) => setDevisToWaitlist.mutate(c)}
             disabled={setDevisToWaitlist.isPending}
           />
+          {/* key = valeur serveur : remount (etat frais) quand le backend renvoie
+              une nouvelle valeur — remplace les anciens effets de resync miroir. */}
           <InternalNotificationEmailsRow
+            key={(settings?.internalNotificationEmails ?? ['info@clenzy.fr']).join('|')}
             value={settings?.internalNotificationEmails ?? ['info@clenzy.fr']}
             onSave={(emails) => setInternalEmails.mutate(emails)}
             saving={setInternalEmails.isPending}
           />
           <SenderEmailRow
+            key={`${settings?.senderEmail ?? 'info@clenzy.fr'}|${settings?.senderName ?? 'Baitly'}`}
             email={settings?.senderEmail ?? 'info@clenzy.fr'}
             name={settings?.senderName ?? 'Baitly'}
             onSave={(email, name) => setSender.mutate({ email, name })}

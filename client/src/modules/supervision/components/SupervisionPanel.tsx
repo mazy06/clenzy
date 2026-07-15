@@ -53,9 +53,15 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
   const rootRef = useRef<HTMLDivElement | null>(null);
   // Bilan de valeur (org-scopé) affiché dans le HUD. La fenêtre suit le zoom du
   // planning par défaut, avec un sélecteur HUD (dont « Jour ») qui l'affine ; un
-  // changement de zoom re-synchronise (le zoom reste le maître).
-  const [reportWindow, setReportWindow] = useState(reportWindowDays);
-  useEffect(() => setReportWindow(reportWindowDays), [reportWindowDays]);
+  // changement de zoom re-synchronise (le zoom reste le maître). L'affinage HUD
+  // est stocké AVEC la fenêtre zoom pour laquelle il a été choisi : il s'évince
+  // de lui-même quand le zoom change (dérivation — pas d'effet de resync).
+  const [hudWindow, setHudWindow] = useState<{ forZoom: number; value: number } | null>(null);
+  const reportWindow = hudWindow?.forZoom === reportWindowDays ? hudWindow.value : reportWindowDays;
+  const handleReportWindowChange = useCallback(
+    (value: number) => setHudWindow({ forZoom: reportWindowDays, value }),
+    [reportWindowDays],
+  );
   const { report } = useSupervisionReport(reportWindow);
   const [selected, setSelected] = useState<AgentId | null>(null);
   const { toasts, markInFlight, onResolved } = useResolutionToasts();
@@ -253,7 +259,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
         onSelectAgent={handleSelect}
         report={hudReport}
         reportWindow={reportWindow}
-        onReportWindowChange={setReportWindow}
+        onReportWindowChange={handleReportWindowChange}
         headerAction={headerAction}
         belowHud={belowHud}
       />

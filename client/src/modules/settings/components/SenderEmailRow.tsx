@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Box, Button, TextField, Typography } from '@mui/material';
 import { Info, Send } from 'lucide-react';
 
@@ -19,11 +19,10 @@ interface Props {
  * authentifié dans Brevo (sinon spam / soft bounce).
  */
 const SenderEmailRow: React.FC<Props> = ({ email, name, onSave, saving }) => {
+  // Copies editables initialisees depuis les props ; le resync backend passe par
+  // le remount via `key` chez le parent (LaunchSettingsSection) — plus d'effet miroir.
   const [localEmail, setLocalEmail] = useState(email);
   const [localName, setLocalName] = useState(name);
-
-  useEffect(() => { setLocalEmail(email); }, [email]);
-  useEffect(() => { setLocalName(name); }, [name]);
 
   const emailValid = EMAIL_RE.test(localEmail.trim());
   const dirty = localEmail.trim() !== email.trim() || localName.trim() !== name.trim();

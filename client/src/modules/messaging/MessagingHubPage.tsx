@@ -230,6 +230,9 @@ export default function MessagingHubPage() {
             />
           ) : selected?.kind === 'internal' && selected.thread ? (
             <InternalThread
+              // key = correspondant : remount au changement de thread (etat frais
+              // draft/attachments) — remplace l'ancien effet de reset interne.
+              key={selected.thread.counterpartKeycloakId}
               thread={selected.thread}
               onArchived={() => setSelectedKey(null)}
               showBack={isMobile}
