@@ -38,11 +38,18 @@ public class VoyageEmbeddingProvider implements EmbeddingProvider {
     static final String DEFAULT_MODEL = "voyage-3-large";
     static final String DEFAULT_BASE_URL = "https://api.voyageai.com";
     private static final int BATCH_SIZE = 128;
+    /**
+     * Sous-batch en mode ralenti (tier gratuit Voyage : 10K tokens/minute — un
+     * batch de 128 chunks × ~500 tokens ne passerait jamais).
+     */
+    private static final int THROTTLED_BATCH_SIZE = 8;
 
     private final RestTemplate restTemplate;
+    private final VoyageRateThrottle rateThrottle;
 
-    public VoyageEmbeddingProvider(RestTemplate restTemplate) {
+    public VoyageEmbeddingProvider(RestTemplate restTemplate, VoyageRateThrottle rateThrottle) {
         this.restTemplate = restTemplate;
+        this.rateThrottle = rateThrottle;
     }
 
     @Override
@@ -73,8 +80,16 @@ public class VoyageEmbeddingProvider implements EmbeddingProvider {
 
         List<float[]> all = new ArrayList<>(texts.size());
         // L'API Voyage accepte jusqu'a ~128 inputs par requete — on sous-batch.
-        for (int i = 0; i < texts.size(); i += BATCH_SIZE) {
-            int end = Math.min(i + BATCH_SIZE, texts.size());
+        // En mode ralenti (429 recent), petits batchs pour tenir sous le TPM du
+        // tier gratuit ; le pas de boucle suit la taille effective.
+        int batchSize = kind == InputKind.DOCUMENT && rateThrottle.isThrottled()
+                ? THROTTLED_BATCH_SIZE : BATCH_SIZE;
+        for (int i = 0; i < texts.size(); i += batchSize) {
+            int end = Math.min(i + batchSize, texts.size());
+            if (kind == InputKind.DOCUMENT) {
+                // Chemin d'arriere-plan : respecte ~3 req/min quand throttle actif.
+                rateThrottle.awaitSlot();
+            }
             all.addAll(callApi(texts.subList(i, end), target.apiKey(), model, baseUrl,
                     target.dimensions(), kind));
         }
@@ -99,10 +114,19 @@ public class VoyageEmbeddingProvider implements EmbeddingProvider {
             int attempts = kind == InputKind.QUERY
                     ? AiHttpRetry.QUERY_ATTEMPTS : AiHttpRetry.INGESTION_ATTEMPTS;
             VoyageResponse response = AiHttpRetry.execute("Voyage embeddings", attempts,
-                    () -> restTemplate.postForObject(
-                            embeddingsEndpoint(baseUrl),
-                            new HttpEntity<>(body, headers),
-                            VoyageResponse.class));
+                    () -> {
+                        try {
+                            return restTemplate.postForObject(
+                                    embeddingsEndpoint(baseUrl),
+                                    new HttpEntity<>(body, headers),
+                                    VoyageResponse.class);
+                        } catch (RuntimeException e) {
+                            // Chaque 429 (meme retente avec succes ensuite) arme le
+                            // mode ralenti pour les appels de fond suivants.
+                            if (isRateLimit(e)) rateThrottle.onRateLimited();
+                            throw e;
+                        }
+                    });
             if (response == null || response.data == null) {
                 throw new EmbeddingException("Voyage API : reponse vide");
             }
@@ -123,6 +147,11 @@ public class VoyageEmbeddingProvider implements EmbeddingProvider {
                     batch.size(), e.getMessage());
             throw new EmbeddingException("Voyage embeddings : " + e.getMessage(), e);
         }
+    }
+
+    private static boolean isRateLimit(RuntimeException e) {
+        return e instanceof org.springframework.web.client.HttpStatusCodeException http
+                && http.getStatusCode().value() == 429;
     }
 
     /** baseUrl peut finir par "/v1" (convention catalogue chat) ou non — on normalise. */

@@ -44,12 +44,14 @@ public class VoyageRerankProvider implements RerankProvider {
 
     private final RestTemplate restTemplate;
     private final PlatformAiConfigService platformAiConfigService;
+    private final VoyageRateThrottle rateThrottle;
     private final String dedicatedApiKey;
     private final String dedicatedBaseUrl;
     private final String model;
 
     public VoyageRerankProvider(RestTemplate restTemplate,
                                   PlatformAiConfigService platformAiConfigService,
+                                  VoyageRateThrottle rateThrottle,
                                   @org.springframework.beans.factory.annotation.Value(
                                           "${clenzy.ai.rerank.voyage.api-key:}") String dedicatedApiKey,
                                   @org.springframework.beans.factory.annotation.Value(
@@ -58,6 +60,7 @@ public class VoyageRerankProvider implements RerankProvider {
                                           "${clenzy.ai.rerank.voyage.model:rerank-2-lite}") String model) {
         this.restTemplate = restTemplate;
         this.platformAiConfigService = platformAiConfigService;
+        this.rateThrottle = rateThrottle;
         this.dedicatedApiKey = dedicatedApiKey;
         this.dedicatedBaseUrl = dedicatedBaseUrl;
         this.model = (model == null || model.isBlank()) ? DEFAULT_MODEL : model;
@@ -94,6 +97,11 @@ public class VoyageRerankProvider implements RerankProvider {
     @Override
     public List<Integer> rerank(String query, List<String> documents, int topK) {
         if (documents == null || documents.isEmpty()) return List.of();
+        // Mode ralenti (429 recent) : chaque creneau ~3 req/min est reserve aux
+        // embeddings. Le rerank degrade proprement (ordre cosine conserve).
+        if (rateThrottle.isThrottled()) {
+            throw new RerankException("Rerank saute : API Voyage en mode ralenti (429 recent)");
+        }
         VoyageCreds creds = resolveCreds();
         if (creds == null) {
             throw new RerankException(
@@ -115,10 +123,20 @@ public class VoyageRerankProvider implements RerankProvider {
             // Le rerank est toujours sur le chemin d'un tour de chat : retry court.
             RerankResponse response = AiHttpRetry.execute("Voyage rerank",
                     AiHttpRetry.QUERY_ATTEMPTS,
-                    () -> restTemplate.postForObject(
-                            rerankEndpoint(creds.baseUrl()),
-                            new HttpEntity<>(body, headers),
-                            RerankResponse.class));
+                    () -> {
+                        try {
+                            return restTemplate.postForObject(
+                                    rerankEndpoint(creds.baseUrl()),
+                                    new HttpEntity<>(body, headers),
+                                    RerankResponse.class);
+                        } catch (RuntimeException e) {
+                            if (e instanceof org.springframework.web.client.HttpStatusCodeException http
+                                    && http.getStatusCode().value() == 429) {
+                                rateThrottle.onRateLimited();
+                            }
+                            throw e;
+                        }
+                    });
             if (response == null || response.data == null) {
                 throw new RerankException("Voyage rerank : reponse vide");
             }

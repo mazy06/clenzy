@@ -26,7 +26,7 @@ class KbRetrievalEvalServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new KbRetrievalEvalService(kbSearchService, embeddingService, new ObjectMapper());
+        service = new KbRetrievalEvalService(kbSearchService, embeddingService, new VoyageRateThrottle(), new ObjectMapper());
         when(embeddingService.isConfigured()).thenReturn(true);
     }
 
@@ -66,6 +66,38 @@ class KbRetrievalEvalServiceTest {
         when(embeddingService.isConfigured()).thenReturn(false);
         IllegalStateException ex = assertThrows(IllegalStateException.class, service::evaluate);
         assertTrue(ex.getMessage().contains("Embeddings"));
+    }
+
+    @Test
+    void start_runsAsync_andStatusReachesDoneWithReport() throws Exception {
+        when(kbSearchService.search(anyString(), isNull(), anyInt(), eq("fr")))
+                .thenReturn(List.of(hit("mauvais-doc.md")));
+
+        assertTrue(service.start());
+        // Un run est en cours → un second start est refuse (ou le run est deja fini)
+        var justAfter = service.status();
+        assertTrue(justAfter.state() == KbRetrievalEvalService.EvalStatus.State.RUNNING
+                || justAfter.state() == KbRetrievalEvalService.EvalStatus.State.DONE);
+
+        // Attente de fin (mock instantane, marge 5s)
+        long deadline = System.currentTimeMillis() + 5_000;
+        while (service.status().state() == KbRetrievalEvalService.EvalStatus.State.RUNNING
+                && System.currentTimeMillis() < deadline) {
+            Thread.sleep(50);
+        }
+
+        var done = service.status();
+        assertEquals(KbRetrievalEvalService.EvalStatus.State.DONE, done.state());
+        assertNotNull(done.report());
+        assertEquals(done.report().total(), done.done());
+        assertEquals(0, done.report().hits());
+    }
+
+    @Test
+    void start_withoutEmbeddingsModel_throws_andStaysIdle() {
+        when(embeddingService.isConfigured()).thenReturn(false);
+        assertThrows(IllegalStateException.class, service::start);
+        assertEquals(KbRetrievalEvalService.EvalStatus.State.IDLE, service.status().state());
     }
 
     /** Reconstruit le sourcePath attendu depuis la question via le golden set reel. */

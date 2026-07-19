@@ -35,7 +35,7 @@ class VoyageEmbeddingProviderTest {
     void setUp() {
         restTemplate = new RestTemplate();
         mockServer = MockRestServiceServer.createServer(restTemplate);
-        provider = new VoyageEmbeddingProvider(restTemplate);
+        provider = new VoyageEmbeddingProvider(restTemplate, new VoyageRateThrottle());
     }
 
     @Test
@@ -158,18 +158,25 @@ class VoyageEmbeddingProviderTest {
         }
 
         @Test
-        void rateLimit429_isRetriedThenSucceeds() {
+        void rateLimit429_isRetriedThenSucceeds_andArmsThrottle() {
+            // Retry-After court pour garder le test rapide (sinon attente creneau 21s)
+            org.springframework.http.HttpHeaders retryAfter = new org.springframework.http.HttpHeaders();
+            retryAfter.add("Retry-After", "1");
             mockServer.expect(requestTo("https://api.voyageai.com/v1/embeddings"))
-                    .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+                    .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS).headers(retryAfter));
             mockServer.expect(requestTo("https://api.voyageai.com/v1/embeddings"))
                     .andRespond(withSuccess("""
                             {"data": [{"embedding": [0.42], "index": 0}]}
                             """, MediaType.APPLICATION_JSON));
 
+            VoyageRateThrottle throttle = new VoyageRateThrottle();
+            provider = new VoyageEmbeddingProvider(restTemplate, throttle);
             List<float[]> result = provider.embedBatch(List.of("x"), target("k"),
                     InputKind.DOCUMENT);
             assertEquals(1, result.size());
             assertEquals(0.42f, result.get(0)[0], 1e-6);
+            // Le 429 (meme suivi d'un succes) doit armer le mode ralenti
+            assertTrue(throttle.isThrottled());
             mockServer.verify();
         }
 

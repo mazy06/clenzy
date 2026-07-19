@@ -45,7 +45,7 @@ class VoyageRerankProviderTest {
     }
 
     private VoyageRerankProvider newProvider() {
-        return new VoyageRerankProvider(restTemplate, platformAiConfigService, "", "", "rerank-2-lite");
+        return new VoyageRerankProvider(restTemplate, platformAiConfigService, new VoyageRateThrottle(), "", "", "rerank-2-lite");
     }
 
     @Test
@@ -165,5 +165,21 @@ class VoyageRerankProviderTest {
         // name() ne depend pas de la config
         VoyageRerankProvider provider = newProvider();
         assertEquals("voyage", provider.name());
+    }
+
+    @Test
+    void throttleActive_skipsRerankWithoutHttp() {
+        // Mode ralenti (429 recent) : les creneaux ~3 req/min sont reserves aux
+        // embeddings — le rerank echoue immediatement (fallback ordre cosine).
+        withVoyageEmbeddingsModel("vk", "https://api.voyageai.com");
+        VoyageRateThrottle throttle = new VoyageRateThrottle();
+        throttle.onRateLimited();
+        VoyageRerankProvider provider = new VoyageRerankProvider(
+                restTemplate, platformAiConfigService, throttle, "", "", "rerank-2-lite");
+
+        RerankProvider.RerankException ex = assertThrows(RerankProvider.RerankException.class,
+                () -> provider.rerank("q", List.of("a", "b"), 2));
+        assertTrue(ex.getMessage().toLowerCase().contains("ralenti"));
+        mockServer.verify(); // aucune requete HTTP envoyee
     }
 }

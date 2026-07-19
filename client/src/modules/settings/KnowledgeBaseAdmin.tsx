@@ -60,6 +60,14 @@ interface KbEvalReport {
   misses: KbEvalMiss[];
 }
 
+interface KbEvalStatus {
+  state: 'idle' | 'running' | 'done' | 'failed';
+  done: number;
+  total: number;
+  error: string | null;
+  report: KbEvalReport | null;
+}
+
 interface KbSearchTestHit {
   documentId: number;
   title: string | null;
@@ -98,6 +106,8 @@ export const KnowledgeBaseAdmin: React.FC = () => {
   const [stats, setStats] = useState<KbStats | null>(null);
   const [evalReport, setEvalReport] = useState<KbEvalReport | null>(null);
   const [evaluating, setEvaluating] = useState(false);
+  const [evalProgress, setEvalProgress] = useState<{ done: number; total: number } | null>(null);
+  const evalPollRef = useRef(false);
 
   const canEdit = hasAnyRole(['SUPER_ADMIN', 'HOST', 'SUPER_MANAGER']);
   const canUploadGlobal = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']);
@@ -153,18 +163,53 @@ export const KnowledgeBaseAdmin: React.FC = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, [handleUpload, canUploadGlobal]);
 
-  const handleRunEval = useCallback(async () => {
-    setEvaluating(true);
-    setEvalReport(null);
+  const pollEvalStatus = useCallback(async () => {
+    if (evalPollRef.current) return;
+    evalPollRef.current = true;
     try {
-      const data = await apiClient.post<KbEvalReport>('/admin/kb/eval', {});
-      setEvalReport(data);
+      // Le run s'auto-espace quand l'API Voyage est rate-limitée : il peut
+      // durer plusieurs minutes — on polle jusqu'à l'état final.
+      for (;;) {
+        const status = await apiClient.get<KbEvalStatus>('/admin/kb/eval/status');
+        if (status.state === 'running') {
+          setEvaluating(true);
+          setEvalProgress({ done: status.done, total: status.total });
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+          continue;
+        }
+        setEvaluating(false);
+        setEvalProgress(null);
+        if (status.state === 'done' && status.report) {
+          setEvalReport(status.report);
+        } else if (status.state === 'failed') {
+          notify.error(status.error || 'Évaluation échouée');
+        }
+        return;
+      }
     } catch (e) {
-      notify.error(e instanceof Error ? e.message : "Évaluation impossible");
-    } finally {
       setEvaluating(false);
+      setEvalProgress(null);
+      notify.error(e instanceof Error ? e.message : 'Suivi de l’évaluation impossible');
+    } finally {
+      evalPollRef.current = false;
     }
   }, [notify]);
+
+  const handleRunEval = useCallback(async () => {
+    setEvalReport(null);
+    try {
+      await apiClient.post<{ started: boolean }>('/admin/kb/eval', {});
+      setEvaluating(true);
+      pollEvalStatus();
+    } catch (e) {
+      notify.error(e instanceof Error ? e.message : 'Évaluation impossible');
+    }
+  }, [notify, pollEvalStatus]);
+
+  // Un run peut déjà être en cours (lancé avant un refresh de la page) : on s'y rattache.
+  useEffect(() => {
+    if (canUploadGlobal) pollEvalStatus();
+  }, [canUploadGlobal, pollEvalStatus]);
 
   const handleSearchTest = useCallback(async () => {
     const query = testQuery.trim();
@@ -384,12 +429,21 @@ export const KnowledgeBaseAdmin: React.FC = () => {
               disabled={evaluating}
               sx={{ textTransform: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
-              {evaluating ? 'Évaluation en cours…' : "Lancer l'évaluation"}
+              {evaluating
+                ? evalProgress
+                  ? `Évaluation… ${evalProgress.done}/${evalProgress.total}`
+                  : 'Évaluation en cours…'
+                : "Lancer l'évaluation"}
             </Button>
           </Box>
           {evaluating && (
-            <Box display="flex" justifyContent="center" py={2}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2 }}>
               <CircularProgress size={20} />
+              <Typography variant="caption" color="text.secondary">
+                {evalProgress && evalProgress.done < evalProgress.total
+                  ? `${evalProgress.done} question(s) sur ${evalProgress.total} évaluée(s) — le rythme s'adapte aux limites de l'API (jusqu'à ~15 min si elle est bridée).`
+                  : 'Démarrage du run…'}
+              </Typography>
             </Box>
           )}
           {evalReport && (

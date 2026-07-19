@@ -178,16 +178,41 @@ public class KbAdminController {
     }
 
     /**
-     * Lance l'evaluation du retrieval sur le golden set embarque (~40 questions,
-     * ~30s, quelques centimes d'API embeddings/rerank). POST : ce n'est pas une
-     * lecture — chaque run consomme des appels provider. Reserve au staff
-     * plateforme. Retourne recall@4, MRR et le detail des questions ratees.
+     * Demarre l'evaluation du retrieval en tache de fond (golden set embarque,
+     * ~40 questions ; en mode ralenti Voyage le run peut durer ~15 min — l'UI
+     * suit la progression via {@code GET /eval/status}). POST : chaque run
+     * consomme des appels provider. Reserve au staff plateforme.
      */
     @PostMapping("/eval")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
-    public ResponseEntity<Map<String, Object>> runRetrievalEval() {
-        var report = kbRetrievalEvalService.evaluate();
+    public ResponseEntity<Map<String, Object>> startRetrievalEval() {
+        boolean started = kbRetrievalEvalService.start();
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("started", started);
+        response.put("status", evalStatusPayload(kbRetrievalEvalService.status()));
+        return ResponseEntity.accepted().body(response);
+    }
 
+    /** Progression et resultat du run d'evaluation courant (pollee par l'UI). */
+    @GetMapping("/eval/status")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    public ResponseEntity<Map<String, Object>> retrievalEvalStatus() {
+        return ResponseEntity.ok(evalStatusPayload(kbRetrievalEvalService.status()));
+    }
+
+    private static Map<String, Object> evalStatusPayload(
+            com.clenzy.service.agent.kb.KbRetrievalEvalService.EvalStatus status) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("state", status.state().name().toLowerCase(java.util.Locale.ROOT));
+        payload.put("done", status.done());
+        payload.put("total", status.total());
+        payload.put("error", status.error());
+
+        var report = status.report();
+        if (report == null) {
+            payload.put("report", null);
+            return payload;
+        }
         List<Map<String, Object>> misses = report.entries().stream()
                 .filter(e -> e.rank() < 0)
                 .map(e -> {
@@ -197,15 +222,15 @@ public class KbAdminController {
                     m.put("retrieved", e.retrieved());
                     return m;
                 }).toList();
-
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("topK", com.clenzy.service.agent.kb.KbRetrievalEvalService.TOP_K);
-        response.put("recallAtK", report.recallAtK());
-        response.put("mrr", report.mrr());
-        response.put("total", report.total());
-        response.put("hits", report.hits());
-        response.put("misses", misses);
-        return ResponseEntity.ok(response);
+        Map<String, Object> reportPayload = new LinkedHashMap<>();
+        reportPayload.put("topK", com.clenzy.service.agent.kb.KbRetrievalEvalService.TOP_K);
+        reportPayload.put("recallAtK", report.recallAtK());
+        reportPayload.put("mrr", report.mrr());
+        reportPayload.put("total", report.total());
+        reportPayload.put("hits", report.hits());
+        reportPayload.put("misses", misses);
+        payload.put("report", reportPayload);
+        return payload;
     }
 
     /**

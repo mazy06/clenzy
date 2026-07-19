@@ -29,6 +29,12 @@ final class AiHttpRetry {
     static final int QUERY_ATTEMPTS = 2;
     private static final long[] BACKOFF_MS = {500, 2000};
     private static final long MAX_WAIT_MS = 10_000;
+    /**
+     * Attente sur 429 pour les chemins d'arriere-plan : le tier gratuit Voyage
+     * est a ~3 req/min — re-essayer avant ~20s est perdu d'avance.
+     */
+    private static final long RATE_LIMIT_WAIT_MS = 21_000;
+    private static final long MAX_RATE_LIMIT_WAIT_MS = 60_000;
 
     private AiHttpRetry() {}
 
@@ -38,6 +44,10 @@ final class AiHttpRetry {
     }
 
     static <T> T execute(String label, int maxAttempts, Supplier<T> call) {
+        // Politique background (ingestion) : sur 429, attendre un vrai creneau du
+        // tier gratuit plutot qu'un backoff court perdu d'avance. Le chemin chat
+        // (QUERY_ATTEMPTS) garde ses attentes courtes pour ne pas bloquer le tour.
+        boolean backgroundPolicy = maxAttempts >= INGESTION_ATTEMPTS;
         RuntimeException last = null;
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
@@ -47,7 +57,7 @@ final class AiHttpRetry {
                     throw e;
                 }
                 last = e;
-                long waitMs = resolveWaitMs(e, attempt);
+                long waitMs = resolveWaitMs(e, attempt, backgroundPolicy);
                 log.warn("{} : erreur transitoire (tentative {}/{}), retry dans {}ms : {}",
                         label, attempt, maxAttempts, waitMs, e.getMessage());
                 sleep(waitMs);
@@ -65,18 +75,24 @@ final class AiHttpRetry {
         return false;
     }
 
-    /** {@code Retry-After} (secondes) si fourni par l'API, sinon backoff exponentiel. */
-    private static long resolveWaitMs(RuntimeException e, int attempt) {
+    /** {@code Retry-After} (secondes) si fourni par l'API, sinon backoff adapte. */
+    private static long resolveWaitMs(RuntimeException e, int attempt, boolean backgroundPolicy) {
+        boolean rateLimited = e instanceof HttpStatusCodeException http
+                && http.getStatusCode().value() == 429;
+        long cap = rateLimited && backgroundPolicy ? MAX_RATE_LIMIT_WAIT_MS : MAX_WAIT_MS;
         if (e instanceof HttpStatusCodeException http && http.getResponseHeaders() != null) {
             String retryAfter = http.getResponseHeaders().getFirst("Retry-After");
             if (retryAfter != null) {
                 try {
                     long ms = Long.parseLong(retryAfter.trim()) * 1000L;
-                    return Math.min(Math.max(ms, 0), MAX_WAIT_MS);
+                    return Math.min(Math.max(ms, 0), cap);
                 } catch (NumberFormatException ignored) {
                     // format date HTTP non gere : on retombe sur le backoff
                 }
             }
+        }
+        if (rateLimited && backgroundPolicy) {
+            return RATE_LIMIT_WAIT_MS;
         }
         return BACKOFF_MS[Math.min(attempt - 1, BACKOFF_MS.length - 1)];
     }

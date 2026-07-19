@@ -9,6 +9,9 @@ import org.springframework.stereotype.Service;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Evaluation du retrieval RAG contre le golden set embarque
@@ -32,13 +35,25 @@ public class KbRetrievalEvalService {
 
     private final KbSearchService kbSearchService;
     private final EmbeddingService embeddingService;
+    private final VoyageRateThrottle rateThrottle;
     private final ObjectMapper objectMapper;
+
+    /** Un seul run a la fois : l'eval consomme de l'API, pas de runs paralleles. */
+    private final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "kb-retrieval-eval");
+        t.setDaemon(true);
+        return t;
+    });
+    private final AtomicReference<EvalStatus> currentStatus =
+            new AtomicReference<>(EvalStatus.idle());
 
     public KbRetrievalEvalService(KbSearchService kbSearchService,
                                     EmbeddingService embeddingService,
+                                    VoyageRateThrottle rateThrottle,
                                     ObjectMapper objectMapper) {
         this.kbSearchService = kbSearchService;
         this.embeddingService = embeddingService;
+        this.rateThrottle = rateThrottle;
         this.objectMapper = objectMapper;
     }
 
@@ -49,11 +64,60 @@ public class KbRetrievalEvalService {
     public record EvalReport(double recallAtK, double mrr, int total, int hits,
                                List<EvalEntry> entries) {}
 
+    /** Etat du run asynchrone, polle par l'ecran admin. */
+    public record EvalStatus(State state, int done, int total, EvalReport report, String error) {
+        public enum State { IDLE, RUNNING, DONE, FAILED }
+        static EvalStatus idle() { return new EvalStatus(State.IDLE, 0, 0, null, null); }
+        static EvalStatus running(int done, int total) {
+            return new EvalStatus(State.RUNNING, done, total, null, null);
+        }
+        static EvalStatus done(EvalReport report) {
+            return new EvalStatus(State.DONE, report.total(), report.total(), report, null);
+        }
+        static EvalStatus failed(String error) {
+            return new EvalStatus(State.FAILED, 0, 0, null, error);
+        }
+    }
+
     /**
-     * Lance l'evaluation complete. Sequentiel (~30s pour 40 questions).
+     * Demarre l'evaluation en tache de fond (un seul run a la fois). En mode
+     * ralenti Voyage (429 recent, tier gratuit ~3 req/min), le run s'espace de
+     * lui-meme — il peut alors durer ~15 min, d'ou l'asynchrone + progression.
+     *
+     * @return false si un run est deja en cours
+     * @throws IllegalStateException si aucun modele EMBEDDINGS n'est configure
+     */
+    public synchronized boolean start() {
+        if (currentStatus.get().state() == EvalStatus.State.RUNNING) {
+            return false;
+        }
+        if (!embeddingService.isConfigured()) {
+            throw new IllegalStateException(
+                    "Aucun modele d'embeddings configure : assignez un modele a la feature "
+                            + "« Embeddings » dans Parametres > IA avant de lancer l'evaluation.");
+        }
+        List<GoldenEntry> golden = loadGoldenSet();
+        currentStatus.set(EvalStatus.running(0, golden.size()));
+        executor.submit(() -> {
+            try {
+                currentStatus.set(EvalStatus.done(runEval(golden)));
+            } catch (Exception e) {
+                log.warn("KbRetrievalEval : run echoue : {}", e.getMessage());
+                currentStatus.set(EvalStatus.failed(e.getMessage()));
+            }
+        });
+        return true;
+    }
+
+    /** Etat courant du run (pour le polling de l'UI). */
+    public EvalStatus status() {
+        return currentStatus.get();
+    }
+
+    /**
+     * Variante synchrone (IT offline pre-deploiement).
      *
      * @throws IllegalStateException si aucun modele EMBEDDINGS n'est configure
-     *         (les recherches renverraient vide, les metriques seraient un mensonge)
      */
     public EvalReport evaluate() {
         if (!embeddingService.isConfigured()) {
@@ -61,16 +125,15 @@ public class KbRetrievalEvalService {
                     "Aucun modele d'embeddings configure : assignez un modele a la feature "
                             + "« Embeddings » dans Parametres > IA avant de lancer l'evaluation.");
         }
-        List<GoldenEntry> golden = loadGoldenSet();
+        return runEval(loadGoldenSet());
+    }
 
+    private EvalReport runEval(List<GoldenEntry> golden) {
         List<EvalEntry> entries = new ArrayList<>(golden.size());
         for (GoldenEntry entry : golden) {
-            List<String> retrieved = kbSearchService
-                    .search(entry.question(), null, TOP_K, "fr").stream()
-                    .map(KbSearchService.KbSearchHit::sourcePath)
-                    .toList();
-            entries.add(new EvalEntry(entry.question(), entry.expected(),
-                    retrieved.indexOf(entry.expected()), retrieved));
+            entries.add(evaluateQuestion(entry));
+            currentStatus.getAndUpdate(s -> s.state() == EvalStatus.State.RUNNING
+                    ? EvalStatus.running(entries.size(), golden.size()) : s);
         }
 
         int hits = (int) entries.stream().filter(e -> e.rank() >= 0).count();
@@ -84,6 +147,28 @@ public class KbRetrievalEvalService {
                 hits, entries.size(),
                 String.format(java.util.Locale.ROOT, "%.3f", mrr));
         return new EvalReport(recall, mrr, entries.size(), hits, entries);
+    }
+
+    /**
+     * Une question : reserve un creneau si l'API est en mode ralenti, et retente
+     * UNE fois apres un nouveau creneau si la recherche revient vide pendant un
+     * throttle (le vide signifie alors « embed 429 », pas « rien de pertinent »).
+     */
+    private EvalEntry evaluateQuestion(GoldenEntry entry) {
+        rateThrottle.awaitSlot();
+        List<String> retrieved = searchPaths(entry.question());
+        if (retrieved.isEmpty() && rateThrottle.isThrottled()) {
+            rateThrottle.awaitSlot();
+            retrieved = searchPaths(entry.question());
+        }
+        return new EvalEntry(entry.question(), entry.expected(),
+                retrieved.indexOf(entry.expected()), retrieved);
+    }
+
+    private List<String> searchPaths(String question) {
+        return kbSearchService.search(question, null, TOP_K, "fr").stream()
+                .map(KbSearchService.KbSearchHit::sourcePath)
+                .toList();
     }
 
     private record GoldenEntry(String question, String expected) {}
