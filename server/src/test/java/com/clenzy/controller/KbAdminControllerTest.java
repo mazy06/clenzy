@@ -34,6 +34,9 @@ import static org.mockito.Mockito.*;
 class KbAdminControllerTest {
 
     @Mock private IngestionService ingestionService;
+    @Mock private com.clenzy.service.agent.kb.KbSearchService kbSearchService;
+    @Mock private com.clenzy.scheduler.KbIndexTuningScheduler kbIndexTuningScheduler;
+    @Mock private com.clenzy.service.agent.kb.KbRetrievalEvalService kbRetrievalEvalService;
 
     private TenantContext tenantContext;
     private KbAdminController controller;
@@ -44,7 +47,7 @@ class KbAdminControllerTest {
     void setUp() {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
-        controller = new KbAdminController(ingestionService, tenantContext);
+        controller = new KbAdminController(ingestionService, kbSearchService, kbRetrievalEvalService, kbIndexTuningScheduler, tenantContext);
     }
 
     private Jwt jwt(Map<String, Object> claims) {

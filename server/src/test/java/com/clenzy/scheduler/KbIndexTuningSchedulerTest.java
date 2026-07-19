@@ -22,7 +22,7 @@ class KbIndexTuningSchedulerTest {
 
     @Test
     void runOnce_disabled_returnsDisabled_noJdbcCall() {
-        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, false, false);
+        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, null, false, false);
 
         KbIndexTuningScheduler.TuningOutcome outcome = scheduler.runOnce();
 
@@ -34,7 +34,7 @@ class KbIndexTuningSchedulerTest {
     void runOnce_countFails_returnsError() {
         when(jdbc.queryForObject(anyString(), eq(Long.class)))
                 .thenThrow(new RuntimeException("DB connection lost"));
-        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, true, false);
+        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, null, true, false);
 
         KbIndexTuningScheduler.TuningOutcome outcome = scheduler.runOnce();
 
@@ -47,7 +47,7 @@ class KbIndexTuningSchedulerTest {
         // 50 chunks → sqrt(50) ~ 7, mais on borne a min 100
         stubCount(50L);
         stubIndexDef("CREATE INDEX idx ... WITH (lists='100')");
-        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, true, false);
+        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, null, true, false);
 
         KbIndexTuningScheduler.TuningOutcome outcome = scheduler.runOnce();
 
@@ -62,7 +62,7 @@ class KbIndexTuningSchedulerTest {
         // 40 000 chunks → sqrt ~ 200, current = 100 → drift 100% > 50%
         stubCount(40_000L);
         stubIndexDef("CREATE INDEX idx ... WITH (lists='100')");
-        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, true, false);
+        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, null, true, false);
 
         KbIndexTuningScheduler.TuningOutcome outcome = scheduler.runOnce();
 
@@ -77,7 +77,7 @@ class KbIndexTuningSchedulerTest {
     void runOnce_driftExceedsThreshold_appliedWhenAutoOn() {
         stubCount(40_000L);
         stubIndexDef("CREATE INDEX idx ... WITH (lists='100')");
-        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, true, true);
+        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, null, true, true);
 
         KbIndexTuningScheduler.TuningOutcome outcome = scheduler.runOnce();
 
@@ -94,7 +94,7 @@ class KbIndexTuningSchedulerTest {
         stubCount(1000L);
         when(jdbc.queryForObject(eq("SELECT indexdef FROM pg_indexes WHERE indexname = ? LIMIT 1"),
                 eq(String.class), any())).thenReturn(null);
-        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, true, true);
+        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, null, true, true);
 
         KbIndexTuningScheduler.TuningOutcome outcome = scheduler.runOnce();
 
@@ -107,7 +107,7 @@ class KbIndexTuningSchedulerTest {
         stubCount(1000L);
         // DDL etrange : pas de "lists=N"
         stubIndexDef("CREATE INDEX idx ON kb_chunk USING gin (content)");
-        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, true, true);
+        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, null, true, true);
 
         KbIndexTuningScheduler.TuningOutcome outcome = scheduler.runOnce();
 
@@ -120,7 +120,7 @@ class KbIndexTuningSchedulerTest {
         stubIndexDef("CREATE INDEX idx ... WITH (lists='100')");
         doThrow(new RuntimeException("lock timeout"))
                 .when(jdbc).execute(org.mockito.ArgumentMatchers.contains("DROP INDEX"));
-        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, true, true);
+        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, null, true, true);
 
         KbIndexTuningScheduler.TuningOutcome outcome = scheduler.runOnce();
 
@@ -139,7 +139,7 @@ class KbIndexTuningSchedulerTest {
 
     @Test
     void runDaily_delegatesToRunOnce() {
-        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, false, false);
+        KbIndexTuningScheduler scheduler = new KbIndexTuningScheduler(jdbc, null, false, false);
         // disabled → 1 appel runOnce qui retourne disabled sans toucher JDBC
         scheduler.runDaily();
         verifyNoInteractions(jdbc);

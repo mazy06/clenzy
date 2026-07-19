@@ -101,12 +101,19 @@ public enum NotificationKey {
     // alteration_request, inquiry) — action dans l'ecran Channex embarque.
     CHANNEX_AIRBNB_REQUEST(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
 
-    // ─── AI MODEL HEALTH (1 cle) ───────────────────────────────────────────────
+    // ─── AI MODEL HEALTH (2 cles) ──────────────────────────────────────────────
     // Emise quand un modele LLM configure repond 410 Gone (EOL chez le provider).
     // Action requise : aller dans Parametres > IA et reassigner un modele vivant
     // a la feature impactee. Dedup en memoire dans AiModelDeprecationListener
     // pour eviter 1000 notifs si 1000 users tapent l'erreur en parallele.
     AI_MODEL_EOL(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
+
+    // Emise quand l'index vectoriel de la knowledge base (ivfflat) a derive de
+    // sa taille optimale (la base a grossi) et que l'auto-tune est desactive.
+    // Action : activer clenzy.assistant.kb.auto-tune-enabled ou recreer l'index
+    // manuellement (commande dans les logs du KbIndexTuningScheduler + KPI dans
+    // Parametres > IA > Base de connaissances). Dedup une fois par boot.
+    KB_INDEX_RETUNE(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
 
     // ─── TEAM (8 cles) ─────────────────────────────────────────────────────────
 
