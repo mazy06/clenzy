@@ -1,12 +1,4 @@
 import type { SitePageType } from '../../../../../services/api/sitesApi';
-import { duplexMarrakech } from './templates/duplexMarrakech';
-import { conciergerieMarrakech } from './templates/conciergerieMarrakech';
-import { rechercheCataloguePremium } from './templates/rechercheCataloguePremium';
-import { villaBordDeMer } from './templates/villaBordDeMer';
-import { bordDeMerBalneaire } from './templates/bordDeMerBalneaire';
-import { appartementUrbain } from './templates/appartementUrbain';
-import { maisonCampagne } from './templates/maisonCampagne';
-import { GENERATED_TEMPLATES } from './templates/generatedTemplates';
 
 /**
  * Galerie de templates NATIFS prêts à charger dans le Studio GrapesJS.
@@ -57,14 +49,10 @@ export interface GalleryTemplate {
   pages: TemplatePage[];
 }
 
-/** Catalogue des templates de galerie. Peuplé par les templates natifs (cf. `templates/`). */
-export const GALLERY_TEMPLATES: GalleryTemplate[] = [
-  duplexMarrakech,
-  conciergerieMarrakech,
-  villaBordDeMer,
-  bordDeMerBalneaire,
-  appartementUrbain,
-  maisonCampagne,
-  rechercheCataloguePremium,
-  ...GENERATED_TEMPLATES,
-];
+/**
+ * Catalogue des templates de galerie.
+ * Vidé le 2026-07-16 : l'ancienne galerie native (7 templates manuels + 24 générés
+ * par templateFactory) est supprimée au profit d'une nouvelle galerie inspirée des
+ * standards du marché (cf. catalogue DB `site_templates` + ingestion /ingest).
+ */
+export const GALLERY_TEMPLATES: GalleryTemplate[] = [];
