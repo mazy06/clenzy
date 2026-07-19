@@ -19,31 +19,48 @@ import java.util.Map;
 /**
  * Re-ranking via Voyage AI (https://docs.voyageai.com/docs/reranker).
  *
- * <p>Modele : {@code rerank-2-lite} (~$0.05/1M tokens, latence ~150ms). Bon compromis
- * qualite/cout pour la phase de re-ranking apres une recherche par embeddings.</p>
+ * <p>Modele configurable ({@code clenzy.ai.rerank.voyage.model}, defaut
+ * {@code rerank-2-lite} — ~$0.05/1M tokens, latence ~150ms).</p>
  *
  * <p>Endpoint : {@code POST {baseUrl}/v1/rerank}.</p>
  *
- * <p><b>Credentials = config DB (source unique)</b> : le rerank Voyage reutilise la cle + baseUrl
- * du modele assigne a la feature {@link AiFeature#EMBEDDINGS} <i>lorsque ce modele est un modele
- * Voyage</i> (meme compte Voyage AI). Plus aucune variable d'environnement. Si le modele EMBEDDINGS
- * n'est pas un Voyage exploitable, {@link #isAvailable()} retourne false et le {@link RerankService}
- * bascule sur {@link NoOpRerankProvider}.</p>
+ * <p><b>Credentials (2 sources, dans l'ordre)</b> :
+ * <ol>
+ *   <li>Cle dediee {@code clenzy.ai.rerank.voyage.api-key} (+ base-url optionnelle) —
+ *       permet de garder le rerank Voyage meme quand les embeddings sont chez un
+ *       autre provider (OpenAI…) ;</li>
+ *   <li>Sinon, reutilise la cle + baseUrl du modele assigne a la feature
+ *       {@link AiFeature#EMBEDDINGS} <i>lorsque c'est un modele Voyage</i>.</li>
+ * </ol>
+ * Si aucune source n'est exploitable, {@link #isAvailable()} retourne false et le
+ * {@link RerankService} bascule sur {@link NoOpRerankProvider}.</p>
  */
 @Component
 public class VoyageRerankProvider implements RerankProvider {
 
     private static final Logger log = LoggerFactory.getLogger(VoyageRerankProvider.class);
-    private static final String MODEL = "rerank-2-lite";
+    private static final String DEFAULT_MODEL = "rerank-2-lite";
     private static final String DEFAULT_BASE_URL = "https://api.voyageai.com";
 
     private final RestTemplate restTemplate;
     private final PlatformAiConfigService platformAiConfigService;
+    private final String dedicatedApiKey;
+    private final String dedicatedBaseUrl;
+    private final String model;
 
     public VoyageRerankProvider(RestTemplate restTemplate,
-                                  PlatformAiConfigService platformAiConfigService) {
+                                  PlatformAiConfigService platformAiConfigService,
+                                  @org.springframework.beans.factory.annotation.Value(
+                                          "${clenzy.ai.rerank.voyage.api-key:}") String dedicatedApiKey,
+                                  @org.springframework.beans.factory.annotation.Value(
+                                          "${clenzy.ai.rerank.voyage.base-url:}") String dedicatedBaseUrl,
+                                  @org.springframework.beans.factory.annotation.Value(
+                                          "${clenzy.ai.rerank.voyage.model:rerank-2-lite}") String model) {
         this.restTemplate = restTemplate;
         this.platformAiConfigService = platformAiConfigService;
+        this.dedicatedApiKey = dedicatedApiKey;
+        this.dedicatedBaseUrl = dedicatedBaseUrl;
+        this.model = (model == null || model.isBlank()) ? DEFAULT_MODEL : model;
     }
 
     @Override
@@ -51,10 +68,15 @@ public class VoyageRerankProvider implements RerankProvider {
         return "voyage";
     }
 
-    /** Credentials Voyage resolus depuis le modele EMBEDDINGS (si c'est bien un Voyage). */
+    /** Credentials Voyage : cle dediee rerank, sinon celles du modele EMBEDDINGS Voyage. */
     private record VoyageCreds(String apiKey, String baseUrl) {}
 
     private VoyageCreds resolveCreds() {
+        if (dedicatedApiKey != null && !dedicatedApiKey.isBlank()) {
+            return new VoyageCreds(dedicatedApiKey,
+                    (dedicatedBaseUrl != null && !dedicatedBaseUrl.isBlank())
+                            ? dedicatedBaseUrl : DEFAULT_BASE_URL);
+        }
         return platformAiConfigService.getActiveModelForFeature(AiFeature.EMBEDDINGS.name())
                 .filter(m -> "voyage".equalsIgnoreCase(m.getProvider()))
                 .filter(m -> m.getApiKey() != null && !m.getApiKey().isBlank())
@@ -82,7 +104,7 @@ public class VoyageRerankProvider implements RerankProvider {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("query", query);
         body.put("documents", documents);
-        body.put("model", MODEL);
+        body.put("model", model);
         body.put("top_k", effectiveK);
 
         HttpHeaders headers = new HttpHeaders();
@@ -90,10 +112,13 @@ public class VoyageRerankProvider implements RerankProvider {
         headers.setBearerAuth(creds.apiKey());
 
         try {
-            RerankResponse response = restTemplate.postForObject(
-                    rerankEndpoint(creds.baseUrl()),
-                    new HttpEntity<>(body, headers),
-                    RerankResponse.class);
+            // Le rerank est toujours sur le chemin d'un tour de chat : retry court.
+            RerankResponse response = AiHttpRetry.execute("Voyage rerank",
+                    AiHttpRetry.QUERY_ATTEMPTS,
+                    () -> restTemplate.postForObject(
+                            rerankEndpoint(creds.baseUrl()),
+                            new HttpEntity<>(body, headers),
+                            RerankResponse.class));
             if (response == null || response.data == null) {
                 throw new RerankException("Voyage rerank : reponse vide");
             }

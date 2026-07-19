@@ -36,7 +36,7 @@ public class ToolsUsageHintsSection extends AbstractXmlPromptSection {
             VUE GLOBALE DU PORTFOLIO
             -> analyze_portfolio (KPIs cross-property + top/sous-performers + patterns)
 
-            DOCUMENTATION CLENZY ("selon la doc", "comment fonctionne X dans Clenzy")
+            DOCUMENTATION BAITLY ("selon la doc", "comment fonctionne X dans Baitly")
             -> search_knowledge_base (RAG sur la doc projet)
 
             CONTEXTE EXTERIEUR (pour nourrir les recos)

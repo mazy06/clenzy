@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * Contexte RAG (extraits de doc Clenzy pertinents pour la question user).
+ * Contexte RAG (extraits de doc Baitly pertinents pour la question user).
  *
  * <p><b>Ameliorations v2</b> :</p>
  * <ul>
@@ -32,7 +32,10 @@ import java.util.List;
 public class RagContextSection extends AbstractXmlPromptSection {
 
     /** Longueur max d'un snippet rendu (anti-bloat context). Au-dela : truncation. */
-    static final int MAX_SNIPPET_LENGTH = 600;
+    // Les chunks font ~2000 chars : tronquer trop court fait retrouver la bonne
+    // section au retrieval sans que le LLM puisse la lire (4 hits × 1400 ≈ 1,5k
+    // tokens, budget raisonnable pour une section volatile non-cacheable).
+    static final int MAX_SNIPPET_LENGTH = 1400;
 
     @Override
     public String name() { return "kb_context"; }
@@ -59,7 +62,7 @@ public class RagContextSection extends AbstractXmlPromptSection {
         if (hits.isEmpty()) return null;
 
         StringBuilder sb = new StringBuilder(2048);
-        sb.append("Extraits de la documentation Clenzy lies a la question :\n");
+        sb.append("Extraits de la documentation Baitly lies a la question :\n");
         for (int i = 0; i < hits.size(); i++) {
             KbSearchService.KbSearchHit h = hits.get(i);
             int idx = i + 1;

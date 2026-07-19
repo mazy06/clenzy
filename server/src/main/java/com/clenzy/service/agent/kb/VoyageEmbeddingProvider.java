@@ -22,7 +22,9 @@ import java.util.Map;
  * dans un contexte Claude.</p>
  *
  * <p>Endpoint : {@code POST {baseUrl}/v1/embeddings}. Body :
- * {@code {"input": ["..."], "model": "voyage-3-large", "input_type": "document"}}.</p>
+ * {@code {"input": ["..."], "model": "voyage-3-large", "input_type": "query"|"document",
+ * "truncation": true}}. L'{@code input_type} suit {@link InputKind} : Voyage optimise
+ * differemment les questions et les documents indexes (retrieval asymetrique).</p>
  *
  * <p><b>Credential-stateless</b> : cle/modele/baseUrl viennent de la {@link EmbeddingTarget}
  * resolue par {@link EmbeddingService} depuis la config DB (feature EMBEDDINGS) — plus aucune
@@ -49,16 +51,16 @@ public class VoyageEmbeddingProvider implements EmbeddingProvider {
     }
 
     @Override
-    public float[] embed(String text, EmbeddingTarget target) {
+    public float[] embed(String text, EmbeddingTarget target, InputKind kind) {
         if (text == null || text.isBlank()) {
             return new float[target.dimensions()];
         }
-        List<float[]> result = embedBatch(List.of(text), target);
+        List<float[]> result = embedBatch(List.of(text), target, kind);
         return result.isEmpty() ? new float[target.dimensions()] : result.get(0);
     }
 
     @Override
-    public List<float[]> embedBatch(List<String> texts, EmbeddingTarget target) {
+    public List<float[]> embedBatch(List<String> texts, EmbeddingTarget target, InputKind kind) {
         if (texts == null || texts.isEmpty()) return List.of();
         if (target == null || target.apiKey() == null || target.apiKey().isBlank()) {
             throw new EmbeddingException(
@@ -73,34 +75,43 @@ public class VoyageEmbeddingProvider implements EmbeddingProvider {
         // L'API Voyage accepte jusqu'a ~128 inputs par requete — on sous-batch.
         for (int i = 0; i < texts.size(); i += BATCH_SIZE) {
             int end = Math.min(i + BATCH_SIZE, texts.size());
-            all.addAll(callApi(texts.subList(i, end), target.apiKey(), model, baseUrl, target.dimensions()));
+            all.addAll(callApi(texts.subList(i, end), target.apiKey(), model, baseUrl,
+                    target.dimensions(), kind));
         }
         return all;
     }
 
-    private List<float[]> callApi(List<String> batch, String apiKey, String model, String baseUrl, int dimensions) {
+    private List<float[]> callApi(List<String> batch, String apiKey, String model, String baseUrl,
+                                    int dimensions, InputKind kind) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("input", batch);
         body.put("model", model);
-        body.put("input_type", "document");
+        body.put("input_type", kind == InputKind.QUERY ? "query" : "document");
+        // Sans truncation, un chunk depassant la fenetre du modele fait echouer tout le batch.
+        body.put("truncation", true);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
 
         try {
-            VoyageResponse response = restTemplate.postForObject(
-                    embeddingsEndpoint(baseUrl),
-                    new HttpEntity<>(body, headers),
-                    VoyageResponse.class);
+            // Chemin chat (QUERY) : retry court pour ne pas bloquer le tour.
+            int attempts = kind == InputKind.QUERY
+                    ? AiHttpRetry.QUERY_ATTEMPTS : AiHttpRetry.INGESTION_ATTEMPTS;
+            VoyageResponse response = AiHttpRetry.execute("Voyage embeddings", attempts,
+                    () -> restTemplate.postForObject(
+                            embeddingsEndpoint(baseUrl),
+                            new HttpEntity<>(body, headers),
+                            VoyageResponse.class));
             if (response == null || response.data == null) {
                 throw new EmbeddingException("Voyage API : reponse vide");
             }
             List<float[]> out = new ArrayList<>(response.data.size());
             for (VoyageData d : response.data) {
                 if (d.embedding == null) {
-                    out.add(new float[dimensions]);
-                    continue;
+                    // Un vecteur zero fausse la distance cosine sans laisser de trace :
+                    // on echoue explicitement, l'appelant degradera proprement.
+                    throw new EmbeddingException("Voyage API : embedding manquant dans la reponse");
                 }
                 float[] v = new float[d.embedding.size()];
                 for (int i = 0; i < d.embedding.size(); i++) v[i] = d.embedding.get(i);

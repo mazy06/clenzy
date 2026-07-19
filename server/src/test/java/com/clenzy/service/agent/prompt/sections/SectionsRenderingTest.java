@@ -47,7 +47,7 @@ class SectionsRenderingTest {
             assertThat(rendered)
                     .startsWith("<role>")
                     .endsWith("</role>")
-                    .contains("Clenzy")
+                    .contains("Baitly")
                     .contains("COMPRENDRE")
                     .contains("CONSEILLER")
                     .contains("GUIDER");

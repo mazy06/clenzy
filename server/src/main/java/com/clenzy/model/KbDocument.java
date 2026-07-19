@@ -39,9 +39,17 @@ public class KbDocument {
     @Column(length = 10)
     private String lang = "fr";
 
-    /** NULL = document Clenzy global ; non-NULL = doc specifique a une org. */
+    /** NULL = document Baitly global ; non-NULL = doc specifique a une org. */
     @Column(name = "organization_id")
     private Long organizationId;
+
+    /**
+     * Version de l'algorithme de chunking utilise a l'ingestion (0 = legacy).
+     * Un doc dont la version est inferieure a la courante est re-ingere
+     * automatiquement (chunks re-decoupes + re-embeddes) meme a contenu identique.
+     */
+    @Column(name = "chunker_version", nullable = false)
+    private int chunkerVersion = 0;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -80,4 +88,6 @@ public class KbDocument {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public int getChunkerVersion() { return chunkerVersion; }
+    public void setChunkerVersion(int chunkerVersion) { this.chunkerVersion = chunkerVersion; }
 }

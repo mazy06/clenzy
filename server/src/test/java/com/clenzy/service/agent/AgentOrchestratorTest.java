@@ -50,6 +50,9 @@ class AgentOrchestratorTest {
         keyRepo = mock(OrgAiApiKeyRepository.class);
         memoryService = mock(AssistantMemoryService.class);
         kbSearchService = mock(com.clenzy.service.agent.kb.KbSearchService.class);
+        // Le seuil RAG vient desormais de la config (via KbSearchService) — sans ce stub,
+        // le mock renverrait 0.0 et plus rien ne serait filtre.
+        org.mockito.Mockito.lenient().when(kbSearchService.getRelevanceThreshold()).thenReturn(0.70);
         om = new ObjectMapper();
         // Tests legacy path (v1) car ils valident le format markdown ── Memoire utilisateur ──.
         // Le path v2 (XML) est valide par DefaultSystemPromptComposerTest + SectionsRenderingTest.
@@ -79,7 +82,7 @@ class AgentOrchestratorTest {
         when(memoryService.listMostRelevant(org.mockito.ArgumentMatchers.anyLong(),
                         anyString(), anyString(), anyInt())).thenReturn(List.of());
         // RAG : aucun hit par defaut
-        when(kbSearchService.search(anyString(), any(), anyInt())).thenReturn(List.of());
+        when(kbSearchService.search(anyString(), any(), anyInt(), any())).thenReturn(List.of());
     }
 
     @Test
@@ -368,7 +371,7 @@ class AgentOrchestratorTest {
 
         assertFalse(prompt.startsWith("── Memoire utilisateur ──"),
                 "Sans memoire, pas de section memoire");
-        assertTrue(prompt.contains("Tu es l'assistant strategique Clenzy"),
+        assertTrue(prompt.contains("Tu es l'assistant strategique Baitly"),
                 "Le prompt par defaut doit etre present");
     }
 
@@ -394,7 +397,7 @@ class AgentOrchestratorTest {
         assertTrue(prompt.contains("Faits : [owner_42_difficile=prefere les emails]"));
         assertTrue(prompt.contains("Objectifs : [Q3_target=80% occupancy]"));
         assertTrue(prompt.contains("Projets : [renovation_paris=juin 2026]"));
-        assertTrue(prompt.contains("Tu es l'assistant strategique Clenzy"),
+        assertTrue(prompt.contains("Tu es l'assistant strategique Baitly"),
                 "Le prompt par defaut suit la memoire");
     }
 
@@ -407,7 +410,7 @@ class AgentOrchestratorTest {
 
         // Robustesse : on ne casse pas l'assistant si la memoire est ko
         assertNotNull(prompt);
-        assertTrue(prompt.contains("Tu es l'assistant strategique Clenzy"));
+        assertTrue(prompt.contains("Tu es l'assistant strategique Baitly"));
         assertFalse(prompt.contains("── Memoire utilisateur ──"));
     }
 
@@ -469,7 +472,7 @@ class AgentOrchestratorTest {
     @Test
     void buildSystemPrompt_withRagHitsAboveThreshold_prependsContextSection() {
         // Hits avec relevance >= 0.7 → doivent etre injectes
-        when(kbSearchService.search(eq("comment configurer pricing"), eq(1L), org.mockito.ArgumentMatchers.anyInt()))
+        when(kbSearchService.search(eq("comment configurer pricing"), eq(1L), org.mockito.ArgumentMatchers.anyInt(), any()))
                 .thenReturn(java.util.List.of(
                         new com.clenzy.service.agent.kb.KbSearchService.KbSearchHit(
                                 1L, 10L, "Pricing avance", "docs/pricing.md",
@@ -487,13 +490,13 @@ class AgentOrchestratorTest {
         assertTrue(prompt.contains("92%"));
         assertTrue(prompt.contains("Yield rules"));
         // Le prompt par defaut suit
-        assertTrue(prompt.contains("Tu es l'assistant strategique Clenzy"));
+        assertTrue(prompt.contains("Tu es l'assistant strategique Baitly"));
     }
 
     @Test
     void buildSystemPrompt_ragHitsBelowThreshold_filtered() {
         // Hits avec relevance < 0.7 → ignores
-        when(kbSearchService.search(anyString(), any(), org.mockito.ArgumentMatchers.anyInt()))
+        when(kbSearchService.search(anyString(), any(), org.mockito.ArgumentMatchers.anyInt(), any()))
                 .thenReturn(java.util.List.of(
                         new com.clenzy.service.agent.kb.KbSearchService.KbSearchHit(
                                 1L, 10L, "Low rel", "docs/x.md", "Snippet faible", 0.55)
@@ -512,7 +515,7 @@ class AgentOrchestratorTest {
 
     @Test
     void buildSystemPrompt_ragFailure_silentlySkipped() {
-        when(kbSearchService.search(anyString(), any(), org.mockito.ArgumentMatchers.anyInt()))
+        when(kbSearchService.search(anyString(), any(), org.mockito.ArgumentMatchers.anyInt(), any()))
                 .thenThrow(new RuntimeException("embed API down"));
 
         // Ne doit pas throw
@@ -528,7 +531,7 @@ class AgentOrchestratorTest {
         // Avec un message user, l'orchestrateur passe par listMostRelevant
         when(memoryService.listMostRelevant(eq(1L), eq("user-123"), eq("question"), eq(30)))
                 .thenReturn(java.util.List.of(pref));
-        when(kbSearchService.search(anyString(), any(), org.mockito.ArgumentMatchers.anyInt()))
+        when(kbSearchService.search(anyString(), any(), org.mockito.ArgumentMatchers.anyInt(), any()))
                 .thenReturn(java.util.List.of(
                         new com.clenzy.service.agent.kb.KbSearchService.KbSearchHit(
                                 1L, 10L, "Article 4.2", "docs/p.md", "Procedure", 0.85)
@@ -541,7 +544,7 @@ class AgentOrchestratorTest {
         // Ordre : memoire avant RAG avant default
         int memIdx = prompt.indexOf("Memoire utilisateur");
         int ragIdx = prompt.indexOf("Contexte documentation");
-        int defaultIdx = prompt.indexOf("assistant strategique Clenzy");
+        int defaultIdx = prompt.indexOf("assistant strategique Baitly");
         assertTrue(memIdx < ragIdx);
         assertTrue(ragIdx < defaultIdx);
     }

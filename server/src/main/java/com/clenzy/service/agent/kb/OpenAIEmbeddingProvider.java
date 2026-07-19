@@ -48,14 +48,15 @@ public class OpenAIEmbeddingProvider implements EmbeddingProvider {
     }
 
     @Override
-    public float[] embed(String text, EmbeddingTarget target) {
+    public float[] embed(String text, EmbeddingTarget target, InputKind kind) {
         if (text == null || text.isBlank()) return new float[target.dimensions()];
-        List<float[]> result = embedBatch(List.of(text), target);
+        List<float[]> result = embedBatch(List.of(text), target, kind);
         return result.isEmpty() ? new float[target.dimensions()] : result.get(0);
     }
 
     @Override
-    public List<float[]> embedBatch(List<String> texts, EmbeddingTarget target) {
+    public List<float[]> embedBatch(List<String> texts, EmbeddingTarget target, InputKind kind) {
+        // OpenAI n'a pas d'input_type : les modeles text-embedding-3-* sont symetriques.
         if (texts == null || texts.isEmpty()) return List.of();
         if (target == null || target.apiKey() == null || target.apiKey().isBlank()) {
             throw new EmbeddingException(
@@ -70,12 +71,14 @@ public class OpenAIEmbeddingProvider implements EmbeddingProvider {
         List<float[]> all = new ArrayList<>(texts.size());
         for (int i = 0; i < texts.size(); i += BATCH_SIZE) {
             int end = Math.min(i + BATCH_SIZE, texts.size());
-            all.addAll(callApi(texts.subList(i, end), target.apiKey(), model, baseUrl, target.dimensions()));
+            all.addAll(callApi(texts.subList(i, end), target.apiKey(), model, baseUrl,
+                    target.dimensions(), kind));
         }
         return all;
     }
 
-    private List<float[]> callApi(List<String> batch, String apiKey, String model, String baseUrl, int dimensions) {
+    private List<float[]> callApi(List<String> batch, String apiKey, String model, String baseUrl,
+                                    int dimensions, InputKind kind) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("input", batch);
         body.put("model", model);
@@ -87,18 +90,23 @@ public class OpenAIEmbeddingProvider implements EmbeddingProvider {
         headers.setBearerAuth(apiKey);
 
         try {
-            OpenAIResponse response = restTemplate.postForObject(
-                    embeddingsEndpoint(baseUrl),
-                    new HttpEntity<>(body, headers),
-                    OpenAIResponse.class);
+            // Chemin chat (QUERY) : retry court pour ne pas bloquer le tour.
+            int attempts = kind == InputKind.QUERY
+                    ? AiHttpRetry.QUERY_ATTEMPTS : AiHttpRetry.INGESTION_ATTEMPTS;
+            OpenAIResponse response = AiHttpRetry.execute("OpenAI embeddings", attempts,
+                    () -> restTemplate.postForObject(
+                            embeddingsEndpoint(baseUrl),
+                            new HttpEntity<>(body, headers),
+                            OpenAIResponse.class));
             if (response == null || response.data == null) {
                 throw new EmbeddingException("OpenAI embeddings : reponse vide");
             }
             List<float[]> out = new ArrayList<>(response.data.size());
             for (OpenAIData d : response.data) {
                 if (d.embedding == null) {
-                    out.add(new float[dimensions]);
-                    continue;
+                    // Un vecteur zero fausse la distance cosine sans laisser de trace :
+                    // on echoue explicitement, l'appelant degradera proprement.
+                    throw new EmbeddingException("OpenAI embeddings : embedding manquant dans la reponse");
                 }
                 float[] v = new float[d.embedding.size()];
                 for (int i = 0; i < d.embedding.size(); i++) v[i] = d.embedding.get(i);

@@ -45,7 +45,7 @@ class VoyageRerankProviderTest {
     }
 
     private VoyageRerankProvider newProvider() {
-        return new VoyageRerankProvider(restTemplate, platformAiConfigService);
+        return new VoyageRerankProvider(restTemplate, platformAiConfigService, "", "", "rerank-2-lite");
     }
 
     @Test
@@ -109,15 +109,18 @@ class VoyageRerankProviderTest {
     }
 
     @Test
-    void httpFailure_wrappedAsRerankException() {
+    void httpFailure_isRetriedThenWrappedAsRerankException() {
         withVoyageEmbeddingsModel("vk", "https://api.voyageai.com");
         VoyageRerankProvider provider = newProvider();
 
-        mockServer.expect(requestTo(org.hamcrest.Matchers.startsWith("https://")))
+        // Chemin chat : politique de retry courte (2 tentatives) avant echec definitif
+        mockServer.expect(org.springframework.test.web.client.ExpectedCount.times(2),
+                        requestTo(org.hamcrest.Matchers.startsWith("https://")))
                 .andRespond(withServerError());
 
         assertThrows(RerankProvider.RerankException.class,
                 () -> provider.rerank("q", List.of("a", "b"), 2));
+        mockServer.verify();
     }
 
     @Test
