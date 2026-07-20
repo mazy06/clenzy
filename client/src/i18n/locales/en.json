@@ -3237,6 +3237,14 @@
       "fiscal": {
         "title": "Fiscal Report",
         "description": "VAT, taxes and fiscal declarations"
+      },
+      "pace": {
+        "title": "Pace",
+        "description": "Upcoming bookings vs last year, pickup and booking curve"
+      },
+      "custom": {
+        "title": "Custom report",
+        "description": "Compose your reports: dimensions, metrics, granularity"
       }
     },
     "selectReport": "Select a report to generate",
@@ -5601,7 +5609,9 @@
         "financial": "Revenue per property, operating costs, net margin and accounting exports for the chosen period.",
         "interventions": "Volume, average delays and completion rates of interventions by type and team.",
         "teams": "Workload, performance and availability per team and per member.",
-        "properties": "Occupancy rate, RevPAR, maintenance alerts and health indicators per property."
+        "properties": "Occupancy rate, RevPAR, maintenance alerts and health indicators per property.",
+        "pace": "Nights on the books for upcoming months versus last year at the same lead time, recent pickup and booking curve.",
+        "custom": "Build-your-own report: cross properties, channels, periods and countries over your revenue metrics."
       }
     },
     "tarification": {

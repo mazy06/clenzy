@@ -77,6 +77,14 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("ownerKc") String ownerKc,
             @Param("propertyId") Long propertyId);
 
+    /** Conversions du funnel booking engine : résas directes créées sur la période, non annulées. */
+    @Query("SELECT COUNT(r) FROM Reservation r WHERE r.organizationId = :orgId "
+        + "AND r.source = 'direct' AND r.status <> 'cancelled' "
+        + "AND r.createdAt >= :from AND r.createdAt < :to")
+    long countDirectCreatedBetween(@Param("orgId") Long orgId,
+                                   @Param("from") java.time.LocalDateTime from,
+                                   @Param("to") java.time.LocalDateTime to);
+
     /**
      * Compteur « paiements en attente » du dashboard : réservations DIRECTES non
      * annulées avec paiement PENDING et montant dû. Les réservations OTA sont

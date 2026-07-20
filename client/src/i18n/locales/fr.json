@@ -3262,6 +3262,14 @@
       "fiscal": {
         "title": "Rapport Fiscal",
         "description": "TVA, taxes et declarations fiscales"
+      },
+      "pace": {
+        "title": "Pace",
+        "description": "Réservations à venir vs l'an dernier, pickup et booking curve"
+      },
+      "custom": {
+        "title": "Rapport personnalisé",
+        "description": "Composez vos rapports : dimensions, métriques, granularité"
       }
     },
     "selectReport": "Sélectionnez un rapport à générer",
@@ -5628,7 +5636,9 @@
         "financial": "Revenus par bien, coûts d'exploitation, marge nette et exports comptables sur la période choisie.",
         "interventions": "Volume, délais moyens et taux de réalisation des interventions par type et par équipe.",
         "teams": "Charge de travail, performance et disponibilités par équipe et par membre.",
-        "properties": "Taux d'occupation, RevPAR, alertes maintenance et indicateurs de santé par bien."
+        "properties": "Taux d'occupation, RevPAR, alertes maintenance et indicateurs de santé par bien.",
+        "pace": "Nuits réservées pour les prochains mois comparées à l'an dernier au même recul, pickup récent et montée des réservations.",
+        "custom": "Rapport à la carte : croisez propriétés, canaux, périodes et pays sur vos métriques revenue."
       }
     },
     "tarification": {

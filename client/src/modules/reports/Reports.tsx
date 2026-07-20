@@ -6,6 +6,8 @@ import {
   People as PeopleIcon,
   Home as HomeIcon,
   BarChart as BarChartIcon,
+  TrendingUp as TrendingUpIcon,
+  Tune as TuneIcon,
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
@@ -24,6 +26,8 @@ import {
   TeamsReport,
   PropertiesReport,
 } from './ReportDetails';
+import PaceReport from './PaceReport';
+import CustomReport from './CustomReport';
 import type {
   DashboardPeriod,
   DateFilterOption,
@@ -78,6 +82,22 @@ const REPORT_TABS: ReportTab[] = [
     permission: 'reports:view',
     Component: PropertiesReport,
     hasPeriodFilter: true,
+  },
+  {
+    id: 'pace',
+    labelKey: 'reports.sections.pace.title',
+    icon: <TrendingUpIcon />,
+    permission: 'reports:view',
+    Component: PaceReport,
+    hasPeriodFilter: false,
+  },
+  {
+    id: 'custom',
+    labelKey: 'reports.sections.custom.title',
+    icon: <TuneIcon />,
+    permission: 'reports:view',
+    Component: CustomReport,
+    hasPeriodFilter: false,
   },
 ];
 
@@ -184,6 +204,12 @@ const Reports: React.FC = () => {
     },
     [t('reports.sections.properties.title')]: {
       subtitle: t('tabHeaders.reports.subtitle.properties', "Taux d'occupation, RevPAR, alertes maintenance et indicateurs de santé par bien."),
+    },
+    [t('reports.sections.pace.title')]: {
+      subtitle: t('tabHeaders.reports.subtitle.pace', "Nuits réservées pour les prochains mois comparées à l'an dernier au même recul, pickup récent et montée des réservations."),
+    },
+    [t('reports.sections.custom.title')]: {
+      subtitle: t('tabHeaders.reports.subtitle.custom', 'Rapport à la carte : croisez propriétés, canaux, périodes et pays sur vos métriques revenue.'),
     },
   };
   const { title, subtitle } = resolveTabHeader(
