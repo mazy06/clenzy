@@ -3343,3 +3343,13 @@ databaseChangeLog:
       sqlFile:
         path: changes/0349__add_reservation_cancelled_at.sql
         relativeToChangelogFile: true
+
+  # Fondations RMS (R1) : snapshots quotidiens du calendrier publie (prix resolu +
+  # statut + min_stay, horizon 365 j) — historisation impossible a reconstruire,
+  # base des booking curves de prix et du forecast appris (R3).
+  - changeSet:
+      id: "0350-create-calendar-day-snapshots"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0350__create_calendar_day_snapshots.sql
+        relativeToChangelogFile: true
