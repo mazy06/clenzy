@@ -6133,6 +6133,22 @@
     "saveError": "Save failed, please retry.",
     "boundsError": "Invalid bounds: floor < ceiling, both positive (or neither).",
     "killSwitch": "Automatic yield enabled",
+    "automations": {
+      "title": "Automations",
+      "subtitle": "Deterministic adjustments applied every night, automatically reversible.",
+      "orphanGap": {
+        "toggle": "Price orphan nights",
+        "maxNights": "Max gap (nights)",
+        "discountPct": "Discount (%)",
+        "help": "Discount + lowered minimum stay on short gaps between two bookings (never below the floor price)."
+      },
+      "minStay": {
+        "toggle": "Dynamic minimum stay",
+        "reduceWithinDays": "Window (days)",
+        "reducedValue": "Reduced min stay",
+        "help": "Lowers the minimum stay of still-open nights as the date approaches (last-minute)."
+      }
+    },
     "mode": {
       "simulation": "Simulation",
       "suggest": "Suggestion",

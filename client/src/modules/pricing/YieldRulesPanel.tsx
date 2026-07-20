@@ -255,6 +255,101 @@ const YieldRulesPanel: React.FC = () => {
         </Box>
       </Paper>
 
+      {/* ── Automatisations déterministes (R2) ── */}
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5 }}>
+          {t('yieldRules.automations.title', 'Automatisations')}
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'var(--muted)', mb: 1.5 }}>
+          {t('yieldRules.automations.subtitle',
+            'Ajustements déterministes appliqués chaque nuit, réversibles automatiquement.')}
+        </Typography>
+
+        {/* Orphan gap pricing */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={config?.orphanGapEnabled ?? false}
+                onChange={(_, checked) =>
+                  config && void updateConfig({ ...config, orphanGapEnabled: checked })}
+              />
+            }
+            label={t('yieldRules.automations.orphanGap.toggle', 'Tarifer les nuits orphelines')}
+          />
+          {config?.orphanGapEnabled && (
+            <>
+              <TextField
+                label={t('yieldRules.automations.orphanGap.maxNights', 'Trou max (nuits)')}
+                type="number"
+                size="small"
+                value={config.orphanGapMaxNights}
+                onChange={(e) =>
+                  void updateConfig({ ...config, orphanGapMaxNights: Number(e.target.value) })}
+                inputProps={{ min: 1, max: 7 }}
+                sx={{ width: 130 }}
+              />
+              <TextField
+                label={t('yieldRules.automations.orphanGap.discountPct', 'Remise (%)')}
+                type="number"
+                size="small"
+                value={config.orphanGapDiscountPct}
+                onChange={(e) =>
+                  void updateConfig({ ...config, orphanGapDiscountPct: Number(e.target.value) })}
+                inputProps={{ min: 0, max: 50 }}
+                sx={{ width: 110 }}
+              />
+            </>
+          )}
+        </Box>
+        <Typography variant="caption" sx={{ color: 'var(--muted)', display: 'block', mt: 0.5, mb: 1.5 }}>
+          {t('yieldRules.automations.orphanGap.help',
+            'Remise + séjour minimum abaissé sur les courts trous entre deux réservations (jamais sous le prix plancher).')}
+        </Typography>
+
+        {/* Min-stay dynamique */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={config?.minStayAutoEnabled ?? false}
+                onChange={(_, checked) =>
+                  config && void updateConfig({ ...config, minStayAutoEnabled: checked })}
+              />
+            }
+            label={t('yieldRules.automations.minStay.toggle', 'Séjour minimum dynamique')}
+          />
+          {config?.minStayAutoEnabled && (
+            <>
+              <TextField
+                label={t('yieldRules.automations.minStay.reduceWithinDays', 'Fenêtre (jours)')}
+                type="number"
+                size="small"
+                value={config.minStayReduceWithinDays}
+                onChange={(e) =>
+                  void updateConfig({ ...config, minStayReduceWithinDays: Number(e.target.value) })}
+                inputProps={{ min: 1, max: 60 }}
+                sx={{ width: 130 }}
+              />
+              <TextField
+                label={t('yieldRules.automations.minStay.reducedValue', 'Séjour min réduit')}
+                type="number"
+                size="small"
+                value={config.minStayReducedValue}
+                onChange={(e) =>
+                  void updateConfig({ ...config, minStayReducedValue: Number(e.target.value) })}
+                inputProps={{ min: 1, max: 30 }}
+                sx={{ width: 140 }}
+              />
+            </>
+          )}
+        </Box>
+        <Typography variant="caption" sx={{ color: 'var(--muted)', display: 'block', mt: 0.5 }}>
+          {t('yieldRules.automations.minStay.help',
+            'Abaisse le séjour minimum des nuits encore libres à l’approche de la date (last-minute).')}
+        </Typography>
+      </Paper>
+
       {/* ── Règles ── */}
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>

@@ -6160,6 +6160,22 @@
     "saveError": "Enregistrement impossible, réessayez.",
     "boundsError": "Bornes invalides : plancher < plafond, tous deux positifs (ou aucun).",
     "killSwitch": "Yield automatique activé",
+    "automations": {
+      "title": "Automatisations",
+      "subtitle": "Ajustements déterministes appliqués chaque nuit, réversibles automatiquement.",
+      "orphanGap": {
+        "toggle": "Tarifer les nuits orphelines",
+        "maxNights": "Trou max (nuits)",
+        "discountPct": "Remise (%)",
+        "help": "Remise + séjour minimum abaissé sur les courts trous entre deux réservations (jamais sous le prix plancher)."
+      },
+      "minStay": {
+        "toggle": "Séjour minimum dynamique",
+        "reduceWithinDays": "Fenêtre (jours)",
+        "reducedValue": "Séjour min réduit",
+        "help": "Abaisse le séjour minimum des nuits encore libres à l’approche de la date (last-minute)."
+      }
+    },
     "mode": {
       "simulation": "Simulation",
       "suggest": "Suggestion",
