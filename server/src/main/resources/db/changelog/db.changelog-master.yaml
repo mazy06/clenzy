@@ -3371,3 +3371,20 @@ databaseChangeLog:
       sqlFile:
         path: changes/0352__add_rms_automation_config.sql
         relativeToChangelogFile: true
+
+  # Securite F1-STRUCT : Row-Level Security (filet d'isolation multi-tenant).
+  # DORMANT par CONTEXTE Liquibase `rls` : ne s'applique QU'AUX environnements
+  # dont spring.liquibase.contexts inclut `rls` (staging). Le defaut global est
+  # `!rls` (application.yml) → dev / test / PROD ne l'appliquent PAS au boot.
+  # Activation : runbook docs/security/RLS-ROLLOUT-RUNBOOK.md (contexte + flag
+  # clenzy.security.rls.enabled + role de migration BYPASSRLS). Rollback :
+  # changes/0353__rollback_rls_priority_tables.sql (non cable — a cabler au besoin).
+  - changeSet:
+      id: "0345-enable-rls-priority-tables"
+      author: clenzy-team
+      context: "rls"
+      sqlFile:
+        path: changes/0345__enable_rls_priority_tables.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
