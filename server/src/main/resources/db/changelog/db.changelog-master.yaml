@@ -3353,3 +3353,12 @@ databaseChangeLog:
       sqlFile:
         path: changes/0350__create_calendar_day_snapshots.sql
         relativeToChangelogFile: true
+
+  # Fondations RMS (R1) : funnel booking engine — telemetrie server-side de la
+  # demande (recherches, denied demand SEARCH_NO_RESULT, vues, checkouts inities).
+  - changeSet:
+      id: "0351-create-booking-funnel-events"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0351__create_booking_funnel_events.sql
+        relativeToChangelogFile: true
