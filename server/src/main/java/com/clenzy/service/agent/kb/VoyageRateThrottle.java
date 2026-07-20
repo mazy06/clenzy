@@ -2,6 +2,7 @@ package com.clenzy.service.agent.kb;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -35,6 +36,7 @@ public class VoyageRateThrottle {
     /** Prochain creneau reservable — protege par {@code this}. */
     private long nextSlotAt = 0L;
 
+    @Autowired
     public VoyageRateThrottle() {
         this(THROTTLE_WINDOW_MS, SLOT_INTERVAL_MS);
     }

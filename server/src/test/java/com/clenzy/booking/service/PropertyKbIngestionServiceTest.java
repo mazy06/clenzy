@@ -50,11 +50,14 @@ class PropertyKbIngestionServiceTest {
                 property("Villa Azur", "Nice", List.of("Piscine", "Wifi")),
                 property("Studio Centre", "Lyon", List.of("Wifi"))));
 
+        when(ingestionService.ingestMarkdownIfChanged(eq("auto/properties/7"), anyString(), eq(7L), eq("fr")))
+                .thenReturn(true);
+
         boolean ingested = service().ingestForOrg(7L);
 
         assertThat(ingested).isTrue();
         ArgumentCaptor<String> md = ArgumentCaptor.forClass(String.class);
-        verify(ingestionService).ingestMarkdown(eq("auto/properties/7"), md.capture(), eq(7L));
+        verify(ingestionService).ingestMarkdownIfChanged(eq("auto/properties/7"), md.capture(), eq(7L), eq("fr"));
         String doc = md.getValue();
         // Un ## par hébergement (= un chunk vectoriel propre) + détails publics.
         assertThat(doc).contains("## Villa Azur").contains("## Studio Centre");
@@ -67,12 +70,12 @@ class PropertyKbIngestionServiceTest {
         when(bookingService.getProperties(any())).thenReturn(List.of());
 
         assertThat(service().ingestForOrg(9L)).isFalse();
-        verify(ingestionService, never()).ingestMarkdown(anyString(), anyString(), anyLong());
+        verify(ingestionService, never()).ingestMarkdownIfChanged(anyString(), anyString(), anyLong(), anyString());
     }
 
     @Test
     void ingestForOrg_nullOrg_isNoOp() {
         assertThat(service().ingestForOrg(null)).isFalse();
-        verify(ingestionService, never()).ingestMarkdown(anyString(), anyString(), anyLong());
+        verify(ingestionService, never()).ingestMarkdownIfChanged(anyString(), anyString(), anyLong(), anyString());
     }
 }
