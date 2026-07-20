@@ -57,6 +57,7 @@ public class InsightsSpecialist extends AbstractAgentSpecialist {
                 "simulate_pricing_change",
                 "recommend_price_adjustments",
                 "simulate_calendar_block",
+                "benchmark_market",
                 "list_reviews",
                 "analyze_reviews"
         );

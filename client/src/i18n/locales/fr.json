@@ -6155,6 +6155,18 @@
       "export": "Impossible d’exporter le CSV."
     }
   },
+  "marketPositioning": {
+    "title": "Positionnement marché",
+    "yourProperty": "Votre logement",
+    "market": "Marché de la zone",
+    "adr": "ADR",
+    "occupancy": "Occupation",
+    "underpriced": "Sous le marché",
+    "overpriced": "Au-dessus du marché",
+    "aligned": "Aligné sur le marché",
+    "noData": "Pas de données marché",
+    "sourceHint": "Provenance et fiabilité de la donnée marché. Le « réseau Baitly » est votre réalisé, jamais présenté comme le marché entier."
+  },
   "yieldRules": {
     "loadError": "Impossible de charger la configuration yield.",
     "saveError": "Enregistrement impossible, réessayez.",

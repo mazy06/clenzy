@@ -6128,6 +6128,18 @@
       "export": "Could not export the CSV."
     }
   },
+  "marketPositioning": {
+    "title": "Market positioning",
+    "yourProperty": "Your property",
+    "market": "Area market",
+    "adr": "ADR",
+    "occupancy": "Occupancy",
+    "underpriced": "Below market",
+    "overpriced": "Above market",
+    "aligned": "In line with market",
+    "noData": "No market data",
+    "sourceHint": "Provenance and reliability of the market data. The \"Baitly network\" is your own realised figures, never presented as the whole market."
+  },
   "yieldRules": {
     "loadError": "Unable to load the yield configuration.",
     "saveError": "Save failed, please retry.",
