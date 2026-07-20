@@ -15,7 +15,7 @@ import java.util.Optional;
 /**
  * Persistance + chiffrement pour les connexions de conformite legale.
  *
- * <p>Mirror de {@code PricingConnectionService}. Reutilise
+ * <p>Reutilise
  * {@link ApiKeyEncryptionService} (Jasypt AES-256) pour chiffrer les API
  * keys. Service applique le pattern repository — pas de logique business
  * (le test de connexion vit dans les strategies).</p>

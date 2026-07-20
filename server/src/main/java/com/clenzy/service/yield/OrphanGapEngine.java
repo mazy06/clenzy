@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
  * un creux court (1..{@code orphanGapMaxNights} nuits libres ENTRE deux nuits
  * occupées) est difficile à vendre au tarif nominal — on y applique une remise
  * (bornée par le floor du bien) et on abaisse le min-stay à la longueur du creux
- * pour le rendre réservable (pattern PriceLabs).
+ * pour le rendre réservable (pattern RMS standard).
  *
  * <p>Réversible par construction : les écritures portent la source
  * {@value #SOURCE} (rate_overrides + min_nights_overrides) et sont supprimées au

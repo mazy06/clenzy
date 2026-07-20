@@ -724,7 +724,7 @@ class AdvancedRateManagerTest {
             // Act
             advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);
 
-            // Assert : aucune ecriture, le prix PriceLabs reste intact
+            // Assert : aucune ecriture, l'override externe historique reste intact
             verify(rateOverrideRepository, never()).save(any());
             assertThat(external.getNightlyPrice()).isEqualByComparingTo("140.00");
             assertThat(external.getSource()).isEqualTo("EXTERNAL_PRICING");

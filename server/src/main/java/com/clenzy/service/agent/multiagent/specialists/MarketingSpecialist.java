@@ -39,7 +39,6 @@ public class MarketingSpecialist extends AbstractAgentSpecialist {
         return """
                 Specialiste marketing et acquisition :
                 - "D'ou viennent mes reservations ?" → get_channel_attribution (mix Airbnb/direct/...)
-                - "Comment je me situe face a la concurrence ?" → benchmark_competition
                 - "Quels revenus additionnels proposer ?" → suggest_upsells
                 - "Que disent les avis de mes logements ?" → analyze_reviews / list_reviews
                   (reputation = premier levier de conversion)
@@ -52,7 +51,6 @@ public class MarketingSpecialist extends AbstractAgentSpecialist {
     public Set<String> toolNames() {
         return Set.of(
                 "get_channel_attribution",
-                "benchmark_competition",
                 "suggest_upsells",
                 "analyze_reviews",
                 "list_reviews",

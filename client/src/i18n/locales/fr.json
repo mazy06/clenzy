@@ -3033,7 +3033,7 @@
     },
     "integrations": {
       "title": "Intégrations",
-      "comingSoon": "D'autres intégrations (PriceLabs, QuickBooks, etc.) seront disponibles prochainement.",
+      "comingSoon": "D'autres intégrations (QuickBooks, Xero, etc.) seront disponibles prochainement.",
       "pennylane": {
         "title": "Pennylane",
         "description": "Synchronisez vos factures et dépenses vers votre comptabilité Pennylane",

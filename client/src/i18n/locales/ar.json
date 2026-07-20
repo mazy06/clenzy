@@ -2978,7 +2978,7 @@
     },
     "integrations": {
       "title": "التكاملات",
-      "comingSoon": "ستتوفر المزيد من التكاملات (PriceLabs، QuickBooks، إلخ) قريباً.",
+      "comingSoon": "ستتوفر المزيد من التكاملات (QuickBooks، Xero، إلخ) قريباً.",
       "pennylane": {
         "title": "Pennylane",
         "description": "مزامنة الفواتير والمصروفات مع محاسبة Pennylane",

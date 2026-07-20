@@ -416,8 +416,8 @@ public class AdvancedRateManager {
      *   <li>l'ajustement est calcule depuis le prix de base HORS overrides
      *       YIELD_RULE — deux runs successifs produisent le meme prix (pas de
      *       derive composee sur le resultat du run precedent) ;</li>
-     *   <li>un override d'une autre source (MANUAL, EXTERNAL_PRICING, OTA:*)
-     *       n'est JAMAIS ecrase par le yield ;</li>
+     *   <li>un override d'une autre source (MANUAL, OTA:*, valeurs historiques
+     *       comme EXTERNAL_PRICING) n'est JAMAIS ecrase par le yield ;</li>
      *   <li>si la regle n'a pas de minPrice/maxPrice, un garde-fou ±50% du prix
      *       de base est applique ({@link #DEFAULT_YIELD_CLAMP_RATIO}).</li>
      * </ul>

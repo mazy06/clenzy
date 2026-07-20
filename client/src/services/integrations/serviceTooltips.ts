@@ -48,32 +48,6 @@ export const SERVICE_TOOLTIPS: Record<string, ServiceTooltipData> = {
     region: 'FR',
   },
 
-  // ─── Tarification dynamique ────────────────────────────────────────────
-  PRICELABS: {
-    description:
-      "Leader mondial du dynamic pricing court-séjour (NYC). 250 000+ listings, recommandations basées sur la demande locale, occupancy, événements. Couvre tous marchés FR/MA/KSA.",
-    accessModality:
-      'Compte PriceLabs (~20-30 €/listing/mois). API key dans Account Settings → API Integration après souscription.',
-    websiteUrl: 'https://hello.pricelabs.co',
-    region: 'Global',
-  },
-  BEYOND: {
-    description:
-      "Concurrent direct de PriceLabs (San Francisco). Algorithme propriétaire de tarification nuit-par-nuit. Très utilisé en Europe et US.",
-    accessModality:
-      "Compte Beyond Pro (tarification au revenue généré, ~1 % du CA additionnel). API key après onboarding commercial.",
-    websiteUrl: 'https://www.beyondpricing.com',
-    region: 'Global',
-  },
-  WHEELHOUSE: {
-    description:
-      "3e acteur majeur du dynamic pricing (San Francisco). Focus sur la comparaison concurrentielle avec les listings similaires dans la zone géographique.",
-    accessModality:
-      "Compte Wheelhouse (~24 $/listing/mois). API key fournie sur demande après souscription.",
-    websiteUrl: 'https://www.usewheelhouse.com',
-    region: 'Global',
-  },
-
   // ─── Comptabilite (OAuth2) ─────────────────────────────────────────────
   QUICKBOOKS: {
     description:

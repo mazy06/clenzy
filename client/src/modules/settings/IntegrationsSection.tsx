@@ -34,10 +34,8 @@ import SignatureProviderCards from './components/SignatureProviderCards';
 import DocuSealInfoCard from './components/DocuSealInfoCard';
 import OAuthProviderCard from './components/OAuthProviderCard';
 import IoTServicesSection from './components/IoTServicesSection';
-import PricingProviderCard from './components/PricingProviderCard';
 import IntegrationConfigDialog from './components/IntegrationConfigDialog';
 import { docusignApi } from '../../services/api/docusignApi';
-import { pricingConnectionApi, type PricingProvider } from '../../services/api/pricingConnectionApi';
 import { quickbooksApi } from '../../services/api/quickbooksApi';
 import { xeroApi } from '../../services/api/xeroApi';
 import { sageApi } from '../../services/api/sageApi';
@@ -243,17 +241,6 @@ export default function IntegrationsSection({
     }
   }, [status, handleProviderStatusChange]);
 
-  // ─── Tarification dynamique (PriceLabs, Beyond) ───────────────────────────
-  const [openPricingProvider, setOpenPricingProvider] = useState<PricingProvider | null>(null);
-  const [connectedPricing, setConnectedPricing] = useState<Set<PricingProvider>>(new Set());
-  const handlePricingStatusChange = useCallback((p: PricingProvider, connected: boolean) => {
-    setConnectedPricing((prev) => {
-      const next = new Set(prev);
-      if (connected) next.add(p); else next.delete(p);
-      return next;
-    });
-  }, []);
-
   // ─── Comptabilite (QuickBooks / Xero / Sage) ──────────────────────────────
   type AccountingProvider = 'QUICKBOOKS' | 'XERO' | 'SAGE';
   const [openAccountingProvider, setOpenAccountingProvider] = useState<AccountingProvider | null>(null);
@@ -317,17 +304,14 @@ export default function IntegrationsSection({
     [selectedServiceId],
   );
 
-  // Au mount : detecte les connexions deja existantes pour pricing + accounting
-  // pour afficher les badges "Configure" sur les cards. PAS d'ouverture
-  // automatique de modal — l'utilisateur clique explicitement pour configurer.
+  // Au mount : detecte les connexions deja existantes (accounting/compliance/kyc/
+  // channel manager) pour afficher les badges "Configure" sur les cards. PAS
+  // d'ouverture automatique de modal — l'utilisateur clique explicitement.
   useEffect(() => {
     const safe = async <T extends { connected: boolean }>(p: Promise<T>): Promise<T | null> => {
       try { return await p; } catch { return null; }
     };
     Promise.all([
-      safe(pricingConnectionApi.getStatus('PRICELABS')),
-      safe(pricingConnectionApi.getStatus('BEYOND')),
-      safe(pricingConnectionApi.getStatus('WHEELHOUSE')),
       safe(quickbooksApi.getStatus()),
       safe(xeroApi.getStatus()),
       safe(sageApi.getStatus()),
@@ -341,14 +325,8 @@ export default function IntegrationsSection({
       safe(channelManagerConnectionApi.getStatus('HOSTAWAY')),
       safe(channelManagerConnectionApi.getStatus('RENTALS_UNITED')),
       safe(channelManagerConnectionApi.getStatus('CHANNEX')),
-    ]).then(([pl, beyond, wheelhouse, qb, xero, sage, chekin, policeMa, absherKsa,
+    ]).then(([qb, xero, sage, chekin, policeMa, absherKsa,
               sumsub, veriff, onfido, siteminder, hostaway, rentalsUnited, channex]) => {
-      const configuredPricing = new Set<PricingProvider>();
-      if (pl?.connected) configuredPricing.add('PRICELABS');
-      if (beyond?.connected) configuredPricing.add('BEYOND');
-      if (wheelhouse?.connected) configuredPricing.add('WHEELHOUSE');
-      setConnectedPricing(configuredPricing);
-
       const configuredAccounting = new Set<AccountingProvider>();
       if (qb?.connected) configuredAccounting.add('QUICKBOOKS');
       if (xero?.connected) configuredAccounting.add('XERO');
@@ -924,75 +902,6 @@ export default function IntegrationsSection({
         />
       </IntegrationConfigDialog>
 
-
-      {/* ─── Section : Tarification dynamique (PriceLabs, Beyond) ────── */}
-      {showSection('pricing') && (
-      <Paper
-        id="section-pricing"
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mt: 3,
-          mb: 2,
-          px: 2,
-          py: 1.75,
-          scrollMarginTop: 80,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
-            Tarification dynamique
-          </Typography>
-          <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
-        </Box>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
-          Connectez un moteur de revenue management pour des recommandations de prix automatiques (saisonnalité, demande, événements).
-        </Typography>
-        <Box
-          aria-disabled="true"
-          onClickCapture={blockInteraction}
-          onKeyDownCapture={blockInteraction}
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 1.5,
-            mt: 1,
-            ...DISABLED_CARDS_SX,
-          }}
-        >
-          {([
-            { id: 'PRICELABS', label: 'PriceLabs', desc: 'Revenue management · API key' },
-            { id: 'BEYOND', label: 'Beyond', desc: 'Algorithme propriétaire · API key' },
-            { id: 'WHEELHOUSE', label: 'Wheelhouse', desc: 'Market comparison · API key' },
-          ] as const).filter(({ id }) => matchesService(id)).map(({ id: p, label, desc }) => (
-            <ServiceGridCard
-              key={p}
-              providerId={p}
-              label={label}
-              description={desc}
-              role="radio"
-              selected={openPricingProvider === p}
-              status={connectedPricing.has(p) ? 'connected' : 'comingSoon'}
-              onClick={() => setOpenPricingProvider(p)}
-            />
-          ))}
-        </Box>
-      </Paper>
-      )}
-      <IntegrationConfigDialog
-        open={openPricingProvider !== null}
-        onClose={() => setOpenPricingProvider(null)}
-      >
-        {openPricingProvider && (
-          <PricingProviderCard
-            provider={openPricingProvider}
-            onStatusChange={(c) => handlePricingStatusChange(openPricingProvider, c)}
-          />
-        )}
-      </IntegrationConfigDialog>
 
       {/* ─── Section : Comptabilité (QuickBooks) ──────────────────────── */}
       {showSection('accounting') && (

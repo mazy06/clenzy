@@ -27,9 +27,6 @@ export type ProviderId =
   | 'DOCUSEAL'
   | 'PENNYLANE'
   | 'ODOO'
-  | 'PRICELABS'
-  | 'BEYOND'
-  | 'WHEELHOUSE'
   | 'QUICKBOOKS'
   | 'XERO'
   | 'SAGE'
@@ -76,14 +73,8 @@ const PALETTE: Record<ProviderId, BrandPalette> = {
   PENNYLANE:  { bg: '#1B2A4A', fg: '#FFFFFF', accent: '#6C7FE0' },
   // Odoo : prune
   ODOO:       { bg: '#714B67', fg: '#FFFFFF', accent: '#E8B546' },
-  // PriceLabs : rouge/orange (revenue management)
-  PRICELABS:  { bg: '#E94F37', fg: '#FFFFFF', accent: '#FFC857' },
-  // Beyond : bleu nuit + teal
-  BEYOND:     { bg: '#0F2E3F', fg: '#FFFFFF', accent: '#2ED9C3' },
   // QuickBooks : vert Intuit
   QUICKBOOKS: { bg: '#2CA01C', fg: '#FFFFFF', accent: '#FFFFFF' },
-  // Wheelhouse : navy + jaune (data driven)
-  WHEELHOUSE: { bg: '#1A2B4A', fg: '#FFFFFF', accent: '#FFC857' },
   // Xero : cyan + bleu signature
   XERO:       { bg: '#13B5EA', fg: '#FFFFFF', accent: '#0078A3' },
   // Sage : vert sapin
@@ -285,61 +276,6 @@ function renderMark(provider: ProviderId, p: BrandPalette): React.ReactNode {
         </>
       );
 
-    case 'PRICELABS':
-      // Tile rouge/orange, "PL" + petit indicateur de courbe (data viz)
-      return (
-        <>
-          <rect width="48" height="48" rx="12" fill={p.bg} />
-          <text
-            x="24"
-            y="29"
-            textAnchor="middle"
-            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
-            fontSize="16"
-            fontWeight="800"
-            fill={p.fg}
-            letterSpacing="-0.04em"
-          >
-            PL
-          </text>
-          <path
-            d="M10 38 L17 33 L24 35 L31 28 L38 30"
-            stroke={p.accent}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
-        </>
-      );
-
-    case 'BEYOND':
-      // Tile bleu nuit, "B" avec arc (au-dela)
-      return (
-        <>
-          <rect width="48" height="48" rx="12" fill={p.bg} />
-          <text
-            x="24"
-            y="32"
-            textAnchor="middle"
-            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
-            fontSize="22"
-            fontWeight="700"
-            fill={p.fg}
-            letterSpacing="-0.02em"
-          >
-            B
-          </text>
-          <path
-            d="M10 39 Q24 31 38 39"
-            stroke={p.accent}
-            strokeWidth="2"
-            strokeLinecap="round"
-            fill="none"
-          />
-        </>
-      );
-
     case 'QUICKBOOKS':
       // Tile vert, "qb" minuscule entoure d'un cercle (motif Intuit)
       return (
@@ -358,29 +294,6 @@ function renderMark(provider: ProviderId, p: BrandPalette): React.ReactNode {
           >
             qb
           </text>
-        </>
-      );
-
-    case 'WHEELHOUSE':
-      // Tile navy, "W" + petits rayons (motif de roue / tableau de bord)
-      return (
-        <>
-          <rect width="48" height="48" rx="12" fill={p.bg} />
-          <text
-            x="24"
-            y="30"
-            textAnchor="middle"
-            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
-            fontSize="20"
-            fontWeight="800"
-            fill={p.fg}
-            letterSpacing="-0.04em"
-          >
-            W
-          </text>
-          <circle cx="24" cy="38" r="2.5" fill={p.accent} />
-          <line x1="19" y1="38" x2="14" y2="38" stroke={p.accent} strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
-          <line x1="29" y1="38" x2="34" y2="38" stroke={p.accent} strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
         </>
       );
 

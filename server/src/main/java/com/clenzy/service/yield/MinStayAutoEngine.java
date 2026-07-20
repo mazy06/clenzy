@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
  * Min-stay dynamique (RMS R2) — réduction LAST-MINUTE du séjour minimum :
  * une nuit encore libre à moins de {@code minStayReduceWithinDays} jours a peu
  * de chances de se vendre avec un min-stay élevé — on l'abaisse à
- * {@code minStayReducedValue} (pattern PriceLabs), via des
+ * {@code minStayReducedValue} (pattern RMS standard), via des
  * {@code min_nights_overrides} source {@value #SOURCE}, réversibles.
  *
  * <p>Protections : les overrides d'une autre source (MANUAL, événement,

@@ -3008,7 +3008,7 @@
     },
     "integrations": {
       "title": "Integrations",
-      "comingSoon": "More integrations (PriceLabs, QuickBooks, etc.) will be available soon.",
+      "comingSoon": "More integrations (QuickBooks, Xero, etc.) will be available soon.",
       "pennylane": {
         "title": "Pennylane",
         "description": "Sync your invoices and expenses to your Pennylane accounting",

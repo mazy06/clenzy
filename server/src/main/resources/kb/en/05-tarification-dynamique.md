@@ -35,8 +35,8 @@ The specific price is the highest-priority level of the grid: your manual decisi
 **Can I test my yield rules without touching my prices?**
 Yes, choose Simulation mode: Baitly produces a report of what would have changed, without any pricing writes.
 
-**Can I use an external pricing tool?**
-Yes, Baitly offers an integration with market dynamic pricing solutions such as PriceLabs, which can then drive your properties' prices.
+**Does Baitly need an external pricing tool?**
+No: Baitly ships its own revenue management engine. Yield rules adjust prices based on occupancy, automatic orphan-gap filling and dynamic minimum stay optimise the gaps, and every recommendation stays reviewable by you (simulation, suggestion or automatic mode). No third-party subscription is required.
 
 **How do I run a one-off discount to fill a slow period?**
 Create a Promotion-type plan over the targeted period, or a yield decrease rule conditioned on low occupancy, or a specific price applied over the period.

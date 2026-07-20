@@ -71,11 +71,6 @@ export const ALL_SERVICES: ServiceIndexEntry[] = [
   entry('YOUSIGN', 'Yousign', 'signature'),
   entry('DOCUSEAL', 'DocuSeal', 'signature'),
 
-  // Tarification dynamique
-  entry('PRICELABS', 'PriceLabs', 'pricing'),
-  entry('BEYOND', 'Beyond', 'pricing'),
-  entry('WHEELHOUSE', 'Wheelhouse', 'pricing'),
-
   // Comptabilite
   entry('PENNYLANE', 'Pennylane', 'accounting'),
   entry('QUICKBOOKS', 'QuickBooks', 'accounting'),

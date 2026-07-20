@@ -3371,3 +3371,13 @@ databaseChangeLog:
       sqlFile:
         path: changes/0352__add_rms_automation_config.sql
         relativeToChangelogFile: true
+
+  # Retrait des amorces pricing externe (PriceLabs/Beyond/Wheelhouse) — RMS natif.
+  # DROP des 2 tables dediees uniquement (compta quickbooks/xero/sage preservee).
+  # 0353 reserve par la branche rls-rollout-staging (rollback RLS) -> ce DROP est 0354.
+  - changeSet:
+      id: "0354-drop-external-pricing-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0354__drop_external_pricing_tables.sql
+        relativeToChangelogFile: true
