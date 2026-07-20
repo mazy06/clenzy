@@ -15,4 +15,7 @@ public interface YieldOrgConfigRepository extends JpaRepository<YieldOrgConfig, 
      * réservée au scheduler (hors contexte tenant, filtre Hibernate inactif).
      */
     List<YieldOrgConfig> findByEnabledTrue();
+
+    /** Orgs ayant au moins une automatisation R2 active (orphan gap ou min-stay auto). */
+    List<YieldOrgConfig> findByOrphanGapEnabledTrueOrMinStayAutoEnabledTrue();
 }

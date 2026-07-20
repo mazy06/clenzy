@@ -3362,3 +3362,12 @@ databaseChangeLog:
       sqlFile:
         path: changes/0351__create_booking_funnel_events.sql
         relativeToChangelogFile: true
+
+  # RMS R2 : automatisations deterministes — orphan gap pricing + min-stay
+  # dynamique, parametres opt-in par org sur yield_org_configs (defaut OFF).
+  - changeSet:
+      id: "0352-add-rms-automation-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0352__add_rms_automation_config.sql
+        relativeToChangelogFile: true

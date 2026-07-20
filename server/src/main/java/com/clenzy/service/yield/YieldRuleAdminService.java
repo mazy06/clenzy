@@ -68,8 +68,8 @@ public class YieldRuleAdminService {
     public YieldConfigDto getConfig() {
         final Long orgId = tenantContext.getRequiredOrganizationId();
         return configRepository.findByOrganizationId(orgId)
-                .map(c -> new YieldConfigDto(c.isEnabled(), c.getMode().name()))
-                .orElseGet(() -> new YieldConfigDto(false, YieldMode.SIMULATION.name()));
+                .map(YieldRuleAdminService::toConfigDto)
+                .orElseGet(() -> toConfigDto(new YieldOrgConfig(orgId)));
     }
 
     @Transactional
@@ -80,8 +80,47 @@ public class YieldRuleAdminService {
                 .orElseGet(() -> new YieldOrgConfig(orgId));
         config.setEnabled(request.enabled());
         config.setMode(mode);
+        // Automatisations R2 : null = inchangé (un client qui n'envoie pas ces
+        // champs ne doit rien modifier) ; sinon bornes serrées — une valeur
+        // aberrante est refusée plutôt que clampée silencieusement.
+        if (request.orphanGapEnabled() != null) {
+            config.setOrphanGapEnabled(request.orphanGapEnabled());
+        }
+        if (request.orphanGapMaxNights() != null) {
+            config.setOrphanGapMaxNights(requireRange(request.orphanGapMaxNights(), 1, 7, "orphanGapMaxNights"));
+        }
+        if (request.orphanGapDiscountPct() != null) {
+            final java.math.BigDecimal pct = request.orphanGapDiscountPct();
+            if (pct.compareTo(java.math.BigDecimal.ZERO) < 0
+                    || pct.compareTo(java.math.BigDecimal.valueOf(50)) > 0) {
+                throw new IllegalArgumentException("orphanGapDiscountPct doit être entre 0 et 50");
+            }
+            config.setOrphanGapDiscountPct(pct);
+        }
+        if (request.minStayAutoEnabled() != null) {
+            config.setMinStayAutoEnabled(request.minStayAutoEnabled());
+        }
+        if (request.minStayReduceWithinDays() != null) {
+            config.setMinStayReduceWithinDays(requireRange(request.minStayReduceWithinDays(), 1, 60, "minStayReduceWithinDays"));
+        }
+        if (request.minStayReducedValue() != null) {
+            config.setMinStayReducedValue(requireRange(request.minStayReducedValue(), 1, 30, "minStayReducedValue"));
+        }
         final YieldOrgConfig saved = configRepository.save(config);
-        return new YieldConfigDto(saved.isEnabled(), saved.getMode().name());
+        return toConfigDto(saved);
+    }
+
+    private static YieldConfigDto toConfigDto(YieldOrgConfig c) {
+        return new YieldConfigDto(c.isEnabled(), c.getMode().name(),
+                c.isOrphanGapEnabled(), c.getOrphanGapMaxNights(), c.getOrphanGapDiscountPct(),
+                c.isMinStayAutoEnabled(), c.getMinStayReduceWithinDays(), c.getMinStayReducedValue());
+    }
+
+    private static int requireRange(int value, int min, int max, String field) {
+        if (value < min || value > max) {
+            throw new IllegalArgumentException(field + " doit être entre " + min + " et " + max);
+        }
+        return value;
     }
 
     // ── Règles v1 ───────────────────────────────────────────────────────────
