@@ -140,7 +140,9 @@ class LiquibaseVirginReplayIT {
                     .findCorrectDatabaseImplementation(new JdbcConnection(connection));
             try (Liquibase liquibase = new Liquibase(
                     MASTER_CHANGELOG, new ClassLoaderResourceAccessor(), database)) {
-                liquibase.update("");
+                // Contexte `!rls` : reflete le deploiement par defaut (dev/test/prod)
+                // ou le changeset RLS 0345 (contexte `rls`) reste dormant.
+                liquibase.update("!rls");
             }
         }
         try (Connection connection = open(url)) {
@@ -162,7 +164,8 @@ class LiquibaseVirginReplayIT {
                         .findCorrectDatabaseImplementation(new JdbcConnection(connection));
                 try (Liquibase liquibase = new Liquibase(
                         MASTER_CHANGELOG, new ClassLoaderResourceAccessor(), database)) {
-                    liquibase.update("");
+                    // `!rls` : deploiement par defaut, changeset RLS 0345 dormant.
+                    liquibase.update("!rls");
                 }
             }
         }

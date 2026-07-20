@@ -21,6 +21,10 @@ spring:
     open-in-view: false
   liquibase:
     enabled: true
+    # Rollout stagé RLS (F1-STRUCT) : staging active le contexte `rls` → le
+    # changeset 0345 s'applique ici (et NON en prod, cf. RLS-ROLLOUT-RUNBOOK.md).
+    # Override possible via LIQUIBASE_CONTEXTS pour désactiver ponctuellement.
+    contexts: ${LIQUIBASE_CONTEXTS:rls}
     properties:
       hibernate:
         jdbc:
@@ -103,6 +107,14 @@ logging:
     org.springframework.security: info
 
 clenzy:
+  # Rollout stagé RLS (F1-STRUCT) : la GUC app.current_org est posée par
+  # RlsTenantGucAspect sur chaque @Transactional de com.clenzy. Couplé au
+  # contexte Liquibase `rls` (spring.liquibase.contexts ci-dessus) qui applique
+  # les policies. Prérequis avant prod : rôle de migration BYPASSRLS + validation
+  # staging ≥ 1 semaine (docs/security/RLS-ROLLOUT-RUNBOOK.md).
+  security:
+    rls:
+      enabled: ${CLENZY_RLS_ENABLED:true}
   channex:
     base-url: ${CHANNEX_BASE_URL:https://staging.channex.io/api/v1}
     api-key: ${CHANNEX_API_KEY:}
