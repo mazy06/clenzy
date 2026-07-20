@@ -3390,3 +3390,12 @@ databaseChangeLog:
       sqlFile:
         path: changes/0355__create_market_data_snapshots.sql
         relativeToChangelogFile: true
+
+  # Roadmap market data : connexions fournisseurs (cle API chiffree, portee
+  # plateforme) — activation Airbtics/AirROI depuis Reglages -> Integrations.
+  - changeSet:
+      id: "0356-create-market-data-connections"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0356__create_market_data_connections.sql
+        relativeToChangelogFile: true

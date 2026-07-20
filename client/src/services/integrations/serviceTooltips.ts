@@ -48,6 +48,24 @@ export const SERVICE_TOOLTIPS: Record<string, ServiceTooltipData> = {
     region: 'FR',
   },
 
+  // ─── Intelligence de marché (sources actives) ──────────────────────────
+  AIRBTICS: {
+    description:
+      "Fournisseur cible de données de marché du RMS Baitly : benchmarks ADR/occupation/RevPAR par zone, couverture Maroc profonde (Marrakech, Casablanca, Agadir depuis 2019), restitution native en MAD.",
+    accessModality:
+      'Abonnement Airbtics (~500-2 000 $/an). Clé API à saisir ici — active l\'ingestion quotidienne au prochain cycle, sans redéploiement.',
+    websiteUrl: 'https://airbtics.com',
+    region: 'Global',
+  },
+  AIRROI: {
+    description:
+      "Appoint pay-per-call de données de marché (~0,01 $/appel, sans contrat) : cross-check de précision du first-party et couverture des marchés où les autres sources sont minces.",
+    accessModality:
+      "Compte AirROI (pay-as-you-go). Clé API à saisir ici — 5 marchés en refresh quotidien ≈ 18 $/an.",
+    websiteUrl: 'https://www.airroi.com',
+    region: 'Global',
+  },
+
   // ─── Comptabilite (OAuth2) ─────────────────────────────────────────────
   QUICKBOOKS: {
     description:

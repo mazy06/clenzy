@@ -41,6 +41,8 @@ import { xeroApi } from '../../services/api/xeroApi';
 import { sageApi } from '../../services/api/sageApi';
 import { complianceConnectionApi, type ComplianceProvider } from '../../services/api/complianceConnectionApi';
 import ComplianceProviderCard from './components/ComplianceProviderCard';
+import { marketDataConnectionApi, type MarketDataProvider } from '../../services/api/marketDataConnectionApi';
+import MarketDataProviderCard from './components/MarketDataProviderCard';
 import { kycConnectionApi, type KycProvider } from '../../services/api/kycConnectionApi';
 import KycProviderCard from './components/KycProviderCard';
 import {
@@ -253,6 +255,17 @@ export default function IntegrationsSection({
     });
   }, []);
 
+  // ─── Donnees de marche (Airbtics / AirROI — cartes ACTIVES, portee plateforme) ──
+  const [openMarketDataProvider, setOpenMarketDataProvider] = useState<MarketDataProvider | null>(null);
+  const [connectedMarketData, setConnectedMarketData] = useState<Set<MarketDataProvider>>(new Set());
+  const handleMarketDataStatusChange = useCallback((p: MarketDataProvider, connected: boolean) => {
+    setConnectedMarketData((prev) => {
+      const next = new Set(prev);
+      if (connected) next.add(p); else next.delete(p);
+      return next;
+    });
+  }, []);
+
   // ─── Conformite legale (Chekin / Police MA / Absher KSA) ─────────────────
   const [openComplianceProvider, setOpenComplianceProvider] = useState<ComplianceProvider | null>(null);
   const [connectedCompliance, setConnectedCompliance] = useState<Set<ComplianceProvider>>(new Set());
@@ -325,8 +338,16 @@ export default function IntegrationsSection({
       safe(channelManagerConnectionApi.getStatus('HOSTAWAY')),
       safe(channelManagerConnectionApi.getStatus('RENTALS_UNITED')),
       safe(channelManagerConnectionApi.getStatus('CHANNEX')),
+      safe(marketDataConnectionApi.getStatus('AIRBTICS')),
+      safe(marketDataConnectionApi.getStatus('AIRROI')),
     ]).then(([qb, xero, sage, chekin, policeMa, absherKsa,
-              sumsub, veriff, onfido, siteminder, hostaway, rentalsUnited, channex]) => {
+              sumsub, veriff, onfido, siteminder, hostaway, rentalsUnited, channex,
+              airbtics, airroi]) => {
+      const configuredMarketData = new Set<MarketDataProvider>();
+      if (airbtics?.connected) configuredMarketData.add('AIRBTICS');
+      if (airroi?.connected) configuredMarketData.add('AIRROI');
+      setConnectedMarketData(configuredMarketData);
+
       const configuredAccounting = new Set<AccountingProvider>();
       if (qb?.connected) configuredAccounting.add('QUICKBOOKS');
       if (xero?.connected) configuredAccounting.add('XERO');
@@ -1250,12 +1271,73 @@ export default function IntegrationsSection({
       {/* ─── Sections catalogue (services informatifs avec tooltips riches) ─── */}
       {showSection('market_intelligence') && (
         <Box id="section-market-intelligence" sx={{ scrollMarginTop: 80 }}>
+          {/* Cartes ACTIVES : la clé API saisie ici réveille l'adaptateur dormant
+              au prochain cycle d'ingestion (roadmap market data). */}
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: '12px',
+              border: '1px solid',
+              borderColor: 'divider',
+              boxShadow: 'none',
+              mt: 3,
+              mb: 2,
+              px: 2,
+              py: 1.75,
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+              <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                Intelligence de marché — sources de données
+              </Typography>
+            </Box>
+            <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+              Benchmarks ADR / occupation / RevPAR par zone pour le revenue management.
+              Sans clé, le RMS fonctionne déjà avec les données réseau (first-party) et
+              l'open data ; une clé active l'ingestion quotidienne du fournisseur.
+            </Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                gap: 1.5,
+                mt: 1,
+              }}
+            >
+              {([
+                { id: 'AIRBTICS', label: 'Airbtics', desc: 'Fournisseur cible · Maroc + MAD natif · API key' },
+                { id: 'AIRROI',   label: 'AirROI',   desc: 'Appoint pay-per-call (~0,01 $/appel) · API key' },
+              ] as const).filter(({ id }) => matchesService(id)).map(({ id: p, label, desc }) => (
+                <ServiceGridCard
+                  key={p}
+                  providerId={p}
+                  label={label}
+                  description={desc}
+                  role="button"
+                  selected={openMarketDataProvider === p}
+                  status={connectedMarketData.has(p) ? 'connected' : 'idle'}
+                  onClick={() => setOpenMarketDataProvider(p)}
+                />
+              ))}
+            </Box>
+          </Paper>
+          <IntegrationConfigDialog
+            open={openMarketDataProvider !== null}
+            onClose={() => setOpenMarketDataProvider(null)}
+          >
+            {openMarketDataProvider && (
+              <MarketDataProviderCard
+                provider={openMarketDataProvider}
+                onStatusChange={(c) => handleMarketDataStatusChange(openMarketDataProvider, c)}
+              />
+            )}
+          </IntegrationConfigDialog>
           <ServiceCatalogSection
             disabled
             serviceFilter={selectedServiceId}
             category="market_intelligence"
-            title="Intelligence de marché"
-            description="Données de marché Airbnb / Vrbo : ADR, taux d'occupation, RevPAR par zone pour vos hosts."
+            title="Intelligence de marché — catalogue"
+            description="Autres fournisseurs de données de marché (informatif)."
           />
         </Box>
       )}

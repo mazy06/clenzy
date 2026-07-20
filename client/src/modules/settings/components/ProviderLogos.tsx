@@ -27,6 +27,8 @@ export type ProviderId =
   | 'DOCUSEAL'
   | 'PENNYLANE'
   | 'ODOO'
+  | 'AIRBTICS'
+  | 'AIRROI'
   | 'QUICKBOOKS'
   | 'XERO'
   | 'SAGE'
@@ -73,6 +75,10 @@ const PALETTE: Record<ProviderId, BrandPalette> = {
   PENNYLANE:  { bg: '#1B2A4A', fg: '#FFFFFF', accent: '#6C7FE0' },
   // Odoo : prune
   ODOO:       { bg: '#714B67', fg: '#FFFFFF', accent: '#E8B546' },
+  // Airbtics : indigo data + accent MAD/or (source cible marché Maroc)
+  AIRBTICS:   { bg: '#312E81', fg: '#FFFFFF', accent: '#F4C15D' },
+  // AirROI : ardoise + vert data (pay-per-call)
+  AIRROI:     { bg: '#1F2937', fg: '#FFFFFF', accent: '#34D399' },
   // QuickBooks : vert Intuit
   QUICKBOOKS: { bg: '#2CA01C', fg: '#FFFFFF', accent: '#FFFFFF' },
   // Xero : cyan + bleu signature
@@ -273,6 +279,57 @@ function renderMark(provider: ProviderId, p: BrandPalette): React.ReactNode {
           <rect x="11" y="20" width="2.5" height="14" rx="1.25" fill={p.fg} opacity="0.55" />
           <circle cx="24" cy="27" r="7" fill="none" stroke={p.fg} strokeWidth="2.5" />
           <rect x="34.5" y="20" width="2.5" height="14" rx="1.25" fill={p.accent} />
+        </>
+      );
+
+    case 'AIRBTICS':
+      // Tile indigo, "Ab" + barre de courbe or (benchmark marché)
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <text
+            x="24"
+            y="29"
+            textAnchor="middle"
+            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
+            fontSize="16"
+            fontWeight="800"
+            fill={p.fg}
+            letterSpacing="-0.04em"
+          >
+            Ab
+          </text>
+          <path
+            d="M10 38 L17 34 L24 36 L31 30 L38 32"
+            stroke={p.accent}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        </>
+      );
+
+    case 'AIRROI':
+      // Tile ardoise, "AR" + points data verts (pay-per-call)
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          <text
+            x="24"
+            y="29"
+            textAnchor="middle"
+            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
+            fontSize="15"
+            fontWeight="800"
+            fill={p.fg}
+            letterSpacing="-0.02em"
+          >
+            AR
+          </text>
+          <circle cx="14" cy="37" r="2" fill={p.accent} />
+          <circle cx="24" cy="37" r="2" fill={p.accent} />
+          <circle cx="34" cy="37" r="2" fill={p.accent} />
         </>
       );
 
