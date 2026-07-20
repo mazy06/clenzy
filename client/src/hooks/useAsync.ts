@@ -56,7 +56,12 @@ export function useAsync<T>(
 
   const mountedRef = useRef(true);
   const asyncFunctionRef = useRef(asyncFunction);
-  asyncFunctionRef.current = asyncFunction;
+  // Latest-ref pattern: keep the ref in sync on every commit (no dep array) so
+  // callers can pass a fresh inline function each render without re-triggering
+  // dependent effects. The write stays out of render (no-ref-current-in-render).
+  useEffect(() => {
+    asyncFunctionRef.current = asyncFunction;
+  });
 
   const execute = useCallback(
     async (...args: unknown[]): Promise<T | null> => {
@@ -124,23 +129,6 @@ export function useAsync<T>(
     clearError,
     reset,
   };
-}
-
-/**
- * Hook pour les opérations de mutation (create, update, delete).
- * Ne s'exécute PAS automatiquement.
- *
- * @example
- * const { execute: createProperty, loading: creating } = useMutation(
- *   (data) => propertiesApi.create(data),
- *   { onSuccess: () => navigate('/properties') }
- * );
- */
-export function useMutation<T, TArgs extends unknown[] = unknown[]>(
-  mutationFunction: (...args: TArgs) => Promise<T>,
-  options: Omit<UseAsyncOptions<T>, 'immediate'> = {}
-) {
-  return useAsync<T>(mutationFunction as (...args: unknown[]) => Promise<T>, { ...options, immediate: false });
 }
 
 export default useAsync;

@@ -41,8 +41,7 @@ const AXIS_TICK = { fontSize: 11, fill: 'var(--muted)' };
 function deriveSeries(items: Array<Record<string, string | number>>): Series[] {
   if (items.length === 0) return [];
   return Object.keys(items[0])
-    .filter((k) => k !== 'name' && typeof items[0][k] === 'number')
-    .map((k) => ({ key: k }));
+    .flatMap((k) => k !== 'name' && typeof items[0][k] === 'number' ? [{ key: k }] : []);
 }
 
 export const BarChartResult: React.FC<{ data: BarChartData }> = ({ data }) => {

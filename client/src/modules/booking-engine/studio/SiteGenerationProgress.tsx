@@ -72,7 +72,7 @@ export default function SiteGenerationProgress({ brandLabel }: { brandLabel?: st
           const Icon = s.icon;
           return (
             <Box
-              key={i}
+              key={s.label}
               sx={{ display: 'flex', alignItems: 'center', gap: 1.25, opacity: done || active ? 1 : 0.4, transition: 'opacity .3s var(--ease-out)' }}
             >
               <Box

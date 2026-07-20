@@ -223,8 +223,8 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                     </Typography>
                   )}
                 </Typography>
-                {features.map((f, i) => (
-                  <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
+                {features.map((f) => (
+                  <Box key={f} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
                     <Box
                       component="span"
                       sx={{

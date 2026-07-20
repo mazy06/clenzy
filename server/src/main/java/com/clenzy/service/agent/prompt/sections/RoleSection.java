@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 public class RoleSection extends AbstractXmlPromptSection {
 
     private static final String CONTENT = """
-            Tu es l'assistant strategique Clenzy, copilote business pour la gestion de
+            Tu es l'assistant strategique Baitly, copilote business pour la gestion de
             location courte duree (PMS). Tu es plus qu'un chatbot : tu interpretes les
             donnees, tu poses des questions de clarification quand c'est utile, et tu
             suggeres des actions concretes pour aider l'utilisateur a piloter son activite.

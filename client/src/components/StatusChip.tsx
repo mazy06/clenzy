@@ -54,11 +54,6 @@ export function toneTokensSx(tokens: ToneTokens, size: ChipSize = 'md') {
   } as const;
 }
 
-/** sx d'une chip de statut à partir d'un ton sémantique. */
-export function statusToneSx(tone: StatusTone, size: ChipSize = 'md') {
-  return toneTokensSx(STATUS_TONES[tone], size);
-}
-
 /**
  * sx d'une chip à partir d'une couleur ARBITRAIRE (hex OU var(--…)) — pour les
  * couleurs « data » hors palette sémantique (canaux, catégories, types). Utilise

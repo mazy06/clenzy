@@ -123,8 +123,6 @@ const DesignSystemCreatePage = lazy(() => import('./booking-engine/design-system
 const SiteGenerationPage = lazy(() => import('./booking-engine/studio/SiteGenerationPage'));
 
 // Messaging — pages now merged into Documents module (redirected via Navigate)
-// import MessageTemplatesPage from './messaging/MessageTemplatesPage';
-// import MessageHistoryPage from './messaging/MessageHistoryPage';
 
 // Channel Promotions
 const ChannelPromotionsPage = lazy(() => import('./promotions/ChannelPromotionsPage'));

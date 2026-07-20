@@ -16,6 +16,13 @@ const STATUS_CONFIG: Record<string, { label: string; color: 'default' | 'warning
   INVOICED: { label: 'Facture', color: 'info' },
 };
 
+const formatDate = (dateStr: string | null) => {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleDateString('fr-FR', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+};
+
 interface Props {
   quotes: LaundryQuote[];
   hasLaundryItems: boolean;
@@ -39,13 +46,6 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
 
   const toggleExpand = (id: number) => {
     setExpandedId(expandedId === id ? null : id);
-  };
-
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('fr-FR', {
-      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-    });
   };
 
   return (
@@ -155,8 +155,8 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {quote.lines.map((line, idx) => (
-                                  <TableRow key={idx}>
+                                {quote.lines.map((line) => (
+                                  <TableRow key={line.key}>
                                     <TableCell>{line.label}</TableCell>
                                     <TableCell align="center">{line.quantity}</TableCell>
                                     <TableCell align="right"><Money value={Number(line.unitPrice)} from="EUR" /></TableCell>

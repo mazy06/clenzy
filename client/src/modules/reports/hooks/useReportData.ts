@@ -22,7 +22,6 @@ export function useInterventionReport(): UseReportDataState<InterventionReportDa
   const [data, setData] = useState<InterventionReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -36,15 +35,15 @@ export function useInterventionReport(): UseReportDataState<InterventionReportDa
     } finally {
       setLoading(false);
     }
-  }, [retryCount]);
+  }, []);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   const retry = useCallback(() => {
-    setRetryCount((c) => c + 1);
-  }, []);
+    fetchData();
+  }, [fetchData]);
 
   const memoizedData = useMemo(() => data, [data]);
 
@@ -57,7 +56,6 @@ export function usePropertyReport(): UseReportDataState<PropertyReportData> {
   const [data, setData] = useState<PropertyReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -71,15 +69,15 @@ export function usePropertyReport(): UseReportDataState<PropertyReportData> {
     } finally {
       setLoading(false);
     }
-  }, [retryCount]);
+  }, []);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   const retry = useCallback(() => {
-    setRetryCount((c) => c + 1);
-  }, []);
+    fetchData();
+  }, [fetchData]);
 
   const memoizedData = useMemo(() => data, [data]);
 
@@ -92,7 +90,6 @@ export function useTeamReport(): UseReportDataState<TeamReportData> {
   const [data, setData] = useState<TeamReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -106,15 +103,15 @@ export function useTeamReport(): UseReportDataState<TeamReportData> {
     } finally {
       setLoading(false);
     }
-  }, [retryCount]);
+  }, []);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   const retry = useCallback(() => {
-    setRetryCount((c) => c + 1);
-  }, []);
+    fetchData();
+  }, [fetchData]);
 
   const memoizedData = useMemo(() => data, [data]);
 
@@ -127,7 +124,6 @@ export function useFinancialReport(): UseReportDataState<FinancialReportData> {
   const [data, setData] = useState<FinancialReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -141,15 +137,15 @@ export function useFinancialReport(): UseReportDataState<FinancialReportData> {
     } finally {
       setLoading(false);
     }
-  }, [retryCount]);
+  }, []);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   const retry = useCallback(() => {
-    setRetryCount((c) => c + 1);
-  }, []);
+    fetchData();
+  }, [fetchData]);
 
   const memoizedData = useMemo(() => data, [data]);
 

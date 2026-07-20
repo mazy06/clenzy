@@ -1,5 +1,6 @@
 import { createElement, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Box, CircularProgress } from '@mui/material';
 import { AlertTriangle, Star } from 'lucide-react';
 import { BaitlyWidget } from '../sdk/BaitlyWidget';
@@ -125,37 +126,49 @@ interface PublicReviews {
 
 export default function PublicBookingPage() {
   const { apiKey } = useParams<{ apiKey: string }>();
-  const [config, setConfig] = useState<PublicBookingConfig | null>(null);
-  const [reviews, setReviews] = useState<PublicReviews | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const widgetHostRef = useRef<HTMLDivElement>(null);
   // Conteneur du HTML GrapesJS injecté (racine de scan pour l'hydratation des marqueurs).
   const grapesRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!apiKey) { setError('Clé manquante'); return; }
-    let alive = true;
-    fetch(`${API_BASE}/public/booking/widget/config`, {
-      headers: { 'X-Booking-Key': apiKey },
-    })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((data: PublicBookingConfig) => { if (alive) setConfig(data); })
-      .catch(() => { if (alive) setError('Ce booking engine est introuvable ou indisponible.'); });
-    return () => { alive = false; };
-  }, [apiKey]);
+  // Config du booking engine — one-shot par visite (semantique inchangee :
+  // pas de retry ni de refetch-on-focus), react-query gere dedup + races.
+  const configQuery = useQuery({
+    queryKey: ['public-booking-config', apiKey],
+    queryFn: async (): Promise<PublicBookingConfig> => {
+      const r = await fetch(`${API_BASE}/public/booking/widget/config`, {
+        headers: { 'X-Booking-Key': apiKey! },
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    },
+    enabled: !!apiKey,
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: Infinity,
+  });
+  const config = configQuery.data ?? null;
+  const error = !apiKey
+    ? 'Clé manquante'
+    : configQuery.isError
+      ? 'Ce booking engine est introuvable ou indisponible.'
+      : null;
 
   // Avis publics (preuve sociale) — best-effort, n'empêche pas l'affichage de la page.
-  useEffect(() => {
-    if (!apiKey) return;
-    let alive = true;
-    fetch(`${API_BASE}/public/booking/widget/reviews/summary?limit=6`, {
-      headers: { 'X-Booking-Key': apiKey },
-    })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error())))
-      .then((data: PublicReviews) => { if (alive && data && data.stats) setReviews(data); })
-      .catch(() => { /* avis indisponibles : section masquée */ });
-    return () => { alive = false; };
-  }, [apiKey]);
+  const reviewsQuery = useQuery({
+    queryKey: ['public-booking-reviews', apiKey],
+    queryFn: async (): Promise<PublicReviews> => {
+      const r = await fetch(`${API_BASE}/public/booking/widget/reviews/summary?limit=6`, {
+        headers: { 'X-Booking-Key': apiKey! },
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    },
+    enabled: !!apiKey,
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: Infinity,
+  });
+  const reviews = reviewsQuery.data && reviewsQuery.data.stats ? reviewsQuery.data : null;
 
   const tokens = useMemo(() => parseTokens(config?.designTokens ?? null), [config?.designTokens]);
   const home = useMemo(() => detectHomeContent(config?.homePageBlocks), [config?.homePageBlocks]);

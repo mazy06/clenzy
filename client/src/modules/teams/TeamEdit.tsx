@@ -37,7 +37,8 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import { teamsApi, usersApi } from '../../services/api';
+import { teamsApi } from '../../services/api/teamsApi';
+import { usersApi } from '../../services/api/usersApi';
 import type { CoverageZone, TeamFormData as ApiTeamFormData } from '../../services/api/teamsApi';
 import type { User } from '../../services/api/usersApi';
 import { extractApiList } from '../../types';
@@ -65,6 +66,22 @@ interface TeamFormData {
   members: TeamMember[];
   coverageZones: CoverageZone[];
 }
+
+const teamServiceCategories = [
+  { value: 'CLEANING', label: 'Nettoyage', icon: <AutoAwesome size={18} strokeWidth={1.75} /> },
+  { value: 'MAINTENANCE', label: 'Maintenance', icon: <Build size={18} strokeWidth={1.75} /> },
+  { value: 'OTHER', label: 'Autre', icon: <Category size={18} strokeWidth={1.75} /> },
+];
+
+const roleOptions = [
+  { value: 'HOUSEKEEPER', label: 'Agent de ménage' },
+  { value: 'TECHNICIAN', label: 'Technicien' },
+  { value: 'LAUNDRY', label: 'Blanchisserie' },
+  { value: 'EXTERIOR_TECH', label: 'Tech. extérieur' },
+  { value: 'SUPERVISOR', label: 'Superviseur' },
+  { value: 'SUPER_MANAGER', label: 'Super Manager' },
+  { value: 'MANAGER', label: 'Manager' },
+];
 
 const TeamEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -235,22 +252,6 @@ const TeamEdit: React.FC = () => {
     setError(null);
     updateMutation.mutate(formData);
   };
-
-  const teamServiceCategories = [
-    { value: 'CLEANING', label: 'Nettoyage', icon: <AutoAwesome size={18} strokeWidth={1.75} /> },
-    { value: 'MAINTENANCE', label: 'Maintenance', icon: <Build size={18} strokeWidth={1.75} /> },
-    { value: 'OTHER', label: 'Autre', icon: <Category size={18} strokeWidth={1.75} /> },
-  ];
-
-  const roleOptions = [
-    { value: 'HOUSEKEEPER', label: 'Agent de ménage' },
-    { value: 'TECHNICIAN', label: 'Technicien' },
-    { value: 'LAUNDRY', label: 'Blanchisserie' },
-    { value: 'EXTERIOR_TECH', label: 'Tech. extérieur' },
-    { value: 'SUPERVISOR', label: 'Superviseur' },
-    { value: 'SUPER_MANAGER', label: 'Super Manager' },
-    { value: 'MANAGER', label: 'Manager' },
-  ];
 
   if (loading) {
     return (
@@ -516,12 +517,15 @@ const TeamEdit: React.FC = () => {
                   >
                     {availableUsers && availableUsers.length > 0 ? (
                       availableUsers
-                        .filter((user) => !(formData.members || []).some(m => m.userId === user.id))
-                        .map((user) => (
-                          <MenuItem key={user.id} value={user.id.toString()}>
-                            {user.firstName} {user.lastName} ({user.email})
-                          </MenuItem>
-                        ))
+                        .flatMap((user) =>
+                          (formData.members || []).some(m => m.userId === user.id)
+                            ? []
+                            : [
+                                <MenuItem key={user.id} value={user.id.toString()}>
+                                  {user.firstName} {user.lastName} ({user.email})
+                                </MenuItem>,
+                              ],
+                        )
                     ) : (
                       <MenuItem disabled>Aucun utilisateur disponible</MenuItem>
                     )}

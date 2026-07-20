@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Box, TextField, MenuItem, Alert, CircularProgress, Typography } from '@mui/material';
-import { netatmoApi } from '../../../services/api';
+import { netatmoApi } from '../../../services/api/netatmoApi';
 
 type NetatmoSource = 'weather' | 'thermostat' | 'security';
 

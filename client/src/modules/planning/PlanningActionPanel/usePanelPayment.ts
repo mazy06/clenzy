@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { paymentsApi } from '../../../services/api/paymentsApi';
 import type { PaymentRecord } from '../../../services/api/paymentsApi';
@@ -48,28 +48,27 @@ export function usePanelPayment(
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Cart state ──────────────────────────────────────────────────────
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  // Seules les DESELECTIONS utilisateur sont de l'etat ; le panier est derive
+  // des interventions AWAITING_PAYMENT (plus d'effet de sync — les choix de
+  // l'utilisateur survivent aux refetch, les nouvelles lignes arrivent cochees).
+  const [deselectedIds, setDeselectedIds] = useState<ReadonlySet<number>>(new Set());
   const [paying, setPaying] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // Build cart from AWAITING_PAYMENT interventions
-  useEffect(() => {
-    if (!interventions) return;
-    const awaitingPayment = interventions.filter(
-      (i) => i.propertyId === propertyId && i.status === 'awaiting_payment',
-    );
-    setCartItems(
-      awaitingPayment.map((i) => ({
+  const cartItems = useMemo<CartItem[]>(() => {
+    if (!interventions) return [];
+    return interventions
+      .filter((i) => i.propertyId === propertyId && i.status === 'awaiting_payment')
+      .map((i) => ({
         interventionId: i.id,
         title: i.title,
         cost: i.estimatedDurationHours ? i.estimatedDurationHours * 25 : 0,
-        selected: true,
-      })),
-    );
-  }, [interventions, propertyId]);
+        selected: !deselectedIds.has(i.id),
+      }));
+  }, [interventions, propertyId, deselectedIds]);
 
   // Fetch payment history
   const refreshHistory = useCallback(async () => {
@@ -78,9 +77,7 @@ export function usePanelPayment(
       const data = await paymentsApi.getHistory({ size: 20 });
       // Filter by property-related interventions
       const propertyInterventionIds = new Set(
-        (interventions || [])
-          .filter((i) => i.propertyId === propertyId)
-          .map((i) => i.id),
+        (interventions || []).flatMap((i) => (i.propertyId === propertyId ? [i.id] : [])),
       );
       setPaymentHistory(
         data.content.filter((r) => r.referenceId != null && propertyInterventionIds.has(r.referenceId)),
@@ -103,20 +100,21 @@ export function usePanelPayment(
 
   // ── Cart actions ──────────────────────────────────────────────────
   const toggleCartItem = useCallback((id: number) => {
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item.interventionId === id ? { ...item, selected: !item.selected } : item,
-      ),
-    );
+    setDeselectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }, []);
 
   const selectAll = useCallback(() => {
-    setCartItems((prev) => prev.map((item) => ({ ...item, selected: true })));
+    setDeselectedIds(new Set());
   }, []);
 
   const deselectAll = useCallback(() => {
-    setCartItems((prev) => prev.map((item) => ({ ...item, selected: false })));
-  }, []);
+    setDeselectedIds(new Set(cartItems.map((item) => item.interventionId)));
+  }, [cartItems]);
 
   const selectedItems = cartItems.filter((i) => i.selected);
   const selectedTotal = selectedItems.reduce((sum, i) => sum + i.cost, 0);

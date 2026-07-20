@@ -26,9 +26,9 @@ function colorSwatches(tokensJson: string | null): { name: string; value: string
   if (!tokensJson) return [];
   try {
     const map = JSON.parse(tokensJson) as Record<string, string>;
-    return Object.entries(map)
-      .filter(([k, v]) => k.includes('color') && /^(#|rgb|hsl|oklch)/i.test(v))
-      .map(([name, value]) => ({ name, value }));
+    return Object.entries(map).flatMap(([name, value]) =>
+      name.includes('color') && /^(#|rgb|hsl|oklch)/i.test(value) ? [{ name, value }] : [],
+    );
   } catch {
     return [];
   }

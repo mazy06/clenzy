@@ -52,7 +52,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useRolePermissions } from '../hooks/useRolePermissions';
 import { usePermissionRefresh } from '../hooks/usePermissionRefresh';
 import PermissionEffectsDemo from './PermissionEffectsDemo';
-import { permissionsApi } from '../services/api';
+import { permissionsApi } from '../services/api/permissionsApi';
 
 // ─── Role tabs config ────────────────────────────────────────────────────────
 
@@ -92,6 +92,62 @@ const ROLE_ICONS: Record<string, React.ReactElement> = {
   EXTERIOR_TECH:  <BuildIcon />,
 };
 
+// Fonction pour obtenir le nom d'affichage du module
+const getModuleDisplayName = (module: string): string => {
+  const moduleMap: Record<string, string> = {
+    'dashboard': 'Dashboard',
+    'properties': 'Propriétés',
+    'service-requests': 'Demandes de Service',
+    'interventions': 'Interventions',
+    'teams': 'Équipes',
+    'portfolios': 'Portefeuilles',
+    'contact': 'Contact',
+    'settings': 'Paramètres',
+    'users': 'Utilisateurs',
+    'reports': 'Rapports',
+    'documents': 'Documents',
+    'reservations': 'Réservations',
+    'pricing': 'Prix Dynamiques',
+    'tarification': 'Tarification',
+    'payments': 'Paiements',
+    'channels': 'Canaux',
+    'messaging': 'Messagerie',
+    'monitoring': 'Monitoring',
+    'sync': 'Synchronisation',
+    'kpi': 'KPI Readiness',
+    'database': 'Base de Données',
+  };
+  return moduleMap[module] || module.charAt(0).toUpperCase() + module.slice(1);
+};
+
+// Fonction pour obtenir l'icône appropriée pour chaque module
+const getModuleIcon = (moduleName: string) => {
+  const iconMap: { [key: string]: React.ReactNode } = {
+    'Dashboard': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><DashboardIcon size={20} strokeWidth={1.75} /></Box>,
+    'Propriétés': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><HomeIcon size={20} strokeWidth={1.75} /></Box>,
+    'Demandes de Service': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AssignmentIcon size={20} strokeWidth={1.75} /></Box>,
+    'Interventions': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><BuildIcon size={20} strokeWidth={1.75} /></Box>,
+    'Équipes': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><GroupIcon size={20} strokeWidth={1.75} /></Box>,
+    'Portefeuilles': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><BusinessIcon size={20} strokeWidth={1.75} /></Box>,
+    'Contact': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><NotificationsIcon size={20} strokeWidth={1.75} /></Box>,
+    'Utilisateurs': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><PersonIcon size={20} strokeWidth={1.75} /></Box>,
+    'Paramètres': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SettingsIcon size={20} strokeWidth={1.75} /></Box>,
+    'Rapports': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AssessmentIcon size={20} strokeWidth={1.75} /></Box>,
+    'Documents': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><DescriptionIcon size={20} strokeWidth={1.75} /></Box>,
+    'Réservations': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><EventNoteIcon size={20} strokeWidth={1.75} /></Box>,
+    'Prix Dynamiques': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><TrendingUpIcon size={20} strokeWidth={1.75} /></Box>,
+    'Tarification': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><TarificationIcon size={20} strokeWidth={1.75} /></Box>,
+    'Paiements': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><PaymentIcon size={20} strokeWidth={1.75} /></Box>,
+    'Canaux': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><ChannelsIcon size={20} strokeWidth={1.75} /></Box>,
+    'Messagerie': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><ChatIcon size={20} strokeWidth={1.75} /></Box>,
+    'Monitoring': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><MonitorIcon size={20} strokeWidth={1.75} /></Box>,
+    'Synchronisation': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SyncIcon size={20} strokeWidth={1.75} /></Box>,
+    'KPI Readiness': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SpeedIcon size={20} strokeWidth={1.75} /></Box>,
+    'Base de Données': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><DatabaseIcon size={20} strokeWidth={1.75} /></Box>,
+  };
+  return iconMap[moduleName] || <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><InfoIcon size={20} strokeWidth={1.75} /></Box>;
+};
+
 const PermissionConfig: React.FC = () => {
   const { user } = useAuth();
   const {
@@ -129,34 +185,6 @@ const PermissionConfig: React.FC = () => {
   const [allPermissions, setAllPermissions] = useState<string[]>([]);
   const [permissionsByModule, setPermissionsByModule] = useState<Record<string, string[]>>({});
   const [loadingPermissions, setLoadingPermissions] = useState(true);
-
-  // Fonction pour obtenir le nom d'affichage du module (doit être définie avant useEffect)
-  const getModuleDisplayName = (module: string): string => {
-    const moduleMap: Record<string, string> = {
-      'dashboard': 'Dashboard',
-      'properties': 'Propriétés',
-      'service-requests': 'Demandes de Service',
-      'interventions': 'Interventions',
-      'teams': 'Équipes',
-      'portfolios': 'Portefeuilles',
-      'contact': 'Contact',
-      'settings': 'Paramètres',
-      'users': 'Utilisateurs',
-      'reports': 'Rapports',
-      'documents': 'Documents',
-      'reservations': 'Réservations',
-      'pricing': 'Prix Dynamiques',
-      'tarification': 'Tarification',
-      'payments': 'Paiements',
-      'channels': 'Canaux',
-      'messaging': 'Messagerie',
-      'monitoring': 'Monitoring',
-      'sync': 'Synchronisation',
-      'kpi': 'KPI Readiness',
-      'database': 'Base de Données',
-    };
-    return moduleMap[module] || module.charAt(0).toUpperCase() + module.slice(1);
-  };
 
   // Charger toutes les permissions disponibles depuis l'API
   useEffect(() => {
@@ -242,34 +270,6 @@ const PermissionConfig: React.FC = () => {
     loadAllPermissions();
   }, []);
 
-  // Fonction pour obtenir l'icône appropriée pour chaque module
-  const getModuleIcon = (moduleName: string) => {
-    const iconMap: { [key: string]: React.ReactNode } = {
-      'Dashboard': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><DashboardIcon size={20} strokeWidth={1.75} /></Box>,
-      'Propriétés': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><HomeIcon size={20} strokeWidth={1.75} /></Box>,
-      'Demandes de Service': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AssignmentIcon size={20} strokeWidth={1.75} /></Box>,
-      'Interventions': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><BuildIcon size={20} strokeWidth={1.75} /></Box>,
-      'Équipes': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><GroupIcon size={20} strokeWidth={1.75} /></Box>,
-      'Portefeuilles': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><BusinessIcon size={20} strokeWidth={1.75} /></Box>,
-      'Contact': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><NotificationsIcon size={20} strokeWidth={1.75} /></Box>,
-      'Utilisateurs': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><PersonIcon size={20} strokeWidth={1.75} /></Box>,
-      'Paramètres': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SettingsIcon size={20} strokeWidth={1.75} /></Box>,
-      'Rapports': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AssessmentIcon size={20} strokeWidth={1.75} /></Box>,
-      'Documents': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><DescriptionIcon size={20} strokeWidth={1.75} /></Box>,
-      'Réservations': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><EventNoteIcon size={20} strokeWidth={1.75} /></Box>,
-      'Prix Dynamiques': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><TrendingUpIcon size={20} strokeWidth={1.75} /></Box>,
-      'Tarification': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><TarificationIcon size={20} strokeWidth={1.75} /></Box>,
-      'Paiements': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><PaymentIcon size={20} strokeWidth={1.75} /></Box>,
-      'Canaux': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><ChannelsIcon size={20} strokeWidth={1.75} /></Box>,
-      'Messagerie': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><ChatIcon size={20} strokeWidth={1.75} /></Box>,
-      'Monitoring': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><MonitorIcon size={20} strokeWidth={1.75} /></Box>,
-      'Synchronisation': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SyncIcon size={20} strokeWidth={1.75} /></Box>,
-      'KPI Readiness': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SpeedIcon size={20} strokeWidth={1.75} /></Box>,
-      'Base de Données': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><DatabaseIcon size={20} strokeWidth={1.75} /></Box>,
-    };
-    return iconMap[moduleName] || <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><InfoIcon size={20} strokeWidth={1.75} /></Box>;
-  };
-
   if (!user) {
     return (
       <Box>
@@ -297,6 +297,8 @@ const PermissionConfig: React.FC = () => {
       </Box>
     );
   }
+
+  const rolePermissionSet = new Set(rolePermissions?.permissions ?? []);
 
   return (
     <Box>
@@ -460,7 +462,7 @@ const PermissionConfig: React.FC = () => {
                 <Grid item xs={3}>
                   <Box sx={{ textAlign: 'center', p: 1 }}>
                     <Typography variant="h6" color="error.main" sx={{ fontWeight: 600, mb: 0.5 }}>
-                      {allPermissions.filter(p => !rolePermissions.permissions.includes(p)).length}
+                      {allPermissions.filter(p => !rolePermissionSet.has(p)).length}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       Inactives
@@ -473,7 +475,7 @@ const PermissionConfig: React.FC = () => {
                     <Typography variant="h6" color="warning.main" sx={{ fontWeight: 600, mb: 0.5 }}>
                       {Object.keys(permissionsByModule).filter(module => {
                         const modulePermissions = permissionsByModule[module as keyof typeof permissionsByModule];
-                        return modulePermissions.some(permission => rolePermissions.permissions.includes(permission));
+                        return modulePermissions.some(permission => rolePermissionSet.has(permission));
                       }).length} / {Object.keys(permissionsByModule).length}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
@@ -529,7 +531,7 @@ const PermissionConfig: React.FC = () => {
                 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                   {Object.entries(permissionsByModule).map(([moduleName, permissions]) => {
-                    const activeCount = permissions.filter(p => rolePermissions.permissions.includes(p)).length;
+                    const activeCount = permissions.filter(p => rolePermissionSet.has(p)).length;
                     const allActive = activeCount === permissions.length;
                     const noneActive = activeCount === 0;
 
@@ -586,7 +588,7 @@ const PermissionConfig: React.FC = () => {
                         <AccordionDetails sx={{ px: 2, pt: 0, pb: 2 }}>
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                             {permissions.map((permission) => {
-                              const isActive = rolePermissions.permissions.includes(permission);
+                              const isActive = rolePermissionSet.has(permission);
                               return (
                                 <Box
                                   key={permission}

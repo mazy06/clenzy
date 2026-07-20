@@ -71,8 +71,9 @@ const FiscalReportSection: React.FC = () => {
   const summary: VatSummary | undefined = activeQuery.data;
 
   const yearOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear();
     const years = [];
-    for (let y = now.getFullYear(); y >= now.getFullYear() - 4; y--) {
+    for (let y = currentYear; y >= currentYear - 4; y--) {
       years.push(y);
     }
     return years;
@@ -125,7 +126,7 @@ const FiscalReportSection: React.FC = () => {
               sx={{ minWidth: 140 }}
             >
               {MONTHS.map((m, i) => (
-                <MenuItem key={i + 1} value={i + 1}>{m}</MenuItem>
+                <MenuItem key={m} value={i + 1}>{m}</MenuItem>
               ))}
             </TextField>
           )}
@@ -222,8 +223,8 @@ const FiscalReportSection: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {summary.breakdown.map((row, i) => (
-                    <TableRow key={i} hover>
+                  {summary.breakdown.map((row) => (
+                    <TableRow key={`${row.taxCategory}-${row.taxName}-${row.taxRate}`} hover>
                       <TableCell sx={CELL_SX}>{row.taxCategory}</TableCell>
                       <TableCell sx={CELL_SX}>{row.taxName}</TableCell>
                       <TableCell sx={CELL_SX} align="right">{formatTaxRate(row.taxRate)}</TableCell>

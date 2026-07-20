@@ -421,8 +421,7 @@ function registerCompositeBlocks(editor: Editor, composites: CompositeWidget[]):
   const bm = editor.BlockManager;
   bm.getAll()
     .filter((b: { getId: () => string }) => String(b.getId()).startsWith(COMPOSITE_BLOCK_PREFIX))
-    .map((b: { getId: () => string }) => String(b.getId()))
-    .forEach((id: string) => bm.remove(id));
+    .forEach((b: { getId: () => string }) => bm.remove(String(b.getId())));
   for (const c of composites) {
     bm.add(COMPOSITE_BLOCK_PREFIX + c.id, {
       label: blockLabelHtml(c.name, compositeSummary(c)),
@@ -795,12 +794,17 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
   // `patch` change d'identité à chaque rendu de config ; on le lit via ref pour ne pas réinitialiser
   // l'éditeur (l'effet d'init ne dépend QUE de l'id de la config).
   const patchRef = useRef(cfg.patch);
-  patchRef.current = cfg.patch;
 
   // Accesseur de config COURANTE pour les coutures (montage SDK live, import) : la ref suit chaque
   // rendu, mais l'éditeur n'est PAS réinitialisé (les vues lisent `getConfig()` au (re)mount).
   const configRef = useRef(cfg.config);
-  configRef.current = cfg.config;
+  // Sync hors rendu (write en rendu = anti-pattern) : mis à jour après commit, avant l'effet d'init
+  // déclaré plus bas (ordre de déclaration → cet effet tourne d'abord). Valeurs initiales déjà capturées
+  // par `useRef(...)`, donc l'init au montage lit la bonne valeur.
+  useEffect(() => {
+    patchRef.current = cfg.patch;
+    configRef.current = cfg.config;
+  }, [cfg.patch, cfg.config]);
 
   // ─── Multi-page + multi-langue ────────────────────────────────────────────────
   // L'état des pages est résolu via `useSitePages` (find-or-create du site + chargement des pages). En
@@ -819,11 +823,15 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
     pageId: null,
     savePageBlocks: pages.savePageBlocks,
   });
-  persistTargetRef.current = {
-    pageMode,
-    pageId: pages.selectedPageId,
-    savePageBlocks: pages.savePageBlocks,
-  };
+  // Sync hors rendu (write en rendu = anti-pattern) : mis à jour après commit, avant l'effet d'init
+  // (ordre de déclaration). Valeur initiale déjà capturée par `useRef(...)`.
+  useEffect(() => {
+    persistTargetRef.current = {
+      pageMode,
+      pageId: pages.selectedPageId,
+      savePageBlocks: pages.savePageBlocks,
+    };
+  }, [pageMode, pages.selectedPageId, pages.savePageBlocks]);
 
   // Garde-fou d'hydratation : `loadProjectData` déclenche des événements `update` ; sans ce drapeau, le
   // listener de persistance ré-écrirait immédiatement la page tout juste chargée (et écraserait les
@@ -842,7 +850,11 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
   // Contenu initial chargé à l'init : page active si dispo, sinon repli `config.pageLayout` mono-page.
   // Lu via ref pour ne pas faire dépendre l'effet d'init de la résolution (asynchrone) des pages.
   const initialBlocksRef = useRef<string | null | undefined>(undefined);
-  initialBlocksRef.current = pageMode && pages.selectedPage ? pages.selectedPage.blocks : cfg.config?.pageLayout;
+  // Sync hors rendu (write en rendu = anti-pattern) : mis à jour après commit, avant l'effet d'init
+  // (ordre de déclaration → cet effet tourne d'abord, dans le même commit que l'init au montage).
+  useEffect(() => {
+    initialBlocksRef.current = pageMode && pages.selectedPage ? pages.selectedPage.blocks : cfg.config?.pageLayout;
+  }, [pageMode, pages.selectedPage, cfg.config?.pageLayout]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -922,10 +934,11 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
     // éditable au double-clic, marqueurs hydratés en aperçu). Persistance suspendue le temps du chargement.
     lastHydratedRef.current = persistTargetRef.current.pageMode ? persistTargetRef.current.pageId : 'legacy';
     hydratingRef.current = true;
+    let hydrationTimer: ReturnType<typeof setTimeout> | null = null;
     try {
       loadPageInto(editor, initialBlocksRef.current, configRef.current?.logoUrl);
     } finally {
-      setTimeout(() => { hydratingRef.current = false; }, 0);
+      hydrationTimer = setTimeout(() => { hydratingRef.current = false; }, 0);
     }
 
     // Persistance débouncée : `update` se déclenche à toute mutation du projet. On sérialise l'enveloppe
@@ -1075,6 +1088,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
     editor.on('component:add', onAutoSkin);
 
     return () => {
+      if (hydrationTimer) clearTimeout(hydrationTimer);
       if (timer) clearTimeout(timer);
       if (validationTimer) clearTimeout(validationTimer);
       canvasObserver?.disconnect();
@@ -1120,13 +1134,15 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
     const source = pageMode && pages.selectedPage ? pages.selectedPage.blocks : cfg.config?.pageLayout;
     // Suspend la persistance le temps du chargement (load émet des `update`).
     hydratingRef.current = true;
+    let hydrationTimer: ReturnType<typeof setTimeout> | null = null;
     try {
       // Charge projectData (ré-éditable) OU enveloppe html+css (template importé) OU canvas vierge.
       loadPageInto(editor, source, configRef.current?.logoUrl);
     } finally {
       // Relâche au prochain tick : laisse passer les `update` synchrones émis par le load.
-      setTimeout(() => { hydratingRef.current = false; }, 0);
+      hydrationTimer = setTimeout(() => { hydratingRef.current = false; }, 0);
     }
+    return () => { if (hydrationTimer) clearTimeout(hydrationTimer); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages.ready, pages.error, pages.selectedPageId, cfg.loading]);
 
@@ -1453,7 +1469,8 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
     if (!ed) return;
     widgetSkinOnRef.current = true;
     ensureWidgetSkin(ed, configBtVars(cfg.config));
-  }, [cfg.config?.primaryColor, cfg.config?.fontFamily, cfg.config?.designTokens, cfg.config?.designCssVariables]);
+    // configBtVars lit cfg.config entier : dependre de l'objet evite toute staleness.
+  }, [cfg.config]);
   const handleInsertFunnel = useCallback((widgetIds: string[]) => {
     const ed = editorRef.current;
     if (ed) insertFunnel(ed, widgetIds);
@@ -1542,7 +1559,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
   }, []);
   const handleDeleteComposite = useCallback((c: CompositeWidget) => {
     if (c.global) {
-      const next = globalComposites.filter((g) => g.id !== c.id).map((g) => ({ id: g.id, name: g.name, html: g.html }));
+      const next = globalComposites.flatMap((g) => g.id === c.id ? [] : [{ id: g.id, name: g.name, html: g.html }]);
       void bookingEngineApi.putGlobalComposites(serializeSavedComposites(next as CompositeWidget[]))
         .then(() => setGlobalComposites(next.map((g) => ({ ...g, global: true }) as CompositeWidget)))
         .catch(() => { /* erreur réseau */ });
@@ -1614,7 +1631,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                 </ButtonBase>
               );
             })}
-            {SUPPORTED_LOCALES.filter((l) => !pages.availableLocales.includes(l)).map((loc) => (
+            {SUPPORTED_LOCALES.flatMap((loc) => pages.availableLocales.includes(loc) ? [] : [(
               <Tooltip key={loc} title={`Ajouter la langue ${LOCALE_LABEL[loc] ?? loc.toUpperCase()} (copie de la langue par défaut, à traduire)`}>
                 <ButtonBase
                   onClick={() => { void handleAddLanguage(loc); }}
@@ -1629,7 +1646,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                   + {LOCALE_LABEL[loc] ?? loc.toUpperCase()}
                 </ButtonBase>
               </Tooltip>
-            ))}
+            )])}
             {/* Auto-traduction IA (P1) : crée des VARIANTES en brouillon de la page active vers les
                 langues choisies (relecture humaine), via l'endpoint dédié — distinct du « Traduire »
                 in-place ci-dessous. Toujours disponible dès qu'une page est sélectionnée. */}

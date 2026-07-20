@@ -249,23 +249,26 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                   loading={userSearchLoading}
                   noOptionsText="Aucun utilisateur trouve"
                   loadingText="Recherche..."
-                  renderOption={(props, option) => (
-                    <li {...props} key={option.id}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography variant="body2">
-                            {option.firstName} {option.lastName}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {option.email}
-                          </Typography>
+                  renderOption={(props, option) => {
+                    const { key, ...optionProps } = props;
+                    return (
+                      <li key={key} {...optionProps}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                          <Box sx={{ flexGrow: 1 }}>
+                            <Typography variant="body2">
+                              {option.firstName} {option.lastName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {option.email}
+                            </Typography>
+                          </Box>
+                          {option.hasOrganization && (
+                            <Chip label="Deja dans une org" size="small" color="warning" variant="outlined" />
+                          )}
                         </Box>
-                        {option.hasOrganization && (
-                          <Chip label="Deja dans une org" size="small" color="warning" variant="outlined" />
-                        )}
-                      </Box>
-                    </li>
-                  )}
+                      </li>
+                    );
+                  }}
                   renderInput={(params) => (
                     <TextField
                       {...params}

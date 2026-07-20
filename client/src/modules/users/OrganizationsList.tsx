@@ -43,7 +43,7 @@ import PageHeader from '../../components/PageHeader';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import StatTile from '../../components/StatTile';
 import EmptyState from '../../components/EmptyState';
-import { organizationsApi } from '../../services/api';
+import { organizationsApi } from '../../services/api/organizationsApi';
 import type { OrganizationDto } from '../../services/api';
 import MembersList from '../organization/MembersList';
 

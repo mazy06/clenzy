@@ -478,7 +478,8 @@ function makeFormatDiscount(t: (...args: any[]) => string) {
 
 function formatValidity(from: string | null, until: string | null, locale: string): string {
   // Utilise la langue active (FR/EN/AR) pour le formatage Intl, pas un hardcode.
-  const fmt = (iso: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'short' }).format(new Date(iso));
+  const df = new Intl.DateTimeFormat(locale, { dateStyle: 'short' });
+  const fmt = (iso: string) => df.format(new Date(iso));
   if (from && until) return `${fmt(from)} → ${fmt(until)}`;
   if (until) return `→ ${fmt(until)}`;
   if (from) return `${fmt(from)} → ∞`;

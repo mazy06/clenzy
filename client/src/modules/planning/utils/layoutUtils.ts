@@ -217,30 +217,3 @@ export function computePropertyBarLayouts(
   return layouts;
 }
 
-// ─── Puzzle clip-path generators (extracted from DashboardPlanning) ───────────
-
-const PUZZLE_TAB_DEPTH = 14;
-const PUZZLE_NECK_HW = 3;
-const PUZZLE_KNOB_HW = 10;
-const PUZZLE_OVERLAP = 26;
-
-export function buildMaleClipPath(w: number, h: number): string {
-  const d = PUZZLE_TAB_DEPTH;
-  const nk = PUZZLE_NECK_HW;
-  const kb = PUZZLE_KNOB_HW;
-  const cx = w - PUZZLE_OVERLAP / 2;
-  const R = 14;
-
-  return `path('M 0 ${R} A ${R} ${R} 0 0 1 ${R} 0 L ${w - R} 0 A ${R} ${R} 0 0 1 ${w} ${R} L ${w} ${h} L ${cx + nk} ${h} C ${cx + nk} ${h + 4}, ${cx + kb} ${h + 4}, ${cx + kb} ${h + d * 0.5} C ${cx + kb} ${h + d - 3}, ${cx + 5} ${h + d}, ${cx} ${h + d} C ${cx - 5} ${h + d}, ${cx - kb} ${h + d - 3}, ${cx - kb} ${h + d * 0.5} C ${cx - kb} ${h + 4}, ${cx - nk} ${h + 4}, ${cx - nk} ${h} L ${R} ${h} A ${R} ${R} 0 0 1 0 ${h - R} Z')`;
-}
-
-export function buildFemaleClipPath(w: number, h: number): string {
-  const d = PUZZLE_TAB_DEPTH;
-  const nk = PUZZLE_NECK_HW;
-  const kb = PUZZLE_KNOB_HW;
-  const cx = PUZZLE_OVERLAP / 2;
-
-  return `path('M 0 0 L ${cx - nk} 0 C ${cx - nk} 4, ${cx - kb} 4, ${cx - kb} ${d * 0.5} C ${cx - kb} ${d - 3}, ${cx - 5} ${d}, ${cx} ${d} C ${cx + 5} ${d}, ${cx + kb} ${d - 3}, ${cx + kb} ${d * 0.5} C ${cx + kb} 4, ${cx + nk} 4, ${cx + nk} 0 L ${w} 0 L ${w} ${h} L 0 ${h} Z')`;
-}
-
-export { PUZZLE_OVERLAP };

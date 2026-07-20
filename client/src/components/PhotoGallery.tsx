@@ -119,7 +119,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             >
               <img
                 src={photoUrl}
-                alt={`Photo ${index + 1}`}
+                alt={`Aperçu ${index + 1}`}
                 loading="lazy"
                 style={{
                   width: '100%',

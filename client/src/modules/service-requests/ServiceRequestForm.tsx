@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -11,7 +11,11 @@ import {
 import { ArrowBack } from "../../icons";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { serviceRequestsApi, propertiesApi, usersApi, teamsApi, reservationsApi } from '../../services/api';
+import { serviceRequestsApi } from '../../services/api/serviceRequestsApi';
+import { propertiesApi } from '../../services/api/propertiesApi';
+import { usersApi } from '../../services/api/usersApi';
+import { teamsApi } from '../../services/api/teamsApi';
+import { reservationsApi } from '../../services/api/reservationsApi';
 import type { Reservation } from '../../services/api';
 import apiClient from '../../services/apiClient';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -19,7 +23,7 @@ import { pricingConfigApi } from '../../services/api/pricingConfigApi';
 import type { ForfaitConfig } from '../../services/api/pricingConfigApi';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { serviceRequestSchema } from '../../schemas';
+import { serviceRequestSchema } from '../../schemas/serviceRequestSchema';
 import type { ServiceRequestFormValues } from '../../schemas';
 
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
@@ -115,7 +119,9 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   const isEditMode = mode === 'edit' || !!serviceRequestId;
 
   const [isLoading, setIsLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  // Flag de sauvegarde jamais lu au render : ref servant de garde anti-double-submit
+  // (un double-clic creerait une demande de service en doublon).
+  const savingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -387,7 +393,8 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
       return;
     }
 
-    setSaving(true);
+    if (savingRef.current) return; // anti double-submit
+    savingRef.current = true;
     setError(null);
 
     try {
@@ -456,7 +463,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
       const errorPrefix = isEditMode ? t('serviceRequests.updateErrorDetails') : t('serviceRequests.errors.createErrorDetails');
       setError(errorPrefix + ': ' + message);
     } finally {
-      setSaving(false);
+      savingRef.current = false;
     }
   };
 

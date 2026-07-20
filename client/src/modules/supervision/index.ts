@@ -32,7 +32,7 @@ export type { MockProviderOptions } from './provider/MockSupervisionProvider';
 export { AgUiSupervisionProvider } from './provider/AgUiSupervisionProvider';
 export type { AgUiProviderOptions } from './provider/AgUiSupervisionProvider';
 export { mapSpecialistToAgent } from './provider/specialistMapping';
-export { isSupervisionLiveEnabled, setSupervisionLive } from './provider/supervisionFlags';
+export { isSupervisionLiveEnabled } from './provider/supervisionFlags';
 export {
   buildPropertySnapshot,
   buildPortfolioSnapshot,

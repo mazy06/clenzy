@@ -1,7 +1,9 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
-import { propertiesApi, managersApi, reservationsApi } from '../services/api';
+import { propertiesApi } from '../services/api/propertiesApi';
+import { managersApi } from '../services/api/portfoliosApi';
+import { reservationsApi } from '../services/api/reservationsApi';
 import type { Property, Reservation, ReservationStatus, PlanningIntervention, PlanningInterventionType } from '../services/api';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -254,7 +256,7 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
     staleTime: 2 * 60 * 1000,
   });
 
-  const properties = propertiesQuery.data ?? [];
+  const properties = useMemo(() => propertiesQuery.data ?? [], [propertiesQuery.data]);
   const propertyIds = useMemo(() => properties.map((p) => p.id), [properties]);
 
   // Query 2: Reservations for current date range

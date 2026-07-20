@@ -1,11 +1,7 @@
 // Re-export shared utilities for backward compatibility
 export {
-  getInterventionStatusColor as getStatusColor,
   getInterventionStatusLabel as getStatusLabel,
-  getInterventionStatusHex as getStatusHex,
-  getInterventionPriorityColor as getPriorityColor,
   getInterventionPriorityLabel as getPriorityLabel,
-  getInterventionPriorityHex as getPriorityHex,
   getInterventionTypeLabel as getTypeLabel,
   getInterventionTypeHex as getTypeHex,
 } from '../../utils/statusUtils';
@@ -135,13 +131,6 @@ export interface StepNotes {
 }
 
 // Local utility functions (not duplicated in shared utils)
-export const formatCurrency = (amount: number, currency: string = 'EUR') => {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency,
-  }).format(amount);
-};
-
 export const parsePhotos = (photosString: string | undefined): string[] => {
   if (!photosString) return [];
   try {

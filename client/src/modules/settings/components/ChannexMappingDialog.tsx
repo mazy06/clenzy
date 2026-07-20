@@ -124,6 +124,38 @@ function StatusBadge({ status }: { status: ChannexSyncStatus }) {
   );
 }
 
+// Carte d'action « choix » — style Signature (tokens, hover accent, sans
+// transform). NB : `${ACCENT}1A` était invalide (var() + alpha) → on utilise
+// les tokens dédiés var(--accent-soft).
+const choiceCardSx = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 1.5,
+  width: '100%',
+  p: '14px 16px',
+  borderRadius: '12px',
+  border: '1px solid var(--line)',
+  bgcolor: 'var(--card)',
+  textAlign: 'left',
+  cursor: 'pointer',
+  transition: 'border-color .15s, background-color .15s',
+  '&:hover': { borderColor: 'var(--accent)', bgcolor: 'var(--accent-soft)' },
+  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
+  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+} as const;
+
+const choiceIconSx = {
+  width: 40,
+  height: 40,
+  borderRadius: '10px',
+  bgcolor: 'var(--accent-soft)',
+  color: 'var(--accent)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
+} as const;
+
 export default function ChannexMappingDialog({ open, onClose, guided = false }: ChannexMappingDialogProps) {
   const { t } = useTranslation();
   /**
@@ -457,37 +489,6 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
   };
 
   const ACCENT = 'var(--accent)';
-
-  // Carte d'action « choix » — style Signature (tokens, hover accent, sans
-  // transform). NB : `${ACCENT}1A` était invalide (var() + alpha) → on utilise
-  // les tokens dédiés var(--accent-soft).
-  const choiceCardSx = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 1.5,
-    width: '100%',
-    p: '14px 16px',
-    borderRadius: '12px',
-    border: '1px solid var(--line)',
-    bgcolor: 'var(--card)',
-    textAlign: 'left',
-    cursor: 'pointer',
-    transition: 'border-color .15s, background-color .15s',
-    '&:hover': { borderColor: 'var(--accent)', bgcolor: 'var(--accent-soft)' },
-    '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-  } as const;
-  const choiceIconSx = {
-    width: 40,
-    height: 40,
-    borderRadius: '10px',
-    bgcolor: 'var(--accent-soft)',
-    color: 'var(--accent)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  } as const;
 
   return (
     <>
@@ -1190,7 +1191,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                   }}
                 />
                 <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
-                  Creation automatique <span style={{ color: ACCENT, fontSize: '0.7rem', fontWeight: 700 }}>RECOMMANDE</span>
+                  Creation automatique <span style={{ color: ACCENT, fontSize: '0.75rem', fontWeight: 700 }}>RECOMMANDE</span>
                 </Typography>
               </Box>
               <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', ml: 3, mt: 0.5 }}>

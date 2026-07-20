@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
 import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../hooks/useAuth';
-import { propertiesApi, managersApi, reservationsApi, serviceRequestsApi } from '../../../services/api';
+import { propertiesApi } from '../../../services/api/propertiesApi';
+import { managersApi } from '../../../services/api/portfoliosApi';
+import { reservationsApi } from '../../../services/api/reservationsApi';
+import { serviceRequestsApi } from '../../../services/api/serviceRequestsApi';
 import { calendarPricingApi } from '../../../services/api/calendarPricingApi';
 import type { CalendarBlockedDay } from '../../../services/api/calendarPricingApi';
 import type { Property, Reservation, ReservationStatus, PlanningIntervention, PlanningServiceRequest } from '../../../services/api';
@@ -422,7 +425,7 @@ export function usePlanningData(
     staleTime: 2 * 60 * 1000,
   });
 
-  const properties = propertiesQuery.data ?? [];
+  const properties = useMemo(() => propertiesQuery.data ?? [], [propertiesQuery.data]);
   const propertyIds = useMemo(() => properties.map((p) => p.id), [properties]);
 
   // ── Priorisation des chunks (perf atterrissage) ────────────────────────────
@@ -439,7 +442,7 @@ export function usePlanningData(
     const loStr = toDateStr(lo);
     const hiStr = toDateStr(hi);
     const set = new Set(
-      chunks.filter((c) => c.from <= hiStr && c.to >= loStr).map((c) => c.from),
+      chunks.flatMap((c) => (c.from <= hiStr && c.to >= loStr ? [c.from] : [])),
     );
     // Navigation loin d'aujourd'hui : aucun chunk proche → tout est prioritaire.
     return set.size > 0 ? set : new Set(chunks.map((c) => c.from));

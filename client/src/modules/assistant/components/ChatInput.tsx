@@ -160,7 +160,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         >
           {attachments.map((att, idx) => (
             <Box
-              key={`${att.storageKey}-${idx}`}
+              key={att.storageKey}
               sx={{
                 position: 'relative',
                 width: 64,

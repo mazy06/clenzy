@@ -26,7 +26,9 @@ interface GuideMapProps {
 export const GuideMap: React.FC<GuideMapProps> = ({ center, pins, height = 220 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const dataRef = useRef({ center, pins });
-  dataRef.current = { center, pins };
+  useEffect(() => {
+    dataRef.current = { center, pins };
+  }, [center, pins]);
 
   useEffect(() => {
     if (!MAPBOX_TOKEN || !containerRef.current) return undefined;
@@ -58,6 +60,7 @@ export const GuideMap: React.FC<GuideMapProps> = ({ center, pins, height = 220 }
     else map.on('load', addPins);
 
     return () => {
+      map.off('load', addPins);
       map.remove();
     };
   }, []);

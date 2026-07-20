@@ -21,7 +21,7 @@ const InterventionsGridView: React.FC<InterventionsGridViewProps> = ({
   <>
     <Grid container spacing={2}>
       {interventions
-        .map((intervention) => {
+        .flatMap((intervention) => {
           if (
             !intervention ||
             typeof intervention !== 'object' ||
@@ -32,19 +32,18 @@ const InterventionsGridView: React.FC<InterventionsGridViewProps> = ({
             !intervention.status ||
             !intervention.priority
           ) {
-            return null;
+            return [];
           }
-          return (
+          return [
             <Grid item xs={12} md={6} lg={4} key={intervention.id}>
               <InterventionCard
                 intervention={intervention}
                 onMenuOpen={onMenuOpen}
                 canEdit={canModifyIntervention(intervention)}
               />
-            </Grid>
-          );
-        })
-        .filter(Boolean)}
+            </Grid>,
+          ];
+        })}
     </Grid>
     {totalCount > itemsPerPage && (
       <TablePagination

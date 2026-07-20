@@ -54,7 +54,10 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
 
   const address = [property.address, property.city].filter(Boolean).join(', ');
   const currency = property.currency || 'EUR';
-  const fmt = new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: 0 });
+  const fmt = React.useMemo(
+    () => new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: 0 }),
+    [currency],
+  );
 
   const hasStats =
     property.maxGuests != null

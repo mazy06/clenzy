@@ -100,6 +100,8 @@ const TeamUserAssignmentForm: React.FC = () => {
   }
 
   const getStepContent = (step: number) => {
+    const selectedTeamsSet = new Set(selectedTeams);
+    const selectedUsersSet = new Set(selectedUsers);
     switch (step) {
       case 0:
         return (
@@ -150,12 +152,12 @@ const TeamUserAssignmentForm: React.FC = () => {
               {teams.map((team) => (
                 <Grid item xs={12} sm={6} md={4} key={team.id}>
                   <Card
-                    variant={selectedTeams.includes(team.id) ? 'elevation' : 'outlined'}
+                    variant={selectedTeamsSet.has(team.id) ? 'elevation' : 'outlined'}
                     sx={{
                       cursor: 'pointer',
                       borderRadius: 2,
-                      border: selectedTeams.includes(team.id) ? 2 : 1,
-                      borderColor: selectedTeams.includes(team.id) ? 'var(--accent)' : 'var(--line)',
+                      border: selectedTeamsSet.has(team.id) ? 2 : 1,
+                      borderColor: selectedTeamsSet.has(team.id) ? 'var(--accent)' : 'var(--line)',
                       transition: 'border-color 0.2s ease',
                       '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                       '&:hover': {
@@ -167,7 +169,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                     <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
                         <Checkbox
-                          checked={selectedTeams.includes(team.id)}
+                          checked={selectedTeamsSet.has(team.id)}
                           onChange={() => handleTeamToggle(team.id)}
                           size="small"
                           sx={{ p: 0.25, mr: 0.75 }}
@@ -253,12 +255,12 @@ const TeamUserAssignmentForm: React.FC = () => {
                 {filteredUsers.map((userItem) => (
                   <Grid item xs={12} sm={6} md={4} key={userItem.id}>
                     <Card
-                      variant={selectedUsers.includes(userItem.id) ? 'elevation' : 'outlined'}
+                      variant={selectedUsersSet.has(userItem.id) ? 'elevation' : 'outlined'}
                       sx={{
                         cursor: 'pointer',
                         borderRadius: 2,
-                        border: selectedUsers.includes(userItem.id) ? 2 : 1,
-                        borderColor: selectedUsers.includes(userItem.id) ? 'var(--accent)' : 'var(--line)',
+                        border: selectedUsersSet.has(userItem.id) ? 2 : 1,
+                        borderColor: selectedUsersSet.has(userItem.id) ? 'var(--accent)' : 'var(--line)',
                         transition: 'border-color 0.2s ease',
                         '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                         '&:hover': {
@@ -270,7 +272,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                       <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
                           <Checkbox
-                            checked={selectedUsers.includes(userItem.id)}
+                            checked={selectedUsersSet.has(userItem.id)}
                             onChange={() => handleUserToggle(userItem.id)}
                             size="small"
                             sx={{ p: 0.25, mr: 0.75 }}
@@ -316,9 +318,9 @@ const TeamUserAssignmentForm: React.FC = () => {
         );
 
       case 3: {
-        const selectedTeamsData = teams.filter(t => selectedTeams.includes(t.id));
+        const selectedTeamsData = teams.filter(t => selectedTeamsSet.has(t.id));
         const allUsers = filteredUsers.length > 0 ? filteredUsers : [];
-        const selectedUsersData = allUsers.filter(u => selectedUsers.includes(u.id));
+        const selectedUsersData = allUsers.filter(u => selectedUsersSet.has(u.id));
         const selectedManagerData = isAdmin
           ? managers.find(m => m.id === selectedManager)
           : { firstName: user?.firstName, lastName: user?.lastName, email: user?.email };

@@ -264,7 +264,7 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
         if (kbHits == null || kbHits.isEmpty()) return "";
         StringBuilder sb = new StringBuilder(512);
         sb.append("<knowledge_base>\n")
-                .append("  <!-- Snippets de la doc Clenzy lies a la query. Cite la source ")
+                .append("  <!-- Snippets de la doc Baitly lies a la query. Cite la source ")
                 .append("(titre + path) si tu utilises l'info. N'invente jamais. -->\n");
         for (int i = 0; i < kbHits.size(); i++) {
             com.clenzy.service.agent.kb.KbSearchService.KbSearchHit h = kbHits.get(i);

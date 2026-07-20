@@ -148,4 +148,3 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
 };
 
 export default SettingsSection;
-export { ACCENT_HEX as SETTINGS_ACCENT_HEX };

@@ -48,14 +48,42 @@ export interface SupervisionPanelProps {
   flush?: boolean;
 }
 
+/** Sous cette largeur de CONTENEUR (px), les surcouches passent en mode compact
+ *  (rail de pastilles + tiroir bas) pour dégager la constellation. Largeur du
+ *  panneau, pas de la fenêtre : l'accordéon Planning peut être étroit sur desktop. */
+const COMPACT_MAX_WIDTH = 840;
+
 export function SupervisionPanel({ createProvider, deps, propertyId, reportWindowDays = 30, onSelectAgent, onActing, onEditAction, flush }: SupervisionPanelProps) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
+  // Largeur mesurée du panneau → mode compact. Callback ref (et non un effect
+  // au mount) : le root n'existe pas pendant le skeleton (early return), le
+  // ResizeObserver s'attache quand la vue live monte réellement.
+  const [panelWidth, setPanelWidth] = useState(0);
+  const resizeObsRef = useRef<ResizeObserver | null>(null);
+  const attachRoot = useCallback((el: HTMLDivElement | null) => {
+    rootRef.current = el;
+    resizeObsRef.current?.disconnect();
+    resizeObsRef.current = null;
+    if (el && typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(() => setPanelWidth(el.clientWidth));
+      observer.observe(el);
+      resizeObsRef.current = observer;
+      setPanelWidth(el.clientWidth);
+    }
+  }, []);
+  const compact = panelWidth > 0 && panelWidth < COMPACT_MAX_WIDTH;
   // Bilan de valeur (org-scopé) affiché dans le HUD. La fenêtre suit le zoom du
   // planning par défaut, avec un sélecteur HUD (dont « Jour ») qui l'affine ; un
-  // changement de zoom re-synchronise (le zoom reste le maître).
-  const [reportWindow, setReportWindow] = useState(reportWindowDays);
-  useEffect(() => setReportWindow(reportWindowDays), [reportWindowDays]);
+  // changement de zoom re-synchronise (le zoom reste le maître). L'affinage HUD
+  // est stocké AVEC la fenêtre zoom pour laquelle il a été choisi : il s'évince
+  // de lui-même quand le zoom change (dérivation — pas d'effet de resync).
+  const [hudWindow, setHudWindow] = useState<{ forZoom: number; value: number } | null>(null);
+  const reportWindow = hudWindow?.forZoom === reportWindowDays ? hudWindow.value : reportWindowDays;
+  const handleReportWindowChange = useCallback(
+    (value: number) => setHudWindow({ forZoom: reportWindowDays, value }),
+    [reportWindowDays],
+  );
   const { report } = useSupervisionReport(reportWindow);
   const [selected, setSelected] = useState<AgentId | null>(null);
   const { toasts, markInFlight, onResolved } = useResolutionToasts();
@@ -187,6 +215,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
     () =>
       feed ? (
         <Box
+          data-feed-card
           sx={{
             display: 'flex',
             flexDirection: 'column',
@@ -198,7 +227,8 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
             overflow: 'hidden',
           }}
         >
-          <Box sx={{ px: 1.5, pt: 1.25, pb: 0.75, fontWeight: 800, fontSize: 12.5, color: 'var(--ink)' }}>
+          {/* data-feed-title : masqué dans le tiroir compact (titre déjà en en-tête). */}
+          <Box data-feed-title sx={{ px: 1.5, pt: 1.25, pb: 0.75, fontWeight: 800, fontSize: 12.5, color: 'var(--ink)' }}>
             {t('supervision.feed.title')}
           </Box>
           {/* data-vertical-scroll : le planning ne détourne PAS la molette
@@ -224,13 +254,53 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
     [feed, t],
   );
 
+  // File HITL du mode compact : même contenu que les piles flottantes haut-droite,
+  // rendu DANS le tiroir bas de la constellation (variant "panel" = pleine largeur,
+  // le corps du tiroir scrolle). Un seul des deux rendus est monté à la fois.
+  const pendingCount =
+    (propertySnapshot ? propertySnapshot.pending.length + (propertySnapshot.pendingAction ? 1 : 0) : snapshot?.pending.length) ?? 0;
+  const hitlContent = useMemo(() => {
+    if (!compact) return undefined;
+    if (propertySnapshot) {
+      if (!propertySnapshot.pendingAction && propertySnapshot.pending.length === 0) return undefined;
+      return (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+          {propertySnapshot.pendingAction && (
+            <SupervisionPendingAction action={propertySnapshot.pendingAction} onResolve={handleResolvePending} />
+          )}
+          {propertySnapshot.pending.length > 0 && (
+            <TaskDeckQueue
+              actions={propertySnapshot.pending}
+              onValidate={handleValidate}
+              onEdit={handleEdit}
+              onAdjustPrice={handleAdjustPrice}
+              variant="panel"
+            />
+          )}
+        </Box>
+      );
+    }
+    if (snapshot && snapshot.pending.length > 0) {
+      return (
+        <TaskDeckQueue
+          actions={snapshot.pending}
+          onValidate={handleValidate}
+          onEdit={handleEdit}
+          onAdjustPrice={handleAdjustPrice}
+          variant="panel"
+        />
+      );
+    }
+    return undefined;
+  }, [compact, propertySnapshot, snapshot, handleResolvePending, handleValidate, handleEdit, handleAdjustPrice]);
+
   if (status === 'loading' || !snapshot) {
     return <ConstellationSkeleton flush={flush} />;
   }
 
   return (
     <Box
-      ref={rootRef}
+      ref={attachRoot}
       sx={{
         position: 'relative',
         // Colonne flex pleine hauteur : la constellation (flex:1) remplit
@@ -253,9 +323,12 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
         onSelectAgent={handleSelect}
         report={hudReport}
         reportWindow={reportWindow}
-        onReportWindowChange={setReportWindow}
+        onReportWindowChange={handleReportWindowChange}
         headerAction={headerAction}
         belowHud={belowHud}
+        compact={compact}
+        hitl={hitlContent}
+        hitlCount={pendingCount}
       />
 
       {/* Entrée de chat opérateur (chemin live) : un message déclenche un run du
@@ -286,8 +359,9 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
       )}
 
       {/* Zone flottante haut-droite (par logement) : carte d'approbation inline
-          (interrupt) au-dessus de la file persistante « Attend ta validation ». */}
-      {propertySnapshot && (propertySnapshot.pendingAction || propertySnapshot.pending.length > 0) && (
+          (interrupt) au-dessus de la file persistante « Attend ta validation ».
+          En compact, ce contenu vit dans le tiroir « À traiter » (hitlContent). */}
+      {!compact && propertySnapshot && (propertySnapshot.pendingAction || propertySnapshot.pending.length > 0) && (
         <Box
           sx={{
             position: 'absolute',
@@ -316,7 +390,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
       )}
 
       {/* file HITL flottante (vue portefeuille / autres scopes) */}
-      {!propertySnapshot && snapshot.pending.length > 0 && (
+      {!compact && !propertySnapshot && snapshot.pending.length > 0 && (
         <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 7, maxWidth: 'calc(100% - 32px)', display: 'flex', flexDirection: 'column' }}>
           <TaskDeckQueue actions={snapshot.pending} onValidate={handleValidate} onEdit={handleEdit} onAdjustPrice={handleAdjustPrice} variant="floating" />
         </Box>

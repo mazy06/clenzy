@@ -121,7 +121,12 @@ function parseOfferIdSelection(json: string | null | undefined): number[] | null
   if (!json) return null;
   try {
     const arr = JSON.parse(json);
-    return Array.isArray(arr) ? arr.map(Number).filter((n) => Number.isFinite(n)) : null;
+    return Array.isArray(arr)
+      ? arr.flatMap((v) => {
+          const n = Number(v);
+          return Number.isFinite(n) ? [n] : [];
+        })
+      : null;
   } catch {
     return null;
   }
@@ -185,6 +190,19 @@ function formatReservationRange(r: GuideReservationRef, locale: string): string 
   return ci || co || '';
 }
 
+// Rotation (deg) / lift (px) d'une carte d'éventail — fan symétrique pour un nombre VARIABLE de cartes.
+const fanTip = (i: number, n: number): number => (n <= 1 ? 0 : +(((n - 1) / 2 - i) * 3).toFixed(2));
+const fanLift = (i: number, n: number): number => (n <= 1 ? 0 : +(Math.abs(i - (n - 1) / 2) * 6).toFixed(1));
+
+// Structures de contenu (éventail) — préréglages de sections du livret.
+const LIVRET_STRUCTURES: { id: string; name: string; desc: string; icon: typeof Zap; badge?: string }[] = [
+  { id: 'essentiel', name: "L'Essentiel", desc: 'Wifi, arrivée & départ', icon: Zap, badge: 'Rapide' },
+  { id: 'complet', name: 'Complet', desc: 'Toutes les sections pré-remplies', icon: LayoutGrid },
+  { id: 'cityguide', name: 'City Guide', desc: 'Quartier & recommandations', icon: MapPin },
+  { id: 'longue', name: 'Longue durée', desc: 'Infos pratiques étendues', icon: CalendarDays },
+  { id: 'conciergerie', name: 'Conciergerie', desc: 'Expériences & services payants', icon: ConciergeBell },
+];
+
 const WelcomeGuideAdmin: React.FC = () => {
   const { t, currentLanguage } = useTranslation();
   const { isPlatformStaff, user } = useAuth();
@@ -236,7 +254,8 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [propertyId, setPropertyId] = useState<string>('');
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState<string>('fr');
-  const [brandingColor, setBrandingColor] = useState<string>(DEFAULT_COLOR);
+  // Couleur de marque : passthrough load->save, jamais affichee au render : ref.
+  const brandingColorRef = useRef<string>(DEFAULT_COLOR);
   const [theme, setTheme] = useState<string>(DEFAULT_THEME);
   // Sélection « studio » (parité Booking Engine) : structure obligatoire → thème (gated) → le bouton ↑ crée.
   const [structureId, setStructureId] = useState<string | null>(null);
@@ -355,7 +374,7 @@ const WelcomeGuideAdmin: React.FC = () => {
     setPropertyId('');
     setTitle('');
     setLanguage(tplLang);
-    setBrandingColor(DEFAULT_COLOR);
+    brandingColorRef.current = DEFAULT_COLOR;
     setTheme(opts?.theme ?? DEFAULT_THEME);
     setHeroPhotoIds([]);
     setHeroTouched(false);
@@ -383,9 +402,6 @@ const WelcomeGuideAdmin: React.FC = () => {
     if (structureId) { openCreate({ theme: selectedThemeId ?? DEFAULT_THEME }); return; }
     void handleGenerateGuide();
   };
-  // Rotation (deg) / lift (px) d'une carte d'éventail — fan symétrique pour un nombre VARIABLE de cartes.
-  const fanTip = (i: number, n: number): number => (n <= 1 ? 0 : +(((n - 1) / 2 - i) * 3).toFixed(2));
-  const fanLift = (i: number, n: number): number => (n <= 1 ? 0 : +(Math.abs(i - (n - 1) / 2) * 6).toFixed(1));
 
   // Champ IA du livret (gated STUDIO_ASSIST) : génère un brouillon complet (message d'accueil + sections
   // + recommandations du quartier) depuis la description/URL saisie, puis ouvre le formulaire pré-rempli
@@ -440,7 +456,7 @@ const WelcomeGuideAdmin: React.FC = () => {
     setPropertyId(g.propertyId != null ? String(g.propertyId) : '');
     setTitle(g.title);
     setLanguage(g.language || 'fr');
-    setBrandingColor(g.brandingColor || DEFAULT_COLOR);
+    brandingColorRef.current = g.brandingColor || DEFAULT_COLOR;
     setTheme(g.theme || DEFAULT_THEME);
     setHeroPhotoIds(parseHeroPhotoIds(g.heroPhotoIds));
     setHeroTouched(true); // édition : on respecte la sélection sauvegardée (pas d'auto-défaut)
@@ -485,7 +501,7 @@ const WelcomeGuideAdmin: React.FC = () => {
         sections: serializeSections(sections),
         pois: serializePois(pois),
         curatedActivities: serializeActivities(curatedActivities),
-        brandingColor,
+        brandingColor: brandingColorRef.current,
         theme,
         heroPhotoIds: JSON.stringify(heroPhotoIds),
         welcomeMessage: welcomeMessage.trim() || null,
@@ -677,19 +693,21 @@ const WelcomeGuideAdmin: React.FC = () => {
   const addSuggested = () => {
     setPois((prev) => [
       ...prev,
-      ...suggest.items
-        .filter((_, i) => suggest.selected.has(i))
-        .map((sug, i) => ({
-          id: `poi-${Date.now()}-${i}`,
-          category: sug.category,
-          name: sug.name,
-          type: '',
-          address: sug.address ?? '',
-          lat: sug.lat,
-          lng: sug.lng,
-          note: '',
-          featured: false,
-        })),
+      ...suggest.items.flatMap((sug, i) =>
+        suggest.selected.has(i)
+          ? [{
+              id: `poi-${Date.now()}-${i}`,
+              category: sug.category,
+              name: sug.name,
+              type: '',
+              address: sug.address ?? '',
+              lat: sug.lat,
+              lng: sug.lng,
+              note: '',
+              featured: false,
+            }]
+          : [],
+      ),
     ]);
     setSuggest({ open: false, loading: false, items: [], selected: new Set() });
   };
@@ -722,15 +740,6 @@ const WelcomeGuideAdmin: React.FC = () => {
   );
 
   // ─── Render: list ──────────────────────────────────────────────────────────
-  // Structures de contenu (éventail) — préréglages de sections du livret.
-  const LIVRET_STRUCTURES: { id: string; name: string; desc: string; icon: typeof Zap; badge?: string }[] = [
-    { id: 'essentiel', name: "L'Essentiel", desc: 'Wifi, arrivée & départ', icon: Zap, badge: 'Rapide' },
-    { id: 'complet', name: 'Complet', desc: 'Toutes les sections pré-remplies', icon: LayoutGrid },
-    { id: 'cityguide', name: 'City Guide', desc: 'Quartier & recommandations', icon: MapPin },
-    { id: 'longue', name: 'Longue durée', desc: 'Infos pratiques étendues', icon: CalendarDays },
-    { id: 'conciergerie', name: 'Conciergerie', desc: 'Expériences & services payants', icon: ConciergeBell },
-  ];
-
   const renderList = () => {
     const q = livretQuery.trim().toLowerCase();
     const filtered = q
@@ -956,29 +965,33 @@ const WelcomeGuideAdmin: React.FC = () => {
     (o) => o.active && (o.propertyId == null || String(o.propertyId) === propertyId),
   );
   // Sélection par livret : null = tous affichés ; sinon uniquement les ids cochés.
-  const isOfferShown = (id: number) => upsellOfferIds === null || upsellOfferIds.includes(id);
+  const upsellOfferIdSet = upsellOfferIds === null ? null : new Set(upsellOfferIds);
+  const isOfferShown = (id: number) => upsellOfferIdSet === null || upsellOfferIdSet.has(id);
   const toggleOfferShown = (id: number) => {
     const base = upsellOfferIds === null ? applicableOffers.map((o) => o.id) : upsellOfferIds;
     const next = isOfferShown(id) ? base.filter((x) => x !== id) : [...base, id];
     const allIds = applicableOffers.map((o) => o.id);
+    const nextSet = new Set(next);
     // Tout coché → null (= « tous », les futurs services apparaissent automatiquement).
-    setUpsellOfferIds(allIds.length === next.length && allIds.every((x) => next.includes(x)) ? null : next);
+    setUpsellOfferIds(allIds.length === next.length && allIds.every((x) => nextSet.has(x)) ? null : next);
   };
-  const previewUpsells: PublicUpsell[] = applicableOffers
-    .filter((o) => isOfferShown(o.id))
-    .map((o) => ({
-      offerId: o.id,
-      type: o.type,
-      title: o.title,
-      description: o.description,
-      price: o.price,
-      currency: o.currency,
-      imageUrl: o.imageUrl,
-      bundleItems: o.bundleOfferIds
-        ? o.bundleOfferIds.split(',').map((x) => x.trim()).filter(Boolean)
-            .map((id) => applicableOffers.find((c) => String(c.id) === id)?.title).filter((x): x is string => !!x)
-        : [],
-    }));
+  const previewUpsells: PublicUpsell[] = applicableOffers.flatMap((o) =>
+    isOfferShown(o.id)
+      ? [{
+          offerId: o.id,
+          type: o.type,
+          title: o.title,
+          description: o.description,
+          price: o.price,
+          currency: o.currency,
+          imageUrl: o.imageUrl,
+          bundleItems: o.bundleOfferIds
+            ? o.bundleOfferIds.split(',').map((x) => x.trim()).filter(Boolean)
+                .map((id) => applicableOffers.find((c) => String(c.id) === id)?.title).filter((x): x is string => !!x)
+            : [],
+        }]
+      : [],
+  );
   const previewModel: WelcomeBookModel = {
     title: title.trim() || previewProperty?.name || t('welcomeGuide.preview.sampleTitle', 'Votre logement'),
     welcomeMessage: welcomeMessage.trim() || null,
@@ -1087,7 +1100,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             const active = i === step;
             const done = i < step;
             return (
-              <Tooltip key={i} title={label} arrow>
+              <Tooltip key={label} title={label} arrow>
                 <Box
                   role="button"
                   aria-label={label}
@@ -2307,8 +2320,8 @@ const WelcomeGuideAdmin: React.FC = () => {
                     {t('welcomeGuide.stats.topActivities', 'Activités les plus cliquées')}
                   </Typography>
                   <Stack spacing={0.75}>
-                    {stats.data.topActivities.map((a, i) => (
-                      <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                    {stats.data.topActivities.map((a) => (
+                      <Box key={a.label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
                         <Typography variant="body2" noWrap>
                           {a.label}
                         </Typography>

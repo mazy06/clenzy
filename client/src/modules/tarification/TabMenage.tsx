@@ -19,7 +19,7 @@ import {
 import { ExpandMore, Timer, Euro, CleaningServices, Speed, CalendarMonth, AutoAwesome, Add, Close } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
-import { propertiesApi } from '../../services/api';
+import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property, CleaningPreviewResponse, CleaningEstimateDetail } from '../../services/api/propertiesApi';
 import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -123,6 +123,12 @@ function isValidPercent(value: number | undefined): boolean {
   return value != null && value >= -50 && value <= 100;
 }
 
+const numOrUndef = (value: string): number | undefined => {
+  if (value.trim() === '') return undefined;
+  const n = parseFloat(value);
+  return isNaN(n) ? undefined : n;
+};
+
 const NUM_FIELD_SX = {
   '& .MuiOutlinedInput-input': { fontVariantNumeric: 'tabular-nums' },
 } as const;
@@ -146,18 +152,12 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
 
   // ── Écriture d'un champ : parse → modif → prune → re-stringify → onUpdate ──
   const write = (mutate: (d: EngineConfigDraft) => void) => {
-    const next: EngineConfigDraft = JSON.parse(JSON.stringify(draft));
+    const next: EngineConfigDraft = structuredClone(draft);
     mutate(next);
     const pruned = pruneDraft(next);
     onUpdate({
       cleaningEngineConfig: Object.keys(pruned).length > 0 ? JSON.stringify(pruned) : null,
     });
-  };
-
-  const numOrUndef = (value: string): number | undefined => {
-    if (value.trim() === '') return undefined;
-    const n = parseFloat(value);
-    return isNaN(n) ? undefined : n;
   };
 
   const setRoot = (key: 'hourlyRate' | 'rangePercent' | 'roundTo' | 'minPrice', value: string) =>
@@ -620,10 +620,10 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
                     {t('properties.cleaningEstimator.breakdownTitle')}
                   </Typography>
                 </Box>
-                {BREAKDOWN_KEYS
-                  .map((key) => ({ key, minutes: previewQuery.data.minutesBreakdown?.[key] ?? 0 }))
-                  .filter(({ key, minutes }) => key === 'base' || minutes > 0)
-                  .map(({ key, minutes }) => (
+                {BREAKDOWN_KEYS.flatMap((key) => {
+                  const minutes = previewQuery.data.minutesBreakdown?.[key] ?? 0;
+                  if (!(key === 'base' || minutes > 0)) return [];
+                  return [
                     <Box key={key} sx={{ display: 'flex', justifyContent: 'space-between', px: 1.75, py: 0.6, borderTop: '1px solid var(--line)' }}>
                       <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
                         {t(`properties.cleaningEstimator.breakdown.${key}`)}
@@ -631,8 +631,9 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
                       <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
                         {minutes} min
                       </Typography>
-                    </Box>
-                  ))}
+                    </Box>,
+                  ];
+                })}
               </Box>
             </>
           )}

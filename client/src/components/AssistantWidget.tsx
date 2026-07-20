@@ -28,7 +28,7 @@ interface FabPosition {
   offsetPct: number;
 }
 
-const FAB_POSITION_KEY = 'clenzy_assistant_fab_position';
+const FAB_POSITION_KEY = 'clenzy_assistant_fab_position:v1';
 const DRAG_THRESHOLD_PX = 5; // pour distinguer click de drag
 
 const DEFAULT_POSITION: FabPosition = { edge: 'right', offsetPct: 1 }; // bottom-right corner

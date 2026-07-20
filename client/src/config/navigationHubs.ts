@@ -224,10 +224,6 @@ export function accessibleHubTabs(hub: HubDef, access: HubAccess): HubTab[] {
   return hub.tabs.filter((tab) => tab.isAccessible(access));
 }
 
-export function findHubById(id: string): HubDef | undefined {
-  return NAVIGATION_HUBS.find((hub) => hub.id === id);
-}
-
 export interface HubScreenContext {
   hub: HubDef;
   /** Onglets accessibles (= écrans frères) du hub. */

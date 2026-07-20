@@ -66,6 +66,9 @@ const CARD_SX = {
 const CELL_SX = { fontSize: '0.8125rem', py: 1.25 } as const;
 const HEAD_CELL_SX = { fontSize: '0.75rem', fontWeight: 700, py: 1, color: 'text.secondary' } as const;
 
+const channelColor = (name: string) =>
+  CHANNEL_OPTIONS.find((c) => c.value === name)?.color ?? '#666';
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const ChannelPromotionsPage: React.FC = () => {
@@ -170,9 +173,6 @@ const ChannelPromotionsPage: React.FC = () => {
     }
     return map;
   }, [properties]);
-
-  const channelColor = (name: string) =>
-    CHANNEL_OPTIONS.find((c) => c.value === name)?.color ?? '#666';
 
   return (
     <Box sx={{ p: SPACING.PAGE_PADDING }}>

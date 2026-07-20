@@ -85,7 +85,9 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [touched, setTouched] = useState(false);
-  const [activeField, setActiveField] = useState<'subject' | 'body'>('body');
+  // Dernier champ focus (instance value, lue uniquement dans handleInsertVariable) :
+  // ref plutot que state — pas de re-render a chaque focus.
+  const activeFieldRef = useRef<'subject' | 'body'>('body');
   // Refs vers les <input>/<textarea> sous-jacents pour insérer une variable
   // à la position du curseur (et non en fin de champ).
   const subjectRef = useRef<HTMLInputElement>(null);
@@ -130,7 +132,7 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
 
   const handleInsertVariable = (key: string) => {
     const placeholder = `{${key}}`;
-    const isSubject = activeField === 'subject';
+    const isSubject = activeFieldRef.current === 'subject';
     const el = isSubject ? subjectRef.current : bodyRef.current;
     const value = isSubject ? subject : body;
     const setValue = isSubject ? setSubject : setBody;
@@ -284,7 +286,7 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                     label={t('messaging.templates.editor.subject')}
                     value={subject}
                     onChange={(e) => { setSubject(e.target.value); setTouched(true); }}
-                    onFocus={() => setActiveField('subject')}
+                    onFocus={() => { activeFieldRef.current = 'subject'; }}
                     inputRef={subjectRef}
                     size="small"
                     required
@@ -298,7 +300,7 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                     label={t('messaging.templates.editor.body')}
                     value={body}
                     onChange={(e) => { setBody(e.target.value); setTouched(true); }}
-                    onFocus={() => setActiveField('body')}
+                    onFocus={() => { activeFieldRef.current = 'body'; }}
                     inputRef={bodyRef}
                     multiline
                     rows={12}

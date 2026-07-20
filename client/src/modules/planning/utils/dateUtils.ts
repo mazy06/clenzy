@@ -10,14 +10,13 @@ import {
   differenceInCalendarDays,
   isToday,
   isWeekend,
-  isSameMonth,
   parseISO,
 } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { ZoomLevel } from '../types';
 import { ZOOM_CONFIGS } from '../constants';
 
-export { addDays, subDays, isToday, isWeekend, isSameMonth, parseISO };
+export { addDays, subDays, isToday, isWeekend, parseISO };
 
 export function toDateStr(date: Date): string {
   return format(date, 'yyyy-MM-dd');
@@ -47,10 +46,6 @@ export function formatMonthYear(date: Date): string {
 /** Format complet pour tooltips : "Lundi 18 mai 2026". */
 export function formatFullDate(date: Date): string {
   return format(date, 'EEEE d MMMM yyyy', { locale: fr });
-}
-
-export function formatMonthShort(date: Date): string {
-  return format(date, 'MMM', { locale: fr });
 }
 
 export function daysBetween(d1: Date, d2: Date): number {

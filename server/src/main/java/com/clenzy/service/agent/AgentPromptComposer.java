@@ -44,10 +44,14 @@ public class AgentPromptComposer {
     private static final int MAX_MEMORY_ENTRIES = 30;
     /** Nombre de chunks RAG injectes dans le system prompt par tour. */
     private static final int RAG_TOP_K = 4;
-    /** Seuil de relevance en dessous duquel un chunk RAG n'est pas injecte. */
-    private static final double RAG_RELEVANCE_MIN = 0.70;
+    /** En-deca, un message user est traite comme une relance a contextualiser. */
+    private static final int RETRIEVAL_SELF_CONTAINED_MIN_CHARS = 80;
+    /** Nombre de messages user precedents repris comme contexte de retrieval. */
+    private static final int RETRIEVAL_CONTEXT_MESSAGES = 2;
+    /** Troncature de chaque message de contexte dans la requete de retrieval. */
+    private static final int RETRIEVAL_CONTEXT_MAX_CHARS = 200;
     static final String DEFAULT_SYSTEM_PROMPT = """
-            Tu es l'assistant strategique Clenzy, un PMS (Property Management System) pour la
+            Tu es l'assistant strategique Baitly, un PMS (Property Management System) pour la
             location courte duree. Ton role : aider l'utilisateur a COMPRENDRE ses donnees,
             CONSEILLER une strategie, et le GUIDER dans le PMS via des liens cliquables.
 
@@ -55,7 +59,8 @@ public class AgentPromptComposer {
             tu pose des questions de clarification quand utile, tu suggeres des actions concretes.
 
             Regles de communication :
-            - Reponds toujours en francais, ton conversationnel mais professionnel.
+            - Reponds dans la langue de l'utilisateur (francais par defaut si elle est
+              inconnue), ton conversationnel mais professionnel.
             - Markdown autorise : **gras**, *italique*, listes a puces, liens [texte](/route).
             - Format des dates en francais : "12 juin 2026" plutot que "2026-06-12" dans le texte.
             - Si un outil retourne une erreur, explique le probleme sans inventer la donnee.
@@ -114,9 +119,9 @@ public class AgentPromptComposer {
 
             DOCUMENTATION (RAG knowledge base) — REGLES STRICTES :
             - search_knowledge_base(query, topK?) → recherche par embeddings dans la doc
-              Clenzy (globale) + les notes internes de l'org.
+              Baitly (globale) + les notes internes de l'org.
             - Utilise-le quand l'user demande "selon la doc...", "comment fonctionne X dans
-              Clenzy", "quelle est la procedure officielle pour Y".
+              Baitly", "quelle est la procedure officielle pour Y".
 
             ANTI-HALLUCINATION (impératif) :
             1. Si tu utilises un snippet retourne par ce tool OU fourni dans le "Contexte
@@ -124,7 +129,7 @@ public class AgentPromptComposer {
                sous la forme : « Selon [titre](sourcePath), ... ».
             2. Si la question concerne un point precis (procedure, fonctionnalite specifique,
                regle de pricing/billing/legal) et que la doc ne le couvre pas, dis
-               explicitement : "La documentation Clenzy ne couvre pas ce point precis,
+               explicitement : "La documentation Baitly ne couvre pas ce point precis,
                je peux te donner mon analyse mais sans garantie d'exactitude."
                N'invente JAMAIS une procedure, un numero d'article ou un nom de fonctionnalite
                qui n'apparait pas dans les snippets fournis.
@@ -270,7 +275,8 @@ public class AgentPromptComposer {
         List<AssistantMemory> memories = loadMemories(context, latestUserMessage);
 
         // 2. Pre-charge des hits RAG (commun v1/v2)
-        List<KbSearchService.KbSearchHit> kbHits = loadRelevantKbHits(latestUserMessage, context.organizationId());
+        List<KbSearchService.KbSearchHit> kbHits =
+                loadRelevantKbHits(latestUserMessage, context.organizationId(), context.language());
 
         return buildSegmentedSystemPrompt(context, latestUserMessage, memories, kbHits);
     }
@@ -315,17 +321,56 @@ public class AgentPromptComposer {
         }
     }
 
-    /** Charge les hits RAG au-dessus du seuil. Silent fallback list vide. */
+    /** Retrocompatibilite : langue par defaut (fr). */
     public List<KbSearchService.KbSearchHit> loadRelevantKbHits(String query, Long organizationId) {
+        return loadRelevantKbHits(query, organizationId, null);
+    }
+
+    /** Charge les hits RAG au-dessus du seuil configure. Silent fallback list vide. */
+    public List<KbSearchService.KbSearchHit> loadRelevantKbHits(String query, Long organizationId,
+                                                                  String language) {
         if (query == null || query.isBlank() || kbSearchService == null) return List.of();
         try {
-            return kbSearchService.search(query, organizationId, RAG_TOP_K).stream()
-                    .filter(h -> h.relevance() >= RAG_RELEVANCE_MIN)
+            // Seuil pilote par clenzy.ai.embeddings.relevance-threshold (defaut 0.70)
+            double relevanceMin = kbSearchService.getRelevanceThreshold();
+            return kbSearchService.search(query, organizationId, RAG_TOP_K, language).stream()
+                    .filter(h -> h.relevance() >= relevanceMin)
                     .toList();
         } catch (Exception e) {
             log.debug("RAG auto-injection skipped : {}", e.getMessage());
             return List.of();
         }
+    }
+
+    /**
+     * Construit la requete de retrieval RAG a partir des derniers messages user
+     * (ordre chronologique, le plus recent en dernier).
+     *
+     * <p>Un message court est le plus souvent une relance anaphorique (« et pour
+     * les mineurs ? », « combien ca coute ? ») : embedde seul, il ne retrouve
+     * rien. On le prefixe alors du contexte des messages precedents. Un message
+     * long est deja autoportant — il part tel quel.</p>
+     */
+    public static String buildRetrievalQuery(List<String> userMessagesChronological) {
+        if (userMessagesChronological == null || userMessagesChronological.isEmpty()) return "";
+        List<String> messages = userMessagesChronological.stream()
+                .filter(m -> m != null && !m.isBlank())
+                .toList();
+        if (messages.isEmpty()) return "";
+        String latest = messages.get(messages.size() - 1).trim();
+        if (latest.length() >= RETRIEVAL_SELF_CONTAINED_MIN_CHARS || messages.size() < 2) {
+            return latest;
+        }
+        StringBuilder sb = new StringBuilder();
+        int from = Math.max(0, messages.size() - 1 - RETRIEVAL_CONTEXT_MESSAGES);
+        for (int i = from; i < messages.size() - 1; i++) {
+            String previous = messages.get(i).trim();
+            if (previous.length() > RETRIEVAL_CONTEXT_MAX_CHARS) {
+                previous = previous.substring(0, RETRIEVAL_CONTEXT_MAX_CHARS);
+            }
+            sb.append(previous).append('\n');
+        }
+        return sb.append(latest).toString();
     }
 
     /** Legacy v1 : ancien comportement (memory text-format + RAG markdown + DEFAULT_SYSTEM_PROMPT). */
@@ -352,7 +397,7 @@ public class AgentPromptComposer {
         if (relevant == null || relevant.isEmpty()) return null;
         StringBuilder sb = new StringBuilder();
         sb.append("── Contexte documentation pertinente ──\n\n");
-        sb.append("Voici des extraits de la documentation Clenzy lies a la question. ")
+        sb.append("Voici des extraits de la documentation Baitly lies a la question. ")
                 .append("REGLES :\n")
                 .append("- Si tu utilises l'info d'un extrait, cite-le « Selon [titre](sourcePath), ... ».\n")
                 .append("- Si aucun extrait ne repond a la question, dis explicitement que la doc ne le couvre pas ")

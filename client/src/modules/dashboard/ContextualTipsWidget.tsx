@@ -166,9 +166,9 @@ const ContextualTipsWidget: React.FC = React.memo(() => {
 
   // Filter tips by user role
   const filteredTips = useMemo(() => {
-    const userRoles = user?.roles || [];
+    const userRoles = new Set(user?.roles || []);
     return ALL_TIPS.filter((tip) =>
-      tip.roles.length === 0 || tip.roles.some((r) => userRoles.includes(r)),
+      tip.roles.length === 0 || tip.roles.some((r) => userRoles.has(r)),
     );
   }, [user?.roles]);
 
@@ -305,9 +305,9 @@ const ContextualTipsWidget: React.FC = React.memo(() => {
           </IconButton>
           {/* Dots */}
           <Box sx={{ display: 'flex', gap: 0.5, mx: 0.5 }}>
-            {filteredTips.slice(0, Math.min(filteredTips.length, 5)).map((_, i) => (
+            {filteredTips.slice(0, Math.min(filteredTips.length, 5)).map((tip, i) => (
               <Box
-                key={i}
+                key={tip.id}
                 sx={{
                   width: activeIdx === i ? 12 : 5,
                   height: 5,

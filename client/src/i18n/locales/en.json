@@ -300,6 +300,9 @@
       "bulk": "Process all",
       "undo": "Undo",
       "undoBulk": "Processed — {{count}} card(s)"
+    },
+    "compact": {
+      "hitl": "To review"
     }
   },
   "channexGuided": {

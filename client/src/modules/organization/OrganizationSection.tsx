@@ -170,9 +170,10 @@ export default function OrganizationSection({ organizationId }: Props) {
               getOptionLabel={(option) => option.name}
               isOptionEqualToValue={(option, value) => option.id === value.id}
               renderOption={(props, option) => {
+                const { key, ...optionProps } = props;
                 const c = getOrgTypeColor(option.type);
                 return (
-                  <li {...props} key={option.id}>
+                  <li key={key} {...optionProps}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                       <Typography sx={{ fontWeight: 500, flex: 1, fontSize: '0.85rem' }}>
                         {option.name}

@@ -11,7 +11,7 @@ import { useConnectedObjects } from './useConnectedObjects';
 import { DEVICE_KINDS, DEVICE_KIND_ORDER } from './deviceRegistry';
 import DeviceCard from './components/DeviceCard';
 import AddDeviceWizard from './components/AddDeviceWizard';
-import { netatmoApi } from '../../services/api';
+import { netatmoApi } from '../../services/api/netatmoApi';
 import type { DeviceAction, DeviceKind } from './types';
 
 const GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))', gap: 1 } as const;
@@ -74,9 +74,10 @@ export default function ConnectedObjectsHub({
 
   const filteredGroups = useMemo(() => {
     if (!kindFilter) return groups;
-    return groups
-      .map((g) => ({ ...g, devices: g.devices.filter((d) => d.kind === kindFilter) }))
-      .filter((g) => g.devices.length > 0);
+    return groups.flatMap((g) => {
+      const devices = g.devices.filter((d) => d.kind === kindFilter);
+      return devices.length > 0 ? [{ ...g, devices }] : [];
+    });
   }, [groups, kindFilter]);
 
   const comingSoon = DEVICE_KIND_ORDER.filter((k) => !DEVICE_KINDS[k].available);

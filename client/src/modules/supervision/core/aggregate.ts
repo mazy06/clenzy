@@ -33,14 +33,14 @@ export function aggregatePortfolio(
       .map((snap) => ({ snap, agent: snap.agents.find((a) => a.id === agentId) }))
       .filter((x): x is { snap: OrchestratorSnapshot; agent: NonNullable<typeof x.agent> } => Boolean(x.agent));
 
-    const items: PortfolioAgentItem[] = present
-      .filter((x) => x.agent.status !== 'veille')
-      .map((x) => ({
-        propertyId: x.snap.propertyId,
-        propertyName: nameOf(x.snap.propertyId),
-        status: x.agent.status,
-        task: x.agent.task ?? '',
-      }));
+    const items: PortfolioAgentItem[] = present.flatMap((x) => x.agent.status !== 'veille'
+      ? [{
+          propertyId: x.snap.propertyId,
+          propertyName: nameOf(x.snap.propertyId),
+          status: x.agent.status,
+          task: x.agent.task ?? '',
+        }]
+      : []);
 
     const status: AgentStatus = maxPriorityStatus(present.map((x) => x.agent.status));
     // tâche de synthèse = celle de l'item le plus prioritaire (contenu réel de l'agent)

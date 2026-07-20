@@ -2,7 +2,10 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
-import { reservationsApi, guestsApi, propertiesApi, calendarPricingApi } from '../../services/api';
+import { reservationsApi } from '../../services/api/reservationsApi';
+import { guestsApi } from '../../services/api/guestsApi';
+import { propertiesApi } from '../../services/api/propertiesApi';
+import { calendarPricingApi } from '../../services/api/calendarPricingApi';
 import { touristTaxApi } from '../../services/api/touristTaxApi';
 import type {
   Reservation,
@@ -381,6 +384,11 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
   }, [open, showPropertySelector, isPlatformStaff, propertiesQuery.data, propertyId]);
 
   // ── Init state on open ──────────────────────────────────────────────────
+  // Reset-a-l'ouverture DELIBERE (pattern dialog-init) : rouvrir le dialog doit
+  // produire un formulaire frais (edit = valeurs de la resa, create = defauts +
+  // code de confirmation genere). L'alternative canonique (remount via key chez
+  // les consommateurs) restructurerait un flux metier critique pour eliminer un
+  // flash deja masque par l'animation d'ouverture — non pertinent ici.
   useEffect(() => {
     if (!open) return;
 

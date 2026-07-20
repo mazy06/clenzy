@@ -243,7 +243,7 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
       // ── Reservation bars: center-to-center for "nuitées" ──
       // Bar spans from center of checkIn column to center of checkOut column.
       // This makes each "night" visually straddle the boundary between two days.
-      const resBars: PositionedBar[] = propRes.map((res) => {
+      const resBars: PositionedBar[] = propRes.flatMap((res) => {
         const checkInIdx = getDayOffset(res.checkIn, windowStart);
         const checkOutIdx = getDayOffset(res.checkOut, windowStart);
 
@@ -254,7 +254,7 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
         const clampedStart = Math.max(0, rawStart);
         const clampedEnd = Math.min(1, rawEnd);
 
-        return {
+        const bar = {
           id: res.id,
           left: clampedStart * 100,
           width: Math.max(0, (clampedEnd - clampedStart) * 100),
@@ -262,7 +262,8 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
           roundLeft: rawStart >= 0,
           roundRight: rawEnd <= 1,
         };
-      }).filter((b) => b.width > 0);
+        return bar.width > 0 ? [bar] : [];
+      });
 
       // ── Intervention markers: 1/5 column width, centered per day ──
       const interBars: InterventionMarker[] = [];

@@ -299,6 +299,23 @@ interface AvailableTagsReferenceProps {
   search: string;
 }
 
+// Style cohérent partagé pour les chips ${...} (memes proportions que
+// TemplateCatalogAccordions : monospace, accent tinted, font 0.7rem).
+const codeChipSx = {
+  fontFamily: '"SF Mono", Menlo, Consolas, monospace',
+  fontSize: '0.7rem',
+  color: 'var(--accent)',
+  backgroundColor: 'var(--accent-soft)',
+  border: '1px solid',
+  borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)',
+  borderRadius: '4px',
+  px: 0.625,
+  py: '2px',
+  lineHeight: 1.5,
+  display: 'inline-block',
+  whiteSpace: 'nowrap' as const,
+};
+
 const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search }) => {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [copiedTag, setCopiedTag] = useState<string | null>(null);
@@ -315,35 +332,18 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
 
   // Filtrer les catégories et tags selon la recherche
   const filteredCategories = useMemo(() =>
-    TAG_CATEGORIES.map((category) => ({
-      ...category,
-      tags: category.tags.filter(
+    TAG_CATEGORIES.flatMap((category) => {
+      const tags = category.tags.filter(
         (t) =>
           !search ||
           t.tag.toLowerCase().includes(search.toLowerCase()) ||
           t.description.toLowerCase().includes(search.toLowerCase())
-      ),
-    })).filter((category) => category.tags.length > 0),
+      );
+      return tags.length > 0 ? [{ ...category, tags }] : [];
+    }),
   [search]);
 
   const totalTags = TAG_CATEGORIES.reduce((sum, c) => sum + c.tags.length, 0);
-
-  // Style cohérent partagé pour les chips ${...} (memes proportions que
-  // TemplateCatalogAccordions : monospace, accent tinted, font 0.7rem).
-  const codeChipSx = {
-    fontFamily: '"SF Mono", Menlo, Consolas, monospace',
-    fontSize: '0.7rem',
-    color: 'var(--accent)',
-    backgroundColor: 'var(--accent-soft)',
-    border: '1px solid',
-    borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)',
-    borderRadius: '4px',
-    px: 0.625,
-    py: '2px',
-    lineHeight: 1.5,
-    display: 'inline-block',
-    whiteSpace: 'nowrap' as const,
-  };
 
   return (
     <Box>

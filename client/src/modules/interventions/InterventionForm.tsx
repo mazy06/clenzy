@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -10,9 +10,12 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { interventionSchema, type InterventionFormValues } from '../../schemas';
+import { interventionSchema, type InterventionFormValues } from '../../schemas/interventionSchema';
 import { useAuth } from '../../hooks/useAuth';
-import { interventionsApi, propertiesApi, usersApi, teamsApi } from '../../services/api';
+import { interventionsApi } from '../../services/api/interventionsApi';
+import { propertiesApi } from '../../services/api/propertiesApi';
+import { usersApi } from '../../services/api/usersApi';
+import { teamsApi } from '../../services/api/teamsApi';
 import apiClient from '../../services/apiClient';
 import { extractApiList } from '../../types';
 import { InterventionType } from '../../types/interventionTypes';
@@ -186,8 +189,8 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
     staleTime: 30_000,
   });
 
-  const properties = propertiesQuery.data ?? [];
-  const users = usersQuery.data ?? [];
+  const properties = useMemo(() => propertiesQuery.data ?? [], [propertiesQuery.data]);
+  const users = useMemo(() => usersQuery.data ?? [], [usersQuery.data]);
   const teams = teamsQuery.data ?? [];
   const isLoading = propertiesQuery.isLoading || usersQuery.isLoading || teamsQuery.isLoading || (isEditMode && interventionQuery.isLoading);
 

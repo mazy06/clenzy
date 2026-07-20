@@ -158,8 +158,7 @@ const KeyValueFallback: React.FC<{ data: unknown }> = ({ data }) => {
   }
 
   const entries = Object.entries(data as Record<string, unknown>)
-    .filter(([, v]) => v !== null && v !== undefined && v !== '' && (typeof v !== 'object' || Array.isArray(v) === false))
-    .filter(([, v]) => typeof v !== 'object')
+    .filter(([, v]) => v !== null && v !== undefined && v !== '' && (typeof v !== 'object' || Array.isArray(v) === false) && typeof v !== 'object')
     .slice(0, 8);
 
   if (entries.length === 0) return null;

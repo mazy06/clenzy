@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import java.util.Set;
 
 /**
- * Specialiste contexte exterieur : meteo, evenements locaux, doc Clenzy (RAG).
+ * Specialiste contexte exterieur : meteo, evenements locaux, doc Baitly (RAG).
  *
  * <p>3 tools read-only. Sert a enrichir le contexte des recos pricing/promo
  * (ex: "pluie samedi → propose une promo last-minute") et a citer la doc.</p>
@@ -33,7 +33,7 @@ public class ContextSpecialist extends AbstractAgentSpecialist {
     public com.clenzy.service.agent.AgentTier tier() { return com.clenzy.service.agent.AgentTier.SMALL; }
 
     @Override
-    public String domain() { return "Contexte exterieur : meteo, evenements locaux, documentation Clenzy"; }
+    public String domain() { return "Contexte exterieur : meteo, evenements locaux, documentation Baitly"; }
 
     @Override
     public String description() {

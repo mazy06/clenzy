@@ -143,5 +143,3 @@ export function generateThemeCSS(theme?: BaitlyTheme): string {
   --cb-transition-slow: 250ms ease-out;
 }`;
 }
-
-export { DEFAULTS as defaultTheme };

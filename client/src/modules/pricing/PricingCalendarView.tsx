@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -12,7 +12,7 @@ import { ChevronRight as ChevronRightIcon } from '../../icons';
 import { CalendarMonth as CalendarMonthIcon, NightsStay } from '../../icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
-import { calendarPricingApi } from '../../services/api';
+import { calendarPricingApi } from '../../services/api/calendarPricingApi';
 import type { CalendarPricingDay } from '../../services/api/calendarPricingApi';
 import { minNightsKeys } from '../planning/hooks/usePlanningMinNights';
 import EmptyState from '../../components/EmptyState';
@@ -38,6 +38,8 @@ const SOURCE_COLORS: Record<string, string> = {
   BASE: '#5CB8AA',
   PROPERTY_DEFAULT: '#8BA0B3',
 };
+
+const getSourceColor = (source: string): string => SOURCE_COLORS[source] ?? '#8BA0B3';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -125,7 +127,8 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [minNightsDialogOpen, setMinNightsDialogOpen] = useState(false);
-  const [selectionAnchor, setSelectionAnchor] = useState<string | null>(null);
+  // Ancre de selection (shift-click / drag) lue uniquement en handlers : ref.
+  const selectionAnchorRef = useRef<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
   const queryClient = useQueryClient();
@@ -175,7 +178,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
   // Plage inclusive entre deux dates du mois affiché (ordre visuel du calendrier).
   const rangeBetween = useCallback(
     (anchor: string, target: string): string[] => {
-      const allDates = calendarCells.filter((c) => c.inMonth).map((c) => c.dateStr);
+      const allDates = calendarCells.flatMap((c) => (c.inMonth ? [c.dateStr] : []));
       const a = allDates.indexOf(anchor);
       const b = allDates.indexOf(target);
       if (a < 0 || b < 0) return [target];
@@ -189,25 +192,27 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
   const handleCellMouseDown = useCallback(
     (dateStr: string, event: React.MouseEvent) => {
       if (!selectedPropertyId) return;
-      if (event.shiftKey && selectionAnchor) {
-        setSelectedDates(rangeBetween(selectionAnchor, dateStr));
+      const anchor = selectionAnchorRef.current;
+      if (event.shiftKey && anchor) {
+        setSelectedDates(rangeBetween(anchor, dateStr));
         return;
       }
-      setSelectionAnchor(dateStr);
+      selectionAnchorRef.current = dateStr;
       setSelectedDates([dateStr]);
       setIsDragging(true);
     },
-    [selectedPropertyId, selectionAnchor, rangeBetween],
+    [selectedPropertyId, rangeBetween],
   );
 
   // Survol pendant le glisser : étend la plage depuis l'ancre → sélection de plage
   // « cliquer-glisser » sans passer par le formulaire de droite.
   const handleCellMouseEnter = useCallback(
     (dateStr: string) => {
-      if (!isDragging || !selectionAnchor) return;
-      setSelectedDates(rangeBetween(selectionAnchor, dateStr));
+      const anchor = selectionAnchorRef.current;
+      if (!isDragging || !anchor) return;
+      setSelectedDates(rangeBetween(anchor, dateStr));
     },
-    [isDragging, selectionAnchor, rangeBetween],
+    [isDragging, rangeBetween],
   );
 
   // Fin du glisser, où que le curseur soit relâché.
@@ -244,7 +249,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
     [minNightsMutation],
   );
 
-  const getSourceColor = (source: string): string => SOURCE_COLORS[source] ?? '#8BA0B3';
+  const selectedDatesSet = new Set(selectedDates);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, flex: 1 }}>
@@ -312,7 +317,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', flex: 1 }}>
             {calendarCells.map((cell) => {
               const pricing = pricingMap.get(cell.dateStr);
-              const isSelected = selectedDates.includes(cell.dateStr);
+              const isSelected = selectedDatesSet.has(cell.dateStr);
               const isToday = cell.dateStr === todayISO;
               const sourceColor = pricing ? getSourceColor(pricing.priceSource) : '#8BA0B3';
 

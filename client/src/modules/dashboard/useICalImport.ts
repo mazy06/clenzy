@@ -6,7 +6,7 @@ import { usersApi } from '../../services/api/usersApi';
 import { extractApiList } from '../../types';
 import { planningKeys as dashboardPlanningKeys } from '../../hooks/useDashboardPlanning';
 import { planningKeys as pagePlanningKeys } from '../../modules/planning/hooks/usePlanningData';
-import type { ICalPreviewRequest, ICalImportRequest, ICalFeed } from '../../services/api/iCalApi';
+import type { ICalPreviewRequest, ICalImportRequest } from '../../services/api/iCalApi';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -36,15 +36,6 @@ export function useICalAccess(enabled: boolean) {
     queryFn: () => iCalApi.checkAccess(),
     enabled,
     staleTime: 5 * 60 * 1000, // 5 min — forfait doesn't change often
-  });
-}
-
-/** Load existing iCal feeds to display connected source icons */
-export function useICalFeeds() {
-  return useQuery<ICalFeed[]>({
-    queryKey: iCalKeys.feeds(),
-    queryFn: () => iCalApi.getFeeds(),
-    staleTime: 2 * 60 * 1000,
   });
 }
 

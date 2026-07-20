@@ -48,6 +48,18 @@ interface ServiceRequestsListProps {
   filtersContainer?: HTMLElement | null;
 }
 
+// Icon-button d'action principale : contour accent + fond accent-soft au survol
+// (pattern boutons baseline — jamais d'aplat plein).
+const createButtonSx = {
+  p: 0.5,
+  borderRadius: '9px',
+  border: '1px solid var(--accent)',
+  color: 'var(--accent)',
+  bgcolor: 'transparent',
+  transition: 'background-color .14s, border-color .14s, color .14s',
+  '&:hover': { bgcolor: 'var(--accent-soft)', borderColor: 'var(--accent-deep)', color: 'var(--accent-deep)' },
+} as const;
+
 export default function ServiceRequestsList({ embedded = false, actionsContainer, filtersContainer }: ServiceRequestsListProps) {
   const {
     // Filter state
@@ -173,15 +185,19 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
 
   const mapMarkers: PropertyMarker[] = useMemo(
     () =>
-      filteredServiceRequests
-        .filter((r) => r.propertyLatitude && r.propertyLongitude)
-        .map((r) => ({
-          lat: r.propertyLatitude!,
-          lng: r.propertyLongitude!,
-          name: `${r.title} — ${r.propertyName}`,
-          id: Number(r.id),
-          type: 'property' as const,
-        })),
+      filteredServiceRequests.flatMap((r) =>
+        r.propertyLatitude && r.propertyLongitude
+          ? [
+              {
+                lat: r.propertyLatitude!,
+                lng: r.propertyLongitude!,
+                name: `${r.title} — ${r.propertyName}`,
+                id: Number(r.id),
+                type: 'property' as const,
+              },
+            ]
+          : [],
+      ),
     [filteredServiceRequests],
   );
 
@@ -252,18 +268,6 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     { key: 'dueDate', label: "Date d'échéance", formatter: (v: string) => v ? new Date(v).toLocaleDateString('fr-FR') : '' },
     { key: 'createdAt', label: 'Date de création', formatter: (v: string) => v ? new Date(v).toLocaleDateString('fr-FR') : '' },
   ], []);
-
-  // Icon-button d'action principale : contour accent + fond accent-soft au survol
-  // (pattern boutons baseline — jamais d'aplat plein).
-  const createButtonSx = {
-    p: 0.5,
-    borderRadius: '9px',
-    border: '1px solid var(--accent)',
-    color: 'var(--accent)',
-    bgcolor: 'transparent',
-    transition: 'background-color .14s, border-color .14s, color .14s',
-    '&:hover': { bgcolor: 'var(--accent-soft)', borderColor: 'var(--accent-deep)', color: 'var(--accent-deep)' },
-  } as const;
 
   const actionButtons = (
     <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>

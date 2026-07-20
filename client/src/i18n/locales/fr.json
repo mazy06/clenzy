@@ -300,6 +300,9 @@
       "bulk": "Tout traiter",
       "undo": "Annuler",
       "undoBulk": "Traité — {{count}} carte(s)"
+    },
+    "compact": {
+      "hitl": "À traiter"
     }
   },
   "channexGuided": {

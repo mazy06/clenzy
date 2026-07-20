@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Box, Chip, Tooltip } from '@mui/material';
 import {
   Archive as ArchiveIcon,
@@ -42,11 +42,8 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
   const archiveThreadMutation = useArchiveThread();
   const aiSuggestMutation = useAiSuggestResponse();
 
-  // Reset du brouillon au changement de thread.
-  useEffect(() => {
-    setDraft('');
-    setAttachments([]);
-  }, [thread.counterpartKeycloakId]);
+  // Le reset du brouillon au changement de thread passe par le remount via
+  // `key={counterpartKeycloakId}` chez le parent (MessagingHubPage).
 
   const messages: ThreadMessage[] = useMemo(
     () =>

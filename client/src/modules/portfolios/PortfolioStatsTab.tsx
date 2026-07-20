@@ -22,7 +22,7 @@ import {
 } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import { portfoliosApi, portfoliosKeys } from '../../services/api';
+import { portfoliosApi, portfoliosKeys } from '../../services/api/portfoliosApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import StatTile from '../../components/StatTile';
 

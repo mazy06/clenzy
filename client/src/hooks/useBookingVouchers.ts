@@ -5,7 +5,6 @@ import {
   type BookingVoucherCreateRequest,
   type BookingVoucherUpdateRequest,
   type VoucherAnalytics,
-  type VoucherStats,
   type VoucherStatus,
 } from '../services/api/bookingVouchersApi';
 
@@ -29,15 +28,6 @@ export function useBookingVouchersList(statusFilter?: VoucherStatus) {
   return useQuery<BookingVoucher[]>({
     queryKey: bookingVouchersKeys.list(statusFilter),
     queryFn: () => bookingVouchersApi.list(statusFilter),
-    staleTime: 30_000,
-  });
-}
-
-export function useBookingVoucherDetail(id: number | null, enabled = true) {
-  return useQuery<BookingVoucher>({
-    queryKey: bookingVouchersKeys.detail(id ?? 0),
-    queryFn: () => bookingVouchersApi.getById(id!),
-    enabled: enabled && id !== null && id > 0,
     staleTime: 30_000,
   });
 }
@@ -103,15 +93,6 @@ export function useVoucherAnalytics(from?: string, to?: string) {
   return useQuery<VoucherAnalytics>({
     queryKey: bookingVouchersKeys.analytics(from, to),
     queryFn: () => bookingVouchersApi.getAnalytics(from, to),
-    staleTime: 60_000,
-  });
-}
-
-export function useVoucherStats(id: number | null, enabled = true) {
-  return useQuery<VoucherStats>({
-    queryKey: bookingVouchersKeys.voucherStats(id ?? 0),
-    queryFn: () => bookingVouchersApi.getVoucherStats(id!),
-    enabled: enabled && id !== null && id > 0,
     staleTime: 60_000,
   });
 }

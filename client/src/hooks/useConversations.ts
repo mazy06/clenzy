@@ -44,15 +44,6 @@ export function useConversationMessages(
   });
 }
 
-/** Compteur de conversations non-lues (global) */
-export function useUnreadCount() {
-  return useQuery({
-    queryKey: conversationKeys.unreadCount(),
-    queryFn: () => conversationApi.getUnreadCount(),
-    staleTime: 60_000,
-  });
-}
-
 // ─── Mutations ──────────────────────────────────────────────────────────────
 
 /** Marquer une conversation comme lue */

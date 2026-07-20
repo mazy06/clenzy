@@ -18,14 +18,6 @@ export const systemEmailTemplatesKeys = {
 
 // ─── Queries ─────────────────────────────────────────────────────────────────
 
-export function useSystemEmailTemplatesList() {
-  return useQuery<SystemEmailTemplateGroup[]>({
-    queryKey: systemEmailTemplatesKeys.list(),
-    queryFn: () => systemEmailTemplatesApi.list(),
-    staleTime: 60_000,
-  });
-}
-
 export function useSystemEmailTemplateDetail(key: string | null, enabled = true) {
   return useQuery<SystemEmailTemplateGroup>({
     queryKey: systemEmailTemplatesKeys.detail(key ?? ''),

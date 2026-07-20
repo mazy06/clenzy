@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Réservation · Oliver Palm Duplex · Marrakech</title>
+<meta name="robots" content="noindex">
+<style>
+/* ============================================================
+   OLIVER PALM DUPLEX — funnel, étape checkout (widgets guest-form
+   + checkout + cart : règles de design définies ici, hydratation
+   SDK ensuite). Mêmes tokens que la page d'accueil.
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Rubik:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#FAF6F0; --surface:#FFFDF9; --tint:#F2EAE0; --line:#E7DCCD; --line-soft:#EFE6D9;
+  --ink:#26201A; --muted:#7C6E5F;
+  --terra:#B4633C; --terra-deep:#96502D; --terra-soft:rgba(180,99,60,.10);
+  --pool:#14424C; --gold:#C9974C; --err:#B23B2E; --err-soft:rgba(178,59,46,.08);
+  --ok:#3E7C5B;
+  --font-display:'Fraunces', 'Amiri', serif;
+  --font-body:'Rubik', sans-serif;
+  --radius-sm:10px; --radius:18px; --radius-lg:28px; --radius-pill:999px;
+  --shadow-sm:0 2px 8px rgba(60,40,20,.07);
+  --shadow:0 14px 40px rgba(60,40,20,.12);
+  --shadow-lg:0 30px 80px rgba(60,40,20,.18);
+  --wrap:1140px;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg); color:var(--ink); font-family:var(--font-body); line-height:1.6; -webkit-font-smoothing:antialiased; overflow-x:clip}
+img{display:block; max-width:100%}
+a{color:inherit}
+h1,h2,h3{font-family:var(--font-display); font-weight:600; line-height:1.1; letter-spacing:-.015em; text-wrap:balance}
+.wrap{max-width:var(--wrap); margin-inline:auto; padding-inline:clamp(20px,4vw,40px)}
+.num{font-variant-numeric:tabular-nums}
+@keyframes rise{from{opacity:0; transform:translateY(26px)}to{opacity:1; transform:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none !important; transition:none !important}}
+
+/* ---------- Nav plate (funnel) ---------- */
+.nav{position:sticky; inset-block-start:0; z-index:100; background:rgba(250,246,240,.95);
+  backdrop-filter:blur(10px); border-block-end:1px solid var(--line)}
+.nav__in{display:flex; align-items:center; gap:20px; min-height:70px}
+.nav__brand{font-family:var(--font-display); font-size:1.2rem; font-weight:700; color:var(--ink); text-decoration:none}
+.nav__back{display:inline-flex; align-items:center; gap:8px; margin-inline-start:auto; color:var(--muted);
+  text-decoration:none; font-size:.88rem; font-weight:500; transition:color .2s; cursor:pointer}
+.nav__back:hover{color:var(--terra)}
+.nav__secure{display:inline-flex; align-items:center; gap:7px; font-size:.78rem; color:var(--muted)}
+.nav__secure svg{width:14px; height:14px; color:var(--terra)}
+
+/* ---------- Stepper du funnel ---------- */
+.fsteps{display:flex; align-items:center; gap:0; padding-block:26px 6px; flex-wrap:wrap}
+.fstep{display:inline-flex; align-items:center; gap:10px; font-size:.86rem; font-weight:500; color:var(--muted)}
+.fstep__dot{width:28px; height:28px; border-radius:50%; display:grid; place-items:center; font-size:.78rem; font-weight:700;
+  border:1.5px solid var(--line); background:var(--surface); color:var(--muted); font-variant-numeric:tabular-nums}
+.fstep--done .fstep__dot{background:var(--terra); border-color:var(--terra); color:#fff}
+.fstep--done{color:var(--ink)}
+.fstep--active .fstep__dot{border-color:var(--terra); color:var(--terra)}
+.fstep--active{color:var(--ink); font-weight:600}
+.fstep__sep{width:44px; height:1px; background:var(--line); margin-inline:14px}
+
+/* ---------- Grille checkout ---------- */
+.fhead{padding-block:8px 26px}
+.fhead h1{font-size:clamp(1.8rem,3.4vw,2.6rem)}
+.fhead p{color:var(--muted); margin-block-start:8px}
+.fgrid{display:grid; grid-template-columns:1.25fr .85fr; gap:clamp(24px,3.5vw,48px); align-items:start; padding-block-end:70px}
+.fcol{display:flex; flex-direction:column; gap:20px; animation:rise .7s var(--ease) both}
+
+.fcard{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:26px; box-shadow:var(--shadow-sm)}
+.fcard__head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-block-end:18px}
+.fcard__head h2{font-size:1.25rem}
+.fcard__edit{display:inline-flex; align-items:center; gap:6px; font-size:.82rem; font-weight:600; color:var(--terra);
+  text-decoration:none; cursor:pointer; transition:color .2s}
+.fcard__edit:hover{color:var(--terra-deep)}
+
+/* Récap séjour */
+.trip{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line);
+  border-radius:var(--radius-sm); overflow:hidden}
+.trip__cell{background:var(--surface); padding:14px 16px}
+.trip__label{font-size:.66rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+.trip__value{font-size:.95rem; font-weight:500; margin-block-start:3px}
+
+/* Extras */
+.xlist{display:flex; flex-direction:column}
+.xrow{display:flex; align-items:center; gap:14px; padding-block:13px; border-block-end:1px solid var(--line-soft)}
+.xrow:last-child{border-block-end:0}
+.xrow__name{font-weight:500; font-size:.94rem}
+.xrow__unit{font-size:.78rem; color:var(--muted)}
+.xrow__price{margin-inline-start:auto; font-weight:600; font-size:.92rem}
+.xrow__rm{width:30px; height:30px; border-radius:50%; border:1.5px solid var(--line); background:transparent; color:var(--muted);
+  cursor:pointer; display:grid; place-items:center; transition:border-color .2s, color .2s}
+.xrow__rm:hover{border-color:var(--err); color:var(--err)}
+.xrow__rm svg{width:12px; height:12px}
+.xempty{color:var(--muted); font-size:.92rem; padding-block:6px}
+.xempty a{color:var(--terra); font-weight:600; text-decoration:none}
+.xempty a:hover{color:var(--terra-deep)}
+
+/* Formulaire (widget guest-form) */
+.form{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+.field{display:flex; flex-direction:column; gap:6px; min-width:0}
+.field--full{grid-column:1 / -1}
+.field label{font-size:.8rem; font-weight:600; color:var(--ink)}
+.field label small{color:var(--muted); font-weight:400}
+.field input,.field select,.field textarea{
+  font:inherit; font-size:.94rem; color:var(--ink); background:var(--surface);
+  border:1.5px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; width:100%;
+  transition:border-color .2s, box-shadow .2s; appearance:none}
+.field textarea{min-height:96px; resize:vertical}
+.field input::placeholder,.field textarea::placeholder{color:#B9AC9B}
+.field input:hover,.field select:hover,.field textarea:hover{border-color:#D8C9B4}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none; border-color:var(--terra);
+  box-shadow:0 0 0 3px var(--terra-soft)}
+.field__msg{display:none; font-size:.76rem; color:var(--err)}
+.field--error input,.field--error select,.field--error textarea{border-color:var(--err); background:var(--err-soft)}
+.field--error .field__msg{display:block}
+.select{position:relative}
+.select::after{content:''; position:absolute; inset-inline-end:14px; inset-block-start:50%; translate:0 -30%;
+  width:8px; height:8px; border-inline-end:1.5px solid var(--muted); border-block-end:1.5px solid var(--muted);
+  rotate:45deg; pointer-events:none}
+
+/* Paiement (widget checkout) */
+.paynote{display:flex; align-items:center; gap:9px; background:var(--tint); border-radius:var(--radius-sm);
+  padding:11px 14px; font-size:.82rem; color:var(--muted); margin-block-end:16px}
+.paynote svg{width:15px; height:15px; color:var(--terra); flex:none}
+.cardrow{position:relative}
+.cardrow__brands{position:absolute; inset-inline-end:12px; inset-block-end:11px; display:flex; gap:5px}
+.cardrow__brands span{width:32px; height:21px; border-radius:4px; border:1px solid var(--line); background:var(--surface);
+  display:grid; place-items:center; font-size:.5rem; font-weight:700; letter-spacing:.04em; color:var(--muted)}
+.consent{display:flex; gap:11px; align-items:flex-start; margin-block-start:18px; cursor:pointer; font-size:.86rem; color:var(--muted)}
+.consent input{appearance:none; width:20px; height:20px; flex:none; border:1.5px solid var(--line); border-radius:6px;
+  background:var(--surface); cursor:pointer; display:grid; place-items:center; transition:background .2s, border-color .2s; margin-block-start:1px}
+.consent input:checked{background:var(--terra); border-color:var(--terra)}
+.consent input:checked::after{content:''; width:10px; height:6px; border-inline-start:2px solid #fff; border-block-end:2px solid #fff;
+  rotate:-45deg; translate:0 -1px}
+.consent a{color:var(--terra); font-weight:500}
+.consent--error{color:var(--err)}
+.consent--error input{border-color:var(--err); background:var(--err-soft)}
+
+.fpay{display:flex; align-items:center; justify-content:center; gap:10px; width:100%; background:var(--terra); color:#fff;
+  border:0; font:600 1.02rem var(--font-body); border-radius:var(--radius-pill); padding:17px 22px; cursor:pointer;
+  transition:background .25s var(--ease), box-shadow .25s; box-shadow:0 12px 30px rgba(180,99,60,.35)}
+.fpay:hover{background:var(--terra-deep)}
+.fpay svg{width:17px; height:17px}
+.ftrust{display:flex; justify-content:center; gap:18px; font-size:.74rem; color:var(--muted); flex-wrap:wrap; margin-block-start:12px}
+.ftrust span{display:inline-flex; align-items:center; gap:5px}
+.ftrust svg{width:12px; height:12px; color:var(--terra)}
+
+/* ---------- Récap sticky (widget cart/price) ---------- */
+.fsum{position:sticky; top:96px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-lg); overflow:hidden; animation:rise .7s var(--ease) .12s both}
+.fsum__media{aspect-ratio:16/8.5; overflow:hidden}
+.fsum__media img{width:100%; height:100%; object-fit:cover}
+.fsum__body{padding:22px 24px 24px}
+.fsum__title{display:flex; align-items:baseline; justify-content:space-between; gap:10px}
+.fsum__title b{font-family:var(--font-display); font-size:1.2rem; font-weight:600}
+.fsum__rate{font-size:.8rem; color:var(--muted); white-space:nowrap}
+.fsum__meta{font-size:.84rem; color:var(--muted); margin-block-start:4px}
+.fsum__lines{display:flex; flex-direction:column; gap:9px; font-size:.9rem; margin-block-start:16px;
+  border-block-start:1px solid var(--line-soft); padding-block-start:16px}
+.fsum__line{display:flex; justify-content:space-between; gap:10px; color:var(--muted)}
+.fsum__line--total{border-block-start:1px solid var(--line); padding-block-start:12px; color:var(--ink); font-weight:600; font-size:1.02rem}
+
+/* ---------- Footer mini ---------- */
+.ffoot{border-block-start:1px solid var(--line); padding-block:22px; font-size:.78rem; color:var(--muted)}
+.ffoot .wrap{display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap}
+
+@media (max-width:960px){
+  .fgrid{grid-template-columns:1fr}
+  .fsum{position:static; order:-1}
+  .form{grid-template-columns:1fr}
+  .trip{grid-template-columns:1fr; }
+  .nav__secure{display:none}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav"><div class="wrap nav__in">
+  <a class="nav__brand" href="index.html">Oliver Palm Duplex</a>
+  <a class="nav__back" href="index.html#reserver">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+    Retour au duplex
+  </a>
+  <span class="nav__secure">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+    Paiement sécurisé
+  </span>
+</div></nav>
+
+<main class="wrap">
+  <div class="fsteps" aria-label="Étapes de la réservation">
+    <span class="fstep fstep--done"><span class="fstep__dot">✓</span> Votre séjour</span>
+    <span class="fstep__sep"></span>
+    <span class="fstep fstep--active"><span class="fstep__dot num">2</span> Coordonnées & paiement</span>
+    <span class="fstep__sep"></span>
+    <span class="fstep"><span class="fstep__dot num">3</span> Confirmation</span>
+  </div>
+
+  <div class="fhead">
+    <h1>Finalisez votre réservation</h1>
+    <p>Encore deux minutes et le duplex est à vous. Aucun montant n’est prélevé avant la confirmation.</p>
+  </div>
+
+  <div class="fgrid">
+    <div class="fcol">
+
+      <!-- Récap séjour -->
+      <section class="fcard" data-slot="dates guests">
+        <div class="fcard__head">
+          <h2>Votre séjour</h2>
+          <a class="fcard__edit" href="index.html#reserver">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M4 20h4L19 9a2.1 2.1 0 00-3-3L5 17zM13 6l3 3"/></svg>
+            Modifier
+          </a>
+        </div>
+        <div class="trip num">
+          <div class="trip__cell"><div class="trip__label">Arrivée</div><div class="trip__value" data-fs="ci">12 août 2026</div></div>
+          <div class="trip__cell"><div class="trip__label">Départ</div><div class="trip__value" data-fs="co">15 août 2026</div></div>
+          <div class="trip__cell"><div class="trip__label">Voyageurs</div><div class="trip__value" data-fs="guests">4 voyageurs</div></div>
+        </div>
+      </section>
+
+      <!-- Extras -->
+      <section class="fcard" data-slot="upsells cart">
+        <div class="fcard__head">
+          <h2>Vos extras</h2>
+          <a class="fcard__edit" href="index.html#extras">Parcourir les extras</a>
+        </div>
+        <div class="xlist" data-xlist></div>
+        <p class="xempty" data-xempty hidden>Aucun extra sélectionné. <a href="index.html#extras">Composer votre séjour</a></p>
+      </section>
+
+      <!-- Coordonnées (widget guest-form) -->
+      <section class="fcard" data-slot="guest-form">
+        <div class="fcard__head"><h2>Vos coordonnées</h2></div>
+        <div class="form">
+          <div class="field">
+            <label for="f-first">Prénom</label>
+            <input id="f-first" name="firstname" autocomplete="given-name" placeholder="Yasmine" required>
+            <span class="field__msg">Indiquez votre prénom.</span>
+          </div>
+          <div class="field">
+            <label for="f-last">Nom</label>
+            <input id="f-last" name="lastname" autocomplete="family-name" placeholder="El Amrani" required>
+            <span class="field__msg">Indiquez votre nom.</span>
+          </div>
+          <div class="field">
+            <label for="f-email">E-mail</label>
+            <input id="f-email" name="email" type="email" autocomplete="email" placeholder="yasmine@exemple.com" required>
+            <span class="field__msg">Une adresse e-mail valide est requise (confirmation envoyée par e-mail).</span>
+          </div>
+          <div class="field">
+            <label for="f-phone">Téléphone <small>· WhatsApp bienvenu</small></label>
+            <input id="f-phone" name="phone" type="tel" autocomplete="tel" placeholder="+212 6 00 00 00 00" required>
+            <span class="field__msg">Indiquez un numéro joignable pendant le séjour.</span>
+          </div>
+          <div class="field">
+            <label for="f-country">Pays / région</label>
+            <span class="select"><select id="f-country" name="country">
+              <option>Maroc</option><option>France</option><option>Belgique</option><option>Suisse</option>
+              <option>Espagne</option><option>Royaume-Uni</option><option>États-Unis</option><option>Autre</option>
+            </select></span>
+          </div>
+          <div class="field">
+            <label for="f-eta">Heure d’arrivée estimée <small>· facultatif</small></label>
+            <span class="select"><select id="f-eta" name="eta">
+              <option value="">Je ne sais pas encore</option>
+              <option>Avant 12 h</option><option>12 h à 15 h</option><option>15 h à 18 h</option>
+              <option>18 h à 21 h</option><option>Après 21 h</option>
+            </select></span>
+          </div>
+          <div class="field field--full">
+            <label for="f-msg">Message à l’hôte <small>· facultatif</small></label>
+            <textarea id="f-msg" name="message" placeholder="Occasion spéciale, allergies, demandes particulières…"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- Paiement (widget checkout) -->
+      <section class="fcard" data-slot="checkout">
+        <div class="fcard__head"><h2>Paiement</h2></div>
+        <p class="paynote">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+          Vos données bancaires sont chiffrées. Encaissement à la confirmation, reçu immédiat par e-mail.
+        </p>
+        <div class="form">
+          <div class="field field--full cardrow">
+            <label for="f-card">Numéro de carte</label>
+            <input id="f-card" name="card" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456" maxlength="19" required>
+            <span class="cardrow__brands"><span>VISA</span><span>MC</span><span>CMI</span></span>
+            <span class="field__msg">Numéro de carte requis.</span>
+          </div>
+          <div class="field">
+            <label for="f-exp">Expiration</label>
+            <input id="f-exp" name="exp" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/AA" maxlength="5" required>
+            <span class="field__msg">Date d’expiration requise.</span>
+          </div>
+          <div class="field">
+            <label for="f-cvc">CVC</label>
+            <input id="f-cvc" name="cvc" inputmode="numeric" autocomplete="cc-csc" placeholder="123" maxlength="4" required>
+            <span class="field__msg">Cryptogramme requis.</span>
+          </div>
+          <div class="field field--full">
+            <label for="f-holder">Nom sur la carte</label>
+            <input id="f-holder" name="holder" autocomplete="cc-name" placeholder="Y. EL AMRANI" required>
+            <span class="field__msg">Nom du titulaire requis.</span>
+          </div>
+        </div>
+        <label class="consent" data-consent>
+          <input type="checkbox" id="f-cgv">
+          <span>J’accepte les <a href="index.html#reserver">conditions de location</a> et la politique d’annulation affichée pour mes dates. La taxe de séjour est collectée avec la réservation.</span>
+        </label>
+      </section>
+
+      <div>
+        <button class="fpay num" type="button" data-pay>
+          Payer et réserver · <span data-fs="total">3 980 MAD</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+        <div class="ftrust">
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg> Paiement sécurisé</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-5"/><circle cx="12" cy="12" r="9"/></svg> Confirmation immédiate</span>
+          <span>MAD · EUR · USD</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Récap sticky -->
+    <aside class="fsum num" data-slot="price">
+      <div class="fsum__media">
+        <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1512384244344462850/original/cea1603f-f452-4476-9de9-9996fd56c65b.jpeg" alt="Salon du duplex Oliver Palm">
+      </div>
+      <div class="fsum__body">
+        <div class="fsum__title"><b>Oliver Palm Duplex</b><span class="fsum__rate">★ 5,0 · 28 avis</span></div>
+        <p class="fsum__meta">Marrakech · résidence sécurisée · jacuzzi privatif</p>
+        <div class="fsum__lines">
+          <div class="fsum__line"><span data-fs="dates-line">12 → 15 août 2026</span><span data-fs="guests-short">4 voyageurs</span></div>
+          <div class="fsum__line"><span data-fs="nights-label">1 200 MAD × 3 nuits</span><span data-fs="nights-amount">3 600 MAD</span></div>
+          <div class="fsum__line"><span>Ménage & linge</span><span>200 MAD</span></div>
+          <div class="fsum__line"><span>Taxe de séjour</span><span>180 MAD</span></div>
+          <div data-fs="extra-lines"></div>
+          <div class="fsum__line fsum__line--total"><span>Total</span><span data-fs="total">3 980 MAD</span></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<footer class="ffoot"><div class="wrap">
+  <span>© Oliver Palm Duplex · Marrakech</span>
+  <span>Taxe de séjour collectée · enregistrement des voyageurs conforme · assistance 7j/7</span>
+</div></footer>
+
+<script>
+(function(){
+  var MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var RATE = 1200, CLEANING = 200, TAX = 180;
+  var EXTRAS = {
+    'transfert': { name: 'Transfert aéroport', unit: 'par trajet', price: 250 },
+    'petit-dejeuner': { name: 'Petit-déjeuner marocain', unit: 'par personne', price: 80 },
+    'chef': { name: 'Chef à domicile', unit: 'par repas', price: 600 },
+    'late-checkout': { name: 'Late check-out', unit: 'selon disponibilité', price: 300 },
+    'hammam': { name: 'Hammam & massage', unit: 'par personne', price: 450 },
+    'agafay': { name: 'Excursion Agafay', unit: 'pour 2 personnes', price: 900 },
+  };
+  var S = { ci: '2026-08-12', co: '2026-08-15', adults: 3, children: 1, baby: 0, extras: [] };
+  try {
+    var saved = JSON.parse(sessionStorage.getItem('opd_booking') || 'null');
+    if (saved && saved.ci && saved.co) S = saved;
+  } catch (e) {}
+
+  function el(tag, cls, text){
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function parse(iso){ var p = iso.split('-'); return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])); }
+  function fmtMAD(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' MAD'; }
+  function fmtDate(d){ return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
+  function setAll(key, text){
+    document.querySelectorAll('[data-fs="' + key + '"]').forEach(function(n){ n.textContent = text; });
+  }
+
+  var ci = parse(S.ci), co = parse(S.co);
+  var nights = Math.max(1, Math.round((co - ci) / 864e5));
+  var guests = (S.adults || 0) + (S.children || 0);
+  var guestsTxt = guests + ' voyageur' + (guests > 1 ? 's' : '') + (S.baby ? ' · 1 bébé' : '');
+  var extras = (S.extras || []).filter(function(id){ return EXTRAS[id]; });
+  var extrasTotal = extras.reduce(function(sum, id){ return sum + EXTRAS[id].price; }, 0);
+  var total = nights * RATE + CLEANING + TAX + extrasTotal;
+
+  function renderAll(){
+    extras = (S.extras || []).filter(function(id){ return EXTRAS[id]; });
+    extrasTotal = extras.reduce(function(sum, id){ return sum + EXTRAS[id].price; }, 0);
+    total = nights * RATE + CLEANING + TAX + extrasTotal;
+    setAll('ci', fmtDate(ci));
+    setAll('co', fmtDate(co));
+    setAll('guests', guestsTxt);
+    setAll('guests-short', guestsTxt);
+    setAll('dates-line', ci.getDate() + ' → ' + fmtDate(co));
+    setAll('nights-label', fmtMAD(RATE) + ' × ' + nights + ' nuit' + (nights > 1 ? 's' : ''));
+    setAll('nights-amount', fmtMAD(nights * RATE));
+    setAll('total', fmtMAD(total));
+    /* Liste éditable des extras */
+    var list = document.querySelector('[data-xlist]');
+    var empty = document.querySelector('[data-xempty]');
+    list.replaceChildren();
+    empty.hidden = extras.length > 0;
+    extras.forEach(function(id){
+      var x = EXTRAS[id];
+      var row = el('div', 'xrow');
+      var txt = el('div');
+      txt.append(el('div', 'xrow__name', x.name), el('div', 'xrow__unit', x.unit));
+      var rm = el('button', 'xrow__rm');
+      rm.type = 'button';
+      rm.setAttribute('aria-label', 'Retirer ' + x.name);
+      rm.append(el('span', null, '✕'));
+      rm.addEventListener('click', function(){
+        S.extras = S.extras.filter(function(i){ return i !== id; });
+        try { sessionStorage.setItem('opd_booking', JSON.stringify(S)); } catch (e) {}
+        renderAll();
+      });
+      row.append(txt, el('span', 'xrow__price num', fmtMAD(x.price)), rm);
+      list.append(row);
+    });
+    /* Lignes extras du récap */
+    var xl = document.querySelector('[data-fs="extra-lines"]');
+    xl.replaceChildren();
+    extras.forEach(function(id){
+      var line = el('div', 'fsum__line');
+      line.append(el('span', null, EXTRAS[id].name), el('span', null, fmtMAD(EXTRAS[id].price)));
+      xl.append(line);
+    });
+  }
+  renderAll();
+
+  /* Validation + « paiement » (démo) → confirmation */
+  document.querySelector('[data-pay]').addEventListener('click', function(){
+    var firstError = null;
+    document.querySelectorAll('.form [required]').forEach(function(input){
+      var field = input.closest('.field');
+      var bad = !input.value.trim() || (input.type === 'email' && input.value.indexOf('@') < 1);
+      field.classList.toggle('field--error', bad);
+      if (bad && !firstError) firstError = field;
+    });
+    var consent = document.querySelector('[data-consent]');
+    var cgv = document.getElementById('f-cgv');
+    consent.classList.toggle('consent--error', !cgv.checked);
+    if (!cgv.checked && !firstError) firstError = consent;
+    if (firstError) { firstError.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+    S.guest = {
+      firstname: document.getElementById('f-first').value.trim(),
+      lastname: document.getElementById('f-last').value.trim(),
+      email: document.getElementById('f-email').value.trim(),
+    };
+    try { sessionStorage.setItem('opd_booking', JSON.stringify(S)); } catch (e) {}
+    window.location.href = 'confirmation.html';
+  });
+  /* L'erreur disparaît dès qu'on corrige */
+  document.querySelectorAll('.form [required]').forEach(function(input){
+    input.addEventListener('input', function(){ input.closest('.field').classList.remove('field--error'); });
+  });
+  document.getElementById('f-cgv').addEventListener('change', function(){
+    document.querySelector('[data-consent]').classList.remove('consent--error');
+  });
+})();
+</script>
+</body>
+</html>

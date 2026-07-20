@@ -153,7 +153,7 @@ public class OrchestratorAgent {
      *
      * <p>Backwards-compat : delegue a la version 3-arg avec un contexte vide
      * (pas de memoire ni de RAG). Prefer la version 3-arg pour beneficier de
-     * la personnalisation user et de la doc Clenzy.</p>
+     * la personnalisation user et de la doc Baitly.</p>
      */
     public OrchestrationResult orchestrate(List<ChatMessage> messages, AgentContext context) {
         return orchestrate(messages, context, OrchestrationContext.empty());
@@ -1011,7 +1011,7 @@ public class OrchestratorAgent {
         if (kbHits == null || kbHits.isEmpty()) return "";
         StringBuilder sb = new StringBuilder(512);
         sb.append("<knowledge_base>\n")
-                .append("  <!-- Snippets de la documentation Clenzy lies a la question. ")
+                .append("  <!-- Snippets de la documentation Baitly lies a la question. ")
                 .append("Le specialist doit citer source (titre + path) s'il utilise un extrait. ")
                 .append("N'invente JAMAIS une procedure qui n'est pas dans ces snippets. -->\n");
         for (int i = 0; i < kbHits.size(); i++) {

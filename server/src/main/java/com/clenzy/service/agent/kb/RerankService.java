@@ -74,9 +74,18 @@ public class RerankService {
      * @param topK      nombre de resultats finals
      * @return indices reordonnes, max topK elements
      */
+    /** Visibilite : warn UNE fois quand le rerank est active mais sans credentials. */
+    private final java.util.concurrent.atomic.AtomicBoolean unavailableWarned =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+
     public List<Integer> rerank(String query, List<String> documents, int topK) {
         if (documents == null || documents.isEmpty()) return List.of();
         if (!enabled || provider == fallback || !provider.isAvailable()) {
+            if (enabled && provider != fallback && unavailableWarned.compareAndSet(false, true)) {
+                log.warn("RerankService : rerank '{}' active mais indisponible (aucune cle Voyage — "
+                        + "modele EMBEDDINGS non-Voyage et clenzy.ai.rerank.voyage.api-key absente). "
+                        + "La recherche kb continue SANS re-ranking.", provider.name());
+            }
             return fallback.rerank(query, documents, topK);
         }
         try {

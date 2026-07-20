@@ -55,6 +55,15 @@ const STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
 
 const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
 
+const formatDuration = (startedAt: string | null, completedAt: string | null): string => {
+  if (!startedAt || !completedAt) return '—';
+  const start = new Date(startedAt).getTime();
+  const end = new Date(completedAt).getTime();
+  const ms = end - start;
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+};
+
 const ReconciliationTab: React.FC = () => {
   const [runs, setRuns] = useState<ReconciliationRun[]>([]);
   const [stats, setStats] = useState<ReconciliationStats | null>(null);
@@ -179,15 +188,6 @@ const ReconciliationTab: React.FC = () => {
     } finally {
       setTriggerLoading(false);
     }
-  };
-
-  const formatDuration = (startedAt: string | null, completedAt: string | null): string => {
-    if (!startedAt || !completedAt) return '—';
-    const start = new Date(startedAt).getTime();
-    const end = new Date(completedAt).getTime();
-    const ms = end - start;
-    if (ms < 1000) return `${ms}ms`;
-    return `${(ms / 1000).toFixed(1)}s`;
   };
 
   return (

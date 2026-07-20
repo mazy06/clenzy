@@ -467,7 +467,8 @@ export function createAmenitiesFilter(state: StateManager, i18n: I18n): HTMLElem
       }
     }
     const selected = s.filters.amenities;
-    Array.from(pop.querySelectorAll<HTMLInputElement>('input')).forEach((cb, i) => { cb.checked = selected.includes(codes[i]); });
+    const selectedSet = new Set(selected);
+    Array.from(pop.querySelectorAll<HTMLInputElement>('input')).forEach((cb, i) => { cb.checked = selectedSet.has(codes[i]); });
     const n = selected.length;
     labelSpan.textContent = n ? `${i18n.t('filters.amenities')} (${n})` : i18n.t('filters.amenities');
     // Ouverture pilotée par l'état partagé (un seul popover ouvert) + click-outside.

@@ -19,6 +19,16 @@ const WIDGET_MARKERS = new Set([
   'currency', 'cart', 'price', 'guest-form', 'checkout', 'account', 'confirmation', 'upsells',
 ]);
 
+// Familles arabe-compatibles reconnues (§5 bis — marche Maroc, RTL).
+const ARABIC_CAPABLE_FONTS = [
+  'Amiri', 'Cairo', 'Tajawal', 'Readex Pro', 'Almarai', 'Rubik', 'IBM Plex Sans Arabic',
+  'Noto Naskh Arabic', 'Noto Kufi Arabic', 'Noto Sans Arabic', 'El Messiri', 'Changa',
+  'Reem Kufi', 'Scheherazade New', 'Harmattan', 'Mada', 'Lalezar', 'Aref Ruqaa',
+];
+
+// Proprietes directionnelles physiques interdites (§5 bis — proprietes logiques obligatoires).
+const PHYSICAL_DIRECTION_RE = /(?:margin|padding)-(?:left|right)\s*:|border-(?:left|right)(?:-\w+)?\s*:|text-align\s*:\s*(?:left|right)\b/g;
+
 // Tokens --bt-* qui DOIVENT etre poses dans le css partage (§4).
 const REQUIRED_TOKENS = [
   '--bt-color-primary', '--bt-color-primary-hover', '--bt-color-on-primary', '--bt-color-accent',
@@ -81,6 +91,19 @@ for (const tok of REQUIRED_TOKENS) {
   if (css && !css.includes(tok)) fail(`css: token non utilise/pose ${tok}`);
 }
 if (css && !/\.site-root\s*\{/.test(css)) warn('css: aucun bloc `.site-root { … }` detecte (les --bt-* doivent y etre poses)');
+
+// §5 bis — RTL : font stacks arabe-compatibles (fr/en/ar servi par le meme template).
+for (const tok of ['--bt-font-heading', '--bt-font-body']) {
+  const stack = tpl.designVars ? String(tpl.designVars[tok] ?? '') : '';
+  if (stack && !ARABIC_CAPABLE_FONTS.some((f) => stack.toLowerCase().includes(f.toLowerCase()))) {
+    fail(`designVars: ${tok} sans famille arabe-compatible (§5 bis) — ajouter ex. 'Amiri', 'Tajawal', 'Rubik'…`);
+  }
+}
+
+// §5 bis — RTL : proprietes directionnelles physiques (proprietes logiques obligatoires).
+for (const m of captures(PHYSICAL_DIRECTION_RE, css)) {
+  warn(`css: propriete directionnelle physique « ${m[0].trim()} » — utiliser les proprietes logiques (margin-inline-*, text-align: start/end)`);
+}
 
 // ── Pages ─────────────────────────────────────────────────────────────────────────────────────
 const pages = Array.isArray(tpl.pages) ? tpl.pages : [];

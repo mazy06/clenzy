@@ -319,22 +319,6 @@ const styles = {
   },
 } as const;
 
-// ─── Amenity → category color mapping ───────────────────────────────────────
-
-type AmenityChipColor = 'primary' | 'success' | 'info' | 'warning' | 'secondary' | 'default';
-
-const AMENITY_CATEGORY_MAP: Record<string, AmenityChipColor> = {
-  WIFI: 'primary', TV: 'primary', AIR_CONDITIONING: 'primary', HEATING: 'primary',
-  EQUIPPED_KITCHEN: 'success', DISHWASHER: 'success', MICROWAVE: 'success', OVEN: 'success',
-  WASHING_MACHINE: 'info', DRYER: 'info', IRON: 'info', HAIR_DRYER: 'info',
-  PARKING: 'warning', POOL: 'warning', JACUZZI: 'warning', GARDEN_TERRACE: 'warning', BARBECUE: 'warning',
-  SAFE: 'secondary', BABY_BED: 'secondary', HIGH_CHAIR: 'secondary',
-};
-
-export function getAmenityColor(amenity: string): AmenityChipColor {
-  return AMENITY_CATEGORY_MAP[amenity] || 'default';
-}
-
 // ─── Duration estimation (lightweight version for cards) ─────────────────────
 
 export function estimateCleaningDuration(p: PropertyDetails): number | null {
@@ -395,6 +379,27 @@ function relativeCheckoutLabel(
   return time ? `${when} ${time}` : when;
 }
 
+const fmtEuro = (v: number) => <Money value={v} from="EUR" decimals={0} />;
+
+// Obtenir l'icône du type de propriété
+const getPropertyTypeIcon = (type: string, size: number = 48) => {
+  const iconProps = { size, color: 'var(--accent)', strokeWidth: 1.75 };
+  switch (type.toLowerCase()) {
+    case 'appartement':
+    case 'apartment':
+      return <Apartment {...iconProps} />;
+    case 'maison':
+    case 'house':
+      return <Home {...iconProps} />;
+    case 'villa':
+      return <Villa {...iconProps} />;
+    case 'studio':
+      return <Hotel {...iconProps} />;
+    default:
+      return <Home {...iconProps} />;
+  }
+};
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit, onDelete, onView, channexMapping, onChannexBadgeClick, missingContract, onMissingContractClick, kpi, cleaningEstimate }) => {
@@ -419,7 +424,6 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
   const cleaningPrice = cleaningEstimate;
 
   // ── KPI opérationnels du mois courant (.pr-stats) ─────────────────────────
-  const fmtEuro = (v: number) => <Money value={v} from="EUR" decimals={0} />;
   const kpiCells = [
     { value: kpi ? `${Math.round(kpi.occupancyRate * 100)}%` : '—', label: t('properties.kpi.occupancy') },
     { value: kpi && kpi.adr > 0 ? fmtEuro(kpi.adr) : '—', label: t('properties.kpi.adr') },
@@ -448,25 +452,6 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
         : kpi?.operationalStatus === 'available'
           ? { icon: <CheckCircle size={13} strokeWidth={2} />, color: 'var(--ok)', strong: t('properties.ops.available'), rest: '' }
           : null;
-
-  // Obtenir l'icône du type de propriété
-  const getPropertyTypeIcon = (type: string, size: number = 48) => {
-    const iconProps = { size, color: 'var(--accent)', strokeWidth: 1.75 };
-    switch (type.toLowerCase()) {
-      case 'appartement':
-      case 'apartment':
-        return <Apartment {...iconProps} />;
-      case 'maison':
-      case 'house':
-        return <Home {...iconProps} />;
-      case 'villa':
-        return <Villa {...iconProps} />;
-      case 'studio':
-        return <Hotel {...iconProps} />;
-      default:
-        return <Home {...iconProps} />;
-    }
-  };
 
   const handleViewDetails = () => {
     if (onView) {
@@ -570,8 +555,8 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
 
           {/* Bande de KPI opérationnels (.pr-stats) — occupation / ADR / revenu */}
           <Box sx={styles.statsBand}>
-            {kpiCells.map((metric, idx) => (
-              <Box key={idx} sx={styles.statCell}>
+            {kpiCells.map((metric) => (
+              <Box key={metric.label} sx={styles.statCell}>
                 <Typography sx={styles.statValue}>{metric.value}</Typography>
                 <Typography sx={styles.statLabel}>{metric.label}</Typography>
               </Box>
@@ -681,9 +666,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                   { icon: <BathroomIcon size={18} strokeWidth={1.75} />, value: property.bathrooms, label: 'Salles de bain' },
                   { icon: <SquareFoot size={18} strokeWidth={1.75} />, value: `${property.surfaceArea} m²`, label: 'Surface' },
                   { icon: <PersonIcon size={18} strokeWidth={1.75} />, value: property.maxGuests, label: 'Voyageurs max' },
-                ].map((item, idx) => (
+                ].map((item) => (
                   <Box
-                    key={idx}
+                    key={item.label}
                     sx={styles.dialogMetricBox}
                   >
                     <Box sx={{ color: 'var(--accent)', display: 'flex' }}>{item.icon}</Box>
@@ -739,9 +724,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                     Commodités
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                    {property.amenities.map((amenity, index) => (
+                    {property.amenities.map((amenity) => (
                       <Chip
-                        key={index}
+                        key={amenity}
                         label={t(`properties.amenities.items.${amenity}`)}
                         size="small"
                         sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}

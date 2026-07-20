@@ -100,10 +100,12 @@ export const paymentsApi = {
       try {
         const interventions = await apiClient.get<any>('/interventions?size=100');
         const items = interventions.content || interventions || [];
-        const records: PaymentRecord[] = items
-          .filter((i: any) => i.estimatedCost && i.estimatedCost > 0)
-          .map((i: any, idx: number) => ({
-            id: idx + 1,
+        let recordSeq = 0;
+        const records: PaymentRecord[] = items.flatMap((i: any) => {
+          if (!(i.estimatedCost && i.estimatedCost > 0)) return [];
+          recordSeq += 1;
+          return [{
+            id: recordSeq,
             referenceId: i.id,
             description: i.title || `Intervention #${i.id}`,
             propertyName: i.propertyName || 'N/A',
@@ -117,7 +119,8 @@ export const paymentsApi = {
             createdAt: i.createdAt || new Date().toISOString(),
             hostName: i.requestorName || undefined,
             hostId: i.requestorId || undefined,
-          }));
+          }];
+        });
 
         // Apply filters if provided
         let filtered = records;

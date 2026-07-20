@@ -38,16 +38,22 @@ function formatFileSize(bytes: number): string {
   return `${size} ${units[i]}`;
 }
 
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('fr-FR', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
 function formatDate(iso: string): string {
   try {
-    return new Intl.DateTimeFormat('fr-FR', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }).format(new Date(iso));
+    return DATE_TIME_FORMATTER.format(new Date(iso));
   } catch {
     return iso;
   }
 }
+
+const handleDownload = (filename: string) => {
+  databaseAdminApi.downloadBackup(filename);
+};
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -98,10 +104,6 @@ const DatabaseAdminPage: React.FC = () => {
     } finally {
       setCreating(false);
     }
-  };
-
-  const handleDownload = (filename: string) => {
-    databaseAdminApi.downloadBackup(filename);
   };
 
   const handleDelete = async (filename: string) => {

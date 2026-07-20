@@ -208,12 +208,14 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
             {t('dynamicPricing.ratePlan.daysOfWeek')}
           </Typography>
           <Box sx={{ display: 'flex', gap: '3px' }}>
-            {dayLabels.map((label, idx) => {
+            {(() => {
+              const daysOfWeekSet = new Set(daysOfWeek);
+              return dayLabels.map((label, idx) => {
               const dayValue = idx + 1;
-              const selected = daysOfWeek.includes(dayValue);
+              const selected = daysOfWeekSet.has(dayValue);
               return (
                 <Box
-                  key={dayValue}
+                  key={label}
                   onClick={() => toggleDay(dayValue)}
                   aria-pressed={selected}
                   sx={{
@@ -243,7 +245,8 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
                   </Typography>
                 </Box>
               );
-            })}
+              });
+            })()}
           </Box>
         </Box>
 

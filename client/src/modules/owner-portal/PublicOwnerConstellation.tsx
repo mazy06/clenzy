@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Box,
   CircularProgress,
@@ -77,31 +78,37 @@ function KpiValue({ label, value }: { label: string; value: string }) {
 export default function PublicOwnerConstellation() {
   const { token } = useParams<{ token: string }>();
   const { t, i18n } = useTranslation();
-  const [view, setView] = useState<OwnerConstellationView | null>(null);
-  const [state, setState] = useState<'loading' | 'ready' | 'notfound' | 'error'>('loading');
 
-  useEffect(() => {
-    if (!token) {
-      setState('notfound');
-      return;
-    }
-    fetchView(token)
-      .then((data) => {
-        if (data === null) {
-          setState('notfound');
-        } else {
-          setView(data);
-          setState('ready');
-        }
-      })
-      .catch(() => setState('error'));
-  }, [token]);
+  // Vue derivee de la requete (one-shot par visite : pas de retry ni de
+  // refetch-on-focus — react-query gere dedup StrictMode + races).
+  const viewQuery = useQuery({
+    queryKey: ['public-owner-constellation', token],
+    queryFn: () => fetchView(token!),
+    enabled: !!token,
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: Infinity,
+  });
+  const view = viewQuery.data ?? null;
+  const state: 'loading' | 'ready' | 'notfound' | 'error' = !token
+    ? 'notfound'
+    : viewQuery.isError
+      ? 'error'
+      : viewQuery.isPending
+        ? 'loading'
+        : viewQuery.data === null
+          ? 'notfound'
+          : 'ready';
 
   const locale = i18n.language?.startsWith('fr') ? 'fr-FR' : i18n.language?.startsWith('ar') ? 'ar' : 'en-GB';
-  const euros = (value: number) =>
-    new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value ?? 0);
-  const dateLabel = (iso: string) =>
-    new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(new Date(iso));
+  const euros = useMemo(() => {
+    const fmt = new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+    return (value: number) => fmt.format(value ?? 0);
+  }, [locale]);
+  const dateLabel = useMemo(() => {
+    const fmt = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' });
+    return (iso: string) => fmt.format(new Date(iso));
+  }, [locale]);
 
   if (state === 'loading') {
     return (

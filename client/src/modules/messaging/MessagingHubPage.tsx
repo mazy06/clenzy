@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, Paper, useMediaQuery, useTheme } from '@mui/material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Edit as EditIcon, Forum as ForumIcon, Message as MessageIcon } from '../../icons';
@@ -91,7 +91,7 @@ export default function MessagingHubPage() {
   const archiveThreadMutation = useArchiveThread();
   const updateFormStatusMutation = useUpdateFormStatus();
 
-  const handleSelect = (item: UnifiedConversation) => {
+  const handleSelect = useCallback((item: UnifiedConversation) => {
     setSelectedKey(item.key);
     if (item.unreadCount === 0) return;
     if (item.kind === 'channel' && item.conv) markAsReadMutation.mutate(item.conv.id);
@@ -102,7 +102,8 @@ export default function MessagingHubPage() {
     if (item.kind === 'form' && item.form?.status === 'NEW') {
       updateFormStatusMutation.mutate({ id: item.form.id, status: 'READ' });
     }
-  };
+    // .mutate est une reference stable (react-query v5) -> handleSelect stable.
+  }, [markAsReadMutation.mutate, markThreadAsReadMutation.mutate, updateFormStatusMutation.mutate]);
 
   // Resout le deep-link une fois la liste chargee : selectionne l'element cible
   // (ouvre le volet droit + marque comme lu) puis laisse useHighlightTarget le flasher.
@@ -114,7 +115,8 @@ export default function MessagingHubPage() {
     if (!target) return;
     highlightApplied.current = true;
     handleSelect(target);
-  }, [highlightId, source.isLoading, source.items]);
+    // One-shot via highlightApplied.current : re-runs = no-op.
+  }, [highlightId, source.isLoading, source.items, handleSelect]);
 
   useHighlightTarget(highlightId, !source.isLoading && source.items.length > 0);
 
@@ -228,6 +230,9 @@ export default function MessagingHubPage() {
             />
           ) : selected?.kind === 'internal' && selected.thread ? (
             <InternalThread
+              // key = correspondant : remount au changement de thread (etat frais
+              // draft/attachments) — remplace l'ancien effet de reset interne.
+              key={selected.thread.counterpartKeycloakId}
               thread={selected.thread}
               onArchived={() => setSelectedKey(null)}
               showBack={isMobile}

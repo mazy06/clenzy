@@ -188,7 +188,7 @@ class AssistantMemoryServiceTest {
     @Test
     void listMostRelevant_withEmbeddingService_routesToCosineSearch() {
         EmbeddingService embed = mock(EmbeddingService.class);
-        when(embed.embedAsVectorString("comment baisser mes prix"))
+        when(embed.embedQueryAsVectorString("comment baisser mes prix"))
                 .thenReturn("[0.1,0.2]");
         AssistantMemoryService relevanceService = new AssistantMemoryService(
                 repository, Optional.of(embed), true);
@@ -227,7 +227,7 @@ class AssistantMemoryServiceTest {
 
         disabled.listMostRelevant(1L, "user-1", "Hello", 10);
 
-        verify(embed, never()).embedAsVectorString(any());
+        verify(embed, never()).embedQueryAsVectorString(any());
         verify(repository).findRecentByUser(eq("user-1"), any(Pageable.class));
     }
 
@@ -241,7 +241,7 @@ class AssistantMemoryServiceTest {
 
         relevanceService.listMostRelevant(1L, "user-1", "  ", 10);
 
-        verify(embed, never()).embedAsVectorString(any());
+        verify(embed, never()).embedQueryAsVectorString(any());
         verify(repository).findRecentByUser(eq("user-1"), any(Pageable.class));
     }
 
@@ -257,7 +257,7 @@ class AssistantMemoryServiceTest {
 
         relevanceService.listMostRelevant(null, "user-1", "Hello", 10);
 
-        verify(embed, never()).embedAsVectorString(any());
+        verify(embed, never()).embedQueryAsVectorString(any());
         verify(repository, never()).searchByCosineSimilarity(any(), any(), any(), anyInt());
         verify(repository).findRecentByUser(eq("user-1"), any(Pageable.class));
     }
@@ -265,7 +265,7 @@ class AssistantMemoryServiceTest {
     @Test
     void listMostRelevant_embeddingFailure_fallsBackToRecency() {
         EmbeddingService embed = mock(EmbeddingService.class);
-        when(embed.embedAsVectorString(any())).thenThrow(new RuntimeException("API down"));
+        when(embed.embedQueryAsVectorString(any())).thenThrow(new RuntimeException("API down"));
         AssistantMemoryService relevanceService = new AssistantMemoryService(
                 repository, Optional.of(embed), true);
         when(repository.findRecentByUser(eq("user-1"), any(Pageable.class)))
@@ -280,7 +280,7 @@ class AssistantMemoryServiceTest {
     @Test
     void listMostRelevant_emptySearchResult_fallsBackToRecency() {
         EmbeddingService embed = mock(EmbeddingService.class);
-        when(embed.embedAsVectorString("Hello")).thenReturn("[0.1]");
+        when(embed.embedQueryAsVectorString("Hello")).thenReturn("[0.1]");
         AssistantMemoryService relevanceService = new AssistantMemoryService(
                 repository, Optional.of(embed), true);
         when(repository.searchByCosineSimilarity(any(), any(), any(), anyInt()))
@@ -297,7 +297,7 @@ class AssistantMemoryServiceTest {
     @Test
     void listMostRelevant_filtersByOrgId_inNativeQuery() {
         EmbeddingService embed = mock(EmbeddingService.class);
-        when(embed.embedAsVectorString(any())).thenReturn("[0.1]");
+        when(embed.embedQueryAsVectorString(any())).thenReturn("[0.1]");
         AssistantMemoryService relevanceService = new AssistantMemoryService(
                 repository, Optional.of(embed), true);
         when(repository.searchByCosineSimilarity(any(), any(), any(), anyInt()))
@@ -314,7 +314,7 @@ class AssistantMemoryServiceTest {
     @Test
     void upsert_withEmbeddingService_persistsEmbedding() {
         EmbeddingService embed = mock(EmbeddingService.class);
-        when(embed.embedAsVectorString("briefing_time: 08:00")).thenReturn("[0.5]");
+        when(embed.embedDocumentAsVectorString("briefing_time: 08:00")).thenReturn("[0.5]");
         AssistantMemoryService relevanceService = new AssistantMemoryService(
                 repository, Optional.of(embed), true);
         when(repository.findByUserAndKey("user-1", "briefing_time"))
@@ -325,13 +325,13 @@ class AssistantMemoryServiceTest {
                 "briefing_time", "08:00", AssistantMemory.Scope.PREFERENCE);
 
         assertEquals("[0.5]", saved.getEmbedding());
-        verify(embed).embedAsVectorString("briefing_time: 08:00");
+        verify(embed).embedDocumentAsVectorString("briefing_time: 08:00");
     }
 
     @Test
     void upsert_embeddingFailure_persistsWithoutEmbedding() {
         EmbeddingService embed = mock(EmbeddingService.class);
-        when(embed.embedAsVectorString(any())).thenThrow(new RuntimeException("provider down"));
+        when(embed.embedDocumentAsVectorString(any())).thenThrow(new RuntimeException("provider down"));
         AssistantMemoryService relevanceService = new AssistantMemoryService(
                 repository, Optional.of(embed), true);
         when(repository.findByUserAndKey(any(), any())).thenReturn(Optional.empty());

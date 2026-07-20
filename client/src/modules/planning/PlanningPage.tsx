@@ -307,14 +307,16 @@ const PlanningPage: React.FC = () => {
   // recrée pas — cf. deps `[property.id]`), donc on passe par une ref « dernière valeur »
   // qui lit les données courantes sans changer d'identité.
   const openGuestCardRef = useRef<(reservationId: string) => void>(() => {});
-  openGuestCardRef.current = (reservationId: string) => {
-    const resEvent = filteredEvents.find(
-      (e) => e.type === 'reservation' && e.reservation && String(e.reservation.id) === String(reservationId),
-    );
-    if (!resEvent) return;
-    selectEvent(resEvent);
-    setAutoOpenGuestCardReservationId(String(reservationId));
-  };
+  useEffect(() => {
+    openGuestCardRef.current = (reservationId: string) => {
+      const resEvent = filteredEvents.find(
+        (e) => e.type === 'reservation' && e.reservation && String(e.reservation.id) === String(reservationId),
+      );
+      if (!resEvent) return;
+      selectEvent(resEvent);
+      setAutoOpenGuestCardReservationId(String(reservationId));
+    };
+  }, [filteredEvents, selectEvent, setAutoOpenGuestCardReservationId]);
   const handleOpenGuestCard = useCallback((reservationId: string) => {
     openGuestCardRef.current(reservationId);
   }, []);
@@ -526,7 +528,10 @@ const PlanningPage: React.FC = () => {
     requestAnimationFrame(() => {
       timeline.scrollToDate(new Date(selectedEvent.startDate));
     });
-  }, [selectedEvent?.id, selection.panelOpen, timeline]);
+    // Deps fines volontaires : dependre de l'objet selectedEvent re-scrollerait
+    // a chaque re-fetch du planning (nouvelle identite). id + startDate couvrent
+    // tout ce que l'effet lit.
+  }, [selectedEvent?.id, selectedEvent?.startDate, selection.panelOpen, timeline]);
 
   // Sous-titre du header : mois visible (synchronisé au scroll), capitalisé.
   const visibleMonthLabel = formatMonthYear(visibleMonthDate);

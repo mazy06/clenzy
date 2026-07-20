@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -50,16 +50,19 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
-  // Gestion des URLs de prévisualisation pour les fichiers locaux
+  // URLs de prévisualisation DÉRIVÉES des fichiers locaux (pas d'état dupliqué :
+  // les previews sont fraîches au même render que `photos`). L'effet ne sert
+  // qu'à révoquer les object URLs quand la liste change / au démontage.
+  const previewUrls = useMemo(
+    () => photos.map((file) => URL.createObjectURL(file)),
+    [photos],
+  );
   useEffect(() => {
-    const urls = photos.map((file) => URL.createObjectURL(file));
-    setPreviewUrls(urls);
     return () => {
-      urls.forEach((url) => URL.revokeObjectURL(url));
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [photos]);
+  }, [previewUrls]);
 
   const totalCount = photos.length + existingPhotos.length;
 
@@ -297,10 +300,10 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           </Typography>
           <ImageList cols={columns} gap={8}>
             {existingPhotos.map((url, index) => (
-              <ImageListItem key={`existing-${index}`}>
+              <ImageListItem key={url}>
                 <img
                   src={url}
-                  alt={`Photo existante ${index + 1}`}
+                  alt={`Apercu existant ${index + 1}`}
                   loading="lazy"
                   style={{
                     width: '100%',

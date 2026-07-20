@@ -26,16 +26,14 @@ export function useSidebarState() {
   const isCollapsed = isMediumScreen || userCollapsed;
 
   const toggleCollapsed = useCallback(() => {
-    setUserCollapsed((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(SIDEBAR_KEY, String(next));
-      } catch {
-        // ignore
-      }
-      return next;
-    });
-  }, []);
+    const next = !userCollapsed;
+    setUserCollapsed(next);
+    try {
+      localStorage.setItem(SIDEBAR_KEY, String(next));
+    } catch {
+      // ignore
+    }
+  }, [userCollapsed]);
 
   const openMobile = useCallback(() => setIsMobileOpen(true), []);
   const closeMobile = useCallback(() => setIsMobileOpen(false), []);

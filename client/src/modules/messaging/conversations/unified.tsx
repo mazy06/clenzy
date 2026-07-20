@@ -219,8 +219,7 @@ export function useUnifiedInbox(canAccessChannels: boolean, includeForms: boolea
       ...(threads ?? []).map(fromInternalThread),
       ...(inboxPage?.content ?? []).map(fromChannelConversation),
       ...(formsPage?.content ?? [])
-        .filter((form) => form.status !== 'ARCHIVED')
-        .map(fromReceivedForm),
+        .flatMap((form) => (form.status !== 'ARCHIVED' ? [fromReceivedForm(form)] : [])),
     ];
     return merged.sort(byLastActivityDesc);
   }, [threads, inboxPage, formsPage]);
@@ -254,8 +253,7 @@ export function useArchivedInbox(enabled: boolean, includeForms: boolean) {
     const merged: UnifiedConversation[] = [
       ...(archivedPage?.content ?? []).map(fromChannelConversation),
       ...(formsPage?.content ?? [])
-        .filter((form) => form.status === 'ARCHIVED')
-        .map(fromReceivedForm),
+        .flatMap((form) => (form.status === 'ARCHIVED' ? [fromReceivedForm(form)] : [])),
     ];
     return merged.sort(byLastActivityDesc);
   }, [archivedPage, formsPage]);

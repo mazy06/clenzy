@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { serviceRequestsApi } from '../services/api';
+import { serviceRequestsApi } from '../services/api/serviceRequestsApi';
 
 // ============================================================================
 // Types

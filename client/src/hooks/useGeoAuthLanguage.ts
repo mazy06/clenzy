@@ -43,6 +43,7 @@ export function useGeoAuthLanguage(): { isRtl: boolean; detectedLanguage: string
     // Sauvegarde la langue initiale pour restore au unmount
     const originalLanguage = i18n.language;
     let cancelled = false;
+    let abortTimeoutId: ReturnType<typeof setTimeout> | undefined;
 
     const applyGeoLanguage = async () => {
       // 1. Cache session : si on a deja detecte pendant cette session, reuse
@@ -52,9 +53,9 @@ export function useGeoAuthLanguage(): { isRtl: boolean; detectedLanguage: string
         // 2. Premier appel : fetch ipapi.co avec timeout 5s
         try {
           const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 5000);
+          abortTimeoutId = setTimeout(() => controller.abort(), 5000);
           const response = await fetch('https://ipapi.co/json/', { signal: controller.signal });
-          clearTimeout(timeout);
+          clearTimeout(abortTimeoutId);
           if (!response.ok) return;
           const data = await response.json();
           countryCode = data?.country_code ?? null;
@@ -87,6 +88,7 @@ export function useGeoAuthLanguage(): { isRtl: boolean; detectedLanguage: string
     //    a la place de la preference user.
     return () => {
       cancelled = true;
+      if (abortTimeoutId) clearTimeout(abortTimeoutId);
       if (i18n.language !== originalLanguage) {
         void i18n.changeLanguage(originalLanguage);
       }

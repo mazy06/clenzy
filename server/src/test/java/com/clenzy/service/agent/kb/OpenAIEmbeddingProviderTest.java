@@ -1,11 +1,13 @@
 package com.clenzy.service.agent.kb;
 
+import com.clenzy.service.agent.kb.EmbeddingProvider.InputKind;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 
@@ -44,14 +46,14 @@ class OpenAIEmbeddingProviderTest {
 
         @Test
         void nullInput_returnsZeroVector_noHttp() {
-            float[] v = provider.embed(null, target("sk-x"));
+            float[] v = provider.embed(null, target("sk-x"), InputKind.DOCUMENT);
             assertEquals(1024, v.length);
             for (float f : v) assertEquals(0f, f);
         }
 
         @Test
         void blankInput_returnsZeroVector_noHttp() {
-            float[] v = provider.embed("   ", target("sk-x"));
+            float[] v = provider.embed("   ", target("sk-x"), InputKind.DOCUMENT);
             assertEquals(1024, v.length);
         }
 
@@ -59,7 +61,7 @@ class OpenAIEmbeddingProviderTest {
         void zeroVectorSize_matchesTargetDimensions() {
             EmbeddingProvider.EmbeddingTarget t = new EmbeddingProvider.EmbeddingTarget(
                     "sk-x", "text-embedding-3-large", "https://api.openai.com", 512);
-            float[] v = provider.embed(null, t);
+            float[] v = provider.embed(null, t, InputKind.DOCUMENT);
             assertEquals(512, v.length);
         }
     }
@@ -70,15 +72,15 @@ class OpenAIEmbeddingProviderTest {
 
         @Test
         void nullOrEmptyTexts_returnsEmptyList_noHttp() {
-            assertTrue(provider.embedBatch(null, target("sk-x")).isEmpty());
-            assertTrue(provider.embedBatch(List.of(), target("sk-x")).isEmpty());
+            assertTrue(provider.embedBatch(null, target("sk-x"), InputKind.DOCUMENT).isEmpty());
+            assertTrue(provider.embedBatch(List.of(), target("sk-x"), InputKind.DOCUMENT).isEmpty());
         }
 
         @Test
         void noApiKey_throwsWithExplicitMessage() {
             EmbeddingProvider.EmbeddingException ex = assertThrows(
                     EmbeddingProvider.EmbeddingException.class,
-                    () -> provider.embedBatch(List.of("hello"), target("")));
+                    () -> provider.embedBatch(List.of("hello"), target(""), InputKind.DOCUMENT));
             assertTrue(ex.getMessage().toLowerCase().contains("openai"));
             assertTrue(ex.getMessage().toLowerCase().contains("cle api"));
         }
@@ -97,7 +99,7 @@ class OpenAIEmbeddingProviderTest {
                             }
                             """, MediaType.APPLICATION_JSON));
 
-            List<float[]> result = provider.embedBatch(List.of("a", "b"), target("sk-x"));
+            List<float[]> result = provider.embedBatch(List.of("a", "b"), target("sk-x"), InputKind.DOCUMENT);
             assertEquals(2, result.size());
             assertEquals(0.1f, result.get(0)[0], 1e-6);
             assertEquals(0.6f, result.get(1)[2], 1e-6);
@@ -114,7 +116,7 @@ class OpenAIEmbeddingProviderTest {
                             """, MediaType.APPLICATION_JSON));
 
             provider.embedBatch(List.of("a"),
-                    new EmbeddingProvider.EmbeddingTarget("sk-x", "text-embedding-3-large", "https://api.openai.com", 1024));
+                    new EmbeddingProvider.EmbeddingTarget("sk-x", "text-embedding-3-large", "https://api.openai.com", 1024), InputKind.DOCUMENT);
             mockServer.verify();
         }
 
@@ -125,31 +127,32 @@ class OpenAIEmbeddingProviderTest {
                             {"data": [{"embedding": [0.7, 0.8], "index": 0}]}
                             """, MediaType.APPLICATION_JSON));
 
-            float[] v = provider.embed("hello", target("sk-x"));
+            float[] v = provider.embed("hello", target("sk-x"), InputKind.QUERY);
             assertEquals(2, v.length);
             assertEquals(0.7f, v[0], 1e-6);
         }
 
         @Test
-        void nullEmbeddingInResponse_replacedWithZeroVector() {
+        void nullEmbeddingInResponse_throwsEmbeddingException() {
             mockServer.expect(requestTo("https://api.openai.com/v1/embeddings"))
                     .andRespond(withSuccess("""
                             {"data": [{"embedding": null, "index": 0}]}
                             """, MediaType.APPLICATION_JSON));
 
-            List<float[]> result = provider.embedBatch(List.of("x"), target("sk-x"));
-            assertEquals(1, result.size());
-            assertEquals(1024, result.get(0).length);
+            assertThrows(EmbeddingProvider.EmbeddingException.class,
+                    () -> provider.embedBatch(List.of("x"), target("sk-x"), InputKind.DOCUMENT));
         }
 
         @Test
-        void httpServerError_wrappedAsEmbeddingException() {
-            mockServer.expect(requestTo("https://api.openai.com/v1/embeddings"))
+        void httpServerError_isRetriedThenWrappedAsEmbeddingException() {
+            // 5xx = transitoire : 3 tentatives avant echec definitif
+            mockServer.expect(ExpectedCount.times(3),
+                            requestTo("https://api.openai.com/v1/embeddings"))
                     .andRespond(withServerError());
 
             EmbeddingProvider.EmbeddingException ex = assertThrows(
                     EmbeddingProvider.EmbeddingException.class,
-                    () -> provider.embedBatch(List.of("hello"), target("sk-x")));
+                    () -> provider.embedBatch(List.of("hello"), target("sk-x"), InputKind.DOCUMENT));
             assertTrue(ex.getMessage().toLowerCase().contains("openai"));
         }
 
@@ -159,7 +162,7 @@ class OpenAIEmbeddingProviderTest {
                     .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
             EmbeddingProvider.EmbeddingException ex = assertThrows(
                     EmbeddingProvider.EmbeddingException.class,
-                    () -> provider.embedBatch(List.of("a"), target("sk-x")));
+                    () -> provider.embedBatch(List.of("a"), target("sk-x"), InputKind.DOCUMENT));
             assertTrue(ex.getMessage().toLowerCase().contains("openai"));
         }
 
@@ -174,7 +177,7 @@ class OpenAIEmbeddingProviderTest {
             List<String> texts = IntStream.range(0, 100)
                     .mapToObj(i -> "t" + i)
                     .toList();
-            List<float[]> result = provider.embedBatch(texts, target("sk-x"));
+            List<float[]> result = provider.embedBatch(texts, target("sk-x"), InputKind.DOCUMENT);
             assertEquals(100, result.size());
             mockServer.verify();
         }
@@ -192,7 +195,7 @@ class OpenAIEmbeddingProviderTest {
                             """, MediaType.APPLICATION_JSON));
 
             provider.embedBatch(List.of("a"),
-                    new EmbeddingProvider.EmbeddingTarget("sk-x", "text-embedding-3-large", "https://proxy.example.com/v1", 1024));
+                    new EmbeddingProvider.EmbeddingTarget("sk-x", "text-embedding-3-large", "https://proxy.example.com/v1", 1024), InputKind.DOCUMENT);
             mockServer.verify();
         }
 
@@ -204,7 +207,7 @@ class OpenAIEmbeddingProviderTest {
                             """, MediaType.APPLICATION_JSON));
 
             provider.embedBatch(List.of("a"),
-                    new EmbeddingProvider.EmbeddingTarget("sk-x", "text-embedding-3-large", "https://proxy.example.com", 1024));
+                    new EmbeddingProvider.EmbeddingTarget("sk-x", "text-embedding-3-large", "https://proxy.example.com", 1024), InputKind.DOCUMENT);
             mockServer.verify();
         }
     }

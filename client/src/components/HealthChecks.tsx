@@ -66,6 +66,57 @@ const STATUS_HEX: Record<string, string> = {
 
 const statusHex = (status: string) => STATUS_HEX[status] ?? '#7BA3C2';
 
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case 'UP':
+      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={20} strokeWidth={1.75} /></Box>;
+    case 'DOWN':
+      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><ErrorIcon size={20} strokeWidth={1.75} /></Box>;
+    case 'DEGRADED':
+      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Warning size={20} strokeWidth={1.75} /></Box>;
+    default:
+      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Info size={20} strokeWidth={1.75} /></Box>;
+  }
+};
+
+const getCategoryIcon = (category: string) => {
+  switch (category) {
+    case 'DATABASE':
+      return <StorageIcon size={20} strokeWidth={1.75} />;
+    case 'AUTHENTICATION':
+      return <Security size={20} strokeWidth={1.75} />;
+    case 'API':
+      return <Speed size={20} strokeWidth={1.75} />;
+    case 'CACHE':
+      return <Memory size={20} strokeWidth={1.75} />;
+    case 'STORAGE':
+      return <StorageIcon size={20} strokeWidth={1.75} />;
+    case 'NOTIFICATIONS':
+      return <Info size={20} strokeWidth={1.75} />;
+    case 'MONITORING':
+      return <HealthAndSafety size={20} strokeWidth={1.75} />;
+    case 'NETWORK':
+      return <Wifi size={20} strokeWidth={1.75} />;
+    default:
+      return <Info size={20} strokeWidth={1.75} />;
+  }
+};
+
+const responseTimeToken = (responseTime: number) => {
+  if (responseTime <= 100) return STATUS_TOKEN.UP;
+  if (responseTime <= 300) return STATUS_TOKEN.DEGRADED;
+  return STATUS_TOKEN.DOWN;
+};
+
+const formatUptime = (seconds: number): string => {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days > 0) return `${days}j ${hours}h ${minutes}m`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+};
+
 const HealthChecks: React.FC = () => {
   const [healthChecks, setHealthChecks] = useState<HealthCheckService[]>([]);
   const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
@@ -130,57 +181,6 @@ const HealthChecks: React.FC = () => {
       newExpanded.add(checkName);
     }
     setExpandedChecks(newExpanded);
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'UP':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={20} strokeWidth={1.75} /></Box>;
-      case 'DOWN':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><ErrorIcon size={20} strokeWidth={1.75} /></Box>;
-      case 'DEGRADED':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Warning size={20} strokeWidth={1.75} /></Box>;
-      default:
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Info size={20} strokeWidth={1.75} /></Box>;
-    }
-  };
-
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'DATABASE':
-        return <StorageIcon size={20} strokeWidth={1.75} />;
-      case 'AUTHENTICATION':
-        return <Security size={20} strokeWidth={1.75} />;
-      case 'API':
-        return <Speed size={20} strokeWidth={1.75} />;
-      case 'CACHE':
-        return <Memory size={20} strokeWidth={1.75} />;
-      case 'STORAGE':
-        return <StorageIcon size={20} strokeWidth={1.75} />;
-      case 'NOTIFICATIONS':
-        return <Info size={20} strokeWidth={1.75} />;
-      case 'MONITORING':
-        return <HealthAndSafety size={20} strokeWidth={1.75} />;
-      case 'NETWORK':
-        return <Wifi size={20} strokeWidth={1.75} />;
-      default:
-        return <Info size={20} strokeWidth={1.75} />;
-    }
-  };
-
-  const responseTimeToken = (responseTime: number) => {
-    if (responseTime <= 100) return STATUS_TOKEN.UP;
-    if (responseTime <= 300) return STATUS_TOKEN.DEGRADED;
-    return STATUS_TOKEN.DOWN;
-  };
-
-  const formatUptime = (seconds: number): string => {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    if (days > 0) return `${days}j ${hours}h ${minutes}m`;
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes}m`;
   };
 
   const overallStatus = healthChecks.length > 0 ?

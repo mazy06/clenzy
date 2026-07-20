@@ -336,7 +336,8 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
     if (user) {
       refreshMenu();
     }
-  }, [user?.id, user?.permissions, refreshMenu]);
+    // `user` est un useState (identite stable) : dependre de l'objet entier.
+  }, [user, refreshMenu]);
 
   // Mémoriser le résultat + superposer la pastille « en attente » sur Planning
   // (badge dynamique, hors du flux de construction du menu).

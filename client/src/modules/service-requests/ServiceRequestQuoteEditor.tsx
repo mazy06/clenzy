@@ -113,7 +113,7 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
             >
               {['Désignation', 'Qté', 'PU (€)', 'Total', ''].map((h, i) => (
                 <Typography
-                  key={i}
+                  key={h || 'actions'}
                   sx={{
                     fontSize: '9.5px',
                     fontWeight: 700,

@@ -20,14 +20,6 @@ const KEYS = {
 
 // ─── Config hooks ────────────────────────────────────────────────────────────
 
-export function useNoiseAlertConfigs() {
-  return useQuery({
-    queryKey: KEYS.configs,
-    queryFn: () => noiseAlertConfigApi.getAll(),
-    staleTime: 60_000,
-  });
-}
-
 export function useNoiseAlertConfig(propertyId: number | null) {
   return useQuery({
     queryKey: KEYS.config(propertyId!),
@@ -46,17 +38,6 @@ export function useSaveNoiseAlertConfig() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: KEYS.configs });
       queryClient.invalidateQueries({ queryKey: KEYS.config(variables.propertyId) });
-    },
-  });
-}
-
-export function useDeleteNoiseAlertConfig() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (propertyId: number) => noiseAlertConfigApi.delete(propertyId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KEYS.configs });
     },
   });
 }

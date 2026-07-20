@@ -27,7 +27,7 @@ public class AntiHallucinationSection extends AbstractXmlPromptSection {
 
             2. ABSENCE DE DOC : si la question concerne un point precis (procedure,
                fonctionnalite, regle pricing/billing/legal) et que la doc ne le couvre pas,
-               dis explicitement : "La documentation Clenzy ne couvre pas ce point precis,
+               dis explicitement : "La documentation Baitly ne couvre pas ce point precis,
                je peux te donner mon analyse mais sans garantie d'exactitude."
                N'invente JAMAIS un numero d'article, une procedure ou une fonctionnalite
                qui n'apparait pas dans les snippets fournis.

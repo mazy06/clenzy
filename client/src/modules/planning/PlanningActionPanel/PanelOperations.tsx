@@ -60,7 +60,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PlanningEvent } from '../types';
 import { INTERVENTION_TYPE_TOKEN_COLORS } from '../constants';
 import type { PlanningIntervention } from '../../../services/api';
-import { managersApi } from '../../../services/api';
+import { managersApi } from '../../../services/api/portfoliosApi';
 import type { PortfolioTeam, OperationalUser } from '../../../services/api';
 import { interventionsApi } from '../../../services/api/interventionsApi';
 import { Money } from '../../../components/Money';
@@ -199,6 +199,9 @@ interface PanelOperationsProps {
   onServiceRequestCreated?: () => void;
   onNavigate?: (view: import('../types').PanelView) => void;
 }
+
+/** Helper to build a composite key for an assignee option */
+const assigneeKey = (opt: AssigneeOption) => `${opt.type}-${opt.id}`;
 
 const PanelOperations: React.FC<PanelOperationsProps> = ({
   event,
@@ -379,9 +382,6 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
 
   /** The target intervention for assign / priority buttons */
   const targetIntervention = intervention || (linkedInterventions.length > 0 ? linkedInterventions[0] : null);
-
-  /** Helper to build a composite key for an assignee option */
-  const assigneeKey = (opt: AssigneeOption) => `${opt.type}-${opt.id}`;
 
   /** Find the assignee option matching a composite key */
   const findAssignee = (key: string): AssigneeOption | undefined =>
@@ -1698,8 +1698,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               </ListSubheader>
             ) : null}
             {assigneeOptions
-              .filter((o) => o.type === 'user')
-              .map((opt) => (
+              .flatMap((opt) => (opt.type === 'user' ? [(
                 <MenuItem key={assigneeKey(opt)} value={assigneeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                     <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={16} strokeWidth={1.75} /></Box>
@@ -1715,7 +1714,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                     </Box>
                   </Box>
                 </MenuItem>
-              ))}
+              )] : []))}
             {/* Teams section */}
             {(teamsData as PortfolioTeam[] | undefined)?.length ? (
               <ListSubheader sx={{ fontSize: '0.6875rem', lineHeight: '28px', color: 'text.secondary', fontWeight: 700 }}>
@@ -1723,8 +1722,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               </ListSubheader>
             ) : null}
             {assigneeOptions
-              .filter((o) => o.type === 'team')
-              .map((opt) => (
+              .flatMap((opt) => (opt.type === 'team' ? [(
                 <MenuItem key={assigneeKey(opt)} value={assigneeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                     <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Groups size={16} strokeWidth={1.75} /></Box>
@@ -1740,7 +1738,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                     </Box>
                   </Box>
                 </MenuItem>
-              ))}
+              )] : []))}
             {assigneeOptions.length === 0 && (
               <MenuItem disabled sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
                 Aucun intervenant ou équipe disponible

@@ -48,29 +48,20 @@ export function usePersistedViewMode<T extends string>(
   validValues: readonly T[],
   autoDefault?: T,
 ): [T, (mode: T) => void] {
-  const [hasUserChoice, setHasUserChoice] = useState<boolean>(
-    () => readUserChoice(screen, validValues) !== null,
+  // Seul le CHOIX UTILISATEUR est de l'etat ; la valeur affichee est derivee :
+  // choix user > auto-default courant > fallback. Plus d'effet de sync, donc
+  // plus de frame stale quand `autoDefault` change (l'auto-default s'applique
+  // au meme render). Les appelants ne passent `undefined` que pendant le
+  // chargement initial (react-query garde les donnees en cache ensuite).
+  const [userValue, setUserValue] = useState<T | null>(
+    () => readUserChoice(screen, validValues),
   );
 
-  const [value, setValue] = useState<T>(() => {
-    const stored = readUserChoice(screen, validValues);
-    if (stored !== null) return stored;
-    return autoDefault ?? fallback;
-  });
-
-  // Re-applique l'auto-default quand il change, mais uniquement si l'utilisateur
-  // n'a pas encore fait son choix. Une fois `hasUserChoice` a true, ce hook
-  // ignore tout changement d'`autoDefault`.
-  useEffect(() => {
-    if (!hasUserChoice && autoDefault !== undefined) {
-      setValue(autoDefault);
-    }
-  }, [hasUserChoice, autoDefault]);
+  const value = userValue ?? autoDefault ?? fallback;
 
   const update = useCallback(
     (next: T) => {
-      setValue(next);
-      setHasUserChoice(true);
+      setUserValue(next);
       try {
         window.localStorage.setItem(buildStorageKey(screen), next);
       } catch {

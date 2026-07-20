@@ -139,21 +139,23 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentResult {
     setError(null);
     try {
       const persisted = await assistantApi.getMessages(id);
-      const display: DisplayMessage[] = persisted
-        .filter((m) => m.role !== 'tool') // les tool results ne sont pas affiches comme messages
-        .map((m) => ({
-          id: m.id,
-          role: m.role,
-          content: m.content ?? '',
-          attachments: parseAttachmentsJsonSafe(m.attachments),
-          // Hydrate les toolCalls depuis le JSONB backend. Sans ca, les
-          // widgets riches (KPI, charts, tables) disparaissent au reload
-          // d'une conversation : MessageBubble skip leur rendu car
-          // message.toolCalls === undefined.
-          toolCalls: parseToolCallsJsonSafe(m.toolCalls),
-          toolCallId: m.toolCallId,
-          createdAt: m.createdAt,
-        }));
+      const display: DisplayMessage[] = persisted.flatMap((m) =>
+        // les tool results ne sont pas affiches comme messages
+        m.role === 'tool'
+          ? []
+          : [{
+              id: m.id,
+              role: m.role,
+              content: m.content ?? '',
+              attachments: parseAttachmentsJsonSafe(m.attachments),
+              // Hydrate les toolCalls depuis le JSONB backend. Sans ca, les
+              // widgets riches (KPI, charts, tables) disparaissent au reload
+              // d'une conversation : MessageBubble skip leur rendu car
+              // message.toolCalls === undefined.
+              toolCalls: parseToolCallsJsonSafe(m.toolCalls),
+              toolCallId: m.toolCallId,
+              createdAt: m.createdAt,
+            }]);
       setConversationId(id);
       setMessages(display);
       setStatus('idle');

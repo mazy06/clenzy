@@ -52,20 +52,3 @@ export function useIconSize(role: IconRole): number {
   if (isMd) return tier.md;
   return tier.base;
 }
-
-/**
- * Renvoie un objet { isSm, isMd, isLg, isXl } pour les composants qui veulent
- * adapter leur layout (gap, padding, columns) sans lire useMediaQuery 4 fois.
- *
- * Note : isMd/isLg/isXl utilisent la convention 'mobile-first' (`up(...)`),
- * donc isXl implique isLg implique isMd.
- */
-export function useResponsiveBreakpoints() {
-  const theme = useTheme();
-  return {
-    isSm: useMediaQuery(theme.breakpoints.up('sm')),
-    isMd: useMediaQuery(theme.breakpoints.up('md')),
-    isLg: useMediaQuery(theme.breakpoints.up('lg')),
-    isXl: useMediaQuery(theme.breakpoints.up('xl')),
-  };
-}

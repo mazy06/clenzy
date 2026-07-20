@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -36,7 +36,7 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
   const { t } = useTranslation();
   const { currency } = useCurrency();
 
-  const items = config.blanchisserieConfig || [];
+  const items = useMemo(() => config.blanchisserieConfig || [], [config.blanchisserieConfig]);
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newItemLabel, setNewItemLabel] = useState('');

@@ -119,6 +119,32 @@ const fmtDate = (d: string | null) =>
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
+const handleDownloadPdf = async (id: number, invoiceNumber: string) => {
+  try {
+    const blob = await invoicesApi.downloadPdf(id);
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${invoiceNumber}.pdf`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch {
+    // Silently fail — could add snackbar
+  }
+};
+
+/** Determine le type de source : Reservation ou Intervention (accents palette Clenzy) */
+const getSourceType = (inv: Invoice) => {
+  if (inv.reservationId) return { label: 'Reservation', icon: <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><HomeIcon size={14} strokeWidth={1.75} /></Box>, color: '#7BA3C2' };
+  if (inv.interventionId) return { label: 'Intervention', icon: <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><BuildIcon size={14} strokeWidth={1.75} /></Box>, color: '#D4A574' };
+  return null;
+};
+
+const inputSx = {
+  '& .MuiOutlinedInput-root': { fontSize: '12.5px' },
+  '& .MuiInputLabel-root': { fontSize: '12.5px' },
+};
+
 interface InvoicesListProps {
   embedded?: boolean;
 }
@@ -155,20 +181,6 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
   const markPaidMutation = useMarkInvoicePaid();
   const cancelMutation = useCancelInvoice();
   const duplicateMutation = useDuplicateInvoice();
-
-  const handleDownloadPdf = async (id: number, invoiceNumber: string) => {
-    try {
-      const blob = await invoicesApi.downloadPdf(id);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${invoiceNumber}.pdf`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch {
-      // Silently fail — could add snackbar
-    }
-  };
 
   /** Ouvre le PDF du document genere (DocumentGeneration) dans un dialog */
   const handleViewDocumentPdf = async (generationId: number) => {
@@ -232,21 +244,6 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
         { label: t('invoices.stats.totalTtc', 'Total TTC'), value: <Money value={stats.totalTtc} from={stats.currency} />, color: '#6B8A9A', icon: <MoneyIcon /> },
       ]
     : [];
-
-  // ─── Helpers ─────────────────────────────────────────────────────────────
-
-  /** Determine le type de source : Reservation ou Intervention (accents palette Clenzy) */
-  const getSourceType = (inv: Invoice) => {
-    if (inv.reservationId) return { label: 'Reservation', icon: <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><HomeIcon size={14} strokeWidth={1.75} /></Box>, color: '#7BA3C2' };
-    if (inv.interventionId) return { label: 'Intervention', icon: <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><BuildIcon size={14} strokeWidth={1.75} /></Box>, color: '#D4A574' };
-    return null;
-  };
-
-  // ─── Common input sx (typo compacte — rayon/fond/focus via thème global) ──
-  const inputSx = {
-    '& .MuiOutlinedInput-root': { fontSize: '12.5px' },
-    '& .MuiInputLabel-root': { fontSize: '12.5px' },
-  };
 
   return (
     <Box>

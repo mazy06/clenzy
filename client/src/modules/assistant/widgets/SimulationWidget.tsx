@@ -386,10 +386,12 @@ const FallbackUnknown: React.FC = () => (
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const currencyFormatter = new Intl.NumberFormat('fr-FR', {
+  style: 'currency', currency: 'EUR', maximumFractionDigits: 0,
+});
+
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency', currency: 'EUR', maximumFractionDigits: 0,
-  }).format(value);
+  return currencyFormatter.format(value);
 }
 
 function formatCurrencySigned(value: number): string {

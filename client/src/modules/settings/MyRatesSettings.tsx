@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Typography,
@@ -100,22 +100,23 @@ export default function MyRatesSettings() {
   // ── État éditable local (hydraté depuis la query) ──
   const [hourly, setHourly] = useState<string>('');
   const [flats, setFlats] = useState<Record<number, string>>({});
-  const [hydrated, setHydrated] = useState(false);
+  // Gate d'hydratation one-shot (jamais lu au render) : ref, pas de re-render.
+  const hydratedRef = useRef(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
 
   useEffect(() => {
     const data = ratesQuery.data;
-    if (!data || hydrated) return;
+    if (!data || hydratedRef.current) return;
     setHourly(data.hourlyAmount != null ? String(data.hourlyAmount) : '');
     const map: Record<number, string> = {};
     for (const p of data.properties) {
       if (p.flatAmount != null) map[p.propertyId] = String(p.flatAmount);
     }
     setFlats(map);
-    setHydrated(true);
-  }, [ratesQuery.data, hydrated]);
+    hydratedRef.current = true;
+  }, [ratesQuery.data]);
 
   const saveMutation = useMutation({
     mutationFn: (payload: Parameters<typeof housekeeperRatesApi.updateMy>[0]) =>
@@ -131,9 +132,10 @@ export default function MyRatesSettings() {
 
   const handleSave = () => {
     const hourlyAmount = hourly.trim() !== '' && !isNaN(parseFloat(hourly)) ? parseFloat(hourly) : null;
-    const flatRates = Object.entries(flats)
-      .map(([propertyId, value]) => ({ propertyId: Number(propertyId), amount: parseFloat(value) }))
-      .filter((entry) => !isNaN(entry.amount) && entry.amount > 0);
+    const flatRates = Object.entries(flats).flatMap(([propertyId, value]) => {
+      const amount = parseFloat(value);
+      return !isNaN(amount) && amount > 0 ? [{ propertyId: Number(propertyId), amount }] : [];
+    });
     saveMutation.mutate({ hourlyAmount, flatRates });
   };
 

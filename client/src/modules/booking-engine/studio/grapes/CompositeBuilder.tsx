@@ -114,10 +114,18 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
   const selectorElRef = useRef<HTMLDivElement>(null);
   const styleElRef = useRef<HTMLDivElement>(null);
   // Refs pour éviter des closures obsolètes dans l'init (qui ne tourne qu'à l'ouverture).
-  const configRef = useRef(config); configRef.current = config;
-  const tplRef = useRef(getTemplateCss); tplRef.current = getTemplateCss;
-  const skinRef = useRef(getSkinCss); skinRef.current = getSkinCss;
-  const initialRef = useRef(initial); initialRef.current = initial;
+  const configRef = useRef(config);
+  const tplRef = useRef(getTemplateCss);
+  const skinRef = useRef(getSkinCss);
+  const initialRef = useRef(initial);
+  // Sync des refs hors rendu (write en rendu = anti-pattern) : mises à jour après commit. Les valeurs
+  // initiales sont déjà capturées par `useRef(...)` ci-dessus, l'init (à l'ouverture) les lit correctement.
+  useEffect(() => {
+    configRef.current = config;
+    tplRef.current = getTemplateCss;
+    skinRef.current = getSkinCss;
+    initialRef.current = initial;
+  }, [config, getTemplateCss, getSkinCss, initial]);
 
   useEffect(() => { if (open) { setName(initial?.name ?? ''); setInteractive(false); setRightTab('blocks'); } }, [open, initial]);
 

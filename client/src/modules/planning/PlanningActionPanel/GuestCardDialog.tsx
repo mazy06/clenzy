@@ -46,13 +46,13 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
   const guestReservations = useMemo(() => {
     const name = reservation.guestName.toLowerCase().trim();
     return allEvents
-      .filter(
-        (e) =>
-          e.type === 'reservation' &&
-          e.reservation &&
-          e.reservation.guestName.toLowerCase().trim() === name,
+      .flatMap((e) =>
+        e.type === 'reservation' &&
+        e.reservation &&
+        e.reservation.guestName.toLowerCase().trim() === name
+          ? [e.reservation]
+          : [],
       )
-      .map((e) => e.reservation!)
       .sort((a, b) => b.checkIn.localeCompare(a.checkIn)); // most recent first
   }, [reservation.guestName, allEvents]);
 
@@ -476,8 +476,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                   {guestReservations
-                    .filter((r) => r.id !== reservation.id)
-                    .map((r) => (
+                    .flatMap((r) => (r.id !== reservation.id ? [(
                       <Box
                         key={r.id}
                         sx={{
@@ -517,7 +516,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                           />
                         </Box>
                       </Box>
-                    ))}
+                    )] : []))}
                 </Box>
               </Box>
             </>

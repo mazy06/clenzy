@@ -49,8 +49,10 @@ public class PropertyKbIngestionService {
         if (props.isEmpty()) {
             return false;
         }
-        ingestionService.ingestMarkdown(SOURCE_PREFIX + orgId, buildMarkdown(props), orgId);
-        return true;
+        // ingestMarkdownIfChanged : le cron quotidien ne re-embed pas un portefeuille
+        // inchange (cout API + churn de chunks evites).
+        return ingestionService.ingestMarkdownIfChanged(
+                SOURCE_PREFIX + orgId, buildMarkdown(props), orgId, "fr");
     }
 
     /** Markdown : un {@code ## } par hébergement (= un chunk) avec ses caractéristiques publiques. */

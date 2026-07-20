@@ -72,7 +72,7 @@ export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false 
 
   return (
     <Stack direction="row" spacing={0.75} alignItems="center">
-      {otas.map((ota, idx) => {
+      {otas.map((ota) => {
         const option = resolveOtaOption(ota.otaName);
         const logoSrc = option ? OTA_LOGO_BY_CODE[option.code] : null;
         const initials = option?.initials ?? ota.otaName.slice(0, 2);
@@ -91,7 +91,7 @@ export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false 
             : `${displayName} · Non authentifie`;
 
         return (
-          <Tooltip key={`${ota.otaName}-${idx}`} title={tooltipLabel} arrow>
+          <Tooltip key={ota.otaName} title={tooltipLabel} arrow>
             <Box
               sx={{
                 position: 'relative',

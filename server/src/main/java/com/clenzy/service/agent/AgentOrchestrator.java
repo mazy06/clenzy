@@ -276,8 +276,16 @@ public class AgentOrchestrator {
         //    quand le multi-agent fallback (ConfirmationRequiredException, throw,
         //    OrchestrationResult.error, etc.).
         List<AssistantMemory> memories = promptComposer.loadMemories(context, effectiveMessage);
-        List<KbSearchService.KbSearchHit> kbHits =
-                promptComposer.loadRelevantKbHits(effectiveMessage, context.organizationId());
+        // Requete de retrieval contextualisee : une relance courte (« et pour les
+        // mineurs ? ») est prefixee des messages user precedents avant embedding.
+        String retrievalQuery = AgentPromptComposer.buildRetrievalQuery(
+                history.stream()
+                        .filter(m -> "user".equals(m.getRole()))
+                        .map(AssistantMessage::getContent)
+                        .toList());
+        List<KbSearchService.KbSearchHit> kbHits = promptComposer.loadRelevantKbHits(
+                retrievalQuery.isBlank() ? effectiveMessage : retrievalQuery,
+                context.organizationId(), context.language());
         // Cible LLM resolue UNE SEULE FOIS (provider effectif + modele + cle + baseUrl),
         // partagee entre le flow multi-agent et le fallback mono-agent.
         ResolvedTarget target =

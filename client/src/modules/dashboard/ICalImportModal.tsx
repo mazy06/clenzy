@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -202,6 +202,19 @@ const StepIndicator: React.FC<{ steps: string[]; activeStep: number }> = ({ step
   </Box>
 );
 
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-';
+  try {
+    return new Date(dateStr).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
+};
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImportSuccess }) => {
@@ -240,7 +253,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   const importMutation = useICalImport();
 
   const hasAccess = accessQuery.data?.allowed ?? true;
-  const allProperties = propertiesQuery.data ?? [];
+  const allProperties = useMemo(() => propertiesQuery.data ?? [], [propertiesQuery.data]);
   const owners = ownersQuery.data ?? [];
 
   // Derived loading: any mutation in flight
@@ -259,13 +272,15 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
     if (open && isHost() && !canChangeOwner && user?.id && ownerId === '') {
       setOwnerId(Number(user.id));
     }
-  }, [open, user?.id]);
+    // Garde `ownerId === ''` : apres le set, la condition devient fausse (pas de boucle).
+  }, [open, user, isHost, canChangeOwner, ownerId]);
 
   // ─── Proprietes filtrees par proprietaire ────────────────────────────
 
-  const filteredProperties = ownerId
-    ? allProperties.filter(p => p.ownerId === Number(ownerId))
-    : allProperties;
+  const filteredProperties = useMemo(
+    () => (ownerId ? allProperties.filter(p => p.ownerId === Number(ownerId)) : allProperties),
+    [allProperties, ownerId],
+  );
 
   useEffect(() => {
     if (propertyId && ownerId) {
@@ -274,7 +289,8 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         setPropertyId('');
       }
     }
-  }, [ownerId]);
+    // Garde `stillValid` : reset une seule fois puis propertyId '' -> no-op.
+  }, [ownerId, propertyId, filteredProperties]);
 
   // ─── Nom du proprietaire pour affichage ──────────────────────────────
 
@@ -349,21 +365,6 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
       onImportSuccess?.();
     } catch {
       // Error is handled by importMutation.error
-    }
-  };
-
-  // ─── Format date ──────────────────────────────────────────────────────
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    try {
-      return new Date(dateStr).toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
-    } catch {
-      return dateStr;
     }
   };
 
@@ -635,8 +636,8 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               </TableRow>
             </TableHead>
             <TableBody>
-              {allEvents.map((event: ICalEventPreview, index: number) => (
-                <TableRow key={`evt-${index}`} hover sx={{ '&:last-child td': { border: 0 } }}>
+              {allEvents.map((event: ICalEventPreview) => (
+                <TableRow key={`${event.uid}-${event.dtStart}`} hover sx={{ '&:last-child td': { border: 0 } }}>
                   <TableCell>{formatDate(event.dtStart)}</TableCell>
                   <TableCell>{formatDate(event.dtEnd)}</TableCell>
                   <TableCell align="center">

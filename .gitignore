@@ -53,3 +53,16 @@ firebase-service-account.json
 # Temporary files
 *.tmp
 *.temp
+booking-templates/dist/
+
+# ─── Documentation interne : JAMAIS versionnee (audits, plans, strategie) ───
+# Les documents restent sur disque mais hors git. Le corpus RAG embarque
+# (server/src/main/resources/kb/) et README.md restent versionnes.
+/docs/
+/server/docs/
+/analyse-concurrentielle/
+/campagne/
+/*.md
+!/README.md
+*.pdf
+__pycache__/

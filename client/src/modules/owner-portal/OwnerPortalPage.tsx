@@ -35,6 +35,8 @@ const CARD_SX = {
   borderRadius: 1.5,
 } as const;
 
+const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={currency} />;
+
 const CELL_SX = { fontSize: '0.8125rem', py: 1.25 } as const;
 const HEAD_CELL_SX = { fontSize: '0.75rem', fontWeight: 700, py: 1, color: 'text.secondary' } as const;
 const TAB_SX = { textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, minHeight: 40 } as const;
@@ -275,7 +277,6 @@ const BrandingButton: React.FC = () => {
 
 const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
   const { t } = useTranslation();
-  const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={currency} />;
   const { data: dashboard, isLoading, isError } = useOwnerDashboard(ownerId);
 
   if (isLoading) {
@@ -408,7 +409,6 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
 
 const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
   const { t } = useTranslation();
-  const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={currency} />;
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [ownerName, setOwnerName] = useState('');

@@ -118,6 +118,12 @@ airbnb:
   sync:
     enabled: false
 clenzy:
+  assistant:
+    kb:
+      # Pas de seed du corpus Baitly au boot des contextes de test (60 docs a
+      # ingerer sans provider d'embeddings = bruit + latence). KbRetrievalEvalIT
+      # le re-active explicitement via @TestPropertySource.
+      seed-enabled: false
   mail:
     provider: generic
     from: test@clenzy.test

@@ -3305,3 +3305,31 @@ databaseChangeLog:
       sqlFile:
         path: changes/0344__add_supervision_activity_invoice_ref.sql
         relativeToChangelogFile: true
+
+  # Assistant RAG : recherche hybride — colonne tsvector generee + index GIN sur
+  # kb_chunk pour la partie lexicale (fusion RRF avec la recherche vectorielle).
+  - changeSet:
+      id: "0346-add-kb-chunk-fulltext"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0346__add_kb_chunk_fulltext.sql
+        relativeToChangelogFile: true
+
+  # Assistant RAG : version du chunker sur kb_document — re-ingestion automatique
+  # des documents decoupes avec un ancien algorithme de chunking.
+  - changeSet:
+      id: "0347-add-kb-document-chunker-version"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0347__add_kb_document_chunker_version.sql
+        relativeToChangelogFile: true
+
+  # Assistant RAG : full-text par langue — kb_chunk.lang + tsvector generee avec
+  # la config linguistique du document (french/english/simple) au lieu de 'french'
+  # pour tout le monde.
+  - changeSet:
+      id: "0348-kb-chunk-fulltext-per-language"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0348__kb_chunk_fulltext_per_language.sql
+        relativeToChangelogFile: true

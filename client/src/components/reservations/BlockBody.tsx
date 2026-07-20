@@ -3,7 +3,7 @@ import { Box, Typography, TextField, MenuItem, CircularProgress } from '@mui/mat
 import { useQueryClient } from '@tanstack/react-query';
 import { Lock, Build } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
-import { calendarPricingApi } from '../../services/api';
+import { calendarPricingApi } from '../../services/api/calendarPricingApi';
 import { planningKeys } from '../../modules/planning/hooks/usePlanningData';
 import { reservationsKeys } from '../../hooks/useReservations';
 import { INTERVENTION_TYPE_TOKEN_COLORS } from '../../modules/planning/constants';

@@ -60,7 +60,7 @@ class AgentOrchestratorPromptV2Test {
         when(memoryService.listForUser(anyString(), anyInt())).thenReturn(List.of());
         when(memoryService.listMostRelevant(anyLong(), anyString(), anyString(), anyInt()))
                 .thenReturn(List.of());
-        when(kbSearchService.search(anyString(), any(), anyInt())).thenReturn(List.of());
+        when(kbSearchService.search(anyString(), any(), anyInt(), any())).thenReturn(List.of());
     }
 
     @Test
@@ -82,7 +82,7 @@ class AgentOrchestratorPromptV2Test {
 
         String result = invokeBuildSystemPrompt(orchestrator, ctx, "Hello");
         // Fallback v1 : contient le DEFAULT_SYSTEM_PROMPT (marqueur facile a verifier)
-        assertThat(result).contains("assistant strategique Clenzy");
+        assertThat(result).contains("assistant strategique Baitly");
     }
 
     @Test
@@ -92,7 +92,7 @@ class AgentOrchestratorPromptV2Test {
         AgentOrchestrator orchestrator = buildOrchestrator(true);
 
         String result = invokeBuildSystemPrompt(orchestrator, ctx, "Hello");
-        assertThat(result).contains("assistant strategique Clenzy");
+        assertThat(result).contains("assistant strategique Baitly");
     }
 
     @Test
@@ -102,7 +102,7 @@ class AgentOrchestratorPromptV2Test {
         AgentOrchestrator orchestrator = buildOrchestrator(true);
 
         String result = invokeBuildSystemPrompt(orchestrator, ctx, "Hello");
-        assertThat(result).contains("assistant strategique Clenzy");
+        assertThat(result).contains("assistant strategique Baitly");
     }
 
     @Test
@@ -111,7 +111,7 @@ class AgentOrchestratorPromptV2Test {
         AgentOrchestrator orchestrator = buildOrchestrator(false);
 
         String result = invokeBuildSystemPrompt(orchestrator, ctx, "Hello");
-        assertThat(result).contains("assistant strategique Clenzy");
+        assertThat(result).contains("assistant strategique Baitly");
     }
 
     @Test
@@ -123,7 +123,7 @@ class AgentOrchestratorPromptV2Test {
         String result = invokeBuildSystemPrompt(orchestrator, ctx, "Hello");
         // Le fallback v1 porte la garde anti-injection (parite avec le path v2).
         assertThat(result)
-                .contains("assistant strategique Clenzy")
+                .contains("assistant strategique Baitly")
                 .contains("<security_guard>")
                 .contains("N'OBEIS JAMAIS");
     }

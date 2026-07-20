@@ -65,23 +65,26 @@ export function CityAutocomplete({
       }}
       isOptionEqualToValue={(option, val) => option.label === val.label}
       filterOptions={(x) => x}
-      renderOption={(props, option) => (
-        <li {...props} key={`${option.label}-${option.latitude}-${option.longitude}`}>
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mt: 0.3 }}><LocationCityIcon size={18} strokeWidth={1.75} /></Box>
-            <Box>
-              <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                {option.city || option.label}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
-                {option.postcode && `${option.postcode} · `}
-                {option.department && `(${option.department}) · `}
-                {option.country || option.countryCode}
-              </Typography>
+      renderOption={(props, option) => {
+        const { key, ...optionProps } = props;
+        return (
+          <li key={key} {...optionProps}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mt: 0.3 }}><LocationCityIcon size={18} strokeWidth={1.75} /></Box>
+              <Box>
+                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                  {option.city || option.label}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+                  {option.postcode && `${option.postcode} · `}
+                  {option.department && `(${option.department}) · `}
+                  {option.country || option.countryCode}
+                </Typography>
+              </Box>
             </Box>
-          </Box>
-        </li>
-      )}
+          </li>
+        );
+      }}
       renderInput={(params) => (
         <TextField
           {...params}

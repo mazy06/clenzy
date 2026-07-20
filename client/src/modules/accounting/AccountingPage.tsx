@@ -673,9 +673,10 @@ const EXPENSE_STATUS_OPTIONS: { value: ExpenseStatus | ''; label: string; labelK
 
 const CATEGORY_OPTIONS: ExpenseCategory[] = ['CLEANING', 'MAINTENANCE', 'LAUNDRY', 'SUPPLIES', 'LANDSCAPING', 'OTHER'];
 
+const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={currency} />;
+
 export const ExpensesTab: React.FC = () => {
   const { t } = useTranslation();
-  const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={currency} />;
   const queryClient = useQueryClient();
 
   // Filters
@@ -756,7 +757,9 @@ export const ExpensesTab: React.FC = () => {
   });
 
   const receiptInputRef = useRef<HTMLInputElement>(null);
-  const [receiptTargetId, setReceiptTargetId] = useState<number | null>(null);
+  // Cible de l'upload de justificatif : lue uniquement dans le onChange de
+  // l'input file — ref (dispo immediatement, pas de re-render).
+  const receiptTargetIdRef = useRef<number | null>(null);
 
   // Stats
   const stats = useMemo(() => {
@@ -773,19 +776,20 @@ export const ExpensesTab: React.FC = () => {
   }, [form, createMutation]);
 
   const handleReceiptUpload = useCallback((expenseId: number) => {
-    setReceiptTargetId(expenseId);
+    receiptTargetIdRef.current = expenseId;
     receiptInputRef.current?.click();
   }, []);
 
   const handleReceiptFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && receiptTargetId != null) {
-      uploadReceiptMutation.mutate({ id: receiptTargetId, file });
+    const targetId = receiptTargetIdRef.current;
+    if (file && targetId != null) {
+      uploadReceiptMutation.mutate({ id: targetId, file });
     }
     // Reset input pour permettre de re-uploader le meme fichier
     e.target.value = '';
-    setReceiptTargetId(null);
-  }, [receiptTargetId, uploadReceiptMutation]);
+    receiptTargetIdRef.current = null;
+  }, [uploadReceiptMutation]);
 
   const handleGeneratePo = useCallback(async (expense: ProviderExpense) => {
     try {

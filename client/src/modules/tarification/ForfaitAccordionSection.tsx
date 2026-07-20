@@ -191,7 +191,11 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
       setNewSurchargeKey('');
       setNewSurchargeLabel('');
       setAddSurchargeOpen(false);
-    }, [newSurchargeKey, newSurchargeLabel, onAddSurcharge]);
+    }, [newSurchargeKey, newSurchargeLabel, onAddSurcharge, currencySymbol]);
+
+    const includedPrestationSet = new Set(forfait.includedPrestations || []);
+    const extraPrestationSet = new Set(forfait.extraPrestations || []);
+    const eligibleTeamIdSet = new Set(forfait.eligibleTeamIds || []);
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -274,7 +278,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
               </Typography>
               <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                 {availablePrestations.map((p) => {
-                  const isIncluded = (forfait.includedPrestations || []).includes(p.key);
+                  const isIncluded = includedPrestationSet.has(p.key);
                   return (
                     <Chip
                       key={p.key}
@@ -302,7 +306,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
               </Typography>
               <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                 {availablePrestations.map((p) => {
-                  const isExtra = (forfait.extraPrestations || []).includes(p.key);
+                  const isExtra = extraPrestationSet.has(p.key);
                   return (
                     <Chip
                       key={p.key}
@@ -355,7 +359,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
               </Typography>
             ) : (
               teams.map((team) => {
-                const isSelected = (forfait.eligibleTeamIds || []).includes(team.id);
+                const isSelected = eligibleTeamIdSet.has(team.id);
                 return (
                   <Chip
                     key={team.id}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Box,
@@ -185,7 +185,9 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
 
   // ── Team menu state (for assigning team to property) ────────────────────
   const [teamMenuAnchor, setTeamMenuAnchor] = useState<null | HTMLElement>(null);
-  const [teamMenuPropertyId, setTeamMenuPropertyId] = useState<number | null>(null);
+  // Propriete cible du menu equipe : lue uniquement dans les handlers du menu
+  // (l'ouverture est pilotee par teamMenuAnchor) : ref, pas de re-render.
+  const teamMenuPropertyIdRef = useRef<number | null>(null);
 
   if (!canView) {
     return null;
@@ -510,7 +512,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                               variant="outlined"
                                               onClick={(e) => {
                                                 setTeamMenuAnchor(e.currentTarget);
-                                                setTeamMenuPropertyId(property.id);
+                                                teamMenuPropertyIdRef.current = property.id;
                                               }}
                                               sx={{ height: 20, fontSize: '0.6rem', cursor: 'pointer' }}
                                             />
@@ -746,7 +748,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
       <Menu
         anchorEl={teamMenuAnchor}
         open={Boolean(teamMenuAnchor)}
-        onClose={() => { setTeamMenuAnchor(null); setTeamMenuPropertyId(null); }}
+        onClose={() => { setTeamMenuAnchor(null); teamMenuPropertyIdRef.current = null; }}
         slotProps={{
           paper: { sx: { borderRadius: 2, minWidth: 200 } },
         }}
@@ -759,11 +761,12 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
           <MenuItem
             key={team.id}
             onClick={() => {
-              if (teamMenuPropertyId) {
-                handleAssignTeamToProperty(teamMenuPropertyId, team.id);
+              const targetPropertyId = teamMenuPropertyIdRef.current;
+              if (targetPropertyId) {
+                handleAssignTeamToProperty(targetPropertyId, team.id);
               }
               setTeamMenuAnchor(null);
-              setTeamMenuPropertyId(null);
+              teamMenuPropertyIdRef.current = null;
             }}
             sx={{ fontSize: '0.82rem', py: 0.75 }}
           >

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { channelSyncHealthApi } from '../../../services/api';
+import { channelSyncHealthApi } from '../../../services/api/channelSyncHealthApi';
 import type { ChannelSyncHealth } from '../../../services/api';
 
 export const channelSyncKeys = {

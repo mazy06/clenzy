@@ -60,6 +60,43 @@ const STATUS_SOFT: Record<string, string> = {
   cancelled: 'var(--hover)',
 };
 
+/** Styles inline statiques des inputs d'édition (hoistés hors render). */
+const NAME_EDIT_INPUT_STYLE: React.CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  border: 'none',
+  borderBottom: '2px solid var(--accent)',
+  outline: 'none',
+  background: 'transparent',
+  fontSize: '1.0625rem',
+  fontWeight: 700,
+  fontFamily: 'var(--font-display)',
+  color: 'var(--ink)',
+  padding: '2px 0',
+};
+
+const NOTE_EDIT_INPUT_STYLE: React.CSSProperties = {
+  flex: 1,
+  border: 'none',
+  background: 'transparent',
+  fontSize: '0.8125rem',
+  fontFamily: 'inherit',
+  color: 'var(--ink)',
+  padding: 0,
+  lineHeight: 1.5,
+};
+
+const NOTE_NEW_INPUT_STYLE: React.CSSProperties = {
+  flex: 1,
+  border: 'none',
+  background: 'transparent',
+  fontSize: '0.8125rem',
+  fontFamily: 'inherit',
+  color: 'inherit',
+  padding: 0,
+  lineHeight: 1.5,
+};
+
 /** Chip canal : tokens de canal (airbnb / booking / direct), repli neutre. */
 function getChannelChipTokens(source: string): { bg: string; color: string } {
   switch (source) {
@@ -133,6 +170,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <input
                   ref={nameInputRef}
+                  aria-label="Nom du client"
                   value={nameValue}
                   onChange={(e) => setNameValue(e.target.value)}
                   onKeyDown={(e) => {
@@ -141,19 +179,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
                   }}
                   onBlur={commitName}
                   disabled={nameSaving}
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    border: 'none',
-                    borderBottom: '2px solid var(--accent)',
-                    outline: 'none',
-                    background: 'transparent',
-                    fontSize: '1.0625rem',
-                    fontWeight: 700,
-                    fontFamily: 'var(--font-display)',
-                    color: 'var(--ink)',
-                    padding: '2px 0',
-                  }}
+                  style={NAME_EDIT_INPUT_STYLE}
                 />
                 {nameSaving && <CircularProgress size={14} />}
               </Box>
@@ -645,21 +671,12 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
             {editingIdx === idx ? (
               <input
                 ref={editInputRef}
+                aria-label="Modifier la note"
                 value={editingText}
                 onChange={e => setEditingText(e.target.value)}
                 onBlur={commitEdit}
                 onKeyDown={handleEditKeyDown}
-                style={{
-                  flex: 1,
-                  border: 'none',
-                  outline: 'none',
-                  background: 'transparent',
-                  fontSize: '0.8125rem',
-                  fontFamily: 'inherit',
-                  color: 'var(--ink)',
-                  padding: 0,
-                  lineHeight: 1.5,
-                }}
+                style={NOTE_EDIT_INPUT_STYLE}
               />
             ) : (
               <Box
@@ -701,22 +718,13 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
           <Box sx={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--line-2)', flexShrink: 0 }} />
           <input
             ref={newInputRef}
+            aria-label="Ajouter une note"
             value={newItemText}
             onChange={e => setNewItemText(e.target.value)}
             onKeyDown={handleNewKeyDown}
             onBlur={() => { if (newItemText.trim()) addItem(); }}
             placeholder={items.length === 0 ? 'Ajouter une note...' : 'Ajouter...'}
-            style={{
-              flex: 1,
-              border: 'none',
-              outline: 'none',
-              background: 'transparent',
-              fontSize: '0.8125rem',
-              fontFamily: 'inherit',
-              color: 'inherit',
-              padding: 0,
-              lineHeight: 1.5,
-            }}
+            style={NOTE_NEW_INPUT_STYLE}
           />
         </Box>
       </Box>

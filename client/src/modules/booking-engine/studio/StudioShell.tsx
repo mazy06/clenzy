@@ -212,12 +212,13 @@ const iconBtnSx = {
   '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
 } as const;
 
+const items: { key: Breakpoint; icon: LucideIcon; label: string }[] = [
+  { key: 'desktop', icon: Monitor, label: 'Bureau' },
+  { key: 'tablet', icon: Tablet, label: 'Tablette' },
+  { key: 'mobile', icon: Smartphone, label: 'Mobile' },
+];
+
 function SegmentedBreakpoint({ value, onChange }: { value: Breakpoint; onChange: (b: Breakpoint) => void }) {
-  const items: { key: Breakpoint; icon: LucideIcon; label: string }[] = [
-    { key: 'desktop', icon: Monitor, label: 'Bureau' },
-    { key: 'tablet', icon: Tablet, label: 'Tablette' },
-    { key: 'mobile', icon: Smartphone, label: 'Mobile' },
-  ];
   return (
     <Box sx={{ display: 'flex', gap: 0.25, p: 0.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--field)' }}>
       {items.map(({ key, icon: Icon, label }) => {
@@ -254,13 +255,14 @@ function SegmentedBreakpoint({ value, onChange }: { value: Breakpoint; onChange:
  * ↔ « Assistant » = bascule vers le studio IMMERSIF (aperçu live + chat pour modifier le site en langage
  * naturel). Remplace l'ancien mode « Guidé/Avancé » (le guidé a été retiré).
  */
+const seg = {
+  display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 28, px: 1,
+  borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)',
+  transition: 'color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out)',
+  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
+} as const;
+
 function ViewToggle({ onOpenAssistant }: { onOpenAssistant: () => void }) {
-  const seg = {
-    display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 28, px: 1,
-    borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)',
-    transition: 'color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out)',
-    '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-  } as const;
   return (
     <Box
       role="group"

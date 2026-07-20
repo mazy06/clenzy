@@ -76,7 +76,8 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
       setGuestCardOpen(true);
       onGuestCardAutoOpenHandled?.();
     }
-  }, [autoOpenGuestCardForReservationId, reservation?.id, onGuestCardAutoOpenHandled]);
+    // Garde stricte + le parent reset autoOpen apres handled : re-runs = no-op.
+  }, [autoOpenGuestCardForReservationId, reservation, onGuestCardAutoOpenHandled]);
   const [changePropertyOpen, setChangePropertyOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);

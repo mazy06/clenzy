@@ -121,22 +121,25 @@ export function usePlanningFilters(
     let result = events;
 
     if (filters.statuses.length > 0) {
+      const statusSet = new Set(filters.statuses);
       result = result.filter((e) =>
-        e.type !== 'reservation' || filters.statuses.includes(e.status as ReservationStatus),
+        e.type !== 'reservation' || statusSet.has(e.status as ReservationStatus),
       );
     }
 
     if (!filters.showInterventions) {
       result = result.filter((e) => e.type === 'reservation');
     } else if (filters.interventionTypes.length > 0) {
+      const interventionTypeSet = new Set(filters.interventionTypes);
       result = result.filter((e) =>
         e.type === 'reservation'
-        || filters.interventionTypes.includes(e.type as PlanningInterventionType),
+        || interventionTypeSet.has(e.type as PlanningInterventionType),
       );
     }
 
     if (filters.propertyIds.length > 0) {
-      result = result.filter((e) => filters.propertyIds.includes(e.propertyId));
+      const propertyIdSet = new Set(filters.propertyIds);
+      result = result.filter((e) => propertyIdSet.has(e.propertyId));
     }
 
     if (filters.searchQuery) {
@@ -152,7 +155,8 @@ export function usePlanningFilters(
 
   const filteredProperties = useMemo(() => {
     if (filters.propertyIds.length === 0) return properties;
-    return properties.filter((p) => filters.propertyIds.includes(p.id));
+    const propertyIdSet = new Set(filters.propertyIds);
+    return properties.filter((p) => propertyIdSet.has(p.id));
   }, [properties, filters.propertyIds]);
 
   return {

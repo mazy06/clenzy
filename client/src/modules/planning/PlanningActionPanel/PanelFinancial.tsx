@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
 import { serviceRequestsApi, type ServiceRequest } from '../../../services/api/serviceRequestsApi';
@@ -269,6 +269,17 @@ interface PanelFinancialProps {
   onPaymentComplete?: () => void;
 }
 
+// ── Formatters ─────────────────────────────────────────────────────────
+const fmtDate = (iso: string) => {
+  try {
+    return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch { return iso; }
+};
+
+// Nœud (glyphe de devise pour SAR/MAD). Pour un contexte chaîne pure, utiliser
+// convertAndFormat directement (cf. snackbars).
+const fmtCurrency = (val: number) => <Money value={val} from="EUR" />;
+
 const PanelFinancial: React.FC<PanelFinancialProps> = ({
   event,
   interventions,
@@ -281,6 +292,13 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   const reservation = event.reservation;
   const intervention = event.intervention;
   const { convertAndFormat } = useCurrency();
+
+  // Latest-ref : le polling de paiement lit toujours le callback frais sans
+  // re-declencher l'effet (deps fines anti-spam API).
+  const onPaymentCompleteRef = useRef(onPaymentComplete);
+  useEffect(() => {
+    onPaymentCompleteRef.current = onPaymentComplete;
+  });
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -355,20 +373,24 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   useEffect(() => {
     if (!reservation) return;
     if (reservation.paymentStatus === 'PAID' && reservation.totalPrice > 0) {
+      // Don't duplicate if already has a PAID Stripe entry
+      if (payments.some((p) => p.status === 'PAID' && p.reference?.startsWith('STRIPE-'))) return;
+      const stripePayment: LocalPayment = {
+        id: ++mockFinancialId,
+        amount: reservation.totalPrice,
+        method: 'card',
+        date: reservation.paidAt || reservation.checkIn,
+        status: 'PAID' as const,
+        reference: `STRIPE-${reservation.id}`,
+      };
       setPayments((prev) => {
-        // Don't duplicate if already has a PAID Stripe entry
+        // Guard again against the latest state to avoid a duplicate on a race
         if (prev.some((p) => p.status === 'PAID' && p.reference?.startsWith('STRIPE-'))) return prev;
-        return [{
-          id: ++mockFinancialId,
-          amount: reservation.totalPrice,
-          method: 'card',
-          date: reservation.paidAt || reservation.checkIn,
-          status: 'PAID' as const,
-          reference: `STRIPE-${reservation.id}`,
-        }];
+        return [stripePayment];
       });
     }
-  }, [reservation?.id, reservation?.paymentStatus]);
+    // Double garde (some + updater) : re-runs sur nouvelle identite = no-op.
+  }, [reservation, payments]);
 
   // ── Dialog states ────────────────────────────────────────────────────────
   const [paymentsDialogOpen, setPaymentsDialogOpen] = useState(false);
@@ -449,7 +471,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         if (!cancelled && result.paymentStatus === 'PAID') {
           // Payment confirmed — refresh all planning data
           queryClient.invalidateQueries({ queryKey: ['planning-page'] });
-          onPaymentComplete?.();
+          onPaymentCompleteRef.current?.();
         }
       } catch {
         // Silent — non-blocking check
@@ -457,7 +479,11 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     };
     checkPayment();
     return () => { cancelled = true; };
-  }, [reservation?.id, reservation?.paymentStatus, reservation?.paymentLinkSentAt]);
+    // Deps fines volontaires (anti-spam API) : dependre de l'objet reservation
+    // relancerait checkPaymentStatus a chaque refetch du planning. Le callback
+    // est lu via onPaymentCompleteRef (latest-ref) ; queryClient est stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reservation?.id, reservation?.paymentStatus, reservation?.paymentLinkSentAt, queryClient]);
 
   // ── Computed values — Reservation ──────────────────────────────────────
   const totalPrice = reservation?.totalPrice || 0;
@@ -667,17 +693,6 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     setPaymentModalOpen(false);
     setPaymentModalTarget(null);
   }, []);
-
-  // ── Formatters ─────────────────────────────────────────────────────────
-  const fmtDate = (iso: string) => {
-    try {
-      return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    } catch { return iso; }
-  };
-
-  // Nœud (glyphe de devise pour SAR/MAD). Pour un contexte chaîne pure, utiliser
-  // convertAndFormat directement (cf. snackbars).
-  const fmtCurrency = (val: number) => <Money value={val} from="EUR" />;
 
   const isICalImport = reservation && (reservation.source === 'airbnb' || reservation.source === 'booking' || reservation.source === 'other');
   const hasTotalPrice = totalPrice > 0;

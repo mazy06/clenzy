@@ -43,6 +43,12 @@ interface TabEntretienProps {
   currencySymbol: string;
 }
 
+const FORFAIT_ICONS = [
+  <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome key="s" size={20} strokeWidth={1.75} /></Box>,
+  <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Bolt key="e" size={20} strokeWidth={1.75} /></Box>,
+  <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><CleaningServices key="d" size={20} strokeWidth={1.75} /></Box>,
+];
+
 export default function TabEntretien({ config, teams, canEdit, onUpdate, currencySymbol }: TabEntretienProps) {
   const { t } = useTranslation();
   const { currency } = useCurrency();
@@ -102,12 +108,6 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
     }
     onUpdate({ commissionConfigs: configs });
   }, [config.commissionConfigs, onUpdate]);
-
-  const FORFAIT_ICONS = [
-    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome key="s" size={20} strokeWidth={1.75} /></Box>,
-    <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Bolt key="e" size={20} strokeWidth={1.75} /></Box>,
-    <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><CleaningServices key="d" size={20} strokeWidth={1.75} /></Box>,
-  ];
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pt: 1 }}>
@@ -343,7 +343,7 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
               </TableHead>
               <TableBody>
                 {config.surfaceTiers.map((tier, index) => (
-                  <TableRow key={index}>
+                  <TableRow key={tier.label}>
                     <TableCell>
                       <Chip label={tier.label} size="small" variant="outlined" color={index === config.surfaceTiers.length - 1 ? 'error' : 'default'} />
                     </TableCell>

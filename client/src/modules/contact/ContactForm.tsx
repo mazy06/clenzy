@@ -33,10 +33,10 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
 import { useAuth } from '../../hooks/useAuth';
-import { contactApi } from '../../services/api';
+import { contactApi } from '../../services/api/contactApi';
 import apiClient from '../../services/apiClient';
 import { useTranslation } from '../../hooks/useTranslation';
-import { contactSchema } from '../../schemas';
+import { contactSchema } from '../../schemas/contactSchema';
 import type { ContactFormValues } from '../../schemas';
 import PageHeader from '../../components/PageHeader';
 import ContactTemplates from './ContactTemplates';
@@ -255,23 +255,26 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                         if (typeof value === 'string') return option.id === value || option.email === value;
                         return option.id === value.id;
                       }}
-                      renderOption={(props, option) => (
-                        <li {...props} key={typeof option === 'string' ? option : option.id}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <PersonIcon fontSize="small" />
-                            <Box>
-                              <Typography variant="body2">
-                                {typeof option === 'string' ? option : `${option.firstName} ${option.lastName}`}
-                              </Typography>
-                              {typeof option !== 'string' && (
-                                <Typography variant="caption" color="text.secondary">
-                                  {option.email} - {option.role}
+                      renderOption={(props, option) => {
+                        const { key, ...optionProps } = props;
+                        return (
+                          <li key={key} {...optionProps}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <PersonIcon fontSize="small" />
+                              <Box>
+                                <Typography variant="body2">
+                                  {typeof option === 'string' ? option : `${option.firstName} ${option.lastName}`}
                                 </Typography>
-                              )}
+                                {typeof option !== 'string' && (
+                                  <Typography variant="caption" color="text.secondary">
+                                    {option.email} - {option.role}
+                                  </Typography>
+                                )}
+                              </Box>
                             </Box>
-                          </Box>
-                        </li>
-                      )}
+                          </li>
+                        );
+                      }}
                       renderInput={(params) => (
                         <TextField
                           {...params}

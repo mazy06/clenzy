@@ -118,7 +118,8 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
     // Filter teams by eligible IDs from the selected forfait
     const filteredTeams = useMemo(() => {
       if (!eligibleTeamIds || eligibleTeamIds.length === 0) return teams;
-      return teams.filter((team) => eligibleTeamIds.includes(team.id));
+      const eligibleTeamIdSet = new Set(eligibleTeamIds);
+      return teams.filter((team) => eligibleTeamIdSet.has(team.id));
     }, [teams, eligibleTeamIds]);
 
     // ─── Auto-select assignment type based on service type ───

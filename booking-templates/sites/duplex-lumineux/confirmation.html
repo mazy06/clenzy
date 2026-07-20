@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Réservation confirmée · Oliver Palm Duplex · Marrakech</title>
+<meta name="robots" content="noindex">
+<style>
+/* ============================================================
+   OLIVER PALM DUPLEX — funnel, étape confirmation (widget
+   confirmation : règles de design définies ici).
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Rubik:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#FAF6F0; --surface:#FFFDF9; --tint:#F2EAE0; --line:#E7DCCD; --line-soft:#EFE6D9;
+  --ink:#26201A; --muted:#7C6E5F;
+  --terra:#B4633C; --terra-deep:#96502D; --terra-soft:rgba(180,99,60,.10);
+  --gold:#C9974C; --ok:#3E7C5B; --ok-soft:rgba(62,124,91,.12);
+  --night:#15122A; --violet:#8F7BE8;
+  --font-display:'Fraunces', 'Amiri', serif;
+  --font-body:'Rubik', sans-serif;
+  --radius-sm:10px; --radius:18px; --radius-lg:28px; --radius-pill:999px;
+  --shadow-sm:0 2px 8px rgba(60,40,20,.07);
+  --shadow:0 14px 40px rgba(60,40,20,.12);
+  --shadow-lg:0 30px 80px rgba(60,40,20,.18);
+  --wrap:760px;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg); color:var(--ink); font-family:var(--font-body); line-height:1.6; -webkit-font-smoothing:antialiased; overflow-x:clip}
+img{display:block; max-width:100%}
+a{color:inherit}
+h1,h2,h3{font-family:var(--font-display); font-weight:600; line-height:1.1; letter-spacing:-.015em; text-wrap:balance}
+.wrap{max-width:var(--wrap); margin-inline:auto; padding-inline:clamp(20px,4vw,40px)}
+.num{font-variant-numeric:tabular-nums}
+@keyframes rise{from{opacity:0; transform:translateY(26px)}to{opacity:1; transform:none}}
+@keyframes ring{from{transform:scale(.5); opacity:0}60%{transform:scale(1.06)}to{transform:scale(1); opacity:1}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none !important; transition:none !important}
+  .check svg path{stroke-dashoffset:0 !important}}
+
+.nav{position:sticky; inset-block-start:0; z-index:100; background:rgba(250,246,240,.95);
+  backdrop-filter:blur(10px); border-block-end:1px solid var(--line)}
+.nav__in{display:flex; align-items:center; justify-content:space-between; gap:20px; min-height:70px}
+.nav__brand{font-family:var(--font-display); font-size:1.2rem; font-weight:700; color:var(--ink); text-decoration:none}
+.nav__ref{font-size:.8rem; color:var(--muted)}
+
+.hero{padding-block:clamp(48px,7vw,84px) 10px; text-align:center; animation:rise .8s var(--ease) both}
+.check{width:92px; height:92px; margin-inline:auto; border-radius:50%; background:var(--ok-soft);
+  display:grid; place-items:center; animation:ring .7s var(--ease) both}
+.check__in{width:64px; height:64px; border-radius:50%; background:var(--ok); display:grid; place-items:center;
+  box-shadow:0 14px 34px rgba(62,124,91,.4)}
+.check svg{width:30px; height:30px}
+.check svg path{stroke-dasharray:40; stroke-dashoffset:40; animation:draw .6s var(--ease) .5s both}
+.hero h1{font-size:clamp(2rem,4.6vw,3rem); margin-block-start:22px}
+.hero p{color:var(--muted); margin-block-start:12px; max-width:46ch; margin-inline:auto}
+.hero p b{color:var(--ink)}
+.ref{display:inline-flex; align-items:center; gap:9px; margin-block-start:18px; background:var(--surface);
+  border:1px solid var(--line); border-radius:var(--radius-pill); padding:9px 18px; font-size:.86rem; box-shadow:var(--shadow-sm)}
+.ref b{font-weight:700; letter-spacing:.06em}
+
+.stack{display:flex; flex-direction:column; gap:20px; padding-block:34px 70px}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg); padding:28px;
+  box-shadow:var(--shadow-sm); animation:rise .8s var(--ease) .15s both}
+.card h2{font-size:1.3rem; margin-block-end:18px}
+.trip{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line);
+  border-radius:var(--radius-sm); overflow:hidden}
+.trip__cell{background:var(--surface); padding:14px 16px}
+.trip__label{font-size:.66rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+.trip__value{font-size:.95rem; font-weight:500; margin-block-start:3px}
+.lines{display:flex; flex-direction:column; gap:9px; font-size:.92rem; margin-block-start:18px}
+.line{display:flex; justify-content:space-between; gap:10px; color:var(--muted)}
+.line--total{border-block-start:1px solid var(--line); padding-block-start:12px; color:var(--ink); font-weight:600; font-size:1.02rem}
+.line--total .paid{color:var(--ok)}
+
+.steps{display:flex; flex-direction:column}
+.step{display:flex; gap:16px; padding-block:16px; border-block-end:1px solid var(--line-soft)}
+.step:last-child{border-block-end:0; padding-block-end:4px}
+.step__icon{width:42px; height:42px; flex:none; border-radius:12px; background:var(--terra-soft); color:var(--terra);
+  display:grid; place-items:center}
+.step__icon svg{width:20px; height:20px}
+.step b{display:block; font-size:.95rem}
+.step span{font-size:.86rem; color:var(--muted)}
+
+.ctas{display:flex; gap:12px; flex-wrap:wrap; justify-content:center; animation:rise .8s var(--ease) .25s both}
+.btn{display:inline-flex; align-items:center; gap:9px; background:var(--terra); color:#fff; text-decoration:none;
+  font:600 .95rem var(--font-body); border-radius:var(--radius-pill); padding:14px 26px; cursor:pointer; border:0;
+  transition:background .25s var(--ease)}
+.btn:hover{background:var(--terra-deep)}
+.btn--ghost{background:transparent; color:var(--ink); border:1.5px solid var(--line)}
+.btn--ghost:hover{background:transparent; border-color:var(--terra); color:var(--terra)}
+.btn svg{width:15px; height:15px}
+
+.ffoot{border-block-start:1px solid var(--line); padding-block:22px; font-size:.78rem; color:var(--muted); text-align:center}
+
+@media (max-width:640px){ .trip{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<nav class="nav"><div class="wrap nav__in">
+  <a class="nav__brand" href="index.html">Oliver Palm Duplex</a>
+  <span class="nav__ref num" data-c="ref-top">Réservation OPD-000000</span>
+</div></nav>
+
+<main class="wrap">
+  <div class="hero">
+    <div class="check"><div class="check__in">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg>
+    </div></div>
+    <h1>C’est réservé, <span data-c="firstname">Yasmine</span> !</h1>
+    <p>Le duplex vous attend. Un e-mail de confirmation avec votre reçu vient d’être envoyé à <b data-c="email">yasmine@exemple.com</b>.</p>
+    <span class="ref num">Référence <b data-c="ref">OPD-000000</b></span>
+  </div>
+
+  <div class="stack">
+    <section class="card num" data-slot="confirmation">
+      <h2>Votre séjour</h2>
+      <div class="trip">
+        <div class="trip__cell"><div class="trip__label">Arrivée</div><div class="trip__value" data-c="ci">12 août 2026</div></div>
+        <div class="trip__cell"><div class="trip__label">Départ</div><div class="trip__value" data-c="co">15 août 2026</div></div>
+        <div class="trip__cell"><div class="trip__label">Voyageurs</div><div class="trip__value" data-c="guests">4 voyageurs</div></div>
+      </div>
+      <div class="lines">
+        <div class="line"><span data-c="nights-label">1 200 MAD × 3 nuits</span><span data-c="nights-amount">3 600 MAD</span></div>
+        <div class="line"><span>Ménage & linge</span><span>200 MAD</span></div>
+        <div class="line"><span>Taxe de séjour</span><span>180 MAD</span></div>
+        <div data-c="extra-lines"></div>
+        <div class="line line--total"><span>Total payé</span><span class="paid" data-c="total">3 980 MAD</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Et maintenant ?</h2>
+      <div class="steps">
+        <div class="step">
+          <span class="step__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 8l9 6 9-6"/></svg></span>
+          <div><b>La veille de votre arrivée</b><span>Vous recevez par e-mail le code de la serrure à digicode et les instructions d’arrivée pas à pas.</span></div>
+        </div>
+        <div class="step">
+          <span class="step__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21c5 0 9-3.6 9-8s-4-8-9-8-9 3.6-9 8c0 2 .8 3.8 2.2 5.2L4 21l4.4-1.6A10.6 10.6 0 0012 21z"/></svg></span>
+          <div><b>Une question, à toute heure</b><span>La conciergerie répond 7j/7 par téléphone ou WhatsApp, en français, en anglais et en arabe.</span></div>
+        </div>
+        <div class="step">
+          <span class="step__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-5.2-7-11a7 7 0 0114 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg></span>
+          <div><b>Le jour J</b><span>Présentez simplement votre réservation aux pôles de sécurité de la résidence : l’adresse exacte et le plan d’accès sont dans votre e-mail.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="ctas">
+      <a class="btn" href="index.html">
+        Retour au site
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a class="btn btn--ghost" href="index.html#acces">Préparer mon arrivée</a>
+    </div>
+  </div>
+</main>
+
+<footer class="ffoot">© Oliver Palm Duplex · Marrakech · Taxe de séjour collectée · assistance 7j/7</footer>
+
+<script>
+(function(){
+  var MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var RATE = 1200, CLEANING = 200, TAX = 180;
+  var EXTRAS = {
+    'transfert': { name: 'Transfert aéroport', price: 250 },
+    'petit-dejeuner': { name: 'Petit-déjeuner marocain', price: 80 },
+    'chef': { name: 'Chef à domicile', price: 600 },
+    'late-checkout': { name: 'Late check-out', price: 300 },
+    'hammam': { name: 'Hammam & massage', price: 450 },
+    'agafay': { name: 'Excursion Agafay', price: 900 },
+  };
+  var S = { ci: '2026-08-12', co: '2026-08-15', adults: 3, children: 1, baby: 0, extras: [], guest: null };
+  try {
+    var saved = JSON.parse(sessionStorage.getItem('opd_booking') || 'null');
+    if (saved && saved.ci && saved.co) S = saved;
+  } catch (e) {}
+
+  function el(tag, cls, text){
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function parse(iso){ var p = iso.split('-'); return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])); }
+  function fmtMAD(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' MAD'; }
+  function fmtDate(d){ return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
+  function setAll(key, text){
+    document.querySelectorAll('[data-c="' + key + '"]').forEach(function(n){ n.textContent = text; });
+  }
+
+  var ci = parse(S.ci), co = parse(S.co);
+  var nights = Math.max(1, Math.round((co - ci) / 864e5));
+  var guests = (S.adults || 0) + (S.children || 0);
+  var extras = (S.extras || []).filter(function(id){ return EXTRAS[id]; });
+  var extrasTotal = extras.reduce(function(sum, id){ return sum + EXTRAS[id].price; }, 0);
+  var total = nights * RATE + CLEANING + TAX + extrasTotal;
+  /* Référence déterministe (démo) : dérivée des dates + du total */
+  var ref = 'OPD-' + S.ci.replace(/-/g, '').slice(4) + '-' + String(total % 9973).padStart(4, '0');
+
+  setAll('ci', fmtDate(ci));
+  setAll('co', fmtDate(co));
+  setAll('guests', guests + ' voyageur' + (guests > 1 ? 's' : '') + (S.baby ? ' · 1 bébé' : ''));
+  setAll('nights-label', fmtMAD(RATE) + ' × ' + nights + ' nuit' + (nights > 1 ? 's' : ''));
+  setAll('nights-amount', fmtMAD(nights * RATE));
+  setAll('total', fmtMAD(total));
+  setAll('ref', ref);
+  setAll('ref-top', 'Réservation ' + ref);
+  if (S.guest && S.guest.firstname) setAll('firstname', S.guest.firstname);
+  if (S.guest && S.guest.email) setAll('email', S.guest.email);
+  var xl = document.querySelector('[data-c="extra-lines"]');
+  extras.forEach(function(id){
+    var line = el('div', 'line');
+    line.append(el('span', null, EXTRAS[id].name), el('span', null, fmtMAD(EXTRAS[id].price)));
+    xl.append(line);
+  });
+})();
+</script>
+</body>
+</html>

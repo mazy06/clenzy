@@ -36,9 +36,11 @@ function parseArrivalPhotos(json: string | null | undefined): Array<{ key: strin
   try {
     const arr = JSON.parse(json);
     return Array.isArray(arr)
-      ? arr
-          .filter((p) => p && typeof p.key === 'string')
-          .map((p) => ({ key: p.key as string, caption: typeof p.caption === 'string' ? p.caption : '' }))
+      ? arr.flatMap((p) =>
+          p && typeof p.key === 'string'
+            ? [{ key: p.key as string, caption: typeof p.caption === 'string' ? p.caption : '' }]
+            : [],
+        )
       : [];
   } catch {
     return [];
@@ -49,6 +51,127 @@ function parseArrivalPhotos(json: string | null | undefined): Array<{ key: strin
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string)
   : null;
+
+const guideIconBadge56Style: React.CSSProperties = {
+  width: 56,
+  height: 56,
+  borderRadius: 999,
+  background: 'var(--terra-bg)',
+  color: 'var(--terra-deep)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginBottom: 16,
+};
+
+const guideIconBadge64Style: React.CSSProperties = {
+  width: 64,
+  height: 64,
+  borderRadius: 999,
+  background: 'var(--terra-bg)',
+  color: 'var(--terra-deep)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginBottom: 16,
+};
+
+const conciergeFabStyle: React.CSSProperties = {
+  position: 'absolute',
+  right: 16,
+  bottom: 24,
+  zIndex: 40,
+  display: 'flex',
+  alignItems: 'center',
+  gap: 9,
+  padding: '12px 18px 12px 15px',
+  borderRadius: 999,
+  border: 'none',
+  cursor: 'pointer',
+  background: 'var(--terra)',
+  color: '#FFF6EF',
+  boxShadow: '0 12px 28px -8px rgba(35,24,14,.5)',
+  fontFamily: 'var(--sans)',
+  fontWeight: 700,
+  fontSize: 13.5,
+};
+
+const conciergeSheetStyle: React.CSSProperties = {
+  position: 'relative',
+  height: '86%',
+  background: 'var(--bg)',
+  borderTopLeftRadius: 30,
+  borderTopRightRadius: 30,
+  boxShadow: '0 -20px 50px -20px rgba(35,24,14,.4)',
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
+  animation: 'wb-sheet-in .4s cubic-bezier(.16,1,.3,1)',
+};
+
+const conciergeAvatarStyle: React.CSSProperties = {
+  position: 'relative',
+  width: 44,
+  height: 44,
+  borderRadius: 999,
+  background: 'linear-gradient(150deg,var(--terra),var(--terra-deep))',
+  color: '#FFF6EF',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontFamily: 'var(--serif)',
+  fontWeight: 700,
+  fontSize: 20,
+};
+
+const conciergeAvatarDotStyle: React.CSSProperties = {
+  position: 'absolute',
+  right: 0,
+  bottom: 1,
+  width: 12,
+  height: 12,
+  borderRadius: 999,
+  background: 'var(--olive)',
+  border: '2px solid var(--bg)',
+};
+
+const conciergeCloseButtonStyle: React.CSSProperties = {
+  width: 36,
+  height: 36,
+  borderRadius: 999,
+  border: '1px solid var(--line)',
+  background: 'var(--raised)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: 'var(--ink-soft)',
+  cursor: 'pointer',
+};
+
+const conciergeGreetingBubbleStyle: React.CSSProperties = {
+  padding: '11px 15px',
+  borderRadius: 20,
+  borderBottomLeftRadius: 6,
+  fontSize: 14,
+  lineHeight: 1.5,
+  background: 'var(--raised)',
+  color: 'var(--ink)',
+  border: '1px solid var(--line)',
+};
+
+const conciergeSendButtonStyle: React.CSSProperties = {
+  flexShrink: 0,
+  width: 38,
+  height: 38,
+  borderRadius: 999,
+  border: 'none',
+  background: 'var(--terra)',
+  color: '#FFF6EF',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+};
 
 async function fetchPublicGuide(token: string): Promise<PublicGuideData | null> {
   const response = await fetch(`${API_BASE}/api/public/guide/${token}`, {
@@ -186,7 +309,8 @@ const PublicGuide: React.FC = () => {
   const [upsells, setUpsells] = useState<PublicUpsell[]>([]);
   const [payingUpsell, setPayingUpsell] = useState<PublicUpsell | null>(null);
   const [payClientSecret, setPayClientSecret] = useState<string | null>(null);
-  const [payOrderId, setPayOrderId] = useState<number | null>(null);
+  // Id de commande upsell lu uniquement dans le handler de confirmation : ref.
+  const payOrderIdRef = useRef<number | null>(null);
   const [paySuccess, setPaySuccess] = useState(false);
   const [payError, setPayError] = useState(false);
   const [conciergeOpen, setConciergeOpen] = useState(false);
@@ -325,7 +449,7 @@ const PublicGuide: React.FC = () => {
         <div className="wb" data-theme={theme} style={{ width: '100%', maxWidth: 480, minHeight: '100vh', display: 'flex' }}>
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
             <div className="wb-card" style={{ maxWidth: 420, textAlign: 'center', padding: 28, background: 'var(--raised)' }}>
-              <div style={{ width: 56, height: 56, borderRadius: 999, background: 'var(--terra-bg)', color: 'var(--terra-deep)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <div style={guideIconBadge56Style}>
                 <Info size={26} strokeWidth={1.6} />
               </div>
               {guide.title ? (
@@ -347,7 +471,7 @@ const PublicGuide: React.FC = () => {
       <div className="wb" data-theme="atelier" style={{ height: '100vh' }}>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <div className="wb-card" style={{ maxWidth: 420, textAlign: 'center', padding: 28, background: 'var(--raised)' }}>
-            <div style={{ width: 56, height: 56, borderRadius: 999, background: 'var(--terra-bg)', color: 'var(--terra-deep)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <div style={guideIconBadge56Style}>
               <Info size={26} strokeWidth={1.6} />
             </div>
             <div className="wb-h2" style={{ marginBottom: 8 }}>{isNotFound ? L.notFoundTitle : 'Oups'}</div>
@@ -423,13 +547,13 @@ const PublicGuide: React.FC = () => {
     if (!token) return;
     setPayingUpsell(u);
     setPayClientSecret(null);
-    setPayOrderId(null);
+    payOrderIdRef.current = null;
     setPaySuccess(false);
     setPayError(false);
     const res = await startUpsellCheckout(token, u.offerId);
     if (res) {
       setPayClientSecret(res.clientSecret);
-      setPayOrderId(res.orderId);
+      payOrderIdRef.current = res.orderId;
     } else {
       setPayError(true);
     }
@@ -437,13 +561,14 @@ const PublicGuide: React.FC = () => {
 
   const onPayComplete = () => {
     setPaySuccess(true);
-    if (token && payOrderId != null) confirmUpsellPayment(token, payOrderId);
+    const orderId = payOrderIdRef.current;
+    if (token && orderId != null) confirmUpsellPayment(token, orderId);
   };
 
   const closePay = () => {
     setPayingUpsell(null);
     setPayClientSecret(null);
-    setPayOrderId(null);
+    payOrderIdRef.current = null;
     setPaySuccess(false);
     setPayError(false);
   };
@@ -454,7 +579,7 @@ const PublicGuide: React.FC = () => {
     ? gbDone
       ? (
         <div className="wb-rise" style={{ textAlign: 'center', padding: '40px 10px' }}>
-          <div style={{ width: 64, height: 64, borderRadius: 999, background: 'var(--terra-bg)', color: 'var(--terra-deep)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+          <div style={guideIconBadge64Style}>
             <Heart size={28} strokeWidth={1.6} fill="var(--terra-deep)" />
           </div>
           <div className="wb-h2">{L.guestbookThanks}</div>
@@ -526,26 +651,28 @@ const PublicGuide: React.FC = () => {
                     className="wb-pressable"
                     onClick={() => setConciergeOpen(true)}
                     aria-label={L.ask}
-                    style={{
-                      position: 'absolute', right: 16, bottom: 24, zIndex: 40,
-                      display: 'flex', alignItems: 'center', gap: 9, padding: '12px 18px 12px 15px',
-                      borderRadius: 999, border: 'none', cursor: 'pointer', background: 'var(--terra)', color: '#FFF6EF',
-                      boxShadow: '0 12px 28px -8px rgba(35,24,14,.5)', fontFamily: 'var(--sans)', fontWeight: 700, fontSize: 13.5,
-                    }}
+                    style={conciergeFabStyle}
                   >
                     <Sparkles size={19} strokeWidth={1.6} /> {L.ask}
                   </button>
                 ) : (
                   <div style={{ position: 'absolute', inset: 0, zIndex: 80, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-                    <div onClick={() => setConciergeOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(35,24,14,.42)' }} />
-                    <div style={{ position: 'relative', height: '86%', background: 'var(--bg)', borderTopLeftRadius: 30, borderTopRightRadius: 30, boxShadow: '0 -20px 50px -20px rgba(35,24,14,.4)', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'wb-sheet-in .4s cubic-bezier(.16,1,.3,1)' }}>
+                    <div
+                      onClick={() => setConciergeOpen(false)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setConciergeOpen(false); }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Fermer"
+                      style={{ position: 'absolute', inset: 0, background: 'rgba(35,24,14,.42)' }}
+                    />
+                    <div style={conciergeSheetStyle}>
                       <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10 }}>
                         <div style={{ width: 40, height: 5, borderRadius: 999, background: 'var(--line)' }} />
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px 14px', borderBottom: '1px solid var(--line)' }}>
-                        <div style={{ position: 'relative', width: 44, height: 44, borderRadius: 999, background: 'linear-gradient(150deg,var(--terra),var(--terra-deep))', color: '#FFF6EF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--serif)', fontWeight: 700, fontSize: 20 }}>
+                        <div style={conciergeAvatarStyle}>
                           {L.conciergeName.charAt(0)}
-                          <span style={{ position: 'absolute', right: 0, bottom: 1, width: 12, height: 12, borderRadius: 999, background: 'var(--olive)', border: '2px solid var(--bg)' }} />
+                          <span style={conciergeAvatarDotStyle} />
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 700, fontSize: 15.5 }}>{L.conciergeName}</div>
@@ -553,13 +680,13 @@ const PublicGuide: React.FC = () => {
                             <Sparkles size={12} strokeWidth={1.7} /> {L.conciergeRole}
                           </div>
                         </div>
-                        <button type="button" className="wb-pressable" onClick={() => setConciergeOpen(false)} aria-label="×" style={{ width: 36, height: 36, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--raised)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-soft)', cursor: 'pointer' }}>
+                        <button type="button" className="wb-pressable" onClick={() => setConciergeOpen(false)} aria-label="Fermer" style={conciergeCloseButtonStyle}>
                           <X size={18} strokeWidth={1.9} />
                         </button>
                       </div>
                       <div ref={chatScrollRef} className="wb__scroll" style={{ padding: '18px 16px 8px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                         <div className="wb-bubble" style={{ alignSelf: 'flex-start', maxWidth: '82%' }}>
-                          <div style={{ padding: '11px 15px', borderRadius: 20, borderBottomLeftRadius: 6, fontSize: 14, lineHeight: 1.5, background: 'var(--raised)', color: 'var(--ink)', border: '1px solid var(--line)' }}>
+                          <div style={conciergeGreetingBubbleStyle}>
                             {L.chatGreeting}
                           </div>
                         </div>
@@ -572,8 +699,8 @@ const PublicGuide: React.FC = () => {
                         ))}
                         {chatMessages.length === 0 ? (
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
-                            {[L.suggest1, L.suggest2, L.suggest3].map((q, i) => (
-                              <button key={i} type="button" className="wb-chip wb-pressable" onClick={() => sendChat(q)} style={{ fontSize: 12.5, padding: '8px 13px', borderColor: 'var(--terra-soft)', color: 'var(--terra-deep)', background: 'var(--terra-bg)' }}>
+                            {[L.suggest1, L.suggest2, L.suggest3].map((q) => (
+                              <button key={q} type="button" className="wb-chip wb-pressable" onClick={() => sendChat(q)} style={{ fontSize: 12.5, padding: '8px 13px', borderColor: 'var(--terra-soft)', color: 'var(--terra-deep)', background: 'var(--terra-bg)' }}>
                                 {q}
                               </button>
                             ))}
@@ -597,9 +724,9 @@ const PublicGuide: React.FC = () => {
                               }
                             }}
                             placeholder={L.chatPlaceholder}
-                            style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)' }}
+                            style={{ flex: 1, border: 'none', background: 'transparent', fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)' }}
                           />
-                          <button type="button" className="wb-pressable" onClick={() => void sendChat()} disabled={chatSending || !chatInput.trim()} aria-label="Send" style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 999, border: 'none', background: 'var(--terra)', color: '#FFF6EF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', opacity: chatSending || !chatInput.trim() ? 0.55 : 1 }}>
+                          <button type="button" className="wb-pressable" onClick={() => void sendChat()} disabled={chatSending || !chatInput.trim()} aria-label="Send" style={{ ...conciergeSendButtonStyle, opacity: chatSending || !chatInput.trim() ? 0.55 : 1 }}>
                             <ArrowUp size={19} strokeWidth={1.9} />
                           </button>
                         </div>

@@ -95,8 +95,8 @@ function SpikeInner() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12 }}>
         <strong>Validation requise par l'agent</strong>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => void resolve({ confirmed: true })}>Approuver</button>
-          <button onClick={() => void cancel()}>Refuser</button>
+          <button type="button" onClick={() => void resolve({ confirmed: true })}>Approuver</button>
+          <button type="button" onClick={() => void cancel()}>Refuser</button>
         </div>
       </div>
     ),

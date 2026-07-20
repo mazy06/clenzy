@@ -189,6 +189,8 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
     }
   };
 
+  const selectedPropertyIdSet = new Set(form.propertyIds);
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
@@ -408,18 +410,21 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
                 multiple
                 options={properties}
                 getOptionLabel={(p) => p.name ?? `Property #${p.id}`}
-                value={properties.filter((p) => form.propertyIds.includes(Number(p.id)))}
+                value={properties.filter((p) => selectedPropertyIdSet.has(Number(p.id)))}
                 onChange={(_, sel) => update('propertyIds', sel.map((p) => Number(p.id)))}
                 renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      variant="outlined"
-                      label={option.name}
-                      size="small"
-                      {...getTagProps({ index })}
-                      key={option.id}
-                    />
-                  ))
+                  value.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return (
+                      <Chip
+                        key={key}
+                        variant="outlined"
+                        label={option.name}
+                        size="small"
+                        {...tagProps}
+                      />
+                    );
+                  })
                 }
                 renderInput={(params) => (
                   <TextField

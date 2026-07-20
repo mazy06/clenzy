@@ -1,7 +1,7 @@
 export { propertySchema } from './propertySchema';
 export type { PropertyFormValues } from './propertySchema';
 
-export { userSchema, userEditSchema } from './userSchema';
+export { userSchema } from './userSchema';
 export type { UserFormValues } from './userSchema';
 
 export { interventionSchema } from './interventionSchema';

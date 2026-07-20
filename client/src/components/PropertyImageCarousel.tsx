@@ -188,9 +188,9 @@ export function PropertyImageCarousel({
                 pointerEvents: 'none',
               }}
             >
-              {urls.map((_, i) => (
+              {urls.map((url, i) => (
                 <Box
-                  key={i}
+                  key={url}
                   sx={{
                     width: alwaysShowNav ? 8 : 4,
                     height: alwaysShowNav ? 8 : 4,

@@ -44,6 +44,15 @@ export default function VoucherAnalyticsPanel() {
   const { t, currentLanguage } = useTranslation();
   const { data, isLoading, error } = useVoucherAnalytics();
 
+  const currencyFormatter = React.useMemo(
+    () => new Intl.NumberFormat(currentLanguage, {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 2,
+    }),
+    [currentLanguage],
+  );
+
   // Affichage conditionnel : si pas de data ou aucune usage, on rend juste
   // un compteur d'actifs (utile meme sans historique).
   if (isLoading) {
@@ -75,11 +84,6 @@ export default function VoucherAnalyticsPanel() {
     );
   }
 
-  const currencyFormatter = new Intl.NumberFormat(currentLanguage, {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2,
-  });
   const fmt = (v: string) => currencyFormatter.format(Number(v));
 
   const periodLabel = formatPeriod(data.from, data.to, currentLanguage);

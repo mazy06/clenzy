@@ -28,7 +28,8 @@ class IngestionServiceTest {
         documentRepository = mock(KbDocumentRepository.class);
         chunkRepository = mock(KbChunkRepository.class);
         embeddingService = mock(EmbeddingService.class);
-        service = new IngestionService(documentRepository, chunkRepository, embeddingService);
+        service = new IngestionService(documentRepository, chunkRepository, embeddingService,
+                mock(org.springframework.transaction.PlatformTransactionManager.class));
 
         when(documentRepository.save(any(KbDocument.class))).thenAnswer(inv -> {
             KbDocument d = inv.getArgument(0);
@@ -91,6 +92,48 @@ class IngestionServiceTest {
         assertTrue(chunks.size() > 1, "Section trop longue doit etre re-chunked");
         chunks.forEach(c -> assertTrue(c.length() <= 2500,
                 "Chaque chunk doit rester sous ~2000 caracteres : " + c.length()));
+    }
+
+    @Test
+    void splitIntoChunks_subChunks_keepSectionTitleAsContinuation() {
+        // Section > 2000 chars avec paragraphes courts → re-decoupage : les
+        // sous-chunks suivants doivent porter le titre de section "(suite)"
+        String big = "## Politique d'annulation\n\n" + ("phrase utile. ".repeat(40) + "\n\n").repeat(8);
+        List<String> chunks = service.splitIntoChunks(big);
+        assertTrue(chunks.size() > 1);
+        assertTrue(chunks.get(0).startsWith("## Politique d'annulation"));
+        for (int i = 1; i < chunks.size(); i++) {
+            assertTrue(chunks.get(i).startsWith("## Politique d'annulation (suite)"),
+                    "Sous-chunk " + i + " doit garder le contexte de section");
+        }
+    }
+
+    @Test
+    void splitIntoChunks_withDocTitle_prefixesChunksWithoutH1() {
+        String md = "intro assez longue pour depasser le seuil minimal de deux cents caracteres, "
+                + "encore quelques mots pour y arriver tranquillement sans forcer le remplissage."
+                + "x".repeat(80)
+                + "\n\n## Section A\nContenu A.\n\n## Section B\nContenu B.";
+        List<String> chunks = service.splitIntoChunks(md, "Guide des reservations");
+        assertFalse(chunks.isEmpty());
+        chunks.forEach(c -> assertTrue(c.startsWith("Document : Guide des reservations"),
+                "Chaque chunk sans H1 doit etre contextualise : " + c.substring(0, Math.min(60, c.length()))));
+    }
+
+    @Test
+    void splitByParagraph_overlapCarriesLastShortParagraph() {
+        // Paragraphes de ~150 chars (< OVERLAP_MAX_CHARS=240) → l'overlap s'applique :
+        // le premier paragraphe d'un sous-chunk n>0 repete le dernier du precedent
+        StringBuilder md = new StringBuilder("## Section\n\n");
+        for (int i = 0; i < 30; i++) {
+            md.append("p").append(i).append(" ").append("mot ".repeat(35)).append("\n\n");
+        }
+        List<String> chunks = service.splitIntoChunks(md.toString());
+        assertTrue(chunks.size() > 1);
+        // Le chunk 2 commence par le dernier paragraphe du chunk 1 (apres le titre "(suite)")
+        String tailOfFirst = chunks.get(0).substring(chunks.get(0).lastIndexOf("\n\n") + 2);
+        assertTrue(chunks.get(1).contains(tailOfFirst.substring(0, Math.min(20, tailOfFirst.length()))),
+                "Le sous-chunk suivant doit reprendre le dernier paragraphe du precedent");
     }
 
     @Test

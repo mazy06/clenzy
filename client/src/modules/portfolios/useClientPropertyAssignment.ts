@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import { managersApi, portfoliosKeys } from '../../services/api';
+import { managersApi, portfoliosKeys } from '../../services/api/portfoliosApi';
 import type { Manager, HostClient, AssignmentProperty } from '../../services/api';
 import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';

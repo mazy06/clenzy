@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import { teamsApi, interventionsApi } from '../../services/api';
+import { teamsApi } from '../../services/api/teamsApi';
+import { interventionsApi } from '../../services/api/interventionsApi';
 import type { Team, Intervention } from '../../services/api';
 import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -70,7 +71,7 @@ export function useTeamsList() {
     staleTime: 30_000,
   });
 
-  const teams = teamsQuery.data ?? [];
+  const teams = useMemo(() => teamsQuery.data ?? [], [teamsQuery.data]);
   const loading = teamsQuery.isLoading;
   const error = teamsQuery.isError
     ? ((teamsQuery.error as { status?: number })?.status === 401

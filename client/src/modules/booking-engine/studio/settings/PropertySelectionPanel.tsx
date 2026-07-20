@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Box, ButtonBase, Checkbox, Skeleton } from '@mui/material';
 import { AlertTriangle, Home, Info } from 'lucide-react';
 import { propertiesApi, type Property } from '../../../../services/api/propertiesApi';
@@ -29,7 +29,8 @@ export default function PropertySelectionPanel({ cfg }: PropertySelectionPanelPr
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(true);
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [hydrated, setHydrated] = useState(false);
+  // Gate d'hydratation one-shot (jamais lu au render) : ref, pas de re-render.
+  const hydratedRef = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -41,13 +42,13 @@ export default function PropertySelectionPanel({ cfg }: PropertySelectionPanelPr
 
   // Hydratation unique depuis la config.
   useEffect(() => {
-    if (hydrated || cfg.loading || !cfg.config) return;
+    if (hydratedRef.current || cfg.loading || !cfg.config) return;
     const raw = cfg.config.featuredPropertyIds;
     const ids = parseCsv(raw);
     setShowAll(!raw || ids.size === 0);
     setSelected(ids);
-    setHydrated(true);
-  }, [hydrated, cfg.loading, cfg.config]);
+    hydratedRef.current = true;
+  }, [cfg.loading, cfg.config]);
 
   const syncToConfig = (nextShowAll: boolean, nextSelected: Set<number>) => {
     cfg.patch({ featuredPropertyIds: nextShowAll ? null : Array.from(nextSelected).join(',') });

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Autocomplete, Box, Chip, CircularProgress, TextField, Typography } from '@mui/material';
 import { AlertTriangle, BellRing } from 'lucide-react';
 
@@ -20,13 +20,10 @@ interface Props {
  * (self-send → soft bounces intermittents).
  */
 const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving }) => {
+  // Copie editable initialisee depuis la prop ; le resync backend passe par le
+  // remount via `key` chez le parent (LaunchSettingsSection) — plus d'effet miroir.
   const [emails, setEmails] = useState<string[]>(value);
   const [inputError, setInputError] = useState<string | null>(null);
-
-  // Resync quand le backend renvoie une nouvelle valeur.
-  useEffect(() => {
-    setEmails(value);
-  }, [value]);
 
   const hasSelfSend = useMemo(
     () => emails.some((e) => e.trim().toLowerCase() === SENDER),
@@ -78,11 +75,11 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
         renderTags={(val: readonly string[], getTagProps) =>
           val.map((option, index) => {
             const isSelf = option.trim().toLowerCase() === SENDER;
-            const tagProps = getTagProps({ index });
+            const { key, ...tagProps } = getTagProps({ index });
             return (
               <Chip
+                key={key}
                 {...tagProps}
-                key={option}
                 label={option}
                 size="small"
                 color={isSelf ? 'warning' : 'default'}

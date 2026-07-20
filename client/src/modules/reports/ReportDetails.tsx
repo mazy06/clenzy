@@ -64,16 +64,14 @@ import PageHeader from '../../components/PageHeader';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 import PeriodSegmented from './PeriodSegmented';
 import DashboardErrorBoundary from '../dashboard/DashboardErrorBoundary';
-import {
-  AnalyticsGlobalPerformance,
-  AnalyticsRevenue,
-  AnalyticsAlerts,
-  AnalyticsRecommendations,
-  AnalyticsOccupancy,
-  AnalyticsClientAnalysis,
-  AnalyticsPropertyPerformance,
-  AnalyticsBenchmark,
-} from '../dashboard/analytics';
+import AnalyticsGlobalPerformance from '../dashboard/analytics/AnalyticsGlobalPerformance';
+import AnalyticsRevenue from '../dashboard/analytics/AnalyticsRevenue';
+import AnalyticsAlerts from '../dashboard/analytics/AnalyticsAlerts';
+import AnalyticsRecommendations from '../dashboard/analytics/AnalyticsRecommendations';
+import AnalyticsOccupancy from '../dashboard/analytics/AnalyticsOccupancy';
+import AnalyticsClientAnalysis from '../dashboard/analytics/AnalyticsClientAnalysis';
+import AnalyticsPropertyPerformance from '../dashboard/analytics/AnalyticsPropertyPerformance';
+import AnalyticsBenchmark from '../dashboard/analytics/AnalyticsBenchmark';
 import AnalyticsWidgetCard from '../dashboard/analytics/AnalyticsWidgetCard';
 import { Money } from '../../components/Money';
 import type { DashboardPeriod, DateFilterOption } from '../dashboard/DashboardDateFilter';
@@ -251,8 +249,8 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
           {label}
         </Typography>
       )}
-      {payload.map((entry, index) => (
-        <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+      {payload.map((entry) => (
+        <Box key={entry.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: entry.color || 'var(--accent)', flexShrink: 0 }} />
           <Typography sx={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--bg)', fontVariantNumeric: 'tabular-nums' }}>
             {entry.name}: {entry.value}
@@ -428,7 +426,7 @@ const InterventionsReport: React.FC = () => {
                         labelLine={true}
                       >
                         {data.byStatus.map((entry, index) => (
-                          <Cell key={`status-${index}`} fill={entry.color || ct.series[index % ct.series.length]} />
+                          <Cell key={`status-${entry.name}`} fill={entry.color || ct.series[index % ct.series.length]} />
                         ))}
                       </Pie>
                       <Tooltip content={<CustomTooltip />} />
@@ -451,7 +449,7 @@ const InterventionsReport: React.FC = () => {
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="value" name={t('reports.charts.interventions')} radius={[4, 4, 0, 0]}>
                         {data.byType.map((entry, index) => (
-                          <Cell key={`type-${index}`} fill={entry.color || ct.series[index % ct.series.length]} />
+                          <Cell key={`type-${entry.name}`} fill={entry.color || ct.series[index % ct.series.length]} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -511,7 +509,7 @@ const InterventionsReport: React.FC = () => {
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="value" name={t('reports.charts.interventions')} radius={[0, 4, 4, 0]}>
                         {data.byPriority.map((entry, index) => (
-                          <Cell key={`priority-${index}`} fill={entry.color || ct.series[index % ct.series.length]} />
+                          <Cell key={`priority-${entry.name}`} fill={entry.color || ct.series[index % ct.series.length]} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -682,8 +680,8 @@ const TeamsReport: React.FC = () => {
                       <YAxis type="category" dataKey="name" tick={axisTick(ct)} width={90} />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="completionRate" name={t('reports.kpi.completionRate', 'Completion')} radius={[0, 4, 4, 0]}>
-                        {teamCompletionRates.map((entry, index) => (
-                          <Cell key={`cr-${index}`} fill={entry.completionRate >= 70 ? ct.ok : entry.completionRate >= 40 ? ct.warn : ct.err} />
+                        {teamCompletionRates.map((entry) => (
+                          <Cell key={`cr-${entry.name}`} fill={entry.completionRate >= 70 ? ct.ok : entry.completionRate >= 40 ? ct.warn : ct.err} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -1164,7 +1162,7 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                         labelLine={true}
                       >
                         {data.costBreakdown.map((entry, index) => (
-                          <Cell key={`cost-${index}`} fill={entry.color || ct.series[index % ct.series.length]} />
+                          <Cell key={`cost-${entry.name}`} fill={entry.color || ct.series[index % ct.series.length]} />
                         ))}
                       </Pie>
                       <Tooltip content={<CustomTooltip />} />

@@ -253,9 +253,9 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
 const SkeletonList: React.FC = () => {
   return (
     <Box sx={{ px: 0.5, pt: 1 }}>
-      {[80, 65, 75].map((width, i) => (
+      {[80, 65, 75].map((width) => (
         <Box
-          key={i}
+          key={width}
           sx={{
             mx: 0.5,
             mb: 0.5,
@@ -318,6 +318,5 @@ function groupByPeriod(conversations: ConversationSummary[]): ConversationGroup[
 
   // Filtre les groupes vides, preserve l'ordre defini ci-dessus.
   return Object.entries(groups)
-    .filter(([, items]) => items.length > 0)
-    .map(([label, items]) => ({ label, items }));
+    .flatMap(([label, items]) => (items.length > 0 ? [{ label, items }] : []));
 }

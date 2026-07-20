@@ -91,6 +91,8 @@ function getNoiseStatus(level: number): { label: string; color: 'success' | 'war
   return { label: 'Critique', color: 'error', icon: <ErrorIcon size={14} strokeWidth={1.75} /> };
 }
 
+const hourLabel = (h: number) => `${h.toString().padStart(2, '0')}:00`;
+
 // ─── Custom Tooltip ─────────────────────────────────────────────────────────
 
 interface CustomTooltipProps {
@@ -117,10 +119,10 @@ const NoiseTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) 
       <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>
         {label}
       </Typography>
-      {payload.map((entry, idx) => {
+      {payload.map((entry) => {
         const status = getNoiseStatus(entry.value);
         return (
-          <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
+          <Box key={entry.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: entry.color, flexShrink: 0 }} />
             <Typography sx={{ fontSize: '0.6875rem', flex: 1 }}>{entry.name}</Typography>
             <Chip
@@ -184,7 +186,6 @@ const ThresholdLinesRenderer: React.FC<ThresholdLinesRendererProps> = ({
     return plotArea.y + plotArea.height * (1 - (value - yMin) / (yMax - yMin));
   };
 
-  const hourLabel = (h: number) => `${h.toString().padStart(2, '0')}:00`;
   const hasLabel = (label: string) => categories.includes(label);
 
   /**

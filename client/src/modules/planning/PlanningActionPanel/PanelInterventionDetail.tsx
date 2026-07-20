@@ -121,6 +121,24 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
     }
   }, [amountValue, amountMode, interventionId]);
 
+  const handleStart = useCallback(async () => {
+    if (!onStartIntervention) return;
+    setLoading(true);
+    setError(null);
+    const result = await onStartIntervention(interventionId);
+    if (!result.success) setError(result.error);
+    setLoading(false);
+  }, [interventionId, onStartIntervention]);
+
+  const handleComplete = useCallback(async () => {
+    if (!onCompleteIntervention) return;
+    setLoading(true);
+    setError(null);
+    const result = await onCompleteIntervention(interventionId);
+    if (!result.success) setError(result.error);
+    setLoading(false);
+  }, [interventionId, onCompleteIntervention]);
+
   // Find the intervention
   const intervention = interventions?.find((i) => i.id === interventionId)
     || (event.intervention?.id === interventionId ? event.intervention : null);
@@ -158,24 +176,6 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
         ? (intervention.afterPhotosUrls as string).split(',').filter(Boolean)
         : intervention.afterPhotosUrls as string[])
     : [];
-
-  const handleStart = useCallback(async () => {
-    if (!onStartIntervention) return;
-    setLoading(true);
-    setError(null);
-    const result = await onStartIntervention(interventionId);
-    if (!result.success) setError(result.error);
-    setLoading(false);
-  }, [interventionId, onStartIntervention]);
-
-  const handleComplete = useCallback(async () => {
-    if (!onCompleteIntervention) return;
-    setLoading(true);
-    setError(null);
-    const result = await onCompleteIntervention(interventionId);
-    if (!result.success) setError(result.error);
-    setLoading(false);
-  }, [interventionId, onCompleteIntervention]);
 
   return (
     <Box>

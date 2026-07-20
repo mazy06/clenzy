@@ -20,6 +20,13 @@ public interface KbDocumentRepository extends JpaRepository<KbDocument, Long> {
     Optional<KbDocument> findBySourcePathAndOrg(@Param("sourcePath") String sourcePath,
                                                  @Param("orgId") Long orgId);
 
+    /** Nombre de docs globaux Baitly (KPI admin). */
+    long countByOrganizationIdIsNull();
+
+    /** Docs decoupes avec un ancien chunker — a re-ingerer (batch par le scheduler). */
+    List<KbDocument> findByChunkerVersionLessThan(int version,
+                                                    org.springframework.data.domain.Pageable pageable);
+
     /**
      * Liste les docs visibles par une org : docs globaux (org_id NULL) +
      * docs specifiques a l'org demandee.

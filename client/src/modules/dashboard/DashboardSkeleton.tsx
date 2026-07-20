@@ -53,9 +53,9 @@ const SectionSkeleton: React.FC<{ height?: number; titleWidth?: string }> = ({
 
 const SidebarSkeleton: React.FC = () => (
   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-    {[110, 140, 120].map((h, i) => (
+    {[110, 140, 120].map((h) => (
       <Card
-        key={i}
+        key={h}
         variant="outlined"
         sx={{
           borderRadius: 'var(--radius-lg)',

@@ -37,12 +37,13 @@ import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import { teamsApi, usersApi } from '../../services/api';
+import { teamsApi } from '../../services/api/teamsApi';
+import { usersApi } from '../../services/api/usersApi';
 import type { TeamFormData as ApiTeamFormData } from '../../services/api/teamsApi';
 import { extractApiList } from '../../types';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
-import { teamSchema, type TeamFormValues, type TeamFormInput } from '../../schemas';
+import { teamSchema, type TeamFormValues, type TeamFormInput } from '../../schemas/teamSchema';
 import { teamsKeys } from './useTeamsList';
 import { FRENCH_DEPARTMENTS, getArrondissementsForDepartment, hasArrondissements } from '../../data/frenchDepartments';
 import { COVERAGE_COUNTRIES, getCitiesForCountry } from '../../data/coverageCountries';
@@ -170,7 +171,8 @@ const TeamForm: React.FC = () => {
   const getFilteredUsers = () => {
     const selectedCategory = teamServiceCategories.find(cat => cat.value === watchedInterventionType);
     if (!selectedCategory) return users;
-    return users.filter(user => selectedCategory.roles.includes(user.role?.toUpperCase()));
+    const roleSet = new Set(selectedCategory.roles);
+    return users.filter(user => roleSet.has(user.role?.toUpperCase()));
   };
 
   // Rôles disponibles dans l'équipe (en MAJUSCULES pour matcher le backend)

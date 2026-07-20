@@ -165,9 +165,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
                 Votre rôle : 
               </Typography>
               {user.roles.map((role, index) => (
-                <Chip 
-                  key={index} 
-                  label={role} 
+                <Chip
+                  key={role}
+                  label={role}
                   size="small" 
                   color="primary" 
                   variant="outlined"

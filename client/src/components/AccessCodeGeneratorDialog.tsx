@@ -51,6 +51,14 @@ const NEXT_TYPE: Record<CodeCharType, CodeCharType> = { digits: 'letters', lette
 
 export const DEFAULT_CODE_FORMAT: CodeFormat = { pattern: Array(6).fill('digits') };
 
+const chipSx = (on: boolean, color: string) => ({
+  fontFamily: 'monospace',
+  fontWeight: 700,
+  cursor: 'pointer',
+  minWidth: 34,
+  ...(on ? { bgcolor: color, color: '#fff', borderColor: color, '&:hover': { bgcolor: color, opacity: 0.85 } } : {}),
+});
+
 // ─── Generation (crypto.getRandomValues, repli Math.random) ───────────────────
 
 function randomInt(max: number): number {
@@ -199,14 +207,6 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
   };
   const hasLetters = counts.letters > 0;
   const hasSymbols = counts.symbols > 0;
-
-  const chipSx = (on: boolean, color: string) => ({
-    fontFamily: 'monospace',
-    fontWeight: 700,
-    cursor: 'pointer',
-    minWidth: 34,
-    ...(on ? { bgcolor: color, color: '#fff', borderColor: color, '&:hover': { bgcolor: color, opacity: 0.85 } } : {}),
-  });
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>

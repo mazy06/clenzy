@@ -42,15 +42,26 @@ public class KbIndexTuningScheduler {
     private static final Pattern LISTS_PATTERN = Pattern.compile("lists\\s*=\\s*'?(\\d+)'?");
 
     private final JdbcTemplate jdbcTemplate;
+    private final com.clenzy.service.NotificationService notificationService;
     private final boolean enabled;
     private final boolean autoApply;
+    /** Notification staff dedupliquee : une fois par boot, pas une par nuit. */
+    private final java.util.concurrent.atomic.AtomicBoolean retuneNotified =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
 
     public KbIndexTuningScheduler(JdbcTemplate jdbcTemplate,
+                                    com.clenzy.service.NotificationService notificationService,
                                     @Value("${clenzy.assistant.kb.tuning-enabled:true}") boolean enabled,
                                     @Value("${clenzy.assistant.kb.auto-tune-enabled:false}") boolean autoApply) {
         this.jdbcTemplate = jdbcTemplate;
+        this.notificationService = notificationService;
         this.enabled = enabled;
         this.autoApply = autoApply;
+    }
+
+    /** True si la reconstruction automatique de l'index est activee. */
+    public boolean isAutoApplyEnabled() {
+        return autoApply;
     }
 
     /** Tous les jours a 4h UTC : creneau de plus faible activite. */
@@ -60,17 +71,12 @@ public class KbIndexTuningScheduler {
     }
 
     /**
-     * Execution effective — separee du cron pour permettre l'appel direct dans
-     * les tests / endpoints admin.
-     *
-     * @return resultat de l'inspection (toujours non-null)
+     * Inspection READ-ONLY de la sante de l'index : compte les chunks indexes,
+     * lit la valeur {@code lists} courante et calcule le drift — sans jamais
+     * appliquer de DDL. Utilisee par le KPI admin ({@code GET /api/admin/kb/stats})
+     * et par {@link #runOnce()}.
      */
-    public TuningOutcome runOnce() {
-        if (!enabled) {
-            log.debug("KbIndexTuningScheduler : disabled, skip");
-            return TuningOutcome.disabled();
-        }
-
+    public TuningOutcome inspect() {
         long count;
         try {
             Long raw = jdbcTemplate.queryForObject(
@@ -95,16 +101,39 @@ public class KbIndexTuningScheduler {
                     count, currentLists, optimalLists, Math.round(drift * 100));
             return TuningOutcome.upToDate(count, currentLists, optimalLists);
         }
+        return TuningOutcome.recommendation(count, currentLists, optimalLists);
+    }
 
-        log.warn("KbIndexTuningScheduler : index drift detected (count={}, current_lists={}, optimal_lists={}, drift={}%)",
-                count, currentLists, optimalLists, Math.round(drift * 100));
+    /**
+     * Execution effective — separee du cron pour permettre l'appel direct dans
+     * les tests / endpoints admin.
+     *
+     * @return resultat de l'inspection (toujours non-null)
+     */
+    public TuningOutcome runOnce() {
+        if (!enabled) {
+            log.debug("KbIndexTuningScheduler : disabled, skip");
+            return TuningOutcome.disabled();
+        }
+
+        TuningOutcome outcome = inspect();
+        if (outcome.status() != TuningOutcome.Status.RECOMMENDATION) {
+            return outcome;
+        }
+        long count = outcome.chunkCount();
+        int currentLists = outcome.currentLists();
+        int optimalLists = outcome.optimalLists();
+
+        log.warn("KbIndexTuningScheduler : index drift detected (count={}, current_lists={}, optimal_lists={})",
+                count, currentLists, optimalLists);
 
         if (!autoApply) {
             log.warn("KbIndexTuningScheduler : auto-tune disabled — applique manuellement :\n" +
                     "  DROP INDEX CONCURRENTLY {};\n" +
                     "  CREATE INDEX CONCURRENTLY {} ON kb_chunk USING ivfflat (embedding vector_cosine_ops) WITH (lists = {});",
                     INDEX_NAME, INDEX_NAME, optimalLists);
-            return TuningOutcome.recommendation(count, currentLists, optimalLists);
+            notifyRetuneRecommended(count, currentLists, optimalLists);
+            return outcome;
         }
 
         try {
@@ -115,6 +144,24 @@ public class KbIndexTuningScheduler {
         } catch (Exception e) {
             log.error("KbIndexTuningScheduler : auto-tune failed", e);
             return TuningOutcome.error("apply failed: " + e.getMessage());
+        }
+    }
+
+    /** Alerte le staff plateforme (une fois par boot) : la base a grossi, l'index rame. */
+    private void notifyRetuneRecommended(long count, int currentLists, int optimalLists) {
+        if (notificationService == null || !retuneNotified.compareAndSet(false, true)) return;
+        try {
+            notificationService.notifyAllPlatformStaff(
+                    com.clenzy.model.NotificationKey.KB_INDEX_RETUNE,
+                    "Index de la base de connaissances a recalibrer",
+                    "La base de connaissances atteint " + count + " extraits indexes : l'index vectoriel "
+                            + "(lists=" + currentLists + ", optimal=" + optimalLists + ") degrade la qualite "
+                            + "de recherche de l'assistant. Activez l'auto-tune "
+                            + "(clenzy.assistant.kb.auto-tune-enabled) ou recreez l'index — details dans "
+                            + "Parametres > IA > Base de connaissances.",
+                    "/settings?tab=ai");
+        } catch (Exception e) {
+            log.warn("KbIndexTuningScheduler : notification retune echouee : {}", e.getMessage());
         }
     }
 

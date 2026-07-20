@@ -48,6 +48,12 @@ function FeatureItem({ text }: { text: string }) {
   );
 }
 
+const centsToEuros = (cents: number) => (cents / 100).toFixed(0);
+const eurosToCents = (val: string) => {
+  const euros = parseInt(val, 10);
+  return isNaN(euros) ? 0 : euros * 100;
+};
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbol }: TabMonitoringProps) {
@@ -60,12 +66,6 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
     (config.monitoringClenzyInstallationPriceCents || 0) +
     (config.monitoringClenzyConfigPriceCents || 0) +
     (config.monitoringClenzySupportPriceCents || 0);
-
-  const centsToEuros = (cents: number) => (cents / 100).toFixed(0);
-  const eurosToCents = (val: string) => {
-    const euros = parseInt(val, 10);
-    return isNaN(euros) ? 0 : euros * 100;
-  };
 
   return (
     <Box sx={{ pt: 2 }}>

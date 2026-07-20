@@ -15,7 +15,7 @@ import {
 } from '../../icons';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
-import { interventionsApi } from '../../services/api';
+import { interventionsApi } from '../../services/api/interventionsApi';
 import type { Intervention } from '../../services/api';
 import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -25,6 +25,16 @@ interface TeamWorkloadCardProps {
   teamId: number;
   teamName: string;
 }
+
+// Couleurs data par statut — palette Baitly desaturee
+const statusColors: Record<string, string> = {
+  PENDING: '#D4A574',
+  AWAITING_VALIDATION: '#7B68A8',
+  AWAITING_PAYMENT: '#C97A7A',
+  IN_PROGRESS: '#7BA3C2',
+  COMPLETED: '#4A9B8E',
+  CANCELLED: '#8A8378',
+};
 
 const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName }) => {
   const { t } = useTranslation();
@@ -109,16 +119,6 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
     CANCELLED: t('interventions.statuses.CANCELLED'),
   };
 
-  // Couleurs data par statut — palette Baitly desaturee
-  const statusColors: Record<string, string> = {
-    PENDING: '#D4A574',
-    AWAITING_VALIDATION: '#7B68A8',
-    AWAITING_PAYMENT: '#C97A7A',
-    IN_PROGRESS: '#7BA3C2',
-    COMPLETED: '#4A9B8E',
-    CANCELLED: '#8A8378',
-  };
-
   const chartData = Object.entries(statusCounts).map(([status, count]) => ({
     name: statusLabels[status] || status,
     value: count,
@@ -161,8 +161,8 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
         </Box>
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          {metrics.map((metric, index) => (
-            <Grid item xs={4} key={index}>
+          {metrics.map((metric) => (
+            <Grid item xs={4} key={metric.label}>
               <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: '12px', bgcolor: 'var(--field)', border: '1px solid var(--field-line)' }}>
                 {metric.icon}
                 <Typography variant="h5" sx={{ color: metric.color, mt: 0.5, fontFamily: 'var(--font-display)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
@@ -202,8 +202,8 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
                 <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
                 <Tooltip />
                 <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  {chartData.map((entry) => (
+                    <Cell key={`cell-${entry.name}`} fill={entry.color} />
                   ))}
                 </Bar>
               </BarChart>

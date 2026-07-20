@@ -210,9 +210,9 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                   <TableCell>
                     {property.amenities && property.amenities.length > 0 ? (
                       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', alignItems: 'center', minWidth: 0 }}>
-                        {property.amenities.slice(0, 2).map((amenity, i) => (
+                        {property.amenities.slice(0, 2).map((amenity) => (
                           <Chip
-                            key={i}
+                            key={amenity}
                             label={t(`properties.amenities.items.${amenity}`)}
                             size="small"
                             sx={{
@@ -233,9 +233,9 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                           <ThemedTooltip
                             title={
                               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                {property.amenities.map((a, i) => (
+                                {property.amenities.map((a) => (
                                   <Chip
-                                    key={i}
+                                    key={a}
                                     label={t(`properties.amenities.items.${a}`)}
                                     size="small"
                                     sx={{ ...FIELD_CHIP_SX, height: 20, '& .MuiChip-label': { px: 1 } }}

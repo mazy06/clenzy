@@ -61,9 +61,11 @@ export function MapboxPropertyMap({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const onMarkerClickRef = useRef(onMarkerClick);
-  onMarkerClickRef.current = onMarkerClick;
   const onBoundsChangeRef = useRef(onBoundsChange);
-  onBoundsChangeRef.current = onBoundsChange;
+  useEffect(() => {
+    onMarkerClickRef.current = onMarkerClick;
+    onBoundsChangeRef.current = onBoundsChange;
+  }, [onMarkerClick, onBoundsChange]);
 
   const mapStyle = isDark ? MAP_STYLES.dark : MAP_STYLES.light;
 
@@ -98,10 +100,12 @@ export function MapboxPropertyMap({
     });
 
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-    map.on('moveend', () => emitBounds());
+    const handleMoveEnd = () => emitBounds();
+    map.on('moveend', handleMoveEnd);
     mapRef.current = map;
 
     return () => {
+      map.off('moveend', handleMoveEnd);
       clearMarkers();
       map.remove();
       mapRef.current = null;
@@ -152,6 +156,10 @@ export function MapboxPropertyMap({
     } else {
       map.on('load', addMarkers);
     }
+
+    return () => {
+      map.off('load', addMarkers);
+    };
   }, [properties, clearMarkers, emitBounds]);
 
   if (!MAPBOX_TOKEN) {

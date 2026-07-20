@@ -20,6 +20,8 @@ import { Money } from '../../components/Money';
 import { SHOP_PRODUCTS } from './shopProducts';
 import ProductHero from './ProductHero';
 
+const formatPrice = (cents: number) => <Money value={cents / 100} from="EUR" />;
+
 interface CartDrawerProps {
   open: boolean;
   onClose: () => void;
@@ -39,14 +41,11 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const formatPrice = (cents: number) => <Money value={cents / 100} from="EUR" />;
-
   const cartItems = Array.from(cart.entries())
-    .map(([id, qty]) => {
+    .flatMap(([id, qty]) => {
       const product = SHOP_PRODUCTS.find((p) => p.id === id);
-      return product ? { product, quantity: qty } : null;
-    })
-    .filter(Boolean) as { product: (typeof SHOP_PRODUCTS)[number]; quantity: number }[];
+      return product ? [{ product, quantity: qty }] : [];
+    });
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);

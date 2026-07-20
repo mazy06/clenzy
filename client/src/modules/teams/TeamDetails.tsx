@@ -19,7 +19,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import { teamsApi } from '../../services/api';
+import { teamsApi } from '../../services/api/teamsApi';
 import type { TeamMember } from '../../services/api';
 import PageHeader from '../../components/PageHeader';
 import TeamWorkloadCard from './TeamWorkloadCard';
@@ -39,6 +39,15 @@ interface Team {
   createdAt?: string;
   updatedAt?: string;
 }
+
+const getInterventionTypeIcon = (type: string) => {
+  switch (type) {
+    case 'CLEANING': return <CleaningServices />;
+    case 'MAINTENANCE': return <Build />;
+    case 'REPAIR': return <Build />;
+    default: return <Group />;
+  }
+};
 
 const TeamDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -74,15 +83,6 @@ const TeamDetails: React.FC = () => {
 
   const handleEdit = () => {
     navigate(`/teams/${id}/edit`);
-  };
-
-  const getInterventionTypeIcon = (type: string) => {
-    switch (type) {
-      case 'CLEANING': return <CleaningServices />;
-      case 'MAINTENANCE': return <Build />;
-      case 'REPAIR': return <Build />;
-      default: return <Group />;
-    }
   };
 
 

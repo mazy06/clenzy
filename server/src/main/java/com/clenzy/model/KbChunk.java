@@ -47,6 +47,26 @@ public class KbChunk {
     @ColumnTransformer(write = "?::vector")
     private String embedding;
 
+    /**
+     * Langue du document parent (fr/en/ar), denormalisee a l'ingestion : la
+     * colonne generee {@link #contentTsv} ne peut pas referencer kb_document.
+     */
+    @Column(length = 10, nullable = false)
+    private String lang = "fr";
+
+    /**
+     * Colonne generee par Postgres (migrations 0346/0348) pour la recherche
+     * lexicale hybride, avec la config linguistique du chunk (french/english/
+     * simple). Mappee ici pour que le schema Hibernate (tests, ddl-auto) reste
+     * aligne sur Liquibase — jamais ecrite par l'application.
+     */
+    @Column(name = "content_tsv", insertable = false, updatable = false,
+            columnDefinition = "tsvector GENERATED ALWAYS AS (to_tsvector("
+                    + "CASE lang WHEN 'en' THEN 'english'::regconfig "
+                    + "WHEN 'ar' THEN 'simple'::regconfig "
+                    + "ELSE 'french'::regconfig END, content)) STORED")
+    private String contentTsv;
+
     @Column(name = "token_count")
     private Integer tokenCount;
 
@@ -76,6 +96,8 @@ public class KbChunk {
     public void setEmbedding(String embedding) { this.embedding = embedding; }
     public Integer getTokenCount() { return tokenCount; }
     public void setTokenCount(Integer tokenCount) { this.tokenCount = tokenCount; }
+    public String getLang() { return lang; }
+    public void setLang(String lang) { this.lang = lang == null || lang.isBlank() ? "fr" : lang; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

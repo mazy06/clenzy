@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAccessToken } from '../../keycloak';
-import { interventionsApi } from '../../services/api';
+import { interventionsApi } from '../../services/api/interventionsApi';
 import { buildApiUrl } from '../../config/api';
 import { interventionsKeys } from './useInterventionsList';
 import {
@@ -259,47 +259,44 @@ export function useInterventionProgress({
 
   const handleRoomValidation = async (roomIndex: number) => {
     // Toggle: add if not present, remove if already validated
-    setValidatedRooms(prev => {
-      const newValidatedRooms = new Set(prev);
-      if (newValidatedRooms.has(roomIndex)) {
-        newValidatedRooms.delete(roomIndex);
-      } else {
-        newValidatedRooms.add(roomIndex);
-      }
+    const newValidatedRooms = new Set(validatedRooms);
+    if (newValidatedRooms.has(roomIndex)) {
+      newValidatedRooms.delete(roomIndex);
+    } else {
+      newValidatedRooms.add(roomIndex);
+    }
+    setValidatedRooms(newValidatedRooms);
 
-      const totalRooms = getTotalRooms();
-      const allDone = newValidatedRooms.size === totalRooms && totalRooms > 0;
-      setAllRoomsValidated(allDone);
+    const totalRooms = getTotalRooms();
+    const allDone = newValidatedRooms.size === totalRooms && totalRooms > 0;
+    setAllRoomsValidated(allDone);
 
-      if (allDone) {
-        const newSteps = new Set(completedSteps).add('rooms');
-        setCompletedSteps(newSteps);
-        saveCompletedSteps(newSteps);
-      } else {
-        // If a room was deselected, remove 'rooms' from completed steps
-        const newSteps = new Set(completedSteps);
-        newSteps.delete('rooms');
-        setCompletedSteps(newSteps);
-        saveCompletedSteps(newSteps);
-      }
+    if (allDone) {
+      const newSteps = new Set(completedSteps).add('rooms');
+      setCompletedSteps(newSteps);
+      saveCompletedSteps(newSteps);
+    } else {
+      // If a room was deselected, remove 'rooms' from completed steps
+      const newSteps = new Set(completedSteps);
+      newSteps.delete('rooms');
+      setCompletedSteps(newSteps);
+      saveCompletedSteps(newSteps);
+    }
 
-      if (id) {
-        const arr = Array.from(newValidatedRooms).sort((a, b) => a - b);
-        const json = JSON.stringify(arr);
-        updateRoomsMutation.mutate({ interventionId: Number(id), rooms: json });
-      }
+    if (id) {
+      const arr = Array.from(newValidatedRooms).sort((a, b) => a - b);
+      const json = JSON.stringify(arr);
+      updateRoomsMutation.mutate({ interventionId: Number(id), rooms: json });
+    }
 
-      // Calculate progress using newValidatedRooms directly (not stale state)
-      const totalSteps = 2 + totalRooms;
-      let completedCount = 0;
-      if (inspectionComplete && beforePhotos.length > 0) completedCount++;
-      completedCount += newValidatedRooms.size;
-      if (completedSteps.has('after_photos') && afterPhotos.length > 0) completedCount++;
-      const newProgress = totalSteps > 0 ? Math.round((completedCount / totalSteps) * 100) : 0;
-      handleUpdateProgressValue(newProgress);
-
-      return newValidatedRooms;
-    });
+    // Calculate progress using newValidatedRooms directly (not stale state)
+    const totalSteps = 2 + totalRooms;
+    let completedCount = 0;
+    if (inspectionComplete && beforePhotos.length > 0) completedCount++;
+    completedCount += newValidatedRooms.size;
+    if (completedSteps.has('after_photos') && afterPhotos.length > 0) completedCount++;
+    const newProgress = totalSteps > 0 ? Math.round((completedCount / totalSteps) * 100) : 0;
+    handleUpdateProgressValue(newProgress);
   };
 
   const handleReopenIntervention = async () => {

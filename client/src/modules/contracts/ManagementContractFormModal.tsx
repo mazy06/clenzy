@@ -53,6 +53,7 @@ const ManagementContractFormModal: React.FC<ManagementContractFormModalProps> = 
   const [error, setError] = useState<string | null>(null);
 
   // (Ré)initialise le formulaire à chaque ouverture, selon le mode.
+  // Pattern dialog-init délibéré (comme useReservationForm) : rouvrir = état frais.
   useEffect(() => {
     if (!open) return;
     setError(null);

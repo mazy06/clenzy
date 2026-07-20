@@ -78,11 +78,3 @@ export const PAYMENT_PROVIDER_LABELS: Record<PaymentProviderType, string> = {
   PAYZONE: 'Payzone (Maroc)',
   PAYPAL: 'PayPal (Global)',
 };
-
-export const PAYMENT_PROVIDER_COUNTRIES: Record<PaymentProviderType, string[]> = {
-  STRIPE: ['FR', 'MA', 'SA'],
-  PAYTABS: ['SA', 'AE', 'BH', 'KW'],
-  CMI: ['MA'],
-  PAYZONE: ['MA'],
-  PAYPAL: ['*'],
-};

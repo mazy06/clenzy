@@ -32,19 +32,11 @@ export function formatCurrency(
   }
 }
 
-/**
- * Format an amount without the currency symbol (plain number).
- */
-export function formatAmount(
-  amount: number | null | undefined,
-  locale: string = 'fr-FR',
-): string {
-  if (amount == null) return '—';
-  return new Intl.NumberFormat(locale, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
+const TAX_RATE_FORMAT = new Intl.NumberFormat('fr-FR', {
+  style: 'percent',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 1,
+});
 
 /**
  * Format a tax rate as a percentage.
@@ -52,11 +44,7 @@ export function formatAmount(
  */
 export function formatTaxRate(rate: number | null | undefined): string {
   if (rate == null) return '—';
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'percent',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 1,
-  }).format(rate);
+  return TAX_RATE_FORMAT.format(rate);
 }
 
 /**

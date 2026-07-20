@@ -76,6 +76,34 @@ interface AuditLogFilters {
 
 const PAGE_SIZE = 15;
 
+const getEventTypeIcon = (eventType: string) => {
+  switch (eventType) {
+    case 'LOGIN_SUCCESS':
+      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={20} strokeWidth={1.75} /></Box>;
+    case 'LOGIN_FAILURE':
+      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Warning size={20} strokeWidth={1.75} /></Box>;
+    case 'PERMISSION_DENIED':
+      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Lock size={20} strokeWidth={1.75} /></Box>;
+    case 'DATA_ACCESS':
+      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Visibility size={20} strokeWidth={1.75} /></Box>;
+    case 'ADMIN_ACTION':
+      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><AdminPanelSettings size={20} strokeWidth={1.75} /></Box>;
+    case 'SECRET_ROTATION':
+      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><VpnKey size={20} strokeWidth={1.75} /></Box>;
+    case 'SUSPICIOUS_ACTIVITY':
+      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><ReportProblem size={20} strokeWidth={1.75} /></Box>;
+    default:
+      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Info size={20} strokeWidth={1.75} /></Box>;
+  }
+};
+
+const eventToken = (eventType: string) => EVENT_TOKEN[eventType] ?? NEUTRAL_TOKEN;
+const resultToken = (result: string) => RESULT_TOKEN[result?.toUpperCase()] ?? NEUTRAL_TOKEN;
+
+const formatEventType = (eventType: string) => {
+  return eventType.replace(/_/g, ' ');
+};
+
 const AuditLogging: React.FC = () => {
   const [page, setPage] = useState<AuditLogPage | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,9 +145,9 @@ const AuditLogging: React.FC = () => {
     fetchAuditLogs();
   }, [fetchAuditLogs]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     fetchAuditLogs();
-  };
+  }, [fetchAuditLogs]);
 
   // Register page-header actions + last-update timestamp.
   useEffect(() => {
@@ -134,7 +162,7 @@ const AuditLogging: React.FC = () => {
       </Box>,
     );
     return () => setHeaderActions(null);
-  }, [setHeaderActions, loading, fetchAuditLogs]);
+  }, [setHeaderActions, loading, handleRefresh]);
 
   useEffect(() => {
     setHeaderLastUpdate(lastUpdate);
@@ -148,34 +176,6 @@ const AuditLogging: React.FC = () => {
   const clearFilters = () => {
     setFilters({ eventType: '', actorId: '', result: '' });
     setCurrentPage(0);
-  };
-
-  const getEventTypeIcon = (eventType: string) => {
-    switch (eventType) {
-      case 'LOGIN_SUCCESS':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={20} strokeWidth={1.75} /></Box>;
-      case 'LOGIN_FAILURE':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Warning size={20} strokeWidth={1.75} /></Box>;
-      case 'PERMISSION_DENIED':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Lock size={20} strokeWidth={1.75} /></Box>;
-      case 'DATA_ACCESS':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Visibility size={20} strokeWidth={1.75} /></Box>;
-      case 'ADMIN_ACTION':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><AdminPanelSettings size={20} strokeWidth={1.75} /></Box>;
-      case 'SECRET_ROTATION':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><VpnKey size={20} strokeWidth={1.75} /></Box>;
-      case 'SUSPICIOUS_ACTIVITY':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><ReportProblem size={20} strokeWidth={1.75} /></Box>;
-      default:
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Info size={20} strokeWidth={1.75} /></Box>;
-    }
-  };
-
-  const eventToken = (eventType: string) => EVENT_TOKEN[eventType] ?? NEUTRAL_TOKEN;
-  const resultToken = (result: string) => RESULT_TOKEN[result?.toUpperCase()] ?? NEUTRAL_TOKEN;
-
-  const formatEventType = (eventType: string) => {
-    return eventType.replace(/_/g, ' ');
   };
 
   if (loading && !page) {

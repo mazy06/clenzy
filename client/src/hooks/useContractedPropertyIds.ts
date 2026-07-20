@@ -29,9 +29,9 @@ export function useContractedPropertyIds(enabled = true): {
 
   const propertyIds = useMemo(
     () => new Set(
-      (data ?? [])
-        .filter((c) => c.status !== 'TERMINATED' && c.status !== 'EXPIRED')
-        .map((c) => c.propertyId),
+      (data ?? []).flatMap((c) =>
+        c.status !== 'TERMINATED' && c.status !== 'EXPIRED' ? [c.propertyId] : [],
+      ),
     ),
     [data],
   );

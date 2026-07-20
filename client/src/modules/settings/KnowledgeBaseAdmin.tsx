@@ -6,12 +6,14 @@ import {
   CircularProgress,
   Alert,
   Chip,
+  Divider,
   IconButton,
   Table,
   TableHead,
   TableRow,
   TableCell,
   TableBody,
+  TextField,
   Tooltip,
 } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
@@ -31,6 +33,57 @@ interface KbDoc {
   updatedAt: string;
 }
 
+interface KbStats {
+  documents: { total: number; global: number; org: number };
+  chunks: { total: number; indexed: number; orphans: number };
+  index: {
+    status: string;
+    currentLists: number | null;
+    optimalLists: number | null;
+    autoTuneEnabled: boolean;
+    retuneRecommended: boolean;
+  };
+}
+
+interface KbEvalMiss {
+  question: string;
+  expected: string;
+  retrieved: string[];
+}
+
+interface KbEvalReport {
+  topK: number;
+  recallAtK: number;
+  mrr: number;
+  total: number;
+  hits: number;
+  misses: KbEvalMiss[];
+}
+
+interface KbEvalStatus {
+  state: 'idle' | 'running' | 'done' | 'failed';
+  done: number;
+  total: number;
+  error: string | null;
+  report: KbEvalReport | null;
+}
+
+interface KbSearchTestHit {
+  documentId: number;
+  title: string | null;
+  sourcePath: string;
+  snippet: string;
+  relevance: number;
+}
+
+interface KbSearchTestResponse {
+  query: string;
+  lang: string;
+  relevanceThreshold: number;
+  items: KbSearchTestHit[];
+  count: number;
+}
+
 /**
  * Administration de la knowledge base RAG : liste les documents indexes
  * (globaux Baitly + propres a l'org), permet d'uploader un nouveau .md et
@@ -47,6 +100,14 @@ export const KnowledgeBaseAdmin: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [testQuery, setTestQuery] = useState('');
+  const [testResult, setTestResult] = useState<KbSearchTestResponse | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [stats, setStats] = useState<KbStats | null>(null);
+  const [evalReport, setEvalReport] = useState<KbEvalReport | null>(null);
+  const [evaluating, setEvaluating] = useState(false);
+  const [evalProgress, setEvalProgress] = useState<{ done: number; total: number } | null>(null);
+  const evalPollRef = useRef(false);
 
   const canEdit = hasAnyRole(['SUPER_ADMIN', 'HOST', 'SUPER_MANAGER']);
   const canUploadGlobal = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']);
@@ -64,7 +125,18 @@ export const KnowledgeBaseAdmin: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => { loadDocs(); }, [loadDocs]);
+  const loadStats = useCallback(async () => {
+    if (!canUploadGlobal) return;
+    try {
+      const data = await apiClient.get<KbStats>('/admin/kb/stats');
+      setStats(data);
+    } catch {
+      // KPI best-effort : l'ecran reste utilisable sans les stats
+      setStats(null);
+    }
+  }, [canUploadGlobal]);
+
+  useEffect(() => { loadDocs(); loadStats(); }, [loadDocs, loadStats]);
 
   const handleUpload = useCallback(async (file: File, scope: 'global' | 'org') => {
     setUploading(true);
@@ -91,6 +163,71 @@ export const KnowledgeBaseAdmin: React.FC = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, [handleUpload, canUploadGlobal]);
 
+  const pollEvalStatus = useCallback(async () => {
+    if (evalPollRef.current) return;
+    evalPollRef.current = true;
+    try {
+      // Le run s'auto-espace quand l'API Voyage est rate-limitée : il peut
+      // durer plusieurs minutes — on polle jusqu'à l'état final.
+      for (;;) {
+        const status = await apiClient.get<KbEvalStatus>('/admin/kb/eval/status');
+        if (status.state === 'running') {
+          setEvaluating(true);
+          setEvalProgress({ done: status.done, total: status.total });
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+          continue;
+        }
+        setEvaluating(false);
+        setEvalProgress(null);
+        if (status.state === 'done' && status.report) {
+          setEvalReport(status.report);
+        } else if (status.state === 'failed') {
+          notify.error(status.error || 'Évaluation échouée');
+        }
+        return;
+      }
+    } catch (e) {
+      setEvaluating(false);
+      setEvalProgress(null);
+      notify.error(e instanceof Error ? e.message : 'Suivi de l’évaluation impossible');
+    } finally {
+      evalPollRef.current = false;
+    }
+  }, [notify]);
+
+  const handleRunEval = useCallback(async () => {
+    setEvalReport(null);
+    try {
+      await apiClient.post<{ started: boolean }>('/admin/kb/eval', {});
+      setEvaluating(true);
+      pollEvalStatus();
+    } catch (e) {
+      notify.error(e instanceof Error ? e.message : 'Évaluation impossible');
+    }
+  }, [notify, pollEvalStatus]);
+
+  // Un run peut déjà être en cours (lancé avant un refresh de la page) : on s'y rattache.
+  useEffect(() => {
+    if (canUploadGlobal) pollEvalStatus();
+  }, [canUploadGlobal, pollEvalStatus]);
+
+  const handleSearchTest = useCallback(async () => {
+    const query = testQuery.trim();
+    if (!query) return;
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const data = await apiClient.get<KbSearchTestResponse>(
+        `/admin/kb/search-test?query=${encodeURIComponent(query)}&topK=5`,
+      );
+      setTestResult(data);
+    } catch (e) {
+      notify.error(e instanceof Error ? e.message : 'Test de recherche impossible');
+    } finally {
+      setTesting(false);
+    }
+  }, [testQuery, notify]);
+
   const handleDelete = useCallback(async (doc: KbDoc) => {
     if (!window.confirm(`Supprimer "${doc.title || doc.sourcePath}" ? Les chunks et embeddings seront effaces.`)) {
       return;
@@ -115,6 +252,51 @@ export const KnowledgeBaseAdmin: React.FC = () => {
         </>
       }
     >
+      {stats && (
+        <>
+          <Box sx={{ mb: 2, display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            {[
+              { label: 'Documents', value: stats.documents.total, detail: `${stats.documents.global} globaux · ${stats.documents.org} org` },
+              { label: 'Extraits indexés', value: stats.chunks.indexed, detail: `sur ${stats.chunks.total}` },
+              { label: 'Sans embedding', value: stats.chunks.orphans, detail: stats.chunks.orphans > 0 ? 'ré-indexation en cours' : 'aucun retard' },
+              {
+                label: 'Index vectoriel',
+                value: stats.index.currentLists ?? '—',
+                detail: `lists · optimal ${stats.index.optimalLists ?? '—'}${stats.index.autoTuneEnabled ? ' · auto-tune actif' : ''}`,
+              },
+            ].map((kpi) => (
+              <Box
+                key={kpi.label}
+                sx={{
+                  px: 1.75, py: 1, minWidth: 150, borderRadius: 1.5,
+                  bgcolor: alpha(theme.palette.text.primary, 0.03),
+                  border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}`,
+                }}
+              >
+                <Typography variant="caption" color="text.secondary" component="div">
+                  {kpi.label}
+                </Typography>
+                <Typography variant="h6" sx={{ fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>
+                  {kpi.value}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" component="div">
+                  {kpi.detail}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+          {stats.index.retuneRecommended && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              La base a grossi : l'index vectoriel (lists = {stats.index.currentLists}) est loin de
+              sa taille optimale ({stats.index.optimalLists}) et dégrade la qualité de recherche de
+              l'assistant. Activez la reconstruction automatique
+              (<code>clenzy.assistant.kb.auto-tune-enabled</code>) ou recréez l'index — la commande
+              exacte est dans les logs du serveur (KbIndexTuningScheduler).
+            </Alert>
+          )}
+        </>
+      )}
+
       <Box sx={{ mb: 2, display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
         {canEdit && (
           <>
@@ -224,6 +406,209 @@ export const KnowledgeBaseAdmin: React.FC = () => {
             </TableBody>
           </Table>
         </Box>
+      )}
+
+      {canUploadGlobal && (
+        <>
+          <Divider sx={{ my: 3 }} />
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <Box sx={{ flex: 1, minWidth: 240 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Évaluer le retrieval
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Lance les {evalReport?.total ?? 40} questions du jeu de test officiel sur le
+                pipeline réel et mesure la qualité de recherche. À relancer après chaque
+                changement de documentation, de seuils ou de modèle (~30&nbsp;secondes,
+                quelques centimes d'API).
+              </Typography>
+            </Box>
+            <Button
+              variant="outlined"
+              onClick={handleRunEval}
+              disabled={evaluating}
+              sx={{ textTransform: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+            >
+              {evaluating
+                ? evalProgress
+                  ? `Évaluation… ${evalProgress.done}/${evalProgress.total}`
+                  : 'Évaluation en cours…'
+                : "Lancer l'évaluation"}
+            </Button>
+          </Box>
+          {evaluating && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2 }}>
+              <CircularProgress size={20} />
+              <Typography variant="caption" color="text.secondary">
+                {evalProgress && evalProgress.done < evalProgress.total
+                  ? `${evalProgress.done} question(s) sur ${evalProgress.total} évaluée(s) — le rythme s'adapte aux limites de l'API (jusqu'à ~15 min si elle est bridée).`
+                  : 'Démarrage du run…'}
+              </Typography>
+            </Box>
+          )}
+          {evalReport && (
+            <Box sx={{ mt: 2 }}>
+              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 1.5 }}>
+                {[
+                  {
+                    label: `Recall@${evalReport.topK}`,
+                    value: `${Math.round(evalReport.recallAtK * 100)} %`,
+                    detail: `${evalReport.hits}/${evalReport.total} questions trouvent leur fiche`,
+                  },
+                  {
+                    label: 'MRR',
+                    value: evalReport.mrr.toFixed(3),
+                    detail: 'position moyenne du bon résultat',
+                  },
+                ].map((kpi) => (
+                  <Box
+                    key={kpi.label}
+                    sx={{
+                      px: 1.75, py: 1, minWidth: 170, borderRadius: 1.5,
+                      bgcolor: alpha(theme.palette.text.primary, 0.03),
+                      border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}`,
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" component="div">
+                      {kpi.label}
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>
+                      {kpi.value}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" component="div">
+                      {kpi.detail}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+              {evalReport.misses.length === 0 ? (
+                <Alert severity="success">
+                  Toutes les questions du jeu de test retrouvent leur fiche : le retrieval est sain.
+                </Alert>
+              ) : (
+                <>
+                  <Typography variant="caption" color="text.secondary" component="div" sx={{ mb: 0.5 }}>
+                    Questions sans leur fiche attendue dans le top {evalReport.topK} :
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                    {evalReport.misses.map((miss, idx) => (
+                      <Box
+                        key={idx}
+                        sx={{
+                          px: 1.5, py: 1, borderRadius: 1.5,
+                          bgcolor: alpha(theme.palette.warning.main, 0.08),
+                          border: `1px solid ${alpha(theme.palette.warning.main, 0.25)}`,
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {miss.question}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" component="div">
+                          attendu : {miss.expected} · obtenu : {miss.retrieved.join(', ') || 'aucun résultat'}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </>
+              )}
+            </Box>
+          )}
+        </>
+      )}
+
+      {canEdit && (
+        <>
+          <Divider sx={{ my: 3 }} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+            Tester la recherche
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Exécute la même recherche que l'assistant (vectorielle + mots-clés + re-ranking)
+            et montre les extraits retrouvés avec leur score de pertinence.
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 2 }}>
+            <TextField
+              size="small"
+              fullWidth
+              placeholder="Ex. : comment configurer la taxe de séjour ?"
+              value={testQuery}
+              onChange={(e) => setTestQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSearchTest(); }}
+              disabled={testing}
+            />
+            <Button
+              variant="outlined"
+              onClick={handleSearchTest}
+              disabled={testing || !testQuery.trim()}
+              sx={{ textTransform: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+            >
+              {testing ? 'Recherche...' : 'Tester'}
+            </Button>
+          </Box>
+          {testing && (
+            <Box display="flex" justifyContent="center" py={2}>
+              <CircularProgress size={20} />
+            </Box>
+          )}
+          {testResult && testResult.items.length === 0 && (
+            <Alert severity="warning">
+              Aucun extrait trouvé pour cette question. L'assistant répondra sans contexte
+              documentaire — envisagez d'ajouter ou de compléter un document.
+            </Alert>
+          )}
+          {testResult && testResult.items.length > 0 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {testResult.items.map((hit, idx) => {
+                const aboveThreshold = hit.relevance >= testResult.relevanceThreshold;
+                return (
+                  <Box
+                    key={`${hit.documentId}-${idx}`}
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 1.5,
+                      bgcolor: alpha(theme.palette.text.primary, 0.03),
+                      border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}`,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 0.5, flexWrap: 'wrap' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {hit.title || hit.sourcePath}
+                      </Typography>
+                      <Chip
+                        label={`${Math.round(hit.relevance * 100)} %`}
+                        size="small"
+                        sx={{
+                          height: 20,
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                          fontVariantNumeric: 'tabular-nums',
+                          bgcolor: aboveThreshold
+                            ? alpha(theme.palette.success.main, 0.14)
+                            : alpha(theme.palette.warning.main, 0.14),
+                          color: aboveThreshold
+                            ? theme.palette.success.dark
+                            : theme.palette.warning.dark,
+                        }}
+                      />
+                      {!aboveThreshold && (
+                        <Typography variant="caption" color="text.secondary">
+                          sous le seuil d'injection automatique
+                          ({Math.round(testResult.relevanceThreshold * 100)} %)
+                        </Typography>
+                      )}
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" component="div" sx={{ mb: 0.5 }}>
+                      {hit.sourcePath}
+                    </Typography>
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                      {hit.snippet}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+          )}
+        </>
       )}
     </AiSettingsCard>
   );

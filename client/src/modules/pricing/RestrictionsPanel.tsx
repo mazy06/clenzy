@@ -63,6 +63,8 @@ const EMPTY_FORM: FormState = {
   priority: '',
 };
 
+const inputSx = { '& .MuiInputBase-input': { fontSize: '0.82rem' } };
+
 const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -169,8 +171,6 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
       </Paper>
     );
   }
-
-  const inputSx = { '& .MuiInputBase-input': { fontSize: '0.82rem' } };
 
   return (
     <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', flexWrap: { xs: 'wrap', lg: 'nowrap' } }}>

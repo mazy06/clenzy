@@ -43,7 +43,9 @@ export function PropertyLocationPicker({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
@@ -96,17 +98,19 @@ export function PropertyLocationPicker({
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
     mapRef.current = map;
 
-    map.on('click', (e) => {
+    const handleMapClick = (e: mapboxgl.MapMouseEvent) => {
       const { lng, lat } = e.lngLat;
       movePin(lng, lat);
       onChangeRef.current(lat, lng);
-    });
+    };
+    map.on('click', handleMapClick);
 
     if (hasCoords) {
       movePin(longitude as number, latitude as number);
     }
 
     return () => {
+      map.off('click', handleMapClick);
       map.remove();
       mapRef.current = null;
       markerRef.current = null;

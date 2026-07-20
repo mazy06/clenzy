@@ -166,7 +166,7 @@ public class AssistantMemoryService {
         int safeLimit = Math.max(1, Math.min(limit, 100));
         String queryEmbedding;
         try {
-            queryEmbedding = embeddingService.embedAsVectorString(userMessage);
+            queryEmbedding = embeddingService.embedQueryAsVectorString(userMessage);
         } catch (Exception e) {
             log.debug("Memory relevance search : embedding failed ({}), fallback recency", e.getMessage());
             return listForUser(keycloakId, safeLimit);
@@ -215,7 +215,7 @@ public class AssistantMemoryService {
         if (embeddingService == null) return null;
         try {
             String text = key + ": " + value;
-            return embeddingService.embedAsVectorString(text);
+            return embeddingService.embedDocumentAsVectorString(text);
         } catch (Exception e) {
             log.debug("Memory embedding failed for key '{}' : {}", key, e.getMessage());
             return null;

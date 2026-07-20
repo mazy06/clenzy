@@ -13,6 +13,14 @@ import SenderEmailRow from './components/SenderEmailRow';
  *  - toggle d'envoi des emails de devis aux prospects,
  *  - suivi de la liste d'attente (total + places fondateur + liste des inscrits).
  */
+const fmtDate = (d: string) => {
+  try {
+    return new Date(d).toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    });
+  } catch { return d; }
+};
+
 const LaunchSettingsSection: React.FC = () => {
   const { data: settings, isLoading } = usePlatformSettings();
   const setProspectEmails = useSetProspectDevisEmails();
@@ -22,14 +30,6 @@ const LaunchSettingsSection: React.FC = () => {
   const { data: stats } = useWaitlistStats();
   const [showList, setShowList] = useState(false);
   const { data: list } = useWaitlistList(showList);
-
-  const fmtDate = (d: string) => {
-    try {
-      return new Date(d).toLocaleDateString('fr-FR', {
-        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-      });
-    } catch { return d; }
-  };
 
   const founderSpots = stats?.founderSpots ?? 20;
 
@@ -57,12 +57,16 @@ const LaunchSettingsSection: React.FC = () => {
             onChange={(c) => setDevisToWaitlist.mutate(c)}
             disabled={setDevisToWaitlist.isPending}
           />
+          {/* key = valeur serveur : remount (etat frais) quand le backend renvoie
+              une nouvelle valeur — remplace les anciens effets de resync miroir. */}
           <InternalNotificationEmailsRow
+            key={(settings?.internalNotificationEmails ?? ['info@clenzy.fr']).join('|')}
             value={settings?.internalNotificationEmails ?? ['info@clenzy.fr']}
             onSave={(emails) => setInternalEmails.mutate(emails)}
             saving={setInternalEmails.isPending}
           />
           <SenderEmailRow
+            key={`${settings?.senderEmail ?? 'info@clenzy.fr'}|${settings?.senderName ?? 'Baitly'}`}
             email={settings?.senderEmail ?? 'info@clenzy.fr'}
             name={settings?.senderName ?? 'Baitly'}
             onSave={(email, name) => setSender.mutate({ email, name })}

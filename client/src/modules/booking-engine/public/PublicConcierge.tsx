@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Box, ButtonBase, CircularProgress } from '@mui/material';
 import { MessageCircle, X, Send } from 'lucide-react';
 import { API_CONFIG } from '../../../config/api';
@@ -15,21 +16,26 @@ const API_BASE = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}`;
 interface Msg { role: 'user' | 'assistant'; content: string }
 
 export default function PublicConcierge({ apiKey }: { apiKey: string }) {
-  const [available, setAvailable] = useState(false);
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    let alive = true;
-    fetch(`${API_BASE}/public/booking/widget/concierge/status`, { headers: { 'X-Booking-Key': apiKey } })
-      .then((r) => (r.ok ? r.json() : { available: false }))
-      .then((d) => { if (alive) setAvailable(Boolean(d?.available)); })
-      .catch(() => { /* concierge indisponible : on n'affiche rien */ });
-    return () => { alive = false; };
-  }, [apiKey]);
+  // Statut du concierge — one-shot best-effort (indisponible => on n'affiche rien).
+  const statusQuery = useQuery({
+    queryKey: ['public-concierge-status', apiKey],
+    queryFn: async (): Promise<{ available?: boolean }> => {
+      const r = await fetch(`${API_BASE}/public/booking/widget/concierge/status`, {
+        headers: { 'X-Booking-Key': apiKey },
+      });
+      return r.ok ? r.json() : { available: false };
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: Infinity,
+  });
+  const available = Boolean(statusQuery.data?.available);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });

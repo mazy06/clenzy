@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
-import { usersApi, deferredPaymentsApi } from '../../../services/api';
+import { usersApi } from '../../../services/api/usersApi';
+import { deferredPaymentsApi } from '../../../services/api/deferredPaymentsApi';
 import type { HostBalanceSummary, LockoutStatus } from '../../../services/api';
 import type { UserDetailsData, UseUserDetailsReturn } from './userDetailsTypes';
 

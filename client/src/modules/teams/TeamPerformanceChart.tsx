@@ -14,7 +14,7 @@ import {
 } from '../../icons';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
-import { interventionsApi } from '../../services/api';
+import { interventionsApi } from '../../services/api/interventionsApi';
 import type { Intervention } from '../../services/api';
 import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -117,8 +117,8 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
         </Typography>
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          {summaryStats.map((stat, index) => (
-            <Grid item xs={4} key={index}>
+          {summaryStats.map((stat) => (
+            <Grid item xs={4} key={stat.label}>
               <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: '12px', bgcolor: 'var(--field)', border: '1px solid var(--field-line)' }}>
                 {stat.icon}
                 <Typography variant="h5" fontWeight={700} sx={{ color: stat.color, mt: 0.5 }}>

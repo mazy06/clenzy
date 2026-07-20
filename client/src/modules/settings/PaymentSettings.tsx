@@ -89,6 +89,43 @@ const SHARE_CONCIERGE = 'var(--warn)';
 const CONFIGURABLE_PROVIDERS: PaymentProviderType[] = ['PAYTABS', 'CMI', 'PAYZONE', 'PAYPAL'];
 const STUB_PROVIDERS: PaymentProviderType[] = [];
 
+const allProviders: PaymentProviderType[] = ['STRIPE', 'PAYTABS', 'CMI', 'PAYZONE', 'PAYPAL'];
+
+/**
+ * Verifie si la config d'un provider est suffisamment renseignee pour
+ * etre activee.
+ * - STRIPE   : toujours OK (config globale application.yml).
+ * - PAYTABS  : profileId + region dans configJson (server_key chiffré BDD).
+ * - CMI      : okUrl + failUrl dans configJson (client_id + store_key BDD).
+ * - PAYZONE  : webhookUrl dans configJson (api_key BDD). MAD principal.
+ * - PAYPAL   : client_id + client_secret BDD (presence = config valide).
+ */
+const isProviderConfigured = (type: PaymentProviderType, config?: PaymentMethodConfig): boolean => {
+  if (type === 'STRIPE') return true;
+  if (!config) return false;
+  const json = (config.config ?? {}) as Record<string, unknown>;
+  if (type === 'PAYTABS') {
+    return json.profileId != null && typeof json.region === 'string' && json.region.length > 0;
+  }
+  if (type === 'CMI') {
+    return typeof json.okUrl === 'string' && typeof json.failUrl === 'string';
+  }
+  if (type === 'PAYZONE') {
+    // L'api_key elle-même n'est pas exposée par l'API (chiffrée), donc on
+    // s'appuie sur la presence d'au moins une clef provider-specific dans
+    // configJson — la webhookUrl est requise au moment du saving du dialog.
+    return typeof json.webhookUrl === 'string' && json.webhookUrl.length > 0;
+  }
+  if (type === 'PAYPAL') {
+    // PayPal n'a pas de configJson obligatoire — la config est valide dès
+    // que sandbox mode + credentials ont été enregistrés au moins une fois.
+    // L'API renvoie le sandboxMode mais pas les credentials. On considère
+    // que si le record existe et que sandboxMode est défini, c'est configuré.
+    return config.id != null;
+  }
+  return false;
+};
+
 export default function PaymentSettings() {
   const { t } = useTranslation();
   const [configs, setConfigs] = useState<PaymentMethodConfig[]>([]);
@@ -134,41 +171,6 @@ export default function PaymentSettings() {
     } catch (error) {
       console.error('Failed to load split config:', error);
     }
-  };
-
-  /**
-   * Verifie si la config d'un provider est suffisamment renseignee pour
-   * etre activee.
-   * - STRIPE   : toujours OK (config globale application.yml).
-   * - PAYTABS  : profileId + region dans configJson (server_key chiffré BDD).
-   * - CMI      : okUrl + failUrl dans configJson (client_id + store_key BDD).
-   * - PAYZONE  : webhookUrl dans configJson (api_key BDD). MAD principal.
-   * - PAYPAL   : client_id + client_secret BDD (presence = config valide).
-   */
-  const isProviderConfigured = (type: PaymentProviderType, config?: PaymentMethodConfig): boolean => {
-    if (type === 'STRIPE') return true;
-    if (!config) return false;
-    const json = (config.config ?? {}) as Record<string, unknown>;
-    if (type === 'PAYTABS') {
-      return json.profileId != null && typeof json.region === 'string' && json.region.length > 0;
-    }
-    if (type === 'CMI') {
-      return typeof json.okUrl === 'string' && typeof json.failUrl === 'string';
-    }
-    if (type === 'PAYZONE') {
-      // L'api_key elle-même n'est pas exposée par l'API (chiffrée), donc on
-      // s'appuie sur la presence d'au moins une clef provider-specific dans
-      // configJson — la webhookUrl est requise au moment du saving du dialog.
-      return typeof json.webhookUrl === 'string' && json.webhookUrl.length > 0;
-    }
-    if (type === 'PAYPAL') {
-      // PayPal n'a pas de configJson obligatoire — la config est valide dès
-      // que sandbox mode + credentials ont été enregistrés au moins une fois.
-      // L'API renvoie le sandboxMode mais pas les credentials. On considère
-      // que si le record existe et que sandboxMode est défini, c'est configuré.
-      return config.id != null;
-    }
-    return false;
   };
 
   const handleToggle = async (providerType: PaymentProviderType, currentEnabled: boolean) => {
@@ -257,8 +259,6 @@ export default function PaymentSettings() {
       setSplitSaving(false);
     }
   };
-
-  const allProviders: PaymentProviderType[] = ['STRIPE', 'PAYTABS', 'CMI', 'PAYZONE', 'PAYPAL'];
 
   const getConfig = (type: PaymentProviderType): PaymentMethodConfig | undefined =>
     configs.find(c => c.providerType === type);

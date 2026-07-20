@@ -27,7 +27,7 @@ import {
   Chat,
 } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
-import { propertiesApi } from '../../services/api';
+import { propertiesApi } from '../../services/api/propertiesApi';
 import { extractApiList } from '../../types';
 import type { Property } from '../../services/api/propertiesApi';
 import {
@@ -163,7 +163,10 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
     staleTime: 60_000,
   });
   const properties = React.useMemo(
-    () => extractApiList<Property>(propertiesQuery.data).filter(p => propertyIds.includes(p.id)),
+    () => {
+      const propertyIdSet = new Set(propertyIds);
+      return extractApiList<Property>(propertiesQuery.data).filter(p => propertyIdSet.has(p.id));
+    },
     [propertiesQuery.data, propertyIds],
   );
 

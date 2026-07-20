@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useMemo, useCallback } from 'react';
-import { reservationsApi } from '../services/api';
+import { reservationsApi } from '../services/api/reservationsApi';
 import { trackEvent } from '../providers/PostHogProvider';
 import type {
   Reservation,

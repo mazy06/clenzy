@@ -70,7 +70,9 @@ export default function OpenWaQrScanDialog({
   const pollTimerRef = useRef<number | null>(null);
   const qrRefreshTimerRef = useRef<number | null>(null);
   const onSuccessRef = useRef(onSuccess);
-  onSuccessRef.current = onSuccess;
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
 
   // Cleanup helper utilise par close, success, error
   const cleanup = () => {

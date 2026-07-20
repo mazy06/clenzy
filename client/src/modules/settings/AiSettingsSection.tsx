@@ -664,6 +664,16 @@ const SUBTABS = ['connection', 'models', 'consumption', 'supervision', 'briefing
 type SubTab = (typeof SUBTABS)[number];
 const DEFAULT_SUBTAB: SubTab = 'connection';
 
+const defaultStatus: AiApiKeyStatus = {
+  provider: '',
+  configured: false,
+  maskedApiKey: null,
+  modelOverride: null,
+  valid: false,
+  lastValidatedAt: null,
+  source: 'PLATFORM',
+};
+
 export default function AiSettingsSection() {
   const { t } = useTranslation();
   const { hasAnyRole: mainHasAnyRole } = useAuth();
@@ -693,16 +703,6 @@ export default function AiSettingsSection() {
 
   const openaiStatus = statuses?.find(s => s.provider === 'openai');
   const anthropicStatus = statuses?.find(s => s.provider === 'anthropic');
-
-  const defaultStatus: AiApiKeyStatus = {
-    provider: '',
-    configured: false,
-    maskedApiKey: null,
-    modelOverride: null,
-    valid: false,
-    lastValidatedAt: null,
-    source: 'PLATFORM',
-  };
 
   return (
     <Box>

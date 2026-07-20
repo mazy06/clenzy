@@ -42,13 +42,15 @@ import {
 
 type FilterMode = 'active' | 'inactive' | 'expired' | 'all';
 
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('fr-FR', {
+  dateStyle: 'short',
+  timeStyle: 'short',
+});
+
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
   try {
-    return new Intl.DateTimeFormat('fr-FR', {
-      dateStyle: 'short',
-      timeStyle: 'short',
-    }).format(new Date(iso));
+    return DATE_TIME_FORMATTER.format(new Date(iso));
   } catch {
     return iso;
   }

@@ -40,13 +40,15 @@ function parseSegments(actionParams?: string): PriceSegment[] {
       : parsed?.from && parsed?.to
         ? [parsed] // rétro-compat mono-segment
         : [];
-    return arr
-      .filter((s: unknown) => s && typeof s === 'object')
-      .map((s: { from: string; to: string; percent?: number }) => ({
-        from: s.from,
-        to: s.to,
-        percent: Math.max(1, Math.min(50, Math.round(s.percent ?? 12))),
-      }));
+    return arr.flatMap((s: unknown) => {
+      if (!s || typeof s !== 'object') return [];
+      const seg = s as { from: string; to: string; percent?: number };
+      return [{
+        from: seg.from,
+        to: seg.to,
+        percent: Math.max(1, Math.min(50, Math.round(seg.percent ?? 12))),
+      }];
+    });
   } catch {
     return [];
   }
@@ -232,16 +234,16 @@ export function PriceAdjustmentModal({
                 ) : <Box sx={{ width: 30 }} />}
               </Box>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
-                {WEEKDAYS.map((d, i) => (
-                  <Box key={`wd-${mi}-${i}`} sx={{ textAlign: 'center', fontSize: 10, color: 'text.secondary', pb: 0.25 }}>{d}</Box>
+                {WEEKDAYS.map((d) => (
+                  <Box key={`wd-${mi}-${d}`} sx={{ textAlign: 'center', fontSize: 10, color: 'text.secondary', pb: 0.25 }}>{d}</Box>
                 ))}
-                {monthGrid(month).flat().map((day, i) => {
+                {monthGrid(month).flat().map((day) => {
                   const inMonth = day.getMonth() === month.getMonth();
                   const segIdx = segmentIndexOfDay(day);
                   const color = segIdx >= 0 ? SEGMENT_COLORS[segIdx % SEGMENT_COLORS.length] : undefined;
                   return (
                     <Box
-                      key={`d-${mi}-${i}`}
+                      key={`d-${mi}-${day.getTime()}`}
                       sx={{
                         textAlign: 'center', fontSize: 11, py: 0.5, borderRadius: 1,
                         fontVariantNumeric: 'tabular-nums',
@@ -295,6 +297,7 @@ export function PriceAdjustmentModal({
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                   <input
                     type="date"
+                    aria-label={t('supervision.price.segmentFrom', 'Date de début')}
                     value={seg.from}
                     onChange={(e) => setSegments((p) => p.map((s, idx) => idx === i ? { ...s, from: e.target.value } : s))}
                     style={{ padding: '4px 6px', borderRadius: 6, border: '1px solid var(--line, #ccc)' }}
@@ -302,6 +305,7 @@ export function PriceAdjustmentModal({
                   <Box sx={{ color: 'text.secondary', fontSize: 12 }}>→</Box>
                   <input
                     type="date"
+                    aria-label={t('supervision.price.segmentTo', 'Date de fin')}
                     value={seg.to}
                     onChange={(e) => setSegments((p) => p.map((s, idx) => idx === i ? { ...s, to: e.target.value } : s))}
                     style={{ padding: '4px 6px', borderRadius: 6, border: '1px solid var(--line, #ccc)' }}
@@ -309,6 +313,7 @@ export function PriceAdjustmentModal({
                   <Box sx={{ flex: 1 }} />
                   <input
                     type="number"
+                    aria-label={t('supervision.price.segmentValue', 'Valeur de la remise')}
                     value={inputValue(i)}
                     disabled={!canConvert}
                     onChange={(e) => applyInput(i, Number(e.target.value))}

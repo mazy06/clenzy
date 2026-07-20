@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import { interventionsApi, teamsApi, usersApi } from '../../services/api';
+import { interventionsApi } from '../../services/api/interventionsApi';
+import { teamsApi } from '../../services/api/teamsApi';
+import { usersApi } from '../../services/api/usersApi';
 import type { Team } from '../../services/api';
 import type { User } from '../../services/api/usersApi';
 import { extractApiList } from '../../types';
@@ -122,7 +124,7 @@ export function useInterventionsList() {
     staleTime: 30_000,
   });
 
-  const interventions = interventionsQuery.data ?? [];
+  const interventions = useMemo(() => interventionsQuery.data ?? [], [interventionsQuery.data]);
   const loading = interventionsQuery.isLoading;
   const error = interventionsQuery.isError
     ? ((interventionsQuery.error as { status?: number; message?: string })?.status === 401
@@ -263,6 +265,7 @@ export function useInterventionsList() {
   const filteredInterventions = useMemo(() => {
     if (!Array.isArray(interventions) || interventions.length === 0) return [];
 
+    const userRoles = new Set(user?.roles ?? []);
     return interventions.filter((intervention) => {
       if (!intervention || typeof intervention !== 'object') return false;
       if (!intervention.id || !intervention.title || !intervention.description || !intervention.type || !intervention.status || !intervention.priority) return false;
@@ -274,7 +277,7 @@ export function useInterventionsList() {
       let roleFilter = true;
       if (canEditInterventions) {
         roleFilter = true;
-      } else if (user?.roles?.includes('HOST')) {
+      } else if (userRoles.has('HOST')) {
         roleFilter = true;
       } else {
         if (intervention.assignedToType) {

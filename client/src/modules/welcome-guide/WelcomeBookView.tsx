@@ -170,7 +170,7 @@ function CopyChip({ label, value, copyKey, copiedKey, onCopy, interactive }: {
       className="wb-pressable"
       onClick={() => interactive && onCopy?.(copyKey, value)}
       aria-label={label}
-      style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 12, border: '1px solid var(--terra-soft)', background: copied ? 'var(--terra)' : 'var(--terra-bg)', color: copied ? '#FFF6EF' : 'var(--terra-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: interactive ? 'pointer' : 'default' }}
+      style={{ ...copyChipBaseStyle, background: copied ? 'var(--terra)' : 'var(--terra-bg)', color: copied ? '#FFF6EF' : 'var(--terra-deep)', cursor: interactive ? 'pointer' : 'default' }}
     >
       {copied ? <Check size={17} strokeWidth={2} /> : <Copy size={17} strokeWidth={1.75} />}
     </button>
@@ -188,13 +188,119 @@ function WarmBlock({ label, children, delay = 0 }: { label: string; children: Re
 
 const PARA: React.CSSProperties = { fontSize: 14, lineHeight: 1.6, color: 'var(--ink-soft)', whiteSpace: 'pre-line' };
 
+const copyChipBaseStyle: React.CSSProperties = {
+  flexShrink: 0, width: 40, height: 40, borderRadius: 12, border: '1px solid var(--terra-soft)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+};
+
+const detailHeaderBackButtonStyle: React.CSSProperties = {
+  width: 40, height: 40, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--raised)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)', flexShrink: 0, cursor: 'pointer',
+};
+
+const lightboxCloseButtonStyle: React.CSSProperties = {
+  position: 'absolute', top: 'calc(env(safe-area-inset-top) + 16px)', right: 16, width: 40, height: 40,
+  borderRadius: 999, border: 'none', background: 'rgba(255,255,255,.16)', color: '#fff', cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+};
+
+const lightboxCounterStyle: React.CSSProperties = {
+  position: 'absolute', bottom: 'calc(env(safe-area-inset-bottom) + 22px)', left: 0, right: 0, textAlign: 'center',
+  color: 'rgba(255,255,255,.85)', fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums',
+};
+
+const heroDotsRowStyle: React.CSSProperties = {
+  position: 'absolute', top: 16, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 6, pointerEvents: 'none',
+};
+
+const stepAccordionButtonStyle: React.CSSProperties = {
+  width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
+  border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left',
+};
+
+const stepIconBoxStyle: React.CSSProperties = {
+  flexShrink: 0, width: 38, height: 38, borderRadius: 12, background: 'var(--terra-bg)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+};
+
+const stepNumberStyle: React.CSSProperties = {
+  flexShrink: 0, width: 22, height: 22, borderRadius: 999, background: 'var(--terra)', color: '#FFF6EF',
+  fontSize: 11.5, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1,
+};
+
+const heroMetaRowStyle: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 10,
+  color: '#F3E7D8', fontSize: 13.5, fontWeight: 600, animationDelay: '.1s',
+};
+
+const welcomeAvatarStyle: React.CSSProperties = {
+  flexShrink: 0, width: 44, height: 44, borderRadius: 999, background: 'var(--terra-bg)', color: 'var(--terra-deep)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--serif)', fontWeight: 700, fontSize: 20,
+  border: '1px solid var(--terra-soft)',
+};
+
+const wifiIconBoxStyle: React.CSSProperties = {
+  flexShrink: 0, width: 38, height: 38, borderRadius: 12, background: 'var(--terra-bg)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--terra-deep)',
+};
+
+const navButtonBaseStyle: React.CSSProperties = {
+  width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '13px 16px',
+  border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left',
+};
+
+const navIconBoxStyle: React.CSSProperties = {
+  flexShrink: 0, width: 40, height: 40, borderRadius: 13, background: 'var(--terra-bg)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+};
+
+const featuredBadgeStyle: React.CSSProperties = {
+  position: 'absolute', top: 10, left: 10, display: 'inline-flex', alignItems: 'center', gap: 4,
+  padding: '3px 9px', borderRadius: 999, background: 'rgba(255,255,255,.92)', fontSize: 10.5, fontWeight: 700, color: 'var(--ink)',
+};
+
+const cardDescStyle: React.CSSProperties = {
+  fontSize: 12.5, color: 'var(--ink-faint)', marginBottom: 9, lineHeight: 1.4,
+  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+};
+
+const rateStayButtonStyle: React.CSSProperties = {
+  border: '1.5px solid var(--terra-soft)', background: 'transparent', borderRadius: 18, padding: '15px 16px',
+  display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left',
+};
+
+const accessPhotoBadgeStyle: React.CSSProperties = {
+  position: 'absolute', top: -6, left: -6, width: 22, height: 22, borderRadius: 999, background: 'var(--terra)',
+  color: '#FFF6EF', fontSize: 11.5, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center',
+};
+
+const poiIconBoxStyle: React.CSSProperties = {
+  flexShrink: 0, width: 46, height: 46, borderRadius: 14, background: 'var(--terra-bg)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+};
+
+const poiFeaturedBadgeStyle: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, color: 'var(--terra-deep)',
+  background: 'var(--terra-bg)', padding: '2px 7px', borderRadius: 999,
+};
+
+const poiMetaRowStyle: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 8, margin: '3px 0 7px', fontSize: 12, color: 'var(--ink-faint)',
+  fontWeight: 600, flexWrap: 'wrap',
+};
+
+const poiMapLinkStyle: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7, color: 'var(--terra-deep)',
+  fontWeight: 700, fontSize: 12.5, textDecoration: 'none',
+};
+
 /** En-tête de sous-page : back-arrow rond + titre serif (sticky translucide). */
 function DetailHeader({ title, onBack }: { title: string; onBack: () => void }) {
   return (
-    <div style={{ position: 'sticky', top: 0, zIndex: 5, background: 'color-mix(in srgb, var(--bg) 86%, transparent)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderBottom: '1px solid var(--line)' }}>
+    <div style={{ position: 'sticky', top: 0, zIndex: 5, background: 'color-mix(in srgb, var(--bg) 86%, transparent)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderBottom: '1px solid var(--line)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '54px 18px 12px' }}>
         <button type="button" className="wb-pressable" onClick={onBack} aria-label="Retour"
-          style={{ width: 40, height: 40, borderRadius: 999, border: '1px solid var(--line)', background: 'var(--raised)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)', flexShrink: 0, cursor: 'pointer' }}>
+          style={detailHeaderBackButtonStyle}>
           <ArrowLeft size={19} strokeWidth={1.7} />
         </button>
         <div className="wb-h2" style={{ fontSize: 22 }}>{title}</div>
@@ -209,6 +315,11 @@ function GIcon({ name, size = 20, color = 'var(--terra-deep)' }: { name: string;
 }
 
 /* ───────── Hero carousel + lightbox (inchangés) ───────── */
+
+const navBtn = (side: 'left' | 'right'): React.CSSProperties => ({
+  position: 'absolute', top: '50%', [side]: 12, transform: 'translateY(-50%)', width: 42, height: 42, borderRadius: 999,
+  border: 'none', background: 'rgba(255,255,255,.16)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+});
 
 function HeroLightbox({ images, index, setIndex, onClose }: {
   images: string[]; index: number; setIndex: React.Dispatch<React.SetStateAction<number>>; onClose: () => void;
@@ -225,24 +336,20 @@ function HeroLightbox({ images, index, setIndex, onClose }: {
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [images.length]);
-  const navBtn = (side: 'left' | 'right'): React.CSSProperties => ({
-    position: 'absolute', top: '50%', [side]: 12, transform: 'translateY(-50%)', width: 42, height: 42, borderRadius: 999,
-    border: 'none', background: 'rgba(255,255,255,.16)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-  });
   return (
     <div onClick={onClose}
       onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
       onTouchEnd={(e) => { if (touchX.current == null) return; const dx = e.changedTouches[0].clientX - touchX.current; if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1); touchX.current = null; }}
       style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(15,12,8,.94)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <img src={images[index]} alt="" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '94%', maxHeight: '86%', objectFit: 'contain', borderRadius: 12 }} />
-      <button type="button" onClick={onClose} aria-label="Fermer" style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top) + 16px)', right: 16, width: 40, height: 40, borderRadius: 999, border: 'none', background: 'rgba(255,255,255,.16)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <button type="button" onClick={onClose} aria-label="Fermer" style={lightboxCloseButtonStyle}>
         <X size={20} strokeWidth={1.9} />
       </button>
       {images.length > 1 ? (
         <>
           <button type="button" aria-label="Précédent" onClick={(e) => { e.stopPropagation(); go(-1); }} style={navBtn('left')}><ChevronLeft size={22} strokeWidth={1.9} /></button>
           <button type="button" aria-label="Suivant" onClick={(e) => { e.stopPropagation(); go(1); }} style={navBtn('right')}><ChevronRight size={22} strokeWidth={1.9} /></button>
-          <div style={{ position: 'absolute', bottom: 'calc(env(safe-area-inset-bottom) + 22px)', left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,.85)', fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{index + 1} / {images.length}</div>
+          <div style={lightboxCounterStyle}>{index + 1} / {images.length}</div>
         </>
       ) : null}
     </div>
@@ -264,6 +371,9 @@ function HeroCarousel({ images, interactive, children }: { images: string[]; int
   return (
     <div
       onClick={tappable ? () => setFull(true) : undefined}
+      onKeyDown={tappable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFull(true); } } : undefined}
+      role={tappable ? 'button' : undefined}
+      tabIndex={tappable ? 0 : undefined}
       onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
       onTouchEnd={(e) => { if (touchX.current == null || images.length <= 1) return; const dx = e.changedTouches[0].clientX - touchX.current; if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1); touchX.current = null; }}
       style={{ position: 'relative', height: 380, overflow: 'hidden', borderBottomLeftRadius: 30, borderBottomRightRadius: 30, cursor: tappable ? 'pointer' : 'default', background: 'var(--terra-deep)' }}
@@ -277,7 +387,7 @@ function HeroCarousel({ images, interactive, children }: { images: string[]; int
       )}
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(40,30,20,.30) 0%, rgba(40,30,20,0) 34%, rgba(35,24,14,.78) 100%)' }} />
       {images.length > 1 ? (
-        <div style={{ position: 'absolute', top: 16, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 6, pointerEvents: 'none' }}>
+        <div style={heroDotsRowStyle}>
           {images.map((_, i) => (
             <span key={i} style={{ width: i === safeIdx ? 18 : 6, height: 6, borderRadius: 999, background: i === safeIdx ? '#FFF6EF' : 'rgba(255,246,239,.5)', transition: 'width .3s, background-color .3s' }} />
           ))}
@@ -311,8 +421,8 @@ function SectionPage({ section, onBack }: { section: GuideSection; onBack: () =>
               return (
                 <div key={item.id} style={{ borderTop: i ? '1px solid var(--line)' : 'none' }}>
                   <button type="button" className="wb-pressable" onClick={() => setOpenIdx(open ? -1 : i)}
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
-                    <div style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 12, background: 'var(--terra-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    style={stepAccordionButtonStyle}>
+                    <div style={stepIconBoxStyle}>
                       <GIcon name={item.icon} size={18} />
                     </div>
                     <div style={{ flex: 1, fontWeight: 700, fontSize: 15 }}>{item.label}</div>
@@ -322,7 +432,7 @@ function SectionPage({ section, onBack }: { section: GuideSection; onBack: () =>
                     <ol style={{ margin: 0, padding: '0 16px 16px', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9 }}>
                       {item.steps.map((step, si) => (
                         <li key={si} style={{ display: 'flex', gap: 11, alignItems: 'flex-start' }}>
-                          <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 999, background: 'var(--terra)', color: '#FFF6EF', fontSize: 11.5, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>{si + 1}</span>
+                          <span style={stepNumberStyle}>{si + 1}</span>
                           <span style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)' }}>{step}</span>
                         </li>
                       ))}
@@ -349,7 +459,7 @@ function SectionPage({ section, onBack }: { section: GuideSection; onBack: () =>
           <div className="wb-card" style={{ overflow: 'hidden' }}>
             {section.items.map((item, i) => (
               <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '14px 16px', borderTop: i ? '1px solid var(--line)' : 'none' }}>
-                <div style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 13, background: 'var(--terra-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={navIconBoxStyle}>
                   <GIcon name={item.icon} size={19} />
                 </div>
                 <div>
@@ -437,9 +547,9 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
     try {
       const arr = practical?.extraCodes ? JSON.parse(practical.extraCodes) : [];
       return Array.isArray(arr)
-        ? arr
-            .filter((x: { label?: string; code?: string }) => x && (x.label || x.code))
-            .map((x: { label?: string; code?: string }) => ({ label: x.label || '', code: x.code || '' }))
+        ? arr.flatMap((x: { label?: string; code?: string }) =>
+            x && (x.label || x.code) ? [{ label: x.label || '', code: x.code || '' }] : [],
+          )
         : [];
     } catch {
       return [];
@@ -469,7 +579,10 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
   const mapCenter: [number, number] | null = propLat != null && propLng != null ? [propLng, propLat] : poiPins[0] ? [poiPins[0].lng, poiPins[0].lat] : null;
   const mapPins: GuideMapPin[] = propLat != null && propLng != null
     ? [{ lat: propLat, lng: propLng, color: '#BC5B36', label: property?.name || model.title }, ...poiPins] : poiPins;
-  const poiGroups = POI_CATEGORIES.map((c) => ({ cat: c, items: pois.filter((p) => p.category === c.id) })).filter((g) => g.items.length > 0);
+  const poiGroups = POI_CATEGORIES.flatMap((c) => {
+    const items = pois.filter((p) => p.category === c.id);
+    return items.length > 0 ? [{ cat: c, items }] : [];
+  });
 
   const accessPhotos = accessPhotoUrl ? model.accessPhotos : [];
   const practicalBlocks: Array<{ label: string; value: string }> = [];
@@ -504,7 +617,7 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
         <div style={{ position: 'absolute', left: 22, right: 22, bottom: 22 }}>
           <div className="wb-eyebrow wb-rise" style={{ color: '#F4D8C4', marginBottom: 8 }}>{heroGreeting}</div>
           <div className="wb-h1 wb-rise" style={{ color: '#FFF8F0', fontSize: 36, animationDelay: '.05s' }}>{model.title}</div>
-          <div className="wb-rise" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 10, color: '#F3E7D8', fontSize: 13.5, fontWeight: 600, animationDelay: '.1s' }}>
+          <div className="wb-rise" style={heroMetaRowStyle}>
             {property?.city || property?.name ? (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><MapPin size={15} strokeWidth={1.6} style={{ color: '#F4D8C4' }} />{property.city || property.name}</span>
             ) : null}
@@ -526,7 +639,7 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
         {/* Note d'accueil */}
         {welcomeMessage ? (
           <div className="wb-card wb-rise" style={{ padding: 16, display: 'flex', gap: 13, alignItems: 'flex-start', background: 'var(--raised)' }}>
-            <div style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 999, background: 'var(--terra-bg)', color: 'var(--terra-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--serif)', fontWeight: 700, fontSize: 20, border: '1px solid var(--terra-soft)' }}>
+            <div style={welcomeAvatarStyle}>
               {(model.hostNames || property?.name || model.title || 'B').trim().charAt(0).toUpperCase()}
             </div>
             <div>
@@ -548,7 +661,7 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                     <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
-                      <div style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 12, background: 'var(--terra-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--terra-deep)' }}><Wifi size={19} strokeWidth={1.6} /></div>
+                      <div style={wifiIconBoxStyle}><Wifi size={19} strokeWidth={1.6} /></div>
                       <div style={{ minWidth: 0 }}>
                         <div className="wb-label">{practical?.wifiName ? `${L.network} · WiFi` : 'WiFi'}</div>
                         <div style={{ fontWeight: 700, fontSize: 16, wordBreak: 'break-all' }}>{practical?.wifiName || practical?.wifiPassword}</div>
@@ -564,8 +677,8 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
               ) : null}
               {tiles.length > 0 ? (
                 <div style={{ display: 'flex', gap: 10 }}>
-                  {tiles.map((t, i) => (
-                    <div key={i} style={{ flex: 1, textAlign: 'center', padding: '10px 6px', borderRadius: 14, background: 'var(--surface)', border: '1px solid var(--line)' }}>
+                  {tiles.map((t) => (
+                    <div key={t.label} style={{ flex: 1, textAlign: 'center', padding: '10px 6px', borderRadius: 14, background: 'var(--surface)', border: '1px solid var(--line)' }}>
                       {t.icon}
                       {t.locked ? (
                         <div style={{ marginTop: 5, display: 'flex', justifyContent: 'center', color: 'var(--ink-soft)' }}><Lock size={16} strokeWidth={1.9} /></div>
@@ -588,8 +701,8 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
             <div className="wb-card" style={{ overflow: 'hidden' }}>
               {navEntries.map((n, i) => (
                 <button key={n.key} type="button" className="wb-pressable" onClick={n.go}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '13px 16px', border: 'none', background: 'transparent', cursor: 'pointer', borderTop: i ? '1px solid var(--line)' : 'none', textAlign: 'left' }}>
-                  <div style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 13, background: 'var(--terra-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><GIcon name={n.icon} size={20} /></div>
+                  style={{ ...navButtonBaseStyle, borderTop: i ? '1px solid var(--line)' : 'none' }}>
+                  <div style={navIconBoxStyle}><GIcon name={n.icon} size={20} /></div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 15.5, color: 'var(--ink)' }}>{n.title}</div>
                     {n.subtitle ? <div style={{ fontSize: 12.5, color: 'var(--ink-faint)', marginTop: 1 }}>{n.subtitle}</div> : null}
@@ -615,14 +728,14 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
                     <div style={{ height: 116, position: 'relative', background: 'linear-gradient(150deg, var(--terra) 0%, var(--terra-deep) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {a.imageUrl ? <img src={a.imageUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} /> : <Ticket size={38} strokeWidth={1.4} style={{ color: 'rgba(255,255,255,.92)' }} />}
                       {a.featured ? (
-                        <div style={{ position: 'absolute', top: 10, left: 10, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, background: 'rgba(255,255,255,.92)', fontSize: 10.5, fontWeight: 700, color: 'var(--ink)' }}>
+                        <div style={featuredBadgeStyle}>
                           <Star size={11} style={{ color: 'var(--gold)' }} fill="var(--gold)" /> {L.featured}
                         </div>
                       ) : null}
                     </div>
                     <div style={{ padding: '11px 13px 13px' }}>
                       <div className="wb-serif" style={{ fontSize: 18, lineHeight: 1.14, marginBottom: 8, color: 'var(--ink)' }}>{a.title}</div>
-                      {a.description ? <div style={{ fontSize: 12.5, color: 'var(--ink-faint)', marginBottom: 9, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{a.description}</div> : null}
+                      {a.description ? <div style={cardDescStyle}>{a.description}</div> : null}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ fontWeight: 800, fontSize: 15 }}>{a.price || ''}</div>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--terra-deep)', fontWeight: 700, fontSize: 12.5 }}>{L.book} <ArrowRight size={14} strokeWidth={1.8} /></span>
@@ -661,7 +774,7 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
                     </div>
                     <div style={{ padding: '11px 13px 13px' }}>
                       <div className="wb-serif" style={{ fontSize: 18, lineHeight: 1.14, marginBottom: 8, color: 'var(--ink)' }}>{u.title}</div>
-                      {u.description ? <div style={{ fontSize: 12.5, color: 'var(--ink-faint)', marginBottom: 9, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{u.description}</div> : null}
+                      {u.description ? <div style={cardDescStyle}>{u.description}</div> : null}
                       {u.bundleItems.length > 0 ? (
                         <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', marginBottom: 9, lineHeight: 1.35 }}>
                           <span style={{ fontWeight: 700, color: 'var(--ink-soft)' }}>{L.included} :</span> {u.bundleItems.join(', ')}
@@ -682,7 +795,7 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
         {/* Noter mon séjour */}
         {model.guestbookEnabled ? (
           <button type="button" className="wb-pressable" onClick={() => setView({ name: 'review' })}
-            style={{ border: '1.5px solid var(--terra-soft)', background: 'transparent', borderRadius: 18, padding: '15px 16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left' }}>
+            style={rateStayButtonStyle}>
             <Stars value={5} size={16} />
             <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>{L.rateStay}</div></div>
             <ChevronRight size={18} strokeWidth={1.7} style={{ color: 'var(--ink-faint)' }} />
@@ -807,7 +920,7 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
                 <div key={p.key} className="wb-card" style={{ padding: 13, display: 'flex', gap: 13, alignItems: 'center', background: 'var(--raised)' }}>
                   <div style={{ flexShrink: 0, width: 64, height: 64, borderRadius: 14, overflow: 'hidden', position: 'relative' }}>
                     <img src={accessPhotoUrl(p.key)} alt={p.caption || ''} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <span style={{ position: 'absolute', top: -6, left: -6, width: 22, height: 22, borderRadius: 999, background: 'var(--terra)', color: '#FFF6EF', fontSize: 11.5, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</span>
+                    <span style={accessPhotoBadgeStyle}>{i + 1}</span>
                   </div>
                   <div style={{ flex: 1, fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.45 }}>{p.caption || ''}</div>
                 </div>
@@ -816,7 +929,7 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
           </div>
         ) : null}
 
-        {practicalBlocks.map((b, i) => (<WarmBlock key={i} label={b.label}><div style={PARA}>{b.value}</div></WarmBlock>))}
+        {practicalBlocks.map((b) => (<WarmBlock key={b.label} label={b.label}><div style={PARA}>{b.value}</div></WarmBlock>))}
 
         {practical?.emergencyContact ? (
           <WarmBlock label={L.useful}>
@@ -843,19 +956,19 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
                 const gmaps = p.lat != null && p.lng != null ? `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}` : p.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.address)}` : null;
                 return (
                   <div key={p.id} className="wb-card" style={{ padding: 15, display: 'flex', gap: 13, background: 'var(--raised)' }}>
-                    <div style={{ flexShrink: 0, width: 46, height: 46, borderRadius: 14, background: 'var(--terra-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CatIcon size={21} strokeWidth={1.7} style={{ color: cat.color }} /></div>
+                    <div style={poiIconBoxStyle}><CatIcon size={21} strokeWidth={1.7} style={{ color: cat.color }} /></div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
                         <span className="wb-serif" style={{ fontSize: 19, color: 'var(--ink)' }}>{p.name || poiLabel(cat.id, lang)}</span>
-                        {p.featured ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, color: 'var(--terra-deep)', background: 'var(--terra-bg)', padding: '2px 7px', borderRadius: 999 }}><Star size={10} style={{ color: 'var(--terra-deep)' }} fill="var(--terra-deep)" />{L.featured}</span> : null}
+                        {p.featured ? <span style={poiFeaturedBadgeStyle}><Star size={10} style={{ color: 'var(--terra-deep)' }} fill="var(--terra-deep)" />{L.featured}</span> : null}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '3px 0 7px', fontSize: 12, color: 'var(--ink-faint)', fontWeight: 600, flexWrap: 'wrap' }}>
+                      <div style={poiMetaRowStyle}>
                         {p.type ? <span>{p.type}</span> : null}
                         {p.type && dist != null ? <span style={{ opacity: 0.5 }}>·</span> : null}
                         {dist != null ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontVariantNumeric: 'tabular-nums' }}><Footprints size={13} strokeWidth={1.7} />{fmtDistance(dist)}</span> : null}
                       </div>
                       {p.note ? <div style={{ fontSize: 13.5, lineHeight: 1.5, color: 'var(--ink-soft)' }}>{p.note}</div> : null}
-                      {gmaps ? <a href={interactive ? gmaps : undefined} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 7, color: 'var(--terra-deep)', fontWeight: 700, fontSize: 12.5, textDecoration: 'none', cursor: interactive ? 'pointer' : 'default' }}><MapPin size={13} strokeWidth={1.7} />{L.viewMap}</a> : null}
+                      {gmaps ? <a href={interactive ? gmaps : undefined} target="_blank" rel="noopener noreferrer" style={{ ...poiMapLinkStyle, cursor: interactive ? 'pointer' : 'default' }}><MapPin size={13} strokeWidth={1.7} />{L.viewMap}</a> : null}
                     </div>
                   </div>
                 );

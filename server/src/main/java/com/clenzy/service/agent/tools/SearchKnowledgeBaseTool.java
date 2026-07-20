@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -18,11 +19,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Tool {@code search_knowledge_base} — recherche dans la doc Clenzy (RAG).
+ * Tool {@code search_knowledge_base} — recherche dans la doc Baitly (RAG).
  *
  * <p>Le LLM invoque ce tool quand il veut une reponse sourcee ("selon la doc
- * Clenzy..."). L'auto-injection RAG dans l'orchestrateur peut aussi fournir
+ * Baitly..."). L'auto-injection RAG dans l'orchestrateur peut aussi fournir
  * du contexte sans appel explicite — les deux mecanismes sont complementaires.</p>
+ *
+ * <p>Un seuil plancher ({@code clenzy.ai.embeddings.tool-relevance-floor}) ecarte
+ * les hits tres faibles : les instructions anti-hallucination du prompt restent la
+ * derniere ligne de defense, mais on evite de tenter le LLM avec du bruit.</p>
  */
 @Component
 public class SearchKnowledgeBaseTool implements ToolHandler {
@@ -35,11 +40,15 @@ public class SearchKnowledgeBaseTool implements ToolHandler {
     private final KbSearchService searchService;
     private final ObjectMapper objectMapper;
     private final ToolDescriptor descriptor;
+    private final double relevanceFloor;
 
-    public SearchKnowledgeBaseTool(KbSearchService searchService, ObjectMapper objectMapper) {
+    public SearchKnowledgeBaseTool(KbSearchService searchService, ObjectMapper objectMapper,
+                                     @Value("${clenzy.ai.embeddings.tool-relevance-floor:0.50}")
+                                     double relevanceFloor) {
         this.searchService = searchService;
         this.objectMapper = objectMapper;
         this.descriptor = buildDescriptor(objectMapper);
+        this.relevanceFloor = relevanceFloor;
     }
 
     @Override
@@ -62,20 +71,22 @@ public class SearchKnowledgeBaseTool implements ToolHandler {
 
         try {
             List<KbSearchService.KbSearchHit> hits = searchService.search(
-                    query, context.organizationId(), topK);
+                    query, context.organizationId(), topK, context.language());
 
-            List<Map<String, Object>> items = hits.stream().map(h -> {
+            List<Map<String, Object>> items = hits.stream()
+                    .filter(h -> h.relevance() >= relevanceFloor)
+                    .map(h -> {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("documentId", h.documentId());
                 m.put("title", h.title());
                 m.put("sourcePath", h.sourcePath());
-                m.put("snippet", h.snippet());
+                m.put("snippet", truncate(h.snippet()));
                 m.put("relevance", h.relevance());
                 return m;
             }).toList();
 
             Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("title", "Documentation Clenzy");
+            payload.put("title", "Documentation Baitly");
             payload.put("query", query);
             payload.put("items", items);
             payload.put("count", items.size());
@@ -90,13 +101,21 @@ public class SearchKnowledgeBaseTool implements ToolHandler {
         }
     }
 
+    /** Le tool est plus verbeux que l'auto-injection (topK 5-10) : on borne chaque snippet. */
+    private static final int TOOL_SNIPPET_MAX_CHARS = 800;
+
+    private static String truncate(String snippet) {
+        if (snippet == null || snippet.length() <= TOOL_SNIPPET_MAX_CHARS) return snippet;
+        return snippet.substring(0, TOOL_SNIPPET_MAX_CHARS - 1) + "…";
+    }
+
     private static ToolDescriptor buildDescriptor(ObjectMapper om) {
         try {
             JsonNode schema = om.readTree("""
                     {
                       "type": "object",
                       "properties": {
-                        "query": {"type":"string","description":"Question ou mots-cles a rechercher dans la documentation Clenzy"},
+                        "query": {"type":"string","description":"Question ou mots-cles a rechercher dans la documentation Baitly"},
                         "topK":  {"type":"integer","minimum":1,"maximum":10,"description":"Nombre max de resultats (defaut 5)"}
                       },
                       "required": ["query"],

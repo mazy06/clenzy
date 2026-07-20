@@ -175,7 +175,7 @@ const OutboxTab: React.FC = () => {
   };
 
   const handleSelectAllFailed = useCallback(() => {
-    const failedIds = events.filter((e) => e.status === 'FAILED').map((e) => e.id);
+    const failedIds = events.flatMap((e) => (e.status === 'FAILED' ? [e.id] : []));
     setSelectedIds(new Set(failedIds));
   }, [events]);
 

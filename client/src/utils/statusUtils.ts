@@ -11,27 +11,11 @@
  */
 import { softChipSx as sharedSoftChipSx } from '../components/StatusChip';
 
-import type { ChipColor } from '../types';
-
 type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
 
 // ═════════════════════════════════════════════════════════════════════════════
 // PROPERTY — statuses, types, cleaning frequencies
 // ═════════════════════════════════════════════════════════════════════════════
-
-const PROPERTY_STATUS_COLORS: Record<string, ChipColor> = {
-  ACTIVE: 'success',
-  INACTIVE: 'default',
-  MAINTENANCE: 'warning',
-  UNDER_MAINTENANCE: 'warning',
-  RENTED: 'info',
-  SOLD: 'error',
-  ARCHIVED: 'error',
-};
-
-export function getPropertyStatusColor(status: string): ChipColor {
-  return PROPERTY_STATUS_COLORS[status.toUpperCase()] ?? 'default';
-}
 
 const PROPERTY_STATUS_HEX: Record<string, string> = {
   ACTIVE: '#4A9B8E',
@@ -146,20 +130,6 @@ export function getCleaningFrequencyLabel(freq: string, t: TranslationFn): strin
 // SERVICE REQUEST — statuses, priorities
 // ═════════════════════════════════════════════════════════════════════════════
 
-const SR_STATUS_COLORS: Record<string, ChipColor> = {
-  pending: 'warning',
-  approved: 'info',
-  devis_accepted: 'success',
-  in_progress: 'info',
-  completed: 'success',
-  cancelled: 'default',
-  rejected: 'error',
-};
-
-export function getServiceRequestStatusColor(status: string): ChipColor {
-  return SR_STATUS_COLORS[status?.toLowerCase()] ?? 'default';
-}
-
 // Hex colors for soft-filled chip style (same design as reservation chips)
 const SR_STATUS_HEX: Record<string, string> = {
   pending: '#ED6C02',
@@ -191,19 +161,6 @@ export function getServiceRequestStatusLabel(status: string, t: TranslationFn): 
   const key = keyMap[statusLower];
   if (key) return t(key);
   return status;
-}
-
-const SR_PRIORITY_COLORS: Record<string, ChipColor> = {
-  low: 'default',
-  normal: 'info',
-  medium: 'info',
-  high: 'warning',
-  urgent: 'error',
-  critical: 'error',
-};
-
-export function getServiceRequestPriorityColor(priority: string): ChipColor {
-  return SR_PRIORITY_COLORS[priority?.toLowerCase()] ?? 'default';
 }
 
 const SR_PRIORITY_HEX: Record<string, string> = {
@@ -238,65 +195,10 @@ export function getServiceRequestPriorityLabel(priority: string, t: TranslationF
 // INTERVENTION — statuses, priorities, types
 // ═════════════════════════════════════════════════════════════════════════════
 
-const INT_STATUS_COLORS: Record<string, ChipColor> = {
-  PENDING: 'warning',
-  AWAITING_VALIDATION: 'warning',
-  AWAITING_PAYMENT: 'warning',
-  SCHEDULED: 'info',
-  IN_PROGRESS: 'primary',
-  ON_HOLD: 'warning',
-  COMPLETED: 'success',
-  CANCELLED: 'error',
-};
-
-export function getInterventionStatusColor(status: string): ChipColor {
-  return INT_STATUS_COLORS[status?.toUpperCase()] ?? 'default';
-}
-
-// Hex colors for soft-filled chip style (same design as reservation chips)
-const INT_STATUS_HEX: Record<string, string> = {
-  PENDING: '#ED6C02',
-  AWAITING_VALIDATION: '#D4A574',
-  AWAITING_PAYMENT: '#D4A574',
-  SCHEDULED: '#0288d1',
-  IN_PROGRESS: '#1976d2',
-  ON_HOLD: '#ED6C02',
-  COMPLETED: '#4A9B8E',
-  CANCELLED: '#d32f2f',
-};
-
-export function getInterventionStatusHex(status: string): string {
-  return INT_STATUS_HEX[status?.toUpperCase()] ?? '#757575';
-}
-
 export function getInterventionStatusLabel(status: string, t: TranslationFn): string {
   const key = `interventions.statuses.${status?.toUpperCase()}`;
   const translated = t(key);
   return translated !== key ? translated : status;
-}
-
-const INT_PRIORITY_COLORS: Record<string, ChipColor> = {
-  LOW: 'success',
-  NORMAL: 'info',
-  HIGH: 'warning',
-  URGENT: 'error',
-  CRITICAL: 'error',
-};
-
-export function getInterventionPriorityColor(priority: string): ChipColor {
-  return INT_PRIORITY_COLORS[priority?.toUpperCase()] ?? 'default';
-}
-
-const INT_PRIORITY_HEX: Record<string, string> = {
-  LOW: '#4A9B8E',
-  NORMAL: '#0288d1',
-  HIGH: '#ED6C02',
-  URGENT: '#d32f2f',
-  CRITICAL: '#d32f2f',
-};
-
-export function getInterventionPriorityHex(priority: string): string {
-  return INT_PRIORITY_HEX[priority?.toUpperCase()] ?? '#757575';
 }
 
 export function getInterventionPriorityLabel(priority: string, t: TranslationFn): string {
@@ -370,42 +272,6 @@ export function getInterventionTypeLabel(type: string, t: TranslationFn): string
     return translated !== key ? translated : type;
   }
   return type;
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// AMENITY — hex colors by category
-// ═════════════════════════════════════════════════════════════════════════════
-
-const AMENITY_HEX: Record<string, string> = {
-  // Tech & confort
-  WIFI: '#1976d2',
-  TV: '#1976d2',
-  AIR_CONDITIONING: '#1976d2',
-  HEATING: '#1976d2',
-  // Cuisine
-  EQUIPPED_KITCHEN: '#4A9B8E',
-  DISHWASHER: '#4A9B8E',
-  MICROWAVE: '#4A9B8E',
-  OVEN: '#4A9B8E',
-  // Électroménager
-  WASHING_MACHINE: '#0288d1',
-  DRYER: '#0288d1',
-  IRON: '#0288d1',
-  HAIR_DRYER: '#0288d1',
-  // Extérieur
-  PARKING: '#ED6C02',
-  POOL: '#ED6C02',
-  JACUZZI: '#ED6C02',
-  GARDEN_TERRACE: '#ED6C02',
-  BARBECUE: '#ED6C02',
-  // Sécurité & Famille
-  SAFE: '#7B61FF',
-  BABY_BED: '#7B61FF',
-  HIGH_CHAIR: '#7B61FF',
-};
-
-export function getAmenityHex(amenity: string): string {
-  return AMENITY_HEX[amenity?.toUpperCase()] ?? '#757575';
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

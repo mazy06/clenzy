@@ -40,11 +40,20 @@ public class KbAdminController {
     private static final long MAX_UPLOAD_BYTES = 2L * 1024 * 1024; // 2 MB par fichier markdown
 
     private final IngestionService ingestionService;
+    private final com.clenzy.service.agent.kb.KbSearchService kbSearchService;
+    private final com.clenzy.service.agent.kb.KbRetrievalEvalService kbRetrievalEvalService;
+    private final com.clenzy.scheduler.KbIndexTuningScheduler kbIndexTuningScheduler;
     private final TenantContext tenantContext;
 
     public KbAdminController(IngestionService ingestionService,
+                              com.clenzy.service.agent.kb.KbSearchService kbSearchService,
+                              com.clenzy.service.agent.kb.KbRetrievalEvalService kbRetrievalEvalService,
+                              com.clenzy.scheduler.KbIndexTuningScheduler kbIndexTuningScheduler,
                               TenantContext tenantContext) {
         this.ingestionService = ingestionService;
+        this.kbSearchService = kbSearchService;
+        this.kbRetrievalEvalService = kbRetrievalEvalService;
+        this.kbIndexTuningScheduler = kbIndexTuningScheduler;
         this.tenantContext = tenantContext;
     }
 
@@ -129,6 +138,140 @@ public class KbAdminController {
             return m;
         }).toList();
         return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * KPI plateforme de la knowledge base : volumes (documents, chunks, orphelins)
+     * + sante de l'index vectoriel ivfflat (lists actuel vs optimal). C'est le
+     * signal pour activer l'auto-tune ({@code clenzy.assistant.kb.auto-tune-enabled})
+     * quand la base grossit. Reserve au staff plateforme : l'index est global.
+     */
+    @GetMapping("/stats")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    public ResponseEntity<Map<String, Object>> stats() {
+        IngestionService.KbStats kb = ingestionService.stats();
+        var index = kbIndexTuningScheduler.inspect();
+
+        Map<String, Object> documents = new LinkedHashMap<>();
+        documents.put("total", kb.totalDocuments());
+        documents.put("global", kb.globalDocuments());
+        documents.put("org", kb.totalDocuments() - kb.globalDocuments());
+
+        Map<String, Object> chunks = new LinkedHashMap<>();
+        chunks.put("total", kb.totalChunks());
+        chunks.put("indexed", kb.totalChunks() - kb.orphanChunks());
+        chunks.put("orphans", kb.orphanChunks());
+
+        Map<String, Object> indexHealth = new LinkedHashMap<>();
+        indexHealth.put("status", index.status().name());
+        indexHealth.put("currentLists", index.currentLists());
+        indexHealth.put("optimalLists", index.optimalLists());
+        indexHealth.put("autoTuneEnabled", kbIndexTuningScheduler.isAutoApplyEnabled());
+        indexHealth.put("retuneRecommended",
+                index.status() == com.clenzy.scheduler.KbIndexTuningScheduler.TuningOutcome.Status.RECOMMENDATION);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("documents", documents);
+        response.put("chunks", chunks);
+        response.put("index", indexHealth);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Demarre l'evaluation du retrieval en tache de fond (golden set embarque,
+     * ~40 questions ; en mode ralenti Voyage le run peut durer ~15 min — l'UI
+     * suit la progression via {@code GET /eval/status}). POST : chaque run
+     * consomme des appels provider. Reserve au staff plateforme.
+     */
+    @PostMapping("/eval")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    public ResponseEntity<Map<String, Object>> startRetrievalEval() {
+        boolean started = kbRetrievalEvalService.start();
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("started", started);
+        response.put("status", evalStatusPayload(kbRetrievalEvalService.status()));
+        return ResponseEntity.accepted().body(response);
+    }
+
+    /** Progression et resultat du run d'evaluation courant (pollee par l'UI). */
+    @GetMapping("/eval/status")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    public ResponseEntity<Map<String, Object>> retrievalEvalStatus() {
+        return ResponseEntity.ok(evalStatusPayload(kbRetrievalEvalService.status()));
+    }
+
+    private static Map<String, Object> evalStatusPayload(
+            com.clenzy.service.agent.kb.KbRetrievalEvalService.EvalStatus status) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("state", status.state().name().toLowerCase(java.util.Locale.ROOT));
+        payload.put("done", status.done());
+        payload.put("total", status.total());
+        payload.put("error", status.error());
+
+        var report = status.report();
+        if (report == null) {
+            payload.put("report", null);
+            return payload;
+        }
+        List<Map<String, Object>> misses = report.entries().stream()
+                .filter(e -> e.rank() < 0)
+                .map(e -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("question", e.question());
+                    m.put("expected", e.expected());
+                    m.put("retrieved", e.retrieved());
+                    return m;
+                }).toList();
+        Map<String, Object> reportPayload = new LinkedHashMap<>();
+        reportPayload.put("topK", com.clenzy.service.agent.kb.KbRetrievalEvalService.TOP_K);
+        reportPayload.put("recallAtK", report.recallAtK());
+        reportPayload.put("mrr", report.mrr());
+        reportPayload.put("total", report.total());
+        reportPayload.put("hits", report.hits());
+        reportPayload.put("misses", misses);
+        payload.put("report", reportPayload);
+        return payload;
+    }
+
+    /**
+     * Playground de recherche : execute la MEME recherche hybride que l'assistant
+     * (embeddings + full-text + fusion RRF + rerank) et retourne les chunks avec
+     * leurs scores. Permet aux admins de verifier ce que l'assistant « voit » pour
+     * une question donnee, et de diagnostiquer les seuils. Read-only, scope = org
+     * du caller (docs globaux dans la langue demandee + docs de l'org).
+     */
+    @GetMapping("/search-test")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','HOST','SUPER_MANAGER')")
+    public ResponseEntity<Map<String, Object>> searchTest(
+            @RequestParam("query") String query,
+            @RequestParam(value = "topK", defaultValue = "5") int topK,
+            @RequestParam(value = "lang", defaultValue = "fr") String lang) {
+        if (query == null || query.isBlank()) {
+            throw new IllegalArgumentException("query est requis");
+        }
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        int safeTopK = Math.max(1, Math.min(10, topK));
+
+        List<com.clenzy.service.agent.kb.KbSearchService.KbSearchHit> hits =
+                kbSearchService.search(query, orgId, safeTopK, lang);
+
+        List<Map<String, Object>> items = hits.stream().map(h -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("documentId", h.documentId());
+            m.put("title", h.title());
+            m.put("sourcePath", h.sourcePath());
+            m.put("snippet", h.snippet());
+            m.put("relevance", h.relevance());
+            return m;
+        }).toList();
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("query", query);
+        response.put("lang", lang);
+        response.put("relevanceThreshold", kbSearchService.getRelevanceThreshold());
+        response.put("items", items);
+        response.put("count", items.size());
+        return ResponseEntity.ok(response);
     }
 
     /** Supprime un document. Ownership validee dans {@link IngestionService}. */

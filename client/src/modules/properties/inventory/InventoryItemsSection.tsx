@@ -438,6 +438,36 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
   );
 }
 
+const renderCategoryChip = (categoryValue: string) => {
+  const cat = CATEGORY_BY_VALUE[categoryValue];
+  if (!cat) {
+    // Pilule -soft neutre (pattern baseline §2 : texte couleur + fond soft)
+    return (
+      <Chip
+        label={categoryValue}
+        size="small"
+        sx={{ bgcolor: 'var(--hover)', color: 'var(--muted)', border: 'none' }}
+      />
+    );
+  }
+  return (
+    <Chip
+      icon={React.cloneElement(
+        cat.icon as React.ReactElement<{ size?: number; strokeWidth?: number; color?: string }>,
+        { size: 14, strokeWidth: 1.75, color: cat.color },
+      )}
+      label={cat.label}
+      size="small"
+      sx={{
+        bgcolor: `${cat.color}1F`,
+        color: cat.color,
+        border: 'none',
+        '& .MuiChip-icon': { ml: 0.5 },
+      }}
+    />
+  );
+};
+
 // ─── Main component ─────────────────────────────────────────────────────────
 
 export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate, onDelete }: Props) {
@@ -486,35 +516,6 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
     }
   };
 
-  const renderCategoryChip = (categoryValue: string) => {
-    const cat = CATEGORY_BY_VALUE[categoryValue];
-    if (!cat) {
-      // Pilule -soft neutre (pattern baseline §2 : texte couleur + fond soft)
-      return (
-        <Chip
-          label={categoryValue}
-          size="small"
-          sx={{ bgcolor: 'var(--hover)', color: 'var(--muted)', border: 'none' }}
-        />
-      );
-    }
-    return (
-      <Chip
-        icon={React.cloneElement(
-          cat.icon as React.ReactElement<{ size?: number; strokeWidth?: number; color?: string }>,
-          { size: 14, strokeWidth: 1.75, color: cat.color },
-        )}
-        label={cat.label}
-        size="small"
-        sx={{
-          bgcolor: `${cat.color}1F`,
-          color: cat.color,
-          border: 'none',
-          '& .MuiChip-icon': { ml: 0.5 },
-        }}
-      />
-    );
-  };
 
   const orderedItems = useMemo(() => {
     const order = CATEGORIES.map((c) => c.value);

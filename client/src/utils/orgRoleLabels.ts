@@ -25,7 +25,6 @@ export function getOrgRoleLabel(role: string): string {
   return ORG_ROLE_LABELS[role] || role;
 }
 
-import type { ChipColor } from '../types';
 import type { LucideIcon } from 'lucide-react';
 import {
   StarRate,
@@ -40,25 +39,6 @@ import {
   Person,
   AdminPanelSettings,
 } from '../icons';
-
-// ─── Couleurs Chip ──────────────────────────────────────────────────────────
-
-const ORG_ROLE_COLORS: Record<string, ChipColor> = {
-  OWNER: 'secondary',
-  ADMIN: 'error',
-  MANAGER: 'warning',
-  SUPERVISOR: 'info',
-  HOUSEKEEPER: 'success',
-  TECHNICIAN: 'primary',
-  LAUNDRY: 'default',
-  EXTERIOR_TECH: 'primary',
-  HOST: 'info',
-  MEMBER: 'default',
-};
-
-export function getOrgRoleColor(role: string): ChipColor {
-  return ORG_ROLE_COLORS[role] || 'default';
-}
 
 // ─── Palette Baitly par role (hex) ──────────────────────────────────────────
 

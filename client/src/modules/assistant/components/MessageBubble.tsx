@@ -53,9 +53,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             {/* Attachments thumbnails 100x100 — au-dessus du texte */}
             {attachments.length > 0 && (
               <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
-                {attachments.map((att, idx) => (
+                {attachments.map((att) => (
                   <Box
-                    key={`${att.storageKey}-${idx}`}
+                    key={att.storageKey}
                     component="button"
                     onClick={() => {
                       setFullSizeUrl(att.url);

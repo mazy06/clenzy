@@ -37,8 +37,9 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
     onChange(next || undefined);
   };
 
+  const propertyIdSet = new Set(conditions.propertyIds ?? []);
   const selectedProperties = properties.filter((p) =>
-    (conditions.propertyIds ?? []).includes(Number(p.id)),
+    propertyIdSet.has(Number(p.id)),
   );
 
   return (
@@ -74,15 +75,18 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
           value={selectedProperties}
           onChange={(_, sel) => update({ propertyIds: sel.map((p) => Number(p.id)) })}
           renderTags={(val, getTagProps) =>
-            val.map((option, index) => (
-              <Chip
-                variant="outlined"
-                size="small"
-                label={option.name}
-                {...getTagProps({ index })}
-                key={option.id}
-              />
-            ))
+            val.map((option, index) => {
+              const { key, ...tagProps } = getTagProps({ index });
+              return (
+                <Chip
+                  key={key}
+                  variant="outlined"
+                  size="small"
+                  label={option.name}
+                  {...tagProps}
+                />
+              );
+            })
           }
           renderInput={(params) => (
             <TextField

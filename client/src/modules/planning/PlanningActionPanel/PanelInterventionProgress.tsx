@@ -57,6 +57,44 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
   onUpdateInterventionProgress,
 }) => {
   const intervention = event.intervention;
+
+  // Hooks must run unconditionally in the same order every render (rules-of-hooks):
+  // they are declared before the early return below.
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const beforeInputRef = useRef<HTMLInputElement>(null);
+  const afterInputRef = useRef<HTMLInputElement>(null);
+
+  const numericId = intervention?.id;
+
+  const handleStart = useCallback(async () => {
+    if (!onStartIntervention || numericId == null) return;
+    setLoading(true);
+    setError(null);
+    const result = await onStartIntervention(numericId);
+    if (!result.success) setError(result.error);
+    setLoading(false);
+  }, [numericId, onStartIntervention]);
+
+  const handleComplete = useCallback(async () => {
+    if (!onCompleteIntervention || numericId == null) return;
+    setLoading(true);
+    setError(null);
+    const result = await onCompleteIntervention(numericId);
+    if (!result.success) setError(result.error);
+    setLoading(false);
+  }, [numericId, onCompleteIntervention]);
+
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>, type: 'before' | 'after') => {
+    if (!e.target.files?.length || !onUploadPhotos || numericId == null) return;
+    setLoading(true);
+    setError(null);
+    const result = await onUploadPhotos(numericId, Array.from(e.target.files), type);
+    if (!result.success) setError(result.error);
+    setLoading(false);
+    e.target.value = '';
+  }, [numericId, onUploadPhotos]);
+
   if (!intervention) {
     return (
       <Alert severity="info" sx={{ fontSize: '0.75rem' }}>
@@ -65,14 +103,8 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
     );
   }
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const beforeInputRef = useRef<HTMLInputElement>(null);
-  const afterInputRef = useRef<HTMLInputElement>(null);
-
   const completedSteps = parseCompletedSteps(intervention.completedSteps);
   const validatedRooms = parseValidatedRooms(intervention.validatedRooms);
-  const numericId = intervention.id;
 
   const isStarted = ['in_progress', 'awaiting_validation', 'completed'].includes(intervention.status);
   const isCompleted = ['completed', 'awaiting_validation'].includes(intervention.status);
@@ -98,34 +130,6 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
         : i <= 2 ? `Chambre ${i}`
           : `Salle de bain ${i - 2}`
   );
-
-  const handleStart = useCallback(async () => {
-    if (!onStartIntervention) return;
-    setLoading(true);
-    setError(null);
-    const result = await onStartIntervention(numericId);
-    if (!result.success) setError(result.error);
-    setLoading(false);
-  }, [numericId, onStartIntervention]);
-
-  const handleComplete = useCallback(async () => {
-    if (!onCompleteIntervention) return;
-    setLoading(true);
-    setError(null);
-    const result = await onCompleteIntervention(numericId);
-    if (!result.success) setError(result.error);
-    setLoading(false);
-  }, [numericId, onCompleteIntervention]);
-
-  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>, type: 'before' | 'after') => {
-    if (!e.target.files?.length || !onUploadPhotos) return;
-    setLoading(true);
-    setError(null);
-    const result = await onUploadPhotos(numericId, Array.from(e.target.files), type);
-    if (!result.success) setError(result.error);
-    setLoading(false);
-    e.target.value = '';
-  }, [numericId, onUploadPhotos]);
 
   return (
     <Box>

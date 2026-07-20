@@ -224,8 +224,9 @@ export default function Settings() {
   const [, forceUpdate] = useState(0);
 
   // Vérifier les permissions pour les paramètres
+  // NB : settings:edit etait charge dans un etat jamais lu (aucun gating d'edition
+  // cote UI aujourd'hui) — etat mort supprime ; le gating renvoie au backend.
   const [canViewSettings, setCanViewSettings] = useState(false);
-  const [canEditSettings, setCanEditSettings] = useState(false);
   const [canViewAi, setCanViewAi] = useState(false);
 
   // ─── Onglets (source unique) + onglet actif resolu par CLE (URL ?tab=<key>) ──────────────
@@ -382,11 +383,9 @@ export default function Settings() {
   useEffect(() => {
     const checkPermissions = async () => {
       const viewPermission = await hasPermissionAsync('settings:view');
-      const editPermission = await hasPermissionAsync('settings:edit');
       const aiPermission = await hasPermissionAsync('ai:view');
 
       setCanViewSettings(viewPermission);
-      setCanEditSettings(editPermission);
       setCanViewAi(aiPermission);
     };
 

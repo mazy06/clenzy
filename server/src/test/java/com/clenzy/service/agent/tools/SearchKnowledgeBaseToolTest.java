@@ -28,7 +28,7 @@ class SearchKnowledgeBaseToolTest {
     void setUp() {
         searchService = mock(KbSearchService.class);
         om = new ObjectMapper();
-        tool = new SearchKnowledgeBaseTool(searchService, om);
+        tool = new SearchKnowledgeBaseTool(searchService, om, 0.50);
         ctx = AgentContext.minimal(1L, "user-123");
     }
 
@@ -41,7 +41,7 @@ class SearchKnowledgeBaseToolTest {
 
     @Test
     void execute_buildsKnowledgePayload() throws Exception {
-        when(searchService.search(eq("comment configurer"), eq(1L), eq(5)))
+        when(searchService.search(eq("comment configurer"), eq(1L), eq(5), any()))
                 .thenReturn(List.of(
                         new KbSearchService.KbSearchHit(
                                 1L, 10L, "Configuration", "docs/conf.md",
@@ -73,22 +73,22 @@ class SearchKnowledgeBaseToolTest {
 
     @Test
     void execute_topKClamped() {
-        when(searchService.search(anyString(), eq(1L), anyInt())).thenReturn(List.of());
+        when(searchService.search(anyString(), eq(1L), anyInt(), any())).thenReturn(List.of());
 
         ObjectNode args = om.createObjectNode();
         args.put("query", "test");
         args.put("topK", 99);
         tool.execute(args, ctx);
-        verify(searchService).search(eq("test"), eq(1L), eq(10));
+        verify(searchService).search(eq("test"), eq(1L), eq(10), any());
 
         args.put("topK", 0);
         tool.execute(args, ctx);
-        verify(searchService).search(eq("test"), eq(1L), eq(1));
+        verify(searchService).search(eq("test"), eq(1L), eq(1), any());
     }
 
     @Test
     void execute_emptyResults_stillReturnsValidPayload() throws Exception {
-        when(searchService.search(anyString(), eq(1L), anyInt())).thenReturn(List.of());
+        when(searchService.search(anyString(), eq(1L), anyInt(), any())).thenReturn(List.of());
 
         ObjectNode args = om.createObjectNode();
         args.put("query", "rien");

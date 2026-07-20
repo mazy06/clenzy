@@ -168,7 +168,7 @@ export function useInfiniteTimeline({
         el.scrollLeft = targetScrollLeft;
       }
     },
-    [days, dayWidth, propertyColWidth],
+    [days, dayWidth],
   );
 
   const scrollToDate = useCallback(
@@ -190,7 +190,7 @@ export function useInfiniteTimeline({
       }
       // If not in buffer, the anchorDate change will trigger buffer recenter
     },
-    [days, dayWidth, propertyColWidth],
+    [days, dayWidth],
   );
 
   const scrollToAnchor = useCallback(() => {

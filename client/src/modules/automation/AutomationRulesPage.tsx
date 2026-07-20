@@ -116,6 +116,59 @@ const channelIcon = (ch: MessageChannelType) => {
   return found?.icon ?? null;
 };
 
+// Style du chip de statut d'une automatisation système (carte et liste).
+const systemStatusStyle = (status: string) =>
+  status === 'ACTIVE' ? pillSx('var(--ok-soft)', 'var(--ok)')
+    : status === 'INACTIVE' ? pillSx('var(--field)', 'var(--muted)')
+      : pillSx('var(--info-soft)', 'var(--info)');
+
+// Chips par colonne : déclencheur (+ timing), action, canal — pour aligner
+// les colonnes en vue liste et les regrouper en vue carte.
+const renderTriggerChips = (rule: AutomationRule) => (
+  <>
+    <Chip
+      label={TRIGGER_LABELS[rule.triggerType] ?? rule.triggerType}
+      size="small"
+      sx={pillSx('var(--accent-soft)', 'var(--accent)')}
+    />
+    {isLifecycleTrigger(rule.triggerType) && rule.triggerOffsetDays !== 0 && (
+      <Chip
+        label={`${rule.triggerOffsetDays > 0 ? '+' : ''}${rule.triggerOffsetDays}j`}
+        size="small"
+        sx={{ ...pillSx('var(--field)', 'var(--body)'), fontVariantNumeric: 'tabular-nums' }}
+      />
+    )}
+    {isLifecycleTrigger(rule.triggerType) && rule.triggerTime && (
+      <Chip
+        label={rule.triggerTime}
+        size="small"
+        sx={{ ...pillSx('var(--field)', 'var(--body)'), fontVariantNumeric: 'tabular-nums' }}
+      />
+    )}
+  </>
+);
+
+const renderActionChip = (rule: AutomationRule) => (
+  <Chip
+    label={ACTION_LABELS[rule.actionType] ?? rule.actionType}
+    size="small"
+    sx={pillSx('var(--info-soft)', 'var(--info)')}
+  />
+);
+
+const renderChannelChip = (rule: AutomationRule) =>
+  isMessagingAction(rule.actionType) ? (
+    <Chip
+      icon={channelIcon(rule.deliveryChannel) as React.ReactElement}
+      label={rule.deliveryChannel}
+      size="small"
+      sx={pillSx(
+        `${CHANNEL_HEX[rule.deliveryChannel] ?? '#67757C'}1F`,
+        CHANNEL_HEX[rule.deliveryChannel] ?? 'var(--muted)',
+      )}
+    />
+  ) : null;
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const AutomationRulesPage: React.FC = () => {
@@ -219,12 +272,6 @@ const AutomationRulesPage: React.FC = () => {
   // ── Sorted rules ──
   const sortedRules = [...rules].sort((a, b) => a.sortOrder - b.sortOrder);
 
-  // Style du chip de statut d'une automatisation système (carte et liste).
-  const systemStatusStyle = (status: string) =>
-    status === 'ACTIVE' ? pillSx('var(--ok-soft)', 'var(--ok)')
-      : status === 'INACTIVE' ? pillSx('var(--field)', 'var(--muted)')
-        : pillSx('var(--info-soft)', 'var(--info)');
-
   // Ligne « liste » d'une automatisation système (lecture seule), mêmes colonnes
   // que les règles pour une liste unifiée.
   const renderSystemRow = (sa: (typeof systemAutomations)[number]) => (
@@ -253,53 +300,6 @@ const AutomationRulesPage: React.FC = () => {
       <Box />
     </Box>
   );
-
-  // Chips par colonne : déclencheur (+ timing), action, canal — pour aligner
-  // les colonnes en vue liste et les regrouper en vue carte.
-  const renderTriggerChips = (rule: AutomationRule) => (
-    <>
-      <Chip
-        label={TRIGGER_LABELS[rule.triggerType] ?? rule.triggerType}
-        size="small"
-        sx={pillSx('var(--accent-soft)', 'var(--accent)')}
-      />
-      {isLifecycleTrigger(rule.triggerType) && rule.triggerOffsetDays !== 0 && (
-        <Chip
-          label={`${rule.triggerOffsetDays > 0 ? '+' : ''}${rule.triggerOffsetDays}j`}
-          size="small"
-          sx={{ ...pillSx('var(--field)', 'var(--body)'), fontVariantNumeric: 'tabular-nums' }}
-        />
-      )}
-      {isLifecycleTrigger(rule.triggerType) && rule.triggerTime && (
-        <Chip
-          label={rule.triggerTime}
-          size="small"
-          sx={{ ...pillSx('var(--field)', 'var(--body)'), fontVariantNumeric: 'tabular-nums' }}
-        />
-      )}
-    </>
-  );
-
-  const renderActionChip = (rule: AutomationRule) => (
-    <Chip
-      label={ACTION_LABELS[rule.actionType] ?? rule.actionType}
-      size="small"
-      sx={pillSx('var(--info-soft)', 'var(--info)')}
-    />
-  );
-
-  const renderChannelChip = (rule: AutomationRule) =>
-    isMessagingAction(rule.actionType) ? (
-      <Chip
-        icon={channelIcon(rule.deliveryChannel) as React.ReactElement}
-        label={rule.deliveryChannel}
-        size="small"
-        sx={pillSx(
-          `${CHANNEL_HEX[rule.deliveryChannel] ?? '#67757C'}1F`,
-          CHANNEL_HEX[rule.deliveryChannel] ?? 'var(--muted)',
-        )}
-      />
-    ) : null;
 
   // Vue carte : tous les chips regroupés.
   const renderRuleChips = (rule: AutomationRule) => (
@@ -763,6 +763,8 @@ const AutomationRulesPage: React.FC = () => {
 //  Executions Dialog
 // ═══════════════════════════════════════════════════════════════════════════
 
+const fmtDate = (d: string) => new Date(d).toLocaleString('fr-FR');
+
 const ExecutionsDialog: React.FC<{
   ruleId: number | null;
   page: number;
@@ -774,8 +776,6 @@ const ExecutionsDialog: React.FC<{
 
   const executions = data?.content ?? [];
   const totalElements = data?.totalElements ?? 0;
-
-  const fmtDate = (d: string) => new Date(d).toLocaleString('fr-FR');
 
   return (
     <Dialog open={ruleId !== null} onClose={onClose} maxWidth="md" fullWidth>

@@ -595,7 +595,8 @@ export const reservationsApi = {
       let data = generateMockReservations();
 
       if (filters?.propertyIds && filters.propertyIds.length > 0) {
-        data = data.filter((r) => filters.propertyIds!.includes(r.propertyId));
+        const propertyIdSet = new Set(filters.propertyIds);
+        data = data.filter((r) => propertyIdSet.has(r.propertyId));
       }
       if (filters?.status) {
         data = data.filter((r) => r.status === filters.status);
@@ -651,7 +652,8 @@ export const reservationsApi = {
       let data = generateMockPlanningInterventions();
 
       if (filters?.propertyIds && filters.propertyIds.length > 0) {
-        data = data.filter((i) => filters.propertyIds!.includes(i.propertyId));
+        const propertyIdSet = new Set(filters.propertyIds);
+        data = data.filter((i) => propertyIdSet.has(i.propertyId));
       }
       if (filters?.type) {
         data = data.filter((i) => i.type === filters.type);

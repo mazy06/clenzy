@@ -95,9 +95,10 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      const flatRates = Object.entries(flats)
-        .map(([propertyId, raw]) => ({ propertyId: Number(propertyId), amount: parseFloat(raw) }))
-        .filter((f) => !isNaN(f.amount) && f.amount > 0);
+      const flatRates = Object.entries(flats).flatMap(([propertyId, raw]) => {
+        const amount = parseFloat(raw);
+        return !isNaN(amount) && amount > 0 ? [{ propertyId: Number(propertyId), amount }] : [];
+      });
       return housekeeperRatesApi.updateForUser(userId as number, {
         hourlyAmount: hourly.trim() !== '' && !isNaN(parseFloat(hourly)) ? parseFloat(hourly) : null,
         flatRates,

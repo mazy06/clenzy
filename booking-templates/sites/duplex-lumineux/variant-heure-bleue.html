@@ -1,0 +1,1395 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>[Heure bleue] Oliver Palm Duplex · Jacuzzi privatif & Piscines · Marrakech</title>
+<meta name="description" content="Duplex de 140 m² avec jacuzzi privatif dans une résidence sécurisée à Marrakech. 6 voyageurs, terrasse, piscines. Réservation directe.">
+<style>
+/* ============================================================
+   DUPLEX LUMINEUX — one-page premium (booking engine mono-bien)
+   Design tokens ancrés dans les photos réelles (terracotta des
+   colonnes, eau du bassin, heure bleue du jacuzzi).
+   Widgets ANTICIPÉS : chaque élément interactif est entièrement
+   dessiné (data-slot="…") — aucun emplacement vide.
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Rubik:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#FAF6F0; --surface:#FFFDF9; --tint:#F2EAE0; --line:#E7DCCD; --line-soft:#EFE6D9;
+  --ink:#26201A; --muted:#7C6E5F;
+  --terra:#B4633C; --terra-deep:#96502D; --terra-soft:rgba(180,99,60,.10);
+  --pool:#14424C; --pool-soft:rgba(20,66,76,.08);
+  --gold:#C9974C;
+  --night:#15122A; --night-2:#1E1A38; --violet:#8F7BE8; --violet-soft:rgba(143,123,232,.16);
+  --on-dark:#F4EFE7; --on-dark-muted:rgba(244,239,231,.66);
+  --font-display:'Fraunces', 'Amiri', serif;
+  --font-body:'Rubik', sans-serif;
+  --radius-sm:10px; --radius:18px; --radius-lg:28px; --radius-pill:999px;
+  --shadow-sm:0 2px 8px rgba(60,40,20,.07);
+  --shadow:0 14px 40px rgba(60,40,20,.12);
+  --shadow-lg:0 30px 80px rgba(60,40,20,.18);
+  --wrap:1200px;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg); color:var(--ink); font-family:var(--font-body); line-height:1.65; -webkit-font-smoothing:antialiased; overflow-x:clip}
+img{display:block; max-width:100%}
+a{color:inherit}
+h1,h2,h3,h4{font-family:var(--font-display); font-weight:600; line-height:1.08; letter-spacing:-.015em; text-wrap:balance}
+.wrap{max-width:var(--wrap); margin-inline:auto; padding-inline:clamp(20px,4vw,40px)}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- Motion primitives (scroll-driven, fallback = visible) ---------- */
+@keyframes rise{from{opacity:0; transform:translateY(46px)}to{opacity:1; transform:none}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes kenburns{from{transform:scale(1.08)}to{transform:scale(1)}}
+@keyframes drift{from{transform:translateY(4%)}to{transform:translateY(-4%)}}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+@keyframes grow{from{scale:0 1}to{scale:1 1}}
+/* Reveals pilotés par IntersectionObserver. `html.motion` est ajouté par le JS
+   (sauf prefers-reduced-motion) ; sans script → aucun masquage, tout est visible. */
+.motion .reveal{opacity:0; transform:translateY(46px);
+  transition:opacity .9s var(--ease), transform .9s var(--ease)}
+.motion .reveal.is-in{opacity:1; transform:none}
+.motion .r-d1{transition-delay:.08s}
+.motion .r-d2{transition-delay:.16s}
+.motion .r-d3{transition-delay:.24s}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important; transition:none !important; scroll-behavior:auto}
+}
+
+/* ============================ NAV ============================ */
+.nav{position:fixed; inset-inline:0; inset-block-start:0; z-index:100;
+  background:rgba(14,17,23,.14); backdrop-filter:blur(10px) saturate(1.15); -webkit-backdrop-filter:blur(10px) saturate(1.15);
+  border-block-end:1px solid rgba(255,255,255,.08);
+  transition:background .3s var(--ease), box-shadow .3s var(--ease)}
+.nav__in{display:flex; align-items:center; gap:28px; min-height:76px}
+.nav__brand{font-family:var(--font-display); font-size:1.25rem; font-weight:700; color:#fff; text-decoration:none; letter-spacing:.01em; transition:color .3s}
+.nav__links{display:flex; gap:26px; margin-inline-start:auto}
+.nav__links a{color:rgba(255,255,255,.85); text-decoration:none; font-size:.86rem; font-weight:500; letter-spacing:.02em; transition:color .2s; cursor:pointer}
+.nav__links a:hover{color:#fff}
+.nav__cta{background:#fff; color:var(--ink); text-decoration:none; font-weight:600; font-size:.86rem;
+  padding:11px 22px; border-radius:var(--radius-pill); box-shadow:var(--shadow-sm); cursor:pointer;
+  transition:background .3s var(--ease), color .3s var(--ease), box-shadow .2s}
+.nav__cta:hover{box-shadow:var(--shadow)}
+/* État scrollé : classe posée par le JS (fond blanc, encre sombre). */
+.nav--solid{background:rgba(250,246,240,.94); border-color:var(--line); box-shadow:0 1px 0 var(--line)}
+.nav--solid .nav__brand{color:var(--ink)}
+.nav--solid .nav__links a{color:var(--muted)}
+.nav--solid .nav__links a:hover{color:var(--terra)}
+.nav--solid .nav__cta{background:var(--terra); color:#fff}
+
+/* ============================ HERO ============================ */
+.hero{position:relative; min-height:100svh; display:flex; align-items:center; overflow:clip; background:var(--pool)}
+.hero__media{position:absolute; inset:0; overflow:hidden}
+.hero__media img{width:100%; height:100%; object-fit:cover; object-position:center 32%; animation:kenburns 9s var(--ease) both}
+.hero::after{content:''; position:absolute; inset:0;
+  background:linear-gradient(180deg, rgba(12,22,30,.34) 0%, rgba(12,22,30,.12) 40%, rgba(12,22,30,.38) 100%)}
+.hero__in{position:relative; z-index:2; width:100%; padding-block:118px 64px; color:#fff}
+/* Panneau translucide : c'est LUI qui porte la lisibilité du texte sur la photo */
+.hero__panel{max-width:920px; margin-inline:auto; text-align:center;
+  background:rgba(11,17,25,.10); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+  border:1px solid rgba(255,255,255,.16); border-radius:var(--radius-lg);
+  padding:clamp(30px,4.5vw,54px) clamp(22px,4.5vw,58px);
+  box-shadow:0 34px 90px rgba(6,12,18,.42); animation:rise 1s var(--ease) .1s both}
+.hero__eyebrow{display:inline-flex; align-items:center; justify-content:center; gap:12px; font-size:.78rem; font-weight:600;
+  letter-spacing:.22em; text-transform:uppercase; color:#F3E2C8; margin-block-end:18px}
+.hero__eyebrow::before, .hero__eyebrow::after{content:''; width:34px; height:1px; background:rgba(243,226,200,.7); display:inline-block}
+.hero h1{font-size:clamp(2.5rem,5.6vw,4.6rem); font-weight:600; color:#fff; max-width:19ch; margin-inline:auto;
+  text-shadow:0 2px 26px rgba(6,12,18,.4)}
+.hero h1 em{font-style:italic; font-weight:500; color:#F3E2C8}
+.hero__sub{max-width:56ch; margin-inline:auto; margin-block-start:16px; font-size:1.08rem; color:rgba(255,255,255,.92)}
+.hero__badges{display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-block-start:22px}
+.hero__badge{display:inline-flex; align-items:center; gap:7px; font-size:.8rem; font-weight:500; color:#fff;
+  background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.26); border-radius:var(--radius-pill); padding:7px 14px}
+.hero__badge svg{width:13px; height:13px; color:#F3C86B}
+
+/* Barre de réservation (widget search — entièrement dessinée) */
+.bookbar{margin-block-start:30px; margin-inline:auto; animation:rise 1s var(--ease) .5s both; max-width:900px; text-align:start}
+.bookbar__in{display:grid; grid-template-columns:1.05fr 1.05fr 1.25fr auto; align-items:stretch;
+  background:rgba(255,253,249,.96); backdrop-filter:blur(14px); border-radius:calc(var(--radius-lg) - 6px); box-shadow:var(--shadow-lg); overflow:hidden}
+.bookbar__field{display:flex; flex-direction:column; gap:2px; justify-content:center; padding:16px 18px; cursor:pointer;
+  border-inline-end:1px solid var(--line-soft); transition:background .2s; min-width:0}
+.bookbar__field:hover{background:var(--tint)}
+.bookbar__label{font-size:.68rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+.bookbar__value{display:flex; align-items:center; gap:8px; font-size:.98rem; font-weight:500; color:var(--ink); overflow:hidden; white-space:nowrap; text-overflow:ellipsis}
+.bookbar__value svg{width:15px; height:15px; color:var(--terra); flex:none}
+.bookbar__cta{display:inline-flex; align-items:center; justify-content:center; gap:10px; background:var(--terra); color:#fff;
+  font-family:var(--font-body); font-size:.93rem; font-weight:600; border:0; cursor:pointer; padding-inline:24px;
+  transition:background .25s var(--ease); letter-spacing:.01em; white-space:nowrap}
+.bookbar__cta:hover{background:var(--terra-deep)}
+.bookbar__cta svg{width:17px; height:17px}
+.bookbar__note{margin-block-start:12px; font-size:.76rem; letter-spacing:.04em; color:rgba(255,255,255,.72);
+  white-space:nowrap; text-align:center}
+.hero__scroll{position:absolute; inset-inline-end:clamp(20px,4vw,40px); inset-block-end:26px; z-index:3; color:#fff;
+  display:flex; flex-direction:column; align-items:center; gap:8px; font-size:.66rem; letter-spacing:.28em; text-transform:uppercase; opacity:.8}
+.hero__scroll svg{width:16px; height:16px; animation:bounce 2.2s ease-in-out infinite}
+
+/* ============================ MARQUEE ============================ */
+.marquee{background:var(--night); color:var(--on-dark); overflow:hidden; padding-block:16px; border-block:1px solid rgba(255,255,255,.06)}
+.marquee__track{display:flex; gap:0; width:max-content; animation:marquee 36s linear infinite}
+.marquee:hover .marquee__track{animation-play-state:paused}
+.marquee__set{display:flex; align-items:center; white-space:nowrap}
+.marquee__item{display:inline-flex; align-items:center; gap:14px; padding-inline:26px; font-size:.84rem; font-weight:500; letter-spacing:.08em; text-transform:uppercase}
+.marquee__item::after{content:''; width:5px; height:5px; border-radius:50%; background:var(--gold); margin-inline-start:26px}
+
+/* ============================ SECTIONS ============================ */
+.section{padding-block:clamp(76px,9vw,128px)}
+.section--tint{background:var(--tint)}
+.eyebrow{display:inline-flex; align-items:center; gap:10px; font-size:.74rem; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--terra); margin-block-end:14px}
+.eyebrow::before{content:''; width:26px; height:1px; background:var(--terra)}
+.section__head{max-width:720px; margin-block-end:clamp(34px,4vw,56px)}
+.section__head h2{font-size:clamp(1.9rem,3.8vw,3rem)}
+.lead{color:var(--muted); font-size:1.08rem; margin-block-start:14px; max-width:58ch}
+
+/* ---------- Intro éditoriale + stats + cluster parallax ---------- */
+.intro{display:grid; grid-template-columns:1.05fr .95fr; gap:clamp(36px,5vw,72px); align-items:center}
+.intro h2{font-size:clamp(1.9rem,3.4vw,2.8rem)}
+.intro h2 em{font-style:italic; color:var(--terra); font-weight:500}
+.intro__body p+p{margin-block-start:14px; color:var(--muted)}
+.intro__body>p:first-of-type{font-size:1.06rem}
+.stats{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; margin-block-start:30px}
+.stat{background:var(--surface); padding:18px 16px}
+.stat b{display:block; font-family:var(--font-display); font-size:1.7rem; font-weight:600; color:var(--ink); line-height:1.1}
+.stat span{font-size:clamp(.58rem,.85vw,.7rem); letter-spacing:.05em; text-transform:uppercase; color:var(--muted); white-space:nowrap; display:block}
+.cluster{position:relative; min-height:560px}
+.cluster figure{position:absolute; border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow)}
+.cluster img{width:100%; height:100%; object-fit:cover; transition:transform .8s var(--ease)}
+.cluster figure:hover img{transform:scale(1.045)}
+.cluster__a{inset-inline-start:0; inset-block-start:0; width:62%; aspect-ratio:3/4; z-index:2}
+.cluster__b{inset-inline-end:0; inset-block-start:14%; width:46%; aspect-ratio:3/4; z-index:3; box-shadow:var(--shadow-lg)}
+.cluster__c{inset-inline-start:16%; inset-block-end:0; width:52%; aspect-ratio:4/3; z-index:1}
+@supports (animation-timeline: view()){
+  .cluster__a{animation:drift both linear; animation-timeline:view(); animation-range:cover}
+  .cluster__b{animation:drift both linear reverse; animation-timeline:view(); animation-range:cover}
+}
+
+/* ---------- Les espaces (visite) ---------- */
+.rooms{display:flex; flex-direction:column; gap:clamp(48px,6vw,84px)}
+.room{display:grid; grid-template-columns:1.1fr .9fr; gap:clamp(30px,4.5vw,64px); align-items:center}
+.room:nth-child(even){grid-template-columns:.9fr 1.1fr}
+.room:nth-child(even) .room__media{order:2}
+.room__media{position:relative; border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow); aspect-ratio:4/3.4}
+.room__media img{width:100%; height:100%; object-fit:cover; transition:transform 1s var(--ease)}
+.room__media:hover img{transform:scale(1.05)}
+.room__tag{position:absolute; inset-inline-start:16px; inset-block-start:16px; z-index:2; background:rgba(255,253,249,.92); backdrop-filter:blur(6px);
+  border-radius:var(--radius-pill); padding:7px 15px; font-size:.74rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--terra)}
+.room__num{font-family:var(--font-display); font-size:.95rem; color:var(--gold); font-weight:600; letter-spacing:.14em; margin-block-end:8px}
+.room h3{font-size:clamp(1.5rem,2.6vw,2.1rem); margin-block-end:12px}
+.room p{color:var(--muted); max-width:52ch}
+.room__feats{display:flex; flex-wrap:wrap; gap:8px; margin-block-start:18px}
+.feat{display:inline-flex; align-items:center; gap:7px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-pill);
+  padding:7px 14px; font-size:.8rem; font-weight:500; color:var(--ink)}
+.feat svg{width:13px; height:13px; color:var(--terra)}
+
+/* ---------- Pleine largeur parallax (heure bleue) ---------- */
+.bleed{position:relative; min-height:88vh; display:flex; align-items:center; overflow:clip;
+  background-image:url('https://a0.muscache.com/im/pictures/hosting/Hosting-1512384244344462850/original/b71c265a-b4ec-4edf-bb49-3afc7ca8da96.jpeg');
+  background-size:cover; background-position:center 30%; background-attachment:fixed; background-color:var(--night)}
+@media (hover:none){.bleed{background-attachment:scroll}}
+.bleed::after{content:''; position:absolute; inset:0;
+  background:linear-gradient(100deg, rgba(14,11,32,.94) 0%, rgba(14,11,32,.78) 38%, rgba(14,11,32,.42) 66%, rgba(14,11,32,.2) 100%)}
+.bleed h2, .bleed p, .bleed .bleed__point{text-shadow:0 2px 18px rgba(8,6,20,.6)}
+.bleed__in{position:relative; z-index:2; color:var(--on-dark); max-width:560px}
+.bleed .eyebrow{color:var(--violet)}
+.bleed .eyebrow::before{background:var(--violet)}
+.bleed h2{font-size:clamp(2rem,4vw,3.2rem); color:#fff}
+.bleed p{margin-block-start:16px; color:var(--on-dark-muted); font-size:1.05rem}
+.bleed__points{margin-block-start:26px; display:flex; flex-direction:column; gap:12px}
+.bleed__point{display:flex; gap:12px; align-items:flex-start; font-size:.95rem; color:var(--on-dark)}
+.bleed__point svg{width:16px; height:16px; color:var(--violet); flex:none; margin-block-start:4px}
+
+/* ---------- Résidence ---------- */
+.resi{display:grid; grid-template-columns:1.35fr 1fr 1fr; grid-template-rows:auto auto; gap:18px}
+.resi__card{position:relative; border-radius:var(--radius); overflow:hidden; min-height:250px; box-shadow:var(--shadow-sm); background:var(--pool)}
+.resi__card--tall{grid-row:1 / span 2; min-height:540px}
+.resi__card img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:transform .9s var(--ease)}
+.resi__card:hover img{transform:scale(1.05)}
+.resi__card::after{content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,24,30,0) 40%, rgba(10,24,30,.74) 100%)}
+.resi__label{position:absolute; z-index:2; inset-inline-start:20px; inset-block-end:16px; color:#fff}
+.resi__label b{display:block; font-family:var(--font-display); font-size:1.25rem; font-weight:600}
+.resi__label span{font-size:.82rem; color:rgba(255,255,255,.82)}
+
+/* ---------- Avis ---------- */
+.reviews{display:grid; grid-template-columns:.9fr 1.5fr; gap:clamp(36px,5vw,72px); align-items:start}
+.score{position:sticky; top:110px}
+.score__big{display:flex; align-items:baseline; gap:14px}
+.score__big b{font-family:var(--font-display); font-size:5rem; font-weight:600; line-height:1}
+.score__big .stars{color:var(--gold); font-size:1.2rem; letter-spacing:2px}
+.score__sub{color:var(--muted); margin-block-start:6px; font-size:.94rem}
+.score__badge{display:inline-flex; align-items:center; gap:9px; margin-block-start:18px; background:var(--terra-soft); color:var(--terra);
+  font-size:.8rem; font-weight:600; border-radius:var(--radius-pill); padding:8px 16px}
+.score__badge svg{width:14px; height:14px}
+.cats{margin-block-start:26px; display:flex; flex-direction:column; gap:12px}
+.cat{display:grid; grid-template-columns:1fr 120px 34px; align-items:center; gap:12px; font-size:.88rem}
+.cat span:last-child{text-align:end; font-weight:600}
+.cat__bar{height:4px; background:var(--line); border-radius:999px; overflow:hidden}
+.cat__fill{height:100%; background:var(--terra); border-radius:999px; transform-origin:0 50%}
+[dir="rtl"] .cat__fill{transform-origin:100% 50%}
+.motion .cats .cat__fill{transform:scaleX(0); transition:transform 1.1s var(--ease) .2s}
+.motion .cats.is-in .cat__fill{transform:scaleX(1)}
+/* Carrousel d'avis : pages de 4 (2×2), flèches précédent/suivant */
+.qside{display:flex; flex-direction:column; gap:16px; min-width:0}
+.qcar__head{display:flex; align-items:center; justify-content:space-between; gap:14px}
+.qcar__count{font-size:.82rem; color:var(--muted); letter-spacing:.1em}
+.qcar__nav{display:flex; gap:10px}
+.qcar__btn{width:44px; height:44px; border-radius:50%; border:1.5px solid var(--line); background:var(--surface);
+  color:var(--ink); cursor:pointer; display:grid; place-items:center;
+  transition:border-color .2s, color .2s, transform .2s var(--ease)}
+.qcar__btn svg{width:17px; height:17px}
+.qcar__btn:hover{border-color:var(--terra); color:var(--terra)}
+.qcar__btn:disabled{opacity:.32; cursor:default; border-color:var(--line); color:var(--ink)}
+[dir="rtl"] .qcar__btn svg{transform:scaleX(-1)}
+.qcar{overflow:hidden; margin:-6px; min-width:0}
+.qcar__track{display:flex; transition:transform .55s var(--ease); will-change:transform}
+.qcar__page{flex:0 0 100%; display:grid; grid-template-columns:1fr 1fr; gap:18px; padding:6px; align-content:start}
+.quote{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:26px; box-shadow:var(--shadow-sm);
+  transition:transform .35s var(--ease), box-shadow .35s var(--ease)}
+.quote:hover{transform:translateY(-4px); box-shadow:var(--shadow)}
+.quote__stars{color:var(--gold); font-size:.85rem; letter-spacing:2px; margin-block-end:10px}
+.quote p{font-size:.95rem}
+.quote__by{margin-block-start:14px; font-size:.78rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); font-weight:600}
+.chips{grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:8px; margin-block-start:4px}
+.chip{background:var(--tint); border-radius:var(--radius-pill); padding:7px 14px; font-size:.8rem; color:var(--ink)}
+.chip b{color:var(--terra)}
+
+/* ---------- Upsells (widget upsells — entièrement dessiné) ---------- */
+.qcar__page--3{grid-template-columns:repeat(3,1fr)}
+.upsell{position:relative; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:24px;
+  display:flex; flex-direction:column; gap:12px; cursor:pointer;
+  transition:transform .35s var(--ease), box-shadow .35s var(--ease), border-color .35s}
+.upsell__more{display:none}
+.upsell--added{border-color:var(--terra)}
+.upsell--added .upsell__add{background:var(--terra); color:#fff}
+/* Swap d'état Ajouter/Ajouté en CSS pur (le JS ne touche que les classes) */
+.swap-add,.swap-added{display:inline-flex; align-items:center; gap:7px}
+.upsell__add .swap-added{display:none}
+.upsell--added .upsell__add .swap-add{display:none}
+.upsell--added .upsell__add .swap-added{display:inline-flex}
+.upsell__add--added{background:var(--terra); color:#fff}
+.upsell__add--added .swap-add{display:none}
+.upsell__add--added .swap-added{display:inline-flex}
+.upsell:hover{transform:translateY(-5px); box-shadow:var(--shadow); border-color:var(--terra)}
+.upsell__icon{width:44px; height:44px; border-radius:12px; background:var(--terra-soft); display:grid; place-items:center; color:var(--terra)}
+.upsell__icon svg{width:21px; height:21px}
+.upsell h3{font-family:var(--font-body); font-size:1rem; font-weight:600}
+.upsell p{font-size:.86rem; color:var(--muted); flex:1}
+.upsell__foot{display:flex; align-items:center; justify-content:space-between; gap:10px; border-block-start:1px solid var(--line-soft); padding-block-start:14px}
+.upsell__price{font-weight:600; font-size:.94rem}
+.upsell__price small{display:block; font-weight:400; font-size:.72rem; color:var(--muted)}
+.upsell__add{display:inline-flex; align-items:center; gap:7px; background:transparent; border:1.5px solid var(--terra); color:var(--terra);
+  font-family:var(--font-body); font-size:.82rem; font-weight:600; border-radius:var(--radius-pill); padding:8px 16px; cursor:pointer;
+  transition:background .25s, color .25s}
+.upsell__add:hover{background:var(--terra); color:#fff}
+.upsell__add svg{width:13px; height:13px}
+
+/* ---------- Réservation (widgets dates/guests/price/checkout — dessinés) ---------- */
+.booking{display:grid; grid-template-columns:1.15fr .85fr; gap:clamp(36px,5vw,72px); align-items:start}
+.booking__copy .lead{margin-block-end:26px}
+.assure{display:flex; flex-direction:column; gap:16px}
+.assure__item{display:flex; gap:14px; align-items:flex-start}
+.assure__item svg{width:19px; height:19px; color:var(--terra); flex:none; margin-block-start:3px}
+.assure__item b{display:block; font-size:.95rem}
+.assure__item span{font-size:.86rem; color:var(--muted)}
+.bcard{position:sticky; top:104px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-lg); padding:28px; display:flex; flex-direction:column; gap:16px}
+.bcard__head{display:flex; align-items:baseline; justify-content:space-between; gap:10px}
+.bcard__price b{font-family:var(--font-display); font-size:1.9rem; font-weight:600}
+.bcard__price span{color:var(--muted); font-size:.88rem}
+.bcard__rate{font-size:.84rem; color:var(--muted)}
+.bcard__rate b{color:var(--ink)}
+.bcard__fields{border:1px solid var(--line); border-radius:var(--radius); overflow:hidden}
+.bcard__row{display:grid; grid-template-columns:1fr 1fr}
+.bcard__field{padding:12px 16px; cursor:pointer; transition:background .2s}
+.bcard__field:hover{background:var(--tint)}
+.bcard__field+.bcard__field{border-inline-start:1px solid var(--line)}
+.bcard__row+.bcard__row .bcard__field, .bcard__row+.bcard__guests{border-block-start:1px solid var(--line)}
+.bcard__guests{display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-block-start:1px solid var(--line)}
+.bcard__label{font-size:.66rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+.bcard__value{font-size:.94rem; font-weight:500; margin-block-start:2px}
+.stepper{display:inline-flex; align-items:center; gap:14px}
+.stepper button{width:30px; height:30px; border-radius:50%; border:1.5px solid var(--line); background:transparent; color:var(--ink);
+  font-size:1rem; font-weight:600; cursor:pointer; display:grid; place-items:center; transition:border-color .2s, color .2s}
+.stepper button:hover{border-color:var(--terra); color:var(--terra)}
+.bcard__lines{display:flex; flex-direction:column; gap:9px; font-size:.9rem}
+.bcard__line{display:flex; justify-content:space-between; gap:10px; color:var(--muted)}
+.bcard__line--total{border-block-start:1px solid var(--line); padding-block-start:12px; color:var(--ink); font-weight:600; font-size:1rem}
+.bcard__cta{display:inline-flex; align-items:center; justify-content:center; gap:10px; background:var(--terra); color:#fff; border:0;
+  font-family:var(--font-body); font-size:1rem; font-weight:600; border-radius:var(--radius-pill); padding:16px 20px; cursor:pointer;
+  transition:background .25s var(--ease), box-shadow .25s; box-shadow:0 10px 26px rgba(180,99,60,.35)}
+.bcard__cta:hover{background:var(--terra-deep)}
+.bcard__cta svg{width:17px; height:17px}
+.bcard__trust{display:flex; justify-content:center; gap:16px; font-size:.72rem; color:var(--muted); flex-wrap:wrap}
+.bcard__trust span{display:inline-flex; align-items:center; gap:5px}
+.bcard__trust svg{width:12px; height:12px; color:var(--terra)}
+
+/* ---------- Popover (calendrier + voyageurs) — règles du widget search ---------- */
+@keyframes popin{from{opacity:0; transform:translateY(14px) scale(.985)}to{opacity:1; transform:none}}
+.pop{position:fixed; z-index:280; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow-lg); padding:18px; width:max-content; min-width:344px; max-width:min(640px, 94vw);
+  animation:popin .3s var(--ease)}
+/* Datepicker : mêmes classes que le widget SDK (cb-calendar-*) → ce CSS = le skin
+   que le widget réel reprendra à l'hydratation. Structure : header partagé (nav ‹ › +
+   titre 2 mois) puis .cb-calendar-months avec 2 grilles complétées à 42 cellules. */
+.cb-calendar-header{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-block-end:12px}
+.cb-calendar-title{font-weight:600; font-size:.95rem; text-transform:capitalize; font-variant-numeric:tabular-nums}
+.cb-calendar-nav{width:34px; height:34px; border-radius:50%; border:1.5px solid var(--line); background:transparent; color:var(--ink);
+  cursor:pointer; display:grid; place-items:center; transition:border-color .2s, color .2s;
+  font:400 1.3rem/1 var(--font-body); padding-block-end:3px}
+.cb-calendar-nav:hover:not(:disabled){border-color:var(--terra); color:var(--terra)}
+.cb-calendar-nav:disabled{opacity:.3; cursor:not-allowed}
+.cb-calendar-months{display:flex; gap:22px}
+.cb-calendar-month{flex:0 0 16.5rem; min-width:0}
+.cb-calendar-weekdays{display:grid; grid-template-columns:repeat(7,1fr); margin-block-end:4px}
+.cb-calendar-weekday{text-align:center; font-size:.62rem; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); font-weight:700; padding-block:4px}
+.cb-calendar-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:2px}
+.cb-calendar-day{display:flex; flex-direction:column; align-items:center; justify-content:center; height:42px; position:relative;
+  border:0; background:transparent; border-radius:10px; font:inherit; font-size:.86rem; color:var(--ink);
+  cursor:pointer; font-variant-numeric:tabular-nums; transition:background .15s, color .15s}
+span.cb-calendar-day{cursor:default}
+.cb-calendar-day__price{font-size:.58rem; line-height:1; opacity:.7; margin-block-start:2px}
+.cb-calendar-day:hover:not(.cb-disabled):not(.cb-selected):not(.cb-range-start):not(.cb-range-end){background:var(--tint)}
+.cb-calendar-day.cb-disabled{color:#CDC0AE; cursor:not-allowed}
+.cb-calendar-day.cb-today{box-shadow:inset 0 0 0 1.5px var(--line)}
+.cb-calendar-day.cb-in-range{background:var(--terra-soft); border-radius:0}
+.cb-calendar-day.cb-selected,
+.cb-calendar-day.cb-range-start,
+.cb-calendar-day.cb-range-end{background:var(--terra); color:#fff}
+.cb-calendar-day.cb-selected .cb-calendar-day__price{opacity:.85}
+.gpanel__row{display:flex; align-items:center; justify-content:space-between; gap:14px; padding-block:12px}
+.gpanel__row + .gpanel__row{border-block-start:1px solid var(--line-soft)}
+.gpanel__row b{font-size:.94rem; font-weight:600; display:block}
+.gpanel__row small{font-size:.78rem; color:var(--muted)}
+
+/* ---------- Modale de détail upsell — règles du widget upsells ---------- */
+.modal{position:fixed; inset:0; z-index:300; display:grid; place-items:center; padding:20px}
+.modal[hidden]{display:none}
+.modal__backdrop{position:absolute; inset:0; background:rgba(24,16,9,.52); backdrop-filter:blur(5px)}
+.modal__card{position:relative; background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg);
+  padding:34px; max-width:540px; width:100%; animation:popin .35s var(--ease)}
+.modal__close{position:absolute; inset-inline-end:14px; inset-block-start:14px; width:38px; height:38px; border-radius:50%;
+  border:1.5px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer; display:grid; place-items:center;
+  transition:border-color .2s, color .2s}
+.modal__close:hover{border-color:var(--terra); color:var(--terra)}
+.modal__close svg{width:15px; height:15px}
+.modal__icon{width:54px; height:54px; border-radius:14px; background:var(--terra-soft); display:grid; place-items:center;
+  color:var(--terra); margin-block-end:16px}
+.modal__icon svg{width:26px; height:26px}
+.modal__card h3{font-family:var(--font-body); font-size:1.2rem; font-weight:600}
+.modal__desc{color:var(--muted); margin-block:12px 22px; font-size:.95rem; line-height:var(--bt-leading-relaxed, 1.7)}
+.modal__foot{display:flex; justify-content:space-between; align-items:center; gap:14px;
+  border-block-start:1px solid var(--line-soft); padding-block-start:18px}
+.no-scroll{overflow:hidden}
+
+/* ---------- Accès / localisation ---------- */
+.access{display:grid; grid-template-columns:1fr 1fr; gap:clamp(30px,4vw,60px); align-items:center}
+.access__media{border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow); aspect-ratio:4/3.2; position:relative}
+.access__media img{width:100%; height:100%; object-fit:cover}
+.dists{margin-block-start:22px; display:grid; grid-template-columns:1fr 1fr; gap:0 26px}
+.dist{display:flex; justify-content:space-between; gap:12px; padding-block:12px; border-block-end:1px solid var(--line); font-size:.92rem}
+.dist b{font-weight:600}
+.dist span{color:var(--muted)}
+
+/* ---------- FAQ ---------- */
+.faq{max-width:820px}
+.faq details{border-block-end:1px solid var(--line)}
+.faq summary{list-style:none; display:flex; align-items:center; justify-content:space-between; gap:16px; cursor:pointer;
+  padding-block:22px; font-weight:600; font-size:1.02rem; transition:color .2s}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary:hover{color:var(--terra)}
+.faq summary::after{content:'+'; font-family:var(--font-display); font-size:1.5rem; font-weight:500; color:var(--terra); transition:rotate .3s var(--ease)}
+.faq details[open] summary::after{rotate:45deg}
+.faq details p{padding-block-end:22px; color:var(--muted); max-width:60ch}
+
+/* ---------- CTA final ---------- */
+.final{position:relative; overflow:clip; background:var(--night); color:var(--on-dark); text-align:center}
+.final::before{content:''; position:absolute; inset:-20%;
+  background:radial-gradient(46% 60% at 50% 108%, rgba(143,123,232,.34), transparent 70%),
+             radial-gradient(30% 42% at 82% -6%, rgba(180,99,60,.4), transparent 70%)}
+.final__in{position:relative; z-index:2; max-width:700px; margin-inline:auto}
+.final h2{color:#fff; font-size:clamp(2rem,4.4vw,3.4rem)}
+.final p{color:var(--on-dark-muted); margin-block:16px 28px; font-size:1.05rem}
+.final .bookbar{margin-inline:auto; animation:none}
+.final .eyebrow{color:var(--violet); justify-content:center}
+.final .eyebrow::before{background:var(--violet)}
+
+/* ---------- Footer ---------- */
+.footer{background:#120F22; color:rgba(244,239,231,.72); padding-block:56px 30px; font-size:.9rem}
+.footer__grid{display:grid; grid-template-columns:2fr 1fr 1.2fr; gap:40px}
+.footer__brand{font-family:var(--font-display); color:#fff; font-size:1.3rem; font-weight:600; margin-block-end:10px}
+.footer a{display:block; color:inherit; text-decoration:none; padding-block:4px; transition:color .2s; cursor:pointer}
+.footer a:hover{color:#fff}
+.footer__title{font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:rgba(244,239,231,.45); font-weight:700; margin-block-end:12px}
+.footer__bottom{margin-block-start:40px; padding-block-start:20px; border-block-start:1px solid rgba(255,255,255,.1);
+  display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; font-size:.76rem; color:rgba(244,239,231,.5)}
+
+/* ---------- Responsive ---------- */
+@media (max-width:1020px){
+  .intro,.reviews,.booking,.access{grid-template-columns:1fr}
+  .cluster{min-height:480px}
+  .room,.room:nth-child(even){grid-template-columns:1fr}
+  .room:nth-child(even) .room__media{order:0}
+  .resi{grid-template-columns:1fr 1fr}
+  .resi__card--tall{grid-row:auto; min-height:300px}
+  .qcar__page--3{grid-template-columns:1fr 1fr}
+  .score{position:static}
+  .bcard{position:static}
+}
+@media (max-width:680px){
+  .nav__links{display:none}
+  .cb-calendar-months{flex-direction:column; gap:12px}
+  .cb-calendar-month{flex:1 1 auto}
+  .bookbar__in{grid-template-columns:1fr 1fr}
+  .bookbar__cta{grid-column:1 / -1; padding-block:16px}
+  .bookbar__field{border-block-end:1px solid var(--line-soft); padding:13px 16px}
+  .stats{grid-template-columns:1fr 1fr}
+  .qcar__page,.qcar__page--3{grid-template-columns:1fr}
+  .resi{grid-template-columns:1fr}
+  .dists{grid-template-columns:1fr}
+  .hero h1{font-size:2.4rem}
+}
+@media (max-width:440px){
+  .bookbar__in{grid-template-columns:1fr}
+  .bookbar__field{border-inline-end:0}
+}
+</style>
+<style>
+/* ===== VARIANTE « HEURE BLEUE » — dark-first luxe : bleu nuit, or champagne, violet jacuzzi ===== */
+:root{
+  --bg:#131022; --surface:#1B1731; --tint:#201B3B; --line:#2E2852; --line-soft:#272244;
+  --ink:#EFEAF7; --muted:#A79FC4;
+  --terra:#CFA85F; --terra-deep:#E0BC72; --terra-soft:rgba(207,168,95,.14);
+  --pool:#241E45; --gold:#CFA85F;
+  --night:#0D0B1B; --night-2:#161230; --violet:#8F7BE8; --violet-soft:rgba(143,123,232,.2);
+  --shadow-sm:0 2px 10px rgba(0,0,0,.35);
+  --shadow:0 16px 44px rgba(0,0,0,.5);
+  --shadow-lg:0 34px 90px rgba(0,0,0,.6);
+}
+.nav--solid{background:rgba(19,16,34,.92); border-color:var(--line); box-shadow:0 1px 0 var(--line)}
+.nav--solid .nav__brand{color:var(--ink)}
+.nav--solid .nav__links a{color:var(--muted)}
+.nav--solid .nav__cta{background:var(--terra); color:#171128}
+.hero__panel{background:rgba(13,10,27,.34)}
+.hero__eyebrow{color:#E3CE9E}
+.hero__eyebrow::before,.hero__eyebrow::after{background:rgba(227,206,158,.6)}
+.hero h1 em{color:#E3CE9E}
+.bookbar__cta{color:#171128}
+.bookbar__cta:hover{background:#E0BC72}
+.room__tag{background:rgba(19,16,34,.85); color:var(--terra)}
+.upsell__add:hover{color:#171128}
+.upsell--added .upsell__add{color:#171128}
+.bcard__cta,.fpay{color:#171128}
+.site-btn{color:#171128}
+.footer{background:#0A0817; color:rgba(239,234,247,.7)}
+.final::before{background:radial-gradient(46% 60% at 50% 108%, rgba(143,123,232,.4), transparent 70%),
+  radial-gradient(30% 42% at 82% -6%, rgba(207,168,95,.34), transparent 70%)}
+.cb-calendar-day.cb-selected,.cb-calendar-day.cb-range-start,.cb-calendar-day.cb-range-end{color:#171128}
+.cb-calendar-day.cb-disabled{color:#4A4370}
+.bookbar__value{color:#26201A}
+.bookbar__label{color:#7C6E5F}
+.bookbar__field:hover{background:#F2EAE0}
+</style>
+</head>
+<body>
+
+<!-- ============================ NAV ============================ -->
+<nav class="nav"><div class="wrap nav__in">
+  <a class="nav__brand" href="#">Oliver Palm Duplex</a>
+  <div class="nav__links">
+    <a href="#duplex">Le duplex</a>
+    <a href="#espaces">Les espaces</a>
+    <a href="#residence">La résidence</a>
+    <a href="#avis">Avis</a>
+    <a href="#extras">Sur mesure</a>
+    <a href="#acces">Accès</a>
+  </div>
+  <a class="nav__cta" href="#reserver">Réserver</a>
+</div></nav>
+
+<!-- ============================ HERO ============================ -->
+<header class="hero">
+  <div class="hero__media">
+    <!-- Photo libre de droits (licence Unsplash) : la Koutoubia devant l'Atlas enneigé, Marrakech -->
+    <img src="https://images.unsplash.com/photo-1597212618440-806262de4f6b?auto=format&fit=crop&w=1920&q=75" alt="La Koutoubia et l’Atlas enneigé, Marrakech">
+  </div>
+  <div class="wrap hero__in">
+    <div class="hero__panel">
+    <p class="hero__eyebrow">Marrakech · Résidence sécurisée</p>
+    <h1>Oliver Palm Duplex, <em>votre refuge de lumière</em> au cœur de Marrakech</h1>
+    <p class="hero__sub">140 m² de lumière dans une résidence paisible : jacuzzi privatif sur la terrasse, piscines à quelques pas, et six couchages pensés pour les familles comme les tribus d’amis.</p>
+    <div class="hero__badges">
+      <span class="hero__badge"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.3 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg> 5,0 · 28 avis</span>
+      <span class="hero__badge">Coup de cœur voyageurs</span>
+      <span class="hero__badge">Superhôte</span>
+      <span class="hero__badge">Arrivée autonome</span>
+    </div>
+
+    <!-- WIDGET SEARCH (anticipé, entièrement dessiné) -->
+    <div class="bookbar" data-slot="search" data-slot-next="/reserver">
+      <div class="bookbar__in">
+        <div class="bookbar__field" data-field="checkin" tabindex="0" role="button" aria-label="Choisir la date d’arrivée">
+          <span class="bookbar__label">Arrivée</span>
+          <span class="bookbar__value"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg> <span data-value="checkin">Ajouter une date</span></span>
+        </div>
+        <div class="bookbar__field" data-field="checkout" tabindex="0" role="button" aria-label="Choisir la date de départ">
+          <span class="bookbar__label">Départ</span>
+          <span class="bookbar__value"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg> <span data-value="checkout">Ajouter une date</span></span>
+        </div>
+        <div class="bookbar__field" data-field="guests" tabindex="0" role="button" aria-label="Choisir le nombre de voyageurs">
+          <span class="bookbar__label">Voyageurs</span>
+          <span class="bookbar__value"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg> <span data-value="guests">2 voyageurs</span></span>
+        </div>
+        <button class="bookbar__cta" type="button" data-goto-booking>
+          Vérifier les disponibilités
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+      <p class="bookbar__note">Prix en dirhams · paiement sécurisé · confirmation immédiate</p>
+    </div>
+    </div>
+  </div>
+  <div class="hero__scroll">Découvrir <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16m0 0l-6-6m6 6l6-6"/></svg></div>
+</header>
+
+<!-- ============================ MARQUEE ============================ -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee__track">
+    <div class="marquee__set">
+      <span class="marquee__item">Jacuzzi privatif 5 places</span>
+      <span class="marquee__item">140 m² baignés de lumière</span>
+      <span class="marquee__item">6 voyageurs + bébé</span>
+      <span class="marquee__item">Piscines de la résidence</span>
+      <span class="marquee__item">Terrasse aménagée</span>
+      <span class="marquee__item">Wifi fibre</span>
+      <span class="marquee__item">Climatisation intégrale</span>
+      <span class="marquee__item">Sécurité 24h/24</span>
+      <span class="marquee__item">Salle de sport</span>
+      <span class="marquee__item">Parking gratuit</span>
+    </div>
+    <div class="marquee__set">
+      <span class="marquee__item">Jacuzzi privatif 5 places</span>
+      <span class="marquee__item">140 m² baignés de lumière</span>
+      <span class="marquee__item">6 voyageurs + bébé</span>
+      <span class="marquee__item">Piscines de la résidence</span>
+      <span class="marquee__item">Terrasse aménagée</span>
+      <span class="marquee__item">Wifi fibre</span>
+      <span class="marquee__item">Climatisation intégrale</span>
+      <span class="marquee__item">Sécurité 24h/24</span>
+      <span class="marquee__item">Salle de sport</span>
+      <span class="marquee__item">Parking gratuit</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ INTRO ============================ -->
+<section class="section" id="duplex"><div class="wrap">
+  <div class="intro">
+    <div class="intro__body reveal">
+      <p class="eyebrow">Le duplex</p>
+      <h2>Une parenthèse de calme, <em>à un quart d’heure</em> de l’effervescence</h2>
+      <p>Bienvenue dans un duplex pensé pour ne rien vous refuser : de grandes baies vitrées qui suivent la lumière toute la journée, une terrasse ouverte sur les piscines ensoleillées de la résidence, et ce luxe rare à Marrakech : un jacuzzi rien qu’à vous.</p>
+      <p>À l’étage, la suite parentale et son lit king size. Au rez-de-chaussée, une grande chambre familiale pour quatre. Entre les deux, un salon généreux, une cuisine équipée, et l’envie de ne plus repartir.</p>
+      <div class="stats">
+        <div class="stat reveal r-d1"><b class="num">140</b><span>m² lumineux</span></div>
+        <div class="stat reveal r-d2"><b class="num">6+1</b><span>voyageurs + bébé</span></div>
+        <div class="stat reveal r-d3"><b class="num">2</b><span>suites · 2 SDB</span></div>
+        <div class="stat reveal r-d3"><b class="num">5,0</b><span>note sur 28 avis</span></div>
+      </div>
+    </div>
+    <div class="cluster">
+      <figure class="cluster__a"><img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1512384244344462850/original/cea1603f-f452-4476-9de9-9996fd56c65b.jpeg" alt="Salon lumineux du duplex" loading="lazy"></figure>
+      <figure class="cluster__b"><img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1512384244344462850/original/92a22880-23e2-4c04-b67a-bb0deff5ea8c.jpeg" alt="Jacuzzi privatif sur la terrasse" loading="lazy"></figure>
+      <figure class="cluster__c"><img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1512384244344462850/original/9bafab04-6824-4ba1-8eaa-ef2487300e2a.jpeg" alt="Espace repas du duplex" loading="lazy"></figure>
+    </div>
+  </div>
+</div></section>
+
+<!-- ============================ LES ESPACES ============================ -->
+<section class="section section--tint" id="espaces"><div class="wrap">
+  <div class="section__head reveal">
+    <p class="eyebrow">La visite</p>
+    <h2>Chaque espace a été pensé pour vous</h2>
+    <p class="lead">Du salon baigné de lumière à la suite parentale, visitez le duplex comme si vous y étiez déjà.</p>
+  </div>
+  <div class="rooms">
+    <article class="room reveal">
+      <div class="room__media"><span class="room__tag">Salon</span><img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1512384244344462850/original/1cc3e8b0-2829-4502-8310-d1dd547eca41.jpeg" alt="Grand salon ouvert sur la terrasse" loading="lazy"></div>
+      <div>
+        <p class="room__num">01</p>
+        <h3>Le salon, ouvert sur la terrasse</h3>
+        <p>Un grand salon traversé par la lumière, qui s’ouvre en grand sur la terrasse et la vue piscine. Canapés profonds, Smart TV, et l’air de Marrakech qui entre quand on veut.</p>
+        <div class="room__feats">
+          <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8"/></svg> Smart TV</span>
+          <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3M5.6 5.6l2.1 2.1M3 12h3M18.4 5.6l-2.1 2.1M21 12h-3M12 21a6 6 0 006-6H6a6 6 0 006 6z"/></svg> Lumière naturelle</span>
+          <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M4 12a8 8 0 0116 0"/></svg> Vue piscine</span>
+        </div>
+      </div>
+    </article>
+    <article class="room reveal">
+      <div class="room__media"><span class="room__tag">Suite parentale</span><img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1512384244344462850/original/0f564c7a-186c-42bc-87cc-6a371d3c5a6a.jpeg" alt="Suite parentale avec lit king size" loading="lazy"></div>
+      <div>
+        <p class="room__num">02</p>
+        <h3>La suite parentale, tout en haut</h3>
+        <p>À l’étage, un lit king size, une salle de bain et des toilettes privatives, et une Smart TV avec Netflix, Disney+ et les chaînes internationales. Votre refuge dans le refuge.</p>
+        <div class="room__feats">
+          <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a2 2 0 012-2h14a2 2 0 012 2v6M3 18h18M6 10V7a2 2 0 012-2h8a2 2 0 012 2v3"/></svg> Lit king size</span>
+          <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16v3a5 5 0 01-5 5H9a5 5 0 01-5-5v-3zM7 12V6a3 3 0 013-3h0a3 3 0 013 3"/></svg> SDB privative</span>
+          <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8"/></svg> Netflix · Disney+</span>
+        </div>
+      </div>
+    </article>
+    <article class="room reveal">
+      <div class="room__media"><span class="room__tag">Chambre familiale</span><img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1512384244344462850/original/b15c909a-0c8a-47b4-a40c-04f7b8a2f054.jpeg" alt="Chambre familiale, lit double et lits simples" loading="lazy"></div>
+      <div>
+        <p class="room__num">03</p>
+        <h3>La chambre familiale, en bas</h3>
+        <p>Un lit double et deux lits simples pour loger jusqu’à quatre personnes, avec salle de bain et toilettes privatives, Smart TV, rangements et rideaux occultants. Un lit bébé est disponible.</p>
+        <div class="room__feats">
+          <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a2 2 0 012-2h14a2 2 0 012 2v6M3 18h18"/></svg> 4 couchages</span>
+          <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v18M3 9h18"/></svg> Lit bébé disponible</span>
+          <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v10H4zM4 14l4 6M20 14l-4 6"/></svg> Rideaux occultants</span>
+        </div>
+      </div>
+    </article>
+    <article class="room reveal">
+      <div class="room__media"><span class="room__tag">Cuisine & repas</span><img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1512384244344462850/original/4ca5bdf3-e1d1-4fc8-b256-dcba15509868.jpeg" alt="Cuisine moderne entièrement équipée" loading="lazy"></div>
+      <div>
+        <p class="room__num">04</p>
+        <h3>La cuisine, prête à tout</h3>
+        <p>Four, plaques, réfrigérateur-congélateur, machine à café, bouilloire et vaisselle complète : une cuisine moderne qui n’attend que vos tajines, et un coin repas pour les grandes tablées.</p>
+        <div class="room__feats">
+          <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M9 6h.01"/></svg> Four & plaques</span>
+          <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a3 3 0 010 6h-1M4 8h14v7a4 4 0 01-4 4H8a4 4 0 01-4-4V8z"/></svg> Machine à café</span>
+          <span class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg> Accueil gourmand offert</span>
+        </div>
+      </div>
+    </article>
+  </div>
+</div></section>
+
+<!-- ============================ HEURE BLEUE (parallax) ============================ -->
+<section class="bleed"><div class="wrap bleed__in">
+  <p class="eyebrow">Le soir venu</p>
+  <h2>Vos soirées à l’heure bleue</h2>
+  <p>Quand Marrakech s’adoucit, le jacuzzi s’allume. Cinq places : deux allongées, trois assises, un éclairage d’ambiance, et le silence de la résidence pour seule musique de fond.</p>
+  <div class="bleed__points">
+    <div class="bleed__point"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 009 9 9 9 0 11-9-9z"/></svg> Jacuzzi privatif ouvert sur la terrasse, en accès libre</div>
+    <div class="bleed__point"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3M5.6 5.6l2.1 2.1M3 12h3M18.4 5.6l-2.1 2.1M21 12h-3M8 21h8M12 21a6 6 0 006-6H6a6 6 0 006 6z"/></svg> Éclairage d’ambiance pour vos soirées détente</div>
+    <div class="bleed__point"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13M9 9l12-2M6 21a3 3 0 100-6 3 3 0 000 6zM21 19a3 3 0 100-6 3 3 0 000 6z"/></svg> Ambiance calme et intimiste après vos journées de découverte</div>
+  </div>
+</div></section>
+
+<!-- ============================ LA RÉSIDENCE ============================ -->
+<section class="section" id="residence"><div class="wrap">
+  <div class="section__head reveal">
+    <p class="eyebrow">La résidence</p>
+    <h2>Un domaine paisible, sécurisé 24h/24</h2>
+    <p class="lead">Le duplex est niché dans une résidence rare à Marrakech : bassins ensoleillés, allées plantées, salle de sport, et une sécurité présente jour et nuit.</p>
+  </div>
+  <div class="resi">
+    <div class="resi__card resi__card--tall reveal"><img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1512384244344462850/original/c8b349d7-5eec-4fac-8596-ee3fc149344e.jpeg" alt="Bassin à colonnes de la résidence" loading="lazy">
+      <div class="resi__label"><b>Les piscines</b><span>Plusieurs bassins calmes et ensoleillés, accès direct</span></div>
+    </div>
+    <div class="resi__card reveal r-d1"><img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1512384244344462850/original/e294dc54-d98e-4c24-b8df-628e8e66e733.jpeg" alt="Piscine de la résidence" loading="lazy">
+      <div class="resi__label"><b>La pataugeoire</b><span>Vue et accès direct depuis le duplex</span></div>
+    </div>
+    <div class="resi__card reveal r-d2"><img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1512384244344462850/original/d03b40f7-7cc7-4f73-859e-f0f83d0ab923.jpeg" alt="Salle de sport de la résidence" loading="lazy">
+      <div class="resi__label"><b>La salle de sport</b><span>Accessible 24h/24, terrain city à proximité</span></div>
+    </div>
+    <div class="resi__card reveal r-d2"><img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1512384244344462850/original/a0ed2b34-c9ab-4112-aa79-e596c33e6f99.jpeg" alt="Cour d'entrée de la résidence" loading="lazy">
+      <div class="resi__label"><b>L’arrivée</b><span>Double contrôle d’accès, parking gratuit devant le logement</span></div>
+    </div>
+    <div class="resi__card reveal r-d3"><img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1512384244344462850/original/600e38fd-6ce1-4a50-9417-cea9a9239c49.jpeg" alt="Extérieurs de la résidence" loading="lazy">
+      <div class="resi__label"><b>Les allées</b><span>Jardins plantés, calme absolu, entrée indépendante</span></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ============================ AVIS ============================ -->
+<section class="section section--tint" id="avis"><div class="wrap">
+  <div class="reviews">
+    <div class="score reveal">
+      <p class="eyebrow">Ils y ont séjourné</p>
+      <div class="score__big"><b class="num">5,0</b><span class="stars">★★★★★</span></div>
+      <p class="score__sub num">28 commentaires · 100 % d’évaluations 5 étoiles</p>
+      <span class="score__badge"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.6-10-9.3C.4 8.4 2.4 4.5 6.2 4.1c2.2-.2 4 .9 5.8 3 1.8-2.1 3.6-3.2 5.8-3 3.8.4 5.8 4.3 4.2 7.6C19.5 16.4 12 21 12 21z"/></svg> Coup de cœur voyageurs</span>
+      <div class="cats num">
+        <div class="cat"><span>Propreté</span><span class="cat__bar"><span class="cat__fill" style="width:98%"></span></span><span>4,9</span></div>
+        <div class="cat"><span>Précision</span><span class="cat__bar"><span class="cat__fill" style="width:100%"></span></span><span>5,0</span></div>
+        <div class="cat"><span>Arrivée</span><span class="cat__bar"><span class="cat__fill" style="width:100%"></span></span><span>5,0</span></div>
+        <div class="cat"><span>Communication</span><span class="cat__bar"><span class="cat__fill" style="width:100%"></span></span><span>5,0</span></div>
+        <div class="cat"><span>Emplacement</span><span class="cat__bar"><span class="cat__fill" style="width:94%"></span></span><span>4,7</span></div>
+        <div class="cat"><span>Qualité-prix</span><span class="cat__bar"><span class="cat__fill" style="width:100%"></span></span><span>5,0</span></div>
+      </div>
+    </div>
+    <div class="qside reveal">
+      <div class="qcar__head">
+        <p class="qcar__count num"><span data-qcar-page>1</span> / <span data-qcar-pages>2</span></p>
+        <div class="qcar__nav">
+          <button class="qcar__btn" type="button" data-qcar-prev aria-label="Avis précédents">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+          </button>
+          <button class="qcar__btn" type="button" data-qcar-next aria-label="Avis suivants">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="qcar" data-qcar>
+        <div class="qcar__track">
+          <div class="qcar__page">
+            <article class="quote">
+              <p class="quote__stars">★★★★★</p>
+              <p>« Une bonne adresse à quelques pas du centre de Marrakech, dans un calme et un logement ainsi qu’une piscine idylliques ! Nous y reviendrons sans faute. »</p>
+              <p class="quote__by">Maxime · février 2026</p>
+            </article>
+            <article class="quote">
+              <p class="quote__stars">★★★★★</p>
+              <p>« Logement magnifique, piscine également. La résidence est très sécurisée et adaptée à tous les groupes, famille ou amis. Hôte très réactif. »</p>
+              <p class="quote__by">Siga · janvier 2026</p>
+            </article>
+            <article class="quote">
+              <p class="quote__stars">★★★★★</p>
+              <p>« Excellente expérience, le logement est impeccable, allez-y les yeux fermés. Merci à Assia pour sa gentillesse. »</p>
+              <p class="quote__by">Nora · juin 2026</p>
+            </article>
+            <article class="quote">
+              <p class="quote__stars">★★★★★</p>
+              <p>« Endroit calme, excellent choix pour s’échapper de la ville. Hôtes aux petits soins, logement moderne et confortable. »</p>
+              <p class="quote__by">Mohammed · mars 2026</p>
+            </article>
+          </div>
+          <div class="qcar__page">
+            <article class="quote">
+              <p class="quote__stars">★★★★★</p>
+              <p>« Meilleure expérience. Hôte très réactif, à l’écoute et aux petits soins pour ses voyageurs. »</p>
+              <p class="quote__by">Ibrahim · juin 2026</p>
+            </article>
+            <article class="quote">
+              <p class="quote__stars">★★★★★</p>
+              <p>« Très accueillante et soucieuse de notre bien-être. Le logement est moderne et confortable. »</p>
+              <p class="quote__by">Malika · avril 2026</p>
+            </article>
+          </div>
+        </div>
+      </div>
+      <div class="chips">
+        <span class="chip"><b>×20</b> Hospitalité</span>
+        <span class="chip"><b>×10</b> Calme</span>
+        <span class="chip"><b>×9</b> Espaces intérieurs</span>
+        <span class="chip"><b>×8</b> Piscine</span>
+        <span class="chip"><b>×8</b> Propreté</span>
+        <span class="chip"><b>×6</b> Décoration</span>
+        <span class="chip"><b>×5</b> Confort</span>
+        <span class="chip"><b>×4</b> Famille</span>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ============================ UPSELLS (widget upsells — dessiné) ============================ -->
+<section class="section" id="extras"><div class="wrap">
+  <div class="section__head reveal">
+    <p class="eyebrow">Sur mesure</p>
+    <h2>Composez votre séjour</h2>
+    <p class="lead">Ajoutez vos extras au moment de la réservation : tout est réglé en ligne, tout est prêt à votre arrivée.</p>
+  </div>
+  <div class="qcar__head">
+    <p class="qcar__count num"><span data-ucar-page>1</span> / <span data-ucar-pages>2</span></p>
+    <div class="qcar__nav">
+      <button class="qcar__btn" type="button" data-ucar-prev aria-label="Extras précédents">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <button class="qcar__btn" type="button" data-ucar-next aria-label="Extras suivants">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="qcar" data-ucar data-slot="upsells">
+    <div class="qcar__track">
+      <div class="qcar__page qcar__page--3">
+    <article class="upsell reveal" data-upsell-id="transfert" data-uprice="250">
+      <span class="upsell__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 19h19M6 19V9.5L12 5l6 4.5V19M9.5 19v-5h5v5"/></svg></span>
+      <h3>Transfert aéroport</h3>
+      <p>Un chauffeur vous attend à Marrakech-Ménara, à l’aller comme au retour. Sièges enfant sur demande.</p>
+      <p class="upsell__more">Véhicule climatisé, suivi de vol et accueil personnalisé à la sortie de l’aéroport. Le chauffeur connaît la résidence et vous dépose devant l’entrée du duplex. Disponible de jour comme de nuit.</p>
+      <div class="upsell__foot"><span class="upsell__price num">250 MAD<small>par trajet</small></span>
+        <button class="upsell__add" type="button"><span class="swap-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Ajouter</span><span class="swap-added"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4 10-11"/></svg> Ajouté</span></button></div>
+    </article>
+    <article class="upsell reveal r-d1" data-upsell-id="petit-dejeuner" data-uprice="80">
+      <span class="upsell__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 15h16l-1.5 5h-13zM12 15V9M8 6a4 4 0 018 0c2.2.5 4 2 4 5H4c0-3 1.8-4.5 4-5z"/></svg></span>
+      <h3>Petit-déjeuner marocain</h3>
+      <p>Msemen, amlou, jus d’orange pressé et café : servi sur votre terrasse, face aux piscines.</p>
+      <p class="upsell__more">Servi à l’heure qui vous convient, dès le lendemain de votre arrivée. Produits frais du marché, options sans gluten sur demande. Se commande la veille auprès de la conciergerie.</p>
+      <div class="upsell__foot"><span class="upsell__price num">80 MAD<small>par personne</small></span>
+        <button class="upsell__add" type="button"><span class="swap-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Ajouter</span><span class="swap-added"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4 10-11"/></svg> Ajouté</span></button></div>
+    </article>
+    <article class="upsell reveal r-d2" data-upsell-id="chef" data-uprice="600">
+      <span class="upsell__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3h8l1 7H7zM7 10h10v4a5 5 0 01-5 5h0a5 5 0 01-5-5v-4zM12 19v2"/></svg></span>
+      <h3>Chef à domicile</h3>
+      <p>Cuisine marocaine ou menu sur mesure, préparé et servi dans le duplex. Courses incluses.</p>
+      <p class="upsell__more">Menu défini ensemble à l’avance : couscous, tangia marrakchia, pastilla ou cuisine du monde. Le chef fait les courses, cuisine au duplex et laisse tout impeccable derrière lui.</p>
+      <div class="upsell__foot"><span class="upsell__price num">600 MAD<small>par repas</small></span>
+        <button class="upsell__add" type="button"><span class="swap-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Ajouter</span><span class="swap-added"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4 10-11"/></svg> Ajouté</span></button></div>
+    </article>
+      </div>
+      <div class="qcar__page qcar__page--3">
+    <article class="upsell reveal" data-upsell-id="late-checkout" data-uprice="300">
+      <span class="upsell__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span>
+      <h3>Late check-out</h3>
+      <p>Prolongez la matinée jusqu’à 15 h, selon les disponibilités du planning.</p>
+      <p class="upsell__more">Sous réserve du planning d’arrivées, confirmé la veille de votre départ par la conciergerie. La matinée prolongée inclut l’accès complet au logement et au jacuzzi.</p>
+      <div class="upsell__foot"><span class="upsell__price num">300 MAD<small>selon disponibilité</small></span>
+        <button class="upsell__add" type="button"><span class="swap-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Ajouter</span><span class="swap-added"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4 10-11"/></svg> Ajouté</span></button></div>
+    </article>
+    <article class="upsell reveal r-d1" data-upsell-id="hammam" data-uprice="450">
+      <span class="upsell__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21c3-1 4-3 4-5L17 6a2.4 2.4 0 013.4 3.4L10 19c-2 2-4 2-7 2zM14 8l2 2"/></svg></span>
+      <h3>Hammam & massage</h3>
+      <p>Praticienne à domicile : savon noir, gommage au gant, massage à l’huile d’argan.</p>
+      <p class="upsell__more">Rituel complet d’environ 1 h 30 à domicile : savon noir, gommage au gant de kessa, enveloppement au rhassoul et massage à l’huile d’argan. Table et linge fournis.</p>
+      <div class="upsell__foot"><span class="upsell__price num">450 MAD<small>par personne</small></span>
+        <button class="upsell__add" type="button"><span class="swap-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Ajouter</span><span class="swap-added"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4 10-11"/></svg> Ajouté</span></button></div>
+    </article>
+    <article class="upsell reveal r-d2" data-upsell-id="agafay" data-uprice="900">
+      <span class="upsell__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 18c2-5 6-8 9-8s7 3 9 8M12 10V4M9 6l3-2 3 2"/></svg></span>
+      <h3>Excursion Agafay</h3>
+      <p>Coucher de soleil dans le désert de pierres, thé au campement et retour avec chauffeur.</p>
+      <p class="upsell__more">Départ en fin d’après-midi avec chauffeur privé (environ une heure de route). Thé au campement face au coucher de soleil, dîner aux chandelles et retour dans la soirée.</p>
+      <div class="upsell__foot"><span class="upsell__price num">900 MAD<small>pour 2 personnes</small></span>
+        <button class="upsell__add" type="button"><span class="swap-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Ajouter</span><span class="swap-added"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4 10-11"/></svg> Ajouté</span></button></div>
+    </article>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ============================ RÉSERVATION ============================ -->
+<section class="section section--tint" id="reserver"><div class="wrap">
+  <div class="booking">
+    <div class="booking__copy reveal">
+      <p class="eyebrow">Réservation directe</p>
+      <h2>Le meilleur prix, sans intermédiaire</h2>
+      <p class="lead">Réservez en direct : paiement sécurisé en dirhams, confirmation immédiate, et une équipe joignable 7j/7 pendant tout votre séjour.</p>
+      <div class="assure">
+        <div class="assure__item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+          <div><b>Paiement sécurisé</b><span>Carte bancaire, encaissement à la confirmation, reçu immédiat.</span></div>
+        </div>
+        <div class="assure__item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-5M12 21a9 9 0 110-18 9 9 0 010 18z"/></svg>
+          <div><b>Taxe de séjour incluse</b><span>Collectée en ligne et reversée : aucune démarche sur place.</span></div>
+        </div>
+        <div class="assure__item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M8 15h3"/></svg>
+          <div><b>Annulation flexible</b><span>Les conditions s’affichent clairement avant le paiement, selon la saison.</span></div>
+        </div>
+        <div class="assure__item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7a4 4 0 118 0c0 2.5-2 3.5-4 5-2-1.5-4-2.5-4-5zM5 21c1.5-3 4-4.5 7-4.5s5.5 1.5 7 4.5"/></svg>
+          <div><b>Arrivée autonome</b><span>Serrure à digicode, instructions envoyées avant votre arrivée, accueil gourmand offert.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WIDGET BOOKING CARD (dates + voyageurs + prix + checkout — dessiné) -->
+    <aside class="bcard reveal" data-slot="dates guests price checkout">
+      <div class="bcard__head">
+        <div class="bcard__price"><b class="num">1 200 MAD</b> <span>/ nuit</span></div>
+        <div class="bcard__rate num">★ <b>5,0</b> · 28 avis</div>
+      </div>
+      <div class="bcard__fields">
+        <div class="bcard__row">
+          <div class="bcard__field" data-field="checkin" tabindex="0" role="button"><div class="bcard__label">Arrivée</div><div class="bcard__value" data-value="checkin">12 août 2026</div></div>
+          <div class="bcard__field" data-field="checkout" tabindex="0" role="button"><div class="bcard__label">Départ</div><div class="bcard__value" data-value="checkout">15 août 2026</div></div>
+        </div>
+        <div class="bcard__guests">
+          <div><div class="bcard__label">Voyageurs</div><div class="bcard__value num" data-value="guests">4 voyageurs</div></div>
+          <div class="stepper"><button type="button" data-gstep="-1" aria-label="Retirer un voyageur">−</button><span class="num" data-value="guests-count">4</span><button type="button" data-gstep="1" aria-label="Ajouter un voyageur">+</button></div>
+        </div>
+      </div>
+      <div class="bcard__lines num">
+        <div class="bcard__line"><span data-calc="nights-label">1 200 MAD × 3 nuits</span><span data-calc="nights-amount">3 600 MAD</span></div>
+        <div class="bcard__line"><span>Ménage & linge</span><span>200 MAD</span></div>
+        <div class="bcard__line"><span>Taxe de séjour</span><span>180 MAD</span></div>
+        <div class="bcard__line bcard__line--total"><span>Total</span><span data-calc="total-amount">3 980 MAD</span></div>
+      </div>
+      <button class="bcard__cta" type="button" data-goto-checkout>
+        Réserver maintenant
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+      <div class="bcard__trust">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg> Paiement sécurisé</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-5"/><circle cx="12" cy="12" r="9"/></svg> Confirmation immédiate</span>
+        <span>MAD · EUR · USD</span>
+      </div>
+    </aside>
+  </div>
+</div></section>
+
+<!-- ============================ ACCÈS ============================ -->
+<section class="section" id="acces"><div class="wrap">
+  <div class="access">
+    <div class="access__media reveal"><img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1512384244344462850/original/ec44c209-9e35-4c4f-abfd-7b5b3e696e1e.jpeg" alt="Extérieurs de la résidence à Marrakech" loading="lazy"></div>
+    <div class="reveal r-d1">
+      <p class="eyebrow">S’y rendre</p>
+      <h2>Loin du bruit, près de tout</h2>
+      <p class="lead">La résidence est à l’écart de l’agitation, mais tout reste à portée de main : présentez simplement votre réservation aux pôles de sécurité à l’entrée.</p>
+      <div class="dists num">
+        <div class="dist"><b>Aéroport Marrakech-Ménara</b><span>≈ 20 min</span></div>
+        <div class="dist"><b>Jemaa el-Fna & médina</b><span>≈ 15 min</span></div>
+        <div class="dist"><b>Taxis & VTC</b><span>via InDrive</span></div>
+        <div class="dist"><b>Parking</b><span>gratuit, devant le duplex</span></div>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ============================ FAQ ============================ -->
+<section class="section section--tint"><div class="wrap">
+  <div class="section__head reveal">
+    <p class="eyebrow">Questions fréquentes</p>
+    <h2>Avant de réserver</h2>
+  </div>
+  <div class="faq reveal">
+    <details>
+      <summary>Comment se passe l’arrivée ?</summary>
+      <p>L’arrivée est autonome grâce à une serrure à digicode : vous recevez les instructions avant votre venue. L’arrivée est flexible selon les disponibilités du logement, et si le duplex est libre la veille, nous faisons notre maximum pour faciliter une arrivée anticipée. Quelques gourmandises, cafés et bouteilles d’eau vous attendent.</p>
+    </details>
+    <details>
+      <summary>Et le départ ?</summary>
+      <p>Le départ se fait avant 11 h. Besoin de plus ? Le late check-out jusqu’à 15 h est proposé dans les extras, selon le planning.</p>
+    </details>
+    <details>
+      <summary>Le logement convient-il aux familles ?</summary>
+      <p>Absolument : la chambre du rez-de-chaussée loge jusqu’à quatre personnes, un lit bébé est disponible, et la pataugeoire de la résidence est accessible directement depuis le logement.</p>
+    </details>
+    <details>
+      <summary>Le jacuzzi est-il vraiment privatif ?</summary>
+      <p>Oui. Il est réservé au duplex, ouvert sur la terrasse, avec cinq places : deux allongées et trois assises, et un éclairage d’ambiance pour le soir.</p>
+    </details>
+    <details>
+      <summary>La résidence est-elle sécurisée ?</summary>
+      <p>La résidence est gardée 24h/24 avec un double contrôle d’accès et des caméras. Une caméra de surveillance extérieure est également présente devant le logement, et l’entrée du duplex est indépendante.</p>
+    </details>
+    <details>
+      <summary>Comment payer, et en quelle devise ?</summary>
+      <p>La réservation se règle en ligne, par carte, en dirhams (affichage possible en euros et dollars). La taxe de séjour est collectée avec la réservation : aucune démarche sur place.</p>
+    </details>
+  </div>
+</div></section>
+
+<!-- ============================ CTA FINAL ============================ -->
+<section class="final section"><div class="wrap final__in">
+  <p class="eyebrow">Vos dates</p>
+  <h2>Marrakech vous attend, le jacuzzi aussi</h2>
+  <p>Vérifiez les disponibilités du duplex : la réservation prend deux minutes, la déconnexion dure tout le séjour.</p>
+  <div class="bookbar" data-slot="search">
+    <div class="bookbar__in">
+      <div class="bookbar__field" data-field="checkin" tabindex="0" role="button" aria-label="Choisir la date d’arrivée">
+        <span class="bookbar__label">Arrivée</span>
+        <span class="bookbar__value"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg> <span data-value="checkin">Ajouter une date</span></span>
+      </div>
+      <div class="bookbar__field" data-field="checkout" tabindex="0" role="button" aria-label="Choisir la date de départ">
+        <span class="bookbar__label">Départ</span>
+        <span class="bookbar__value"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg> <span data-value="checkout">Ajouter une date</span></span>
+      </div>
+      <div class="bookbar__field" data-field="guests" tabindex="0" role="button" aria-label="Choisir le nombre de voyageurs">
+        <span class="bookbar__label">Voyageurs</span>
+        <span class="bookbar__value"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg> <span data-value="guests">2 voyageurs</span></span>
+      </div>
+      <button class="bookbar__cta" type="button" data-goto-booking>Réserver <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    </div>
+  </div>
+</div></section>
+
+<!-- ============================ FOOTER ============================ -->
+<footer class="footer"><div class="wrap">
+  <div class="footer__grid">
+    <div>
+      <p class="footer__brand">Oliver Palm Duplex</p>
+      <p>Duplex de 140 m² avec jacuzzi privatif dans une résidence sécurisée et paisible de Marrakech. Réservation directe, accueil aux petits soins.</p>
+    </div>
+    <div>
+      <p class="footer__title">Explorer</p>
+      <a href="#duplex">Le duplex</a>
+      <a href="#espaces">Les espaces</a>
+      <a href="#residence">La résidence</a>
+      <a href="#avis">Avis</a>
+      <a href="#extras">Sur mesure</a>
+    </div>
+    <div>
+      <p class="footer__title">Bon à savoir</p>
+      <p>Taxe de séjour collectée et reversée</p>
+      <p>Enregistrement des voyageurs conforme</p>
+      <p>Paiement sécurisé · MAD, EUR, USD</p>
+      <p>Équipe joignable 7j/7 · français, anglais, arabe</p>
+    </div>
+  </div>
+  <div class="footer__bottom">
+    <span>© Oliver Palm Duplex · Marrakech</span>
+    <span>Hôte : Amine · co-hôte : Assia · Superhôte</span>
+  </div>
+</div></footer>
+
+<!-- Modale de détail d'un extra (widget upsells) -->
+<div class="modal" data-upsell-modal hidden>
+  <div class="modal__backdrop" data-modal-close></div>
+  <div class="modal__card" role="dialog" aria-modal="true">
+    <button class="modal__close" type="button" data-modal-close aria-label="Fermer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <span class="modal__icon" data-modal-icon></span>
+    <h3 data-modal-title></h3>
+    <p class="modal__desc" data-modal-desc></p>
+    <div class="modal__foot">
+      <span class="upsell__price num" data-modal-price></span>
+      <button class="upsell__add" type="button" data-modal-add><span class="swap-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Ajouter</span><span class="swap-added"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4 10-11"/></svg> Ajouté</span></button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Progressive enhancement : nav scrollée + reveals. Sans ce script, le site reste
+   entièrement visible et lisible (aucun masquage par défaut). */
+(function(){
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: no-preference)').matches) {
+    document.documentElement.classList.add('motion');
+  }
+  var nav = document.querySelector('.nav');
+  function setNav(){ nav.classList.toggle('nav--solid', (window.scrollY || 0) > 80); }
+  window.addEventListener('scroll', setNav, { passive: true });
+  setNav();
+  var targets = document.querySelectorAll('.reveal, .cats');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+    targets.forEach(function(el){ io.observe(el); });
+  } else {
+    targets.forEach(function(el){ el.classList.add('is-in'); });
+  }
+
+  /* Carrousels (avis + extras) : pages qui défilent aux flèches */
+  var rtl = (document.documentElement.dir || '').toLowerCase() === 'rtl';
+  ['qcar', 'ucar'].forEach(function(name){
+    var car = document.querySelector('[data-' + name + ']');
+    if (!car) return;
+    var track = car.querySelector('.qcar__track');
+    var pages = track.children.length;
+    var idx = 0;
+    var prev = document.querySelector('[data-' + name + '-prev]');
+    var next = document.querySelector('[data-' + name + '-next]');
+    var curEl = document.querySelector('[data-' + name + '-page]');
+    var pagesEl = document.querySelector('[data-' + name + '-pages]');
+    if (pagesEl) pagesEl.textContent = pages;
+    function render(){
+      track.style.transform = 'translateX(' + (rtl ? idx * 100 : -idx * 100) + '%)';
+      if (curEl) curEl.textContent = idx + 1;
+      prev.disabled = idx === 0;
+      next.disabled = idx === pages - 1;
+    }
+    prev.addEventListener('click', function(){ if (idx > 0) { idx--; render(); } });
+    next.addEventListener('click', function(){ if (idx < pages - 1) { idx++; render(); } });
+    render();
+  });
+
+  /* ------------------------------------------------------------------
+     MOCK WIDGET SEARCH : état de réservation partagé (bookbars + carte),
+     calendrier, panneau voyageurs, totaux dynamiques. Construction DOM
+     sûre (createElement/cloneNode uniquement, aucun innerHTML).
+     ------------------------------------------------------------------ */
+  var MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var DOWS = ['lu','ma','me','je','ve','sa','di'];
+  var RATE = 1200, CLEANING = 200, TAX = 180; /* tarifs placeholder */
+  var state = { checkin: new Date(2026, 7, 12), checkout: new Date(2026, 7, 15), adults: 3, children: 1, baby: 0 };
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  /* Restauration du funnel (retour depuis la page de réservation) */
+  try {
+    var saved = JSON.parse(sessionStorage.getItem('opd_booking') || 'null');
+    if (saved && saved.ci) {
+      state.checkin = new Date(saved.ci + 'T00:00:00');
+      state.checkout = saved.co ? new Date(saved.co + 'T00:00:00') : null;
+      state.adults = saved.adults || 2;
+      state.children = saved.children || 0;
+      state.baby = saved.baby || 0;
+    }
+  } catch (e) {}
+
+  function el(tag, cls, text){
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function fmtMAD(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' MAD'; }
+  function fmtDate(d){ return d ? d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear() : 'Ajouter une date'; }
+  function totalGuests(){ return state.adults + state.children; }
+  function guestsLabel(){
+    var n = totalGuests();
+    return n + ' voyageur' + (n > 1 ? 's' : '') + (state.baby ? ' · 1 bébé' : '');
+  }
+  function nights(){ return state.checkin && state.checkout ? Math.round((state.checkout - state.checkin) / 864e5) : 0; }
+  function setAll(sel, text){
+    document.querySelectorAll(sel).forEach(function(n){ n.textContent = text; });
+  }
+  function sync(){
+    setAll('[data-value="checkin"]', fmtDate(state.checkin));
+    setAll('[data-value="checkout"]', fmtDate(state.checkout));
+    setAll('[data-value="guests"]', guestsLabel());
+    setAll('[data-value="guests-count"]', totalGuests());
+    var n = nights();
+    setAll('[data-calc="nights-label"]', n ? fmtMAD(RATE) + ' × ' + n + ' nuit' + (n > 1 ? 's' : '') : 'Sélectionnez vos dates');
+    setAll('[data-calc="nights-amount"]', n ? fmtMAD(n * RATE) : '—');
+    setAll('[data-calc="total-amount"]', n ? fmtMAD(n * RATE + CLEANING + TAX) : '—');
+    persist();
+  }
+  /* Persistance du funnel : l'état (dates, voyageurs, extras) suit le visiteur
+     jusqu'aux pages reservation.html / confirmation.html. */
+  function persist(){
+    try {
+      sessionStorage.setItem('opd_booking', JSON.stringify({
+        ci: state.checkin ? isoOf(state.checkin) : null,
+        co: state.checkout ? isoOf(state.checkout) : null,
+        adults: state.adults, children: state.children, baby: state.baby,
+        extras: Array.prototype.map.call(document.querySelectorAll('.upsell--added'), function(c){
+          return c.dataset.upsellId;
+        }),
+      }));
+    } catch (e) {}
+  }
+
+  /* Popover unique (fixed, ancré sous le champ cliqué) */
+  var pop = el('div', 'pop');
+  pop.hidden = true;
+  document.body.appendChild(pop);
+  var popField = null;
+  var calMonth = new Date(state.checkin.getFullYear(), state.checkin.getMonth(), 1);
+
+  function sameDay(a, b){ return a && b && a.getTime() === b.getTime(); }
+  function isoOf(d){
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  /* Prix minimal affiché sous le jour, format du widget (formatMinPrice) */
+  function fmtDayPrice(n){ return n >= 1000 ? (Math.round(n / 100) / 10) + 'k' : String(n); }
+  /* Un mois = miroir de buildMonth() du widget SDK : grille complétée à 42 cellules. */
+  function buildMonth(y, m){
+    var month = el('div', 'cb-calendar-month');
+    var weekdays = el('div', 'cb-calendar-weekdays');
+    DOWS.forEach(function(d){ weekdays.append(el('span', 'cb-calendar-weekday', d)); });
+    month.append(weekdays);
+    var grid = el('div', 'cb-calendar-grid');
+    var offset = (new Date(y, m, 1).getDay() + 6) % 7;
+    for (var i = 0; i < offset; i++) grid.append(el('span', 'cb-calendar-day'));
+    var count = new Date(y, m + 1, 0).getDate();
+    for (var day = 1; day <= count; day++) {
+      var d = new Date(y, m, day);
+      var isPast = d < today;
+      var cls = 'cb-calendar-day';
+      if (isPast) cls += ' cb-disabled';
+      if (d.getTime() === today.getTime()) cls += ' cb-today';
+      if (sameDay(d, state.checkin)) cls += ' cb-selected cb-range-start';
+      else if (sameDay(d, state.checkout)) cls += ' cb-selected cb-range-end';
+      else if (state.checkin && state.checkout && d > state.checkin && d < state.checkout) cls += ' cb-in-range';
+      var b = el('button', cls);
+      b.type = 'button';
+      b.setAttribute('aria-label', day + ' ' + MONTHS[m]);
+      b.append(el('span', null, String(day)));
+      if (isPast) { b.disabled = true; }
+      else {
+        b.dataset.date = isoOf(d);
+        b.append(el('span', 'cb-calendar-day__price', fmtDayPrice(RATE)));
+      }
+      grid.append(b);
+    }
+    for (var j = offset + count; j < 42; j++) grid.append(el('span', 'cb-calendar-day'));
+    month.append(grid);
+    return month;
+  }
+  function renderCal(){
+    var y = calMonth.getFullYear(), m = calMonth.getMonth();
+    var head = el('div', 'cb-calendar-header');
+    var prev = el('button', 'cb-calendar-nav', '‹');
+    prev.type = 'button'; prev.dataset.calNav = '-1'; prev.setAttribute('aria-label', 'Mois précédent');
+    var cur = new Date();
+    if (y === cur.getFullYear() && m === cur.getMonth()) prev.disabled = true;
+    var next = el('button', 'cb-calendar-nav', '›');
+    next.type = 'button'; next.dataset.calNav = '1'; next.setAttribute('aria-label', 'Mois suivant');
+    var m2 = new Date(y, m + 1, 1);
+    head.append(prev, el('span', 'cb-calendar-title',
+      MONTHS[m] + ' ' + y + ' · ' + MONTHS[m2.getMonth()] + ' ' + m2.getFullYear()), next);
+    var months = el('div', 'cb-calendar-months');
+    months.append(buildMonth(y, m), buildMonth(m2.getFullYear(), m2.getMonth()));
+    pop.replaceChildren(head, months);
+    /* Aperçu de plage au survol, comme le widget : arrivée → jour survolé */
+    var cells = Array.prototype.slice.call(months.querySelectorAll('.cb-calendar-day[data-date]'));
+    function preview(end){
+      if (!state.checkin || state.checkout) return;
+      var ci = isoOf(state.checkin);
+      cells.forEach(function(cell){
+        var d = cell.dataset.date;
+        if (d === ci) return;
+        cell.classList.toggle('cb-in-range', !!end && ((ci < d && d < end) || (end < d && d < ci)));
+        cell.classList.toggle('cb-range-end', !!end && d === end && end > ci);
+        cell.classList.toggle('cb-range-start', !!end && d === end && end < ci);
+      });
+    }
+    cells.forEach(function(cell){
+      cell.addEventListener('mouseenter', function(){ preview(cell.dataset.date); });
+    });
+    months.addEventListener('mouseleave', function(){ preview(null); });
+  }
+  function gRow(label, sub, key, val, min){
+    var row = el('div', 'gpanel__row');
+    var txt = el('div');
+    txt.append(el('b', null, label), el('small', null, sub));
+    var st = el('div', 'stepper');
+    var minus = el('button', null, '−');
+    minus.type = 'button'; minus.dataset.g = key; minus.dataset.gd = '-1'; minus.disabled = val <= min;
+    var plus = el('button', null, '+');
+    plus.type = 'button'; plus.dataset.g = key; plus.dataset.gd = '1';
+    st.append(minus, el('span', 'num', String(val)), plus);
+    row.append(txt, st);
+    return row;
+  }
+  function renderGuests(){
+    pop.replaceChildren(
+      gRow('Adultes', '13 ans et plus', 'adults', state.adults, 1),
+      gRow('Enfants', 'De 2 à 12 ans', 'children', state.children, 0),
+      gRow('Bébé', 'Moins de 2 ans · lit bébé fourni', 'baby', state.baby, 0)
+    );
+  }
+  function renderPop(){ if (popField === 'guests') renderGuests(); else renderCal(); }
+  function openPop(field, anchor){
+    if (!pop.hidden && popField === field) { pop.hidden = true; return; }
+    popField = field;
+    renderPop();
+    pop.hidden = false;
+    /* Certains moteurs embarqués renvoient les rects en pixels device : on normalise. */
+    var scale = (document.documentElement.getBoundingClientRect().width / document.documentElement.clientWidth) || 1;
+    var r = anchor.getBoundingClientRect();
+    var h = pop.offsetHeight || (popField === 'guests' ? 220 : 400);
+    var w = pop.offsetWidth || (popField === 'guests' ? 344 : 620);
+    var top = r.bottom / scale + 10;
+    if (top + h > window.innerHeight - 12) top = Math.max(12, r.top / scale - h - 10);
+    pop.style.top = top + 'px';
+    pop.style.left = Math.max(12, Math.min(r.left / scale, window.innerWidth - w - 12)) + 'px';
+  }
+  document.querySelectorAll('[data-field]').forEach(function(f){
+    f.addEventListener('click', function(ev){ ev.stopPropagation(); openPop(f.dataset.field, f); });
+    f.addEventListener('keydown', function(ev){
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openPop(f.dataset.field, f); }
+    });
+  });
+  pop.addEventListener('click', function(ev){
+    ev.stopPropagation();
+    var nav = ev.target.closest('[data-cal-nav]');
+    if (nav) { calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + Number(nav.dataset.calNav), 1); renderCal(); return; }
+    var dayBtn = ev.target.closest('.cb-calendar-day');
+    if (dayBtn && dayBtn.dataset.date) {
+      var parts = dayBtn.dataset.date.split('-');
+      var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      /* Logique du widget (handleDayClick) : nouveau départ de sélection, ou
+         clic avant l’arrivée = échange, sinon départ + fermeture. */
+      if (!state.checkin || (state.checkin && state.checkout)) { state.checkin = d; state.checkout = null; }
+      else if (d <= state.checkin) { state.checkout = state.checkin; state.checkin = d; }
+      else { state.checkout = d; }
+      sync();
+      if (state.checkin && state.checkout) pop.hidden = true; else renderCal();
+      return;
+    }
+    var g = ev.target.closest('[data-g]');
+    if (g) {
+      var key = g.dataset.g, delta = Number(g.dataset.gd);
+      if (key === 'adults') state.adults = Math.min(Math.max(state.adults + delta, 1), 6 - state.children);
+      if (key === 'children') state.children = Math.min(Math.max(state.children + delta, 0), 6 - state.adults);
+      if (key === 'baby') state.baby = Math.min(Math.max(state.baby + delta, 0), 1);
+      sync(); renderGuests();
+    }
+  });
+  document.addEventListener('click', function(){ pop.hidden = true; });
+  document.addEventListener('keydown', function(ev){ if (ev.key === 'Escape') { pop.hidden = true; closeModal(); } });
+  window.addEventListener('scroll', function(){ pop.hidden = true; }, { passive: true });
+
+  /* Steppers de la carte de réservation (total voyageurs) */
+  document.querySelectorAll('[data-gstep]').forEach(function(btn){
+    btn.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var delta = Number(btn.dataset.gstep);
+      if (delta > 0 && totalGuests() < 6) state.adults++;
+      if (delta < 0 && totalGuests() > 1) { if (state.children > 0) state.children--; else state.adults--; }
+      sync();
+    });
+  });
+
+  /* CTA des bookbars → section réservation ; carte → page checkout du funnel */
+  document.querySelectorAll('[data-goto-booking]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var target = document.getElementById('reserver');
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+  document.querySelectorAll('[data-goto-checkout]').forEach(function(btn){
+    btn.addEventListener('click', function(){ persist(); window.location.href = 'reservation.html'; });
+  });
+
+  /* ------------------------------------------------------------------
+     MOCK WIDGET UPSELLS : état « ajouté » (swap CSS) + modale de détail.
+     ------------------------------------------------------------------ */
+  var modal = document.querySelector('[data-upsell-modal]');
+  var modalCard = null;
+  function toggleAdded(card){
+    var added = card.classList.toggle('upsell--added');
+    if (modal && modalCard === card) {
+      modal.querySelector('[data-modal-add]').classList.toggle('upsell__add--added', added);
+    }
+    persist();
+  }
+  function cloneInto(target, source){
+    target.replaceChildren();
+    source.childNodes.forEach(function(node){ target.append(node.cloneNode(true)); });
+  }
+  function openModal(card){
+    if (!modal) return;
+    modalCard = card;
+    cloneInto(modal.querySelector('[data-modal-icon]'), card.querySelector('.upsell__icon'));
+    modal.querySelector('[data-modal-title]').textContent = card.querySelector('h3').textContent;
+    var more = card.querySelector('.upsell__more');
+    modal.querySelector('[data-modal-desc]').textContent =
+      card.querySelector('p:not(.upsell__more)').textContent + ' ' + (more ? more.textContent : '');
+    cloneInto(modal.querySelector('[data-modal-price]'), card.querySelector('.upsell__price'));
+    modal.querySelector('[data-modal-add]').classList.toggle('upsell__add--added', card.classList.contains('upsell--added'));
+    modal.hidden = false;
+    document.body.classList.add('no-scroll');
+  }
+  function closeModal(){
+    if (modal && !modal.hidden) { modal.hidden = true; document.body.classList.remove('no-scroll'); modalCard = null; }
+  }
+  document.querySelectorAll('.upsell').forEach(function(card){
+    card.addEventListener('click', function(ev){
+      if (ev.target.closest('.upsell__add')) { toggleAdded(card); return; }
+      openModal(card);
+    });
+  });
+  if (modal) {
+    modal.querySelectorAll('[data-modal-close]').forEach(function(c){ c.addEventListener('click', closeModal); });
+    modal.querySelector('[data-modal-add]').addEventListener('click', function(){ if (modalCard) toggleAdded(modalCard); });
+  }
+
+  /* Restauration des extras cochés (retour depuis le funnel) */
+  try {
+    var savedX = JSON.parse(sessionStorage.getItem('opd_booking') || 'null');
+    if (savedX && savedX.extras) savedX.extras.forEach(function(id){
+      var card = document.querySelector('[data-upsell-id="' + id + '"]');
+      if (card) card.classList.add('upsell--added');
+    });
+  } catch (e) {}
+
+  sync();
+})();
+</script>
+</body>
+</html>

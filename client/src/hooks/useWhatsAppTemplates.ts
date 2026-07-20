@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   whatsappTemplatesApi,
-  type PreviewPayload,
   type UpsertOverridePayload,
   type WhatsAppTemplateContent,
   type WhatsAppTemplateGroup,
@@ -101,24 +100,6 @@ export function useRemoveWhatsAppTemplateOverride() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: whatsappTemplatesKeys.list() });
       queryClient.invalidateQueries({ queryKey: whatsappTemplatesKeys.detail(variables.key) });
-    },
-  });
-}
-
-/**
- * Preview a la demande (pas une query persistante). On utilise mutation car
- * cote serveur c'est un POST et que le resultat depend des mockValues du moment
- * — pas de notion de "fraicheur" a invalider.
- */
-export function useWhatsAppTemplatePreview() {
-  return useMutation<
-    string,
-    Error,
-    { key: string; language: string; payload: PreviewPayload }
-  >({
-    mutationFn: async ({ key, language, payload }) => {
-      const response = await whatsappTemplatesApi.preview(key, language, payload);
-      return response.renderedBody;
     },
   });
 }

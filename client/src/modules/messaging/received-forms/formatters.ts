@@ -44,7 +44,7 @@ export function formatFieldValue(key: string, value: unknown): string {
 /** Normalise un champ liste (array OU chaîne "a, b, c") en items individuels. */
 export function toList(value: unknown): string[] {
   if (value == null || value === '') return [];
-  if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+  if (Array.isArray(value)) return value.flatMap((v) => { const s = String(v).trim(); return s ? [s] : []; });
   return String(value).split(',').map((s) => s.trim()).filter(Boolean);
 }
 

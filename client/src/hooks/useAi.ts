@@ -78,31 +78,6 @@ export function useAiSuggestResponse() {
   });
 }
 
-// ─── Analytics Insights ─────────────────────────────────────────────────────
-
-export function useAiInsights(
-  propertyId: number,
-  from: string,
-  to: string,
-  enabled = true,
-) {
-  return useQuery({
-    queryKey: aiKeys.insights(propertyId, from, to),
-    queryFn: () => aiApi.getInsights(propertyId, from, to),
-    enabled: enabled && propertyId > 0 && !!from && !!to,
-    staleTime: 10 * 60_000,
-  });
-}
-
-// ─── Sentiment Analysis ─────────────────────────────────────────────────────
-
-export function useAiSentimentAnalysis() {
-  return useMutation({
-    mutationFn: ({ text, language }: { text: string; language?: string }) =>
-      aiApi.analyzeSentiment(text, language),
-  });
-}
-
 // ─── Feature Toggles ─────────────────────────────────────────────────────────
 
 export function useAiFeatureToggles() {
@@ -195,17 +170,6 @@ export function useRecheckPlatformModel() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => aiApi.recheckPlatformModel(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: aiKeys.platformConfig() });
-    },
-  });
-}
-
-/** Revérifie la disponibilité de TOUS les modèles. */
-export function useRecheckAllPlatformModels() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: () => aiApi.recheckAllPlatformModels(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aiKeys.platformConfig() });
     },
