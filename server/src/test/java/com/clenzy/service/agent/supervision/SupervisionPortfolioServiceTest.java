@@ -49,7 +49,7 @@ class SupervisionPortfolioServiceTest {
 
     private PropertyPerformanceDto perf(Long id, double occupancyRate, String revenue, double netMargin) {
         return new PropertyPerformanceDto(id, "Logement " + id, 0, java.math.BigDecimal.ZERO,
-                occupancyRate, new java.math.BigDecimal(revenue), netMargin, 90);
+                occupancyRate, new java.math.BigDecimal(revenue), java.math.BigDecimal.ZERO, netMargin, 90);
     }
 
     private Property property(Long id, String name) {

@@ -17,6 +17,8 @@ export interface PropertyPerformance {
   occupancyRate: number;
   /** Revenu de la fenêtre, proraté aux nuits comprises (devise de base EUR). */
   revenue: number;
+  /** Coûts d'intervention réels de la fenêtre (devise de base EUR). */
+  costs: number;
   /** Marge nette en % (0–100). */
   netMargin: number;
   /** Taille de la fenêtre glissante en jours. */

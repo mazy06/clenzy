@@ -3,20 +3,16 @@ import { useQuery } from '@tanstack/react-query';
 import { isMockEnabled } from '../services/storageService';
 import { reservationsApi } from '../services/api/reservationsApi';
 import { propertiesApi } from '../services/api/propertiesApi';
-import { interventionsApi } from '../services/api/interventionsApi';
 import { serviceRequestsApi } from '../services/api/serviceRequestsApi';
+import { portfolioAnalyticsApi } from '../services/api/portfolioAnalyticsApi';
 import type { Property } from '../services/api/propertiesApi';
 import type { DashboardPeriod } from '../modules/dashboard/DashboardDateFilter';
-import type { AnalyticsData, InterventionLike, ServiceRequestLike } from '../types/analytics';
+import type { AnalyticsData, InterventionLike, PropertyPerformanceItem } from '../types/analytics';
 import { periodToDays } from './analyticsUtils';
 import {
-  computeGlobalKPIs,
-  computeRevenueMetrics,
-  computeOccupancyMetrics,
   computePricingMetrics,
   computeForecast,
   computeClientMetrics,
-  computePropertyPerformance,
   computeBenchmark,
   computeRecommendations,
   computeBusinessAlerts,
@@ -64,19 +60,36 @@ interface UseAnalyticsEngineParams {
   enabled?: boolean;
 }
 
-export function useAnalyticsEngine({ period, interventions, enabled = true }: UseAnalyticsEngineParams) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- `interventions` conservé pour
+// compat de signature ; les coûts viennent désormais du serveur (portfolio + performance-summaries).
+export function useAnalyticsEngine({ period, interventions: _interventions, enabled = true }: UseAnalyticsEngineParams) {
   const days = periodToDays(period);
   const isMock = isMockEnabled('analytics');
 
-  // Fetch reservations
+  // Slices rapatriées côté serveur (formules corrigées, coûts d'intervention réels).
+  const portfolioQuery = useQuery({
+    queryKey: ['analytics-portfolio', period, isMock],
+    queryFn: () => portfolioAnalyticsApi.get(period),
+    staleTime: 60_000,
+    enabled,
+  });
+
+  // Performance par logement (serveur) — remplace computePropertyPerformance.
+  const performanceQuery = useQuery({
+    queryKey: ['analytics-performance', days, isMock],
+    queryFn: () => propertiesApi.getPerformanceSummaries(days),
+    staleTime: 60_000,
+    enabled,
+  });
+
+  // Données brutes encore nécessaires aux slices restées client (pricing, forecast,
+  // clients — heuristiques ou dérivées, sans gain de correctness à porter serveur).
   const reservationsQuery = useQuery({
     queryKey: ['analytics-reservations', isMock],
     queryFn: () => reservationsApi.getAll(),
     staleTime: 60_000,
     enabled,
   });
-
-  // Fetch properties
   const propertiesQuery = useQuery({
     queryKey: ['analytics-properties', isMock],
     queryFn: () => propertiesApi.getAll({ size: 1000 }).then((res) => {
@@ -90,62 +103,33 @@ export function useAnalyticsEngine({ period, interventions, enabled = true }: Us
     enabled,
   });
 
-  // Fetch interventions (mock mode only -- provides costs for margin/ROI)
-  const interventionsQuery = useQuery({
-    queryKey: ['analytics-interventions', isMock],
-    queryFn: () => interventionsApi.getAll({ size: 1000 }),
-    staleTime: 60_000,
-    enabled: enabled && isMock,
-  });
-
-  // Fetch service requests (for pending requests counter)
-  const serviceRequestsQuery = useQuery({
-    queryKey: ['analytics-service-requests', isMock],
-    queryFn: () => serviceRequestsApi.getAll().then((res) => {
-      if (Array.isArray(res)) return res;
-      if (res && typeof res === 'object' && 'content' in (res as Record<string, unknown>)) {
-        return (res as unknown as { content: ServiceRequestLike[] }).content || [];
-      }
-      return [];
-    }),
-    staleTime: 60_000,
-    enabled,
-  });
-
   const reservations = useMemo(() => reservationsQuery.data || [], [reservationsQuery.data]);
   const properties = useMemo(() => propertiesQuery.data || [], [propertiesQuery.data]);
-  const serviceRequests = useMemo(() => serviceRequestsQuery.data || [], [serviceRequestsQuery.data]);
   const loading = enabled
-    && (reservationsQuery.isLoading || propertiesQuery.isLoading || (isMock && interventionsQuery.isLoading));
-
-  // In mock mode: use mock interventions; otherwise the external parameter
-  const effectiveInterventions = useMemo<InterventionLike[]>(() => {
-    if (isMock && interventionsQuery.data) {
-      return interventionsQuery.data.map((i) => ({
-        estimatedCost: i.estimatedCost,
-        actualCost: i.actualCost,
-        type: i.type,
-        status: i.status,
-        scheduledDate: i.scheduledDate,
-        createdAt: i.createdAt,
-      }));
-    }
-    return interventions;
-  }, [isMock, interventionsQuery.data, interventions]);
+    && (portfolioQuery.isLoading || performanceQuery.isLoading
+      || reservationsQuery.isLoading || propertiesQuery.isLoading);
 
   const analytics = useMemo<AnalyticsData | null>(() => {
-    // Moteur inactif : ne pas payer l'agrégation (même si le cache react-query
-    // contient déjà les données via une autre instance du hook).
     if (!enabled) return null;
-    if (reservations.length === 0 && properties.length === 0) return null;
+    const portfolio = portfolioQuery.data;
+    if (!portfolio) return null;
 
-    const global = computeGlobalKPIs(reservations, properties, effectiveInterventions, serviceRequests, days);
-    const revenue = computeRevenueMetrics(reservations, properties, days);
-    const occupancy = computeOccupancyMetrics(reservations, properties, days);
+    const { global, revenue, occupancy } = portfolio;
+    // Mapping DTO serveur (revPan) → type client (revPAN), sans windowDays.
+    const propertyPerf: PropertyPerformanceItem[] = (performanceQuery.data || []).map((p) => ({
+      propertyId: p.propertyId,
+      name: p.name,
+      revPAN: p.revPan,
+      occupancyRate: p.occupancyRate,
+      revenue: p.revenue,
+      costs: p.costs,
+      netMargin: p.netMargin,
+      score: p.score,
+    }));
+
     const pricing = computePricingMetrics(reservations, properties, days);
     const forecast = computeForecast(reservations, properties);
     const clients = computeClientMetrics(reservations);
-    const propertyPerf = computePropertyPerformance(reservations, properties, effectiveInterventions, days);
     const benchmark = computeBenchmark(propertyPerf);
     const recommendations = computeRecommendations(global, occupancy, revenue, properties);
     const alerts = computeBusinessAlerts(global, occupancy, propertyPerf);
@@ -162,7 +146,7 @@ export function useAnalyticsEngine({ period, interventions, enabled = true }: Us
       benchmark,
       alerts,
     };
-  }, [enabled, reservations, properties, effectiveInterventions, serviceRequests, days]);
+  }, [enabled, portfolioQuery.data, performanceQuery.data, reservations, properties, days]);
 
   return { analytics, loading };
 }

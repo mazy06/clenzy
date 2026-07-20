@@ -69,7 +69,7 @@ class BusinessAnalyticsScannerTest {
 
     private PropertyPerformanceDto perf(double occ, String revenue, double margin) {
         return new PropertyPerformanceDto(PROP, "Duplex", 0, BigDecimal.ZERO, occ,
-                new BigDecimal(revenue), margin, 90);
+                new BigDecimal(revenue), BigDecimal.ZERO, margin, 90);
     }
 
     private Reservation reservation(String checkIn, String checkOut) {
