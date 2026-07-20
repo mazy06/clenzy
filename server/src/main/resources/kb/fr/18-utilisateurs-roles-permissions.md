@@ -22,6 +22,9 @@ Le menu « Utilisateurs » (ou « Utilisateurs et Organisations » pour l'équip
 
 ## Questions fréquentes
 
+**Quelle est la différence entre un Super Admin et un hôte (Host) ?**
+Le Super Admin est un rôle plateforme réservé à l'équipe Baitly : il a accès à toutes les organisations et à l'administration globale (utilisateurs, synchronisations, configuration IA). L'hôte (Host) est le rôle principal d'une organisation cliente : il gère uniquement ses propres logements, réservations, tarifs, contrats et équipes, sans aucune visibilité sur les autres organisations.
+
 **Comment ajouter un agent de ménage à mon équipe ?**
 Paramètres, onglet Organisation : invitez-le par email en choisissant le rôle agent de ménage. Il recevra un lien d'invitation pour créer son compte et rejoindre votre organisation.
 

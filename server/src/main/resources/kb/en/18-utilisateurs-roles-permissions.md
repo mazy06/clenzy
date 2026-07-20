@@ -22,6 +22,9 @@ The "Users" menu (or "Users & Organizations" for the platform team) lists the ac
 
 ## Frequently asked questions
 
+**What is the difference between a Super Admin and a Host?**
+Super Admin is a platform role reserved for the Baitly team: it has access to every organization and to global administration (users, synchronizations, AI configuration). The Host is the main role within a customer organization: they manage only their own properties, reservations, rates, contracts and teams, with no visibility into other organizations.
+
 **How do I add a housekeeper to my team?**
 Settings, Organization tab: invite them by email, choosing the housekeeper role. They will receive an invitation link to create their account and join your organization.
 
