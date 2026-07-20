@@ -5744,6 +5744,20 @@
         "accountDisabled": "Votre compte est désactivé. Contactez le support."
       }
     },
+    "forgotPassword": {
+      "title": "Mot de passe oublié ?",
+      "subtitle": "Indique ton adresse email : nous t'enverrons un lien pour choisir un nouveau mot de passe.",
+      "emailLabel": "Adresse email",
+      "emailPlaceholder": "vous@exemple.com",
+      "submit": "Envoyer le lien de réinitialisation",
+      "successMessage": "Si un compte existe avec cet email, un lien de réinitialisation vient d'être envoyé. Pensez à vérifier vos spams.",
+      "backToLogin": "Retour à la connexion",
+      "rememberedPassword": "Tu te souviens de ton mot de passe ?",
+      "loginLink": "Se connecter",
+      "errors": {
+        "missingEmail": "Veuillez saisir votre adresse email."
+      }
+    },
     "inscription": {
       "stepInformations": "Vos informations",
       "stepPayment": "Paiement",

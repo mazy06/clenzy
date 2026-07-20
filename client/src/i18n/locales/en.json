@@ -5717,6 +5717,20 @@
         "accountDisabled": "Your account is disabled. Please contact support."
       }
     },
+    "forgotPassword": {
+      "title": "Forgot your password?",
+      "subtitle": "Enter your email address: we'll send you a link to choose a new password.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "you@example.com",
+      "submit": "Send reset link",
+      "successMessage": "If an account exists with this email, a reset link has just been sent. Remember to check your spam folder.",
+      "backToLogin": "Back to login",
+      "rememberedPassword": "Remembered your password?",
+      "loginLink": "Log in",
+      "errors": {
+        "missingEmail": "Please enter your email address."
+      }
+    },
     "inscription": {
       "stepInformations": "Your information",
       "stepPayment": "Payment",

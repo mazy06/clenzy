@@ -6,7 +6,7 @@ You sign in on the Baitly login page. Enter your email (or your username) and yo
 
 ## What should I do if I forgot my password?
 
-On the login page, a "Forgot your password?" link is available under the password field. If you cannot recover access to your account this way, contact Baitly support (the "Contact support" link at the bottom of the login page) or reach out to your organization's administrator: they can check your account and help you restore access. To avoid lockouts, first make sure you are using the right email (the one you were invited or registered with) and that caps lock is not on. Note that the password is set when the account is created (registration or invitation acceptance): there is no password change field in the profile settings.
+On the login page, click the "Forgot your password?" link under the password field. Enter your email address and confirm: if an account exists with this email, you receive a message containing a secure link to choose a new password (remember to check your spam folder). The link is time-limited; if you receive nothing or the link has expired, make a new request from the same page. If you still cannot recover access, contact Baitly support (the "Contact support" link at the bottom of the login page) or reach out to your organization's administrator. To avoid lockouts, first make sure you are using the right email (the one you were invited or registered with) and that caps lock is not on. Once signed in, you can also change your password from Settings > General, "Security" section: the "Change my password" button sends you the same email with a secure link.
 
 ## How do I create a Baitly account (registration)?
 

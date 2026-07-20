@@ -64,6 +64,7 @@ interface SettingsTabMeta {
   /** Sous-titre affiche dans le PageHeader pour ce tab. */
   subtitle: string;
 }
+import AccountSecuritySection from './AccountSecuritySection';
 import NotificationPreferencesCard from './NotificationPreferencesCard';
 import type { NotificationPreferencesHandle } from './NotificationPreferencesCard';
 import MarketingPreferencesCard from './MarketingPreferencesCard';
@@ -840,6 +841,11 @@ export default function Settings() {
                 </Grid>
               </Grid>
             </SettingsSection>
+          </Grid>
+
+          {/* Sécurité (changement de mot de passe via email Keycloak) */}
+          <Grid item xs={12} md={6}>
+            <AccountSecuritySection />
           </Grid>
 
           {/* Workflow */}

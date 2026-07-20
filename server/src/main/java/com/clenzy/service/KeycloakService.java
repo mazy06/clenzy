@@ -241,6 +241,47 @@ public class KeycloakService {
     }
 
     /**
+     * Envoyer l'email Keycloak de réinitialisation de mot de passe (action token
+     * UPDATE_PASSWORD, via le SMTP configuré sur le realm) à l'utilisateur
+     * correspondant à cet email.
+     *
+     * @return true si un utilisateur a été trouvé et l'email envoyé, false sinon
+     *         (l'appelant reste silencieux pour ne pas révéler l'existence du compte)
+     */
+    @CircuitBreaker(name = "keycloak-admin")
+    public boolean sendPasswordResetEmail(String email) {
+        List<UserRepresentation> users = withTokenRetry(() ->
+            keycloak.realm(realm).users().searchByEmail(email, true), "searchByEmail");
+        if (users == null || users.isEmpty()) {
+            return false;
+        }
+        String userId = users.get(0).getId();
+        withTokenRetryVoid(() ->
+            keycloak.realm(realm)
+                .users()
+                .get(userId)
+                .executeActionsEmail(List.of("UPDATE_PASSWORD")), "sendPasswordResetEmail");
+        return true;
+    }
+
+    /**
+     * Envoyer l'email de réinitialisation de mot de passe à un utilisateur
+     * identifié par son id Keycloak (cas utilisateur connecté, Paramètres).
+     */
+    @CircuitBreaker(name = "keycloak-admin")
+    public void sendPasswordResetEmailByKeycloakId(String externalId) {
+        try {
+            withTokenRetryVoid(() ->
+                keycloak.realm(realm)
+                    .users()
+                    .get(externalId)
+                    .executeActionsEmail(List.of("UPDATE_PASSWORD")), "sendPasswordResetEmailByKeycloakId");
+        } catch (Exception e) {
+            throw new KeycloakOperationException("Erreur lors de l'envoi de l'email de réinitialisation: " + e.getMessage());
+        }
+    }
+
+    /**
      * Assigner un rôle à un utilisateur
      */
     @CircuitBreaker(name = "keycloak-admin")
