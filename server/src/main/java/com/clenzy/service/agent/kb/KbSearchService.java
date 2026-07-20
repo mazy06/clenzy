@@ -48,6 +48,11 @@ public class KbSearchService {
     private static final int MAX_FETCH = 80;
     /** Constante k du Reciprocal Rank Fusion (valeur standard de la litterature). */
     private static final int RRF_K = 60;
+    /**
+     * Le rerank classe un pool de {@code topK x ce facteur} chunks, dans lequel la
+     * diversification par document pioche ensuite les topK finaux.
+     */
+    private static final int DIVERSITY_POOL_FACTOR = 3;
 
     private final EmbeddingService embeddingService;
     private final KbChunkRepository chunkRepository;
@@ -177,8 +182,12 @@ public class KbSearchService {
         // Pas de candidats → return early
         if (candidates.isEmpty()) return List.of();
 
-        // Phase 2 : re-ranking (no-op si rerank desactive / fallback)
-        List<KbSearchHit> finalHits = applyRerank(query, candidates, safeTopK);
+        // Phase 2 : re-ranking sur un pool plus large que topK, puis
+        // DIVERSIFICATION par document — sans elle, le top-4 est monopolise par
+        // plusieurs chunks du meme doc et l'assistant ne voit que 1-2 sources.
+        int poolK = Math.min(candidates.size(), safeTopK * DIVERSITY_POOL_FACTOR);
+        List<KbSearchHit> ranked = applyRerank(query, candidates, poolK);
+        List<KbSearchHit> finalHits = diversifyByDocument(ranked, safeTopK);
 
         // Appliquer l'excerpt en derniere etape (pas avant le rerank pour ne pas
         // perdre du contexte).
@@ -186,6 +195,30 @@ public class KbSearchService {
                 .map(h -> new KbSearchHit(h.chunkId(), h.documentId(), h.title(),
                         h.sourcePath(), excerpt(h.snippet()), h.relevance()))
                 .toList();
+    }
+
+    /**
+     * Garde le MEILLEUR chunk de chaque document (ordre du ranking preserve),
+     * puis complete avec les chunks restants — meme doc — si moins de
+     * {@code topK} documents distincts ont ete trouves. Diversite d'abord,
+     * redondance seulement en complement.
+     */
+    static List<KbSearchHit> diversifyByDocument(List<KbSearchHit> ranked, int topK) {
+        List<KbSearchHit> result = new ArrayList<>(topK);
+        java.util.Set<Long> seenDocs = new java.util.HashSet<>();
+        for (KbSearchHit hit : ranked) {
+            if (result.size() >= topK) return result;
+            if (seenDocs.add(hit.documentId())) {
+                result.add(hit);
+            }
+        }
+        for (KbSearchHit hit : ranked) {
+            if (result.size() >= topK) break;
+            if (!result.contains(hit)) {
+                result.add(hit);
+            }
+        }
+        return result;
     }
 
     /**

@@ -138,6 +138,45 @@ class KbSearchServiceTest {
     }
 
     @Test
+    void search_diversifiesByDocument_bestChunkPerDocFirst() {
+        when(embeddingService.embedQueryAsVectorString("q")).thenReturn("[0.1]");
+        // 4 chunks du doc 10 en tete, puis docs 11 et 12 : le top-3 doit couvrir
+        // les 3 documents, pas 3 chunks du doc 10.
+        List<Object[]> rows = new java.util.ArrayList<>();
+        rows.add(new Object[]{1L, "A1", "a.md", "Doc A", 10L, 0.1d});
+        rows.add(new Object[]{2L, "A2", "a.md", "Doc A", 10L, 0.2d});
+        rows.add(new Object[]{3L, "A3", "a.md", "Doc A", 10L, 0.3d});
+        rows.add(new Object[]{4L, "B1", "b.md", "Doc B", 11L, 0.4d});
+        rows.add(new Object[]{5L, "C1", "c.md", "Doc C", 12L, 0.5d});
+        when(chunkRepository.searchByCosineSimilarity(anyString(), eq(1L), anyString(), anyInt()))
+                .thenReturn(rows);
+
+        List<KbSearchService.KbSearchHit> hits = service.search("q", 1L, 3);
+
+        assertEquals(3, hits.size());
+        assertEquals(java.util.List.of(10L, 11L, 12L),
+                hits.stream().map(KbSearchService.KbSearchHit::documentId).toList());
+    }
+
+    @Test
+    void search_fewDistinctDocs_backfillsWithSameDocChunks() {
+        when(embeddingService.embedQueryAsVectorString("q")).thenReturn("[0.1]");
+        // Un seul document disponible : on complete quand meme le topK avec ses chunks
+        List<Object[]> rows = new java.util.ArrayList<>();
+        rows.add(new Object[]{1L, "A1", "a.md", "Doc A", 10L, 0.1d});
+        rows.add(new Object[]{2L, "A2", "a.md", "Doc A", 10L, 0.2d});
+        rows.add(new Object[]{3L, "A3", "a.md", "Doc A", 10L, 0.3d});
+        when(chunkRepository.searchByCosineSimilarity(anyString(), eq(1L), anyString(), anyInt()))
+                .thenReturn(rows);
+
+        List<KbSearchService.KbSearchHit> hits = service.search("q", 1L, 3);
+
+        assertEquals(3, hits.size());
+        assertEquals(java.util.List.of(1L, 2L, 3L),
+                hits.stream().map(KbSearchService.KbSearchHit::chunkId).toList());
+    }
+
+    @Test
     void search_clampsTopK() {
         when(embeddingService.embedQueryAsVectorString(anyString())).thenReturn("[0,0,0]");
         when(chunkRepository.searchByCosineSimilarity(anyString(), any(), anyString(), anyInt()))
@@ -212,8 +251,9 @@ class KbSearchServiceTest {
         }
         when(chunkRepository.searchByCosineSimilarity(anyString(), any(), anyString(), anyInt())).thenReturn(rows);
 
-        // Phase 2 : le rerank reorganise → indices 10, 3, 7, 0, 15 (5 elements)
-        when(rerankService.rerank(eq("test"), org.mockito.ArgumentMatchers.anyList(), eq(5)))
+        // Phase 2 : le rerank classe un pool de topK*3=15 chunks → la
+        // diversification par document pioche ensuite les 5 finaux.
+        when(rerankService.rerank(eq("test"), org.mockito.ArgumentMatchers.anyList(), eq(15)))
                 .thenReturn(List.of(10, 3, 7, 0, 15));
 
         List<KbSearchService.KbSearchHit> hits = service.search("test", 1L, 5);
