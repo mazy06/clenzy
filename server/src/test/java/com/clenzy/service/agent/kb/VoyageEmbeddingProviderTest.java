@@ -101,6 +101,7 @@ class VoyageEmbeddingProviderTest {
                     .andExpect(header("Authorization", "Bearer k"))
                     .andExpect(jsonPath("$.input_type").value("document"))
                     .andExpect(jsonPath("$.truncation").value(true))
+                    .andExpect(jsonPath("$.output_dimension").value(1024))
                     .andRespond(withSuccess("""
                             {
                               "data": [

@@ -104,6 +104,11 @@ public class VoyageEmbeddingProvider implements EmbeddingProvider {
         body.put("input_type", kind == InputKind.QUERY ? "query" : "document");
         // Sans truncation, un chunk depassant la fenetre du modele fait echouer tout le batch.
         body.put("truncation", true);
+        // Dimension imposee = celle de l'index pgvector. Les modeles Matryoshka
+        // (voyage-3.5, voyage-3.5-lite, voyage-3-large) la respectent ; un modele
+        // incompatible (ex. voyage-3-lite, 512d fixe) echoue EXPLICITEMENT cote API
+        // au lieu de produire des vecteurs inserables nulle part.
+        body.put("output_dimension", dimensions);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
