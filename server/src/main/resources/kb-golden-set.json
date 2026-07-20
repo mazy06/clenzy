@@ -38,5 +38,21 @@
   {"question": "ou voir mon taux d'occupation et mes revenus ?", "expected": "baitly/fr/19-analytics-rapports.md"},
   {"question": "comment exporter mes donnees comptables au format FEC ?", "expected": "baitly/fr/19-analytics-rapports.md"},
   {"question": "comment creer une regle d'automatisation ?", "expected": "baitly/fr/20-automatisation.md"},
-  {"question": "l'assistant peut-il appliquer des changements de prix tout seul ?", "expected": "baitly/fr/20-automatisation.md"}
+  {"question": "l'assistant peut-il appliquer des changements de prix tout seul ?", "expected": "baitly/fr/20-automatisation.md"},
+  {"question": "j'ai oublie mon mot de passe, comment me reconnecter ?", "expected": "baitly/fr/21-compte-connexion-profil.md"},
+  {"question": "comment changer la langue et le theme de mon interface ?", "expected": "baitly/fr/21-compte-connexion-profil.md"},
+  {"question": "comment un technicien utilise l'application mobile pour ses missions ?", "expected": "baitly/fr/22-application-mobile-terrain.md"},
+  {"question": "pourquoi prendre des photos avant et apres le menage sur mobile ?", "expected": "baitly/fr/22-application-mobile-terrain.md"},
+  {"question": "comment vendre des services supplementaires a mes voyageurs ?", "expected": "baitly/fr/23-boutique-services-payants.md"},
+  {"question": "ou suivre les commandes de la boutique et leurs statuts ?", "expected": "baitly/fr/23-boutique-services-payants.md"},
+  {"question": "quelle est la difference entre une demande de service et une intervention ?", "expected": "baitly/fr/24-demandes-de-service.md"},
+  {"question": "comment creer une demande de maintenance pour un logement ?", "expected": "baitly/fr/24-demandes-de-service.md"},
+  {"question": "comment desactiver certaines notifications que je recois ?", "expected": "baitly/fr/25-notifications.md"},
+  {"question": "ou voir mes notifications non lues ?", "expected": "baitly/fr/25-notifications.md"},
+  {"question": "comment etablir un devis pour une reparation ?", "expected": "baitly/fr/26-devis-depenses.md"},
+  {"question": "comment enregistrer et suivre les depenses ?", "expected": "baitly/fr/26-devis-depenses.md"},
+  {"question": "ou trouver la liste de tous mes voyageurs et leurs coordonnees ?", "expected": "baitly/fr/27-annuaire-contacts.md"},
+  {"question": "a quoi sert l'annuaire dans le hub contacts ?", "expected": "baitly/fr/27-annuaire-contacts.md"},
+  {"question": "quelles donnees personnelles baitly conserve-t-il sur les voyageurs ?", "expected": "baitly/fr/28-donnees-personnelles-confidentialite.md"},
+  {"question": "comment demander la suppression des donnees d'un voyageur ?", "expected": "baitly/fr/28-donnees-personnelles-confidentialite.md"}
 ]
