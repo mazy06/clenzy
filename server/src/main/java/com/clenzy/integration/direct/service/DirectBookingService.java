@@ -323,7 +323,7 @@ public class DirectBookingService {
         log.info("cancelBooking: bookingId={}, reason={}, orgId={}", bookingId, reason, orgId);
 
         Reservation reservation = findReservationByConfirmationCode(bookingId, orgId);
-        reservation.setStatus("cancelled");
+        reservation.markCancelled();
         reservation.setNotes(reservation.getNotes() != null
                 ? reservation.getNotes() + "\nAnnulation: " + reason
                 : "Annulation: " + reason);

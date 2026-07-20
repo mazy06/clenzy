@@ -3333,3 +3333,13 @@ databaseChangeLog:
       sqlFile:
         path: changes/0348__kb_chunk_fulltext_per_language.sql
         relativeToChangelogFile: true
+
+  # Fondations RMS (R1) : horodatage d'annulation des reservations — permet de
+  # reconstruire l'on-the-books a une date passee (pace / pickup / booking curve).
+  # Backfill des annulees existantes avec updated_at (approximation documentee).
+  - changeSet:
+      id: "0349-add-reservation-cancelled-at"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0349__add_reservation_cancelled_at.sql
+        relativeToChangelogFile: true

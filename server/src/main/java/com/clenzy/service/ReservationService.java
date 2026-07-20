@@ -489,7 +489,7 @@ public class ReservationService {
         calendarEngine.cancel(reservationId, orgId, null);
 
         // Mettre a jour le statut
-        reservation.setStatus("cancelled");
+        reservation.markCancelled();
         Reservation cancelled = reservationRepository.save(reservation);
 
         // Revoque les codes d'acces serrure de la reservation (best-effort, non bloquant).

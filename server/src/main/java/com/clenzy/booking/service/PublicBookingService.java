@@ -1375,7 +1375,7 @@ public class PublicBookingService {
     @Transactional
     public void releaseEmbeddedCheckoutHold(Long reservationId) {
         reservationRepository.findById(reservationId).ifPresent(reservation -> {
-            reservation.setStatus("cancelled");
+            reservation.markCancelled();
             reservation.setPaymentStatus(PaymentStatus.CANCELLED);
             reservationRepository.save(reservation);
             calendarEngine.cancel(reservationId, reservation.getOrganizationId(),
@@ -1805,7 +1805,7 @@ public class PublicBookingService {
             calendarEngine.book(wb.propertyId(), wb.checkIn(), wb.checkOut(),
                 reservation.getId(), wb.orgId(), "direct", "booking-engine-webhook");
         } catch (CalendarConflictException | RestrictionViolationException e) {
-            reservation.setStatus("cancelled");
+            reservation.markCancelled();
             reservation.setPaymentStatus(PaymentStatus.CANCELLED);
             reservationRepository.save(reservation);
             refundUnhonorablePayment(session.getId(), wb, "conflit calendrier au blocage des dates");

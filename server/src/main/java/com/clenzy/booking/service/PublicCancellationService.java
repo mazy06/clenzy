@@ -75,7 +75,7 @@ public class PublicCancellationService {
 
         // Libère le calendrier + statut, DANS la transaction.
         calendarEngine.cancel(reservation.getId(), orgId, null);
-        reservation.setStatus("cancelled");
+        reservation.markCancelled();
 
         BigDecimal refundAmount = preview.refundAmount();
 
