@@ -1,0 +1,69 @@
+{
+  "source": {
+    "platform": "airbnb",
+    "listingId": "1512384244344462850",
+    "url": "https://www.airbnb.fr/rooms/1512384244344462850",
+    "extractedAt": "2026-07-17",
+    "photoBaseUrl": "https://a0.muscache.com/im/pictures/hosting/Hosting-1512384244344462850/original/{id}.jpeg",
+    "localCopy": "scratchpad/duplex-photos (session 2026-07-17, 34 photos 1200x1600)"
+  },
+  "listing": {
+    "title": "Duplex lumineux | Jacuzzi privatif & Piscines",
+    "type": "Logement entier : hébergement",
+    "location": "Marrakech, Marrakesh-Safi, Maroc",
+    "capacity": { "guests": 6, "bedrooms": 2, "beds": 4, "bathrooms": 2, "extraBaby": true },
+    "surface": "140 m2",
+    "badges": ["Coup de coeur voyageurs", "Superhôte", "Arrivée autonome (digicode)", "Un des rares logements de la région avec piscine"],
+    "host": { "name": "Amine", "cohost": "Assia", "since": "10 mois", "responseRate": "100 %", "respondsWithin": "l'heure" },
+    "rating": {
+      "overall": 5.0, "reviews": 28,
+      "categories": { "proprete": 4.9, "precision": 5.0, "arrivee": 5.0, "communication": 5.0, "emplacement": 4.7, "qualitePrix": 5.0 },
+      "tags": { "hospitalite": 20, "calme": 10, "espacesInterieurs": 9, "piscine": 8, "proprete": 8, "emplacement": 7, "decoration": 6, "confort": 5, "precision": 4, "famille": 4 }
+    },
+    "highlights": [
+      "Duplex 140 m2 dans une résidence sécurisée et paisible",
+      "Jacuzzi privatif ouvert sur la terrasse (5 places : 2 allongés, 3 assis)",
+      "Terrasse aménagée avec salon extérieur et transats, vue piscines",
+      "Accès direct aux piscines de la résidence + pataugeoire",
+      "Grandes baies vitrées, lumière naturelle toute la journée",
+      "Suite parentale à l'étage : lit king size, SDB et WC privatifs, Smart TV (Netflix, Disney+)",
+      "Chambre RDC : 1 lit double + 2 lits simples (jusqu'à 4 pers.), SDB et WC privatifs, Smart TV",
+      "Lit bébé disponible",
+      "Cuisine moderne entièrement équipée (four, plaques, frigo-congélateur, machine à café, bouilloire)",
+      "Climatisation dans tout le logement, wifi fibre, machine à laver",
+      "Résidence sécurisée 24h/24, double contrôle d'accès, caméras",
+      "Salle de sport 24h/24, terrain city à proximité",
+      "Parking gratuit devant le logement, entrée indépendante",
+      "Accueil gourmand : douceurs, cafés et eau offerts à l'arrivée",
+      "Départ avant 11h, arrivée flexible selon planning",
+      "Taxis/VTC via InDrive"
+    ],
+    "reviews": [
+      { "author": "Nora", "date": "2026-06", "text": "Excellente expérience, l'hôte est très gentil et le logement est impeccable, allez-y les yeux fermés. Merci à Assia pour sa gentillesse." },
+      { "author": "Ibrahim", "date": "2026-06", "text": "Meilleure expérience. Hôte très réactif, à l'écoute et aux petits soins." },
+      { "author": "Malika", "date": "2026-04", "text": "Très accueillante et soucieuse de notre bien-être. Le logement est moderne et confortable." },
+      { "author": "Mohammed", "date": "2026-03", "text": "Endroit calme, excellent choix pour s'échapper de la ville." },
+      { "author": "Maxime", "date": "2026-02", "text": "Très contents de notre séjour, nous y reviendrons sans faute. Une bonne adresse à quelques pas du centre de Marrakech, calme, logement et piscine idylliques." },
+      { "author": "Siga", "date": "2026-01", "text": "Logement magnifique, piscine également. Résidence très sécurisée, adaptée aux familles comme aux groupes d'amis. Hôte très réactif." }
+    ]
+  },
+  "photos": {
+    "salon": ["cea1603f-f452-4476-9de9-9996fd56c65b", "1cc3e8b0-2829-4502-8310-d1dd547eca41", "e43fe899-c955-4f0a-ba71-b7fd333b7369", "bbc0b901-6818-47da-ae5c-2ee0452d45b0", "56dcb181-5cec-4289-8be6-056a9b37f3f0", "bc186730-9a83-4313-b242-610e3665e694", "dc5565b1-c96f-46a5-9e9a-2402558c62db"],
+    "cuisine": ["4ca5bdf3-e1d1-4fc8-b256-dcba15509868"],
+    "repas": ["9bafab04-6824-4ba1-8eaa-ef2487300e2a", "709da269-a32e-44b2-801c-5dde6bce0613", "6549ca66-c3d0-4d6a-9b40-c53369fb5748"],
+    "chambre1": ["0f564c7a-186c-42bc-87cc-6a371d3c5a6a", "691f84d8-db4d-4b9d-9a5e-b45214923eb4", "d3dc9cb5-1017-48ef-9e3c-bff81b97a723"],
+    "chambre2": ["b15c909a-0c8a-47b4-a40c-04f7b8a2f054", "b7d29aaf-b411-4e40-9689-e32782a86262", "b6bd09b8-59cc-462f-a49e-99cecde60f23"],
+    "sdb1": ["48c500cf-fc25-4b0b-ae4a-e90526f2ae1d"],
+    "sdb2": ["b4063903-67c2-4f73-aefa-958abfe77cd6", "7cdc4885-6ee4-4a71-8737-f07e300910ad"],
+    "cour": ["a0ed2b34-c9ab-4112-aa79-e596c33e6f99"],
+    "sport": ["d03b40f7-7cc7-4f73-859e-f0f83d0ab923"],
+    "exterieur": ["600e38fd-6ce1-4a50-9417-cea9a9239c49", "ec44c209-9e35-4c4f-abfd-7b5b3e696e1e", "a39f55a6-deb5-4975-af6a-68bf1f0a15a7"],
+    "piscine": ["c8b349d7-5eec-4fac-8596-ee3fc149344e", "e294dc54-d98e-4c24-b8df-628e8e66e733", "4ef8c433-4342-4519-b954-2fe844572894", "9c2317a0-89a0-49ca-ad4a-2d7b56b3a0ec"],
+    "jacuzzi": ["92a22880-23e2-4c04-b67a-bb0deff5ea8c", "41e9ba74-c23c-4e91-a416-1c56896f1f8c", "0088ed9a-b039-4832-9791-9058d6661789", "b71c265a-b4ec-4edf-bb49-3afc7ca8da96"],
+    "divers": ["ceea8520-685d-4cb7-abc8-82450e17c221"]
+  },
+  "heroCandidates": {
+    "jour": "c8b349d7-5eec-4fac-8596-ee3fc149344e (bassin à colonnes terracotta, pas japonais — spectaculaire mais portrait 3:4, à élargir en 16:9)",
+    "soir": "b71c265a-b4ec-4edf-bb49-3afc7ca8da96 (jacuzzi heure bleue, éclairages violets, maison en fond)"
+  }
+}
