@@ -655,6 +655,122 @@ class ReservationServiceTest {
     }
 
     @Nested
+    @DisplayName("getReservationsPage")
+    class GetReservationsPage {
+
+        private final org.springframework.data.domain.Pageable pageRequest =
+                org.springframework.data.domain.PageRequest.of(0, 25);
+
+        @Test
+        @DisplayName("should route to propertyIds query with SQL filters when propertyIds provided")
+        void whenPropertyIdsProvided_thenUsesPagedPropertyIdsQuery() {
+            // Arrange
+            User user = buildUser(1L, "kc-1", UserRole.HOST);
+            List<Long> propertyIds = List.of(1L, 2L);
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
+            when(reservationRepository.findPageByPropertyIdsAndDateRange(
+                    propertyIds, checkIn, checkOut, orgId, "confirmed", null, null, pageRequest))
+                    .thenReturn(org.springframework.data.domain.Page.empty());
+
+            // Act
+            reservationService.getReservationsPage("kc-1", propertyIds, checkIn, checkOut,
+                    "confirmed", null, null, pageRequest);
+
+            // Assert
+            verify(reservationRepository).findPageByPropertyIdsAndDateRange(
+                    propertyIds, checkIn, checkOut, orgId, "confirmed", null, null, pageRequest);
+        }
+
+        @Test
+        @DisplayName("should route admin to all-by-date-range paged query")
+        void whenAdmin_thenUsesPagedAllQuery() {
+            // Arrange
+            User admin = buildUser(1L, "kc-admin", UserRole.SUPER_ADMIN);
+            when(userRepository.findByKeycloakId("kc-admin")).thenReturn(Optional.of(admin));
+            when(reservationRepository.findPageAllByDateRange(
+                    checkIn, checkOut, orgId, null, null, null, pageRequest))
+                    .thenReturn(org.springframework.data.domain.Page.empty());
+
+            // Act
+            reservationService.getReservationsPage("kc-admin", null, checkIn, checkOut,
+                    null, null, null, pageRequest);
+
+            // Assert
+            verify(reservationRepository).findPageAllByDateRange(
+                    checkIn, checkOut, orgId, null, null, null, pageRequest);
+        }
+
+        @Test
+        @DisplayName("should route host to owner-scoped paged query")
+        void whenHost_thenUsesPagedOwnerQuery() {
+            // Arrange
+            User host = buildUser(1L, "kc-host", UserRole.HOST);
+            when(userRepository.findByKeycloakId("kc-host")).thenReturn(Optional.of(host));
+            when(reservationRepository.findPageByOwnerKeycloakIdAndDateRange(
+                    "kc-host", checkIn, checkOut, orgId, null, null, null, pageRequest))
+                    .thenReturn(org.springframework.data.domain.Page.empty());
+
+            // Act
+            reservationService.getReservationsPage("kc-host", null, checkIn, checkOut,
+                    null, null, null, pageRequest);
+
+            // Assert
+            verify(reservationRepository).findPageByOwnerKeycloakIdAndDateRange(
+                    "kc-host", checkIn, checkOut, orgId, null, null, null, pageRequest);
+        }
+
+        @Test
+        @DisplayName("should normalize status/source ('All', casse, blancs) and search into LIKE pattern")
+        void whenFiltersNeedNormalization_thenNormalized() {
+            // Arrange
+            User admin = buildUser(1L, "kc-admin", UserRole.SUPER_ADMIN);
+            when(userRepository.findByKeycloakId("kc-admin")).thenReturn(Optional.of(admin));
+            when(reservationRepository.findPageAllByDateRange(
+                    checkIn, checkOut, orgId, "confirmed", "direct", "%jean%", pageRequest))
+                    .thenReturn(org.springframework.data.domain.Page.empty());
+
+            // Act — status en majuscules, source avec blancs, search a encadrer de %
+            reservationService.getReservationsPage("kc-admin", null, checkIn, checkOut,
+                    "CONFIRMED", " Direct ", " Jean ", pageRequest);
+
+            // Assert
+            verify(reservationRepository).findPageAllByDateRange(
+                    checkIn, checkOut, orgId, "confirmed", "direct", "%jean%", pageRequest);
+        }
+
+        @Test
+        @DisplayName("should treat 'all' and blank filters as no filter")
+        void whenStatusAllOrBlank_thenNullFilters() {
+            // Arrange
+            User admin = buildUser(1L, "kc-admin", UserRole.SUPER_ADMIN);
+            when(userRepository.findByKeycloakId("kc-admin")).thenReturn(Optional.of(admin));
+            when(reservationRepository.findPageAllByDateRange(
+                    checkIn, checkOut, orgId, null, null, null, pageRequest))
+                    .thenReturn(org.springframework.data.domain.Page.empty());
+
+            // Act
+            reservationService.getReservationsPage("kc-admin", null, checkIn, checkOut,
+                    "all", "", "  ", pageRequest);
+
+            // Assert
+            verify(reservationRepository).findPageAllByDateRange(
+                    checkIn, checkOut, orgId, null, null, null, pageRequest);
+        }
+
+        @Test
+        @DisplayName("should throw when user not found")
+        void whenUserNotFound_thenThrows() {
+            // Arrange
+            when(userRepository.findByKeycloakId("kc-unknown")).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> reservationService.getReservationsPage(
+                    "kc-unknown", null, checkIn, checkOut, null, null, null, pageRequest))
+                    .isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    @Nested
     @DisplayName("getByProperty")
     class GetByProperty {
 

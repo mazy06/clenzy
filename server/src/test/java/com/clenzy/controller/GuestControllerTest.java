@@ -242,6 +242,65 @@ class GuestControllerTest {
     }
 
     @Nested
+    @DisplayName("listPaged")
+    class ListPaged {
+
+        @Test
+        @DisplayName("no search -> true SQL pagination + envelope {content, totalElements}")
+        void whenNoSearch_thenSqlPagination() {
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(7L);
+            Guest g = newGuest(1L, 7L, "Alice", "Dupont", null, GuestChannel.DIRECT);
+            when(guestRepository.findByOrganizationId(eq(7L), any(org.springframework.data.domain.Pageable.class)))
+                    .thenReturn(new org.springframework.data.domain.PageImpl<>(
+                            List.of(g), org.springframework.data.domain.PageRequest.of(0, 25), 60));
+
+            ResponseEntity<com.clenzy.dto.GuestPageDto> response =
+                    controller.listPaged(null, null, 0, 25);
+
+            assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+            assertThat(response.getBody().content()).hasSize(1);
+            assertThat(response.getBody().totalElements()).isEqualTo(60);
+            assertThat(response.getBody().page()).isZero();
+            assertThat(response.getBody().size()).isEqualTo(25);
+        }
+
+        @Test
+        @DisplayName("with search -> in-memory filter then server-side slice (payload bounded)")
+        void whenSearch_thenServerSideSlice() {
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            Guest g1 = newGuest(1L, 1L, "Alice", "Dupont", null, GuestChannel.DIRECT);
+            Guest g2 = newGuest(2L, 1L, "Alicia", "Durand", null, GuestChannel.DIRECT);
+            Guest g3 = newGuest(3L, 1L, "Bob", "Martin", null, GuestChannel.DIRECT);
+            when(guestRepository.findByOrganizationId(1L)).thenReturn(List.of(g1, g2, g3));
+
+            ResponseEntity<com.clenzy.dto.GuestPageDto> response =
+                    controller.listPaged("ali", null, 0, 1);
+
+            // 2 matchent, mais le payload est borne a la page (1 element).
+            assertThat(response.getBody().content()).hasSize(1);
+            assertThat(response.getBody().totalElements()).isEqualTo(2);
+        }
+
+        @Test
+        @DisplayName("negative page / oversized size -> clamped (0, 200)")
+        void whenOutOfBoundsParams_thenClamped() {
+            when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            org.mockito.ArgumentCaptor<org.springframework.data.domain.Pageable> captor =
+                    org.mockito.ArgumentCaptor.forClass(org.springframework.data.domain.Pageable.class);
+            when(guestRepository.findByOrganizationId(eq(1L), captor.capture()))
+                    .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of()));
+
+            controller.listPaged(null, null, -3, 5000);
+
+            assertThat(captor.getValue().getPageNumber()).isZero();
+            assertThat(captor.getValue().getPageSize()).isEqualTo(200);
+        }
+    }
+
+    @Nested
     @DisplayName("search")
     class SearchByName {
 

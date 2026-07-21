@@ -45,6 +45,19 @@ export interface GuestListParams {
   channel?: string;
 }
 
+export interface GuestPageParams extends GuestListParams {
+  page: number;
+  size: number;
+}
+
+/** Enveloppe du mode pagine serveur (convention {content, page, size, totalElements}). */
+export interface GuestPage {
+  content: GuestListDto[];
+  page: number;
+  size: number;
+  totalElements: number;
+}
+
 // ─── API ────────────────────────────────────────────────────────────────────
 
 export const guestsApi = {
@@ -67,6 +80,13 @@ export const guestsApi = {
   /** Lister tous les voyageurs (page Voyageurs). */
   async list(params?: GuestListParams): Promise<GuestListDto[]> {
     return apiClient.get<GuestListDto[]>('/guests/list', { params: params as Record<string, string | undefined> });
+  },
+
+  /** Lister les voyageurs en mode pagine serveur (opt-in via page/size). */
+  async listPage(params: GuestPageParams): Promise<GuestPage> {
+    return apiClient.get<GuestPage>('/guests/list', {
+      params: { ...params } as Record<string, string | number | undefined>,
+    });
   },
 
   /** Mettre a jour l'email d'un voyageur. */

@@ -148,6 +148,89 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("to") LocalDate to,
             @Param("orgId") Long orgId);
 
+    // ─── Liste réservations (endpoint GET /api/reservations) ───────────────────
+    // Variantes avec filtres status/source/search en SQL (audit perf 2026-07-21,
+    // P1-6 : fin du filtre status en mémoire + pagination serveur opt-in).
+    // Les filtres sont optionnels (null = pas de filtre) ; status et source sont
+    // normalisés en minuscules par le service (valeurs stockées en minuscules,
+    // cf. ICalEventParser), search est déjà encadré de % et en minuscules.
+    // La recherche ne cible QUE des colonnes en clair (guestName, confirmationCode,
+    // property.name) — jamais les champs PII du Guest.
+
+    @Query(value = "SELECT r FROM Reservation r JOIN FETCH r.property p LEFT JOIN FETCH r.guest " +
+           "WHERE p.id IN :propertyIds AND r.organizationId = :orgId " +
+           "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false " +
+           "AND (:status IS NULL OR LOWER(r.status) = :status) " +
+           "AND (:source IS NULL OR LOWER(r.source) = :source) " +
+           "AND (:search IS NULL OR LOWER(r.guestName) LIKE :search " +
+           "OR LOWER(r.confirmationCode) LIKE :search OR LOWER(p.name) LIKE :search) " +
+           "ORDER BY r.checkIn ASC",
+           countQuery = "SELECT COUNT(r) FROM Reservation r JOIN r.property p " +
+           "WHERE p.id IN :propertyIds AND r.organizationId = :orgId " +
+           "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false " +
+           "AND (:status IS NULL OR LOWER(r.status) = :status) " +
+           "AND (:source IS NULL OR LOWER(r.source) = :source) " +
+           "AND (:search IS NULL OR LOWER(r.guestName) LIKE :search " +
+           "OR LOWER(r.confirmationCode) LIKE :search OR LOWER(p.name) LIKE :search)")
+    Page<Reservation> findPageByPropertyIdsAndDateRange(
+            @Param("propertyIds") List<Long> propertyIds,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("orgId") Long orgId,
+            @Param("status") String status,
+            @Param("source") String source,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query(value = "SELECT r FROM Reservation r JOIN FETCH r.property p LEFT JOIN FETCH r.guest " +
+           "WHERE r.organizationId = :orgId " +
+           "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false " +
+           "AND (:status IS NULL OR LOWER(r.status) = :status) " +
+           "AND (:source IS NULL OR LOWER(r.source) = :source) " +
+           "AND (:search IS NULL OR LOWER(r.guestName) LIKE :search " +
+           "OR LOWER(r.confirmationCode) LIKE :search OR LOWER(p.name) LIKE :search) " +
+           "ORDER BY r.checkIn ASC",
+           countQuery = "SELECT COUNT(r) FROM Reservation r JOIN r.property p " +
+           "WHERE r.organizationId = :orgId " +
+           "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false " +
+           "AND (:status IS NULL OR LOWER(r.status) = :status) " +
+           "AND (:source IS NULL OR LOWER(r.source) = :source) " +
+           "AND (:search IS NULL OR LOWER(r.guestName) LIKE :search " +
+           "OR LOWER(r.confirmationCode) LIKE :search OR LOWER(p.name) LIKE :search)")
+    Page<Reservation> findPageAllByDateRange(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("orgId") Long orgId,
+            @Param("status") String status,
+            @Param("source") String source,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query(value = "SELECT r FROM Reservation r JOIN FETCH r.property p LEFT JOIN FETCH r.guest " +
+           "WHERE p.owner.keycloakId = :keycloakId AND r.organizationId = :orgId " +
+           "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false " +
+           "AND (:status IS NULL OR LOWER(r.status) = :status) " +
+           "AND (:source IS NULL OR LOWER(r.source) = :source) " +
+           "AND (:search IS NULL OR LOWER(r.guestName) LIKE :search " +
+           "OR LOWER(r.confirmationCode) LIKE :search OR LOWER(p.name) LIKE :search) " +
+           "ORDER BY r.checkIn ASC",
+           countQuery = "SELECT COUNT(r) FROM Reservation r JOIN r.property p " +
+           "WHERE p.owner.keycloakId = :keycloakId AND r.organizationId = :orgId " +
+           "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false " +
+           "AND (:status IS NULL OR LOWER(r.status) = :status) " +
+           "AND (:source IS NULL OR LOWER(r.source) = :source) " +
+           "AND (:search IS NULL OR LOWER(r.guestName) LIKE :search " +
+           "OR LOWER(r.confirmationCode) LIKE :search OR LOWER(p.name) LIKE :search)")
+    Page<Reservation> findPageByOwnerKeycloakIdAndDateRange(
+            @Param("keycloakId") String keycloakId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("orgId") Long orgId,
+            @Param("status") String status,
+            @Param("source") String source,
+            @Param("search") String search,
+            Pageable pageable);
+
     /**
      * "Fetch all" inclut le owner de la property (LAZY depuis l'audit perf 2026-07-21) :
      * des consommateurs hors transaction (ReservationPaymentService.sendPaymentLink,

@@ -2,6 +2,7 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.GuestDto;
 import com.clenzy.dto.GuestListDto;
+import com.clenzy.dto.GuestPageDto;
 import com.clenzy.service.GuestService;
 import com.clenzy.tenant.TenantContext;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,6 +19,9 @@ import java.util.Map;
 @Tag(name = "Guests", description = "Gestion des voyageurs (fiches clients)")
 @PreAuthorize("isAuthenticated()")
 public class GuestController {
+
+    /** Borne haute de la taille de page du mode pagine. */
+    private static final int MAX_PAGE_SIZE = 200;
 
     private final GuestService guestService;
     private final TenantContext tenantContext;
@@ -42,6 +46,28 @@ public class GuestController {
         // null = platform staff, lecture cross-org
         Long orgId = tenantContext.isSuperAdmin() ? null : tenantContext.getRequiredOrganizationId();
         return ResponseEntity.ok(guestService.listGuests(orgId, search, channel));
+    }
+
+    // ── GET /list?page= : mode pagine opt-in (enveloppe {content, totalElements}) ──
+
+    @GetMapping(value = "/list", params = "page")
+    @Operation(summary = "Lister les voyageurs (mode pagine)",
+            description = "Mode pagine opt-in via ?page=&size=. Sans search : pagination SQL vraie "
+                    + "(tri stable sur valeurs chiffrees). Avec search : filtre en memoire "
+                    + "(champs chiffres AES) puis decoupage serveur — le payload reste borne a la page. "
+                    + "Enveloppe {content, page, size, totalElements}.")
+    public ResponseEntity<GuestPageDto> listPaged(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String channel,
+            @RequestParam int page,
+            @RequestParam(defaultValue = "25") int size) {
+
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), MAX_PAGE_SIZE);
+
+        // null = platform staff, lecture cross-org
+        Long orgId = tenantContext.isSuperAdmin() ? null : tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(guestService.listGuestsPage(orgId, search, channel, safePage, safeSize));
     }
 
     // ── GET : recherche par nom ──────────────────────────────────────────────

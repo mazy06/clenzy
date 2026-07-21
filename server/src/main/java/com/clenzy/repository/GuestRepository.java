@@ -57,6 +57,31 @@ public interface GuestRepository extends JpaRepository<Guest, Long> {
     List<Guest> findAllByChannelOrderByLastName(@Param("channel") GuestChannel channel);
 
     /**
+     * Version paginee du listing org + canal (mode pagine sans search de la page
+     * Voyageurs). NB : lastName/firstName sont chiffres AES en base → l'ORDER BY
+     * porte sur le chiffre : ordre stable et deterministe mais PAS alphabetique,
+     * identique au tri des variantes non paginees ci-dessus.
+     */
+    @Query("SELECT g FROM Guest g WHERE g.organizationId = :orgId AND g.channel = :channel " +
+           "ORDER BY g.lastName, g.firstName")
+    Page<Guest> findByOrganizationIdAndChannel(
+            @Param("orgId") Long orgId, @Param("channel") GuestChannel channel, Pageable pageable);
+
+    /**
+     * Version paginee cross-org (platform staff). Meme remarque : tri sur les
+     * valeurs chiffrees (stable, non alphabetique).
+     */
+    @Query("SELECT g FROM Guest g ORDER BY g.lastName, g.firstName")
+    Page<Guest> findAllGuests(Pageable pageable);
+
+    /**
+     * Version paginee cross-org filtree par canal (platform staff). Tri sur les
+     * valeurs chiffrees (stable, non alphabetique).
+     */
+    @Query("SELECT g FROM Guest g WHERE g.channel = :channel ORDER BY g.lastName, g.firstName")
+    Page<Guest> findAllByChannel(@Param("channel") GuestChannel channel, Pageable pageable);
+
+    /**
      * Guest par ID avec verification organisation.
      */
     @Query("SELECT g FROM Guest g WHERE g.id = :id AND g.organizationId = :orgId")

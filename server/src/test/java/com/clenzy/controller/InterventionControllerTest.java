@@ -137,6 +137,29 @@ class InterventionControllerTest {
             Page<InterventionResponse> result = controller.list(pageable, null, null, null, null, null, null, jwt);
             assertThat(result.getContent()).hasSize(1);
         }
+
+        @Test
+        void whenListWithPaginationAndFilters_thenDelegatesThemToService() {
+            // La pagination serveur du front (useInterventionsList) repose sur ce
+            // passthrough : page/size via Pageable + filtres SQL en query params.
+            Jwt jwt = createJwt();
+            // Page 1 (offset 25) : PageImpl recalcule le total si offset+size
+            // depasse le total fourni — on reste sur une combinaison coherente.
+            var pageable = PageRequest.of(1, 25);
+            Page<InterventionResponse> page = new PageImpl<>(List.of(buildResponse(7L)), pageable, 60);
+
+            when(interventionService.listWithRoleBasedAccess(pageable, 42L, "CLEANING", "SCHEDULED", "HIGH",
+                    "2026-07-01", "2026-07-31", jwt)).thenReturn(page);
+
+            Page<InterventionResponse> result = controller.list(pageable, 42L, "CLEANING", "SCHEDULED", "HIGH",
+                    "2026-07-01", "2026-07-31", jwt);
+
+            assertThat(result.getContent()).extracting(InterventionResponse::id).containsExactly(7L);
+            assertThat(result.getTotalElements()).isEqualTo(60);
+            assertThat(result.getNumber()).isEqualTo(1);
+            verify(interventionService).listWithRoleBasedAccess(pageable, 42L, "CLEANING", "SCHEDULED", "HIGH",
+                    "2026-07-01", "2026-07-31", jwt);
+        }
     }
 
     @Nested

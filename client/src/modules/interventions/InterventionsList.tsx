@@ -28,7 +28,7 @@ import {
 import { INTERVENTION_STATUS_OPTIONS, PRIORITY_OPTIONS } from '../../types/statusEnums';
 import { createSpacing } from '../../theme/spacing';
 import ExportButton from '../../components/ExportButton';
-import { useInterventionsList } from './useInterventionsList';
+import { useInterventionsList, MAP_VIEW_PAGE_SIZE } from './useInterventionsList';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 import InterventionsMapView from './InterventionsMapView';
 import InterventionsGridView from './InterventionsGridView';
@@ -64,6 +64,8 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     selectedStatus,
     selectedPriority,
     page,
+    pageSize,
+    totalCount,
     ITEMS_PER_PAGE,
     assignDialogOpen,
     assignType,
@@ -82,6 +84,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     setSelectedStatus,
     setSelectedPriority,
     setPage,
+    setPageSize,
     setAssignType,
     setAssignTargetId,
 
@@ -124,7 +127,6 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     ['grid', 'list', 'map'] as const,
     autoDefaultMode,
   );
-  const [listPage, setListPage] = useState(0);
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
 
   // Dynamic page size based on available viewport height
@@ -136,8 +138,17 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     max: 50,
   });
 
-  // Reset page when dynamic page size changes
-  useEffect(() => { setListPage(0); }, [listRowsPerPage]);
+  // Pagination SERVEUR : la taille de page suit la vue active
+  // (grille = 6 cartes, table = hauteur dynamique, carte = plafond serveur).
+  // setPageSize remet la page à 0 quand la taille change.
+  useEffect(() => {
+    const target = viewMode === 'grid'
+      ? ITEMS_PER_PAGE
+      : viewMode === 'list'
+        ? listRowsPerPage
+        : MAP_VIEW_PAGE_SIZE;
+    if (target !== pageSize) setPageSize(target);
+  }, [viewMode, listRowsPerPage, pageSize, setPageSize, ITEMS_PER_PAGE]);
 
   // ─── Map bounds tracking (debounced) ──────────────────────────────────────
   const boundsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -186,10 +197,9 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     ));
   }, [filteredInterventions, mapBounds]);
 
-  const listPaginatedInterventions = filteredInterventions.slice(
-    listPage * listRowsPerPage,
-    (listPage + 1) * listRowsPerPage
-  );
+  // Compteur affiché : total serveur, sauf recherche active (filtre client
+  // sur la page courante — cf. useInterventionsList).
+  const displayedCount = searchTerm ? filteredInterventions.length : totalCount;
 
   // Protection contre les données invalides
   if (!Array.isArray(interventions)) {
@@ -339,13 +349,13 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
       }}
       counter={{
         label: t('interventions.intervention'),
-        count: filteredInterventions.length,
+        count: displayedCount,
         singular: '',
         plural: 's',
       }}
       viewToggle={{
         mode: viewMode,
-        onChange: (mode) => { setViewMode(mode); setListPage(0); },
+        onChange: (mode) => { setViewMode(mode); setPage(0); },
       }}
     />
   );
@@ -403,7 +413,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
           ) : viewMode === 'grid' ? (
             <InterventionsGridView
               interventions={paginatedInterventions}
-              totalCount={filteredInterventions.length}
+              totalCount={displayedCount}
               page={page}
               itemsPerPage={ITEMS_PER_PAGE}
               onPageChange={setPage}
@@ -412,11 +422,11 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
             />
           ) : (
             <InterventionsTableView
-              interventions={listPaginatedInterventions}
-              totalCount={filteredInterventions.length}
-              page={listPage}
-              rowsPerPage={listRowsPerPage}
-              onPageChange={setListPage}
+              interventions={filteredInterventions}
+              totalCount={displayedCount}
+              page={page}
+              rowsPerPage={pageSize}
+              onPageChange={setPage}
               onMenuOpen={handleMenuOpen}
               containerRef={listContainerRef}
               navigate={navigate}

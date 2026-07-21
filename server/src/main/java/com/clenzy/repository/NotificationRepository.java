@@ -27,11 +27,23 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     /** Notifications filtrees par categorie */
     List<Notification> findByUserIdAndCategoryOrderByCreatedAtDesc(String userId, NotificationCategory category);
 
+    /** Version paginee par categorie (mode pagine opt-in de la page Notifications). */
+    List<Notification> findByUserIdAndCategoryOrderByCreatedAtDesc(String userId, NotificationCategory category, Pageable pageable);
+
     /** Notifications non lues d'un utilisateur */
     List<Notification> findByUserIdAndReadFalseOrderByCreatedAtDesc(String userId);
 
+    /** Version paginee des non lues (mode pagine opt-in de la page Notifications). */
+    List<Notification> findByUserIdAndReadFalseOrderByCreatedAtDesc(String userId, Pageable pageable);
+
     /** Nombre de notifications non lues */
     long countByUserIdAndReadFalse(String userId);
+
+    /** Nombre total de notifications d'un utilisateur (totalElements du mode pagine). */
+    long countByUserId(String userId);
+
+    /** Nombre de notifications d'un utilisateur dans une categorie (totalElements du mode pagine). */
+    long countByUserIdAndCategory(String userId, NotificationCategory category);
 
     /** Trouver une notification par ID et userId (securite) */
     Optional<Notification> findByIdAndUserId(Long id, String userId);

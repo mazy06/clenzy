@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.config.KafkaConfig;
 import com.clenzy.dto.NotificationDto;
+import com.clenzy.dto.NotificationPageDto;
 import com.clenzy.model.*;
 import com.clenzy.repository.NotificationRepository;
 import com.clenzy.repository.UserRepository;
@@ -10,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -83,6 +85,41 @@ public class NotificationService {
                 .stream()
                 .map(NotificationDto::fromEntity)
                 .toList();
+    }
+
+    /**
+     * Mode pagine opt-in de la page Notifications : page bornee cote SQL +
+     * totalElements pour la pagination serveur. Les filtres sont exclusifs,
+     * alignes sur les onglets du front : {@code unreadOnly} prime sur
+     * {@code category} ; une categorie inconnue retourne une page vide.
+     */
+    @Transactional(readOnly = true)
+    public NotificationPageDto getPageForUser(String userId, String category, boolean unreadOnly,
+                                              int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        List<Notification> rows;
+        long total;
+        if (unreadOnly) {
+            rows = notificationRepository.findByUserIdAndReadFalseOrderByCreatedAtDesc(userId, pageable);
+            total = notificationRepository.countByUserIdAndReadFalse(userId);
+        } else if (category != null && !category.isBlank()) {
+            NotificationCategory cat;
+            try {
+                cat = NotificationCategory.fromValue(category.trim());
+            } catch (IllegalArgumentException e) {
+                return new NotificationPageDto(List.of(), page, size, 0);
+            }
+            rows = notificationRepository.findByUserIdAndCategoryOrderByCreatedAtDesc(userId, cat, pageable);
+            total = notificationRepository.countByUserIdAndCategory(userId, cat);
+        } else {
+            rows = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+            total = notificationRepository.countByUserId(userId);
+        }
+
+        return new NotificationPageDto(
+                rows.stream().map(NotificationDto::fromEntity).toList(),
+                page, size, total);
     }
 
     /**

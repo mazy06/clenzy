@@ -11,7 +11,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.clenzy.dto.GuestPageDto;
+import com.clenzy.model.Organization;
+
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
@@ -443,6 +447,96 @@ class GuestServiceTest {
             assertThat(updated).isEqualTo(1);
             assertThat(guest.getTotalStays()).isZero();
             assertThat(guest.getTotalSpent()).isEqualByComparingTo("0");
+        }
+    }
+
+    // ===== LIST GUESTS PAGE (mode pagine opt-in) =====
+
+    @Nested
+    class ListGuestsPage {
+
+        @Test
+        void whenNoSearch_thenUsesSqlPaginationAndSqlCount() {
+            Guest g1 = buildGuest(1L, "Alice", "Dupont");
+            Pageable expected = PageRequest.of(1, 25);
+            when(guestRepository.findByOrganizationId(eq(ORG_ID), eq(expected)))
+                    .thenReturn(new PageImpl<>(List.of(g1), expected, 51));
+
+            GuestPageDto result = guestService.listGuestsPage(ORG_ID, null, null, 1, 25);
+
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.page()).isEqualTo(1);
+            assertThat(result.size()).isEqualTo(25);
+            assertThat(result.totalElements()).isEqualTo(51);
+            // Aucun chargement complet en memoire dans ce mode.
+            verify(guestRepository, never()).findByOrganizationId(ORG_ID);
+        }
+
+        @Test
+        void whenNoSearchWithChannel_thenUsesPaginatedChannelQuery() {
+            Guest g = buildGuest(2L, "Bob", "Martin");
+            g.setChannel(GuestChannel.AIRBNB);
+            when(guestRepository.findByOrganizationIdAndChannel(
+                    eq(ORG_ID), eq(GuestChannel.AIRBNB), any(Pageable.class)))
+                    .thenReturn(new PageImpl<>(List.of(g), PageRequest.of(0, 10), 1));
+
+            GuestPageDto result = guestService.listGuestsPage(ORG_ID, null, "airbnb", 0, 10);
+
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.content().get(0).channel()).isEqualTo("AIRBNB");
+            assertThat(result.totalElements()).isEqualTo(1);
+        }
+
+        @Test
+        void whenSearch_thenFiltersInMemoryAndPaginatesServerSide() {
+            Guest g1 = buildGuest(1L, "Alice", "Dupont");
+            Guest g2 = buildGuest(2L, "Alicia", "Durand");
+            Guest g3 = buildGuest(3L, "Aline", "Dubois");
+            Guest g4 = buildGuest(4L, "Bob", "Martin");
+            when(guestRepository.findByOrganizationId(ORG_ID))
+                    .thenReturn(List.of(g1, g2, g3, g4));
+
+            // 3 "ali*" matchent ; page 1 de taille 2 → 1 seul element renvoye.
+            GuestPageDto result = guestService.listGuestsPage(ORG_ID, "ali", null, 1, 2);
+
+            assertThat(result.totalElements()).isEqualTo(3);
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.content().get(0).firstName()).isEqualTo("Aline");
+        }
+
+        @Test
+        void whenSearchPageBeyondEnd_thenEmptyContentButCorrectTotal() {
+            Guest g1 = buildGuest(1L, "Alice", "Dupont");
+            when(guestRepository.findByOrganizationId(ORG_ID)).thenReturn(List.of(g1));
+
+            GuestPageDto result = guestService.listGuestsPage(ORG_ID, "alice", null, 5, 10);
+
+            assertThat(result.content()).isEmpty();
+            assertThat(result.totalElements()).isEqualTo(1);
+        }
+
+        @Test
+        void whenUnknownChannel_thenEmptyPage() {
+            GuestPageDto result = guestService.listGuestsPage(ORG_ID, null, "NOPE", 0, 25);
+
+            assertThat(result.content()).isEmpty();
+            assertThat(result.totalElements()).isZero();
+        }
+
+        @Test
+        void whenCrossTenant_thenPaginatedCrossOrgQueryWithOrgNames() {
+            Guest g = buildGuest(1L, "Alice", "Dupont"); // ORG_ID = 1
+            Organization orgA = new Organization();
+            orgA.setId(ORG_ID);
+            orgA.setName("Org A");
+            when(organizationService.findAll()).thenReturn(List.of(orgA));
+            when(guestRepository.findAllGuests(any(Pageable.class)))
+                    .thenReturn(new PageImpl<>(List.of(g), PageRequest.of(0, 25), 1));
+
+            GuestPageDto result = guestService.listGuestsPage(null, null, null, 0, 25);
+
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.content().get(0).organizationName()).isEqualTo("Org A");
         }
     }
 }

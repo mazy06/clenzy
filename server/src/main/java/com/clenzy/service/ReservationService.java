@@ -19,7 +19,9 @@ import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -124,6 +126,62 @@ public class ReservationService {
 
         // Host : ses propres proprietes
         return reservationRepository.findByOwnerKeycloakIdAndDateRange(keycloakId, from, to, tenantContext.getRequiredOrganizationId());
+    }
+
+    /**
+     * Version paginable de {@link #getReservations} pour l'endpoint liste :
+     * memes regles de visibilite (admin/manager = tout, host = ses proprietes,
+     * propertyIds = filtre explicite), mais filtres status/source/search en SQL
+     * (audit perf 2026-07-21, P1-6). Avec {@link Pageable#unpaged()}, le resultat
+     * est identique a l'ancien flux (liste complete triee par checkIn ASC).
+     *
+     * <p>La recherche ne porte que sur des colonnes en clair : guestName,
+     * confirmationCode, nom du logement — jamais les champs PII du Guest.</p>
+     */
+    public Page<Reservation> getReservationsPage(String keycloakId, List<Long> propertyIds,
+                                                 LocalDate from, LocalDate to,
+                                                 String status, String source, String search,
+                                                 Pageable pageable) {
+        User user = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+        boolean isAdminOrManager = user.getRole() != null && user.getRole().isPlatformStaff();
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        String statusFilter = normalizeEnumFilter(status);
+        String sourceFilter = normalizeEnumFilter(source);
+        String searchFilter = normalizeSearchFilter(search);
+
+        if (propertyIds != null && !propertyIds.isEmpty()) {
+            return reservationRepository.findPageByPropertyIdsAndDateRange(
+                    propertyIds, from, to, orgId, statusFilter, sourceFilter, searchFilter, pageable);
+        }
+
+        if (isAdminOrManager) {
+            return reservationRepository.findPageAllByDateRange(
+                    from, to, orgId, statusFilter, sourceFilter, searchFilter, pageable);
+        }
+
+        // Host : ses propres proprietes
+        return reservationRepository.findPageByOwnerKeycloakIdAndDateRange(
+                keycloakId, from, to, orgId, statusFilter, sourceFilter, searchFilter, pageable);
+    }
+
+    /**
+     * Normalise un filtre enum-like (status/source) : vide ou "all" = pas de filtre.
+     * Minuscules car les valeurs sont stockees en minuscules (cf. ICalEventParser) —
+     * conserve la semantique equalsIgnoreCase de l'ancien filtre en memoire.
+     */
+    private static String normalizeEnumFilter(String value) {
+        if (value == null) return null;
+        String normalized = value.trim().toLowerCase();
+        return (normalized.isEmpty() || "all".equals(normalized)) ? null : normalized;
+    }
+
+    /** Normalise le terme de recherche en motif LIKE insensible a la casse. */
+    private static String normalizeSearchFilter(String search) {
+        if (search == null) return null;
+        String normalized = search.trim().toLowerCase();
+        return normalized.isEmpty() ? null : "%" + normalized + "%";
     }
 
     /**

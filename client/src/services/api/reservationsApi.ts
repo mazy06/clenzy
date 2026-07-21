@@ -48,6 +48,23 @@ export interface ReservationFilters {
   to?: string;
 }
 
+/** Filtres du mode paginé serveur (écran liste). `search` porte sur le nom du
+ *  guest, le code de confirmation et le nom du logement (côté SQL). */
+export interface ReservationPageFilters extends ReservationFilters {
+  page: number;
+  size: number;
+  search?: string;
+}
+
+/** Enveloppe Spring `Page` renvoyée par GET /reservations?page=N (mode opt-in). */
+export interface ReservationPage {
+  content: Reservation[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
 export interface CreateReservationData {
   propertyId: number;
   guestName: string;
@@ -562,6 +579,45 @@ function getMockPropertiesFromReservations(): MockPlanningProperty[] {
   return Array.from(seen.values()).sort((a, b) => a.id - b.id);
 }
 
+// ─── Filtres partagés (mode réel + mode mock) ───────────────────────────────
+
+/** Applique les filtres communs sur le jeu de données mock. */
+function applyMockFilters(data: Reservation[], filters?: ReservationFilters): Reservation[] {
+  let result = data;
+  if (filters?.propertyIds && filters.propertyIds.length > 0) {
+    const propertyIdSet = new Set(filters.propertyIds);
+    result = result.filter((r) => propertyIdSet.has(r.propertyId));
+  }
+  if (filters?.status) {
+    result = result.filter((r) => r.status === filters.status);
+  }
+  if (filters?.source) {
+    result = result.filter((r) => r.source === filters.source);
+  }
+  if (filters?.from) {
+    result = result.filter((r) => r.checkOut >= filters.from!);
+  }
+  if (filters?.to) {
+    result = result.filter((r) => r.checkIn <= filters.to!);
+  }
+  return result;
+}
+
+/** Convertit les filtres communs au format query params attendu par Spring. */
+function toListParams(
+  filters?: ReservationFilters,
+): Record<string, string | number | boolean | null | undefined> {
+  const params: Record<string, string | number | boolean | null | undefined> = {};
+  if (filters?.propertyIds && filters.propertyIds.length > 0) {
+    params.propertyIds = filters.propertyIds.join(',');
+  }
+  if (filters?.status) params.status = filters.status;
+  if (filters?.source) params.source = filters.source;
+  if (filters?.from) params.from = filters.from;
+  if (filters?.to) params.to = filters.to;
+  return params;
+}
+
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 export const reservationsApi = {
@@ -592,40 +648,48 @@ export const reservationsApi = {
 
   async getAll(filters?: ReservationFilters): Promise<Reservation[]> {
     if (isMockEnabled('planning') || isMockEnabled('analytics')) {
-      let data = generateMockReservations();
-
-      if (filters?.propertyIds && filters.propertyIds.length > 0) {
-        const propertyIdSet = new Set(filters.propertyIds);
-        data = data.filter((r) => propertyIdSet.has(r.propertyId));
-      }
-      if (filters?.status) {
-        data = data.filter((r) => r.status === filters.status);
-      }
-      if (filters?.source) {
-        data = data.filter((r) => r.source === filters.source);
-      }
-      if (filters?.from) {
-        data = data.filter((r) => r.checkOut >= filters.from!);
-      }
-      if (filters?.to) {
-        data = data.filter((r) => r.checkIn <= filters.to!);
-      }
-
+      const data = applyMockFilters(generateMockReservations(), filters);
       // Simulate network delay
       return new Promise((resolve) => setTimeout(() => resolve(data), 300));
     }
 
     // API réelle — passer les paramètres au format attendu par Spring
-    const params: Record<string, string | number | boolean | null | undefined> = {};
-    if (filters?.propertyIds && filters.propertyIds.length > 0) {
-      params.propertyIds = filters.propertyIds.join(',');
-    }
-    if (filters?.status) params.status = filters.status;
-    if (filters?.source) params.source = filters.source;
-    if (filters?.from) params.from = filters.from;
-    if (filters?.to) params.to = filters.to;
+    return apiClient.get<Reservation[]>('/reservations', { params: toListParams(filters) });
+  },
 
-    return apiClient.get<Reservation[]>('/reservations', { params });
+  /**
+   * Mode paginé serveur (opt-in via ?page=N) — utilisé par l'écran liste.
+   * Les filtres status/source et la recherche (guest, code de confirmation,
+   * logement) sont appliqués en SQL ; les autres consommateurs (planning,
+   * dashboards, analytics) restent sur `getAll`.
+   */
+  async getPage(filters: ReservationPageFilters): Promise<ReservationPage> {
+    if (isMockEnabled('planning') || isMockEnabled('analytics')) {
+      let data = applyMockFilters(generateMockReservations(), filters);
+      const term = filters.search?.trim().toLowerCase();
+      if (term) {
+        data = data.filter((r) =>
+          r.guestName?.toLowerCase().includes(term) ||
+          r.propertyName?.toLowerCase().includes(term) ||
+          r.confirmationCode?.toLowerCase().includes(term)
+        );
+      }
+      const start = filters.page * filters.size;
+      const result: ReservationPage = {
+        content: data.slice(start, start + filters.size),
+        totalElements: data.length,
+        totalPages: Math.ceil(data.length / filters.size),
+        number: filters.page,
+        size: filters.size,
+      };
+      return new Promise((resolve) => setTimeout(() => resolve(result), 300));
+    }
+
+    const params = toListParams(filters);
+    params.page = filters.page;
+    params.size = filters.size;
+    if (filters.search?.trim()) params.search = filters.search.trim();
+    return apiClient.get<ReservationPage>('/reservations', { params });
   },
 
   async getByProperty(propertyId: number): Promise<Reservation[]> {

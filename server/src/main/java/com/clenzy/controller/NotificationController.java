@@ -1,6 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.NotificationDto;
+import com.clenzy.dto.NotificationPageDto;
 import com.clenzy.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,6 +21,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 @PreAuthorize("isAuthenticated()")
 public class NotificationController {
 
+    /** Borne haute de la taille de page (= borne du mode non pagine, 200 dernieres). */
+    private static final int MAX_PAGE_SIZE = 200;
+
     private final NotificationService notificationService;
 
     public NotificationController(NotificationService notificationService) {
@@ -33,6 +37,23 @@ public class NotificationController {
         String userId = jwt.getSubject();
         List<NotificationDto> notifications = notificationService.getAllForUser(userId);
         return ResponseEntity.ok(notifications);
+    }
+
+    @GetMapping(params = "page")
+    @Operation(summary = "Lister les notifications (mode pagine)",
+            description = "Mode pagine opt-in via ?page=&size=. Filtres exclusifs alignes sur les onglets : "
+                    + "unread=true OU category=<valeur>. Enveloppe {content, page, size, totalElements}.")
+    public ResponseEntity<NotificationPageDto> getPage(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String category,
+            @RequestParam(defaultValue = "false") boolean unread) {
+
+        String userId = jwt.getSubject();
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), MAX_PAGE_SIZE);
+        return ResponseEntity.ok(notificationService.getPageForUser(userId, category, unread, safePage, safeSize));
     }
 
     @GetMapping("/unread-count")

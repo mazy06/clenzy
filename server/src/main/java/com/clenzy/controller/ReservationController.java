@@ -14,6 +14,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -67,9 +70,20 @@ public class ReservationController {
 
     // ── GET : liste filtree ─────────────────────────────────────────────────
 
+    /** Fenetre par defaut de la liste : -3 mois / +6 mois (identique dans les deux modes). */
+    private static LocalDate defaultFrom(LocalDate from) {
+        return from != null ? from : LocalDate.now().minusMonths(3);
+    }
+
+    private static LocalDate defaultTo(LocalDate to) {
+        return to != null ? to : LocalDate.now().plusMonths(6);
+    }
+
     @GetMapping
     @Operation(summary = "Lister les reservations",
-            description = "Admin/Manager voient tout, Host voit ses proprietes uniquement.")
+            description = "Admin/Manager voient tout, Host voit ses proprietes uniquement. "
+                    + "Sans parametre page : liste complete (shape historique). "
+                    + "Avec page (+ size) : reponse paginee {content, totalElements, ...}.")
     public ResponseEntity<List<ReservationDto>> getReservations(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) List<Long> propertyIds,
@@ -77,22 +91,43 @@ public class ReservationController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) String status) {
 
-        if (from == null) from = LocalDate.now().minusMonths(3);
-        if (to == null) to = LocalDate.now().plusMonths(6);
-
-        List<Reservation> reservations = reservationService.getReservations(
-                jwt.getSubject(), propertyIds, from, to);
-
-        if (status != null && !status.isEmpty() && !"all".equals(status)) {
-            final String statusFilter = status;
-            reservations = reservations.stream()
-                    .filter(r -> statusFilter.equalsIgnoreCase(r.getStatus()))
-                    .collect(Collectors.toList());
-        }
-
-        List<ReservationDto> result = reservations.stream()
+        // Filtre status en SQL (audit perf 2026-07-21 P1-6) — shape JSON inchangee.
+        List<ReservationDto> result = reservationService.getReservationsPage(
+                        jwt.getSubject(), propertyIds, defaultFrom(from), defaultTo(to),
+                        status, null, null, Pageable.unpaged())
+                .getContent().stream()
                 .map(reservationMapper::toDto)
                 .collect(Collectors.toList());
+
+        return ResponseEntity.ok(result);
+    }
+
+    // ── GET : liste paginee (opt-in via ?page=N) ────────────────────────────
+
+    @GetMapping(params = "page")
+    @Operation(summary = "Lister les reservations (paginees)",
+            description = "Mode pagine opt-in : actif des que le parametre page est present. "
+                    + "Filtres status/source en SQL ; search porte sur nom du guest, "
+                    + "code de confirmation et nom du logement (colonnes en clair uniquement). "
+                    + "Memes defauts de fenetre que le mode liste (-3/+6 mois).")
+    public ResponseEntity<Page<ReservationDto>> getReservationsPaged(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) List<Long> propertyIds,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String source,
+            @RequestParam(required = false) String search,
+            @RequestParam int page,
+            @RequestParam(defaultValue = "25") int size) {
+
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 200);
+
+        Page<ReservationDto> result = reservationService.getReservationsPage(
+                        jwt.getSubject(), propertyIds, defaultFrom(from), defaultTo(to),
+                        status, source, search, PageRequest.of(safePage, safeSize))
+                .map(reservationMapper::toDto);
 
         return ResponseEntity.ok(result);
     }

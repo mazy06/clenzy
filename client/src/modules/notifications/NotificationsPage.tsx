@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -21,8 +21,8 @@ import {
   EventNote,
 } from '../../icons';
 import { useNavigate } from 'react-router-dom';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useAsync } from '../../hooks/useAsync';
 import { notificationsApi } from '../../services/api/notificationsApi';
 import type { Notification } from '../../services/api';
 import PageHeader from '../../components/PageHeader';
@@ -89,41 +89,42 @@ export default function NotificationsPage() {
   // Onglet actif = filtre string, persiste dans l'URL (?tab=<value>) — la valeur EST la cle stable.
   const [activeTab, setActiveTab] = useTabValueParam<TabFilter>(NOTIFICATION_TAB_VALUES, 'all');
 
+  const queryClient = useQueryClient();
+
   // Reset availability on mount so the page always tries to reach the backend
+  // (et refetch : la query a pu se resoudre a vide pendant l'indisponibilite).
   React.useEffect(() => {
     notificationsApi.resetAvailability();
-  }, []);
+    queryClient.invalidateQueries({ queryKey: ['notifications'] });
+  }, [queryClient]);
 
-  const {
-    data: notifications,
-    loading,
-    error,
-    retry,
-    setData,
-  } = useAsync(() => notificationsApi.getAll(), { immediate: true });
-
-  const filtered = useMemo(() => {
-    if (!notifications) return [];
-    switch (activeTab) {
-      case 'unread':
-        return notifications.filter((n) => !n.read);
-      case 'intervention':
-      case 'service_request':
-      case 'payment':
-      case 'system':
-      case 'contact':
-      case 'document':
-        return notifications.filter((n) => n.category === activeTab);
-      default:
-        return notifications;
-    }
-  }, [notifications, activeTab]);
-
-  // Pagination client-side, SANS scroll : la taille de page s'adapte à la
+  // Pagination SERVEUR, SANS scroll : la taille de page s'adapte à la
   // hauteur d'écran disponible (pattern PAGINATION_SX / TablePagination).
   const [page, setPage] = useState(0);
   const [perPage, setPerPage] = useState(10);
   const listRef = React.useRef<HTMLDivElement>(null);
+
+  // Onglets → filtres serveur exclusifs : unread=true OU category=<tab>.
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['notifications', 'list', activeTab, page, perPage],
+    queryFn: () => notificationsApi.getPage({
+      page,
+      size: perPage,
+      unread: activeTab === 'unread' ? true : undefined,
+      category: activeTab !== 'all' && activeTab !== 'unread' ? activeTab : undefined,
+    }),
+    placeholderData: keepPreviousData,
+  });
+
+  const notifications = data?.content ?? [];
+  const totalElements = data?.totalElements ?? 0;
+
+  // Compteur non lues via l'endpoint dedie (meme cle que la Sidebar → cache partage).
+  const { data: unreadData } = useQuery({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: () => notificationsApi.getUnreadCount(),
+  });
+  const unreadCount = unreadData?.count ?? 0;
 
   // Mesure : combien de lignes tiennent entre le haut de la liste et le bas du
   // viewport (moins la marge réservée à la pagination). Recalcul au resize et
@@ -142,52 +143,49 @@ export default function NotificationsPage() {
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-  }, [loading, filtered.length]);
+  }, [isLoading, notifications.length]);
 
   // Nouveau filtre → on repart à la 1re page.
   React.useEffect(() => { setPage(0); }, [activeTab]);
-  // Sécurité : si la liste rétrécit (suppression / tout lu) ou si perPage change, on borne la page.
+  // Sécurité : si le total rétrécit (suppression / tout lu) ou si perPage change, on borne la page.
   React.useEffect(() => {
-    const maxPage = Math.max(0, Math.ceil(filtered.length / perPage) - 1);
+    const maxPage = Math.max(0, Math.ceil(totalElements / perPage) - 1);
     setPage((p) => Math.min(p, maxPage));
-  }, [filtered.length, perPage]);
-  const paginated = useMemo(
-    () => filtered.slice(page * perPage, page * perPage + perPage),
-    [filtered, page, perPage],
+  }, [totalElements, perPage]);
+
+  // Toute action (lu / tout lu / suppression) invalide les pages ET le
+  // compteur unread (prefixe commun ['notifications'], Sidebar comprise).
+  const invalidateNotifications = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    [queryClient],
   );
 
   const handleClick = useCallback(
     async (notification: Notification) => {
       if (!notification.read) {
         await notificationsApi.markAsRead(notification.id);
-        setData(
-          (notifications ?? []).map((n) =>
-            n.id === notification.id ? { ...n, read: true } : n,
-          ),
-        );
+        invalidateNotifications();
       }
       if (notification.actionUrl) {
         navigate(notification.actionUrl);
       }
     },
-    [notifications, navigate, setData],
+    [invalidateNotifications, navigate],
   );
 
   const handleMarkAllRead = useCallback(async () => {
     await notificationsApi.markAllAsRead();
-    setData((notifications ?? []).map((n) => ({ ...n, read: true })));
-  }, [notifications, setData]);
+    invalidateNotifications();
+  }, [invalidateNotifications]);
 
   const handleDelete = useCallback(
     async (e: React.MouseEvent, id: number) => {
       e.stopPropagation();
       await notificationsApi.delete(id);
-      setData((notifications ?? []).filter((n) => n.id !== id));
+      invalidateNotifications();
     },
-    [notifications, setData],
+    [invalidateNotifications],
   );
-
-  const unreadCount = (notifications ?? []).filter((n) => !n.read).length;
 
   const tabs: { value: TabFilter; label: string }[] = [
     { value: 'all', label: t('notifications.tabs.all') },
@@ -245,10 +243,13 @@ export default function NotificationsPage() {
 
       {/* Content */}
       <DataFetchWrapper
-        loading={loading}
-        error={error}
-        onRetry={retry}
-        isEmpty={filtered.length === 0}
+        loading={isLoading}
+        error={error ? (error instanceof Error ? error.message : String(error)) : null}
+        onRetry={() => {
+          notificationsApi.resetAvailability();
+          refetch();
+        }}
+        isEmpty={notifications.length === 0}
         emptyState={
           <EmptyState
             icon={<NotificationsNone />}
@@ -263,7 +264,7 @@ export default function NotificationsPage() {
         }
       >
         <Box ref={listRef}>
-          {paginated.map((notification, index) => (
+          {notifications.map((notification, index) => (
             <Box
               key={notification.id}
               data-notif-row
@@ -275,7 +276,7 @@ export default function NotificationsPage() {
                 px: 2,
                 py: 1.5,
                 cursor: 'pointer',
-                borderBottom: index < paginated.length - 1 ? '1px solid' : 'none',
+                borderBottom: index < notifications.length - 1 ? '1px solid' : 'none',
                 borderColor: 'divider',
                 transition: 'background-color 0.15s',
                 bgcolor: notification.read ? 'transparent' : 'action.hover',
@@ -285,7 +286,7 @@ export default function NotificationsPage() {
                 '&:hover .delete-btn': {
                   opacity: 1,
                 },
-                borderRadius: index === 0 ? '8px 8px 0 0' : index === paginated.length - 1 ? '0 0 8px 8px' : 0,
+                borderRadius: index === 0 ? '8px 8px 0 0' : index === notifications.length - 1 ? '0 0 8px 8px' : 0,
               }}
             >
               {/* Icon */}
@@ -374,10 +375,10 @@ export default function NotificationsPage() {
             </Box>
           ))}
         </Box>
-        {filtered.length > perPage && (
+        {totalElements > perPage && (
           <TablePagination
             component="div"
-            count={filtered.length}
+            count={totalElements}
             page={page}
             onPageChange={(_, p) => setPage(p)}
             rowsPerPage={perPage}
