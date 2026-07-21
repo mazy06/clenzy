@@ -33,7 +33,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -122,10 +124,22 @@ class YieldRuleEngineTest {
                 PROPERTY_ID, TODAY)).thenReturn(false);
         lenient().when(calendarDayRepository.findBookedDatesInRange(
                 PROPERTY_ID, TODAY, TODAY.plusDays(10), ORG_ID)).thenReturn(bookedDates);
-        lenient().when(rateOverrideRepository.findByPropertyIdAndDate(eq(PROPERTY_ID), any(), eq(ORG_ID)))
-                .thenReturn(Optional.empty());
-        lenient().when(priceEngine.resolvePrice(eq(PROPERTY_ID), any(), eq(ORG_ID)))
-                .thenReturn(nightlyPrice);
+        // Batch (audit perf P1-2) : overrides + prix de la fenêtre préchargés
+        // en une passe — pas d'override existant par défaut, prix uniforme.
+        lenient().when(rateOverrideRepository.findByPropertyIdAndDateRange(
+                        eq(PROPERTY_ID), any(), any(), eq(ORG_ID)))
+                .thenReturn(List.of());
+        lenient().when(priceEngine.resolvePriceRange(eq(PROPERTY_ID), any(), any(), eq(ORG_ID)))
+                .thenReturn(windowPrices(nightlyPrice));
+    }
+
+    /** Prix uniforme sur toute la fenêtre [TODAY, TODAY+10). */
+    private Map<LocalDate, BigDecimal> windowPrices(BigDecimal nightlyPrice) {
+        Map<LocalDate, BigDecimal> prices = new LinkedHashMap<>();
+        for (LocalDate date = TODAY; date.isBefore(TODAY.plusDays(10)); date = date.plusDays(1)) {
+            prices.put(date, nightlyPrice);
+        }
+        return prices;
     }
 
     @SuppressWarnings("unchecked")
@@ -349,8 +363,9 @@ class YieldRuleEngineTest {
         config.setMode(YieldMode.AUTO);
         stubHappyPath(List.of(), new BigDecimal("100.00"));
         RateOverride manual = new RateOverride(property, TODAY, new BigDecimal("150.00"), "MANUAL", ORG_ID);
-        when(rateOverrideRepository.findByPropertyIdAndDate(PROPERTY_ID, TODAY, ORG_ID))
-                .thenReturn(Optional.of(manual));
+        when(rateOverrideRepository.findByPropertyIdAndDateRange(
+                        eq(PROPERTY_ID), any(), any(), eq(ORG_ID)))
+                .thenReturn(List.of(manual));
 
         engine.evaluateOrganization(ORG_ID);
 

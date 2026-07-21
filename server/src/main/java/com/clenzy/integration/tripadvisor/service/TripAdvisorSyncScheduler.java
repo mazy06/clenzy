@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -47,6 +48,7 @@ public class TripAdvisorSyncScheduler {
      * Frequence configurable via tripadvisor.sync.interval-minutes (defaut: 15 min).
      */
     @Scheduled(fixedRateString = "#{${tripadvisor.sync.interval-minutes:15} * 60000}")
+    @SchedulerLock(name = "tripadvisor-push-availability", lockAtMostFor = "PT15M")
     public void pushAvailability() {
         if (!config.isConfigured()) {
             return;
@@ -84,6 +86,7 @@ public class TripAdvisorSyncScheduler {
      * Toutes les 15 minutes.
      */
     @Scheduled(fixedRateString = "#{${tripadvisor.sync.interval-minutes:15} * 60000}")
+    @SchedulerLock(name = "tripadvisor-pull-bookings", lockAtMostFor = "PT15M")
     public void pullBookings() {
         if (!config.isConfigured()) {
             return;

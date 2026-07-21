@@ -408,8 +408,10 @@ public class KpiService {
     }
 
     private KpiItemDto computeSyncAvailability() {
-        long totalConnections = connectionRepository.findAllCrossOrg().size();
-        long activeConnections = connectionRepository.findAllActive().size();
+        // COUNT SQL — evite de charger toutes les connexions pour un .size()
+        // (audit perf 2026-07-21).
+        long totalConnections = connectionRepository.count();
+        long activeConnections = connectionRepository.countAllActive();
 
         double availPct = totalConnections > 0
                 ? (activeConnections * 100.0 / totalConnections) : 100.0;

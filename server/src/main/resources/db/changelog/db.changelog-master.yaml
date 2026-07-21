@@ -3435,3 +3435,12 @@ databaseChangeLog:
       sqlFile:
         path: changes/0358__add_missing_hot_path_indexes.sql
         relativeToChangelogFile: true
+
+  # Audit perf 2026-07-21 (P2-7) : verrous multi-instance ShedLock sur les
+  # jobs @Scheduled a effets externes (emails, paiements, pushes OTA).
+  - changeSet:
+      id: "0359-create-shedlock-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0359__create_shedlock_table.sql
+        relativeToChangelogFile: true

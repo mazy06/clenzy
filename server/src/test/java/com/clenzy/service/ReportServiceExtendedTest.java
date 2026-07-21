@@ -1,14 +1,12 @@
 package com.clenzy.service;
 
-import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionStatus;
-import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.Property;
 import com.clenzy.model.PropertyStatus;
-import com.clenzy.model.Team;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.TeamRepository;
+import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,13 +16,22 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
+/**
+ * Sous-types de rapports et cas limites — agregats SQL bornes a la fenetre
+ * (audit perf 2026-07-21) : les cas "scheduledDate null" et "estimatedCost
+ * null" sont desormais geres par la requete elle-meme (filtre date + COALESCE),
+ * les tests verifient que le rendu PDF reste valide avec des agregats vides
+ * ou partiels.
+ */
 @ExtendWith(MockitoExtension.class)
 class ReportServiceExtendedTest {
 
@@ -37,6 +44,9 @@ class ReportServiceExtendedTest {
     @Mock
     private TeamRepository teamRepository;
 
+    @Mock
+    private TenantContext tenantContext;
+
     @InjectMocks
     private ReportService reportService;
 
@@ -47,14 +57,17 @@ class ReportServiceExtendedTest {
     void setUp() {
         startDate = LocalDate.now().minusMonths(1);
         endDate = LocalDate.now();
+        lenient().when(tenantContext.getOrganizationId()).thenReturn(null);
     }
 
     // --- Intervention report: completion subtype ---
 
     @Test
     void generateInterventionReport_completion_producesValidPdf() {
-        List<Intervention> interventions = createTestInterventions();
-        when(interventionRepository.findAll()).thenReturn(interventions);
+        when(interventionRepository.countByStatusInWindowForPdfReport(any(), any(), isNull()))
+                .thenReturn(List.<Object[]>of(
+                        new Object[]{InterventionStatus.COMPLETED, 3L},
+                        new Object[]{InterventionStatus.PENDING, 2L}));
 
         byte[] pdfBytes = reportService.generateInterventionReport("completion", startDate, endDate);
 
@@ -65,8 +78,7 @@ class ReportServiceExtendedTest {
 
     @Test
     void generateTeamReport_availability_producesValidPdf() {
-        List<Team> teams = createTestTeams();
-        when(teamRepository.findAll()).thenReturn(teams);
+        when(teamRepository.countAllForPdfReport(isNull())).thenReturn(1L);
 
         byte[] pdfBytes = reportService.generateTeamReport("availability", startDate, endDate);
 
@@ -77,8 +89,7 @@ class ReportServiceExtendedTest {
 
     @Test
     void generateTeamReport_workload_producesValidPdf() {
-        List<Team> teams = createTestTeams();
-        when(teamRepository.findAll()).thenReturn(teams);
+        when(teamRepository.countAllForPdfReport(isNull())).thenReturn(1L);
 
         byte[] pdfBytes = reportService.generateTeamReport("workload", startDate, endDate);
 
@@ -89,8 +100,7 @@ class ReportServiceExtendedTest {
 
     @Test
     void generatePropertyReport_maintenance_producesValidPdf() {
-        List<Property> properties = createTestProperties();
-        when(propertyRepository.findAll()).thenReturn(properties);
+        when(propertyRepository.findAll()).thenReturn(createTestProperties());
 
         byte[] pdfBytes = reportService.generatePropertyReport("maintenance", startDate, endDate);
 
@@ -101,79 +111,44 @@ class ReportServiceExtendedTest {
 
     @Test
     void generatePropertyReport_costs_producesValidPdf() {
-        List<Property> properties = createTestProperties();
-        when(propertyRepository.findAll()).thenReturn(properties);
+        when(propertyRepository.findAll()).thenReturn(createTestProperties());
 
         byte[] pdfBytes = reportService.generatePropertyReport("costs", startDate, endDate);
 
         assertValidPdf(pdfBytes);
     }
 
-    // --- Edge: empty interventions list ---
+    // --- Edge: no interventions in window ---
 
     @Test
     void generateInterventionReport_emptyList_producesValidPdf() {
-        when(interventionRepository.findAll()).thenReturn(List.of());
+        when(interventionRepository.countByStatusInWindowForPdfReport(any(), any(), isNull()))
+                .thenReturn(List.of());
 
         byte[] pdfBytes = reportService.generateInterventionReport("performance", startDate, endDate);
 
         assertValidPdf(pdfBytes);
     }
 
-    // --- Edge: interventions with null scheduledDate are filtered out ---
+    // --- Edge: aucune ligne ne matche la fenetre → COUNT 0 et SUM null ---
 
     @Test
-    void generateFinancialReport_nullScheduledDate_filteredCorrectly() {
-        List<Intervention> interventions = new ArrayList<>();
-
-        // Intervention with null scheduledDate -- should be filtered out
-        Intervention noDate = new Intervention();
-        noDate.setId(1L);
-        noDate.setStatus(InterventionStatus.COMPLETED);
-        noDate.setPaymentStatus(PaymentStatus.PAID);
-        noDate.setEstimatedCost(BigDecimal.valueOf(200));
-        noDate.setScheduledDate(null);
-        interventions.add(noDate);
-
-        // Intervention with valid scheduledDate within range
-        Intervention withDate = new Intervention();
-        withDate.setId(2L);
-        withDate.setStatus(InterventionStatus.COMPLETED);
-        withDate.setPaymentStatus(PaymentStatus.PAID);
-        withDate.setEstimatedCost(BigDecimal.valueOf(100));
-        withDate.setScheduledDate(LocalDateTime.now().minusDays(5));
-        interventions.add(withDate);
-
-        when(interventionRepository.findAll()).thenReturn(interventions);
+    void generateFinancialReport_emptyWindow_handledGracefully() {
+        when(interventionRepository.financialTotalsForPdfReport(any(), any(), isNull()))
+                .thenReturn(List.<Object[]>of(new Object[]{0L, null, null}));
 
         byte[] pdfBytes = reportService.generateFinancialReport("revenue", startDate, endDate);
 
         assertValidPdf(pdfBytes);
     }
 
-    // --- Edge: interventions with null estimatedCost handled gracefully ---
+    // --- Edge: couts partiels (COALESCE cote SQL) ---
 
     @Test
-    void generateFinancialReport_nullEstimatedCost_handledGracefully() {
-        List<Intervention> interventions = new ArrayList<>();
-
-        Intervention nullCost = new Intervention();
-        nullCost.setId(1L);
-        nullCost.setStatus(InterventionStatus.COMPLETED);
-        nullCost.setPaymentStatus(PaymentStatus.PAID);
-        nullCost.setEstimatedCost(null);
-        nullCost.setScheduledDate(LocalDateTime.now().minusDays(3));
-        interventions.add(nullCost);
-
-        Intervention withCost = new Intervention();
-        withCost.setId(2L);
-        withCost.setStatus(InterventionStatus.COMPLETED);
-        withCost.setPaymentStatus(PaymentStatus.PAID);
-        withCost.setEstimatedCost(BigDecimal.valueOf(150));
-        withCost.setScheduledDate(LocalDateTime.now().minusDays(2));
-        interventions.add(withCost);
-
-        when(interventionRepository.findAll()).thenReturn(interventions);
+    void generateFinancialReport_partialCosts_handledGracefully() {
+        when(interventionRepository.financialTotalsForPdfReport(any(), any(), isNull()))
+                .thenReturn(List.<Object[]>of(
+                        new Object[]{2L, new BigDecimal("150"), new BigDecimal("150")}));
 
         byte[] pdfBytes = reportService.generateFinancialReport("revenue", startDate, endDate);
 
@@ -187,29 +162,6 @@ class ReportServiceExtendedTest {
         assertTrue(pdfBytes.length > 0);
         String pdfHeader = new String(pdfBytes, 0, Math.min(4, pdfBytes.length));
         assertEquals("%PDF", pdfHeader);
-    }
-
-    private List<Intervention> createTestInterventions() {
-        List<Intervention> interventions = new ArrayList<>();
-        for (int i = 0; i < 5; i++) {
-            Intervention intervention = new Intervention();
-            intervention.setId((long) i);
-            intervention.setStatus(i % 2 == 0 ? InterventionStatus.COMPLETED : InterventionStatus.PENDING);
-            intervention.setPaymentStatus(i % 2 == 0 ? PaymentStatus.PAID : PaymentStatus.PENDING);
-            intervention.setEstimatedCost(BigDecimal.valueOf(100.0 + i * 10));
-            intervention.setScheduledDate(LocalDateTime.now().minusDays(i));
-            interventions.add(intervention);
-        }
-        return interventions;
-    }
-
-    private List<Team> createTestTeams() {
-        List<Team> teams = new ArrayList<>();
-        Team team = new Team();
-        team.setId(1L);
-        team.setName("Equipe Test");
-        teams.add(team);
-        return teams;
     }
 
     private List<Property> createTestProperties() {

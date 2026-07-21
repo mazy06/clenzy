@@ -13,6 +13,7 @@ import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -60,6 +61,7 @@ public class AccessCodeRotationScheduler {
 
     /** Toutes les heures (à :15). Régénère les codes des logements dont un séjour vient de se terminer. */
     @Scheduled(cron = "0 15 * * * *")
+    @SchedulerLock(name = "access-code-rotation", lockAtMostFor = "PT15M")
     public void rotateAfterCheckout() {
         List<CheckInInstructions> autos = instructionsRepository.findAutoRotateWithProperty();
         if (autos.isEmpty()) return;

@@ -21,6 +21,7 @@ import com.clenzy.tenant.TenantScopedExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -84,6 +85,7 @@ public class RateParityScheduler {
     }
 
     @Scheduled(cron = "${clenzy.channex.rate-parity.cron:0 45 7 * * *}")
+    @SchedulerLock(name = "channex-rate-parity-scan", lockAtMostFor = "PT15M")
     public void scan() {
         if (!channexProperties.isConfigured()) {
             log.debug("RateParity: scan skip (CHANNEX_API_KEY non configuree)");

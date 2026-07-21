@@ -187,13 +187,14 @@ class GuestControllerTest {
         }
 
         @Test
-        @DisplayName("channel filter -> matches by enum")
+        @DisplayName("channel filter -> filtered in SQL by enum")
         void whenChannelFilter_thenFilters() {
             when(tenantContext.isSuperAdmin()).thenReturn(false);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            Guest g1 = newGuest(1L, 1L, "Alice", "Dupont", null, GuestChannel.DIRECT);
             Guest g2 = newGuest(2L, 1L, "Bob", "Martin", null, GuestChannel.AIRBNB);
-            when(guestRepository.findByOrganizationId(1L)).thenReturn(List.of(g1, g2));
+            // Le filtre channel est desormais applique en SQL (champ non chiffre).
+            when(guestRepository.findByOrganizationIdAndChannel(1L, GuestChannel.AIRBNB))
+                    .thenReturn(List.of(g2));
 
             ResponseEntity<List<GuestListDto>> response = controller.list(null, "AIRBNB");
 
@@ -227,12 +228,13 @@ class GuestControllerTest {
         }
 
         @Test
-        @DisplayName("null channel on guest with channel filter -> filtered out")
+        @DisplayName("null channel on guest with channel filter -> filtered out (SQL)")
         void whenGuestChannelNullAndFilterSet_thenExcluded() {
             when(tenantContext.isSuperAdmin()).thenReturn(false);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            Guest g1 = newGuest(1L, 1L, "Alice", "Dupont", null, null);
-            when(guestRepository.findByOrganizationId(1L)).thenReturn(List.of(g1));
+            // Un guest sans channel ne matche pas le filtre SQL par canal.
+            when(guestRepository.findByOrganizationIdAndChannel(1L, GuestChannel.AIRBNB))
+                    .thenReturn(List.of());
 
             ResponseEntity<List<GuestListDto>> response = controller.list(null, "AIRBNB");
             assertThat(response.getBody()).isEmpty();

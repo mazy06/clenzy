@@ -177,8 +177,22 @@ public class PriceEngine {
      */
     public Map<LocalDate, BigDecimal> resolvePriceRange(Long propertyId, LocalDate from,
                                                           LocalDate to, Long orgId) {
+        return resolvePriceRange(propertyId, from, to, orgId, Set.of());
+    }
+
+    /**
+     * Variante de {@link #resolvePriceRange(Long, LocalDate, LocalDate, Long)}
+     * qui IGNORE les overrides dont la source figure dans
+     * {@code excludedOverrideSources} — l'equivalent batch de
+     * {@link #resolvePrice(Long, LocalDate, Long, Set)} (audit Z5-BUGS-02,
+     * utilise par le yield management pour calculer depuis le prix de base
+     * hors overrides YIELD_RULE, sans derive composee).
+     */
+    public Map<LocalDate, BigDecimal> resolvePriceRange(Long propertyId, LocalDate from,
+                                                          LocalDate to, Long orgId,
+                                                          Set<String> excludedOverrideSources) {
         Map<LocalDate, BigDecimal> result = new LinkedHashMap<>();
-        resolvePriceRangeWithSource(propertyId, from, to, orgId)
+        resolvePriceRangeWithSource(propertyId, from, to, orgId, excludedOverrideSources)
                 .forEach((date, resolved) -> result.put(date, resolved.price()));
         return result;
     }
@@ -196,9 +210,22 @@ public class PriceEngine {
      */
     public Map<LocalDate, ResolvedPrice> resolvePriceRangeWithSource(Long propertyId, LocalDate from,
                                                                       LocalDate to, Long orgId) {
+        return resolvePriceRangeWithSource(propertyId, from, to, orgId, Set.of());
+    }
+
+    /**
+     * Variante de {@link #resolvePriceRangeWithSource(Long, LocalDate, LocalDate, Long)}
+     * qui IGNORE les overrides dont la source figure dans
+     * {@code excludedOverrideSources} (meme semantique que
+     * {@link #resolvePrice(Long, LocalDate, Long, Set)}, en batch).
+     */
+    public Map<LocalDate, ResolvedPrice> resolvePriceRangeWithSource(Long propertyId, LocalDate from,
+                                                                      LocalDate to, Long orgId,
+                                                                      Set<String> excludedOverrideSources) {
         // Batch : charger tous les overrides et plans en 2 queries
         List<RateOverride> overrides = rateOverrideRepository.findByPropertyIdAndDateRange(propertyId, from, to, orgId);
         Map<LocalDate, BigDecimal> overrideMap = overrides.stream()
+                .filter(o -> !excludedOverrideSources.contains(o.getSource()))
                 .collect(Collectors.toMap(RateOverride::getDate, RateOverride::getNightlyPrice));
 
         List<RatePlan> plans = ratePlanRepository.findActiveByPropertyId(propertyId, orgId);

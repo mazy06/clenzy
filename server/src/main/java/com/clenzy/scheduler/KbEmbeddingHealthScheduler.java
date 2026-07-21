@@ -13,6 +13,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -74,6 +75,7 @@ public class KbEmbeddingHealthScheduler {
 
     /** Quotidien 6h15 UTC — apres le probe de disponibilite des modeles (6h). */
     @Scheduled(cron = "0 15 6 * * *")
+    @SchedulerLock(name = "kb-embedding-health-check", lockAtMostFor = "PT10M")
     public void runDailyCheck() {
         checkConfiguration();
     }
@@ -84,6 +86,7 @@ public class KbEmbeddingHealthScheduler {
      * EMBEDDINGS disponible.
      */
     @Scheduled(cron = "0 5/30 * * * *")
+    @SchedulerLock(name = "kb-embedding-maintenance", lockAtMostFor = "PT20M")
     public void runMaintenance() {
         if (!enabled) return;
         reembedOrphans();

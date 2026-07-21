@@ -1,7 +1,6 @@
 package com.clenzy.service;
 
 import com.clenzy.model.Intervention;
-import com.clenzy.model.LedgerEntry;
 import com.clenzy.model.LedgerReferenceType;
 import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.Reservation;
@@ -157,8 +156,9 @@ public class WalletService {
 
     private int backfillPaidReservations(Long orgId, Wallet escrowWallet, Wallet platformWallet, String curr) {
         int recorded = 0;
-        for (Reservation r : reservationRepository.findAllWithPayment(orgId)) {
-            if (r.getPaymentStatus() != PaymentStatus.PAID) continue;
+        // Filtre PAID en SQL + fetch join property/owner : evite le scan des
+        // reservations non payees et le lazy-load owner par reservation.
+        for (Reservation r : reservationRepository.findPaidWithOwnerForWalletBackfill(orgId)) {
             BigDecimal cost = r.getTotalPrice();
             if (cost == null || cost.compareTo(BigDecimal.ZERO) <= 0) continue;
 
@@ -176,20 +176,11 @@ public class WalletService {
         return recorded;
     }
 
-    /**
-     * NOTE optimisation : ServiceRequestRepository n'expose pas (encore) de
-     * finder organizationId + paymentStatus=PAID (findPaymentHistory filtre sur
-     * le statut AWAITING_PAYMENT, semantique differente). Le scan findAll() +
-     * filtre memoire est conserve a l'identique en attendant une derived query
-     * findByOrganizationIdAndPaymentStatus (hors perimetre de ce refactor).
-     */
     private int backfillPaidServiceRequests(Long orgId, Wallet escrowWallet, Wallet platformWallet) {
         int recorded = 0;
-        for (ServiceRequest sr : serviceRequestRepository.findAll()) {
-            if (sr.getOrganizationId() == null || !sr.getOrganizationId().equals(orgId)
-                    || sr.getPaymentStatus() != PaymentStatus.PAID) {
-                continue;
-            }
+        // Filtre org + paymentStatus=PAID en SQL — remplace le scan findAll()
+        // cross-org filtre en memoire (audit perf 2026-07-21).
+        for (ServiceRequest sr : serviceRequestRepository.findByOrganizationIdAndPaymentStatus(orgId, PaymentStatus.PAID)) {
             BigDecimal cost = sr.getEstimatedCost();
             if (cost == null || cost.compareTo(BigDecimal.ZERO) <= 0) continue;
 
@@ -205,9 +196,8 @@ public class WalletService {
     }
 
     private boolean hasLedgerEntry(String refId) {
-        List<LedgerEntry> existing = ledgerService.getEntriesByReference(
-                LedgerReferenceType.PAYMENT, refId);
-        return !existing.isEmpty();
+        // EXISTS SQL — evite de charger la liste complete pour un isEmpty.
+        return ledgerService.hasEntriesForReference(LedgerReferenceType.PAYMENT, refId);
     }
 
     /**

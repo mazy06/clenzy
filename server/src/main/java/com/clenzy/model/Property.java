@@ -264,7 +264,11 @@ public class Property {
     private LocalDateTime updatedAt;
     
     // Relations
-    @ManyToOne(fetch = FetchType.EAGER)
+    // LAZY (audit perf 2026-07-21 P1-4) : l'EAGER cascadait un SELECT users par owner
+    // distinct sur chaque requete ramenant des Property. Les chargements lazy residuels
+    // sont bornes par default_batch_fetch_size=32 ; les chemins qui consomment l'owner
+    // hors session utilisent Hibernate.initialize / une variante *WithOwner du repository.
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
     

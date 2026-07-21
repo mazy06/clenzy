@@ -7,6 +7,7 @@ import com.clenzy.tenant.TenantScopedExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -56,6 +57,7 @@ public class ICalSyncScheduler {
      * Groupement par organisation pour isoler les erreurs entre tenants.
      */
     @Scheduled(fixedRate = 3 * 60 * 60 * 1000, initialDelay = 60 * 1000)
+    @SchedulerLock(name = "ical-sync-feeds", lockAtMostFor = "PT30M")
     public void syncActiveFeeds() {
         log.info("Demarrage synchro iCal planifiee...");
 

@@ -275,6 +275,28 @@ public class PublicBookingService {
 
     // ─── Properties ──────────────────────────────────────────────────────────────
 
+    /**
+     * Clé des entrées du cache public {@code booking-engine-search} : DOIT inclure TOUT paramètre
+     * qui fait varier la réponse — org + engine (config) pour le scoping multi-tenant public,
+     * mode de données (un basculement MOCK↔REAL change la clé, effet immédiat sans éviction),
+     * curation « propriétés affichées », devise d'affichage et filtres de recherche
+     * ({@link PropertySearchFilters} est un record : toString déterministe). Statique pour être
+     * appelable depuis le SpEL de {@code @Cacheable} et testable unitairement.
+     */
+    public static String searchCacheKey(String prefix, OrgContext ctx, String currency, PropertySearchFilters filters) {
+        BookingEngineConfig config = ctx.config();
+        return prefix
+            + ':' + ctx.orgId()
+            + ':' + config.getId()
+            + ':' + config.getDataSourceMode()
+            + ':' + (config.getFeaturedPropertyIds() == null ? "" : config.getFeaturedPropertyIds())
+            + ':' + (currency == null || currency.isBlank() ? "" : currency)
+            + ':' + (filters == null ? "" : filters);
+    }
+
+    // NB : ces surcharges internes (usage PublicConciergeService / PropertyKbIngestionService)
+    // délèguent en self-invocation → elles NE passent PAS par le cache (proxy Spring contourné).
+    // Le trafic public (PublicBookingController) appelle directement la variante 3-args cachée.
     public List<PublicPropertyDto> getProperties(OrgContext ctx) {
         return getProperties(ctx, PropertySearchFilters.NONE, null);
     }
@@ -288,10 +310,19 @@ public class PublicBookingService {
      * La conversion en devise d'affichage (`currency`) est faite AVANT le filtre prix → la fourchette
      * minPrice/maxPrice (envoyée par le client en devise d'affichage) est comparée dans la même devise.
      * `currency` null/blank → pas de conversion (devise de la propriété, comportement historique).
+     *
+     * <p>Cachée 10 min ({@code booking-engine-search}) : c'est la PREMIÈRE requête de chaque
+     * affichage du widget public (fetch-join photos + 3 requêtes batch + conversion devise par
+     * logement). Invalidée par {@link BookingEngineSearchCacheEvictor} sur changement de
+     * prix/dispo. Racine retournée en {@code ArrayList} (non-finale) : requis pour que le
+     * sérialiseur Redis écrive le type id (cf. CacheConfig.ForceClassTypeInfoMixin).</p>
      */
+    @org.springframework.cache.annotation.Cacheable(
+            value = "booking-engine-search",
+            key = "T(com.clenzy.booking.service.PublicBookingService).searchCacheKey('props', #ctx, #currency, #filters)")
     public List<PublicPropertyDto> getProperties(OrgContext ctx, PropertySearchFilters filters, String currency) {
         if (isMock(ctx)) {
-            return mockDataProvider.getProperties(filters, currency);
+            return new ArrayList<>(mockDataProvider.getProperties(filters, currency));
         }
         // Curation « propriétés affichées » : si le booking engine a une sélection, on s'y restreint
         // (vide/NULL = toutes les propriétés visibles). Curation d'affichage, pas de contrôle d'accès.
@@ -305,7 +336,7 @@ public class PublicBookingService {
             .filter(filters::matches)
             .toList();
         if (base.isEmpty()) {
-            return base;
+            return new ArrayList<>();
         }
         // Signaux honnêtes (2.9), 2 requêtes batch (pas de N+1) : « réservé N× » + jours disponibles
         // sur 30 jours (urgence). Le frontend décide des seuils d'affichage.
@@ -335,13 +366,21 @@ public class PublicBookingService {
                 double[] rs = reviewStats.get(dto.id());
                 return rs == null ? dto : dto.withReviewStats(rs[0], (long) rs[1]);
             })
-            .toList();
+            // ArrayList (pas toList()) : racine non-finale requise par le sérialiseur du cache.
+            .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
     }
 
     /**
      * Facettes de recherche : options de filtres disponibles, calculées sur l'ensemble des propriétés
      * VISIBLES (non filtrées) de l'org. Sert à peupler l'UI du widget « Filtre ».
+     *
+     * <p>Cachée 10 min ({@code booking-engine-search}) : facettes quasi statiques, recalculées
+     * sinon à chaque appel (chargement complet des propriétés + conversion devise). Invalidée
+     * par {@link BookingEngineSearchCacheEvictor} sur changement de prix/dispo.</p>
      */
+    @org.springframework.cache.annotation.Cacheable(
+            value = "booking-engine-search",
+            key = "T(com.clenzy.booking.service.PublicBookingService).searchCacheKey('facets', #ctx, #requestedCurrency, null)")
     public PublicSearchFiltersDto getSearchFilters(OrgContext ctx, String requestedCurrency) {
         if (isMock(ctx)) {
             return mockDataProvider.getSearchFilters(requestedCurrency);

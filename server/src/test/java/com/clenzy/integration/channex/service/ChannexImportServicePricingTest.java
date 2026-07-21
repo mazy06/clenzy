@@ -357,8 +357,10 @@ class ChannexImportServicePricingTest {
                 rateEntry("2026-07-15", "149.00"), // != default, create
                 rateEntry("2026-08-01", "199.00")  // != default, create
             )));
-        when(rateOverrideRepository.findByPropertyIdAndDate(eq(100L), any(), eq(42L)))
-            .thenReturn(Optional.empty());
+        // Batch (audit perf P2-2) : les overrides existants sont precharges en
+        // une requete de plage — aucune date deja surchargee ici.
+        when(rateOverrideRepository.findByPropertyIdAndDateRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(java.util.List.of());
 
         int created = service.importRateOverridesFromOta(prop, 42L, mapping,
             info(new BigDecimal("89.00"), null, null, null));
@@ -398,8 +400,10 @@ class ChannexImportServicePricingTest {
             .thenReturn(java.util.Optional.of(java.util.List.of(
                 rateEntry("2026-07-15", "149.00")
             )));
-        when(rateOverrideRepository.findByPropertyIdAndDate(eq(100L), any(), eq(42L)))
-            .thenReturn(Optional.of(new com.clenzy.model.RateOverride()));
+        var existing = new com.clenzy.model.RateOverride();
+        existing.setDate(java.time.LocalDate.parse("2026-07-15"));
+        when(rateOverrideRepository.findByPropertyIdAndDateRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(java.util.List.of(existing));
 
         int created = service.importRateOverridesFromOta(prop, 42L, mapping,
             info(new BigDecimal("89.00"), null, null, null));

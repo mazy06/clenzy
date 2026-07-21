@@ -148,7 +148,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("to") LocalDate to,
             @Param("orgId") Long orgId);
 
-    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest LEFT JOIN FETCH r.intervention WHERE r.id = :id")
+    /**
+     * "Fetch all" inclut le owner de la property (LAZY depuis l'audit perf 2026-07-21) :
+     * des consommateurs hors transaction (ReservationPaymentService.sendPaymentLink,
+     * preview des tags documents) lisent {@code property.getOwner()} sur l'entite detachee.
+     */
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH r.guest LEFT JOIN FETCH r.intervention WHERE r.id = :id")
     Optional<Reservation> findByIdFetchAll(@Param("id") Long id);
 
     Optional<Reservation> findByExternalUidAndPropertyId(String externalUid, Long propertyId);
@@ -330,6 +335,29 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
            "WHERE r.totalPrice IS NOT NULL AND r.totalPrice > 0 " +
            "AND r.organizationId = :orgId")
     List<Reservation> findAllWithPayment(@Param("orgId") Long orgId);
+
+    /**
+     * Reservations PAYEES avec property + owner fetch (backfill wallet).
+     * Le fetch join owner evite le lazy-load par reservation dans la boucle
+     * (Property.owner passe en LAZY) et le filtre PAID reduit le scan.
+     */
+    @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.property p LEFT JOIN FETCH p.owner " +
+           "WHERE r.totalPrice IS NOT NULL AND r.totalPrice > 0 " +
+           "AND r.paymentStatus = com.clenzy.model.PaymentStatus.PAID " +
+           "AND r.organizationId = :orgId")
+    List<Reservation> findPaidWithOwnerForWalletBackfill(@Param("orgId") Long orgId);
+
+    /**
+     * Agregat par guest des sejours confirmes : nombre + montant total.
+     * Lignes {@code [Long guestId, Long count, BigDecimal totalSpent]}.
+     * Cross-org volontairement (utilitaire de recalcul GuestService, symetrique
+     * du guestRepository.findAll()) — remplace 1 requete par guest (audit perf
+     * 2026-07-21).
+     */
+    @Query("SELECT r.guest.id, COUNT(r), COALESCE(SUM(COALESCE(r.totalPrice, 0)), 0) " +
+           "FROM Reservation r WHERE r.guest IS NOT NULL AND r.status = 'confirmed' " +
+           "GROUP BY r.guest.id")
+    List<Object[]> aggregateConfirmedStaysByGuest();
 
     /**
      * Reservations RESERVEES (non annulees, tous statuts sauf 'cancelled' : confirmed

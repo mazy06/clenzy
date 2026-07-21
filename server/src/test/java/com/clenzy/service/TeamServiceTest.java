@@ -464,7 +464,9 @@ class TeamServiceTest {
             Jwt jwt = buildJwtWithRole("SUPER_ADMIN");
             Team team1 = buildTeam(1L, "Team A");
             Team team2 = buildTeam(2L, "Team B");
-            when(teamRepository.findAll()).thenReturn(List.of(team1, team2));
+            // Pagination SQL reelle (audit perf 2026-07-21)
+            when(teamRepository.findAll(pageable))
+                    .thenReturn(new PageImpl<>(List.of(team1, team2), pageable, 2));
 
             // Act
             Page<TeamDto> result = teamService.list(pageable, jwt);
@@ -486,7 +488,8 @@ class TeamServiceTest {
                     .thenReturn(List.of(5L));
 
             Team managedTeam = buildTeam(5L, "Managed Team");
-            when(teamRepository.findById(5L)).thenReturn(Optional.of(managedTeam));
+            // Batch findAllById (IN) au lieu d'1 findById par equipe (audit perf 2026-07-21)
+            when(teamRepository.findAllById(List.of(5L))).thenReturn(List.of(managedTeam));
 
             // Act
             Page<TeamDto> result = teamService.list(pageable, jwt);
@@ -604,13 +607,15 @@ class TeamServiceTest {
 
         @Test
         void list_pagination_appliedCorrectly() {
-            // Arrange - SUPER_ADMIN sees all, 3 teams but page size 2
+            // Arrange - SUPER_ADMIN sees all, 3 teams but page size 2 : la
+            // pagination est desormais SQL (findAll(Pageable)), le repo rend
+            // la page demandee + le total.
             Jwt jwt = buildJwtWithRole("SUPER_ADMIN");
             Pageable smallPage = PageRequest.of(0, 2);
             Team team1 = buildTeam(1L, "Team 1");
             Team team2 = buildTeam(2L, "Team 2");
-            Team team3 = buildTeam(3L, "Team 3");
-            when(teamRepository.findAll()).thenReturn(List.of(team1, team2, team3));
+            when(teamRepository.findAll(smallPage))
+                    .thenReturn(new PageImpl<>(List.of(team1, team2), smallPage, 3));
 
             // Act
             Page<TeamDto> result = teamService.list(smallPage, jwt);

@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -75,6 +76,7 @@ public class SupervisionAutonomousScanner {
 
     @Scheduled(fixedDelayString = "${clenzy.supervision.autonomous.interval-ms:3600000}",
             initialDelayString = "${clenzy.supervision.autonomous.initial-delay-ms:120000}")
+    @SchedulerLock(name = "supervision-autonomous-sweep", lockAtMostFor = "PT30M")
     public void sweep() {
         if (!enabled) {
             return; // kill-switch serveur : rien tant que non activé explicitement

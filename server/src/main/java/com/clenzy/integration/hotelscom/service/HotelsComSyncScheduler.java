@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -54,6 +55,7 @@ public class HotelsComSyncScheduler {
      * Toutes les 15 minutes par defaut.
      */
     @Scheduled(fixedRateString = "#{${hotelscom.sync.interval-minutes:15} * 60000}")
+    @SchedulerLock(name = "hotelscom-sync-reservations", lockAtMostFor = "PT15M")
     public void syncReservations() {
         log.debug("Sync periodique des reservations Hotels.com...");
 

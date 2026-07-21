@@ -2,6 +2,7 @@ package com.clenzy.service.tags;
 
 import com.clenzy.repository.PropertyRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
@@ -28,7 +29,14 @@ public class PropertyTagResolver implements ReferenceTagResolver {
         return "property";
     }
 
+    /**
+     * Transactionnel (readOnly) : DocumentPreviewService appelle ce resolver hors
+     * transaction — Property.owner etant LAZY, la lecture des tags client.* exige
+     * une session ouverte. Rejoint la transaction du caller quand il y en a une
+     * (DocumentGenerationPipeline).
+     */
     @Override
+    @Transactional(readOnly = true)
     public void resolve(Long propertyId, Map<String, Object> context) {
         if (propertyId == null) return;
 

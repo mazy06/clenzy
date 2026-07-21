@@ -10,6 +10,7 @@ import com.clenzy.service.automation.InvoiceReminderExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -55,6 +56,7 @@ public class InvoiceOverdueScheduler {
     }
 
     @Scheduled(cron = "0 0 8 * * *")  // Daily at 8:00 AM
+    @SchedulerLock(name = "invoice-overdue-marking", lockAtMostFor = "PT10M")
     public void checkOverdueInvoices() {
         log.debug("Checking for overdue invoices...");
         LocalDate today = LocalDate.now();
@@ -92,6 +94,7 @@ public class InvoiceOverdueScheduler {
      * re-presenter le sujet au moteur avec le retard du jour.
      */
     @Scheduled(cron = "0 15 8 * * *")  // Daily at 8:15 AM, apres la passe de marquage
+    @SchedulerLock(name = "invoice-overdue-reminders", lockAtMostFor = "PT15M")
     public void fireOverdueReminders() {
         List<Invoice> overdue = invoiceRepository.findByStatusAndOverdueReminderCountLessThan(
             InvoiceStatus.OVERDUE, InvoiceReminderExecutor.MAX_REMINDERS);

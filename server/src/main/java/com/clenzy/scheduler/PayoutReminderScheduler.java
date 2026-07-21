@@ -10,6 +10,7 @@ import com.clenzy.service.automation.NotifyStaffExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -56,6 +57,7 @@ public class PayoutReminderScheduler {
     }
 
     @Scheduled(cron = "0 0 9 * * *") // Tous les jours a 9h
+    @SchedulerLock(name = "payout-reminders", lockAtMostFor = "PT10M")
     public void firePendingPayoutReminders() {
         int graceDays = scheduleConfigRepository.findAll().stream()
                 .findFirst()

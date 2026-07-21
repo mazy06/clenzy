@@ -364,7 +364,7 @@ class OwnerStatementServiceTest {
             return p;
         }
 
-        private ProviderExpense cleaningExpense(BigDecimal billedTtc, BigDecimal recommendedCost) {
+        private ProviderExpense cleaningExpense(OwnerPayout payout, BigDecimal billedTtc, BigDecimal recommendedCost) {
             Property property = new Property();
             property.setName("Duplex Marrakech");
 
@@ -372,6 +372,7 @@ class OwnerStatementServiceTest {
             intervention.setRecommendedCost(recommendedCost);
 
             ProviderExpense expense = new ProviderExpense();
+            expense.setOwnerPayout(payout);
             expense.setCategory(ExpenseCategory.CLEANING);
             expense.setAmountTtc(billedTtc);
             expense.setIntervention(intervention);
@@ -392,8 +393,8 @@ class OwnerStatementServiceTest {
             when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
             OwnerPayout p = paidPayoutWithId(7L);
             when(payoutRepository.findByOwnerId(1L, 100L)).thenReturn(List.of(p));
-            when(providerExpenseRepository.findByPayoutIdAndOrgId(7L, 100L))
-                    .thenReturn(List.of(cleaningExpense(new BigDecimal("120.00"), new BigDecimal("95.00"))));
+            when(providerExpenseRepository.findByPayoutIdInAndOrgId(List.of(7L), 100L))
+                    .thenReturn(List.of(cleaningExpense(p, new BigDecimal("120.00"), new BigDecimal("95.00"))));
 
             service.sendStatement(1L, 100L, LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 31), "Co.");
 
@@ -409,8 +410,8 @@ class OwnerStatementServiceTest {
             when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
             OwnerPayout p = paidPayoutWithId(7L);
             when(payoutRepository.findByOwnerId(1L, 100L)).thenReturn(List.of(p));
-            when(providerExpenseRepository.findByPayoutIdAndOrgId(7L, 100L))
-                    .thenReturn(List.of(cleaningExpense(new BigDecimal("98.00"), new BigDecimal("95.00"))));
+            when(providerExpenseRepository.findByPayoutIdInAndOrgId(List.of(7L), 100L))
+                    .thenReturn(List.of(cleaningExpense(p, new BigDecimal("98.00"), new BigDecimal("95.00"))));
 
             service.sendStatement(1L, 100L, LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 31), "Co.");
 
@@ -427,10 +428,10 @@ class OwnerStatementServiceTest {
             OwnerPayout p = paidPayoutWithId(7L);
             when(payoutRepository.findByOwnerId(1L, 100L)).thenReturn(List.of(p));
 
-            ProviderExpense maintenance = cleaningExpense(new BigDecimal("120.00"), new BigDecimal("95.00"));
+            ProviderExpense maintenance = cleaningExpense(p, new BigDecimal("120.00"), new BigDecimal("95.00"));
             maintenance.setCategory(ExpenseCategory.MAINTENANCE);
-            ProviderExpense noSnapshot = cleaningExpense(new BigDecimal("120.00"), null);
-            when(providerExpenseRepository.findByPayoutIdAndOrgId(7L, 100L))
+            ProviderExpense noSnapshot = cleaningExpense(p, new BigDecimal("120.00"), null);
+            when(providerExpenseRepository.findByPayoutIdInAndOrgId(List.of(7L), 100L))
                     .thenReturn(List.of(maintenance, noSnapshot));
 
             service.sendStatement(1L, 100L, LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 31), "Co.");
@@ -451,7 +452,7 @@ class OwnerStatementServiceTest {
 
             service.sendStatement(1L, 100L, LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 31), "Co.");
 
-            verify(providerExpenseRepository, never()).findByPayoutIdAndOrgId(any(), any());
+            verify(providerExpenseRepository, never()).findByPayoutIdInAndOrgId(any(), any());
         }
     }
 

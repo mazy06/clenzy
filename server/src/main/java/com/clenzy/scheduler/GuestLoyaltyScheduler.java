@@ -5,6 +5,7 @@ import com.clenzy.booking.service.GuestReferralService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -30,6 +31,7 @@ public class GuestLoyaltyScheduler {
 
     /** Tous les jours à 04:45 : crédite les séjours dont le check-out est passé (cutoff = aujourd'hui). */
     @Scheduled(cron = "0 45 4 * * *")
+    @SchedulerLock(name = "guest-loyalty-credit", lockAtMostFor = "PT10M")
     public void creditCompletedStays() {
         LocalDate cutoff = LocalDate.now();
         int credited = creditService.creditCompletedStays(cutoff);

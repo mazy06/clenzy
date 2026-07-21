@@ -4,6 +4,7 @@ import com.clenzy.service.ai.AiCreditGrantService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 /**
@@ -26,6 +27,7 @@ public class AiCreditMonthlyRefreshScheduler {
 
     /** Le 1er de chaque mois à 05h00 (Europe/Paris), avant l'activité de la journée. */
     @Scheduled(cron = "0 0 5 1 * *", zone = "Europe/Paris")
+    @SchedulerLock(name = "ai-credit-monthly-refresh", lockAtMostFor = "PT10M")
     public void refreshPrepaidSubscribers() {
         try {
             int refreshed = grantService.refreshMonthlyForPrepaidSubscribers();

@@ -14,6 +14,7 @@ import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -56,6 +57,7 @@ public class NoiseAlertScheduler {
      * Toutes les 5 minutes : verifie les configs actives et poll les capteurs.
      */
     @Scheduled(cron = "0 */5 * * * *")
+    @SchedulerLock(name = "noise-alert-check", lockAtMostFor = "PT5M", lockAtLeastFor = "PT30S")
     public void checkNoiseLevels() {
         List<NoiseAlertConfig> configs = configRepository.findAllEnabledWithTimeWindows();
         if (configs.isEmpty()) return;

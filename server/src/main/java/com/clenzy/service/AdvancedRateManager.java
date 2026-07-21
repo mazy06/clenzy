@@ -397,7 +397,7 @@ public class AdvancedRateManager {
 
         if (targetDate.isAfter(to)) return;
 
-        applyYieldRuleToDate(rule, property, targetDate, orgId);
+        applyYieldRuleToDates(rule, property, targetDate, targetDate.plusDays(1), orgId);
     }
 
     private void evaluateLastMinuteFill(YieldRule rule, Property property,
@@ -405,8 +405,29 @@ public class AdvancedRateManager {
         int daysThreshold = condition.has("withinDays") ? condition.get("withinDays").asInt() : DEFAULT_WITHIN_DAYS;
         LocalDate limit = from.plusDays(daysThreshold);
 
-        for (LocalDate date = from; date.isBefore(limit); date = date.plusDays(1)) {
-            applyYieldRuleToDate(rule, property, date, orgId);
+        applyYieldRuleToDates(rule, property, from, limit, orgId);
+    }
+
+    /**
+     * Applique une regle de yield a chaque date de la plage [from, toExclusive).
+     *
+     * <p>Batch (audit perf P1-3) : les overrides existants et les prix de base
+     * (hors overrides YIELD_RULE) de toute la plage sont precharges en 2-3
+     * requetes via {@link PriceEngine#resolvePriceRange(Long, LocalDate,
+     * LocalDate, Long, Set)}, au lieu de 2-4 requetes par date. La semantique
+     * par date de {@link #applyYieldRuleToDate} est inchangee.</p>
+     */
+    private void applyYieldRuleToDates(YieldRule rule, Property property,
+                                       LocalDate from, LocalDate toExclusive, Long orgId) {
+        Map<LocalDate, RateOverride> overridesByDate = rateOverrideRepository
+                .findByPropertyIdAndDateRange(property.getId(), from, toExclusive, orgId).stream()
+                .collect(Collectors.toMap(RateOverride::getDate, override -> override));
+        Map<LocalDate, BigDecimal> basePrices = priceEngine.resolvePriceRange(
+                property.getId(), from, toExclusive, orgId, Set.of(YIELD_RULE_SOURCE));
+
+        for (LocalDate date = from; date.isBefore(toExclusive); date = date.plusDays(1)) {
+            applyYieldRuleToDate(rule, property, date,
+                    overridesByDate.get(date), basePrices.get(date), orgId);
         }
     }
 
@@ -421,28 +442,27 @@ public class AdvancedRateManager {
      *   <li>si la regle n'a pas de minPrice/maxPrice, un garde-fou ±50% du prix
      *       de base est applique ({@link #DEFAULT_YIELD_CLAMP_RATIO}).</li>
      * </ul>
+     *
+     * @param existing  override deja present sur la date (precharge), ou null
+     * @param basePrice prix de base HORS overrides YIELD_RULE (precharge), ou null
      */
-    private void applyYieldRuleToDate(YieldRule rule, Property property, LocalDate date, Long orgId) {
-        Optional<RateOverride> existing = rateOverrideRepository
-                .findByPropertyIdAndDate(property.getId(), date, orgId);
-
-        if (existing.isPresent() && !YIELD_RULE_SOURCE.equals(existing.get().getSource())) {
+    private void applyYieldRuleToDate(YieldRule rule, Property property, LocalDate date,
+                                      RateOverride existing, BigDecimal basePrice, Long orgId) {
+        if (existing != null && !YIELD_RULE_SOURCE.equals(existing.getSource())) {
             log.debug("YieldRule '{}' : override source={} existant pour property={} date={}, non ecrase",
-                    rule.getName(), existing.get().getSource(), property.getId(), date);
+                    rule.getName(), existing.getSource(), property.getId(), date);
             return;
         }
 
-        BigDecimal basePrice = priceEngine.resolvePrice(property.getId(), date, orgId,
-                Set.of(YIELD_RULE_SOURCE));
         if (basePrice == null) return;
 
         BigDecimal adjustedPrice = applyYieldAdjustment(basePrice, rule);
         BigDecimal clampedPrice = clampWithDefaultBounds(adjustedPrice, basePrice, rule);
 
-        BigDecimal currentPrice = existing.map(RateOverride::getNightlyPrice).orElse(basePrice);
+        BigDecimal currentPrice = existing != null ? existing.getNightlyPrice() : basePrice;
         if (clampedPrice.compareTo(currentPrice) != 0) {
             createOrUpdateOverride(property, date, currentPrice, clampedPrice,
-                    existing.orElse(null), rule, orgId);
+                    existing, rule, orgId);
         }
     }
 

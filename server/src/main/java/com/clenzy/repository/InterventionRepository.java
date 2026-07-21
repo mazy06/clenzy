@@ -66,6 +66,37 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
             @Param("pendingStatus") com.clenzy.model.PaymentStatus pendingStatus);
 
     /**
+     * Totaux financiers des rapports PDF sur la fenêtre planifiée [from, toExclusive) :
+     * {@code [Long count, BigDecimal sumEstimatedCostPaid, BigDecimal sumEstimatedCost]}
+     * (une seule ligne ; les SUM sont {@code null} si aucune ligne ne matche).
+     * Org optionnelle ({@code null} = platform staff cross-org). Remplace le scan
+     * findAll() + filtre dates en mémoire (audit perf 2026-07-21).
+     */
+    @Query("SELECT COUNT(i), "
+        + "SUM(CASE WHEN i.paymentStatus = com.clenzy.model.PaymentStatus.PAID "
+        + "THEN COALESCE(i.estimatedCost, 0) ELSE 0 END), "
+        + "SUM(COALESCE(i.estimatedCost, 0)) "
+        + "FROM Intervention i WHERE i.scheduledDate >= :from AND i.scheduledDate < :toExclusive "
+        + "AND (:orgId IS NULL OR i.organizationId = :orgId)")
+    List<Object[]> financialTotalsForPdfReport(
+            @Param("from") LocalDateTime from,
+            @Param("toExclusive") LocalDateTime toExclusive,
+            @Param("orgId") Long orgId);
+
+    /**
+     * Compteurs par statut sur la fenêtre planifiée [from, toExclusive) — rapports
+     * PDF. Lignes {@code [InterventionStatus, Long count]}. Org optionnelle.
+     */
+    @Query("SELECT i.status, COUNT(i) FROM Intervention i "
+        + "WHERE i.scheduledDate >= :from AND i.scheduledDate < :toExclusive "
+        + "AND (:orgId IS NULL OR i.organizationId = :orgId) "
+        + "GROUP BY i.status")
+    List<Object[]> countByStatusInWindowForPdfReport(
+            @Param("from") LocalDateTime from,
+            @Param("toExclusive") LocalDateTime toExclusive,
+            @Param("orgId") Long orgId);
+
+    /**
      * Répartition par statut (écran Rapports Baitly) — scopes optionnels :
      * org strict ; owner (HOST) ; assigné (rôles opérationnels). Lignes
      * {@code [InterventionStatus, Long count]}.

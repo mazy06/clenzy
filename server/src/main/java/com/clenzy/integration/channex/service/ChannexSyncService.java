@@ -15,6 +15,7 @@ import com.clenzy.service.PriceEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -609,6 +610,7 @@ public class ChannexSyncService {
      * par mapping.</p>
      */
     @Scheduled(fixedDelay = 60 * 60 * 1000L, initialDelay = 5 * 60 * 1000L)
+    @SchedulerLock(name = "channex-retry-failed-mappings", lockAtMostFor = "PT30M")
     public void retryFailedMappings() {
         List<ChannexPropertyMapping> failed = mappingRepository.findAllInError();
         if (failed.isEmpty()) return;

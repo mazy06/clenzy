@@ -9,6 +9,7 @@ import com.clenzy.exception.NotFoundException;
 import com.clenzy.exception.KeycloakOperationException;
 import com.clenzy.integration.channel.HostProfileUpdate;
 import com.clenzy.model.OrgMemberRole;
+import com.clenzy.model.Organization;
 import com.clenzy.model.OrganizationMember;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
@@ -32,7 +33,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.domain.Page;
@@ -256,13 +259,18 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserDto> list() {
-        return userRepository.findAll().stream().map(this::toDto).collect(Collectors.toList());
+        List<User> users = userRepository.findAll();
+        // Batch : 1 findAllById au lieu d'1 SELECT organisation par utilisateur.
+        Map<Long, String> orgNames = organizationNamesFor(users);
+        return users.stream().map(user -> toDto(user, orgNames)).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public Page<UserDto> list(Pageable pageable) {
         Page<User> page = userRepository.findAll(pageable);
-        Page<UserDto> dtos = page.map(this::toDto);
+        // Batch : 1 findAllById au lieu d'1 SELECT organisation par utilisateur liste.
+        Map<Long, String> orgNames = organizationNamesFor(page.getContent());
+        Page<UserDto> dtos = page.map(user -> toDto(user, orgNames));
         // Enrichir avec le role d'organisation : un Manager d'org ne doit pas
         // apparaitre "Proprietaire" dans l'Annuaire (les roles de direction d'org
         // OWNER/ADMIN/MANAGER/MEMBER sont mappes sur UserRole.HOST cote plateforme).
@@ -501,7 +509,27 @@ public class UserService {
         };
     }
 
+    /**
+     * Resolution batch des noms d'organisation pour un lot d'utilisateurs
+     * (1 requete IN au lieu d'1 SELECT par utilisateur — audit perf 2026-07-21).
+     */
+    private Map<Long, String> organizationNamesFor(List<User> users) {
+        Set<Long> orgIds = users.stream()
+                .map(User::getOrganizationId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (orgIds.isEmpty()) {
+            return Map.of();
+        }
+        return organizationRepository.findAllById(orgIds).stream()
+                .collect(Collectors.toMap(Organization::getId, Organization::getName, (a, b) -> a));
+    }
+
     private UserDto toDto(User user) {
+        return toDto(user, organizationNamesFor(List.of(user)));
+    }
+
+    private UserDto toDto(User user, Map<Long, String> organizationNames) {
         UserDto dto = new UserDto();
         dto.id = user.getId();
         dto.firstName = user.getFirstName();
@@ -543,12 +571,13 @@ public class UserService {
         dto.services = user.getServices();
         dto.servicesDevis = user.getServicesDevis();
         dto.deferredPayment = user.isDeferredPayment();
-        // Organisation rattachee
+        // Organisation rattachee (nom resolu en batch par l'appelant)
         dto.organizationId = user.getOrganizationId();
         if (user.getOrganizationId() != null) {
-            organizationRepository.findById(user.getOrganizationId()).ifPresent(org ->
-                dto.organizationName = org.getName()
-            );
+            String orgName = organizationNames.get(user.getOrganizationId());
+            if (orgName != null) {
+                dto.organizationName = orgName;
+            }
         }
         return dto;
     }

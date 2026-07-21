@@ -499,10 +499,15 @@ public class ManagerService {
                 .map(this::convertToUserAssociationDto)
                 .collect(Collectors.toList());
 
-        // Users via direct manager_users association
+        // Users via direct manager_users association — 1 findAllById (IN) au lieu
+        // d'1 findById par association (audit perf 2026-07-21). L'ordre des
+        // associations est conserve via la map par id.
         final List<ManagerUser> managerUsers = managerUserRepository.findByManagerIdAndIsActiveTrue(managerId, tenantContext.getRequiredOrganizationId());
+        final Map<Long, User> usersById = userRepository.findAllById(
+                        managerUsers.stream().map(ManagerUser::getUserId).toList()).stream()
+                .collect(Collectors.toMap(User::getId, user -> user));
         final List<UserAssociationDto> usersFromDirect = managerUsers.stream()
-                .map(mu -> userRepository.findById(mu.getUserId()).orElse(null))
+                .map(mu -> usersById.get(mu.getUserId()))
                 .filter(user -> user != null)
                 .map(this::convertUserToAssociationDto)
                 .collect(Collectors.toList());
@@ -511,12 +516,15 @@ public class ManagerService {
         users.addAll(usersFromPortfolios);
         users.addAll(usersFromDirect);
 
-        // Properties via manager_properties
+        // Properties via manager_properties — meme batch findAllById (IN).
         final List<PropertyAssociationDto> properties = new ArrayList<>();
         final List<ManagerProperty> managerProperties = managerPropertyRepository.findByManagerId(managerId, tenantContext.getRequiredOrganizationId());
+        final Map<Long, Property> propertiesById = propertyRepository.findAllById(
+                        managerProperties.stream().map(ManagerProperty::getPropertyId).toList()).stream()
+                .collect(Collectors.toMap(Property::getId, property -> property));
 
         for (ManagerProperty mp : managerProperties) {
-            final Property property = propertyRepository.findById(mp.getPropertyId()).orElse(null);
+            final Property property = propertiesById.get(mp.getPropertyId());
             if (property != null) {
                 final PropertyAssociationDto dto = convertToPropertyAssociationDto(property);
                 dto.setAssignedAt(mp.getAssignedAt() != null
@@ -527,10 +535,13 @@ public class ManagerService {
             }
         }
 
-        // Teams via manager_teams
+        // Teams via manager_teams — meme batch findAllById (IN).
         final List<ManagerTeam> managerTeams = managerTeamRepository.findByManagerIdAndIsActiveTrue(managerId, tenantContext.getRequiredOrganizationId());
+        final Map<Long, Team> teamsById = teamRepository.findAllById(
+                        managerTeams.stream().map(ManagerTeam::getTeamId).toList()).stream()
+                .collect(Collectors.toMap(Team::getId, team -> team));
         final List<TeamAssociationDto> teams = managerTeams.stream()
-                .map(mt -> teamRepository.findById(mt.getTeamId()).orElse(null))
+                .map(mt -> teamsById.get(mt.getTeamId()))
                 .filter(team -> team != null)
                 .map(this::convertToTeamAssociationDto)
                 .collect(Collectors.toList());

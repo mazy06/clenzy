@@ -4,6 +4,7 @@ import com.clenzy.service.EnvironmentSensorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 /**
@@ -25,6 +26,7 @@ public class EnvironmentSensorScheduler {
 
     /** Toutes les 3 minutes : poll fumee/mouvement + alertes. */
     @Scheduled(cron = "0 */3 * * * *")
+    @SchedulerLock(name = "environment-sensor-poll", lockAtMostFor = "PT5M", lockAtLeastFor = "PT30S")
     public void pollSensors() {
         try {
             int processed = sensorService.pollAndAlert();

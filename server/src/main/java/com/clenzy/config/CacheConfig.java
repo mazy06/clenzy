@@ -29,14 +29,35 @@ import java.util.UUID;
 public class CacheConfig {
 
     /**
-     * Crée un ObjectMapper configuré avec le support JSR310 pour les types date/time Java 8
-     * et le typage pour préserver les types lors de la désérialisation depuis Redis
+     * MixIn appliqué aux DTOs record mis en cache : force l'écriture du type id {@code @class}.
+     *
+     * <p>Les records sont des classes FINALES : {@code DefaultTyping.NON_FINAL} ne leur écrit
+     * PAS de type id → une valeur record relue depuis Redis (L2) échouait en
+     * {@code InvalidTypeIdException} ("missing type id property '@class'") dès que le L1
+     * Caffeine (30s) était expiré. Le MixIn est scopé à CE mapper (cache Redis uniquement) :
+     * les réponses HTTP de ces mêmes DTOs ne sont pas polluées par {@code @class}.</p>
+     *
+     * <p>Seuls les types RACINE (valeur cachée ou élément d'une liste racine) ont besoin du
+     * MixIn — les records imbriqués sont désérialisés via leur type déclaré. Les listes
+     * cachées doivent être des {@code ArrayList} (non-finale) : {@code List.of()} /
+     * {@code stream().toList()} produisent des ImmutableCollections finales, donc sans type id.</p>
      */
-    private ObjectMapper createObjectMapper() {
+    @com.fasterxml.jackson.annotation.JsonTypeInfo(
+        use = com.fasterxml.jackson.annotation.JsonTypeInfo.Id.CLASS,
+        include = com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY,
+        property = "@class")
+    interface ForceClassTypeInfoMixin {}
+
+    /**
+     * Crée un ObjectMapper configuré avec le support JSR310 pour les types date/time Java 8
+     * et le typage pour préserver les types lors de la désérialisation depuis Redis.
+     * Package-private static : visible pour les tests de round-trip sérialisation.
+     */
+    static ObjectMapper createObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        
+
         // Activer le typage pour préserver les types lors de la désérialisation depuis Redis
         // (évite les ClassCastException LinkedHashMap au lieu de PropertyDto).
         // Whitelist stricte (BasicPolymorphicTypeValidator) au lieu de LaissezFaire :
@@ -54,7 +75,14 @@ public class CacheConfig {
             com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping.NON_FINAL,
             com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY
         );
-        
+
+        // DTOs record mis en cache (booking engine public) : type id explicite requis
+        // pour survivre au round-trip Redis (cf. ForceClassTypeInfoMixin).
+        mapper.addMixIn(com.clenzy.booking.dto.PublicPropertyDto.class, ForceClassTypeInfoMixin.class);
+        mapper.addMixIn(com.clenzy.booking.dto.PublicSearchFiltersDto.class, ForceClassTypeInfoMixin.class);
+        mapper.addMixIn(com.clenzy.booking.dto.PublicPropertyDetailDto.class, ForceClassTypeInfoMixin.class);
+        mapper.addMixIn(com.clenzy.booking.dto.PropertyCalendarDto.class, ForceClassTypeInfoMixin.class);
+
         return mapper;
     }
 
@@ -166,6 +194,23 @@ public class CacheConfig {
         cacheConfigurations.put("booking-engine-price-calendar", defaultConfig
                 .entryTtl(Duration.ofMinutes(10))
                 .prefixCacheNameWith("clenzy:booking-engine-price-calendar:"));
+
+        // Cache recherche booking-engine public (10 minutes) : listing filtré des propriétés
+        // (PREMIÈRE requête de chaque affichage du widget — fetch-join photos + 3 requêtes batch
+        // + conversion devise par logement) + facettes /search-filters. Évincé par
+        // BookingEngineSearchCacheEvictor sur changement de prix/dispo ; les changements de
+        // config (mode MOCK/REAL, curation featured) changent la CLÉ, donc effet immédiat.
+        cacheConfigurations.put("booking-engine-search", defaultConfig
+                .entryTtl(Duration.ofMinutes(10))
+                .prefixCacheNameWith("clenzy:booking-engine-search:"));
+
+        // Cache des taux de change (12 heures). Les taux sont journaliers (fetch 07:00 UTC +
+        // refresh admin) et les deux chemins d'écriture évincent ce cache (@CacheEvict dans
+        // ExchangeRateProviderService) ; le TTL 12h garantit qu'aucune entrée ne survit à un
+        // cycle de rafraîchissement même si l'éviction échouait.
+        cacheConfigurations.put("exchange-rates", defaultConfig
+                .entryTtl(Duration.ofHours(12))
+                .prefixCacheNameWith("clenzy:exchange-rates:"));
 
         RedisCacheManager redisCacheManager = RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(defaultConfig)

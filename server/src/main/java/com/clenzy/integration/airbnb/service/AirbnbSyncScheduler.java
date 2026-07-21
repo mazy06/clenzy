@@ -8,6 +8,7 @@ import com.clenzy.integration.airbnb.repository.AirbnbListingMappingRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -54,6 +55,7 @@ public class AirbnbSyncScheduler {
      * Toutes les 30 minutes. Groupe par org pour isoler les erreurs.
      */
     @Scheduled(fixedRate = 1800000) // 30 min
+    @SchedulerLock(name = "airbnb-token-refresh", lockAtMostFor = "PT10M")
     public void refreshExpiringTokens() {
         if (!config.isSyncEnabled()) {
             return;
@@ -98,6 +100,7 @@ public class AirbnbSyncScheduler {
      * Toutes les 15 minutes par defaut. Groupe par org pour isoler les erreurs.
      */
     @Scheduled(fixedRateString = "#{${airbnb.sync.interval-minutes:15} * 60000}")
+    @SchedulerLock(name = "airbnb-sync-reservations", lockAtMostFor = "PT15M")
     public void syncReservations() {
         if (!config.isSyncEnabled()) {
             return;

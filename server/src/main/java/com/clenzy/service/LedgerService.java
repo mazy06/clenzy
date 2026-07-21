@@ -116,4 +116,13 @@ public class LedgerService {
     public List<LedgerEntry> getEntriesByReference(LedgerReferenceType refType, String refId) {
         return ledgerEntryRepository.findByReferenceTypeAndReferenceId(refType, refId);
     }
+
+    /**
+     * True if at least one entry exists for the reference — SQL EXISTS instead of
+     * loading the full list for an isEmpty check (perf audit 2026-07-21).
+     */
+    @Transactional(readOnly = true)
+    public boolean hasEntriesForReference(LedgerReferenceType refType, String refId) {
+        return ledgerEntryRepository.existsByReferenceTypeAndReferenceId(refType, refId);
+    }
 }

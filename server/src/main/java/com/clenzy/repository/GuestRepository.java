@@ -41,6 +41,22 @@ public interface GuestRepository extends JpaRepository<Guest, Long> {
     Page<Guest> findByOrganizationId(@Param("orgId") Long orgId, Pageable pageable);
 
     /**
+     * Guests d'une organisation filtres par canal (non chiffre — filtrable en SQL).
+     * Pre-filtre SQL de la page Voyageurs : seuls search (champs chiffres) reste
+     * filtre en memoire.
+     */
+    @Query("SELECT g FROM Guest g WHERE g.organizationId = :orgId AND g.channel = :channel " +
+           "ORDER BY g.lastName, g.firstName")
+    List<Guest> findByOrganizationIdAndChannel(
+            @Param("orgId") Long orgId, @Param("channel") GuestChannel channel);
+
+    /**
+     * Guests toutes organisations filtres par canal (vue platform staff).
+     */
+    @Query("SELECT g FROM Guest g WHERE g.channel = :channel ORDER BY g.lastName, g.firstName")
+    List<Guest> findAllByChannelOrderByLastName(@Param("channel") GuestChannel channel);
+
+    /**
      * Guest par ID avec verification organisation.
      */
     @Query("SELECT g FROM Guest g WHERE g.id = :id AND g.organizationId = :orgId")

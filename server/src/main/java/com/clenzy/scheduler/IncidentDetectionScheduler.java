@@ -12,6 +12,7 @@ import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -69,6 +70,7 @@ public class IncidentDetectionScheduler {
     }
 
     @Scheduled(cron = "0 */5 * * * *")
+    @SchedulerLock(name = "incident-detection", lockAtMostFor = "PT5M", lockAtLeastFor = "PT30S")
     public void detectIncidents() {
         checkPostgresql();
         checkRedis();

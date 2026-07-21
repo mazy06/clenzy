@@ -22,9 +22,12 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * Importer specialise pour les artefacts tarifaires Clenzy depuis Channex —
@@ -233,6 +236,13 @@ public class ChannexPricingImporter {
             mapping.getChannexPropertyId(), mapping.getChannexDefaultRatePlanId(), from, to);
         if (opt.isEmpty() || opt.get().isEmpty()) return 0;
         BigDecimal defaultPrice = info.defaultPrice();
+        // Batch (audit perf P2-2) : les dates deja surchargees de la plage sont
+        // prechargees en UNE requete (au lieu d'un SELECT par entree). Les saves
+        // restent unitaires pour conserver la semantique best-effort par entree.
+        Set<LocalDate> existingDates = rateOverrideRepository
+            .findByPropertyIdAndDateRange(prop.getId(), from, to.plusDays(1), orgId).stream()
+            .map(RateOverride::getDate)
+            .collect(Collectors.toCollection(HashSet::new));
         int created = 0;
         for (JsonNode entry : opt.get()) {
             try {
@@ -247,7 +257,7 @@ public class ChannexPricingImporter {
                     rate = new BigDecimal(rateStr);
                 } catch (Exception parseError) { continue; }
                 if (rate.compareTo(defaultPrice) == 0) continue;
-                if (rateOverrideRepository.findByPropertyIdAndDate(prop.getId(), date, orgId).isPresent()) continue;
+                if (existingDates.contains(date)) continue;
                 RateOverride override = new RateOverride();
                 override.setProperty(prop);
                 override.setOrganizationId(orgId);
@@ -258,6 +268,7 @@ public class ChannexPricingImporter {
                     ? info.currency().toUpperCase() : prop.getDefaultCurrency());
                 override.setCreatedBy("channex-import");
                 rateOverrideRepository.save(override);
+                existingDates.add(date); // dedup au sein du meme run (doublons du feed)
                 created++;
             } catch (Exception e) {
                 log.warn("ChannexPricing[RATE_OVERRIDES]: erreur entry property={}: {}",

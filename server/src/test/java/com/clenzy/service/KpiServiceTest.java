@@ -4,7 +4,6 @@ import com.clenzy.config.SyncMetrics;
 import com.clenzy.dto.kpi.KpiDtos.KpiHistoryDto;
 import com.clenzy.dto.kpi.KpiDtos.KpiItemDto;
 import com.clenzy.dto.kpi.KpiDtos.KpiSnapshotDto;
-import com.clenzy.integration.channel.model.ChannelConnection;
 import com.clenzy.integration.channel.repository.ChannelConnectionRepository;
 import com.clenzy.integration.channel.repository.ChannelSyncLogRepository;
 import com.clenzy.model.KpiSnapshot;
@@ -120,10 +119,9 @@ class KpiServiceTest {
                 .register(registry)
                 .record(50, TimeUnit.MILLISECONDS);
 
-        // Sync availability: all active
-        ChannelConnection conn = mock(ChannelConnection.class);
-        lenient().when(connectionRepository.findAllCrossOrg()).thenReturn(List.of(conn, conn));
-        lenient().when(connectionRepository.findAllActive()).thenReturn(List.of(conn, conn));
+        // Sync availability: all active (COUNT SQL — audit perf 2026-07-21)
+        lenient().when(connectionRepository.count()).thenReturn(2L);
+        lenient().when(connectionRepository.countAllActive()).thenReturn(2L);
 
         // Outbox drain: no pending events
         lenient().when(outboxEventRepository.findFirstByStatusOrderByCreatedAtAsc("PENDING")).thenReturn(java.util.Optional.empty());
@@ -630,8 +628,8 @@ class KpiServiceTest {
         @Test
         void whenNoConnections_thenDefaultsTo100Pct() {
             stubAllKpisOk();
-            when(connectionRepository.findAllCrossOrg()).thenReturn(Collections.emptyList());
-            when(connectionRepository.findAllActive()).thenReturn(Collections.emptyList());
+            when(connectionRepository.count()).thenReturn(0L);
+            when(connectionRepository.countAllActive()).thenReturn(0L);
 
             KpiSnapshotDto snapshot = kpiService.computeCurrentSnapshot();
             KpiItemDto sa = findKpi(snapshot.kpis(), "SYNC_AVAILABILITY");

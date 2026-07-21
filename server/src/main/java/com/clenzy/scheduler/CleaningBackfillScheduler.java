@@ -21,6 +21,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -86,6 +87,7 @@ public class CleaningBackfillScheduler {
     }
 
     @Scheduled(cron = "0 30 6 * * *") // Tous les jours a 6h30, avant la journee de menage
+    @SchedulerLock(name = "cleaning-backfill-today", lockAtMostFor = "PT10M")
     public void backfillTodaysCheckouts() {
         Set<Long> optedInOrgIds = automationRuleRepository.findByEnabledTrue().stream()
             .filter(rule -> rule.getActionType() == AutomationAction.CREATE_CLEANING_REQUEST)
@@ -163,6 +165,7 @@ public class CleaningBackfillScheduler {
      * les suivantes.</p>
      */
     @Scheduled(cron = "0 0 18 * * *") // La veille en soiree : laisse le temps de planifier le menage
+    @SchedulerLock(name = "cleaning-scan-tomorrow-checkouts", lockAtMostFor = "PT10M")
     public void scanTomorrowCheckoutsMissingCleaning() {
         Set<Long> optedInOrgIds = automationRuleRepository.findByEnabledTrue().stream()
             .filter(rule -> rule.getActionType() == AutomationAction.CREATE_CLEANING_REQUEST)

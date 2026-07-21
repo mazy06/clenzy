@@ -428,4 +428,38 @@ class ExchangeRateProviderServiceTest {
             verify(restTemplate).getForObject(anyString(), eq(Map.class));
         }
     }
+
+    /**
+     * Câblage du cache {@code exchange-rates} : getRate est appelé PAR LOGEMENT dans les conversions
+     * du booking engine (1-2 requêtes DB par appel sinon), et les DEUX chemins d'écriture des taux
+     * doivent évincer le cache — refreshRates porte sa propre annotation car son appel interne à
+     * fetchDailyRates est une self-invocation qui contourne le proxy Spring.
+     */
+    @Nested
+    class CacheWiring {
+
+        @Test
+        void getRate_isCachedInExchangeRatesWithPairAndDateKey() throws NoSuchMethodException {
+            var m = ExchangeRateProviderService.class.getMethod(
+                "getRate", String.class, String.class, LocalDate.class);
+            var cacheable = m.getAnnotation(org.springframework.cache.annotation.Cacheable.class);
+
+            assertThat(cacheable).isNotNull();
+            assertThat(cacheable.value()).containsExactly("exchange-rates");
+            assertThat(cacheable.key()).contains("#baseCurrency").contains("#targetCurrency").contains("#date");
+            // Le cas identité (base == target) retourne 1 sans DB : inutile de le cacher.
+            assertThat(cacheable.condition()).contains("equalsIgnoreCase");
+        }
+
+        @Test
+        void bothRateWritePaths_evictExchangeRatesCache() throws NoSuchMethodException {
+            for (String methodName : new String[] {"fetchDailyRates", "refreshRates"}) {
+                var evict = ExchangeRateProviderService.class.getMethod(methodName)
+                    .getAnnotation(org.springframework.cache.annotation.CacheEvict.class);
+                assertThat(evict).as("@CacheEvict sur " + methodName).isNotNull();
+                assertThat(evict.value()).containsExactly("exchange-rates");
+                assertThat(evict.allEntries()).isTrue();
+            }
+        }
+    }
 }

@@ -9,6 +9,7 @@ import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,6 +49,7 @@ public class AutoAssignScheduler {
      */
     @Scheduled(fixedDelay = 900_000) // 15 min
     @Transactional
+    @SchedulerLock(name = "auto-assign-retry", lockAtMostFor = "PT10M")
     public void retryPendingAutoAssignment() {
         List<Long> orgIds = serviceRequestRepository
             .findOrganizationIdsWithPendingUnassigned(ServiceRequestService.MAX_AUTO_ASSIGN_RETRIES);

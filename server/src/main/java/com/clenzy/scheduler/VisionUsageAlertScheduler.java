@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,6 +69,7 @@ public class VisionUsageAlertScheduler {
 
     /** Lundi 5h UTC. */
     @Scheduled(cron = "0 0 5 * * MON")
+    @SchedulerLock(name = "vision-usage-alert", lockAtMostFor = "PT10M")
     public void runWeekly() {
         runOnce();
     }

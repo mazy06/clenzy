@@ -30,6 +30,12 @@ import java.util.concurrent.CompletionException;
  * - Nettoyage : les events SENT > 7 jours sont supprimes periodiquement
  *
  * Le relay tourne toutes les 2 secondes et traite les events par batch.
+ *
+ * PAS de @SchedulerLock (choix delibere — mise en place ShedLock 2026-07-21) :
+ * le relay est at-least-once par design et les consumers Kafka sont idempotents.
+ * En multi-instance, un double envoi ponctuel est absorbe cote consumers, alors
+ * qu'un verrou serialiserait inutilement le drainage de l'outbox (le claim des
+ * events PENDING est deja un UPDATE conditionnel par lot).
  */
 @Service
 public class OutboxRelay {

@@ -10,6 +10,7 @@ import com.clenzy.service.automation.SendOwnerStatementExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -54,6 +55,7 @@ public class OwnerStatementScheduler {
 
     /** Le 1er du mois a 05:30 (Europe/Paris) : releve du mois ecoule. */
     @Scheduled(cron = "0 30 5 1 * *", zone = "Europe/Paris")
+    @SchedulerLock(name = "owner-monthly-statements", lockAtMostFor = "PT30M")
     public void fireMonthlyOwnerStatements() {
         List<Long> orgIds = automationRuleRepository.findByEnabledTrue().stream()
                 .filter(rule -> rule.getTriggerType() == AutomationTrigger.OWNER_MONTHLY_STATEMENT)

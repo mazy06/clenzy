@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -47,6 +48,7 @@ public class GoogleVrSyncScheduler {
      * Frequence configurable via google.vacation-rentals.sync.interval-minutes (defaut: 30 min).
      */
     @Scheduled(fixedRateString = "#{${google.vacation-rentals.sync.interval-minutes:30} * 60000}")
+    @SchedulerLock(name = "google-vr-push-ari", lockAtMostFor = "PT15M")
     public void pushAvailabilityAndRates() {
         if (!config.isConfigured()) {
             return;
@@ -83,6 +85,7 @@ public class GoogleVrSyncScheduler {
      * Toutes les 30 minutes.
      */
     @Scheduled(fixedRate = 1800000) // 30 min
+    @SchedulerLock(name = "google-vr-pull-bookings", lockAtMostFor = "PT15M")
     public void pullBookings() {
         if (!config.isConfigured()) {
             return;

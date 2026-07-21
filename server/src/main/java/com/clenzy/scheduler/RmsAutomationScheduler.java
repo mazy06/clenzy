@@ -8,6 +8,7 @@ import com.clenzy.tenant.TenantScopedExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -47,6 +48,7 @@ public class RmsAutomationScheduler {
     }
 
     @Scheduled(cron = "${clenzy.rms.automation.cron:0 50 4 * * *}")
+    @SchedulerLock(name = "rms-automation-daily", lockAtMostFor = "PT30M")
     public void runDaily() {
         final List<YieldOrgConfig> configs =
                 configRepository.findByOrphanGapEnabledTrueOrMinStayAutoEnabledTrue();

@@ -23,7 +23,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -56,10 +55,14 @@ class HousekeeperScoreServiceTest {
         }).toList();
     }
 
-    private void proofFor(long interventionId, boolean hasProof) {
-        when(interventionPhotoRepository.findByInterventionIdAndPhaseOrderByCreatedAtAsc(
-                eq(interventionId), eq(InterventionPhoto.PhotoPhase.AFTER), eq(ORG_ID)))
-                .thenReturn(hasProof ? List.of(mock(InterventionPhoto.class)) : List.of());
+    /**
+     * Stub de la requete batch (1 requete IN pour tout le lot — audit perf
+     * 2026-07-21) : IDs interroges → IDs ayant au moins une photo AFTER.
+     */
+    private void proofsFor(List<Long> queriedIds, List<Long> idsWithProof) {
+        when(interventionPhotoRepository.findInterventionIdsWithPhase(
+                eq(queriedIds), eq(InterventionPhoto.PhotoPhase.AFTER), eq(ORG_ID)))
+                .thenReturn(idsWithProof);
     }
 
     @Test
@@ -81,7 +84,7 @@ class HousekeeperScoreServiceTest {
         // 1 mission avec preuve : proofRate=1 mais volumeFactor=1/5 → score 20, pas 100.
         when(interventionRepository.findCompletedCleaningsSince(anyLong(), anyLong(), anyCollection(), any()))
                 .thenReturn(interventions(1L));
-        proofFor(1L, true);
+        proofsFor(List.of(1L), List.of(1L));
 
         HousekeeperScore score = service.computeScore(USER_ID, ORG_ID);
 
@@ -94,7 +97,7 @@ class HousekeeperScoreServiceTest {
     void whenFivePerfectMissions_thenFullScore() {
         when(interventionRepository.findCompletedCleaningsSince(anyLong(), anyLong(), anyCollection(), any()))
                 .thenReturn(interventions(1L, 2L, 3L, 4L, 5L));
-        for (long id = 1; id <= 5; id++) proofFor(id, true);
+        proofsFor(List.of(1L, 2L, 3L, 4L, 5L), List.of(1L, 2L, 3L, 4L, 5L));
 
         assertThat(service.computeScore(USER_ID, ORG_ID).score()).isEqualTo(100);
     }
@@ -104,11 +107,7 @@ class HousekeeperScoreServiceTest {
         // 5 missions, 3 avec preuve : proofRate=0.6, volumeFactor=1 → 60.
         when(interventionRepository.findCompletedCleaningsSince(anyLong(), anyLong(), anyCollection(), any()))
                 .thenReturn(interventions(1L, 2L, 3L, 4L, 5L));
-        proofFor(1L, true);
-        proofFor(2L, true);
-        proofFor(3L, true);
-        proofFor(4L, false);
-        proofFor(5L, false);
+        proofsFor(List.of(1L, 2L, 3L, 4L, 5L), List.of(1L, 2L, 3L));
 
         HousekeeperScore score = service.computeScore(USER_ID, ORG_ID);
 

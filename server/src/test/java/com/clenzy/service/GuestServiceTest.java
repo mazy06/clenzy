@@ -396,12 +396,10 @@ class GuestServiceTest {
             guest.setTotalStays(1);
             guest.setTotalSpent(BigDecimal.valueOf(100));
 
-            com.clenzy.model.Reservation r = new com.clenzy.model.Reservation();
-            r.setStatus("confirmed");
-            r.setTotalPrice(BigDecimal.valueOf(100));
-
             when(guestRepository.findAll()).thenReturn(List.of(guest));
-            when(reservationRepository.findByGuestId(1L)).thenReturn(List.of(r));
+            // Agregat SQL [guestId, count, totalSpent] — audit perf 2026-07-21
+            when(reservationRepository.aggregateConfirmedStaysByGuest())
+                    .thenReturn(List.<Object[]>of(new Object[]{1L, 1L, BigDecimal.valueOf(100)}));
 
             int updated = guestService.recalculateAllStats();
 
@@ -415,25 +413,36 @@ class GuestServiceTest {
             guest.setTotalStays(5);
             guest.setTotalSpent(BigDecimal.valueOf(500));
 
-            com.clenzy.model.Reservation r1 = new com.clenzy.model.Reservation();
-            r1.setStatus("confirmed");
-            r1.setTotalPrice(BigDecimal.valueOf(120));
-            com.clenzy.model.Reservation rCancelled = new com.clenzy.model.Reservation();
-            rCancelled.setStatus("cancelled");
-            rCancelled.setTotalPrice(BigDecimal.valueOf(50));
-            com.clenzy.model.Reservation rNullPrice = new com.clenzy.model.Reservation();
-            rNullPrice.setStatus("confirmed");
-            rNullPrice.setTotalPrice(null);
-
             when(guestRepository.findAll()).thenReturn(List.of(guest));
-            when(reservationRepository.findByGuestId(1L)).thenReturn(List.of(r1, rCancelled, rNullPrice));
+            // 2 sejours confirmes (dont 1 sans prix), 120 depenses — l'agregat SQL
+            // exclut deja les annulees et neutralise les prix null.
+            when(reservationRepository.aggregateConfirmedStaysByGuest())
+                    .thenReturn(List.<Object[]>of(new Object[]{1L, 2L, BigDecimal.valueOf(120)}));
             when(guestRepository.save(any(Guest.class))).thenAnswer(inv -> inv.getArgument(0));
 
             int updated = guestService.recalculateAllStats();
 
             assertThat(updated).isEqualTo(1);
-            assertThat(guest.getTotalStays()).isEqualTo(2); // r1 + rNullPrice (both confirmed)
-            assertThat(guest.getTotalSpent()).isEqualByComparingTo("120"); // only r1 has price
+            assertThat(guest.getTotalStays()).isEqualTo(2);
+            assertThat(guest.getTotalSpent()).isEqualByComparingTo("120");
+        }
+
+        @Test
+        void whenGuestHasNoConfirmedReservations_thenResetsToZero() {
+            Guest guest = buildGuest(1L, "Jean", "Dupont");
+            guest.setTotalStays(3);
+            guest.setTotalSpent(BigDecimal.valueOf(200));
+
+            when(guestRepository.findAll()).thenReturn(List.of(guest));
+            // Aucune ligne agregee pour ce guest → compteurs remis a zero.
+            when(reservationRepository.aggregateConfirmedStaysByGuest()).thenReturn(List.of());
+            when(guestRepository.save(any(Guest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            int updated = guestService.recalculateAllStats();
+
+            assertThat(updated).isEqualTo(1);
+            assertThat(guest.getTotalStays()).isZero();
+            assertThat(guest.getTotalSpent()).isEqualByComparingTo("0");
         }
     }
 }

@@ -13,12 +13,19 @@ import java.util.List;
 @Repository
 public interface GuestMessageLogRepository extends JpaRepository<GuestMessageLog, Long> {
 
+    /**
+     * Historique org borne ({@code Pageable}) — la table est cumulative,
+     * l'appelant limite aux N entrees les plus recentes (audit perf 2026-07-21).
+     * guest/template sont des ManyToOne : le fetch join reste compatible
+     * avec la pagination SQL (pas de collection fetch).
+     */
     @Query("SELECT gml FROM GuestMessageLog gml " +
            "LEFT JOIN FETCH gml.guest " +
            "LEFT JOIN FETCH gml.template " +
            "WHERE gml.organizationId = :orgId " +
            "ORDER BY gml.createdAt DESC")
-    List<GuestMessageLog> findByOrganizationIdOrderByCreatedAtDesc(@Param("orgId") Long organizationId);
+    List<GuestMessageLog> findByOrganizationIdOrderByCreatedAtDesc(
+        @Param("orgId") Long organizationId, org.springframework.data.domain.Pageable pageable);
 
     @Query("SELECT gml FROM GuestMessageLog gml " +
            "LEFT JOIN FETCH gml.guest " +
