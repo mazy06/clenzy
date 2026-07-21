@@ -12,6 +12,9 @@
 
 name: CI Backend
 
+# NOTE : un commit VIDE sur production ne declenche PAS ce workflow (filtres paths).
+# Pour rejouer un deploy dont le run est mort (ex. budget Actions epuise, 2026-07-21),
+# toucher ce fichier ou server/** dans le commit de relance.
 on:
   push:
     branches: [main, develop, production]
