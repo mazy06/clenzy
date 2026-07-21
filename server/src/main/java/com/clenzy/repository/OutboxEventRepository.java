@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,16 +40,20 @@ public interface OutboxEventRepository extends JpaRepository<OutboxEvent, Long> 
     Optional<OutboxEvent> findFirstByStatusOrderByCreatedAtAsc(String status);
 
     /**
-     * Marque un event comme SENT.
+     * Marque un event comme SENT. Transaction courte autonome : appele depuis
+     * les callbacks Kafka du relay, HORS transaction englobante.
      */
+    @Transactional
     @Modifying
     @Query("UPDATE OutboxEvent e SET e.status = 'SENT', e.sentAt = :sentAt " +
            "WHERE e.id = :id")
     int markAsSent(@Param("id") Long id, @Param("sentAt") LocalDateTime sentAt);
 
     /**
-     * Marque un event comme FAILED avec le message d'erreur.
+     * Marque un event comme FAILED avec le message d'erreur. Transaction
+     * courte autonome (cf. markAsSent).
      */
+    @Transactional
     @Modifying
     @Query("UPDATE OutboxEvent e SET e.status = 'FAILED', " +
            "e.retryCount = e.retryCount + 1, e.errorMessage = :errorMessage " +

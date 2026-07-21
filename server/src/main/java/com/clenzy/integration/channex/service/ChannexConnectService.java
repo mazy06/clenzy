@@ -1140,8 +1140,13 @@ public class ChannexConnectService {
      * C'est la valeur a utiliser au go-live d'une propriete (premier OTA
      * branche) et apres incident. {@code months 1-12} → fenetre restreinte
      * (rattrapage leger).</p>
+     *
+     * <p>Pas de @Transactional : pushProperty fait des appels HTTP Channex qui
+     * ne doivent pas tourner dans une transaction DB. Le repassage
+     * DISABLED→PENDING commit dans sa propre transaction courte (save) AVANT
+     * le push — semantique inchangee (le statut final est de toute facon
+     * re-ecrit par pushProperty selon le resultat).</p>
      */
-    @Transactional
     public ChannexSyncService.ChannexSyncResult resync(Long clenzyPropertyId, Long orgId, int months) {
         ChannexPropertyMapping mapping = mappingRepository.findByClenzyPropertyId(clenzyPropertyId, orgId)
             .orElseThrow(() -> new IllegalStateException(

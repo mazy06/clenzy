@@ -28,8 +28,12 @@ public interface ChannelMappingRepository extends JpaRepository<ChannelMapping, 
     /**
      * Tous les mappings actifs pour une propriete (tous channels confondus).
      * Utilise pour le fan-out outbound.
+     *
+     * JOIN FETCH : le fan-out (ChannelSyncService) tourne HORS transaction
+     * (appels HTTP externes) et accede a mapping.getConnection() apres la
+     * fermeture de la session — la connection doit etre chargee ici.
      */
-    @Query("SELECT cm FROM ChannelMapping cm JOIN cm.connection cc " +
+    @Query("SELECT cm FROM ChannelMapping cm JOIN FETCH cm.connection cc " +
            "WHERE cm.internalId = :propertyId AND cm.entityType = 'PROPERTY' " +
            "AND cm.syncEnabled = true AND cc.status = 'ACTIVE' " +
            "AND cm.organizationId = :orgId")

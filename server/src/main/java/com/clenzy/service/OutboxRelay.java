@@ -14,7 +14,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 /**
  * Relay asynchrone qui poll les events PENDING dans la table outbox_events
@@ -57,9 +60,13 @@ public class OutboxRelay {
 
     /**
      * Poll toutes les 2 secondes les events PENDING et les publie sur Kafka.
+     *
+     * <p>Volontairement SANS {@code @Transactional} (regle audit n°2 : pas
+     * d'I/O externe dans une transaction DB) : la lecture est autonome, les
+     * envois Kafka sont pipelines hors transaction, et chaque mise a jour de
+     * statut est une transaction courte portee par le repository.</p>
      */
     @Scheduled(fixedDelay = 2000)
-    @Transactional
     public void relayPendingEvents() {
         // Gauge alimentee par un COUNT (index partiel PENDING) : le lot etant
         // borne, sa taille ne reflete plus le backlog reel.
@@ -72,16 +79,13 @@ public class OutboxRelay {
 
         log.debug("OutboxRelay: {} event(s) PENDING a relayer", pendingEvents.size());
 
-        for (OutboxEvent event : pendingEvents) {
-            sendEvent(event);
-        }
+        sendPipelined(pendingEvents);
     }
 
     /**
      * Reessaye les events FAILED toutes les 30 secondes.
      */
     @Scheduled(fixedDelay = 30000)
-    @Transactional
     public void retryFailedEvents() {
         List<OutboxEvent> failedEvents =
                 outboxEventRepository.findRetryableEvents(MAX_RETRIES, PageRequest.of(0, BATCH_SIZE));
@@ -89,8 +93,26 @@ public class OutboxRelay {
 
         log.info("OutboxRelay: {} event(s) FAILED a reessayer", failedEvents.size());
 
-        for (OutboxEvent event : failedEvents) {
-            sendEvent(event);
+        sendPipelined(failedEvents);
+    }
+
+    /**
+     * Publie le lot en pipeline : tous les send() partent sans attendre
+     * (l'ordre d'emission par cle de partition est preserve — le producer
+     * idempotent garantit l'ordre intra-partition), puis on attend l'ensemble
+     * des acks. Debit : ~1 RTT broker par LOT au lieu d'un par event.
+     */
+    private void sendPipelined(List<OutboxEvent> events) {
+        List<CompletableFuture<?>> inFlight = new ArrayList<>(events.size());
+        for (OutboxEvent event : events) {
+            inFlight.add(sendEvent(event));
+        }
+        try {
+            CompletableFuture.allOf(inFlight.toArray(CompletableFuture[]::new)).join();
+        } catch (CompletionException e) {
+            // Les echecs individuels sont deja traites (markAsFailed) dans le
+            // callback de chaque envoi — rien a propager ici.
+            log.debug("OutboxRelay: lot termine avec au moins un echec ({})", e.getMessage());
         }
     }
 
@@ -108,53 +130,57 @@ public class OutboxRelay {
     }
 
     /**
-     * Envoie un event sur Kafka et met a jour son statut.
+     * Envoie un event sur Kafka (non bloquant) et met a jour son statut a la
+     * confirmation du broker. Le markAsSent/markAsFailed s'execute dans le
+     * callback (thread producer) — chaque mise a jour est une transaction
+     * courte portee par le repository, plus aucune connexion DB n'est tenue
+     * pendant l'I/O Kafka.
      *
      * IMPORTANT : le payload est stocke comme String JSON dans l'outbox.
      * On le parse en Object avant envoi pour eviter la double-serialisation
      * par le JsonSerializer du KafkaTemplate (qui envelopperait le String
      * dans des guillemets supplementaires).
      */
-    private void sendEvent(OutboxEvent event) {
+    private CompletableFuture<?> sendEvent(OutboxEvent event) {
         Timer.Sample sample = syncMetrics.startTimer();
+
+        // Parse le payload JSON String en Object (Map/List) pour eviter
+        // la double-serialisation par JsonSerializer
+        Object payloadObj;
         try {
-            // Parse le payload JSON String en Object (Map/List) pour eviter
-            // la double-serialisation par JsonSerializer
-            Object payloadObj;
-            try {
-                payloadObj = objectMapper.readValue(event.getPayload(), Object.class);
-            } catch (Exception e) {
-                // Fallback : envoyer le String brut si le parse echoue
-                log.warn("OutboxRelay: payload non-JSON pour event {}, envoi brut", event.getId());
-                payloadObj = event.getPayload();
-            }
-
-            kafkaTemplate.send(
-                    event.getTopic(),
-                    event.getPartitionKey(),
-                    payloadObj
-            ).get(); // Bloquant : on attend la confirmation du broker
-
-            sample.stop(Timer.builder("pms.outbox.relay.latency")
-                    .description("Outbox event relay latency to Kafka")
-                    .register(syncMetrics.getRegistry()));
-
-            outboxEventRepository.markAsSent(event.getId(), LocalDateTime.now());
-            log.debug("OutboxRelay: event {} envoye sur topic {} (key={})",
-                    event.getId(), event.getTopic(), event.getPartitionKey());
-
+            payloadObj = objectMapper.readValue(event.getPayload(), Object.class);
         } catch (Exception e) {
-            sample.stop(Timer.builder("pms.outbox.relay.latency")
-                    .tag("result", "error")
-                    .description("Outbox event relay latency to Kafka")
-                    .register(syncMetrics.getRegistry()));
-
-            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            if (errorMsg.length() > 500) errorMsg = errorMsg.substring(0, 500);
-
-            outboxEventRepository.markAsFailed(event.getId(), errorMsg);
-            log.error("OutboxRelay: echec envoi event {} sur topic {} : {}",
-                    event.getId(), event.getTopic(), errorMsg);
+            // Fallback : envoyer le String brut si le parse echoue
+            log.warn("OutboxRelay: payload non-JSON pour event {}, envoi brut", event.getId());
+            payloadObj = event.getPayload();
         }
+
+        return kafkaTemplate.send(event.getTopic(), event.getPartitionKey(), payloadObj)
+                .handle((result, ex) -> {
+                    if (ex == null) {
+                        sample.stop(Timer.builder("pms.outbox.relay.latency")
+                                .description("Outbox event relay latency to Kafka")
+                                .register(syncMetrics.getRegistry()));
+
+                        outboxEventRepository.markAsSent(event.getId(), LocalDateTime.now());
+                        log.debug("OutboxRelay: event {} envoye sur topic {} (key={})",
+                                event.getId(), event.getTopic(), event.getPartitionKey());
+                    } else {
+                        sample.stop(Timer.builder("pms.outbox.relay.latency")
+                                .tag("result", "error")
+                                .description("Outbox event relay latency to Kafka")
+                                .register(syncMetrics.getRegistry()));
+
+                        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                        String errorMsg = cause.getMessage() != null
+                                ? cause.getMessage() : cause.getClass().getSimpleName();
+                        if (errorMsg.length() > 500) errorMsg = errorMsg.substring(0, 500);
+
+                        outboxEventRepository.markAsFailed(event.getId(), errorMsg);
+                        log.error("OutboxRelay: echec envoi event {} sur topic {} : {}",
+                                event.getId(), event.getTopic(), errorMsg);
+                    }
+                    return null;
+                });
     }
 }

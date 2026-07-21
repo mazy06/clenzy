@@ -50,8 +50,16 @@ public class StripeConnectService {
 
     /**
      * Creates a Stripe Express connected account for an owner and stores the account ID.
+     *
+     * <p>HORS transaction (regle audit n°2 — jamais d'appel HTTP externe dans une
+     * transaction DB) : lectures preparatoires sans transaction englobante, appel
+     * {@code stripeGateway.createAccount} hors transaction, puis persistance de
+     * l'account id dans la transaction courte du {@code configRepository.save}.
+     * Si la persistance echoue apres la creation du compte Stripe, le compte
+     * Express reste orphelin cote Stripe (sans onboarding ni transfert possible) —
+     * un nouvel appel recree simplement un compte, comme pour le flux housekeeper
+     * ({@code HousekeeperPayoutService.ensureExpressAccount}).</p>
      */
-    @Transactional
     @CircuitBreaker(name = "stripe-api")
     public OwnerPayoutConfig createConnectedAccount(Long ownerId, Long orgId) throws StripeException {
         OwnerPayoutConfig config = configRepository.findByOwnerIdAndOrgId(ownerId, orgId)

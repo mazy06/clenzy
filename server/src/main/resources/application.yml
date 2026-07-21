@@ -8,8 +8,10 @@ spring:
       enabled: true
   task:
     scheduling:
-      pool:
-        size: 4          # 1 thread per scheduler (iCal, Noise, Pricing, Messaging)
+      # Avec threads.virtual.enabled=true, Boot auto-configure un
+      # SimpleAsyncTaskScheduler en virtual threads : chaque @Scheduled tourne
+      # sur son propre thread virtuel (pool.size serait ignore — ne pas en
+      # remettre un ici, la vraie borne partagee est le pool Hikari).
       thread-name-prefix: sched-
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml

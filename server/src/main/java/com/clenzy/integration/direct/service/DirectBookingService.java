@@ -19,6 +19,7 @@ import com.stripe.model.PaymentIntent;
 import com.stripe.param.PaymentIntentCreateParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,9 +36,14 @@ import java.util.stream.Collectors;
  *
  * Orchestre la verification de disponibilite, le calcul de prix,
  * la creation de reservation, l'integration Stripe et les codes promo.
+ *
+ * <p><b>Transactions</b> (regle audit n°2 — jamais d'appel HTTP externe dans une
+ * transaction DB) : les transactions sont portees par les methodes, pas par la
+ * classe. {@link #createBooking} orchestre HORS transaction : creation de la resa
+ * (verrous CalendarDay + save) en transaction courte via le proxy {@link #self},
+ * puis creation du PaymentIntent Stripe apres commit.</p>
  */
 @Service
-@Transactional
 public class DirectBookingService {
 
     private static final Logger log = LoggerFactory.getLogger(DirectBookingService.class);
@@ -50,6 +56,9 @@ public class DirectBookingService {
     private final CalendarEngine calendarEngine;
     private final PriceEngine priceEngine;
     private final StripeGateway stripeGateway;
+    /** Proxy Spring de ce bean : l'auto-invocation directe d'une methode
+     *  {@code @Transactional} contournerait le proxy (T-BP-06, pattern ICalImportService). */
+    private final ObjectProvider<DirectBookingService> self;
 
     public DirectBookingService(DirectBookingConfig config,
                                  DirectBookingConfigRepository configRepository,
@@ -58,7 +67,8 @@ public class DirectBookingService {
                                  ReservationRepository reservationRepository,
                                  CalendarEngine calendarEngine,
                                  PriceEngine priceEngine,
-                                 StripeGateway stripeGateway) {
+                                 StripeGateway stripeGateway,
+                                 ObjectProvider<DirectBookingService> self) {
         this.config = config;
         this.configRepository = configRepository;
         this.promoCodeRepository = promoCodeRepository;
@@ -67,6 +77,7 @@ public class DirectBookingService {
         this.calendarEngine = calendarEngine;
         this.priceEngine = priceEngine;
         this.stripeGateway = stripeGateway;
+        this.self = self;
     }
 
     // ----------------------------------------------------------------
@@ -148,12 +159,37 @@ public class DirectBookingService {
     /**
      * Cree une reservation directe.
      * Gere le flux avec ou sans paiement Stripe selon la configuration.
+     *
+     * <p>Orchestrateur volontairement NON transactionnel (regle audit n°2) :
+     * la creation (verrous CalendarDay via {@code calendarEngine.book} + save)
+     * est commitee dans une transaction courte via le proxy {@link #self}, PUIS
+     * le PaymentIntent Stripe est cree hors transaction — les verrous calendrier
+     * et la connexion DB ne sont jamais tenus pendant l'appel HTTP Stripe.</p>
      */
     public DirectBookingResponse createBooking(DirectBookingRequest request, Long orgId) {
         log.info("createBooking: propertyId={}, checkIn={}, checkOut={}, guest={} {}, orgId={}",
                 request.propertyId(), request.checkIn(), request.checkOut(),
                 request.guestFirstName(), request.guestLastName(), orgId);
 
+        // Transaction courte : validation + prix serveur + book calendrier + save.
+        BookingCreationOutcome outcome = self.getObject().createBookingTransactional(request, orgId);
+        if (!outcome.paymentRequired()) {
+            return outcome.response();
+        }
+
+        // Flux avec paiement : appel Stripe HORS transaction (apres commit).
+        return createBookingWithPayment(outcome.reservation(), outcome.property(),
+                outcome.totalPrice(), request.currency(), outcome.bookingId());
+    }
+
+    /**
+     * Transaction courte de creation : validation, calcul de prix cote serveur,
+     * code promo, reservation des jours calendrier et persistance de la resa.
+     * NE FAIT AUCUN appel Stripe. Public uniquement pour etre invoquee via le
+     * proxy transactionnel ({@link #self}) — ne pas appeler directement.
+     */
+    @Transactional
+    public BookingCreationOutcome createBookingTransactional(DirectBookingRequest request, Long orgId) {
         // Valider les dates
         validateBookingDates(request.checkIn(), request.checkOut());
 
@@ -221,23 +257,45 @@ public class DirectBookingService {
         log.info("createBooking: reservation {} creee (requirePayment={}, autoConfirm={})",
                 bookingId, requirePayment, autoConfirm);
 
-        // Flux avec paiement Stripe
+        // Flux avec paiement Stripe : le PaymentIntent sera cree par l'orchestrateur
+        // APRES le commit de cette transaction (jamais d'appel Stripe ici).
         if (requirePayment && config.isStripeEnabled()) {
-            return createBookingWithPayment(reservation, property, totalPrice, request.currency(), bookingId);
+            return BookingCreationOutcome.paymentRequired(reservation, property, totalPrice, bookingId);
         }
 
         // Flux sans paiement : auto-confirm ou en attente
         if (autoConfirm) {
             reservation.setStatus("confirmed");
             reservationRepository.save(reservation);
-            return DirectBookingResponse.confirmed(bookingId, property.getName(),
+            return BookingCreationOutcome.completed(DirectBookingResponse.confirmed(
+                    bookingId, property.getName(),
                     request.checkIn(), request.checkOut(), totalPrice, request.currency(),
-                    "Reservation confirmee");
+                    "Reservation confirmee"));
         }
 
-        return DirectBookingResponse.pending(bookingId, property.getName(),
+        return BookingCreationOutcome.completed(DirectBookingResponse.pending(
+                bookingId, property.getName(),
                 request.checkIn(), request.checkOut(), totalPrice, request.currency(),
-                "Reservation en attente de confirmation par le proprietaire");
+                "Reservation en attente de confirmation par le proprietaire"));
+    }
+
+    /**
+     * Resultat de la transaction courte de creation ({@link #createBookingTransactional}) :
+     * soit une reponse terminale (flux sans paiement), soit les donnees necessaires
+     * a la creation du PaymentIntent HORS transaction.
+     */
+    public record BookingCreationOutcome(boolean paymentRequired, DirectBookingResponse response,
+                                         Reservation reservation, Property property,
+                                         BigDecimal totalPrice, String bookingId) {
+
+        static BookingCreationOutcome completed(DirectBookingResponse response) {
+            return new BookingCreationOutcome(false, response, null, null, null, null);
+        }
+
+        static BookingCreationOutcome paymentRequired(Reservation reservation, Property property,
+                                                      BigDecimal totalPrice, String bookingId) {
+            return new BookingCreationOutcome(true, null, reservation, property, totalPrice, bookingId);
+        }
     }
 
     /**
@@ -252,6 +310,7 @@ public class DirectBookingService {
      * config direct booking a {@code requirePayment=false}, OU Stripe desactive).
      * Tout le reste est refuse ({@link AccessDeniedException} -> HTTP 403).
      */
+    @Transactional
     public DirectBookingResponse confirmBooking(String bookingId, Long orgId) {
         log.info("confirmBooking (public): bookingId={}, orgId={}", bookingId, orgId);
 
@@ -283,6 +342,7 @@ public class DirectBookingService {
      * Idempotent : si la resa est deja 'confirmed', ne re-sauvegarde pas
      * (une re-livraison du webhook ne produit pas d'effet).
      */
+    @Transactional
     public void confirmPaidBookingFromWebhook(String bookingId, Long orgId) {
         log.info("confirmPaidBookingFromWebhook: bookingId={}, orgId={}", bookingId, orgId);
 
@@ -319,6 +379,7 @@ public class DirectBookingService {
     /**
      * Annule une reservation directe.
      */
+    @Transactional
     public void cancelBooking(String bookingId, String reason, Long orgId) {
         log.info("cancelBooking: bookingId={}, reason={}, orgId={}", bookingId, reason, orgId);
 
@@ -504,6 +565,11 @@ public class DirectBookingService {
         return discount;
     }
 
+    /**
+     * Cree le PaymentIntent Stripe pour une reservation deja commitee.
+     * Toujours appelee HORS transaction (regle audit n°2) : la resa et les
+     * verrous calendrier sont commites, l'appel HTTP ne tient aucune ressource DB.
+     */
     private DirectBookingResponse createBookingWithPayment(Reservation reservation, Property property,
                                                             BigDecimal totalPrice, String currency,
                                                             String bookingId) {
@@ -529,7 +595,9 @@ public class DirectBookingService {
 
             // Cle API portee par le gateway (RequestOptions par appel) : l'ancien appel
             // statique dependait du Stripe.apiKey global supprime par l'audit T-SOLID-3.
-            PaymentIntent intent = stripeGateway.createPaymentIntent(params);
+            // Idempotency key stable par reservation : un retry reseau ne cree jamais
+            // deux PaymentIntents pour la meme resa.
+            PaymentIntent intent = stripeGateway.createPaymentIntent(params, "direct-booking-" + bookingId);
 
             log.info("Stripe PaymentIntent cree : {} pour reservation {}", intent.getId(), bookingId);
 
@@ -540,11 +608,35 @@ public class DirectBookingService {
 
         } catch (Exception e) {
             log.error("Erreur creation PaymentIntent Stripe pour reservation {}: {}", bookingId, e.getMessage(), e);
-            // En cas d'erreur Stripe, la reservation reste en pending sans paiement
+            // Echec Stripe APRES le commit de la resa : aucun client_secret n'a ete
+            // remis au guest, personne ne peut payer → il est sur de compenser en
+            // annulant la resa et en liberant le calendrier (tx courte dediee),
+            // ce qui rend le "Veuillez reessayer" reellement possible.
+            compensateFailedPaymentSetup(bookingId, reservation.getOrganizationId());
             return DirectBookingResponse.pending(bookingId, property.getName(),
                     reservation.getCheckIn(), reservation.getCheckOut(),
                     totalPrice, currency,
                     "Erreur de paiement. Veuillez reessayer ou contacter le proprietaire.");
+        }
+    }
+
+    /**
+     * Compensation best-effort apres un echec de creation du PaymentIntent
+     * (post-commit) : annule la resa et libere les jours calendrier via
+     * {@link #cancelBooking} (transaction courte via le proxy {@link #self}).
+     * Si la compensation echoue a son tour, la resa reste 'pending' et visible
+     * par l'hote — annulation manuelle requise (pas de filet scheduler pour les
+     * resas DIRECT : leur paymentStatus est null, hors perimetre de
+     * PendingReservationCleanupScheduler.findUnpaidHolds).
+     */
+    private void compensateFailedPaymentSetup(String bookingId, Long orgId) {
+        try {
+            self.getObject().cancelBooking(bookingId,
+                    "Echec de l'initialisation du paiement Stripe", orgId);
+        } catch (Exception e) {
+            log.error("Compensation impossible pour la reservation directe {} : {} — "
+                    + "la resa reste 'pending' et bloque le calendrier, annulation manuelle requise",
+                    bookingId, e.getMessage(), e);
         }
     }
 

@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -73,8 +72,14 @@ public class ChannelSyncService {
      * perdu en silence. Un echec INDIVIDUEL de push reste capture dans la
      * boucle de fan-out : il est mesure (SyncMetrics), journalise
      * (channel_sync_log) et n'empeche pas les autres connecteurs.
+     *
+     * Transactions : pas de @Transactional ici — le fan-out fait des appels
+     * HTTP externes (pushRestrictions/pushCalendarUpdate) qui ne doivent
+     * JAMAIS tourner dans une transaction DB. Les mappings sont lus (avec
+     * leur connection, via JOIN FETCH) dans la transaction courte readOnly
+     * du repository, puis chaque channel_sync_log est persiste dans sa
+     * propre transaction courte (save) APRES le resultat du push.
      */
-    @Transactional
     @KafkaListener(topics = KafkaConfig.TOPIC_CALENDAR_UPDATES, groupId = "clenzy-channel-sync")
     public void onCalendarUpdate(Object payload) {
         Map<String, Object> event = coerceToEventMap(payload);

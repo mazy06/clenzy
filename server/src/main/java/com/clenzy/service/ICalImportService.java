@@ -71,8 +71,9 @@ public class ICalImportService {
     private final ICalOrphanDetector orphanDetector;
     private final ICalCleaningScheduler cleaningScheduler;
     private final SupervisionActivityService supervisionActivityService;
-    /** Proxy Spring de ce bean : permet a syncFeeds d'invoquer importICalFeed AVEC sa
-     *  propre transaction (l'auto-invocation directe contournerait le proxy, T-BP-06). */
+    /** Proxy Spring de ce bean : permet a importICalFeed (non transactionnel, fetch HTTP
+     *  hors transaction) d'invoquer applyParsedICalFeed AVEC sa propre transaction
+     *  (l'auto-invocation directe contournerait le proxy, T-BP-06). */
     private final ObjectProvider<ICalImportService> self;
 
     public ICalImportService(ICalFeedRepository icalFeedRepository,
@@ -154,11 +155,17 @@ public class ICalImportService {
 
     /**
      * Importe les reservations depuis un feed iCal et cree les interventions.
-     * Orchestration : garde forfait/ownership -> fetch+parse -> upsert feed ->
-     * import evenement par evenement -> detection orphelins -> persistance des
-     * resultats -> notifications -> hooks afterCommit.
+     * Orchestration : garde forfait/ownership -> fetch+parse HORS transaction ->
+     * upsert transactionnel via {@link #applyParsedICalFeed}.
+     * <p>
+     * Volontairement NON transactionnelle (audit perf 2026-07-21) : le telechargement
+     * HTTP du feed (timeouts 15/30 s) se faisait DANS la transaction, tenant une
+     * connexion Hikari jusqu'a ~45 s par feed lent — multiplie par la boucle du
+     * scheduler {@link #syncFeeds}. Le fetch est idempotent (aucune ecriture) ; seul
+     * l'upsert des resultats a besoin d'une transaction. La delegation passe par le
+     * proxy {@code self} : l'auto-invocation directe contournerait @Transactional
+     * (T-BP-06).
      */
-    @Transactional
     public ImportResponse importICalFeed(ImportRequest request, String keycloakId) {
         if (!isUserAllowed(keycloakId)) {
             throw new SecurityException("Votre forfait ne permet pas l'import iCal. Forfait Confort ou Premium requis.");
@@ -167,7 +174,27 @@ public class ICalImportService {
         Long orgId = tenantContext.getRequiredOrganizationId();
         assertFeedNotLinkedToAnotherProperty(request, property, orgId);
 
+        // Telechargement + parsing AVANT d'ouvrir la transaction (lectures seules ci-dessus,
+        // chaque repository ouvre sa courte transaction propre).
         ICalEventParser.ParseResult parseResult = fetchAndParseICalFeedDetailed(request.getUrl(), resolvePropertyZone(property));
+
+        return self.getObject().applyParsedICalFeed(request, keycloakId, parseResult);
+    }
+
+    /**
+     * Applique le resultat d'un fetch+parse deja effectue : upsert feed -> import
+     * evenement par evenement -> detection orphelins -> persistance des resultats ->
+     * notifications -> hooks afterCommit. C'est ICI que vit la transaction de
+     * l'import ; toujours invoquer via le proxy {@code self} depuis cette classe.
+     */
+    @Transactional
+    public ImportResponse applyParsedICalFeed(ImportRequest request, String keycloakId,
+                                              ICalEventParser.ParseResult parseResult) {
+        // Recharge la propriete DANS la transaction (entite attachee a la session
+        // Hibernate courante) en re-validant l'ownership au passage.
+        Property property = loadPropertyCheckingOwnership(request.getPropertyId(), keycloakId);
+        Long orgId = tenantContext.getRequiredOrganizationId();
+
         List<ICalEventPreview> reservationEvents = filterReservationEvents(parseResult.events());
         List<ICalEventPreview> blockedEvents = filterBlockedEvents(parseResult.events());
 
@@ -618,8 +645,9 @@ public class ICalImportService {
 
     /**
      * Force la synchronisation d'un feed.
+     * Pas de @Transactional ici : sinon le telechargement HTTP effectue par
+     * importICalFeed rejoindrait cette transaction (lectures seules avant delegation).
      */
-    @Transactional
     public ImportResponse syncFeed(Long feedId, String keycloakId) {
         ICalFeed feed = icalFeedRepository.findById(feedId)
                 .orElseThrow(() -> new IllegalArgumentException("Feed introuvable"));
@@ -648,10 +676,12 @@ public class ICalImportService {
 
     /**
      * Synchronise une liste de feeds iCal (appele par le scheduler, groupe par org).
-     * Chaque feed est traite independamment, dans SA PROPRE transaction (import via le
-     * proxy {@link #self}) : une erreur sur un feed n'arrete pas les suivants et ne peut
-     * plus marquer rollback-only les imports deja commites (T-BP-06 — l'ancienne version
-     * @Transactional partageait une transaction unique entre tous les feeds).
+     * Chaque feed est traite independamment, dans SA PROPRE transaction — ouverte par
+     * {@link #applyParsedICalFeed} APRES le telechargement HTTP du feed, donc aucune
+     * connexion Hikari n'est tenue pendant le fetch (audit perf 2026-07-21). Une erreur
+     * sur un feed n'arrete pas les suivants et ne peut plus marquer rollback-only les
+     * imports deja commites (T-BP-06 — l'ancienne version @Transactional partageait une
+     * transaction unique entre tous les feeds).
      */
     public void syncFeeds(List<ICalFeed> feeds) {
         log.info("Synchro iCal : {} feeds a traiter", feeds.size());

@@ -74,6 +74,7 @@ class ChannexImportServiceExtraTest {
     @Mock private BookingRestrictionRepository bookingRestrictionRepository;
     @Mock private AmenityManagementService amenityManagementService;
     @Mock private ChannexPricingImporter pricingImporter;
+    @Mock private org.springframework.beans.factory.ObjectProvider<ChannexImportService> selfProvider;
 
     private ObjectMapper objectMapper;
     private ChannexImportService service;
@@ -85,7 +86,10 @@ class ChannexImportServiceExtraTest {
             channexClient, mappingRepository, propertyRepository, propertyPhotoRepository,
             connectService, userRepository, lengthOfStayDiscountRepository,
             ratePlanRepository, occupancyPricingRepository, rateOverrideRepository,
-            bookingRestrictionRepository, objectMapper, amenityManagementService, pricingImporter);
+            bookingRestrictionRepository, objectMapper, amenityManagementService, pricingImporter,
+            selfProvider);
+        // self = l'instance elle-meme (pas de proxy Spring en test unitaire)
+        when(selfProvider.getObject()).thenAnswer(inv -> service);
     }
 
     private JsonNode jn(String json) {
