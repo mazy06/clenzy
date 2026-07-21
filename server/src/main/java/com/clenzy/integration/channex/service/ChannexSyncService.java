@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -450,10 +449,16 @@ public class ChannexSyncService {
      * <p>Best-effort : un echec sur le PUT remonte un {@link ChannexException}
      * que le caller doit gerer. Pas de retry (le push manuel est synchrone).</p>
      *
+     * <p>Pas de @Transactional : le PUT rate_plan est un appel HTTP Channex
+     * (regle « jamais d'appel HTTP externe dans une transaction DB »). Les
+     * lectures preliminaires (mapping, property, sources tarifaires) se font
+     * dans les transactions courtes implicites des repositories, et le sync
+     * log ({@link ChannexSyncLogService#record}) commit deja dans sa propre
+     * transaction REQUIRES_NEW — meme pattern que {@link #pushProperty}.</p>
+     *
      * @return {@link ChannexSyncResult} avec success + message contenant les
      *         champs effectivement pushed
      */
-    @Transactional
     public ChannexSyncResult pushPricingSettings(Long propertyId, Long orgId) {
         java.time.Instant startedAt = java.time.Instant.now();
         Optional<ChannexPropertyMapping> mappingOpt = mappingRepository

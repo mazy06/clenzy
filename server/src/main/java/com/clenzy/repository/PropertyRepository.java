@@ -93,6 +93,9 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
 
     long countByOrganizationId(Long organizationId);
 
+    /** Count cross-org par statut (rapports PDF platform staff). */
+    long countByStatus(com.clenzy.model.PropertyStatus status);
+
     /**
      * Compteurs du dashboard overview (org-scope, owner optionnel pour HOST) :
      * total / par statut / par statut créés avant une date (calcul de croissance).

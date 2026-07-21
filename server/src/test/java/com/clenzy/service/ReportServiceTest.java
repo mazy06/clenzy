@@ -142,14 +142,14 @@ class ReportServiceTest {
 
     @Test
     void testGeneratePropertyReport_Status() {
-        // Org null : repli legacy findAll() (cf. commentaire dans le service —
-        // PropertyRepository gele par un chantier concurrent)
-        List<Property> properties = createTestProperties();
-        when(propertyRepository.findAll()).thenReturn(properties);
+        // Org null (platform staff) : counts SQL cross-org, plus de findAll()
+        when(propertyRepository.count()).thenReturn(3L);
+        when(propertyRepository.countByStatus(PropertyStatus.ACTIVE)).thenReturn(2L);
 
         byte[] pdfBytes = reportService.generatePropertyReport("status", startDate, endDate);
 
         assertValidPdf(pdfBytes);
+        verify(propertyRepository, never()).findAll();
     }
 
     @Test

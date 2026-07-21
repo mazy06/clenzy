@@ -100,7 +100,7 @@ class ReportServiceExtendedTest {
 
     @Test
     void generatePropertyReport_maintenance_producesValidPdf() {
-        when(propertyRepository.findAll()).thenReturn(createTestProperties());
+        when(propertyRepository.count()).thenReturn(3L);
 
         byte[] pdfBytes = reportService.generatePropertyReport("maintenance", startDate, endDate);
 
@@ -111,7 +111,7 @@ class ReportServiceExtendedTest {
 
     @Test
     void generatePropertyReport_costs_producesValidPdf() {
-        when(propertyRepository.findAll()).thenReturn(createTestProperties());
+        when(propertyRepository.count()).thenReturn(3L);
 
         byte[] pdfBytes = reportService.generatePropertyReport("costs", startDate, endDate);
 

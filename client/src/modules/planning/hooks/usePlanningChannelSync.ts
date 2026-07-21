@@ -18,9 +18,16 @@ export interface UsePlanningChannelSyncReturn {
 }
 
 /**
- * Recupere l'etat de sync multi-canaux pour toutes les proprietes visibles
- * dans le planning. L'etat est global (pas per-date) car la sync est un
- * agregat current : "X de mes Y canaux sont OK maintenant".
+ * Recupere l'etat de sync multi-canaux pour les proprietes de la PAGE
+ * affichee du planning (batch : 1 seule requete HTTP pour tous les ids).
+ * L'etat est global (pas per-date) car la sync est un agregat current :
+ * "X de mes Y canaux sont OK maintenant".
+ *
+ * Passer `paginatedPropertyIds` (memoise dans PlanningPage), pas la liste
+ * filtree complete : seule la colonne logements de la page consomme la map,
+ * et fetcher tous les logements filtres gonflait la requete inutilement.
+ * La queryKey (liste triee d'ids) conserve en cache chaque page deja
+ * visitee pendant gcTime — retour sur une page = pas de refetch sous 2 min.
  *
  * staleTime 2min : un canal qui vient de re-sync se reflete sans hammer
  * l'API a chaque scroll.

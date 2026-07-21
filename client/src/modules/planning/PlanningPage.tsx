@@ -262,9 +262,10 @@ const PlanningPage: React.FC = () => {
   );
 
   // Channel sync health : "X/Y canaux OK" agrege par propriete (current state,
-  // pas per-date). Affiche dans la colonne logements a cote du tag count.
+  // pas per-date). Affiche dans la colonne logements a cote du tag count —
+  // seule la page affichee en a besoin (meme scope que pricing/min-nights).
   const { channelSyncMap } = usePlanningChannelSync(
-    filteredProperties.map((p) => p.id),
+    paginatedPropertyIds,
     true,
   );
 

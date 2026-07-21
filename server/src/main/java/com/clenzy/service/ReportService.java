@@ -291,15 +291,11 @@ public class ReportService {
                     ? propertyRepository.countForDashboardByStatus(orgId, null, PropertyStatus.ACTIVE)
                     : 0;
         } else {
-            // Platform staff cross-org : PropertyRepository (gelé par un chantier
-            // concurrent) n'expose pas de count par statut sans org — repli sur le
-            // scan legacy pour ce seul cas. À remplacer par un count SQL cross-org
-            // après merge du chantier PropertyRepository.
-            List<Property> properties = propertyRepository.findAll();
-            total = properties.size();
-            active = properties.stream()
-                    .filter(p -> p.getStatus() == PropertyStatus.ACTIVE)
-                    .count();
+            // Platform staff cross-org : counts SQL, plus aucun scan en mémoire.
+            total = propertyRepository.count();
+            active = "status".equals(reportType)
+                    ? propertyRepository.countByStatus(PropertyStatus.ACTIVE)
+                    : 0;
         }
 
         switch (reportType) {

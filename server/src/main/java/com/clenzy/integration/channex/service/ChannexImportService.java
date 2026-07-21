@@ -937,10 +937,18 @@ public class ChannexImportService {
      *   <li>Property importee AVANT que le scraping d'amenities soit en place</li>
      *   <li>Listing OTA modifie cote Airbnb (nouvel equipement ajoute par le host)</li>
      * </ul>
+     *
+     * <p><b>Transactions</b> : pas de @Transactional englobant — la methode
+     * fait 3-4 appels HTTP (channels hub, whitelabel/scrape Airbnb, room_type,
+     * hotel_policies) qui ne doivent jamais tourner dans une transaction DB.
+     * PHASE 1 = validations + fetchs HTTP hors transaction, PHASE 2 =
+     * application des merges + save dans une transaction COURTE
+     * ({@link #applyResyncedContent}, appelee via le bean self pour passer
+     * par le proxy Spring) — meme structure qu'{@link #importProperties}.</p>
      */
-    @Transactional
     public com.clenzy.integration.channex.dto.ChannexResyncContentResult resyncPropertyContent(
             Long clenzyPropertyId, Long orgId) {
+        // ── PHASE 1 : validations + fetchs HTTP (hors transaction) ──────────
         Property prop = propertyRepository.findById(clenzyPropertyId)
             .orElseThrow(() -> new IllegalArgumentException(
                 "Property " + clenzyPropertyId + " introuvable"));
@@ -970,58 +978,14 @@ public class ChannexImportService {
         Set<String> ignored = amenityManagementService.loadIgnoredByOrg(orgId);
         ResolvedAmenities resolved = resolveAmenitiesWithUserConfig(data, aliases, ignored);
 
-        // Met a jour le nom si scrape OK et different
-        if (data.name() != null && !data.name().isBlank()
-            && !data.name().equals(prop.getName())) {
-            log.info("Resync: rename property {} '{}' → '{}'",
-                clenzyPropertyId, prop.getName(), data.name());
-            prop.setName(data.name());
-        }
-
-        // Enrichment Channex API : room_type detail + hotel_policies
-        // MAJ uniquement si la valeur est plus precise que l'existant (merge,
-        // on n'ECRASE PAS les valeurs corrigees manuellement par l'admin).
+        // Derniers fetchs HTTP AVANT la transaction : room_type detail +
+        // hotel_policies (valeurs structurees Channex).
         var roomDetail = channexClient.fetchRoomTypeDetail(mapping.getChannexRoomTypeId());
-        if (roomDetail != null) {
-            if (roomDetail.countOfRooms() != null && roomDetail.countOfRooms() > 0) {
-                prop.setBedroomCount(roomDetail.countOfRooms());
-            }
-            Integer maxGuests = roomDetail.resolveMaxGuests();
-            if (maxGuests != null && maxGuests > 0) {
-                prop.setMaxGuests(maxGuests);
-            }
-            if (roomDetail.content() != null) {
-                String desc = roomDetail.content().path("description").asText(null);
-                if (desc != null && !desc.isBlank() && (prop.getDescription() == null
-                    || prop.getDescription().isBlank())) {
-                    prop.setDescription(desc);
-                }
-            }
-        }
         var hotelPolicies = channexClient.fetchHotelPoliciesForProperty(mapping.getChannexPropertyId());
-        if (!hotelPolicies.isEmpty()) {
-            var hp = hotelPolicies.get(0);
-            if (hp.checkinTime() != null && !hp.checkinTime().isBlank()) {
-                prop.setDefaultCheckInTime(hp.checkinTime());
-            }
-            if (hp.checkoutTime() != null && !hp.checkoutTime().isBlank()) {
-                prop.setDefaultCheckOutTime(hp.checkoutTime());
-            }
-        }
 
-        // Met a jour amenities + ota_raw_amenities (merge avec l'existant : on
-        // n'ECRASE PAS les codes deja mis manuellement par l'admin).
-        try {
-            Set<String> currentCodes = new LinkedHashSet<>(parseAmenitiesJson(prop.getAmenities()));
-            currentCodes.addAll(resolved.mapped);
-            prop.setAmenities(currentCodes.isEmpty()
-                ? null : objectMapper.writeValueAsString(currentCodes));
-            prop.setOtaRawAmenities(resolved.stillUnmapped.isEmpty()
-                ? null : objectMapper.writeValueAsString(resolved.stillUnmapped));
-            propertyRepository.save(prop);
-        } catch (Exception e) {
-            log.warn("Resync: serialisation KO property={} : {}", clenzyPropertyId, e.getMessage());
-        }
+        // ── PHASE 2 : merges + save en transaction COURTE (via self=proxy) ──
+        Property saved = self.getObject().applyResyncedContent(clenzyPropertyId,
+            data.name(), resolved.mapped, resolved.stillUnmapped, roomDetail, hotelPolicies);
 
         int ignoredCount = (data.unmappedAmenities() == null ? 0
             : data.unmappedAmenities().size()) - resolved.mapped.size() + (data.mappedAmenities() == null
@@ -1038,8 +1002,8 @@ public class ChannexImportService {
             clenzyPropertyId, resolved.mapped.size(), resolved.stillUnmapped.size(), ignoredCount);
 
         return new com.clenzy.integration.channex.dto.ChannexResyncContentResult(
-            prop.getId(),
-            prop.getName(),
+            saved.getId(),
+            saved.getName(),
             data.name(),
             new java.util.ArrayList<>(resolved.mapped),
             new java.util.ArrayList<>(resolved.stillUnmapped),
@@ -1048,11 +1012,95 @@ public class ChannexImportService {
     }
 
     /**
+     * PHASE persistance du re-sync content : transaction COURTE, AUCUN appel
+     * HTTP ici (listing data, room_type detail et hotel_policies ont ete
+     * fetches en amont par {@link #resyncPropertyContent}). Recharge la
+     * property et applique les merges — on n'ECRASE PAS les valeurs corrigees
+     * manuellement par l'admin (name seulement si different, description
+     * seulement si vide, amenities en union avec l'existant).
+     *
+     * <p>Public + appel via le bean self ({@link ObjectProvider}) : une
+     * auto-invocation directe ne passerait pas par le proxy Spring et la
+     * transaction serait silencieusement absente.</p>
+     *
+     * @param listingName   nom scrape/whitelabel de la listing (nullable)
+     * @param mappedCodes   codes amenities Clenzy resolus (built-in + aliases)
+     * @param stillUnmapped noms OTA bruts restants a mapper
+     * @param roomDetail    detail room_type Channex (nullable)
+     * @param hotelPolicies hotel_policies Channex (liste possiblement vide)
+     * @return la Property mise a jour (managed dans cette transaction)
+     */
+    @Transactional
+    public Property applyResyncedContent(Long clenzyPropertyId, String listingName,
+            Set<String> mappedCodes, Set<String> stillUnmapped,
+            com.clenzy.integration.channex.dto.ChannexRoomTypeDetailDto roomDetail,
+            List<com.clenzy.integration.channex.dto.ChannexHotelPolicyDto> hotelPolicies) {
+        Property prop = propertyRepository.findById(clenzyPropertyId)
+            .orElseThrow(() -> new IllegalArgumentException(
+                "Property " + clenzyPropertyId + " introuvable"));
+
+        // Met a jour le nom si scrape OK et different
+        if (listingName != null && !listingName.isBlank()
+            && !listingName.equals(prop.getName())) {
+            log.info("Resync: rename property {} '{}' → '{}'",
+                clenzyPropertyId, prop.getName(), listingName);
+            prop.setName(listingName);
+        }
+
+        // Enrichment Channex API : room_type detail + hotel_policies
+        // MAJ uniquement si la valeur est plus precise que l'existant (merge).
+        if (roomDetail != null) {
+            if (roomDetail.countOfRooms() != null && roomDetail.countOfRooms() > 0) {
+                prop.setBedroomCount(roomDetail.countOfRooms());
+            }
+            Integer maxGuests = roomDetail.resolveMaxGuests();
+            if (maxGuests != null && maxGuests > 0) {
+                prop.setMaxGuests(maxGuests);
+            }
+            if (roomDetail.content() != null) {
+                String desc = roomDetail.content().path("description").asText(null);
+                if (desc != null && !desc.isBlank() && (prop.getDescription() == null
+                    || prop.getDescription().isBlank())) {
+                    prop.setDescription(desc);
+                }
+            }
+        }
+        if (hotelPolicies != null && !hotelPolicies.isEmpty()) {
+            var hp = hotelPolicies.get(0);
+            if (hp.checkinTime() != null && !hp.checkinTime().isBlank()) {
+                prop.setDefaultCheckInTime(hp.checkinTime());
+            }
+            if (hp.checkoutTime() != null && !hp.checkoutTime().isBlank()) {
+                prop.setDefaultCheckOutTime(hp.checkoutTime());
+            }
+        }
+
+        // Met a jour amenities + ota_raw_amenities (merge avec l'existant : on
+        // n'ECRASE PAS les codes deja mis manuellement par l'admin).
+        try {
+            Set<String> currentCodes = new LinkedHashSet<>(parseAmenitiesJson(prop.getAmenities()));
+            currentCodes.addAll(mappedCodes);
+            prop.setAmenities(currentCodes.isEmpty()
+                ? null : objectMapper.writeValueAsString(currentCodes));
+            prop.setOtaRawAmenities(stillUnmapped.isEmpty()
+                ? null : objectMapper.writeValueAsString(stillUnmapped));
+            propertyRepository.save(prop);
+        } catch (Exception e) {
+            log.warn("Resync: serialisation KO property={} : {}", clenzyPropertyId, e.getMessage());
+        }
+        return prop;
+    }
+
+    /**
      * Bulk : re-sync content de TOUTES les properties de l'org qui ont un
      * mapping Channex + un listing OTA actif. Best-effort : un echec sur une
      * property ne stoppe pas les autres.
+     *
+     * <p>Pas de @Transactional : chaque item de la boucle refait des appels
+     * HTTP (via {@link #resyncPropertyContent}) — la persistance de chaque
+     * property commit dans sa propre transaction courte
+     * ({@link #applyResyncedContent}), coherent avec le best-effort.</p>
      */
-    @Transactional
     public List<com.clenzy.integration.channex.dto.ChannexResyncContentResult> resyncAllPropertiesContent(Long orgId) {
         List<com.clenzy.integration.channex.dto.ChannexResyncContentResult> results = new java.util.ArrayList<>();
         // Toutes les mappings de l'org (= toutes les properties importees Channex)
