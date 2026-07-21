@@ -1,5 +1,6 @@
 package com.clenzy.service;
 
+import com.clenzy.config.CalendarPartitionManager;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +34,7 @@ public class ServiceHealthChecker {
     private final StringRedisTemplate redisTemplate;
     private final KafkaAdmin kafkaAdmin;
     private final JavaMailSender mailSender;
+    private final CalendarPartitionManager calendarPartitionManager;
 
     @Value("${keycloak.auth-server-url:}")
     private String keycloakUrl;
@@ -43,11 +45,13 @@ public class ServiceHealthChecker {
     public ServiceHealthChecker(DataSource dataSource,
                                  StringRedisTemplate redisTemplate,
                                  KafkaAdmin kafkaAdmin,
-                                 ObjectProvider<JavaMailSender> mailSenderProvider) {
+                                 ObjectProvider<JavaMailSender> mailSenderProvider,
+                                 CalendarPartitionManager calendarPartitionManager) {
         this.dataSource = dataSource;
         this.redisTemplate = redisTemplate;
         this.kafkaAdmin = kafkaAdmin;
         this.mailSender = mailSenderProvider.getIfAvailable();
+        this.calendarPartitionManager = calendarPartitionManager;
     }
 
     public record HealthResult(String service, String status, String message) {
@@ -73,9 +77,34 @@ public class ServiceHealthChecker {
             case "postgresql" -> checkPostgresql();
             case "keycloak" -> checkKeycloak();
             case "storage" -> checkStorage();
+            case "calendar-partition-manager" -> checkCalendarPartitions();
             default -> new HealthResult(serviceName, "DOWN",
                     "Retest automatique non supporte pour le service '" + serviceName + "'");
         };
+    }
+
+    /**
+     * Sante du job de partitionnement calendar_days. Contrairement aux autres
+     * services (endpoints pingables), c'est un job planifie : on « teste » en
+     * verifiant que les partitions cibles sont en place et, si besoin, en tentant
+     * une reparation a la demande ({@link CalendarPartitionManager#probeAndHeal()}).
+     * UP => l'incident associe est auto-resolu par le controller. Sur table plate
+     * (dev), aucune panne possible → UP (l'incident bloque est resolu).
+     */
+    private HealthResult checkCalendarPartitions() {
+        try {
+            boolean healthy = calendarPartitionManager.probeAndHeal();
+            return healthy
+                    ? new HealthResult("calendar-partition-manager", "UP",
+                            "Partitions calendar_days a jour (verifiees/reparees a la demande)")
+                    : new HealthResult("calendar-partition-manager", "DOWN",
+                            "Partitions calendar_days manquantes et reparation impossible "
+                                    + "(droits insuffisants ou base indisponible)");
+        } catch (Exception e) {
+            log.warn("[HealthCheck] Calendar partitions check failed: {}", e.getMessage());
+            return new HealthResult("calendar-partition-manager", "DOWN",
+                    "Verification des partitions echouee: " + e.getMessage());
+        }
     }
 
     private HealthResult checkSmtp() {

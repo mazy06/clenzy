@@ -246,6 +246,42 @@ public class CalendarPartitionManager {
     }
 
     /**
+     * Probe a la demande (bouton « Retest » d'un incident) : verifie que les
+     * partitions cibles existent et, si besoin, tente une reparation. Retourne
+     * {@code true} si tout est sain a l'issue. N'ouvre AUCUN incident (le retest
+     * sert a resoudre l'incident existant, pas a en creer). No-op sain quand la
+     * table n'est pas partitionnee (dev) : il n'y a alors rien a reparer, donc
+     * aucune panne possible → le retest resout l'incident bloque.
+     */
+    public boolean probeAndHeal() {
+        if (!isCalendarDaysPartitioned()) {
+            return true;
+        }
+        if (allTargetPartitionsExist()) {
+            return true;
+        }
+        attemptSelfHeal();
+        return allTargetPartitionsExist();
+    }
+
+    /** True si les {@link #HORIZON_COUNT} partitions cibles (18..23 mois) existent toutes. */
+    private boolean allTargetPartitionsExist() {
+        LocalDate today = LocalDate.now();
+        for (int i = 0; i < HORIZON_COUNT; i++) {
+            LocalDate month = today.plusMonths(HORIZON_START_MONTHS + i);
+            String partitionName = "calendar_days_" + month.format(PARTITION_FMT);
+            try {
+                if (!partitionExists(partitionName)) {
+                    return false;
+                }
+            } catch (Exception e) {
+                return false; // impossible de confirmer → considere non sain
+            }
+        }
+        return true;
+    }
+
+    /**
      * Tente la repartition auto-reparante ({@link #SELF_HEAL_SQL}). Best-effort :
      * un echec (droits insuffisants, DB down...) est loggue sans propager — le
      * flux appelant re-verifiera l'etat et alertera si besoin.

@@ -189,6 +189,52 @@ class CalendarPartitionManagerTest {
             meterRegistry.get("clenzy.calendar.partition.default.future_backlog").gauge().value());
     }
 
+    // ── probeAndHeal (bouton « Retest » d'un incident) ────────────────────────
+
+    @Test
+    void probeAndHeal_tableNotPartitioned_returnsTrueWithoutTouchingDb() {
+        // Table plate (dev) : aucune panne possible → sain, aucune reparation.
+        when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class)))
+            .thenReturn(Boolean.FALSE);
+
+        assertTrue(manager.probeAndHeal());
+
+        verify(jdbcTemplate, never()).execute(anyString());
+    }
+
+    @Test
+    void probeAndHeal_allPartitionsExist_returnsTrueWithoutHealing() {
+        when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class), any(Object[].class)))
+            .thenReturn(Boolean.TRUE);
+
+        assertTrue(manager.probeAndHeal());
+
+        // Rien a reparer → pas de repartition.
+        verify(jdbcTemplate, never()).execute(anyString());
+    }
+
+    @Test
+    void probeAndHeal_partitionMissingButHealFixes_returnsTrue() {
+        // 1re verif : 1re partition manquante (short-circuit) → reparation → 2e verif : tout present.
+        when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class), any(Object[].class)))
+            .thenReturn(false, true, true, true, true, true, true);
+
+        assertTrue(manager.probeAndHeal());
+
+        verify(jdbcTemplate, times(1)).execute(contains("pg_advisory_xact_lock"));
+    }
+
+    @Test
+    void probeAndHeal_partitionMissingAndHealDoesNotFix_returnsFalse() {
+        // Partitions toujours absentes meme apres la tentative de reparation.
+        when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class), any(Object[].class)))
+            .thenReturn(Boolean.FALSE);
+
+        assertFalse(manager.probeAndHeal());
+
+        verify(jdbcTemplate, times(1)).execute(contains("pg_advisory_xact_lock"));
+    }
+
     @Test
     void createFuturePartitions_incidentServiceThrows_noPropagation() {
         when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class), any(Object[].class)))
