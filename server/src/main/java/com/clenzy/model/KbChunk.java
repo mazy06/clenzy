@@ -59,12 +59,21 @@ public class KbChunk {
      * lexicale hybride, avec la config linguistique du chunk (french/english/
      * simple). Mappee ici pour que le schema Hibernate (tests, ddl-auto) reste
      * aligne sur Liquibase — jamais ecrite par l'application.
+     * <p>
+     * INCIDENT PROD 2026-07-21 : l'expression GENERATED ALWAYS etait dans le
+     * {@code columnDefinition} → {@code ddl-auto=validate} (prod uniquement)
+     * comparait le type DB « tsvector » a TOUTE la chaine et refusait de booter
+     * (crash-loop au deploy). Le {@code columnDefinition} ne doit porter QUE le
+     * type ; l'expression vit dans {@link org.hibernate.annotations.GeneratedColumn},
+     * que la generation DDL (tests, create-drop) ajoute en clause
+     * {@code GENERATED ALWAYS AS ... STORED} et que la validation ignore.
      */
     @Column(name = "content_tsv", insertable = false, updatable = false,
-            columnDefinition = "tsvector GENERATED ALWAYS AS (to_tsvector("
-                    + "CASE lang WHEN 'en' THEN 'english'::regconfig "
-                    + "WHEN 'ar' THEN 'simple'::regconfig "
-                    + "ELSE 'french'::regconfig END, content)) STORED")
+            columnDefinition = "tsvector")
+    @org.hibernate.annotations.GeneratedColumn("to_tsvector("
+            + "CASE lang WHEN 'en' THEN 'english'::regconfig "
+            + "WHEN 'ar' THEN 'simple'::regconfig "
+            + "ELSE 'french'::regconfig END, content)")
     private String contentTsv;
 
     @Column(name = "token_count")
