@@ -22,7 +22,7 @@ import { CurrencyProvider } from './hooks/useCurrency'
 import { useGeoDetection } from './hooks/useGeoDetection'
 import { AuthProvider } from './contexts/AuthContext'
 import { useTranslation } from 'react-i18next'
-import './i18n/config'
+import { i18nInitPromise } from './i18n/config'
 
 // ─── Service Worker kill-switch en mode DEV ──────────────────────────────────
 // Probleme historique : un SW PWA installe via `npm run preview` ou via un
@@ -232,14 +232,26 @@ function GeoDetectionInitializer({ children }: { children: React.ReactNode }) {
 // theme avec user_preferences.theme_mode cote backend. CurrencyProvider
 // utilise aussi useUserPreferences, mais il est plus profond dans l'arbre
 // donc le QueryClient l'enveloppe deja naturellement.
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <ThemeModeProvider>
-        <AccentProvider>
-          <AppWithTheme />
-        </AccentProvider>
-      </ThemeModeProvider>
-    </QueryClientProvider>
-  </React.StrictMode>
-)
+// Les locales sont chargées en lazy (un chunk par langue — cf. i18n/config.ts) :
+// on attend que la langue initiale soit prête AVANT le premier render, sinon
+// l'app afficherait un flash de clés brutes ('tabHeaders.xxx'). Le catch est un
+// filet de sécurité : en cas d'échec d'init on rend quand même (clés brutes
+// valent mieux qu'un écran blanc).
+void i18nInitPromise
+  .catch((error) => {
+    // eslint-disable-next-line no-console
+    console.error('[i18n] init échouée — rendu avec clés brutes en repli', error)
+  })
+  .then(() => {
+    ReactDOM.createRoot(document.getElementById('root')!).render(
+      <React.StrictMode>
+        <QueryClientProvider client={queryClient}>
+          <ThemeModeProvider>
+            <AccentProvider>
+              <AppWithTheme />
+            </AccentProvider>
+          </ThemeModeProvider>
+        </QueryClientProvider>
+      </React.StrictMode>
+    )
+  })

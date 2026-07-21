@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Box,
   Card,
@@ -118,40 +119,34 @@ const formatUptime = (seconds: number): string => {
 };
 
 const HealthChecks: React.FC = () => {
-  const [healthChecks, setHealthChecks] = useState<HealthCheckService[]>([]);
-  const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [expandedChecks, setExpandedChecks] = useState<Set<string>>(new Set());
   const { setHeaderActions, setHeaderLastUpdate } = useMonitoringHeader();
 
-  const fetchHealthChecks = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Poll 30 s via react-query : refetch immédiat au mount, pause automatique
+  // quand l'onglet est caché (refetchIntervalInBackground=false par défaut) —
+  // l'ancien setInterval brut tournait indéfiniment onglet caché.
+  const {
+    data,
+    error: queryError,
+    isLoading,
+    isFetching,
+    refetch,
+    dataUpdatedAt,
+  } = useQuery({
+    queryKey: ['monitoring', 'health'],
+    queryFn: () => monitoringApi.getHealth(),
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: false,
+  });
 
-      const data = await monitoringApi.getHealth();
-      setHealthChecks(data.services);
-      setSystemMetrics(data.systemMetrics);
-      setLastUpdate(new Date());
-    } catch (err) {
-      setError('Erreur lors de la récupération des vérifications de santé');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchHealthChecks();
-
-    // Actualisation automatique toutes les 30 secondes
-    const interval = setInterval(fetchHealthChecks, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  const healthChecks: HealthCheckService[] = data?.services ?? [];
+  const systemMetrics: SystemMetrics | null = data?.systemMetrics ?? null;
+  const lastUpdate = dataUpdatedAt ? new Date(dataUpdatedAt) : null;
+  const loading = isFetching;
+  const error = queryError ? 'Erreur lors de la récupération des vérifications de santé' : null;
 
   const handleRefresh = () => {
-    fetchHealthChecks();
+    void refetch();
   };
 
   // Register page-header actions + last-update timestamp.
@@ -192,7 +187,7 @@ const HealthChecks: React.FC = () => {
     criticalChecks.every(check => check.status === 'UP') ? 'UP' :
     criticalChecks.some(check => check.status === 'DOWN') ? 'DOWN' : 'DEGRADED' : 'UNKNOWN';
 
-  if (loading && healthChecks.length === 0) {
+  if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
         <CircularProgress />

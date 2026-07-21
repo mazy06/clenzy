@@ -712,10 +712,21 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
     }
   }
 
+  /** Resync immédiat quand l'onglet redevient visible (les ticks cachés sont sautés).
+   *  pollRefresh applique déjà son throttle (lastFullRefreshAt) et ses gardes
+   *  (run live, poll en vol) — un retour rapproché ne sur-fetche pas. */
+  private readonly handleVisibilityChange = (): void => {
+    if (document.visibilityState === 'visible') void this.pollRefresh();
+  };
+
   /** Arme le timer de rafraîchissement périodique (idempotent, une seule fois). */
   private ensurePolling(): void {
     if (this.pollTimer || this.disposed) return;
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
     this.pollTimer = setInterval(() => {
+      // Onglet caché → tick sauté (pas de re-fetch invisible) ; le flux SSE
+      // n'est pas touché. Le retour visible resync via visibilitychange.
+      if (document.hidden) return;
       void this.pollRefresh();
     }, POLL_INTERVAL_MS);
   }
@@ -1091,6 +1102,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       clearInterval(this.pollTimer);
       this.pollTimer = null;
     }
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
     this.eventStream?.abort();
     this.eventStream = null;
     this.abort?.abort();

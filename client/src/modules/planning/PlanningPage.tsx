@@ -234,9 +234,19 @@ const PlanningPage: React.FC = () => {
     firstItemAlone: supervisorExpanded,
   });
 
+  // Ids des logements de la PAGE affichée uniquement, mémoïsés (stabilise les
+  // queryDescriptors des hooks pricing/min-nights). Fetcher toutes les
+  // propriétés filtrées créait un burst de (N logements × chunks 30 j × 2 hooks)
+  // requêtes au chargement ; le cache React Query par (propriété × chunk)
+  // sert de cache au changement de page.
+  const paginatedPropertyIds = useMemo(
+    () => pagination.paginatedProperties.map((p) => p.id),
+    [pagination.paginatedProperties],
+  );
+
   // Pricing data (fetched only when toggle is ON)
   const { pricingMap } = usePlanningPricing(
-    filteredProperties.map((p) => p.id),
+    paginatedPropertyIds,
     timeline.bufferStart,
     timeline.bufferEnd,
     filters.showPrices,
@@ -245,7 +255,7 @@ const PlanningPage: React.FC = () => {
   // Min-nights overrides (toujours fetch quand showPrices est ON, meme
   // indicateur que pour les prix : info contextuelle a la cellule)
   const { minNightsMap } = usePlanningMinNights(
-    filteredProperties.map((p) => p.id),
+    paginatedPropertyIds,
     timeline.bufferStart,
     timeline.bufferEnd,
     filters.showPrices,

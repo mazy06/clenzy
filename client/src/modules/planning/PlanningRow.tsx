@@ -2,7 +2,7 @@ import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react'
 import { Box, Typography } from '@mui/material';
 import PlanningBar from './PlanningBar';
 import PlanningBlockedBand from './PlanningBlockedBand';
-import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, PlanningDragState } from './types';
+import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, RowDragState } from './types';
 import { ROW_CONFIG, BAR_BORDER_RADIUS, WEEKEND_CELL_BG } from './constants';
 import { isWeekend, isToday, toDateStr, getHourOffsetPx } from './utils/dateUtils';
 import { resolveAttachedReservationId, type AttachmentCandidate } from './utils/interventionAttachment';
@@ -32,7 +32,10 @@ interface PlanningRowProps {
   selectedEventId: string | null;
   conflictEventIds: Set<string>;
   isDragging: boolean;
-  dragState: PlanningDragState;
+  /** Drag concernant CETTE ligne uniquement (resize en cours sur un de ses
+   *  events), `null` sinon — cf. découpage dans PlanningTimeline. Passer le
+   *  dragState global cassait le memo de TOUTES les lignes à chaque mousemove. */
+  rowDrag: RowDragState | null;
   onEventClick: (event: PlanningEvent) => void;
   onHideEvent?: (event: PlanningEvent) => void;
   onEmptyClick: (data: QuickCreateData) => void;
@@ -68,7 +71,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   selectedEventId,
   conflictEventIds,
   isDragging,
-  dragState,
+  rowDrag,
   onEventClick,
   onHideEvent,
   onEmptyClick,
@@ -600,13 +603,12 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
 
       {/* Event bars */}
       {visibleLayouts.map((layout) => {
-        // Check if this bar is being resized → pass live width
-        const isBeingResized =
-          dragState.activeType === 'resize' &&
-          dragState.activeId === `resize-${layout.event.id}` &&
-          dragState.ghostLayout;
-        const resizeWidth = isBeingResized ? dragState.ghostLayout!.width : null;
-        const resizeConflict = isBeingResized ? dragState.dragConflict : false;
+        // Check if this bar is being resized → pass live width.
+        // rowDrag n'est non-null que si le resize concerne cette ligne
+        // (activeType/ghostLayout déjà vérifiés côté PlanningTimeline).
+        const isBeingResized = rowDrag !== null && rowDrag.activeId === `resize-${layout.event.id}`;
+        const resizeWidth = isBeingResized ? rowDrag!.ghostWidth : null;
+        const resizeConflict = isBeingResized ? rowDrag!.conflict : false;
 
         return (
           <PlanningBar

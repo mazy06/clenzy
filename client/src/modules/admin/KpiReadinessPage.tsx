@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Paper,
@@ -331,13 +332,43 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
 
 const KpiReadinessPage: React.FC = () => {
   const chartTokens = useChartTokens();
-  const [snapshot, setSnapshot] = useState<KpiSnapshot | null>(null);
-  const [history, setHistory] = useState<KpiHistory | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  /** Erreur d'une action manuelle (refresh) — distincte de l'erreur du poll. */
+  const [actionError, setActionError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [historyHours, setHistoryHours] = useState(24);
+
+  // Snapshot + historique via react-query : fetch immédiat au mount,
+  // auto-refresh 30 s uniquement si le toggle est actif, pause automatique
+  // quand l'onglet est caché (refetchIntervalInBackground=false par défaut) —
+  // l'ancien setInterval brut tournait indéfiniment onglet caché.
+  const kpiQueryKey = ['kpi', 'readiness', historyHours] as const;
+  const {
+    data,
+    isLoading: loading,
+    error: queryError,
+  } = useQuery({
+    queryKey: kpiQueryKey,
+    queryFn: async () => {
+      const [snap, hist] = await Promise.all([
+        kpiApi.getCurrentSnapshot(),
+        kpiApi.getHistory(historyHours),
+      ]);
+      return { snapshot: snap, history: hist };
+    },
+    refetchInterval: autoRefresh ? 30_000 : false,
+    refetchOnWindowFocus: false,
+    // Changement de période : on garde les données affichées pendant le
+    // re-fetch (comportement historique — pas de retour au skeleton).
+    placeholderData: keepPreviousData,
+  });
+  const snapshot: KpiSnapshot | null = data?.snapshot ?? null;
+  const history: KpiHistory | null = data?.history ?? null;
+  const error = actionError
+    ?? (queryError
+      ? (queryError instanceof Error ? queryError.message : 'Erreur lors du chargement des KPIs')
+      : null);
 
   // Incident detail dialog state
   const [incidentDialogOpen, setIncidentDialogOpen] = useState(false);
@@ -352,43 +383,16 @@ const KpiReadinessPage: React.FC = () => {
    */
   const [totalOpenAllSeverities, setTotalOpenAllSeverities] = useState(0);
 
-  const fetchData = useCallback(async () => {
-    try {
-      setError(null);
-      const [snap, hist] = await Promise.all([
-        kpiApi.getCurrentSnapshot(),
-        kpiApi.getHistory(historyHours),
-      ]);
-      setSnapshot(snap);
-      setHistory(hist);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des KPIs');
-    } finally {
-      setLoading(false);
-    }
-  }, [historyHours]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  // Auto-refresh
-  useEffect(() => {
-    if (!autoRefresh) return;
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
-  }, [autoRefresh, fetchData]);
-
   const handleManualRefresh = async () => {
     try {
       setRefreshing(true);
+      setActionError(null);
       const snap = await kpiApi.refreshSnapshot();
-      setSnapshot(snap);
-      // Refresh history too
+      // Refresh history too — puis on pousse le tout dans le cache react-query
       const hist = await kpiApi.getHistory(historyHours);
-      setHistory(hist);
+      queryClient.setQueryData(kpiQueryKey, { snapshot: snap, history: hist });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du refresh');
+      setActionError(err instanceof Error ? err.message : 'Erreur lors du refresh');
     } finally {
       setRefreshing(false);
     }
@@ -429,19 +433,25 @@ const KpiReadinessPage: React.FC = () => {
    */
   const handleIncidentChange = useCallback(async () => {
     try {
-      const [data, countRes, snap] = await Promise.all([
+      const [incidentList, countRes, snap] = await Promise.all([
         incidentApi.getIncidents({ severity: 'P1', size: 50 }),
         incidentApi.getOpenCount({ severity: 'P1', includeBreakdown: true }),
         kpiApi.refreshSnapshot(),
       ]);
-      setIncidents(data);
+      setIncidents(incidentList);
       setOpenIncidentCount(countRes.count);
       setTotalOpenAllSeverities(countRes.totalAllSeverities ?? countRes.count);
-      setSnapshot(snap);
+      // Le snapshot vit dans le cache react-query : on remplace la partie
+      // snapshot en conservant l'historique affiché.
+      queryClient.setQueryData(
+        ['kpi', 'readiness', historyHours] as const,
+        (old: { snapshot: KpiSnapshot; history: KpiHistory } | undefined) =>
+          old ? { ...old, snapshot: snap } : old,
+      );
     } catch {
       // best-effort : on n'echoue pas si une partie du refresh rate
     }
-  }, []);
+  }, [queryClient, historyHours]);
 
   // Format history points for chart
   const chartData = history?.points.map((p) => ({

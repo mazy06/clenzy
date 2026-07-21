@@ -1,4 +1,5 @@
-import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Box,
   Drawer,
@@ -56,6 +57,45 @@ interface SidebarProps {
 
 const GROUP_ORDER: NavGroup[] = ['main', 'management', 'admin'];
 
+// ─── Badge notifications non lues ────────────────────────────────────────────
+
+/**
+ * Point « non lus » de la cloche, isolé pour que le tick du poll ne re-rende
+ * que ce composant (pas les ~700 lignes de la sidebar). React Query pause le
+ * refetchInterval quand l'onglet est caché (refetchIntervalInBackground=false
+ * par défaut) — l'ancien setInterval brut tournait indéfiniment.
+ * Comportement historique conservé : fetch immédiat au mount, arrêt du poll si
+ * le backend signale l'endpoint indisponible (notificationsApi._endpointAvailable).
+ */
+function UnreadNotificationsDot() {
+  const { data } = useQuery({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: () => notificationsApi.getUnreadCount(),
+    refetchInterval: () => (notificationsApi._endpointAvailable ? 30_000 : false),
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
+  });
+
+  if (!data || data.count === 0) return null;
+
+  return (
+    <Box
+      component="span"
+      sx={{
+        position: 'absolute',
+        top: -2,
+        insetInlineEnd: -2,
+        width: 7,
+        height: 7,
+        borderRadius: '50%',
+        backgroundColor: 'var(--err)',
+        boxShadow: '0 0 0 2px var(--nav-bg)',
+        pointerEvents: 'none',
+      }}
+    />
+  );
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function Sidebar({
@@ -76,26 +116,6 @@ export default function Sidebar({
   const theme = useTheme();
   const isRtl = theme.direction === 'rtl';
   const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // ─── Poll unread notification count ──────────────────────────────────
-  const fetchUnreadCount = useCallback(async () => {
-    const result = await notificationsApi.getUnreadCount();
-    setUnreadCount(result.count);
-    if (!notificationsApi._endpointAvailable && intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchUnreadCount();
-    intervalRef.current = setInterval(fetchUnreadCount, 30000);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [fetchUnreadCount]);
 
   const grouped = useMemo(() => groupMenuItems(menuItems), [menuItems]);
   const collapsed = isCollapsed && !isMobile;
@@ -428,22 +448,7 @@ export default function Sidebar({
             <IconButton size="small" onClick={() => handleNavigation('/notifications')} sx={footBtnSx}>
               <Box component="span" sx={{ position: 'relative', display: 'inline-flex' }}>
                 <Notifications size={footerIconSize} strokeWidth={1.75} />
-                {unreadCount > 0 && (
-                  <Box
-                    component="span"
-                    sx={{
-                      position: 'absolute',
-                      top: -2,
-                      insetInlineEnd: -2,
-                      width: 7,
-                      height: 7,
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--err)',
-                      boxShadow: '0 0 0 2px var(--nav-bg)',
-                      pointerEvents: 'none',
-                    }}
-                  />
-                )}
+                <UnreadNotificationsDot />
               </Box>
             </IconButton>
           </Tooltip>

@@ -147,6 +147,20 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
     return ids;
   }, [events]);
 
+  // ── Découpage du dragState par ligne ──────────────────────────────────────
+  // Seul un RESIZE affecte le rendu d'une ligne (largeur live de la brique) ;
+  // le ghost du MOVE est rendu dans le DragOverlay global ci-dessous. On ne
+  // passe donc à chaque PlanningRow qu'un objet minimal limité à SA ligne
+  // (null sinon) : le memo des lignes non concernées tient pendant le drag.
+  const resizingEventId =
+    drag.state.activeType === 'resize' && drag.state.activeId
+      ? drag.state.activeId.slice('resize-'.length)
+      : null;
+  const resizingPropertyId = useMemo(() => {
+    if (resizingEventId == null) return null;
+    return events.find((e) => e.id === resizingEventId)?.propertyId ?? null;
+  }, [resizingEventId, events]);
+
   // Count UPCOMING reservations per property (for the small tag indicator
   // in the property column). Filtre les reservations passees (endDate < aujourd'hui)
   // et les interventions — seules les reservations en cours ou a venir.
@@ -254,7 +268,15 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                       selectedEventId={selectedEventId}
                       conflictEventIds={conflictEventIds}
                       isDragging={drag.state.isDragging}
-                      dragState={drag.state}
+                      rowDrag={
+                        resizingPropertyId === property.id && drag.state.activeId && drag.state.ghostLayout
+                          ? {
+                              activeId: drag.state.activeId,
+                              ghostWidth: drag.state.ghostLayout.width,
+                              conflict: drag.state.dragConflict,
+                            }
+                          : null
+                      }
                       onEventClick={onEventClick}
                       onHideEvent={onHideEvent}
                       onEmptyClick={onEmptyClick}

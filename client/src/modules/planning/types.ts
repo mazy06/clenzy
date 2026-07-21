@@ -145,3 +145,18 @@ export interface PlanningDragState {
   ghostLayout: BarLayout | null;
   isDragging: boolean;
 }
+
+/**
+ * Sous-ensemble de PlanningDragState limité à UNE ligne : seul un RESIZE en
+ * cours sur un event de la ligne la concerne (largeur live de la brique).
+ * `null` pour toutes les autres lignes → leur React.memo tient pendant le
+ * drag (le ghost du MOVE est rendu dans le DragOverlay global, pas par ligne).
+ */
+export interface RowDragState {
+  /** Id draggable actif (`resize-<eventId>`). */
+  activeId: string;
+  /** Largeur live du ghost pendant le resize. */
+  ghostWidth: number;
+  /** Conflit détecté sur la position courante. */
+  conflict: boolean;
+}

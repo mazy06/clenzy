@@ -62,6 +62,8 @@ class TokenService {
   private maxRetries = 3;
   private lastHealthCheck = 0;
   private healthCheckInterval = 30000; // 30 secondes entre les vérifications
+  /** Timer de surveillance de santé du token (clear dans shutdown()). */
+  private healthCheckTimer: ReturnType<typeof setInterval> | null = null;
   /** Canal principal de synchro multi-onglets (same-origin par construction). */
   private syncChannel: BroadcastChannel | null = null;
   private static readonly SYNC_CHANNEL_NAME = 'clenzy_token_update';
@@ -115,8 +117,19 @@ class TokenService {
     // Vérification initiale
     this.checkTokenHealth();
 
-    // Vérification périodique légère (seulement pour la surveillance)
-    setInterval(() => {
+    // Idempotent : un seul timer même si initialize() est rappelé après shutdown().
+    if (this.healthCheckTimer) return;
+
+    // ⚠️ NE PAS pauser ce timer quand l'onglet est caché (document.hidden) :
+    // c'est LUI qui rafraîchit proactivement le token à T-60 s de l'expiration
+    // (refreshTokenWithRetry) et resynchronise les cookies (clenzy_session +
+    // HttpOnly via syncTokenCookie) — nécessaire à la survie de la session
+    // pendant que le SSE supervision et la synchro multi-onglets en dépendent.
+    // Le pauser laisserait le token expirer onglet caché → 401 en rafale au
+    // retour. Coût onglet caché : ZÉRO requête réseau par tick tant que le
+    // token n'approche pas de l'expiration (checkTokenHealth lit
+    // keycloak.tokenParsed localement, sans appel HTTP).
+    this.healthCheckTimer = setInterval(() => {
       this.checkTokenHealth();
     }, this.healthCheckInterval);
   }
@@ -452,6 +465,10 @@ class TokenService {
    * Arrête le service et nettoie les ressources
    */
   shutdown(): void {
+    if (this.healthCheckTimer) {
+      clearInterval(this.healthCheckTimer);
+      this.healthCheckTimer = null;
+    }
     this.listeners.clear();
     this.isInitialized = false;
     this.retryCount = 0;
