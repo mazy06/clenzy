@@ -98,6 +98,7 @@ public class AutomationEvaluationService implements AutomationEngine {
     private final MeterRegistry meterRegistry;
     private final SupervisionActivityService supervisionActivityService;
     private final Clock clock;
+    private final com.clenzy.repository.GuestMessageLogRepository guestMessageLogRepository;
 
     public AutomationEvaluationService(AutomationRuleRepository ruleRepository,
                                         AutomationExecutionRepository executionRepository,
@@ -108,7 +109,8 @@ public class AutomationEvaluationService implements AutomationEngine {
                                         TenantContext tenantContext,
                                         MeterRegistry meterRegistry,
                                         SupervisionActivityService supervisionActivityService,
-                                        Clock clock) {
+                                        Clock clock,
+                                        com.clenzy.repository.GuestMessageLogRepository guestMessageLogRepository) {
         this.ruleRepository = ruleRepository;
         this.executionRepository = executionRepository;
         this.conditionEvaluator = conditionEvaluator;
@@ -119,6 +121,7 @@ public class AutomationEvaluationService implements AutomationEngine {
         this.meterRegistry = meterRegistry;
         this.supervisionActivityService = supervisionActivityService;
         this.clock = clock;
+        this.guestMessageLogRepository = guestMessageLogRepository;
     }
 
     // ── Chemin evenementiel (SPI AutomationEngine) ──────────────────────────────
@@ -342,8 +345,26 @@ public class AutomationEvaluationService implements AutomationEngine {
         }
         // messageLogId présent uniquement pour les envois de message guest → permet de
         // prévisualiser le contenu envoyé depuis le journal de la constellation.
+        // Un envoi FAILED (« pas de destinataire », erreur SMTP…) est marqué comme tel
+        // dans le feed (toolName suffixé _FAILED + motif) — avant, il apparaissait
+        // comme un envoi abouti banal, invisible en tant qu'échec.
+        String toolName = rule.getActionType().name();
+        String summary = rule.getName();
+        if (messageLogId != null) {
+            try {
+                var sentLog = guestMessageLogRepository.findById(messageLogId).orElse(null);
+                if (sentLog != null && sentLog.getStatus() == com.clenzy.model.MessageStatus.FAILED) {
+                    toolName = toolName + "_FAILED";
+                    String detail = sentLog.getErrorMessage() != null && !sentLog.getErrorMessage().isBlank()
+                        ? sentLog.getErrorMessage() : "erreur d'envoi";
+                    summary = rule.getName() + " — échec : " + detail;
+                }
+            } catch (Exception ignore) {
+                // best-effort : le feed reste renseigné avec le libellé nominal
+            }
+        }
         supervisionActivityService.recordModuleAct(
-            context.orgId(), propertyId, module, rule.getActionType().name(), rule.getName(), messageLogId);
+            context.orgId(), propertyId, module, toolName, summary, messageLogId);
     }
 
     /**

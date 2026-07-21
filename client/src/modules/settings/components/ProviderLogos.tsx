@@ -27,9 +27,8 @@ export type ProviderId =
   | 'DOCUSEAL'
   | 'PENNYLANE'
   | 'ODOO'
-  | 'PRICELABS'
-  | 'BEYOND'
-  | 'WHEELHOUSE'
+  | 'AIRBTICS'
+  | 'AIRROI'
   | 'QUICKBOOKS'
   | 'XERO'
   | 'SAGE'
@@ -76,14 +75,12 @@ const PALETTE: Record<ProviderId, BrandPalette> = {
   PENNYLANE:  { bg: '#1B2A4A', fg: '#FFFFFF', accent: '#6C7FE0' },
   // Odoo : prune
   ODOO:       { bg: '#714B67', fg: '#FFFFFF', accent: '#E8B546' },
-  // PriceLabs : rouge/orange (revenue management)
-  PRICELABS:  { bg: '#E94F37', fg: '#FFFFFF', accent: '#FFC857' },
-  // Beyond : bleu nuit + teal
-  BEYOND:     { bg: '#0F2E3F', fg: '#FFFFFF', accent: '#2ED9C3' },
+  // Airbtics : indigo data + accent MAD/or (source cible marché Maroc)
+  AIRBTICS:   { bg: '#312E81', fg: '#FFFFFF', accent: '#F4C15D' },
+  // AirROI : ardoise + vert data (pay-per-call)
+  AIRROI:     { bg: '#1F2937', fg: '#FFFFFF', accent: '#34D399' },
   // QuickBooks : vert Intuit
   QUICKBOOKS: { bg: '#2CA01C', fg: '#FFFFFF', accent: '#FFFFFF' },
-  // Wheelhouse : navy + jaune (data driven)
-  WHEELHOUSE: { bg: '#1A2B4A', fg: '#FFFFFF', accent: '#FFC857' },
   // Xero : cyan + bleu signature
   XERO:       { bg: '#13B5EA', fg: '#FFFFFF', accent: '#0078A3' },
   // Sage : vert sapin
@@ -285,8 +282,8 @@ function renderMark(provider: ProviderId, p: BrandPalette): React.ReactNode {
         </>
       );
 
-    case 'PRICELABS':
-      // Tile rouge/orange, "PL" + petit indicateur de courbe (data viz)
+    case 'AIRBTICS':
+      // Tile indigo, "Ab" + barre de courbe or (benchmark marché)
       return (
         <>
           <rect width="48" height="48" rx="12" fill={p.bg} />
@@ -300,10 +297,10 @@ function renderMark(provider: ProviderId, p: BrandPalette): React.ReactNode {
             fill={p.fg}
             letterSpacing="-0.04em"
           >
-            PL
+            Ab
           </text>
           <path
-            d="M10 38 L17 33 L24 35 L31 28 L38 30"
+            d="M10 38 L17 34 L24 36 L31 30 L38 32"
             stroke={p.accent}
             strokeWidth="2"
             strokeLinecap="round"
@@ -313,30 +310,26 @@ function renderMark(provider: ProviderId, p: BrandPalette): React.ReactNode {
         </>
       );
 
-    case 'BEYOND':
-      // Tile bleu nuit, "B" avec arc (au-dela)
+    case 'AIRROI':
+      // Tile ardoise, "AR" + points data verts (pay-per-call)
       return (
         <>
           <rect width="48" height="48" rx="12" fill={p.bg} />
           <text
             x="24"
-            y="32"
+            y="29"
             textAnchor="middle"
             fontFamily="'Inter', 'Helvetica Neue', sans-serif"
-            fontSize="22"
-            fontWeight="700"
+            fontSize="15"
+            fontWeight="800"
             fill={p.fg}
             letterSpacing="-0.02em"
           >
-            B
+            AR
           </text>
-          <path
-            d="M10 39 Q24 31 38 39"
-            stroke={p.accent}
-            strokeWidth="2"
-            strokeLinecap="round"
-            fill="none"
-          />
+          <circle cx="14" cy="37" r="2" fill={p.accent} />
+          <circle cx="24" cy="37" r="2" fill={p.accent} />
+          <circle cx="34" cy="37" r="2" fill={p.accent} />
         </>
       );
 
@@ -358,29 +351,6 @@ function renderMark(provider: ProviderId, p: BrandPalette): React.ReactNode {
           >
             qb
           </text>
-        </>
-      );
-
-    case 'WHEELHOUSE':
-      // Tile navy, "W" + petits rayons (motif de roue / tableau de bord)
-      return (
-        <>
-          <rect width="48" height="48" rx="12" fill={p.bg} />
-          <text
-            x="24"
-            y="30"
-            textAnchor="middle"
-            fontFamily="'Inter', 'Helvetica Neue', sans-serif"
-            fontSize="20"
-            fontWeight="800"
-            fill={p.fg}
-            letterSpacing="-0.04em"
-          >
-            W
-          </text>
-          <circle cx="24" cy="38" r="2.5" fill={p.accent} />
-          <line x1="19" y1="38" x2="14" y2="38" stroke={p.accent} strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
-          <line x1="29" y1="38" x2="34" y2="38" stroke={p.accent} strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
         </>
       );
 

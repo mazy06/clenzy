@@ -8,7 +8,7 @@ export interface Notification {
   title: string;
   message: string;
   type: 'info' | 'success' | 'warning' | 'error';
-  category: 'intervention' | 'service_request' | 'payment' | 'system' | 'team' | 'contact' | 'document' | 'reservation';
+  category: 'intervention' | 'service_request' | 'payment' | 'system' | 'team' | 'contact' | 'document' | 'reservation' | 'guest_messaging';
   notificationKey?: string;
   read: boolean;
   actionUrl?: string;

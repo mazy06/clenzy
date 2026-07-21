@@ -1,7 +1,10 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.ReportExecutionRequest;
+import com.clenzy.dto.ReportResultDto;
 import com.clenzy.dto.ReportViewDto;
 import com.clenzy.dto.ReportViewRequest;
+import com.clenzy.service.report.ReportExecutionService;
 import com.clenzy.service.report.ReportViewService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.http.ResponseEntity;
@@ -22,10 +25,14 @@ import java.util.List;
 public class ReportBuilderController {
 
     private final ReportViewService reportViewService;
+    private final ReportExecutionService reportExecutionService;
     private final TenantContext tenantContext;
 
-    public ReportBuilderController(ReportViewService reportViewService, TenantContext tenantContext) {
+    public ReportBuilderController(ReportViewService reportViewService,
+                                   ReportExecutionService reportExecutionService,
+                                   TenantContext tenantContext) {
         this.reportViewService = reportViewService;
+        this.reportExecutionService = reportExecutionService;
         this.tenantContext = tenantContext;
     }
 
@@ -50,5 +57,24 @@ public class ReportBuilderController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         reportViewService.delete(id, tenantContext.getRequiredOrganizationId());
         return ResponseEntity.noContent().build();
+    }
+
+    /** Exécution ad-hoc : définition complète dans la requête (validée par la whitelist). */
+    @PostMapping("/execute")
+    public ReportResultDto execute(@RequestBody ReportExecutionRequest request) {
+        return reportExecutionService.execute(
+                request.dimensions(), request.metrics(), request.granularity(),
+                request.from(), request.to(), tenantContext.getRequiredOrganizationId());
+    }
+
+    /** Exécution d'une vue sauvegardée (org-gardée) sur la période fournie. */
+    @PostMapping("/{id}/execute")
+    public ReportResultDto executeView(@PathVariable Long id,
+                                       @RequestBody ReportExecutionRequest request) {
+        final Long orgId = tenantContext.getRequiredOrganizationId();
+        final ReportViewDto view = reportViewService.get(id, orgId);
+        return reportExecutionService.execute(
+                view.dimensions(), view.metrics(), view.granularity(),
+                request.from(), request.to(), orgId);
     }
 }

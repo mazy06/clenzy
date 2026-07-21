@@ -48,6 +48,7 @@ class BusinessAnalyticsScannerTest {
     private static final Long PROP = 3L;
 
     @Mock private com.clenzy.service.PropertyPerformanceService performanceService;
+    @Mock private com.clenzy.service.PaceAnalyticsService paceAnalyticsService;
     @Mock private SupervisionSuggestionService suggestionService;
     @Mock private ReservationRepository reservationRepository;
     @Mock private CalendarDayRepository calendarDayRepository;
@@ -61,7 +62,7 @@ class BusinessAnalyticsScannerTest {
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-08T10:00:00Z"), ZoneOffset.UTC);
 
     private BusinessAnalyticsScanner scanner() {
-        return new BusinessAnalyticsScanner(performanceService, suggestionService,
+        return new BusinessAnalyticsScanner(performanceService, paceAnalyticsService, suggestionService,
                 reservationRepository, calendarDayRepository, moduleSettingsRepository,
                 autoApplyGate, autoApplyService, yieldOrgConfigRepository, yieldAdjustmentRepository,
                 objectMapper, clock, new BigDecimal("12"));
@@ -69,7 +70,7 @@ class BusinessAnalyticsScannerTest {
 
     private PropertyPerformanceDto perf(double occ, String revenue, double margin) {
         return new PropertyPerformanceDto(PROP, "Duplex", 0, BigDecimal.ZERO, occ,
-                new BigDecimal(revenue), margin, 90);
+                new BigDecimal(revenue), BigDecimal.ZERO, margin, 90);
     }
 
     private Reservation reservation(String checkIn, String checkOut) {
@@ -147,6 +148,48 @@ class BusinessAnalyticsScannerTest {
                 eq(SupervisionActionType.PRICE_DROP), params.capture(),
                 argThat(c -> c != null && c > 0), eq("info"));
         assertThat(params.getValue()).contains("\"direction\":\"up\"");
+    }
+
+    @Test
+    void healthyForwardOccupancy_butPacingBehindLastYear_emitsPaceCard() {
+        // Occupation forward + rétro pleines (résa qui couvre tout) → ni baisse ni
+        // sous-performance → le chemin pace (R3) est atteint.
+        when(moduleSettingsRepository.findByOrganizationIdAndModuleKey(ORG, "rev")).thenReturn(Optional.empty());
+        when(performanceService.compute(PROP)).thenReturn(perf(90.0, "5000", 70.0));
+        when(reservationRepository.findByPropertyId(PROP, ORG))
+                .thenReturn(List.of(reservation("2026-04-08", "2026-11-01")));
+        when(calendarDayRepository.findUnavailableDatesInRange(eq(PROP), any(), any(), eq(ORG)))
+                .thenReturn(List.of());
+        // Août en retard : 10 nuits OTB contre 20 l'an dernier au même recul (-50 %).
+        var behind = new com.clenzy.dto.PaceMonthDto("2026-08", 10, new BigDecimal("1000"),
+                20, -50.0, 0, 0, 33.0);
+        when(paceAnalyticsService.getSummary(ORG, null, 3, PROP))
+                .thenReturn(new com.clenzy.dto.PaceSummaryDto(LocalDate.parse("2026-07-08"), 1, List.of(behind)));
+
+        scanner().scanProperty(ORG, PROP);
+
+        verify(suggestionService).recordActionable(eq(ORG), eq(PROP), eq("rev"),
+                eq("Réservations en retard vs l'an dernier — 2026-08"), anyString(),
+                isNull(), isNull(), argThat(c -> c != null && c > 0), eq("info"));
+    }
+
+    @Test
+    void pacingOnTrack_emitsNoPaceCard() {
+        when(moduleSettingsRepository.findByOrganizationIdAndModuleKey(ORG, "rev")).thenReturn(Optional.empty());
+        when(performanceService.compute(PROP)).thenReturn(perf(90.0, "5000", 70.0));
+        when(reservationRepository.findByPropertyId(PROP, ORG))
+                .thenReturn(List.of(reservation("2026-04-08", "2026-11-01")));
+        when(calendarDayRepository.findUnavailableDatesInRange(eq(PROP), any(), any(), eq(ORG)))
+                .thenReturn(List.of());
+        // Août en avance (+10 %) → aucun retard, pas de carte pace.
+        var ahead = new com.clenzy.dto.PaceMonthDto("2026-08", 22, new BigDecimal("2200"),
+                20, 10.0, 0, 0, 73.0);
+        when(paceAnalyticsService.getSummary(ORG, null, 3, PROP))
+                .thenReturn(new com.clenzy.dto.PaceSummaryDto(LocalDate.parse("2026-07-08"), 1, List.of(ahead)));
+
+        scanner().scanProperty(ORG, PROP);
+
+        verifyNoInteractions(suggestionService);
     }
 
     // ── Vague 1 autonomie : PRICE_DROP branché sur le cadre yield ────────────

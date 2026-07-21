@@ -16,6 +16,7 @@ import java.math.BigDecimal;
  * @param revPan        revenu par logement disponible = revenu / jours de la fenêtre (devise de base EUR)
  * @param occupancyRate taux d'occupation en % (0–100, plafonné)
  * @param revenue       revenu de la fenêtre, proraté aux nuits comprises (devise de base EUR)
+ * @param costs         coûts d'intervention réels de la fenêtre (devise de base EUR)
  * @param netMargin     marge nette en % (0–100) = (revenu − coûts) / revenu
  * @param windowDays    taille de la fenêtre glissante en jours
  */
@@ -26,6 +27,7 @@ public record PropertyPerformanceDto(
         BigDecimal revPan,
         double occupancyRate,
         BigDecimal revenue,
+        BigDecimal costs,
         double netMargin,
         int windowDays
 ) {

@@ -141,7 +141,7 @@ public class PendingReservationCleanupScheduler {
     }
 
     private void cancelAndReleaseCalendar(Reservation reservation) {
-        reservation.setStatus("cancelled");
+        reservation.markCancelled();
         reservation.setPaymentStatus(PaymentStatus.CANCELLED);
         pendingReservationRepository.save(reservation);
 

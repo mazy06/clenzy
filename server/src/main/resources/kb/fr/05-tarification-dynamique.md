@@ -35,8 +35,8 @@ Le prix spécifique est le niveau le plus prioritaire de la grille : c'est votre
 **Puis-je tester mes règles de yield sans toucher à mes prix ?**
 Oui, choisissez le mode Simulation : Baitly produit un rapport de ce qui aurait changé, sans aucune écriture tarifaire.
 
-**Puis-je utiliser un outil de tarification externe ?**
-Oui, Baitly propose une intégration avec des solutions de tarification dynamique du marché comme PriceLabs, qui peuvent alors piloter les prix de vos logements.
+**Baitly a-t-il besoin d'un outil de tarification externe ?**
+Non : Baitly intègre son propre moteur de revenue management. Les règles de yield ajustent les prix selon l'occupation, le comblement automatique des nuits orphelines et le séjour minimum dynamique optimisent les creux, et les recommandations restent validables par vous (mode simulation, suggestion ou automatique). Aucun abonnement tiers n'est requis.
 
 **Comment faire une réduction ponctuelle pour remplir une période creuse ?**
 Créez un plan de type Promotion sur la période visée, ou une règle de yield de baisse conditionnée à une occupation faible, ou encore un prix spécifique appliqué sur la période.

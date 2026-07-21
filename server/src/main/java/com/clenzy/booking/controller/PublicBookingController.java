@@ -64,6 +64,10 @@ public class PublicBookingController {
     private final com.clenzy.booking.service.BookingGuestAuthService guestAuthService;
     private final com.clenzy.booking.service.PublicConciergeService conciergeService;
     private final com.clenzy.booking.service.BookingInquiryService inquiryService;
+    private final com.clenzy.booking.service.BookingFunnelRecorder funnelRecorder;
+
+    /** Header optionnel du SDK : identifiant opaque de session (funnel, jamais de PII). */
+    private static final String SESSION_HEADER = "X-Booking-Session";
 
     public PublicBookingController(PublicBookingService bookingService,
                                     BookingServiceOptionsService serviceOptionsService,
@@ -77,7 +81,8 @@ public class PublicBookingController {
                                     com.clenzy.booking.service.BookingBalanceService balanceService,
                                     com.clenzy.booking.service.BookingGuestAuthService guestAuthService,
                                     com.clenzy.booking.service.PublicConciergeService conciergeService,
-                                    com.clenzy.booking.service.BookingInquiryService inquiryService) {
+                                    com.clenzy.booking.service.BookingInquiryService inquiryService,
+                                    com.clenzy.booking.service.BookingFunnelRecorder funnelRecorder) {
         this.bookingService = bookingService;
         this.serviceOptionsService = serviceOptionsService;
         this.photoService = photoService;
@@ -91,6 +96,19 @@ public class PublicBookingController {
         this.guestAuthService = guestAuthService;
         this.conciergeService = conciergeService;
         this.inquiryService = inquiryService;
+        this.funnelRecorder = funnelRecorder;
+    }
+
+    /** Télémétrie funnel (RMS R1) — hors chemin critique, jamais bloquante. */
+    private void recordFunnel(OrgContext ctx, HttpServletRequest request,
+                              com.clenzy.model.BookingFunnelEvent.Type type, Long propertyId,
+                              java.util.Map<String, Object> payload) {
+        if (ctx == null || ctx.org() == null) {
+            return;
+        }
+        funnelRecorder.record(ctx.orgId(),
+                ctx.config() != null ? ctx.config().getId() : null,
+                request.getHeader(SESSION_HEADER), type, propertyId, payload);
     }
 
     /**
@@ -214,6 +232,7 @@ public class PublicBookingController {
             HttpServletRequest request) {
         OrgContext ctx = resolveContext(slug, request);
         PublicPropertyDetailDto detail = bookingService.getPropertyDetail(ctx, id);
+        recordFunnel(ctx, request, com.clenzy.model.BookingFunnelEvent.Type.VIEW_PROPERTY, id, null);
         return ResponseEntity.ok(displayCurrencyService.convertDetail(detail, currency, java.time.LocalDate.now()));
     }
 
@@ -286,6 +305,13 @@ public class PublicBookingController {
             HttpServletRequest httpRequest) {
         OrgContext ctx = resolveContext(slug, httpRequest);
         AvailabilityResponseDto resp = bookingService.checkAvailability(ctx, request, resolveMember(httpRequest));
+        // Funnel RMS : une recherche sans dispo = denied demand (SEARCH_NO_RESULT).
+        recordFunnel(ctx, httpRequest,
+                resp.available() ? com.clenzy.model.BookingFunnelEvent.Type.SEARCH
+                        : com.clenzy.model.BookingFunnelEvent.Type.SEARCH_NO_RESULT,
+                request.propertyId(),
+                com.clenzy.booking.service.BookingFunnelRecorder.stayPayload(
+                        request.checkIn(), request.checkOut(), request.guests()));
         java.time.LocalDate rateDate = resp.checkIn() != null ? resp.checkIn() : java.time.LocalDate.now();
         return ResponseEntity.ok(displayCurrencyService.convertAvailability(resp, currency, rateDate));
     }
@@ -308,6 +334,10 @@ public class PublicBookingController {
             return tooManyReservationAttempts();
         }
         OrgContext ctx = resolveContext(slug, httpRequest);
+        recordFunnel(ctx, httpRequest, com.clenzy.model.BookingFunnelEvent.Type.CHECKOUT_START,
+                request.propertyId(),
+                com.clenzy.booking.service.BookingFunnelRecorder.stayPayload(
+                        request.checkIn(), request.checkOut(), request.guests()));
         return ResponseEntity.ok(bookingService.reserve(ctx, request, resolveMember(httpRequest)));
     }
 
@@ -330,6 +360,8 @@ public class PublicBookingController {
             return tooManyReservationAttempts();
         }
         OrgContext ctx = resolveContext(slug, httpRequest);
+        recordFunnel(ctx, httpRequest, com.clenzy.model.BookingFunnelEvent.Type.CHECKOUT_START,
+                null, java.util.Map.of("items", request.items().size()));
         return ResponseEntity.ok(bookingService.reserveBatch(ctx, request, resolveMember(httpRequest)));
     }
 

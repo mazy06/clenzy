@@ -30,6 +30,7 @@ import RestrictionsPanel from './RestrictionsPanel';
 import { calendarPricingApi } from '../../services/api/calendarPricingApi';
 import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPricingApi';
 import AiPricingRecommendations from './AiPricingRecommendations';
+import MarketPositioningCard from './MarketPositioningCard';
 import YieldRulesPanel from './YieldRulesPanel';
 import { useIsAiFeatureEnabled } from '../../hooks/useAi';
 
@@ -353,6 +354,11 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
               </Box>
             )}
           </Box>
+
+          {/* Positionnement marché — double signal réseau/marché (roadmap market data) */}
+          {selectedPropertyId && (
+            <MarketPositioningCard propertyId={selectedPropertyId} />
+          )}
 
           {/* AI Pricing Recommendations (hidden when PRICING feature is disabled) */}
           {isPricingAiEnabled && selectedPropertyId && (

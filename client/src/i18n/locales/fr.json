@@ -182,7 +182,12 @@
       "SUGGEST_DEPOSIT_REFUND": "Remboursement de caution suggéré (automatisation)",
       "SUGGEST_DEPOSIT_RELEASE": "Libération de caution suggérée (automatisation)",
       "NOTIFY_RATE_PARITY": "Écart de parité tarifaire signalé (automatisation)",
-      "SUGGEST_CALENDAR_BLOCK": "Blocage calendrier suggéré (automatisation)"
+      "SUGGEST_CALENDAR_BLOCK": "Blocage calendrier suggéré (automatisation)",
+      "SEND_MESSAGE_FAILED": "Échec d'envoi de message (automatisation)",
+      "SEND_GUIDE_FAILED": "Échec d'envoi du livret d'accueil (automatisation)",
+      "SEND_CHECKIN_LINK_FAILED": "Échec d'envoi du lien de check-in (automatisation)",
+      "SEND_NOISE_WARNING_FAILED": "Échec d'envoi de l'alerte bruit (automatisation)",
+      "SEND_REVIEW_REQUEST_FAILED": "Échec d'envoi de la demande d'avis (automatisation)"
     },
     "approval": {
       "title": "Validation requise",
@@ -718,6 +723,7 @@
     "later": "Plus tard"
   },
   "common": {
+    "help": "Aide",
     "save": "Enregistrer",
     "saving": "Enregistrement…",
     "cancel": "Annuler",
@@ -3033,7 +3039,7 @@
     },
     "integrations": {
       "title": "Intégrations",
-      "comingSoon": "D'autres intégrations (PriceLabs, QuickBooks, etc.) seront disponibles prochainement.",
+      "comingSoon": "D'autres intégrations (QuickBooks, Xero, etc.) seront disponibles prochainement.",
       "pennylane": {
         "title": "Pennylane",
         "description": "Synchronisez vos factures et dépenses vers votre comptabilité Pennylane",
@@ -3262,6 +3268,14 @@
       "fiscal": {
         "title": "Rapport Fiscal",
         "description": "TVA, taxes et declarations fiscales"
+      },
+      "pace": {
+        "title": "Pace",
+        "description": "Réservations à venir vs l'an dernier, pickup et booking curve"
+      },
+      "custom": {
+        "title": "Rapport personnalisé",
+        "description": "Composez vos rapports : dimensions, métriques, granularité"
       }
     },
     "selectReport": "Sélectionnez un rapport à générer",
@@ -4473,7 +4487,8 @@
       "system": "Système",
       "contact": "Contact",
       "document": "Documents",
-      "reservations": "Réservations"
+      "reservations": "Réservations",
+      "guestMessaging": "Messages voyageurs"
     },
     "new": "nouvelle(s)",
     "timeAgo": {
@@ -5230,19 +5245,6 @@
     "processing": "En cours...",
     "failedPayout": "Échec du reversement",
     "downloadSepaXml": "SEPA XML",
-    "commissions": {
-      "help": {
-        "title": "Comment fonctionnent les commissions ?",
-        "description": "Les commissions représentent le pourcentage prélevé par chaque canal de réservation (Airbnb, Booking...) sur vos revenus.",
-        "step1Title": "Canaux",
-        "step1Desc": "Chaque plateforme (Airbnb, Booking...) applique un taux de commission différent.",
-        "step2Title": "Configurer",
-        "step2Desc": "Ajustez le taux de commission pour chaque canal selon votre contrat.",
-        "step3Title": "Impact",
-        "step3Desc": "Les commissions sont déduites automatiquement lors du calcul des payouts propriétaires.",
-        "dismiss": "Ne plus afficher"
-      }
-    },
     "fiscal": {
       "help": {
         "title": "Comment fonctionne le rapport fiscal ?",
@@ -5628,7 +5630,9 @@
         "financial": "Revenus par bien, coûts d'exploitation, marge nette et exports comptables sur la période choisie.",
         "interventions": "Volume, délais moyens et taux de réalisation des interventions par type et par équipe.",
         "teams": "Charge de travail, performance et disponibilités par équipe et par membre.",
-        "properties": "Taux d'occupation, RevPAR, alertes maintenance et indicateurs de santé par bien."
+        "properties": "Taux d'occupation, RevPAR, alertes maintenance et indicateurs de santé par bien.",
+        "pace": "Nuits réservées pour les prochains mois comparées à l'an dernier au même recul, pickup récent et montée des réservations.",
+        "custom": "Rapport à la carte : croisez propriétés, canaux, périodes et pays sur vos métriques revenue."
       }
     },
     "tarification": {
@@ -5742,6 +5746,20 @@
         "missingFields": "Veuillez remplir tous les champs.",
         "captchaInvalid": "Vérification échouée. Réessayez.",
         "accountDisabled": "Votre compte est désactivé. Contactez le support."
+      }
+    },
+    "forgotPassword": {
+      "title": "Mot de passe oublié ?",
+      "subtitle": "Indique ton adresse email : nous t'enverrons un lien pour choisir un nouveau mot de passe.",
+      "emailLabel": "Adresse email",
+      "emailPlaceholder": "vous@exemple.com",
+      "submit": "Envoyer le lien de réinitialisation",
+      "successMessage": "Si un compte existe avec cet email, un lien de réinitialisation vient d'être envoyé. Pensez à vérifier vos spams.",
+      "backToLogin": "Retour à la connexion",
+      "rememberedPassword": "Tu te souviens de ton mot de passe ?",
+      "loginLink": "Se connecter",
+      "errors": {
+        "missingEmail": "Veuillez saisir votre adresse email."
       }
     },
     "inscription": {
@@ -6131,11 +6149,39 @@
       "export": "Impossible d’exporter le CSV."
     }
   },
+  "marketPositioning": {
+    "title": "Positionnement marché",
+    "yourProperty": "Votre logement",
+    "market": "Marché de la zone",
+    "adr": "ADR",
+    "occupancy": "Occupation",
+    "underpriced": "Sous le marché",
+    "overpriced": "Au-dessus du marché",
+    "aligned": "Aligné sur le marché",
+    "noData": "Pas de données marché",
+    "sourceHint": "Provenance et fiabilité de la donnée marché. Le « réseau Baitly » est votre réalisé, jamais présenté comme le marché entier."
+  },
   "yieldRules": {
     "loadError": "Impossible de charger la configuration yield.",
     "saveError": "Enregistrement impossible, réessayez.",
     "boundsError": "Bornes invalides : plancher < plafond, tous deux positifs (ou aucun).",
     "killSwitch": "Yield automatique activé",
+    "automations": {
+      "title": "Automatisations",
+      "subtitle": "Ajustements déterministes appliqués chaque nuit, réversibles automatiquement.",
+      "orphanGap": {
+        "toggle": "Tarifer les nuits orphelines",
+        "maxNights": "Trou max (nuits)",
+        "discountPct": "Remise (%)",
+        "help": "Remise + séjour minimum abaissé sur les courts trous entre deux réservations (jamais sous le prix plancher)."
+      },
+      "minStay": {
+        "toggle": "Séjour minimum dynamique",
+        "reduceWithinDays": "Fenêtre (jours)",
+        "reducedValue": "Séjour min réduit",
+        "help": "Abaisse le séjour minimum des nuits encore libres à l’approche de la date (last-minute)."
+      }
+    },
     "mode": {
       "simulation": "Simulation",
       "suggest": "Suggestion",

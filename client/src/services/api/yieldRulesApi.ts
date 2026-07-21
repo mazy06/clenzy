@@ -8,6 +8,13 @@ export type YieldComparison = 'BELOW' | 'ABOVE';
 export interface YieldConfig {
   enabled: boolean;
   mode: YieldMode;
+  // Automatisations déterministes R2 (opt-in par org, réversibles).
+  orphanGapEnabled: boolean;
+  orphanGapMaxNights: number;
+  orphanGapDiscountPct: number;
+  minStayAutoEnabled: boolean;
+  minStayReduceWithinDays: number;
+  minStayReducedValue: number;
 }
 
 export interface YieldRuleV1 {

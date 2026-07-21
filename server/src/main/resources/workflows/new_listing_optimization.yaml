@@ -29,19 +29,6 @@ steps:
       name: recommend_price_adjustments
       args: {}
 
-  - id: market_position
-    title: "Positionnement marché"
-    prompts:
-      fr: |
-        Veux-tu **comparer au marché concurrent** (sources de données de marché activées) ? (oui / non)
-      en: |
-        Want to **benchmark against the market** (enabled market-data sources)? (yes / no)
-    expectsData:
-      checkMarket: boolean
-    suggestTool:
-      name: benchmark_competition
-      args: {}
-
   - id: content_quality
     title: "Avis et contenu"
     prompts:

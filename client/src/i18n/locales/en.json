@@ -182,7 +182,12 @@
       "SUGGEST_DEPOSIT_REFUND": "Deposit refund suggested (automation)",
       "SUGGEST_DEPOSIT_RELEASE": "Deposit release suggested (automation)",
       "NOTIFY_RATE_PARITY": "Rate parity gap flagged (automation)",
-      "SUGGEST_CALENDAR_BLOCK": "Calendar block suggested (automation)"
+      "SUGGEST_CALENDAR_BLOCK": "Calendar block suggested (automation)",
+      "SEND_MESSAGE_FAILED": "Message delivery failed (automation)",
+      "SEND_GUIDE_FAILED": "Welcome guide delivery failed (automation)",
+      "SEND_CHECKIN_LINK_FAILED": "Check-in link delivery failed (automation)",
+      "SEND_NOISE_WARNING_FAILED": "Noise alert delivery failed (automation)",
+      "SEND_REVIEW_REQUEST_FAILED": "Review request delivery failed (automation)"
     },
     "approval": {
       "title": "Approval required",
@@ -718,6 +723,7 @@
     "later": "Later"
   },
   "common": {
+    "help": "Help",
     "save": "Save",
     "saving": "Saving…",
     "cancel": "Cancel",
@@ -3008,7 +3014,7 @@
     },
     "integrations": {
       "title": "Integrations",
-      "comingSoon": "More integrations (PriceLabs, QuickBooks, etc.) will be available soon.",
+      "comingSoon": "More integrations (QuickBooks, Xero, etc.) will be available soon.",
       "pennylane": {
         "title": "Pennylane",
         "description": "Sync your invoices and expenses to your Pennylane accounting",
@@ -3237,6 +3243,14 @@
       "fiscal": {
         "title": "Fiscal Report",
         "description": "VAT, taxes and fiscal declarations"
+      },
+      "pace": {
+        "title": "Pace",
+        "description": "Upcoming bookings vs last year, pickup and booking curve"
+      },
+      "custom": {
+        "title": "Custom report",
+        "description": "Compose your reports: dimensions, metrics, granularity"
       }
     },
     "selectReport": "Select a report to generate",
@@ -4448,7 +4462,8 @@
       "system": "System",
       "contact": "Contact",
       "document": "Documents",
-      "reservations": "Reservations"
+      "reservations": "Reservations",
+      "guestMessaging": "Guest messages"
     },
     "new": "new",
     "timeAgo": {
@@ -5203,19 +5218,6 @@
     "processing": "Processing...",
     "failedPayout": "Transfer failed",
     "downloadSepaXml": "SEPA XML",
-    "commissions": {
-      "help": {
-        "title": "How do commissions work?",
-        "description": "Commissions represent the percentage charged by each booking channel (Airbnb, Booking...) on your revenue.",
-        "step1Title": "Channels",
-        "step1Desc": "Each platform (Airbnb, Booking...) applies a different commission rate.",
-        "step2Title": "Configure",
-        "step2Desc": "Adjust the commission rate for each channel according to your contract.",
-        "step3Title": "Impact",
-        "step3Desc": "Commissions are automatically deducted when calculating owner payouts.",
-        "dismiss": "Don't show again"
-      }
-    },
     "fiscal": {
       "help": {
         "title": "How does the fiscal report work?",
@@ -5601,7 +5603,9 @@
         "financial": "Revenue per property, operating costs, net margin and accounting exports for the chosen period.",
         "interventions": "Volume, average delays and completion rates of interventions by type and team.",
         "teams": "Workload, performance and availability per team and per member.",
-        "properties": "Occupancy rate, RevPAR, maintenance alerts and health indicators per property."
+        "properties": "Occupancy rate, RevPAR, maintenance alerts and health indicators per property.",
+        "pace": "Nights on the books for upcoming months versus last year at the same lead time, recent pickup and booking curve.",
+        "custom": "Build-your-own report: cross properties, channels, periods and countries over your revenue metrics."
       }
     },
     "tarification": {
@@ -5715,6 +5719,20 @@
         "missingFields": "Please fill in all fields.",
         "captchaInvalid": "Verification failed. Please try again.",
         "accountDisabled": "Your account is disabled. Please contact support."
+      }
+    },
+    "forgotPassword": {
+      "title": "Forgot your password?",
+      "subtitle": "Enter your email address: we'll send you a link to choose a new password.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "you@example.com",
+      "submit": "Send reset link",
+      "successMessage": "If an account exists with this email, a reset link has just been sent. Remember to check your spam folder.",
+      "backToLogin": "Back to login",
+      "rememberedPassword": "Remembered your password?",
+      "loginLink": "Log in",
+      "errors": {
+        "missingEmail": "Please enter your email address."
       }
     },
     "inscription": {
@@ -6104,11 +6122,39 @@
       "export": "Could not export the CSV."
     }
   },
+  "marketPositioning": {
+    "title": "Market positioning",
+    "yourProperty": "Your property",
+    "market": "Area market",
+    "adr": "ADR",
+    "occupancy": "Occupancy",
+    "underpriced": "Below market",
+    "overpriced": "Above market",
+    "aligned": "In line with market",
+    "noData": "No market data",
+    "sourceHint": "Provenance and reliability of the market data. The \"Baitly network\" is your own realised figures, never presented as the whole market."
+  },
   "yieldRules": {
     "loadError": "Unable to load the yield configuration.",
     "saveError": "Save failed, please retry.",
     "boundsError": "Invalid bounds: floor < ceiling, both positive (or neither).",
     "killSwitch": "Automatic yield enabled",
+    "automations": {
+      "title": "Automations",
+      "subtitle": "Deterministic adjustments applied every night, automatically reversible.",
+      "orphanGap": {
+        "toggle": "Price orphan nights",
+        "maxNights": "Max gap (nights)",
+        "discountPct": "Discount (%)",
+        "help": "Discount + lowered minimum stay on short gaps between two bookings (never below the floor price)."
+      },
+      "minStay": {
+        "toggle": "Dynamic minimum stay",
+        "reduceWithinDays": "Window (days)",
+        "reducedValue": "Reduced min stay",
+        "help": "Lowers the minimum stay of still-open nights as the date approaches (last-minute)."
+      }
+    },
     "mode": {
       "simulation": "Simulation",
       "suggest": "Suggestion",

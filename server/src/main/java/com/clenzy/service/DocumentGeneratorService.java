@@ -5,6 +5,7 @@ import com.clenzy.dto.GenerateDocumentRequest;
 import com.clenzy.exception.DocumentNotFoundException;
 import com.clenzy.exception.DocumentValidationException;
 import com.clenzy.model.DocumentGeneration;
+import com.clenzy.model.DocumentGenerationStatus;
 import com.clenzy.model.DocumentTemplate;
 import com.clenzy.model.DocumentType;
 import com.clenzy.model.ReferenceType;
@@ -272,6 +273,13 @@ public class DocumentGeneratorService {
                 : generationRepository.findByOrganizationIdOrderByCreatedAtDesc(
                         tenantContext.getRequiredOrganizationId(), pageable);
         return page.map(DocumentGenerationDto::fromEntity);
+    }
+
+    /** Nombre de generations en echec depuis {@code since} (pastille du menu Documents). */
+    @Transactional(readOnly = true)
+    public long countRecentFailedGenerations(Long organizationId, java.time.LocalDateTime since) {
+        return generationRepository.countByOrganizationIdAndStatusAndCreatedAtAfter(
+                organizationId, DocumentGenerationStatus.FAILED, since);
     }
 
     @Transactional(readOnly = true)

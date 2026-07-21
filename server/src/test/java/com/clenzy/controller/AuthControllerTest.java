@@ -36,6 +36,7 @@ class AuthControllerTest {
     @Mock private LoginProtectionService loginProtectionService;
     @Mock private OrganizationInvitationService invitationService;
     @Mock private OrganizationService organizationService;
+    @Mock private KeycloakService keycloakService;
     @Mock private RestTemplate restTemplate;
 
     private AuthController controller;
@@ -58,7 +59,7 @@ class AuthControllerTest {
     void setUp() throws Exception {
         controller = new AuthController(userService, permissionService,
                 auditLogService, securityAuditService, loginProtectionService,
-                invitationService, organizationService,
+                invitationService, organizationService, keycloakService,
                 restTemplate);
         // Set @Value fields via reflection
         setField("keycloakUrl", "http://localhost:8080");
@@ -313,6 +314,91 @@ class AuthControllerTest {
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody().get("user_found_by_keycloakId")).isEqualTo(true);
+        }
+    }
+
+    @Nested
+    @DisplayName("forgotPassword")
+    class ForgotPassword {
+        @Test
+        void whenMissingEmail_thenBadRequest() {
+            ResponseEntity<Map<String, String>> response = controller.forgotPassword(Map.of());
+            assertThat(response.getStatusCode().value()).isEqualTo(400);
+            verifyNoInteractions(keycloakService);
+        }
+
+        @Test
+        void whenValidEmail_thenSendsResetEmailAndReturnsGenericMessage() {
+            when(keycloakService.sendPasswordResetEmail("test@example.com")).thenReturn(true);
+
+            ResponseEntity<Map<String, String>> response =
+                    controller.forgotPassword(Map.of("email", "Test@Example.com"));
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody().get("message")).contains("Si un compte existe");
+            verify(keycloakService).sendPasswordResetEmail("test@example.com");
+        }
+
+        @Test
+        void whenUnknownEmail_thenStillReturnsGenericMessage() {
+            when(keycloakService.sendPasswordResetEmail("unknown@example.com")).thenReturn(false);
+
+            ResponseEntity<Map<String, String>> response =
+                    controller.forgotPassword(Map.of("email", "unknown@example.com"));
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody().get("message")).contains("Si un compte existe");
+        }
+
+        @Test
+        void whenKeycloakFails_thenStillReturnsGenericMessage() {
+            when(keycloakService.sendPasswordResetEmail("test@example.com"))
+                    .thenThrow(new RuntimeException("keycloak down"));
+
+            ResponseEntity<Map<String, String>> response =
+                    controller.forgotPassword(Map.of("email", "test@example.com"));
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+
+        @Test
+        void whenRepeatedWithinThrottleWindow_thenSendsOnlyOnce() {
+            when(keycloakService.sendPasswordResetEmail("test@example.com")).thenReturn(true);
+
+            controller.forgotPassword(Map.of("email", "test@example.com"));
+            ResponseEntity<Map<String, String>> second =
+                    controller.forgotPassword(Map.of("email", "test@example.com"));
+
+            assertThat(second.getStatusCode().value()).isEqualTo(200);
+            verify(keycloakService, times(1)).sendPasswordResetEmail("test@example.com");
+        }
+    }
+
+    @Nested
+    @DisplayName("sendPasswordResetEmailForCurrentUser")
+    class SendPasswordResetEmailForCurrentUser {
+        @Test
+        void whenNullJwt_thenReturns401() {
+            ResponseEntity<Map<String, String>> response = controller.sendPasswordResetEmailForCurrentUser(null);
+            assertThat(response.getStatusCode().value()).isEqualTo(401);
+            verifyNoInteractions(keycloakService);
+        }
+
+        @Test
+        void whenAuthenticated_thenSendsResetEmail() {
+            ResponseEntity<Map<String, String>> response = controller.sendPasswordResetEmailForCurrentUser(createJwt());
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            verify(keycloakService).sendPasswordResetEmailByKeycloakId("user-123");
+        }
+
+        @Test
+        void whenKeycloakFails_thenReturns500() {
+            doThrow(new RuntimeException("keycloak down"))
+                    .when(keycloakService).sendPasswordResetEmailByKeycloakId("user-123");
+
+            ResponseEntity<Map<String, String>> response = controller.sendPasswordResetEmailForCurrentUser(createJwt());
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
+            assertThat(response.getBody().get("error")).isEqualTo("reset_email_failed");
         }
     }
 

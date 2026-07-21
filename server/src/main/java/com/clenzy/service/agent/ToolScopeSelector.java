@@ -109,7 +109,7 @@ public final class ToolScopeSelector {
                             "baiss", "yield", "benchmark", "concurrent", "concurrence", "prevision",
                             "upsell", "forecast", "taxe", "parite", "disparite"),
                     Set.of("recommend_price_adjustments", "simulate_pricing_change", "set_rate_override",
-                            "get_price_quote", "benchmark_competition", "forecast_demand_longterm",
+                            "get_price_quote", "benchmark_market", "forecast_demand_longterm",
                             "suggest_upsells", "get_occupancy_forecast", "compute_tourist_tax",
                             "check_rate_parity")),
             new Domain(

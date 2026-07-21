@@ -20,7 +20,7 @@ class ToolScopeSelectorTest {
     /** Catalogue realiste (noms reels des tools de l'assistant). */
     private static final List<String> ALL_TOOL_NAMES = List.of(
             "advance_workflow", "analyze_portfolio", "analyze_reviews", "assign_intervention",
-            "batch_block_calendar", "benchmark_competition", "block_calendar_day", "cancel_reservation",
+            "batch_block_calendar", "block_calendar_day", "cancel_reservation",
             "create_intervention", "create_invoice", "create_reservation", "detect_operational_risks",
             "detect_unpaid_interventions", "forecast_demand_longterm", "forget_fact", "get_availability",
             "get_billing_overview", "get_business_insights", "get_channel_attribution",
@@ -79,7 +79,7 @@ class ToolScopeSelectorTest {
 
         assertThat(names).contains("create_intervention", "assign_intervention",
                 "get_interventions_by_status", "list_cleaning_tasks");
-        assertThat(names).doesNotContain("get_financial_summary", "benchmark_competition");
+        assertThat(names).doesNotContain("get_financial_summary", "recommend_price_adjustments");
     }
 
     @Test
@@ -96,8 +96,7 @@ class ToolScopeSelectorTest {
         // « je te demande... » est du francais courant, pas une intention pricing.
         List<String> names = namesOf(select("Je te demande de m'aider a retrouver un document"));
 
-        assertThat(names).doesNotContain("recommend_price_adjustments", "set_rate_override",
-                "benchmark_competition");
+        assertThat(names).doesNotContain("recommend_price_adjustments", "set_rate_override");
     }
 
     @Test

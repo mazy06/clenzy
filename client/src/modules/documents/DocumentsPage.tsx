@@ -34,6 +34,7 @@ import MessageTemplatesSection, { type MessageTemplatesSectionRef } from './Mess
 import WhatsAppTemplatesSection, { type WhatsAppTemplatesSectionRef } from './WhatsAppTemplatesSection';
 import TemplatesList, { type TemplatesListRef } from './TemplatesList';
 import UnifiedHistoryTab, { type UnifiedHistoryTabRef } from './UnifiedHistoryTab';
+import { useDocumentsFailedCount } from './useDocumentsFailedCount';
 import AvailableTagsReference from './AvailableTagsReference';
 import ComplianceDashboard, { type ComplianceDashboardRef } from './ComplianceDashboard';
 
@@ -57,6 +58,10 @@ const TAB_COMPLIANCE = 6;
 
 const DocumentsPage: React.FC = () => {
   const { t } = useTranslation();
+  // Pastille « échecs récents » sur l'onglet Historique — même hook (et même poll
+  // react-query dédupliqué) que le badge du menu Documents : l'utilisateur suit le
+  // chemin menu → onglet jusqu'aux lignes en échec.
+  const failedCount = useDocumentsFailedCount(true);
   // Source de verite des tabs : `key` stable pour l'URL (?tab=<key>) + label pour le header.
   // Defini ICI car activeTab/setActiveTab sont consommes tot (callbacks, inlineActions).
   const tabs = [
@@ -64,7 +69,8 @@ const DocumentsPage: React.FC = () => {
     { value: TAB_MSG_TEMPLATES,      key: 'message-templates',  label: t('documents.tabs.messageTemplates'),   icon: <ChatBubbleOutline /> },
     { value: TAB_WHATSAPP_TEMPLATES, key: 'whatsapp-templates', label: t('documents.tabs.whatsappTemplates'),  icon: <Forum /> },
     { value: TAB_DOC_TEMPLATES,      key: 'document-templates', label: t('documents.tabs.documentTemplates'),  icon: <Description /> },
-    { value: TAB_HISTORY,            key: 'history',            label: t('documents.tabs.history'),            icon: <History /> },
+    { value: TAB_HISTORY,            key: 'history',            label: t('documents.tabs.history'),            icon: <History />,
+      ...(failedCount > 0 ? { badge: failedCount, badgeColor: 'error' as const } : {}) },
     { value: TAB_VARIABLES,          key: 'variables',          label: t('documents.tabs.variablesAndTags'),   icon: <LocalOffer /> },
     { value: TAB_COMPLIANCE,         key: 'compliance',         label: t('documents.tabs.compliance'),         icon: <GppGood /> },
   ];

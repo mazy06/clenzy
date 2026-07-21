@@ -273,7 +273,7 @@ public class ChannexBookingService {
             return Optional.of(reservation);
         }
 
-        reservation.setStatus("cancelled");
+        reservation.markCancelled();
         reservationRepository.save(reservation);
 
         try {

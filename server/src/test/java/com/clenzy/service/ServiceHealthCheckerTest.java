@@ -1,5 +1,6 @@
 package com.clenzy.service;
 
+import com.clenzy.config.CalendarPartitionManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -34,13 +35,14 @@ class ServiceHealthCheckerTest {
     @Mock private KafkaAdmin kafkaAdmin;
     @Mock private ObjectProvider<JavaMailSender> mailSenderProvider;
     @Mock private JavaMailSender mailSender;
+    @Mock private CalendarPartitionManager calendarPartitionManager;
 
     private ServiceHealthChecker checker;
 
     @BeforeEach
     void setUp() {
         when(mailSenderProvider.getIfAvailable()).thenReturn(mailSender);
-        checker = new ServiceHealthChecker(dataSource, redisTemplate, kafkaAdmin, mailSenderProvider);
+        checker = new ServiceHealthChecker(dataSource, redisTemplate, kafkaAdmin, mailSenderProvider, calendarPartitionManager);
         ReflectionTestUtils.setField(checker, "keycloakUrl", "");
         ReflectionTestUtils.setField(checker, "stripeSecretKey", "");
     }
@@ -65,6 +67,40 @@ class ServiceHealthCheckerTest {
     }
 
     @Nested
+    @DisplayName("calendar-partition-manager check")
+    class CalendarPartitions {
+        @Test
+        void whenProbeHealthy_thenReturnsUp() {
+            when(calendarPartitionManager.probeAndHeal()).thenReturn(true);
+
+            ServiceHealthChecker.HealthResult result = checker.check("calendar-partition-manager");
+
+            assertThat(result.status()).isEqualTo("UP");
+            assertThat(result.service()).isEqualTo("calendar-partition-manager");
+        }
+
+        @Test
+        void whenProbeUnhealthy_thenReturnsDown() {
+            when(calendarPartitionManager.probeAndHeal()).thenReturn(false);
+
+            ServiceHealthChecker.HealthResult result = checker.check("calendar-partition-manager");
+
+            assertThat(result.status()).isEqualTo("DOWN");
+            assertThat(result.message()).contains("manquantes");
+        }
+
+        @Test
+        void whenProbeThrows_thenReturnsDown() {
+            when(calendarPartitionManager.probeAndHeal()).thenThrow(new RuntimeException("DB down"));
+
+            ServiceHealthChecker.HealthResult result = checker.check("calendar-partition-manager");
+
+            assertThat(result.status()).isEqualTo("DOWN");
+            assertThat(result.message()).contains("echouee");
+        }
+    }
+
+    @Nested
     @DisplayName("smtp check")
     class Smtp {
         @Test
@@ -78,7 +114,7 @@ class ServiceHealthCheckerTest {
         void whenJavaMailSenderImpl_thenTestsConnection() throws Exception {
             JavaMailSenderImpl impl = mock(JavaMailSenderImpl.class);
             when(mailSenderProvider.getIfAvailable()).thenReturn(impl);
-            ServiceHealthChecker fresh = new ServiceHealthChecker(dataSource, redisTemplate, kafkaAdmin, mailSenderProvider);
+            ServiceHealthChecker fresh = new ServiceHealthChecker(dataSource, redisTemplate, kafkaAdmin, mailSenderProvider, calendarPartitionManager);
             // testConnection success returns void (no exception)
 
             ServiceHealthChecker.HealthResult result = fresh.check("smtp");
@@ -90,7 +126,7 @@ class ServiceHealthCheckerTest {
             JavaMailSenderImpl impl = mock(JavaMailSenderImpl.class);
             org.mockito.Mockito.doThrow(new jakarta.mail.MessagingException("SMTP unreachable")).when(impl).testConnection();
             when(mailSenderProvider.getIfAvailable()).thenReturn(impl);
-            ServiceHealthChecker fresh = new ServiceHealthChecker(dataSource, redisTemplate, kafkaAdmin, mailSenderProvider);
+            ServiceHealthChecker fresh = new ServiceHealthChecker(dataSource, redisTemplate, kafkaAdmin, mailSenderProvider, calendarPartitionManager);
 
             ServiceHealthChecker.HealthResult result = fresh.check("smtp");
             assertThat(result.status()).isEqualTo("DOWN");
@@ -100,7 +136,7 @@ class ServiceHealthCheckerTest {
         void whenMailSenderNull_thenReturnsDown() {
             ObjectProvider<JavaMailSender> nullProvider = mock(ObjectProvider.class);
             when(nullProvider.getIfAvailable()).thenReturn(null);
-            ServiceHealthChecker fresh = new ServiceHealthChecker(dataSource, redisTemplate, kafkaAdmin, nullProvider);
+            ServiceHealthChecker fresh = new ServiceHealthChecker(dataSource, redisTemplate, kafkaAdmin, nullProvider, calendarPartitionManager);
 
             ServiceHealthChecker.HealthResult result = fresh.check("smtp");
             assertThat(result.status()).isEqualTo("DOWN");

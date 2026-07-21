@@ -117,7 +117,7 @@ class PublicCancellationServiceTest {
         assertThat(result.status()).isEqualTo("cancelled");
         assertThat(result.refundAmount()).isEqualByComparingTo("80");
         verify(calendarEngine).cancel(1L, ORG, null);
-        verify(reservation).setStatus("cancelled");
+        verify(reservation).markCancelled();
         verify(reservationRepository).save(reservation);
         // afterCommit inline (pas de transaction en test) → remboursement partiel 80€ = 8000 u.m.
         verify(stripeService).refundCheckoutSessionPartial("cs_x", 8000L, "cancel-refund-1", "trop cher");

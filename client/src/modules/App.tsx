@@ -24,6 +24,7 @@ import { clearTokens } from '../services/storageService';
 // Inscription restent statiques (chemin d'auth chaud).
 const InscriptionSuccess = lazy(() => import('./auth/InscriptionSuccess'));
 const InscriptionConfirm = lazy(() => import('./auth/InscriptionConfirm'));
+const ForgotPassword = lazy(() => import('./auth/ForgotPassword'));
 const Support = lazy(() => import('./auth/Support'));
 const Cgu = lazy(() => import('./legal/Cgu'));
 const Privacy = lazy(() => import('./legal/Privacy'));
@@ -86,7 +87,7 @@ function HardRedirectToLogin(): null {
 }
 
 // Routes publiques accessibles sans authentification
-const PUBLIC_ROUTES = ['/login', '/inscription', '/inscription/success', '/inscription/confirm', '/support', '/accept-invitation', '/supervision-demo'];
+const PUBLIC_ROUTES = ['/login', '/inscription', '/inscription/success', '/inscription/confirm', '/forgot-password', '/support', '/accept-invitation', '/supervision-demo'];
 
 // Routes publiques avec paramètres (prefix match)
 const PUBLIC_ROUTE_PREFIXES = ['/verify-key/', '/guide/', '/sign/', '/booking/', '/owner-view/'];
@@ -326,6 +327,18 @@ const App: React.FC = () => {
             element={
               !authenticated || !keycloak.authenticated ? (
                 <Inscription />
+              ) : (
+                <Navigate to="/planning" replace />
+              )
+            }
+          />
+
+          {/* Route publique pour la reinitialisation de mot de passe (email Keycloak) */}
+          <Route
+            path="/forgot-password"
+            element={
+              !authenticated || !keycloak.authenticated ? (
+                <ForgotPassword />
               ) : (
                 <Navigate to="/planning" replace />
               )

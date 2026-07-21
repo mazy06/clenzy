@@ -601,8 +601,53 @@ class GuestMessagingServiceTest {
 
             service.sendForReservationViaChannel(r, template, 1L, MessageChannelType.EMAIL, Map.of());
 
+            // Echec = owner notifie (surcharge orgId explicite : contexte scheduler)
+            // + admins/managers (meme circuit que les echecs de generation de document).
             verify(notificationService).send(eq("owner-kc"), eq(NotificationKey.GUEST_MESSAGE_FAILED),
-                anyString(), anyString(), any());
+                anyString(), anyString(), any(), eq(1L));
+            verify(notificationService).notifyAdminsAndManagers(eq(NotificationKey.GUEST_MESSAGE_FAILED),
+                anyString(), anyString(), any(), eq(1L));
+        }
+
+        @Test
+        void sendForReservationViaChannel_noRecipient_logsFailedAndNotifiesAdmins() {
+            Property property = new Property();
+            property.setId(10L);
+            property.setName("P");
+
+            Guest guest = new Guest(); // fiche sans email (ex. import iCal anonymise)
+            guest.setFirstName("G");
+            guest.setLastName("Test");
+
+            Reservation r = new Reservation();
+            r.setId(100L);
+            r.setProperty(property);
+            r.setGuest(guest);
+
+            MessageTemplate template = new MessageTemplate();
+            template.setId(5L);
+            template.setName("T");
+
+            when(instructionsRepository.findByPropertyIdAndOrganizationId(10L, 1L))
+                .thenReturn(Optional.empty());
+            when(interpolationService.interpolateAndTranslate(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new TemplateInterpolationService.InterpolatedMessage("S", "H", "P"));
+            when(emailChannel.getChannelType()).thenReturn(MessageChannelType.EMAIL);
+            when(emailChannel.isAvailable()).thenReturn(true);
+
+            GuestMessageLog log = new GuestMessageLog();
+            log.setId(1L);
+            log.setStatus(MessageStatus.FAILED);
+            when(messageLogRepository.save(any())).thenReturn(log);
+
+            GuestMessageLog result = service.sendForReservationViaChannel(
+                r, template, 1L, MessageChannelType.EMAIL, Map.of());
+
+            assertThat(result.getStatus()).isEqualTo(MessageStatus.FAILED);
+            verify(emailChannel, never()).send(any());
+            // Historiquement, ce chemin sortait AVANT toute notification : echec silencieux.
+            verify(notificationService).notifyAdminsAndManagers(eq(NotificationKey.GUEST_NO_EMAIL_FOR_CHECKIN),
+                anyString(), anyString(), any(), eq(1L));
         }
 
         @Test

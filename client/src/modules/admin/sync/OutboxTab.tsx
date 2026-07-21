@@ -29,9 +29,44 @@ import {
 } from '../../../icons';
 import { syncAdminApi, OutboxEvent, OutboxStats } from '../../../services/api/syncAdminApi';
 import FilterChipRow from '../../../components/FilterChipRow';
-import HelpBanner from '../../../components/HelpBanner';
+import HelpPopover from '../../../components/HelpPopover';
 import StatTile from '../../../components/StatTile';
 import { useSyncAdminHeader } from '../SyncAdminPage';
+
+// Contenu d'aide contextuelle (statique) — porté par l'icône ⓘ dans le header
+// SyncAdmin plutôt qu'un bandeau permanent qui mange de la hauteur.
+const OUTBOX_HELP = (
+  <HelpPopover
+    label="Aide"
+    title="Comment fonctionne l'Outbox ?"
+    description={
+      'Chaque mutation métier (réservation, profil utilisateur, calendrier...) écrit un event '
+      + 'dans la table outbox dans la MÊME transaction que la donnée. Le relais Kafka lit ensuite ces events '
+      + 'et les publie sur le topic correspondant. Garantie : at-least-once, pas de perte.'
+    }
+    steps={[
+      {
+        icon: <HourglassEmpty size={14} strokeWidth={1.75} />,
+        title: 'PENDING — en attente',
+        description: "L'event est en file. Le relais Kafka va le récupérer au prochain cycle (~quelques secondes).",
+        accent: 'info',
+      },
+      {
+        icon: <SendIcon size={14} strokeWidth={1.75} />,
+        title: 'SENT — envoyé',
+        description: "L'event a été publié dans Kafka. Les consumers downstream peuvent maintenant le traiter.",
+        accent: 'success',
+      },
+      {
+        icon: <ErrorOutline size={14} strokeWidth={1.75} />,
+        title: 'FAILED — à investiguer',
+        description: "L'envoi a échoué (topic manquant, broker indisponible, payload invalide). Voir la colonne Error, "
+          + 'corriger la cause, puis cliquer "Retry Selected" pour remettre l\'event en file.',
+        accent: 'error',
+      },
+    ]}
+  />
+);
 
 // ─── Tooltip copy ────────────────────────────────────────────────────────────
 // Centralised so the same explanation surfaces in the chip, the column header,
@@ -234,6 +269,7 @@ const OutboxTab: React.FC = () => {
   useEffect(() => {
     setHeaderActions(
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {OUTBOX_HELP}
         <Tooltip
           arrow
           title="Coche toutes les lignes en statut FAILED sur la page courante. Utile pour relancer un lot d'événements après avoir corrigé la cause (topic créé, broker remonté, etc.)."
@@ -283,38 +319,6 @@ const OutboxTab: React.FC = () => {
 
   return (
     <Box>
-      <HelpBanner
-        storageKey="clenzy_outbox_help_dismissed"
-        title="Comment fonctionne l'Outbox ?"
-        description={
-          'Chaque mutation métier (réservation, profil utilisateur, calendrier...) écrit un event '
-          + 'dans la table outbox dans la MÊME transaction que la donnée. Le relais Kafka lit ensuite ces events '
-          + 'et les publie sur le topic correspondant. Garantie : at-least-once, pas de perte.'
-        }
-        dismissLabel="J'ai compris"
-        steps={[
-          {
-            icon: <HourglassEmpty size={14} strokeWidth={1.75} />,
-            title: 'PENDING — en attente',
-            description: "L'event est en file. Le relais Kafka va le récupérer au prochain cycle (~quelques secondes).",
-            accent: 'info',
-          },
-          {
-            icon: <SendIcon size={14} strokeWidth={1.75} />,
-            title: 'SENT — envoyé',
-            description: "L'event a été publié dans Kafka. Les consumers downstream peuvent maintenant le traiter.",
-            accent: 'success',
-          },
-          {
-            icon: <ErrorOutline size={14} strokeWidth={1.75} />,
-            title: 'FAILED — à investiguer',
-            description: "L'envoi a échoué (topic manquant, broker indisponible, payload invalide). Voir la colonne Error, "
-              + 'corriger la cause, puis cliquer "Retry Selected" pour remettre l\'event en file.',
-            accent: 'error',
-          },
-        ]}
-      />
-
       {/* Stats — StatTile (carte plate hairline, valeur display tabular-nums) */}
       {stats && (
         <Grid container spacing={2} sx={{ mb: 3 }}>

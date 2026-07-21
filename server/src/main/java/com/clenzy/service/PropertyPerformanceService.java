@@ -201,6 +201,7 @@ public class PropertyPerformanceService {
                 revPan,
                 round1(occupancyRate),
                 revenue.setScale(2, RoundingMode.HALF_UP),
+                costs.setScale(2, RoundingMode.HALF_UP),
                 round1(netMargin),
                 days);
     }

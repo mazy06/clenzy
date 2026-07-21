@@ -3333,3 +3333,86 @@ databaseChangeLog:
       sqlFile:
         path: changes/0348__kb_chunk_fulltext_per_language.sql
         relativeToChangelogFile: true
+
+  # Fondations RMS (R1) : horodatage d'annulation des reservations — permet de
+  # reconstruire l'on-the-books a une date passee (pace / pickup / booking curve).
+  # Backfill des annulees existantes avec updated_at (approximation documentee).
+  - changeSet:
+      id: "0349-add-reservation-cancelled-at"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0349__add_reservation_cancelled_at.sql
+        relativeToChangelogFile: true
+
+  # Fondations RMS (R1) : snapshots quotidiens du calendrier publie (prix resolu +
+  # statut + min_stay, horizon 365 j) — historisation impossible a reconstruire,
+  # base des booking curves de prix et du forecast appris (R3).
+  - changeSet:
+      id: "0350-create-calendar-day-snapshots"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0350__create_calendar_day_snapshots.sql
+        relativeToChangelogFile: true
+
+  # Fondations RMS (R1) : funnel booking engine — telemetrie server-side de la
+  # demande (recherches, denied demand SEARCH_NO_RESULT, vues, checkouts inities).
+  - changeSet:
+      id: "0351-create-booking-funnel-events"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0351__create_booking_funnel_events.sql
+        relativeToChangelogFile: true
+
+  # RMS R2 : automatisations deterministes — orphan gap pricing + min-stay
+  # dynamique, parametres opt-in par org sur yield_org_configs (defaut OFF).
+  - changeSet:
+      id: "0352-add-rms-automation-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0352__add_rms_automation_config.sql
+        relativeToChangelogFile: true
+
+  # Securite F1-STRUCT : Row-Level Security (filet d'isolation multi-tenant).
+  # DORMANT par CONTEXTE Liquibase `rls` : ne s'applique QU'AUX environnements
+  # dont spring.liquibase.contexts inclut `rls` (staging). Le defaut global est
+  # `!rls` (application.yml) → dev / test / PROD ne l'appliquent PAS au boot.
+  # Activation : runbook docs/security/RLS-ROLLOUT-RUNBOOK.md (contexte + flag
+  # clenzy.security.rls.enabled + role de migration BYPASSRLS). Rollback :
+  # changes/0353__rollback_rls_priority_tables.sql (non cable — a cabler au besoin).
+  - changeSet:
+      id: "0345-enable-rls-priority-tables"
+      author: clenzy-team
+      context: "rls"
+      sqlFile:
+        path: changes/0345__enable_rls_priority_tables.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  # Retrait des amorces pricing externe (PriceLabs/Beyond/Wheelhouse) — RMS natif.
+  # DROP des 2 tables dediees uniquement (compta quickbooks/xero/sage preservee).
+  # 0353 reserve par la branche rls-rollout-staging (rollback RLS) -> ce DROP est 0354.
+  - changeSet:
+      id: "0354-drop-external-pricing-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0354__drop_external_pricing_tables.sql
+        relativeToChangelogFile: true
+
+  # Roadmap market data (Phase 0) : benchmarks multi-sources persistes —
+  # first-party k-anonyme + open data + adaptateurs externes dormants.
+  - changeSet:
+      id: "0355-create-market-data-snapshots"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0355__create_market_data_snapshots.sql
+        relativeToChangelogFile: true
+
+  # Roadmap market data : connexions fournisseurs (cle API chiffree, portee
+  # plateforme) — activation Airbtics/AirROI depuis Reglages -> Integrations.
+  - changeSet:
+      id: "0356-create-market-data-connections"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0356__create_market_data_connections.sql
+        relativeToChangelogFile: true

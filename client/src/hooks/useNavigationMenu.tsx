@@ -29,6 +29,7 @@ import {
 import { useCanSuperviseAgents } from '../modules/supervision/useCanSuperviseAgents';
 import { useSupervisionConfig } from '../modules/supervision/useSupervisionConfig';
 import { useSupervisionPendingCounts } from '../modules/supervision/useSupervisionPendingCounts';
+import { useDocumentsFailedCount } from '../modules/documents/useDocumentsFailedCount';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -339,16 +340,25 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
     // `user` est un useState (identite stable) : dependre de l'objet entier.
   }, [user, refreshMenu]);
 
-  // Mémoriser le résultat + superposer la pastille « en attente » sur Planning
-  // (badge dynamique, hors du flux de construction du menu).
+  // Pastille « échecs récents » du hub Documents : envois voyageur + générations
+  // de documents FAILED (7 j). Gaté sur la visibilité du hub → aucun fetch inutile.
+  const documentsHubVisible = menuItems.some((item) => item.id === 'hub:documents');
+  const documentsFailedCount = useDocumentsFailedCount(documentsHubVisible);
+
+  // Mémoriser le résultat + superposer les pastilles dynamiques (« en attente »
+  // sur Planning, « échecs récents » sur Documents), hors du flux de construction.
   const memoizedMenuItems = useMemo(() => {
-    if (pendingTotal <= 0) return menuItems;
-    return menuItems.map((item) =>
-      item.path === '/planning'
-        ? { ...item, badge: pendingTotal, badgeColor: 'warning' as const }
-        : item,
-    );
-  }, [menuItems, pendingTotal]);
+    if (pendingTotal <= 0 && documentsFailedCount <= 0) return menuItems;
+    return menuItems.map((item) => {
+      if (item.path === '/planning' && pendingTotal > 0) {
+        return { ...item, badge: pendingTotal, badgeColor: 'warning' as const };
+      }
+      if (item.id === 'hub:documents' && documentsFailedCount > 0) {
+        return { ...item, badge: documentsFailedCount, badgeColor: 'error' as const };
+      }
+      return item;
+    });
+  }, [menuItems, pendingTotal, documentsFailedCount]);
 
   return {
     menuItems: memoizedMenuItems,

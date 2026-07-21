@@ -55,7 +55,7 @@ public class ICalReservationCanceller {
      * de le retirer manuellement (PATCH /api/reservations/{id}/hide).
      */
     public void cancelReservationWithCascade(Reservation reservation, ICalImportSession session) {
-        reservation.setStatus("cancelled");
+        reservation.markCancelled();
 
         // Annuler le paiement reservation (sauf si deja rembourse ou annule)
         if (reservation.getPaymentStatus() != null

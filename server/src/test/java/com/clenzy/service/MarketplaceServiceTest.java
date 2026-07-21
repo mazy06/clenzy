@@ -42,10 +42,10 @@ class MarketplaceServiceTest {
         IntegrationPartner p = new IntegrationPartner();
         p.setId(1L);
         p.setOrganizationId(ORG_ID);
-        p.setPartnerName("PriceLabs");
-        p.setPartnerSlug("pricelabs");
-        p.setCategory(IntegrationCategory.PRICING);
-        p.setDescription("Dynamic pricing");
+        p.setPartnerName("KeyNest");
+        p.setPartnerSlug("keynest");
+        p.setCategory(IntegrationCategory.KEY_MANAGEMENT);
+        p.setDescription("Key exchange network");
         p.setStatus(status);
         return p;
     }
@@ -118,7 +118,7 @@ class MarketplaceServiceTest {
 
         int count = service.initializeCatalog(ORG_ID);
 
-        // Should skip "pricelabs" since it already exists
+        // Should skip "keynest" since it already exists
         int catalogSize = service.getCatalog().size();
         assertEquals(catalogSize - 1, count);
     }

@@ -19,19 +19,6 @@ steps:
       from: string
       to: string
 
-  - id: review_market
-    title: "Positionnement marché"
-    prompts:
-      fr: |
-        Veux-tu d'abord **comparer tes prix au marché** (sources concurrence) ? (oui / non)
-      en: |
-        Want to first **compare your prices to the market** (competition sources)? (yes / no)
-    expectsData:
-      checkMarket: boolean
-    suggestTool:
-      name: benchmark_competition
-      args: {}
-
   - id: review_reco
     title: "Recommandations d'occupation"
     prompts:

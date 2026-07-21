@@ -49,6 +49,96 @@ const ACCENT_TOKENS: Record<HelpStepAccent, { color: string; soft: string }> = {
 };
 
 /**
+ * Grille d'étapes partagée entre le bandeau ({@link HelpBanner}) et le popover
+ * ({@link HelpPopover}). Chaque step a son accent sémantique (passé ou
+ * auto-attribué via le cycle) — pas d'identical-card-grid, petit carré coloré
+ * au lieu d'un icon-badge rond, filet 2 px sous le titre au lieu d'un
+ * side-stripe. `columns` borne le nombre de colonnes md (le popover reste sur
+ * une colonne pour une lecture verticale confortable).
+ */
+export const HelpStepsGrid: React.FC<{ steps: HelpStep[]; columns?: number }> = ({ steps, columns }) => {
+  if (steps.length === 0) return null;
+  const maxCols = columns ?? Math.min(steps.length, 4);
+  return (
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: {
+          xs: '1fr',
+          sm: maxCols >= 2 && steps.length === 2 ? 'repeat(2, 1fr)' : '1fr',
+          md: `repeat(${Math.max(1, Math.min(steps.length, maxCols))}, 1fr)`,
+        },
+        gap: { xs: 1.5, md: 2 },
+      }}
+    >
+      {steps.map((step, i) => {
+        const accentKey: HelpStepAccent
+          = step.accent ?? DEFAULT_ACCENT_CYCLE[i % DEFAULT_ACCENT_CYCLE.length];
+        const accent = ACCENT_TOKENS[accentKey];
+        return (
+          <Box
+            key={step.title}
+            sx={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 1.125,
+              minWidth: 0,
+            }}
+          >
+            {/* Small square icon — no big round badge over each heading */}
+            <Box
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: accent.soft,
+                color: accent.color,
+                flexShrink: 0,
+                mt: 0.125,
+              }}
+              aria-hidden
+            >
+              {step.icon}
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography
+                sx={{
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  color: 'var(--ink)',
+                  lineHeight: 1.25,
+                  mb: 0.25,
+                  textWrap: 'balance',
+                  // Thin colored underline keeps each step's identity without a side-stripe.
+                  display: 'inline-block',
+                  borderBottom: `2px solid color-mix(in srgb, ${accent.color} 45%, transparent)`,
+                  pb: 0.125,
+                }}
+              >
+                {step.title}
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: '11.5px',
+                  color: 'var(--muted)',
+                  lineHeight: 1.45,
+                  mt: 0.25,
+                }}
+              >
+                {step.description}
+              </Typography>
+            </Box>
+          </Box>
+        );
+      })}
+    </Box>
+  );
+};
+
+/**
  * Inline informational banner — used on admin / accounting / sync pages to teach the
  * user what a complex feature does. Dismissable per `storageKey` via backend prefs
  * (cf. UserUiPreferencesProvider) — la decision "j'ai compris cette aide" est
@@ -221,83 +311,7 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
       </Typography>
 
       {/* Steps — responsive grid, per-step accent breaks templating */}
-      {steps.length > 0 && (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: '1fr',
-              sm: steps.length === 2 ? 'repeat(2, 1fr)' : '1fr',
-              md: `repeat(${Math.min(steps.length, 4)}, 1fr)`,
-            },
-            gap: { xs: 1.5, md: 2 },
-          }}
-        >
-          {steps.map((step, i) => {
-            const accentKey: HelpStepAccent
-              = step.accent ?? DEFAULT_ACCENT_CYCLE[i % DEFAULT_ACCENT_CYCLE.length];
-            const accent = ACCENT_TOKENS[accentKey];
-            return (
-              <Box
-                key={step.title}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 1.125,
-                  minWidth: 0,
-                }}
-              >
-                {/* Small square icon — no big round badge over each heading */}
-                <Box
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '8px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: accent.soft,
-                    color: accent.color,
-                    flexShrink: 0,
-                    mt: 0.125,
-                  }}
-                  aria-hidden
-                >
-                  {step.icon}
-                </Box>
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography
-                    sx={{
-                      fontSize: '12.5px',
-                      fontWeight: 700,
-                      color: 'var(--ink)',
-                      lineHeight: 1.25,
-                      mb: 0.25,
-                      textWrap: 'balance',
-                      // Thin colored underline keeps each step's identity without a side-stripe.
-                      display: 'inline-block',
-                      borderBottom: `2px solid color-mix(in srgb, ${accent.color} 45%, transparent)`,
-                      pb: 0.125,
-                    }}
-                  >
-                    {step.title}
-                  </Typography>
-                  <Typography
-                    sx={{
-                      fontSize: '11.5px',
-                      color: 'var(--muted)',
-                      lineHeight: 1.45,
-                      mt: 0.25,
-                    }}
-                  >
-                    {step.description}
-                  </Typography>
-                </Box>
-              </Box>
-            );
-          })}
-        </Box>
-      )}
+      <HelpStepsGrid steps={steps} />
     </Box>
   );
 };

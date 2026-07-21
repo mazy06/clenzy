@@ -48,29 +48,21 @@ export const SERVICE_TOOLTIPS: Record<string, ServiceTooltipData> = {
     region: 'FR',
   },
 
-  // ─── Tarification dynamique ────────────────────────────────────────────
-  PRICELABS: {
+  // ─── Intelligence de marché (sources actives) ──────────────────────────
+  AIRBTICS: {
     description:
-      "Leader mondial du dynamic pricing court-séjour (NYC). 250 000+ listings, recommandations basées sur la demande locale, occupancy, événements. Couvre tous marchés FR/MA/KSA.",
+      "Fournisseur cible de données de marché du RMS Baitly : benchmarks ADR/occupation/RevPAR par zone, couverture Maroc profonde (Marrakech, Casablanca, Agadir depuis 2019), restitution native en MAD.",
     accessModality:
-      'Compte PriceLabs (~20-30 €/listing/mois). API key dans Account Settings → API Integration après souscription.',
-    websiteUrl: 'https://hello.pricelabs.co',
+      'Abonnement Airbtics (~500-2 000 $/an). Clé API à saisir ici — active l\'ingestion quotidienne au prochain cycle, sans redéploiement.',
+    websiteUrl: 'https://airbtics.com',
     region: 'Global',
   },
-  BEYOND: {
+  AIRROI: {
     description:
-      "Concurrent direct de PriceLabs (San Francisco). Algorithme propriétaire de tarification nuit-par-nuit. Très utilisé en Europe et US.",
+      "Appoint pay-per-call de données de marché (~0,01 $/appel, sans contrat) : cross-check de précision du first-party et couverture des marchés où les autres sources sont minces.",
     accessModality:
-      "Compte Beyond Pro (tarification au revenue généré, ~1 % du CA additionnel). API key après onboarding commercial.",
-    websiteUrl: 'https://www.beyondpricing.com',
-    region: 'Global',
-  },
-  WHEELHOUSE: {
-    description:
-      "3e acteur majeur du dynamic pricing (San Francisco). Focus sur la comparaison concurrentielle avec les listings similaires dans la zone géographique.",
-    accessModality:
-      "Compte Wheelhouse (~24 $/listing/mois). API key fournie sur demande après souscription.",
-    websiteUrl: 'https://www.usewheelhouse.com',
+      "Compte AirROI (pay-as-you-go). Clé API à saisir ici — 5 marchés en refresh quotidien ≈ 18 $/an.",
+    websiteUrl: 'https://www.airroi.com',
     region: 'Global',
   },
 

@@ -60,6 +60,32 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("ownerKc") String ownerKc);
 
     /**
+     * Réservations chevauchant la fenêtre de séjour — analytics on-the-books
+     * (PaceAnalyticsService). Les annulées sont INCLUSES volontairement : l'OTB à
+     * une date passée S doit re-compter une réservation annulée après S
+     * (created_at <= S < cancelled_at). Org-scope strict, owner et propriété
+     * optionnels. Sans join fetch : bornes / statut / prix / timestamps seulement.
+     */
+    @Query("SELECT r FROM Reservation r WHERE r.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR r.property.owner.keycloakId = :ownerKc) "
+        + "AND (:propertyId IS NULL OR r.property.id = :propertyId) "
+        + "AND r.checkOut > :from AND r.checkIn < :toExclusive")
+    List<Reservation> findOverlappingWindowForPace(
+            @Param("from") LocalDate from,
+            @Param("toExclusive") LocalDate toExclusive,
+            @Param("orgId") Long orgId,
+            @Param("ownerKc") String ownerKc,
+            @Param("propertyId") Long propertyId);
+
+    /** Conversions du funnel booking engine : résas directes créées sur la période, non annulées. */
+    @Query("SELECT COUNT(r) FROM Reservation r WHERE r.organizationId = :orgId "
+        + "AND r.source = 'direct' AND r.status <> 'cancelled' "
+        + "AND r.createdAt >= :from AND r.createdAt < :to")
+    long countDirectCreatedBetween(@Param("orgId") Long orgId,
+                                   @Param("from") java.time.LocalDateTime from,
+                                   @Param("to") java.time.LocalDateTime to);
+
+    /**
      * Compteur « paiements en attente » du dashboard : réservations DIRECTES non
      * annulées avec paiement PENDING et montant dû. Les réservations OTA sont
      * exclues (déjà réglées sur le canal — affichées « Payé » côté PMS).

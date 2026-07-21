@@ -11,6 +11,7 @@ import {
   Wand2,
   Newspaper,
   Globe,
+  Filter,
 } from 'lucide-react';
 import StudioShell, { type Breakpoint, type StudioSection } from './StudioShell';
 import StudioCommandPalette, { type StudioCommand } from './StudioCommandPalette';
@@ -25,6 +26,7 @@ import ContentSection from './settings/ContentSection';
 import BlogPanel from './builder/BlogPanel';
 import DistributionPanel from './settings/DistributionPanel';
 import GrowthSettingsPanel from './settings/GrowthSettingsPanel';
+import FunnelAnalyticsPanel from './settings/FunnelAnalyticsPanel';
 import { useStudioConfig } from './useStudioConfig';
 import { type StudioMode } from './studioMode';
 import { sitesApi } from '../../../services/api/sitesApi';
@@ -43,6 +45,7 @@ const SECTIONS: StudioSection[] = [
   { key: 'blog', label: 'Blog', icon: Newspaper },
   { key: 'booking', label: 'Réservation', icon: CalendarCheck },
   { key: 'growth', label: 'Croissance', icon: TrendingUp },
+  { key: 'funnel', label: 'Funnel', icon: Filter },
   { key: 'distribution', label: 'Diffusion', icon: Share2 },
 ];
 
@@ -146,6 +149,7 @@ export default function StudioPage() {
         )}
         {active.key === 'distribution' && <DistributionPanel cfg={cfg} />}
         {active.key === 'growth' && <GrowthSettingsPanel />}
+        {active.key === 'funnel' && <FunnelAnalyticsPanel />}
       </StudioShell>
 
       <StudioCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />

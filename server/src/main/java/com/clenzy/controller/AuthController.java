@@ -21,7 +21,9 @@ import java.util.Map;
 import java.util.List;
 import java.time.LocalDateTime;
 import com.clenzy.model.User;
+import com.clenzy.service.KeycloakService;
 import com.clenzy.service.UserService;
+import com.clenzy.util.PiiMasker;
 import com.clenzy.service.PermissionService;
 import com.clenzy.service.AuditLogService;
 import com.clenzy.service.SecurityAuditService;
@@ -60,10 +62,21 @@ public class AuthController {
     private final LoginProtectionService loginProtectionService;
     private final OrganizationInvitationService invitationService;
     private final OrganizationService organizationService;
+    private final KeycloakService keycloakService;
     private final RestTemplate restTemplate;
 
     /** TTL du throttle de re-verification des invitations pending dans /me. */
     private static final long PENDING_INVITATION_CHECK_TTL_MS = 2 * 60 * 1000L;
+
+    /** Throttle par email des demandes de reset de mot de passe (anti-spam SMTP). */
+    private static final long FORGOT_PASSWORD_THROTTLE_MS = 60 * 1000L;
+
+    /**
+     * Derniere demande de reset par email (throttle per-instance, meme logique
+     * que pendingInvitationCheckAt : un doublon sur une autre instance envoie
+     * juste un second email — sans enjeu de coherence).
+     */
+    private final Map<String, Long> forgotPasswordRequestAt = new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
      * Dernier scan invitations par email (throttle per-instance : un scan raté
@@ -93,6 +106,7 @@ public class AuthController {
                           LoginProtectionService loginProtectionService,
                           OrganizationInvitationService invitationService,
                           OrganizationService organizationService,
+                          KeycloakService keycloakService,
                           RestTemplate restTemplate) {
         this.userService = userService;
         this.permissionService = permissionService;
@@ -101,6 +115,7 @@ public class AuthController {
         this.loginProtectionService = loginProtectionService;
         this.invitationService = invitationService;
         this.organizationService = organizationService;
+        this.keycloakService = keycloakService;
         this.restTemplate = restTemplate;
     }
 
@@ -236,6 +251,76 @@ public class AuthController {
 
             return ResponseEntity.status(401).body(error);
         }
+    }
+
+    @PostMapping("/auth/forgot-password")
+    @PreAuthorize("permitAll()")
+    @Operation(summary = "Envoie l'email Keycloak de reinitialisation de mot de passe (flow reset-credentials)")
+    public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "missing_email",
+                    "error_description", "Email is required"));
+        }
+        email = email.trim().toLowerCase();
+
+        // Reponse identique compte existant ou non : ne pas reveler l'existence du compte
+        Map<String, String> genericResponse = Map.of(
+                "message", "Si un compte existe avec cet email, un lien de reinitialisation a ete envoye.");
+
+        if (!allowForgotPasswordRequest(email)) {
+            log.debug("Forgot password throttle pour email={}", PiiMasker.maskEmail(email));
+            return ResponseEntity.ok(genericResponse);
+        }
+
+        try {
+            boolean sent = keycloakService.sendPasswordResetEmail(email);
+            if (sent) {
+                log.info("Email de reset de mot de passe envoye pour email={}", PiiMasker.maskEmail(email));
+            } else {
+                log.debug("Forgot password: aucun utilisateur Keycloak pour email={}", PiiMasker.maskEmail(email));
+            }
+        } catch (Exception e) {
+            log.error("Erreur envoi email de reset pour email={}: {}", PiiMasker.maskEmail(email), e.getMessage());
+        }
+
+        return ResponseEntity.ok(genericResponse);
+    }
+
+    @PostMapping("/auth/password-reset-email")
+    @Operation(summary = "Envoie a l'utilisateur connecte l'email Keycloak de changement de mot de passe")
+    public ResponseEntity<Map<String, String>> sendPasswordResetEmailForCurrentUser(@AuthenticationPrincipal Jwt jwt) {
+        if (jwt == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
+        }
+        try {
+            keycloakService.sendPasswordResetEmailByKeycloakId(jwt.getSubject());
+            log.info("Email de changement de mot de passe envoye pour keycloakId={}", jwt.getSubject());
+            return ResponseEntity.ok(Map.of(
+                    "message", "Un email de changement de mot de passe vient de vous etre envoye."));
+        } catch (Exception e) {
+            log.error("Erreur envoi email de changement de mot de passe pour {}: {}", jwt.getSubject(), e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "reset_email_failed",
+                    "error_description", "Impossible d'envoyer l'email de changement de mot de passe."));
+        }
+    }
+
+    private boolean allowForgotPasswordRequest(String email) {
+        final long now = System.currentTimeMillis();
+        // Purge opportuniste pour borner la taille de la map
+        if (forgotPasswordRequestAt.size() > 10_000) {
+            forgotPasswordRequestAt.clear();
+        }
+        final Long previous = forgotPasswordRequestAt.putIfAbsent(email, now);
+        if (previous == null) {
+            return true;
+        }
+        if (now - previous >= FORGOT_PASSWORD_THROTTLE_MS) {
+            return forgotPasswordRequestAt.replace(email, previous, now);
+        }
+        return false;
     }
 
     @GetMapping("/me")

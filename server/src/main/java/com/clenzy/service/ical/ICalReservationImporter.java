@@ -196,7 +196,12 @@ public class ICalReservationImporter {
         // "blocked"), donc tout evenement restant est une vraie reservation OTA = booking
         // confirme. "pending" excluait a tort ces reservations des traitements filtres sur
         // "confirmed" (livret d'accueil, envoi auto des instructions check-in, revenus).
-        reservation.setStatus(event.getStatus() != null ? event.getStatus() : "confirmed");
+        String importedStatus = event.getStatus() != null ? event.getStatus() : "confirmed";
+        if ("cancelled".equalsIgnoreCase(importedStatus)) {
+            reservation.markCancelled();
+        } else {
+            reservation.setStatus(importedStatus);
+        }
         reservation.setSource(session.sourceKey);
         reservation.setSourceName(session.request.getSourceName());
         reservation.setConfirmationCode(event.getConfirmationCode());

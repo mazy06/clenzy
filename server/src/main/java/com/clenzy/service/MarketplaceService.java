@@ -22,13 +22,9 @@ public class MarketplaceService {
     private static final Logger log = LoggerFactory.getLogger(MarketplaceService.class);
 
     // Catalogue des integrations disponibles dans la marketplace
+    // NB : les integrations PRICING tierces (PriceLabs/Beyond/Wheelhouse) ont ete
+    // retirees (decision 2026-07-20, roadmap market data) — le RMS est natif.
     private static final List<Map<String, String>> CATALOG = List.of(
-        Map.of("name", "PriceLabs", "slug", "pricelabs", "category", "PRICING",
-            "description", "Dynamic pricing optimization for short-term rentals"),
-        Map.of("name", "Beyond Pricing", "slug", "beyond-pricing", "category", "PRICING",
-            "description", "Revenue management with market data analysis"),
-        Map.of("name", "Wheelhouse", "slug", "wheelhouse", "category", "PRICING",
-            "description", "Smart pricing based on demand and competition"),
         Map.of("name", "KeyNest", "slug", "keynest", "category", "KEY_MANAGEMENT",
             "description", "Key exchange network for property access"),
         Map.of("name", "Igloohome", "slug", "igloohome", "category", "KEY_MANAGEMENT",
@@ -110,8 +106,7 @@ public class MarketplaceService {
      * Connecte une integration partenaire avec les credentials fournis.
      *
      * <p>La cle API est CHIFFREE (Jasypt AES-256 via {@link ApiKeyEncryptionService})
-     * avant persistance — comme {@code PricingConnectionService} et les autres
-     * services {@code integration/}. La colonne {@code api_key_encrypted} ne doit
+     * avant persistance — comme les autres services {@code integration/}. La colonne {@code api_key_encrypted} ne doit
      * jamais contenir la cle en clair : une fuite de la DB donnerait acces aux
      * services externes de toutes les organisations (M1-MODEL-02).</p>
      */

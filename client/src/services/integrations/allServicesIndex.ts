@@ -30,7 +30,6 @@ export interface CategoryDef {
 
 export const CATEGORIES: CategoryDef[] = [
   { id: 'signature',            label: 'Signature électronique',     domId: 'section-signature' },
-  { id: 'pricing',              label: 'Tarification dynamique',     domId: 'section-pricing' },
   { id: 'accounting',           label: 'Comptabilité',                domId: 'section-accounting' },
   { id: 'compliance',           label: 'Conformité légale',           domId: 'section-compliance' },
   { id: 'kyc',                  label: 'Vérification d\'identité',    domId: 'section-kyc' },
@@ -70,11 +69,6 @@ export const ALL_SERVICES: ServiceIndexEntry[] = [
   // implementes mais non branches (workflow interne actif par defaut).
   entry('YOUSIGN', 'Yousign', 'signature'),
   entry('DOCUSEAL', 'DocuSeal', 'signature'),
-
-  // Tarification dynamique
-  entry('PRICELABS', 'PriceLabs', 'pricing'),
-  entry('BEYOND', 'Beyond', 'pricing'),
-  entry('WHEELHOUSE', 'Wheelhouse', 'pricing'),
 
   // Comptabilite
   entry('PENNYLANE', 'Pennylane', 'accounting'),
@@ -119,6 +113,8 @@ export const ALL_SERVICES: ServiceIndexEntry[] = [
 
   // Catalogue
   entry('whatsapp_business', 'WhatsApp Business Cloud', 'messaging'),
+  entry('AIRBTICS', 'Airbtics', 'market_intelligence'),
+  entry('AIRROI', 'AirROI', 'market_intelligence'),
   entry('airdna', 'AirDNA', 'market_intelligence'),
   entry('mytse', 'MyTSE', 'tax_automation'),
   entry('avalara', 'Avalara MyLodgeTax', 'tax_automation'),

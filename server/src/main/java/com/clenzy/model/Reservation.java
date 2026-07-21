@@ -192,6 +192,14 @@ public class Reservation {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
+    /**
+     * Instant d'annulation — posé par {@link #markCancelled()}, jamais écrasé.
+     * Sert au calcul on-the-books à date passée (pace/pickup) : la réservation
+     * compte à S si created_at <= S et (cancelled_at null ou > S).
+     */
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -272,6 +280,21 @@ public class Reservation {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public LocalDateTime getCancelledAt() { return cancelledAt; }
+    public void setCancelledAt(LocalDateTime cancelledAt) { this.cancelledAt = cancelledAt; }
+
+    /**
+     * Annule la réservation en conservant l'instant d'annulation. Idempotent :
+     * un cancelled_at déjà posé n'est jamais écrasé. Tout chemin d'annulation
+     * DOIT passer par cette méthode (et non setStatus("cancelled")).
+     */
+    public void markCancelled() {
+        this.status = "cancelled";
+        if (this.cancelledAt == null) {
+            this.cancelledAt = LocalDateTime.now();
+        }
+    }
 
     public String getSource() { return source; }
     public void setSource(String source) { this.source = source; }

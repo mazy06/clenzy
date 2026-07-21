@@ -38,6 +38,32 @@ public class YieldOrgConfig {
     @Column(name = "mode", length = 20, nullable = false)
     private YieldMode mode = YieldMode.SIMULATION;
 
+    // ── RMS R2 : automatisations déterministes (opt-in, réversibles) ────────
+
+    /** Orphan gap pricing : remise + min-stay abaissé sur les creux courts entre deux résas. */
+    @Column(name = "orphan_gap_enabled", nullable = false)
+    private boolean orphanGapEnabled = false;
+
+    /** Longueur max (nuits) d'un creux traité comme orphelin. */
+    @Column(name = "orphan_gap_max_nights", nullable = false)
+    private int orphanGapMaxNights = 3;
+
+    /** Remise appliquée aux nuits orphelines (bornée par le floor du bien). */
+    @Column(name = "orphan_gap_discount_pct", nullable = false)
+    private java.math.BigDecimal orphanGapDiscountPct = java.math.BigDecimal.valueOf(15);
+
+    /** Min-stay dynamique : réduction last-minute du séjour minimum. */
+    @Column(name = "min_stay_auto_enabled", nullable = false)
+    private boolean minStayAutoEnabled = false;
+
+    /** Fenêtre (jours avant la nuit) dans laquelle le min-stay est réduit. */
+    @Column(name = "min_stay_reduce_within_days", nullable = false)
+    private int minStayReduceWithinDays = 14;
+
+    /** Valeur réduite du min-stay dans la fenêtre. */
+    @Column(name = "min_stay_reduced_value", nullable = false)
+    private int minStayReducedValue = 1;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private Instant createdAt;
@@ -62,6 +88,24 @@ public class YieldOrgConfig {
 
     public YieldMode getMode() { return mode; }
     public void setMode(YieldMode mode) { this.mode = mode; }
+
+    public boolean isOrphanGapEnabled() { return orphanGapEnabled; }
+    public void setOrphanGapEnabled(boolean orphanGapEnabled) { this.orphanGapEnabled = orphanGapEnabled; }
+
+    public int getOrphanGapMaxNights() { return orphanGapMaxNights; }
+    public void setOrphanGapMaxNights(int orphanGapMaxNights) { this.orphanGapMaxNights = orphanGapMaxNights; }
+
+    public java.math.BigDecimal getOrphanGapDiscountPct() { return orphanGapDiscountPct; }
+    public void setOrphanGapDiscountPct(java.math.BigDecimal orphanGapDiscountPct) { this.orphanGapDiscountPct = orphanGapDiscountPct; }
+
+    public boolean isMinStayAutoEnabled() { return minStayAutoEnabled; }
+    public void setMinStayAutoEnabled(boolean minStayAutoEnabled) { this.minStayAutoEnabled = minStayAutoEnabled; }
+
+    public int getMinStayReduceWithinDays() { return minStayReduceWithinDays; }
+    public void setMinStayReduceWithinDays(int minStayReduceWithinDays) { this.minStayReduceWithinDays = minStayReduceWithinDays; }
+
+    public int getMinStayReducedValue() { return minStayReducedValue; }
+    public void setMinStayReducedValue(int minStayReducedValue) { this.minStayReducedValue = minStayReducedValue; }
 
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

@@ -66,11 +66,16 @@ public class BusinessAnalyticsScanner {
     private static final int MAX_DISCOUNT_NIGHTS = 21;
     /** En-deçà, un trou n'est pas jugé assez significatif pour une remise. */
     private static final int MIN_GAP_NIGHTS = 2;
+    /** Retard de pace vs l'an dernier (%) en-deçà duquel on alerte (R3, ex. -20 %). */
+    private static final double PACE_BEHIND_PCT = -20.0;
+    /** Horizon de mois de séjour scannés pour le retard de pace. */
+    private static final int PACE_LOOKAHEAD_MONTHS = 3;
 
     /** Dates de la plage affichées à l'humain (ex. « 8 juil. »). */
     private static final DateTimeFormatter RANGE_FMT = DateTimeFormatter.ofPattern("d MMM", Locale.FRENCH);
 
     private final PropertyPerformanceService performanceService;
+    private final com.clenzy.service.PaceAnalyticsService paceAnalyticsService;
     private final SupervisionSuggestionService suggestionService;
     private final ReservationRepository reservationRepository;
     private final com.clenzy.repository.CalendarDayRepository calendarDayRepository;
@@ -88,6 +93,7 @@ public class BusinessAnalyticsScanner {
     private final BigDecimal autoHitlImpactPct;
 
     public BusinessAnalyticsScanner(PropertyPerformanceService performanceService,
+                                    com.clenzy.service.PaceAnalyticsService paceAnalyticsService,
                                     SupervisionSuggestionService suggestionService,
                                     ReservationRepository reservationRepository,
                                     com.clenzy.repository.CalendarDayRepository calendarDayRepository,
@@ -100,6 +106,7 @@ public class BusinessAnalyticsScanner {
                                     Clock clock,
                                     @Value("${clenzy.yield.v1.auto-hitl-impact-pct:12}") BigDecimal autoHitlImpactPct) {
         this.performanceService = performanceService;
+        this.paceAnalyticsService = paceAnalyticsService;
         this.suggestionService = suggestionService;
         this.reservationRepository = reservationRepository;
         this.calendarDayRepository = calendarDayRepository;
@@ -206,6 +213,14 @@ public class BusinessAnalyticsScanner {
                         null, null, impactCents > 0 ? impactCents : null, "info");
             }
 
+            // Retard de PACE vs l'an dernier (R3) : signal complémentaire — un bien peut
+            // avoir une occupation à venir correcte (donc non cardé ci-dessus) tout en
+            // réservant MOINS que l'an dernier au même stade. Émis uniquement si pas déjà
+            // cardé, pour ne pas doubler la file. Advisory (« info »).
+            if (!forwardCarded) {
+                emitPaceBehind(orgId, propertyId, adr);
+            }
+
             // Marge nette insuffisante → alerte informationnelle (module Finance).
             // Rétrospective (90 j passés) : la marge est un indicateur historique.
             if (perf.revenue().signum() > 0 && perf.netMargin() < thr.marginLow()) {
@@ -221,6 +236,49 @@ public class BusinessAnalyticsScanner {
             log.debug("business analytics scan failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
         }
+    }
+
+    /**
+     * Carte « réservations en retard vs l'an dernier » (R3) : compare l'on-the-books
+     * des prochains mois de séjour au même stade l'an dernier ({@link com.clenzy.service.PaceAnalyticsService},
+     * décalage 364 j). Émet une advisory sur le mois le PLUS en retard dont le retard
+     * dépasse {@value #PACE_BEHIND_PCT} % et dont le comparatif N-1 est significatif.
+     */
+    private void emitPaceBehind(Long orgId, Long propertyId, double adr) {
+        final com.clenzy.dto.PaceSummaryDto pace;
+        try {
+            pace = paceAnalyticsService.getSummary(orgId, null, PACE_LOOKAHEAD_MONTHS, propertyId);
+        } catch (RuntimeException e) {
+            log.debug("pace scan failed org={} property={}: {}", orgId, propertyId, e.getMessage());
+            return;
+        }
+        if (pace == null || pace.months() == null) {
+            return;
+        }
+        com.clenzy.dto.PaceMonthDto worst = null;
+        for (com.clenzy.dto.PaceMonthDto m : pace.months()) {
+            if (m.stlyNights() <= 0 || m.paceVsStlyPct() == null) {
+                continue; // comparatif N-1 non significatif (pas d'historique)
+            }
+            if (m.paceVsStlyPct() <= PACE_BEHIND_PCT
+                    && (worst == null || m.paceVsStlyPct() < worst.paceVsStlyPct())) {
+                worst = m;
+            }
+        }
+        if (worst == null) {
+            return;
+        }
+        final long deficitNights = Math.max(0L, worst.stlyNights() - worst.otbNights());
+        final long impactCents = Math.round(deficitNights * adr * FILL_PROBABILITY * 100.0);
+        suggestionService.recordActionable(
+                orgId, propertyId, "rev",
+                "Réservations en retard vs l'an dernier — " + worst.month(),
+                String.format("À ce stade, %d nuit(s) réservée(s) pour %s contre %d l'an dernier "
+                                + "au même recul (%+.0f %%). Envisager une baisse ciblée pour "
+                                + "rattraper le rythme.",
+                        worst.otbNights(), worst.month(), worst.stlyNights(),
+                        worst.paceVsStlyPct().doubleValue()),
+                null, null, impactCents > 0 ? impactCents : null, "info");
     }
 
     /**

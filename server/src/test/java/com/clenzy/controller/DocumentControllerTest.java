@@ -45,6 +45,7 @@ class DocumentControllerTest {
     @Mock private InterventionRepository interventionRepository;
     @Mock private TenantContext tenantContext;
     @Mock private com.clenzy.service.PropertyService propertyService;
+    @Mock private com.clenzy.service.messaging.GuestMessagingQueryService guestMessagingQueryService;
 
     private DocumentController controller;
 
@@ -65,7 +66,7 @@ class DocumentControllerTest {
         controller = new DocumentController(generatorService, documentStorageService, complianceService,
                 new DocumentAccessService(interventionRepository,
                         new com.clenzy.service.access.OrganizationAccessGuard(tenantContext)),
-                propertyService);
+                propertyService, guestMessagingQueryService, tenantContext);
     }
 
     @Nested

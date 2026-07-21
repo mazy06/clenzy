@@ -16,6 +16,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -101,6 +102,8 @@ class CalendarPartitionManagerTest {
 
     @Test
     void createFuturePartitions_executeFails_continuesAndOpensSingleIncident() {
+        // partitionExists → FALSE partout (loop ET re-verification post-heal) : la
+        // reparation ne remet rien en place → echec reellement non recuperable.
         when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class), any(Object[].class)))
             .thenReturn(Boolean.FALSE);
         doThrow(new RuntimeException("permission denied"))
@@ -109,9 +112,9 @@ class CalendarPartitionManagerTest {
         // Should not propagate exception (le boot/scheduler ne plante pas)
         assertDoesNotThrow(() -> manager.createFuturePartitions());
 
-        // 6 attempts even though all fail
-        verify(jdbcTemplate, times(6)).execute(anyString());
-        // Echec non silencieux : compteur incremente + UN incident agrege
+        // 6 creations + 1 tentative d'auto-reparation (toutes en echec ici)
+        verify(jdbcTemplate, times(7)).execute(anyString());
+        // Echec non silencieux : compteur incremente (6 creations) + UN incident agrege
         assertEquals(6.0, failureCount());
         verify(incidentService, times(1)).openIncident(
             eq(IncidentType.SERVICE_DOWN),
@@ -121,19 +124,115 @@ class CalendarPartitionManagerTest {
     }
 
     @Test
-    void createFuturePartitions_queryFails_alertedPerIteration() {
+    void createFuturePartitions_selfHealRecovers_noIncidentOpened() {
+        // Les creations rapides echouent (recouvrement DEFAULT), mais l'auto-reparation
+        // reussit : la re-verification voit les partitions presentes → AUCUN incident.
+        // partitionExists : FALSE pour les 6 checks de la boucle, TRUE ensuite (re-verif).
+        when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class), any(Object[].class)))
+            .thenReturn(false, false, false, false, false, false, true);
+        // Les CREATE rapides jettent (overlap DEFAULT) ; la repartition (DO $$ ...) passe.
+        doThrow(new RuntimeException("would be violated by some row"))
+            .when(jdbcTemplate).execute(startsWith("CREATE TABLE IF NOT EXISTS"));
+        doNothing().when(jdbcTemplate).execute(contains("pg_advisory_xact_lock"));
+
+        assertDoesNotThrow(() -> manager.createFuturePartitions());
+
+        // La repartition a bien ete tentee...
+        verify(jdbcTemplate, times(1)).execute(contains("pg_advisory_xact_lock"));
+        // ...et comme la re-verification confirme les partitions, aucun incident.
+        verifyNoInteractions(incidentService);
+        // Le compteur reflete quand meme les 6 echecs de creation rapide.
+        assertEquals(6.0, failureCount());
+    }
+
+    @Test
+    void createFuturePartitions_queryFails_alertedAfterFailedHeal() {
         when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class), any(Object[].class)))
             .thenThrow(new RuntimeException("DB down"));
 
         assertDoesNotThrow(() -> manager.createFuturePartitions());
 
-        verify(jdbcTemplate, never()).execute(anyString());
+        // Aucune creation rapide (le check jette avant), mais l'auto-reparation est tentee.
+        verify(jdbcTemplate, times(1)).execute(anyString());
         assertEquals(6.0, failureCount());
         verify(incidentService, times(1)).openIncident(
             eq(IncidentType.SERVICE_DOWN),
             eq(CalendarPartitionManager.INCIDENT_SERVICE_NAME),
             anyString(),
             anyString());
+    }
+
+    @Test
+    void catchUpOnBoot_tableNotPartitioned_isNoOp() {
+        // Rattrapage au demarrage : sur table plate (dev), no-op complet.
+        when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class)))
+            .thenReturn(Boolean.FALSE);
+
+        assertDoesNotThrow(() -> manager.catchUpOnBoot());
+
+        verify(jdbcTemplate, never()).queryForObject(anyString(), eq(Boolean.class), any(Object[].class));
+        verify(jdbcTemplate, never()).execute(anyString());
+        verifyNoInteractions(incidentService);
+    }
+
+    @Test
+    void createFuturePartitions_populatesDefaultBacklogGauge() {
+        // Tout existe deja → pas de creation, mais la jauge de backlog est rafraichie.
+        when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class), any(Object[].class)))
+            .thenReturn(Boolean.TRUE);
+        when(jdbcTemplate.queryForObject(anyString(), eq(Long.class)))
+            .thenReturn(7L);
+
+        manager.createFuturePartitions();
+
+        assertEquals(7.0,
+            meterRegistry.get("clenzy.calendar.partition.default.future_backlog").gauge().value());
+    }
+
+    // ── probeAndHeal (bouton « Retest » d'un incident) ────────────────────────
+
+    @Test
+    void probeAndHeal_tableNotPartitioned_returnsTrueWithoutTouchingDb() {
+        // Table plate (dev) : aucune panne possible → sain, aucune reparation.
+        when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class)))
+            .thenReturn(Boolean.FALSE);
+
+        assertTrue(manager.probeAndHeal());
+
+        verify(jdbcTemplate, never()).execute(anyString());
+    }
+
+    @Test
+    void probeAndHeal_allPartitionsExist_returnsTrueWithoutHealing() {
+        when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class), any(Object[].class)))
+            .thenReturn(Boolean.TRUE);
+
+        assertTrue(manager.probeAndHeal());
+
+        // Rien a reparer → pas de repartition.
+        verify(jdbcTemplate, never()).execute(anyString());
+    }
+
+    @Test
+    void probeAndHeal_partitionMissingButHealFixes_returnsTrue() {
+        // 1re verif : 1re partition manquante (short-circuit) → reparation → 2e verif : tout present.
+        when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class), any(Object[].class)))
+            .thenReturn(false, true, true, true, true, true, true);
+
+        assertTrue(manager.probeAndHeal());
+
+        verify(jdbcTemplate, times(1)).execute(contains("pg_advisory_xact_lock"));
+    }
+
+    @Test
+    void probeAndHeal_partitionMissingAndHealDoesNotFix_returnsFalse() {
+        // Partitions toujours absentes meme apres la tentative de reparation.
+        when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class), any(Object[].class)))
+            .thenReturn(Boolean.FALSE);
+
+        assertFalse(manager.probeAndHeal());
+
+        verify(jdbcTemplate, times(1)).execute(contains("pg_advisory_xact_lock"));
     }
 
     @Test
