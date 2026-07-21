@@ -7,6 +7,8 @@
 #   - PR main/develop/production → CI obligatoire (gate de validation)
 #
 # IMPORTANT : Les merges vers production ne sont autorisées que via Pull Request.
+# NOTE : un commit VIDE sur production ne declenche PAS ce workflow (filtres paths) —
+# toucher ce fichier ou client/** dans un commit de relance de deploy.
 
 name: CI Frontend
 
