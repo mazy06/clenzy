@@ -33,7 +33,8 @@ import {
   Visibility as VisibilityIcon,
 } from '../../icons';
 import FilterChipRow from '../../components/FilterChipRow';
-import HelpBanner from '../../components/HelpBanner';
+import HelpPopover from '../../components/HelpPopover';
+import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -231,19 +232,22 @@ export const PayoutsTab: React.FC = () => {
     }
   }, [t]);
 
+  const helpAction = usePageHeaderActions(
+    <HelpPopover
+      label={t('common.help', 'Aide')}
+      title={t('accounting.payouts.help.title', 'Comment fonctionnent les payouts ?')}
+      description={t('accounting.payouts.help.description', 'Les payouts vous permettent de calculer et suivre les reversements dus a chaque proprietaire.')}
+      steps={[
+        { icon: <StepGenIcon size={14} strokeWidth={1.75} />, title: t('accounting.payouts.help.step1Title', 'Generer'), description: t('accounting.payouts.help.step1Desc', 'Selectionnez un proprietaire et une periode pour calculer le reversement.'), accent: 'primary' },
+        { icon: <StepCalcIcon size={14} strokeWidth={1.75} />, title: t('accounting.payouts.help.step2Title', 'Verifier'), description: t('accounting.payouts.help.step2Desc', 'Le systeme calcule : revenus - commission - depenses = montant net.'), accent: 'info' },
+        { icon: <StepValidIcon size={14} strokeWidth={1.75} />, title: t('accounting.payouts.help.step3Title', 'Valider & Payer'), description: t('accounting.payouts.help.step3Desc', 'Approuvez le payout puis marquez-le comme paye apres le virement.'), accent: 'success' },
+      ]}
+    />,
+  );
+
   return (
     <>
-      <HelpBanner
-        storageKey="clenzy_payouts_help_dismissed"
-        title={t('accounting.payouts.help.title', 'Comment fonctionnent les payouts ?')}
-        description={t('accounting.payouts.help.description', 'Les payouts vous permettent de calculer et suivre les reversements dus a chaque proprietaire.')}
-        dismissLabel={t('accounting.payouts.help.dismiss', 'Ne plus afficher')}
-        steps={[
-          { icon: <StepGenIcon size={14} strokeWidth={1.75} />, title: t('accounting.payouts.help.step1Title', 'Generer'), description: t('accounting.payouts.help.step1Desc', 'Selectionnez un proprietaire et une periode pour calculer le reversement.'), accent: 'primary' },
-          { icon: <StepCalcIcon size={14} strokeWidth={1.75} />, title: t('accounting.payouts.help.step2Title', 'Verifier'), description: t('accounting.payouts.help.step2Desc', 'Le systeme calcule : revenus - commission - depenses = montant net.'), accent: 'info' },
-          { icon: <StepValidIcon size={14} strokeWidth={1.75} />, title: t('accounting.payouts.help.step3Title', 'Valider & Payer'), description: t('accounting.payouts.help.step3Desc', 'Approuvez le payout puis marquez-le comme paye apres le virement.'), accent: 'success' },
-        ]}
-      />
+      {helpAction}
 
       {/* ── Filters + Actions ── */}
       <Paper sx={{ ...CARD_SX, p: 2, mb: 1.5, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -815,19 +819,22 @@ export const ExpensesTab: React.FC = () => {
     payMutation.mutate({ id: payTarget.id, ref: payRef.trim() || undefined });
   }, [payTarget, payRef, payMutation]);
 
+  const helpAction = usePageHeaderActions(
+    <HelpPopover
+      label={t('common.help', 'Aide')}
+      title={t('accounting.expenses.help.title', 'Comment fonctionnent les depenses ?')}
+      description={t('accounting.expenses.help.description', 'Suivez et gerez les depenses des prestataires (menage, maintenance...) liees a vos logements.')}
+      steps={[
+        { icon: <StepGenIcon size={14} strokeWidth={1.75} />, title: t('accounting.expenses.help.step1Title', 'Creer'), description: t('accounting.expenses.help.step1Desc', 'Ajoutez une depense avec le prestataire, le logement, le montant et la categorie.'), accent: 'primary' },
+        { icon: <StepCategoryIcon size={14} strokeWidth={1.75} />, title: t('accounting.expenses.help.step2Title', 'Approuver'), description: t('accounting.expenses.help.step2Desc', 'Validez les depenses en brouillon. Joignez un justificatif (PDF, photo).'), accent: 'warning' },
+        { icon: <StepCalcIcon size={14} strokeWidth={1.75} />, title: t('accounting.expenses.help.step3Title', 'Deduire'), description: t('accounting.expenses.help.step3Desc', 'Les depenses approuvees sont automatiquement deduites des payouts proprietaires.'), accent: 'success' },
+      ]}
+    />,
+  );
+
   return (
     <>
-      <HelpBanner
-        storageKey="clenzy_expenses_help_dismissed"
-        title={t('accounting.expenses.help.title', 'Comment fonctionnent les depenses ?')}
-        description={t('accounting.expenses.help.description', 'Suivez et gerez les depenses des prestataires (menage, maintenance...) liees a vos logements.')}
-        dismissLabel={t('accounting.expenses.help.dismiss', 'Ne plus afficher')}
-        steps={[
-          { icon: <StepGenIcon size={14} strokeWidth={1.75} />, title: t('accounting.expenses.help.step1Title', 'Creer'), description: t('accounting.expenses.help.step1Desc', 'Ajoutez une depense avec le prestataire, le logement, le montant et la categorie.'), accent: 'primary' },
-          { icon: <StepCategoryIcon size={14} strokeWidth={1.75} />, title: t('accounting.expenses.help.step2Title', 'Approuver'), description: t('accounting.expenses.help.step2Desc', 'Validez les depenses en brouillon. Joignez un justificatif (PDF, photo).'), accent: 'warning' },
-          { icon: <StepCalcIcon size={14} strokeWidth={1.75} />, title: t('accounting.expenses.help.step3Title', 'Deduire'), description: t('accounting.expenses.help.step3Desc', 'Les depenses approuvees sont automatiquement deduites des payouts proprietaires.'), accent: 'success' },
-        ]}
-      />
+      {helpAction}
 
       {/* Hidden file input for receipt upload */}
       <input
@@ -1389,19 +1396,22 @@ export const ExportsTab: React.FC = () => {
     }
   }, [from, to, t]);
 
+  const helpAction = usePageHeaderActions(
+    <HelpPopover
+      label={t('common.help', 'Aide')}
+      title={t('accounting.exports.help.title', 'Comment fonctionnent les exports ?')}
+      description={t('accounting.exports.help.description', 'Exportez vos donnees comptables dans differents formats pour votre comptable ou vos declarations.')}
+      steps={[
+        { icon: <StepPeriodIcon size={14} strokeWidth={1.75} />, title: t('accounting.exports.help.step1Title', 'Periode'), description: t('accounting.exports.help.step1Desc', 'Definissez la plage de dates des donnees a exporter.'), accent: 'info' },
+        { icon: <StepFormatIcon size={14} strokeWidth={1.75} />, title: t('accounting.exports.help.step2Title', 'Format'), description: t('accounting.exports.help.step2Desc', 'FEC (norme DGFiP), CSV reservations, payouts, depenses ou factures.'), accent: 'secondary' },
+        { icon: <StepExportIcon size={14} strokeWidth={1.75} />, title: t('accounting.exports.help.step3Title', 'Telecharger'), description: t('accounting.exports.help.step3Desc', 'Cliquez sur Telecharger pour obtenir le fichier pret a transmettre.'), accent: 'success' },
+      ]}
+    />,
+  );
+
   return (
     <Box>
-      <HelpBanner
-        storageKey="clenzy_exports_help_dismissed"
-        title={t('accounting.exports.help.title', 'Comment fonctionnent les exports ?')}
-        description={t('accounting.exports.help.description', 'Exportez vos donnees comptables dans differents formats pour votre comptable ou vos declarations.')}
-        dismissLabel={t('accounting.exports.help.dismiss', 'Ne plus afficher')}
-        steps={[
-          { icon: <StepPeriodIcon size={14} strokeWidth={1.75} />, title: t('accounting.exports.help.step1Title', 'Periode'), description: t('accounting.exports.help.step1Desc', 'Definissez la plage de dates des donnees a exporter.'), accent: 'info' },
-          { icon: <StepFormatIcon size={14} strokeWidth={1.75} />, title: t('accounting.exports.help.step2Title', 'Format'), description: t('accounting.exports.help.step2Desc', 'FEC (norme DGFiP), CSV reservations, payouts, depenses ou factures.'), accent: 'secondary' },
-          { icon: <StepExportIcon size={14} strokeWidth={1.75} />, title: t('accounting.exports.help.step3Title', 'Telecharger'), description: t('accounting.exports.help.step3Desc', 'Cliquez sur Telecharger pour obtenir le fichier pret a transmettre.'), accent: 'success' },
-        ]}
-      />
+      {helpAction}
 
       {/* Period selector */}
       <Paper sx={{ ...CARD_SX, p: 2, mb: 2 }}>

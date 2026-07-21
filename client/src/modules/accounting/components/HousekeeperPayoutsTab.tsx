@@ -18,7 +18,8 @@ import {
 import { Link as RouterLink } from 'react-router-dom';
 import { Build as RetryIcon, AccountBalance as PayoutIcon } from '../../../icons';
 import FilterChipRow from '../../../components/FilterChipRow';
-import HelpBanner from '../../../components/HelpBanner';
+import HelpPopover from '../../../components/HelpPopover';
+import { usePageHeaderActions } from '../../../components/PageHeaderActionsContext';
 import EmptyState from '../../../components/EmptyState';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useCurrency } from '../../../hooks/useCurrency';
@@ -128,18 +129,20 @@ export const HousekeeperPayoutsTab: React.FC = () => {
     setRetryTarget(null);
   }, [retryTarget, retryMutation]);
 
+  const helpAction = usePageHeaderActions(
+    <HelpPopover
+      label={t('common.help', 'Aide')}
+      title={t('accounting.housekeeperPayouts.help.title', 'Versements prestataires (ménage)')}
+      description={t(
+        'accounting.housekeeperPayouts.help.description',
+        'Versements Stripe directs aux prestataires (ménage), déclenchés automatiquement à la validation de mission. Distincts des reversements propriétaires et de la saisie de dépenses.',
+      )}
+    />,
+  );
+
   return (
     <>
-      <HelpBanner
-        storageKey="clenzy_housekeeper_payouts_help_dismissed"
-        title={t('accounting.housekeeperPayouts.help.title', 'Versements prestataires (ménage)')}
-        description={t(
-          'accounting.housekeeperPayouts.help.description',
-          'Versements Stripe directs aux prestataires (ménage), déclenchés automatiquement à la validation de mission. Distincts des reversements propriétaires et de la saisie de dépenses.',
-        )}
-        dismissLabel={t('accounting.housekeeperPayouts.help.dismiss', 'Ne plus afficher')}
-        steps={[]}
-      />
+      {helpAction}
 
       {/* ── Filtre statut ── */}
       <Paper sx={{ ...CARD_SX, p: 2, mb: 1.5, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>

@@ -718,6 +718,7 @@
     "later": "Later"
   },
   "common": {
+    "help": "Help",
     "save": "Save",
     "saving": "Saving…",
     "cancel": "Cancel",
@@ -5211,19 +5212,6 @@
     "processing": "Processing...",
     "failedPayout": "Transfer failed",
     "downloadSepaXml": "SEPA XML",
-    "commissions": {
-      "help": {
-        "title": "How do commissions work?",
-        "description": "Commissions represent the percentage charged by each booking channel (Airbnb, Booking...) on your revenue.",
-        "step1Title": "Channels",
-        "step1Desc": "Each platform (Airbnb, Booking...) applies a different commission rate.",
-        "step2Title": "Configure",
-        "step2Desc": "Adjust the commission rate for each channel according to your contract.",
-        "step3Title": "Impact",
-        "step3Desc": "Commissions are automatically deducted when calculating owner payouts.",
-        "dismiss": "Don't show again"
-      }
-    },
     "fiscal": {
       "help": {
         "title": "How does the fiscal report work?",

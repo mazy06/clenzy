@@ -718,6 +718,7 @@
     "later": "Plus tard"
   },
   "common": {
+    "help": "Aide",
     "save": "Enregistrer",
     "saving": "Enregistrement…",
     "cancel": "Annuler",
@@ -5238,19 +5239,6 @@
     "processing": "En cours...",
     "failedPayout": "Échec du reversement",
     "downloadSepaXml": "SEPA XML",
-    "commissions": {
-      "help": {
-        "title": "Comment fonctionnent les commissions ?",
-        "description": "Les commissions représentent le pourcentage prélevé par chaque canal de réservation (Airbnb, Booking...) sur vos revenus.",
-        "step1Title": "Canaux",
-        "step1Desc": "Chaque plateforme (Airbnb, Booking...) applique un taux de commission différent.",
-        "step2Title": "Configurer",
-        "step2Desc": "Ajustez le taux de commission pour chaque canal selon votre contrat.",
-        "step3Title": "Impact",
-        "step3Desc": "Les commissions sont déduites automatiquement lors du calcul des payouts propriétaires.",
-        "dismiss": "Ne plus afficher"
-      }
-    },
     "fiscal": {
       "help": {
         "title": "Comment fonctionne le rapport fiscal ?",
