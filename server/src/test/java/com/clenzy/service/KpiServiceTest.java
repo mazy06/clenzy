@@ -126,7 +126,7 @@ class KpiServiceTest {
         lenient().when(connectionRepository.findAllActive()).thenReturn(List.of(conn, conn));
 
         // Outbox drain: no pending events
-        lenient().when(outboxEventRepository.findPendingEvents()).thenReturn(Collections.emptyList());
+        lenient().when(outboxEventRepository.findFirstByStatusOrderByCreatedAtAsc("PENDING")).thenReturn(java.util.Optional.empty());
 
         // Kafka lag: no gauge registered => 0
     }
@@ -661,7 +661,7 @@ class KpiServiceTest {
 
             OutboxEvent oldEvent = new OutboxEvent();
             oldEvent.setCreatedAt(LocalDateTime.now().minusSeconds(35));
-            when(outboxEventRepository.findPendingEvents()).thenReturn(List.of(oldEvent));
+            when(outboxEventRepository.findFirstByStatusOrderByCreatedAtAsc("PENDING")).thenReturn(java.util.Optional.of(oldEvent));
 
             KpiSnapshotDto snapshot = kpiService.computeCurrentSnapshot();
             KpiItemDto od = findKpi(snapshot.kpis(), "OUTBOX_DRAIN");

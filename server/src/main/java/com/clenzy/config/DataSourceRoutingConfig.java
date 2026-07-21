@@ -1,5 +1,6 @@
 package com.clenzy.config;
 
+import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -49,17 +50,28 @@ public class DataSourceRoutingConfig {
         return new DataSourceProperties();
     }
 
+    /**
+     * Le type {@link HikariDataSource} + {@code @ConfigurationProperties} sur le bean
+     * permettent de binder le bloc {@code spring.datasource.primary.hikari.*}
+     * (pool-size, timeouts, leak-detection, reWriteBatchedInserts). Sans cela,
+     * {@code DataSourceProperties} ne binde que url/username/password et le pool
+     * tourne avec les defauts Hikari (max 10, timeout 30 s).
+     */
     @Bean("primaryDataSource")
-    public DataSource primaryDataSource() {
+    @ConfigurationProperties("spring.datasource.primary.hikari")
+    public HikariDataSource primaryDataSource() {
         return primaryDataSourceProperties()
                 .initializeDataSourceBuilder()
+                .type(HikariDataSource.class)
                 .build();
     }
 
     @Bean("replicaDataSource")
-    public DataSource replicaDataSource() {
+    @ConfigurationProperties("spring.datasource.replica.hikari")
+    public HikariDataSource replicaDataSource() {
         return replicaDataSourceProperties()
                 .initializeDataSourceBuilder()
+                .type(HikariDataSource.class)
                 .build();
     }
 

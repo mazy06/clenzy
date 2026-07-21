@@ -46,7 +46,7 @@ public class GoogleVrSyncScheduler {
      * Push periodique des disponibilites et tarifs vers Google Hotel Center.
      * Frequence configurable via google.vacation-rentals.sync.interval-minutes (defaut: 30 min).
      */
-    @Scheduled(fixedRateString = "${google.vacation-rentals.sync.interval-minutes:30}000")
+    @Scheduled(fixedRateString = "#{${google.vacation-rentals.sync.interval-minutes:30} * 60000}")
     public void pushAvailabilityAndRates() {
         if (!config.isConfigured()) {
             return;

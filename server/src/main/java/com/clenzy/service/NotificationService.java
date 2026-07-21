@@ -9,6 +9,7 @@ import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,9 @@ import java.util.Set;
 public class NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
+
+    /** Borne haute de la liste retournee au front (les plus recentes d'abord). */
+    static final int MAX_NOTIFICATIONS_RETURNED = 200;
 
     private final NotificationRepository notificationRepository;
     private final NotificationPreferenceService preferenceService;
@@ -67,11 +71,15 @@ public class NotificationService {
     // ─── Lecture ─────────────────────────────────────────────────────────────────
 
     /**
-     * Retourne toutes les notifications d'un utilisateur, triees par date descendante.
+     * Retourne les {@value #MAX_NOTIFICATIONS_RETURNED} dernieres notifications
+     * d'un utilisateur, triees par date descendante. La borne protege l'endpoint
+     * (polle en continu par le front) de la croissance de l'historique ; la
+     * purge de retention (DataRetentionService, 90 j) borne la table elle-meme.
      */
     @Transactional(readOnly = true)
     public List<NotificationDto> getAllForUser(String userId) {
-        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId)
+        return notificationRepository
+                .findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(0, MAX_NOTIFICATIONS_RETURNED))
                 .stream()
                 .map(NotificationDto::fromEntity)
                 .toList();

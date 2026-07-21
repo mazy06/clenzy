@@ -457,15 +457,12 @@ public class KpiService {
     }
 
     private KpiItemDto computeOutboxDrain() {
-        List<OutboxEvent> pendingEvents = outboxEventRepository.findPendingEvents();
-
-        double drainTimeMs = 0;
-        if (!pendingEvents.isEmpty()) {
-            OutboxEvent oldest = pendingEvents.get(0); // ordered by createdAt ASC
-            if (oldest.getCreatedAt() != null) {
-                drainTimeMs = Duration.between(oldest.getCreatedAt(), LocalDateTime.now()).toMillis();
-            }
-        }
+        double drainTimeMs = outboxEventRepository
+                .findFirstByStatusOrderByCreatedAtAsc("PENDING")
+                .map(OutboxEvent::getCreatedAt)
+                .filter(java.util.Objects::nonNull)
+                .map(createdAt -> (double) Duration.between(createdAt, LocalDateTime.now()).toMillis())
+                .orElse(0d);
 
         String status = drainTimeMs < OUTBOX_OK ? "OK"
                 : drainTimeMs < OUTBOX_WARN ? "WARNING" : "CRITICAL";

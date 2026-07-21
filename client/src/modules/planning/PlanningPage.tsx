@@ -507,6 +507,48 @@ const PlanningPage: React.FC = () => {
     if (monthSyncRaf.current !== null) cancelAnimationFrame(monthSyncRaf.current);
   }, []);
 
+  // Référence stable pour PlanningTimeline (React.memo) : la closure inline
+  // recréée à chaque render du parent cassait la barrière de memo de toute la grille.
+  const renderExpandedPanel = useCallback(
+    (property: PlanningProperty) => {
+      const mockMode = isMockEnabled('planning') || !isSupervisionLiveEnabled();
+      const firstResa = visibleEvents.find(
+        (e) => e.type === 'reservation' && e.propertyId === property.id && e.reservation,
+      );
+      const cometReservationId = firstResa?.reservation
+        ? String(firstResa.reservation.id)
+        : undefined;
+      return (
+        <SupervisionPanel
+          createProvider={() =>
+            // Mode démo planning OU live désactivé → provider MOCK
+            // (constellation + « En direct » alimentés par des données
+            // fictives variées par logement). Sinon → moteur réel.
+            mockMode
+              ? new MockSupervisionProvider(
+                  String(property.id),
+                  { cometReservationId, onOpenGuestCard: handleOpenGuestCard },
+                  'demo',
+                )
+              : new AgUiSupervisionProvider(String(property.id), {
+                  selectedPropertyId: Number(property.id),
+                  currentPage: '/planning',
+                  onOpenGuestCard: handleOpenGuestCard,
+                })
+          }
+          // cometReservationId ne pilote QUE le mock : en live, l'inclure
+          // dans les deps détruisait/recréait le provider (teardown SSE +
+          // re-snapshot) quand les réservations finissaient de charger.
+          deps={mockMode ? [property.id, cometReservationId] : [property.id]}
+          propertyId={property.id}
+          reportWindowDays={reportWindowDays}
+          flush
+        />
+      );
+    },
+    [visibleEvents, handleOpenGuestCard, reportWindowDays],
+  );
+
   // ── Initial scroll to today when timeline first becomes visible ──────────
   const hasInitialScrolled = useRef(false);
   useEffect(() => {
@@ -726,46 +768,7 @@ const PlanningPage: React.FC = () => {
             pageSize={pagination.pageSize}
             expandedPropertyId={canSupervise ? expandedPropertyId : null}
             onToggleExpanded={canSupervise ? handleToggleExpanded : undefined}
-            renderExpanded={
-              canSupervise
-                ? (property: PlanningProperty) => {
-                    const mockMode = isMockEnabled('planning') || !isSupervisionLiveEnabled();
-                    const firstResa = visibleEvents.find(
-                      (e) => e.type === 'reservation' && e.propertyId === property.id && e.reservation,
-                    );
-                    const cometReservationId = firstResa?.reservation
-                      ? String(firstResa.reservation.id)
-                      : undefined;
-                    return (
-                      <SupervisionPanel
-                        createProvider={() =>
-                          // Mode démo planning OU live désactivé → provider MOCK
-                          // (constellation + « En direct » alimentés par des données
-                          // fictives variées par logement). Sinon → moteur réel.
-                          mockMode
-                            ? new MockSupervisionProvider(
-                                String(property.id),
-                                { cometReservationId, onOpenGuestCard: handleOpenGuestCard },
-                                'demo',
-                              )
-                            : new AgUiSupervisionProvider(String(property.id), {
-                                selectedPropertyId: Number(property.id),
-                                currentPage: '/planning',
-                                onOpenGuestCard: handleOpenGuestCard,
-                              })
-                        }
-                        // cometReservationId ne pilote QUE le mock : en live, l'inclure
-                        // dans les deps détruisait/recréait le provider (teardown SSE +
-                        // re-snapshot) quand les réservations finissaient de charger.
-                        deps={mockMode ? [property.id, cometReservationId] : [property.id]}
-                        propertyId={property.id}
-                        reportWindowDays={reportWindowDays}
-                        flush
-                      />
-                    );
-                  }
-                : undefined
-            }
+            renderExpanded={canSupervise ? renderExpandedPanel : undefined}
           />
 
           {/* Pagination — pinned to bottom, full width (compensate parent px) */}

@@ -46,7 +46,7 @@ public class TripAdvisorSyncScheduler {
      * Push periodique des disponibilites vers TripAdvisor.
      * Frequence configurable via tripadvisor.sync.interval-minutes (defaut: 15 min).
      */
-    @Scheduled(fixedRateString = "${tripadvisor.sync.interval-minutes:15}000")
+    @Scheduled(fixedRateString = "#{${tripadvisor.sync.interval-minutes:15} * 60000}")
     public void pushAvailability() {
         if (!config.isConfigured()) {
             return;
@@ -83,7 +83,7 @@ public class TripAdvisorSyncScheduler {
      * Complementaire aux webhooks — rattrape les evenements manques.
      * Toutes les 15 minutes.
      */
-    @Scheduled(fixedRateString = "${tripadvisor.sync.interval-minutes:15}000")
+    @Scheduled(fixedRateString = "#{${tripadvisor.sync.interval-minutes:15} * 60000}")
     public void pullBookings() {
         if (!config.isConfigured()) {
             return;

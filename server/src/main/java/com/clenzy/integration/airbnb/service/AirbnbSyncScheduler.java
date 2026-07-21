@@ -97,7 +97,7 @@ public class AirbnbSyncScheduler {
      * Sync periodique des reservations (complementaire aux webhooks).
      * Toutes les 15 minutes par defaut. Groupe par org pour isoler les erreurs.
      */
-    @Scheduled(fixedRateString = "${airbnb.sync.interval-minutes:15}000")
+    @Scheduled(fixedRateString = "#{${airbnb.sync.interval-minutes:15} * 60000}")
     public void syncReservations() {
         if (!config.isSyncEnabled()) {
             return;

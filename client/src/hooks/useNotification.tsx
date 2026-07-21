@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 import { Snackbar, Alert, AlertColor, Slide, SlideProps } from '@mui/material';
 
 /**
@@ -60,17 +60,23 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     setNotifications([]);
   }, []);
 
-  const notify = {
-    success: (message: string, duration?: number) => addNotification(message, 'success', duration),
-    error: (message: string, duration?: number) => addNotification(message, 'error', duration ?? 6000),
-    warning: (message: string, duration?: number) => addNotification(message, 'warning', duration),
-    info: (message: string, duration?: number) => addNotification(message, 'info', duration),
-  };
+  // Valeur mémoïsée : le provider re-rend à chaque toast, une valeur inline
+  // re-rendait tous les consommateurs de useNotification() à chaque affichage.
+  const contextValue = useMemo<NotificationContextType>(() => ({
+    notify: {
+      success: (message: string, duration?: number) => addNotification(message, 'success', duration),
+      error: (message: string, duration?: number) => addNotification(message, 'error', duration ?? 6000),
+      warning: (message: string, duration?: number) => addNotification(message, 'warning', duration),
+      info: (message: string, duration?: number) => addNotification(message, 'info', duration),
+    },
+    showNotification: addNotification,
+    clearAll,
+  }), [addNotification, clearAll]);
 
   const currentNotification = notifications[0] || null;
 
   return (
-    <NotificationContext.Provider value={{ notify, showNotification: addNotification, clearAll }}>
+    <NotificationContext.Provider value={contextValue}>
       {children}
       {currentNotification && (
         <Snackbar

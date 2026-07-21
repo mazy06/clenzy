@@ -53,7 +53,7 @@ public class HotelsComSyncScheduler {
      * Recupere les nouvelles reservations depuis le dernier sync.
      * Toutes les 15 minutes par defaut.
      */
-    @Scheduled(fixedRateString = "${hotelscom.sync.interval-minutes:15}000")
+    @Scheduled(fixedRateString = "#{${hotelscom.sync.interval-minutes:15} * 60000}")
     public void syncReservations() {
         log.debug("Sync periodique des reservations Hotels.com...");
 

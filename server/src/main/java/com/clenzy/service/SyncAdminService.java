@@ -273,12 +273,11 @@ public class SyncAdminService {
         long failedOutbox = outboxEventRepository.countByStatusStr("FAILED");
 
         // Oldest pending event
-        List<OutboxEvent> pendingEvents = outboxEventRepository.findPendingEvents();
-        String oldestPendingEvent = null;
-        if (!pendingEvents.isEmpty()) {
-            OutboxEvent oldest = pendingEvents.get(0);
-            oldestPendingEvent = oldest.getCreatedAt() != null ? oldest.getCreatedAt().toString() : null;
-        }
+        String oldestPendingEvent = outboxEventRepository
+                .findFirstByStatusOrderByCreatedAtAsc("PENDING")
+                .map(OutboxEvent::getCreatedAt)
+                .map(Object::toString)
+                .orElse(null);
 
         // Sync logs by status
         Map<String, Long> syncLogsByStatus = new HashMap<>();

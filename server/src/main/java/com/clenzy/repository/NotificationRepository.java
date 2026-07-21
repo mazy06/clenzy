@@ -2,20 +2,27 @@ package com.clenzy.repository;
 
 import com.clenzy.model.Notification;
 import com.clenzy.model.NotificationCategory;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    /** Toutes les notifications d'un utilisateur, triees par date descendante */
-    List<Notification> findByUserIdOrderByCreatedAtDesc(String userId);
+    /**
+     * Notifications d'un utilisateur, triees par date descendante, bornees par
+     * le Pageable : la table croit indefiniment par utilisateur et l'endpoint
+     * est polle en continu — sans borne, tout l'historique etait charge et
+     * serialise a chaque appel.
+     */
+    List<Notification> findByUserIdOrderByCreatedAtDesc(String userId, Pageable pageable);
 
     /** Notifications filtrees par categorie */
     List<Notification> findByUserIdAndCategoryOrderByCreatedAtDesc(String userId, NotificationCategory category);
@@ -36,4 +43,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     /** Supprimer une notification par ID et userId (securite) */
     void deleteByIdAndUserId(Long id, String userId);
+
+    /** Purge de retention : supprime les notifications anterieures au seuil. */
+    @Modifying
+    @Query("DELETE FROM Notification n WHERE n.createdAt < :before")
+    int deleteByCreatedAtBefore(@Param("before") Instant before);
 }

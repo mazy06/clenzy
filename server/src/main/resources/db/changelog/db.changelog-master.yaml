@@ -3425,3 +3425,13 @@ databaseChangeLog:
       sqlFile:
         path: changes/0357__enable_pg_stat_statements.sql
         relativeToChangelogFile: true
+
+  # Audit perf 2026-07-21 (vague 1) : index manquants sur les chemins chauds —
+  # messagerie (aucun index secondaire), interventions (planning/webhooks),
+  # lookups Stripe/confirmation, backlog service_requests, outbox FAILED, purge funnel.
+  - changeSet:
+      id: "0358-add-missing-hot-path-indexes"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0358__add_missing_hot_path_indexes.sql
+        relativeToChangelogFile: true

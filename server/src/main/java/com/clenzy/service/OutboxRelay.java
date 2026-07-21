@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,12 @@ public class OutboxRelay {
 
     private static final Logger log = LoggerFactory.getLogger(OutboxRelay.class);
     private static final int MAX_RETRIES = 5;
+    /**
+     * Taille max d'un lot par tick. Borne la memoire et la duree de la
+     * transaction pendant un backlog (panne Kafka) ; le tick suivant (2 s)
+     * reprend la suite en FIFO.
+     */
+    private static final int BATCH_SIZE = 500;
 
     private final OutboxEventRepository outboxEventRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -54,8 +61,13 @@ public class OutboxRelay {
     @Scheduled(fixedDelay = 2000)
     @Transactional
     public void relayPendingEvents() {
-        List<OutboxEvent> pendingEvents = outboxEventRepository.findPendingEvents();
-        syncMetrics.updateOutboxPending(pendingEvents.size());
+        // Gauge alimentee par un COUNT (index partiel PENDING) : le lot etant
+        // borne, sa taille ne reflete plus le backlog reel.
+        syncMetrics.updateOutboxPending((int) Math.min(
+                outboxEventRepository.countByStatusStr("PENDING"), Integer.MAX_VALUE));
+
+        List<OutboxEvent> pendingEvents =
+                outboxEventRepository.findPendingEvents(PageRequest.of(0, BATCH_SIZE));
         if (pendingEvents.isEmpty()) return;
 
         log.debug("OutboxRelay: {} event(s) PENDING a relayer", pendingEvents.size());
@@ -71,7 +83,8 @@ public class OutboxRelay {
     @Scheduled(fixedDelay = 30000)
     @Transactional
     public void retryFailedEvents() {
-        List<OutboxEvent> failedEvents = outboxEventRepository.findRetryableEvents(MAX_RETRIES);
+        List<OutboxEvent> failedEvents =
+                outboxEventRepository.findRetryableEvents(MAX_RETRIES, PageRequest.of(0, BATCH_SIZE));
         if (failedEvents.isEmpty()) return;
 
         log.info("OutboxRelay: {} event(s) FAILED a reessayer", failedEvents.size());

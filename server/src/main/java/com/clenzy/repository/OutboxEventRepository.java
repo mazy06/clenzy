@@ -10,24 +10,33 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface OutboxEventRepository extends JpaRepository<OutboxEvent, Long> {
 
     /**
-     * Recupere les events PENDING par ordre de creation (FIFO).
-     * Limite pour eviter de charger trop en memoire.
+     * Recupere les events PENDING par ordre de creation (FIFO), bornes par le
+     * Pageable : pendant une panne Kafka le backlog peut atteindre des dizaines
+     * de milliers de lignes — sans borne, chaque tick du relay chargeait TOUT
+     * en memoire dans une transaction.
      */
     @Query("SELECT e FROM OutboxEvent e WHERE e.status = 'PENDING' " +
            "ORDER BY e.createdAt ASC")
-    List<OutboxEvent> findPendingEvents();
+    List<OutboxEvent> findPendingEvents(Pageable pageable);
 
     /**
-     * Recupere les events FAILED avec moins de maxRetries tentatives.
-     * Permet de reessayer les envois echoues.
+     * Recupere les events FAILED avec moins de maxRetries tentatives,
+     * bornes par le Pageable (meme raison que findPendingEvents).
      */
     @Query("SELECT e FROM OutboxEvent e WHERE e.status = 'FAILED' " +
            "AND e.retryCount < :maxRetries ORDER BY e.createdAt ASC")
-    List<OutboxEvent> findRetryableEvents(@Param("maxRetries") int maxRetries);
+    List<OutboxEvent> findRetryableEvents(@Param("maxRetries") int maxRetries, Pageable pageable);
+
+    /**
+     * Plus ancien event d'un statut donne — pour les stats (age du backlog)
+     * sans charger le backlog entier.
+     */
+    Optional<OutboxEvent> findFirstByStatusOrderByCreatedAtAsc(String status);
 
     /**
      * Marque un event comme SENT.

@@ -6,6 +6,7 @@ import com.clenzy.model.*;
 import com.clenzy.repository.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -253,7 +254,7 @@ class CalendarEngineIntegrationTest extends AbstractIntegrationTest {
 
         calendarEngine.book(property.getId(), checkIn, checkOut, null, orgId, "MANUAL", "test-actor");
 
-        List<OutboxEvent> events = outboxEventRepository.findPendingEvents();
+        List<OutboxEvent> events = outboxEventRepository.findPendingEvents(Pageable.unpaged());
 
         assertFalse(events.isEmpty(), "Au moins un event outbox attendu");
 

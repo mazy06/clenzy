@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -78,7 +79,7 @@ class NotificationServiceTest {
             n2.setId(2L);
             n2.setTitle("Second");
 
-            when(notificationRepository.findByUserIdOrderByCreatedAtDesc(USER_ID))
+            when(notificationRepository.findByUserIdOrderByCreatedAtDesc(eq(USER_ID), any(Pageable.class)))
                     .thenReturn(List.of(n1, n2));
 
             List<NotificationDto> result = service.getAllForUser(USER_ID);
@@ -88,12 +89,12 @@ class NotificationServiceTest {
             assertEquals(2L, result.get(1).id);
             assertEquals("info", result.get(0).type);
             assertEquals("warning", result.get(1).type);
-            verify(notificationRepository).findByUserIdOrderByCreatedAtDesc(USER_ID);
+            verify(notificationRepository).findByUserIdOrderByCreatedAtDesc(eq(USER_ID), any(Pageable.class));
         }
 
         @Test
         void getAllForUser_withNoNotifications_returnsEmptyList() {
-            when(notificationRepository.findByUserIdOrderByCreatedAtDesc(USER_ID))
+            when(notificationRepository.findByUserIdOrderByCreatedAtDesc(eq(USER_ID), any(Pageable.class)))
                     .thenReturn(Collections.emptyList());
 
             List<NotificationDto> result = service.getAllForUser(USER_ID);

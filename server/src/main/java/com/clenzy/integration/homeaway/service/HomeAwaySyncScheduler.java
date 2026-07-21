@@ -82,7 +82,7 @@ public class HomeAwaySyncScheduler {
      * Complementaire aux webhooks, recupere les reservations qui auraient pu etre manquees.
      * Toutes les 15 minutes par defaut.
      */
-    @Scheduled(fixedRateString = "${homeaway.sync.interval-minutes:15}000")
+    @Scheduled(fixedRateString = "#{${homeaway.sync.interval-minutes:15} * 60000}")
     public void syncReservations() {
         log.debug("Sync periodique des reservations HomeAway...");
 

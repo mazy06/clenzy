@@ -20,6 +20,7 @@ import java.util.List;
  * - Utilisateurs supprimes/inactifs depuis > 3 ans : anonymisation
  * - Logs d'audit > 2 ans : suppression
  * - Webhook events > 90 jours : suppression
+ * - Notifications in-app > 90 jours : suppression
  *
  * Execute chaque jour a 3h du matin.
  */
@@ -32,15 +33,18 @@ public class DataRetentionService {
     private final AuditLogService auditLogService;
     private final GdprService gdprService;
     private final KpiSnapshotRepository kpiSnapshotRepository;
+    private final NotificationRepository notificationRepository;
 
     public DataRetentionService(UserRepository userRepository,
                                 AuditLogService auditLogService,
                                 GdprService gdprService,
-                                KpiSnapshotRepository kpiSnapshotRepository) {
+                                KpiSnapshotRepository kpiSnapshotRepository,
+                                NotificationRepository notificationRepository) {
         this.userRepository = userRepository;
         this.auditLogService = auditLogService;
         this.gdprService = gdprService;
         this.kpiSnapshotRepository = kpiSnapshotRepository;
+        this.notificationRepository = notificationRepository;
     }
 
     /**
@@ -56,15 +60,16 @@ public class DataRetentionService {
         int deletedAuditLogs = cleanupOldAuditLogs();
         int deletedWebhookEvents = cleanupOldWebhookEvents();
         int deletedKpiSnapshots = cleanupOldKpiSnapshots();
+        int deletedNotifications = cleanupOldNotifications();
 
-        log.info("Job de retention termine : {} utilisateurs anonymises, {} logs d'audit supprimes, {} webhook events supprimes, {} KPI snapshots supprimes",
-                anonymizedUsers, deletedAuditLogs, deletedWebhookEvents, deletedKpiSnapshots);
+        log.info("Job de retention termine : {} utilisateurs anonymises, {} logs d'audit supprimes, {} webhook events supprimes, {} KPI snapshots supprimes, {} notifications supprimees",
+                anonymizedUsers, deletedAuditLogs, deletedWebhookEvents, deletedKpiSnapshots, deletedNotifications);
 
         // Audit du job
         auditLogService.logAction(AuditAction.DELETE, "DataRetention", "CRON",
                 null, null,
-                String.format("Retention RGPD : %d users anonymises, %d audit logs supprimes, %d webhook events supprimes, %d KPI snapshots supprimes",
-                        anonymizedUsers, deletedAuditLogs, deletedWebhookEvents, deletedKpiSnapshots),
+                String.format("Retention RGPD : %d users anonymises, %d audit logs supprimes, %d webhook events supprimes, %d KPI snapshots supprimes, %d notifications supprimees",
+                        anonymizedUsers, deletedAuditLogs, deletedWebhookEvents, deletedKpiSnapshots, deletedNotifications),
                 AuditSource.CRON);
     }
 
@@ -100,6 +105,20 @@ public class DataRetentionService {
         // TODO: implement with AirbnbWebhookEventRepository.deleteByCreatedAtBefore(threshold)
         log.info("Suppression des webhook events anterieurs a {}", threshold);
         return 0;
+    }
+
+    /**
+     * Supprime les notifications in-app de plus de 90 jours. Sans purge, la
+     * table croissait indefiniment par utilisateur (audit perf 2026-07-21) ;
+     * le front n'affiche de toute facon que les plus recentes.
+     */
+    private int cleanupOldNotifications() {
+        Instant threshold = Instant.now().minus(90, ChronoUnit.DAYS);
+        int deleted = notificationRepository.deleteByCreatedAtBefore(threshold);
+        if (deleted > 0) {
+            log.info("[Retention] {} notifications supprimees (anterieures a {})", deleted, threshold);
+        }
+        return deleted;
     }
 
     /**

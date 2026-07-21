@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.repository.KpiSnapshotRepository;
+import com.clenzy.repository.NotificationRepository;
 import com.clenzy.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,13 +25,15 @@ class DataRetentionServiceTest {
     @Mock private AuditLogService auditLogService;
     @Mock private GdprService gdprService;
     @Mock private KpiSnapshotRepository kpiSnapshotRepository;
+    @Mock private NotificationRepository notificationRepository;
 
     private DataRetentionService dataRetentionService;
 
     @BeforeEach
     void setUp() {
         dataRetentionService = new DataRetentionService(
-                userRepository, auditLogService, gdprService, kpiSnapshotRepository);
+                userRepository, auditLogService, gdprService, kpiSnapshotRepository,
+                notificationRepository);
     }
 
     // ===== EXECUTE RETENTION POLICIES =====
@@ -72,6 +76,15 @@ class DataRetentionServiceTest {
             dataRetentionService.executeRetentionPolicies();
 
             verify(kpiSnapshotRepository).deleteOlderThan(any(LocalDateTime.class));
+        }
+
+        @Test
+        void whenExecuted_thenDeletesOldNotifications() {
+            when(notificationRepository.deleteByCreatedAtBefore(any(Instant.class))).thenReturn(7);
+
+            dataRetentionService.executeRetentionPolicies();
+
+            verify(notificationRepository).deleteByCreatedAtBefore(any(Instant.class));
         }
     }
 }
