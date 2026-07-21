@@ -182,7 +182,12 @@
       "SUGGEST_DEPOSIT_REFUND": "اقتُرح استرداد التأمين (أتمتة)",
       "SUGGEST_DEPOSIT_RELEASE": "اقتُرح تحرير التأمين (أتمتة)",
       "NOTIFY_RATE_PARITY": "أُبلغ عن فجوة في تكافؤ الأسعار (أتمتة)",
-      "SUGGEST_CALENDAR_BLOCK": "اقتُرح حظر التقويم (أتمتة)"
+      "SUGGEST_CALENDAR_BLOCK": "اقتُرح حظر التقويم (أتمتة)",
+      "SEND_MESSAGE_FAILED": "فشل إرسال الرسالة (أتمتة)",
+      "SEND_GUIDE_FAILED": "فشل إرسال دليل الاستقبال (أتمتة)",
+      "SEND_CHECKIN_LINK_FAILED": "فشل إرسال رابط تسجيل الوصول (أتمتة)",
+      "SEND_NOISE_WARNING_FAILED": "فشل إرسال تنبيه الضوضاء (أتمتة)",
+      "SEND_REVIEW_REQUEST_FAILED": "فشل إرسال طلب التقييم (أتمتة)"
     },
     "approval": {
       "title": "مطلوب موافقة",
@@ -4424,7 +4429,8 @@
       "system": "النظام",
       "contact": "جهات الاتصال",
       "document": "المستندات",
-      "reservations": "الحجوزات"
+      "reservations": "الحجوزات",
+      "guestMessaging": "رسائل الضيوف"
     },
     "new": "جديدة",
     "timeAgo": {

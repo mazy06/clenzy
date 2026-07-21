@@ -51,6 +51,7 @@ public class SupervisionScanService {
     private final ReviewModerationScanner reviewModerationScanner;
     private final GuestInstructionsScanner guestInstructionsScanner;
     private final GuestEmailMissingScanner guestEmailMissingScanner;
+    private final GuestMessageFailedScanner guestMessageFailedScanner;
     private final PropertyRepository propertyRepository;
     private final OrganizationAccessGuard organizationAccessGuard;
     private final TenantContext tenantContext;
@@ -64,6 +65,7 @@ public class SupervisionScanService {
                                   ReviewModerationScanner reviewModerationScanner,
                                   GuestInstructionsScanner guestInstructionsScanner,
                                   GuestEmailMissingScanner guestEmailMissingScanner,
+                                  GuestMessageFailedScanner guestMessageFailedScanner,
                                   PropertyRepository propertyRepository,
                                   OrganizationAccessGuard organizationAccessGuard,
                                   TenantContext tenantContext) {
@@ -76,6 +78,7 @@ public class SupervisionScanService {
         this.reviewModerationScanner = reviewModerationScanner;
         this.guestInstructionsScanner = guestInstructionsScanner;
         this.guestEmailMissingScanner = guestEmailMissingScanner;
+        this.guestMessageFailedScanner = guestMessageFailedScanner;
         this.propertyRepository = propertyRepository;
         this.organizationAccessGuard = organizationAccessGuard;
         this.tenantContext = tenantContext;
@@ -140,6 +143,7 @@ public class SupervisionScanService {
         reviewModerationScanner.scanProperty(orgId, propertyId);
         guestInstructionsScanner.scanProperty(orgId, propertyId);
         guestEmailMissingScanner.scanProperty(orgId, propertyId);
+        guestMessageFailedScanner.scanProperty(orgId, propertyId);
     }
 
     /**

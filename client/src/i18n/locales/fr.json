@@ -182,7 +182,12 @@
       "SUGGEST_DEPOSIT_REFUND": "Remboursement de caution suggéré (automatisation)",
       "SUGGEST_DEPOSIT_RELEASE": "Libération de caution suggérée (automatisation)",
       "NOTIFY_RATE_PARITY": "Écart de parité tarifaire signalé (automatisation)",
-      "SUGGEST_CALENDAR_BLOCK": "Blocage calendrier suggéré (automatisation)"
+      "SUGGEST_CALENDAR_BLOCK": "Blocage calendrier suggéré (automatisation)",
+      "SEND_MESSAGE_FAILED": "Échec d'envoi de message (automatisation)",
+      "SEND_GUIDE_FAILED": "Échec d'envoi du livret d'accueil (automatisation)",
+      "SEND_CHECKIN_LINK_FAILED": "Échec d'envoi du lien de check-in (automatisation)",
+      "SEND_NOISE_WARNING_FAILED": "Échec d'envoi de l'alerte bruit (automatisation)",
+      "SEND_REVIEW_REQUEST_FAILED": "Échec d'envoi de la demande d'avis (automatisation)"
     },
     "approval": {
       "title": "Validation requise",
@@ -4482,7 +4487,8 @@
       "system": "Système",
       "contact": "Contact",
       "document": "Documents",
-      "reservations": "Réservations"
+      "reservations": "Réservations",
+      "guestMessaging": "Messages voyageurs"
     },
     "new": "nouvelle(s)",
     "timeAgo": {

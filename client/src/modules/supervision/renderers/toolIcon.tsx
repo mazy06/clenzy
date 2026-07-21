@@ -82,6 +82,12 @@ const TOOL_ICON: Record<string, IconRender> = {
   // Communication
   send_guest_message: (s) => <Chat size={s} strokeWidth={1.9} />,
   cart_reminder_sent: (s) => <Send size={s} strokeWidth={1.9} />,
+  // Automatisations messaging en échec (envoi non abouti — feed marqué en erreur)
+  SEND_MESSAGE_FAILED: (s) => <Warning size={s} strokeWidth={1.9} />,
+  SEND_GUIDE_FAILED: (s) => <Warning size={s} strokeWidth={1.9} />,
+  SEND_CHECKIN_LINK_FAILED: (s) => <Warning size={s} strokeWidth={1.9} />,
+  SEND_NOISE_WARNING_FAILED: (s) => <Warning size={s} strokeWidth={1.9} />,
+  SEND_REVIEW_REQUEST_FAILED: (s) => <Warning size={s} strokeWidth={1.9} />,
 
   // Réputation
   reply_to_review: (s) => <Star size={s} strokeWidth={1.9} />,

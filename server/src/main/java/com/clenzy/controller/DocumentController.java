@@ -47,17 +47,23 @@ public class DocumentController {
     private final DocumentComplianceService complianceService;
     private final DocumentAccessService documentAccessService;
     private final PropertyService propertyService;
+    private final com.clenzy.service.messaging.GuestMessagingQueryService guestMessagingQueryService;
+    private final com.clenzy.tenant.TenantContext tenantContext;
 
     public DocumentController(DocumentGeneratorService generatorService,
                                DocumentStorageService documentStorageService,
                                DocumentComplianceService complianceService,
                                DocumentAccessService documentAccessService,
-                               PropertyService propertyService) {
+                               PropertyService propertyService,
+                               com.clenzy.service.messaging.GuestMessagingQueryService guestMessagingQueryService,
+                               com.clenzy.tenant.TenantContext tenantContext) {
         this.generatorService = generatorService;
         this.documentStorageService = documentStorageService;
         this.complianceService = complianceService;
         this.documentAccessService = documentAccessService;
         this.propertyService = propertyService;
+        this.guestMessagingQueryService = guestMessagingQueryService;
+        this.tenantContext = tenantContext;
     }
 
     // ─── Templates ──────────────────────────────────────────────────────────
@@ -234,6 +240,21 @@ public class DocumentController {
     }
 
     // ─── Historique ─────────────────────────────────────────────────────────
+
+    /**
+     * Nombre d'echecs recents (envois voyageur + generations de documents, fenetre 7 j)
+     * pour l'org du requester — alimente la pastille du menu Documents.
+     */
+    @GetMapping("/alerts/failed-count")
+    @Operation(summary = "Nombre d'echecs recents d'envoi/generation (pastille menu Documents)")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','ADMIN','HOST')")
+    public ResponseEntity<Map<String, Long>> getFailedAlertCount() {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        java.time.LocalDateTime since = java.time.LocalDateTime.now().minusDays(7);
+        long count = guestMessagingQueryService.countRecentFailures(orgId, since)
+                + generatorService.countRecentFailedGenerations(orgId, since);
+        return ResponseEntity.ok(Map.of("count", count));
+    }
 
     @GetMapping("/generations")
     @Operation(summary = "Historique des generations de documents")

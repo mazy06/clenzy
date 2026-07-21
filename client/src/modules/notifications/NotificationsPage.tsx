@@ -34,10 +34,10 @@ import { parseApiDate } from '../../utils/formatUtils';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-type TabFilter = 'all' | 'unread' | 'intervention' | 'service_request' | 'payment' | 'reservation' | 'system' | 'contact' | 'document';
+type TabFilter = 'all' | 'unread' | 'intervention' | 'service_request' | 'payment' | 'reservation' | 'system' | 'contact' | 'document' | 'guest_messaging';
 
 // Valeurs d'onglet autorisees (= cles d'URL ?tab=<value>). 'all' est le defaut (URL propre).
-const NOTIFICATION_TAB_VALUES: TabFilter[] = ['all', 'unread', 'intervention', 'service_request', 'payment', 'reservation', 'system', 'contact', 'document'];
+const NOTIFICATION_TAB_VALUES: TabFilter[] = ['all', 'unread', 'intervention', 'service_request', 'payment', 'reservation', 'system', 'contact', 'document', 'guest_messaging'];
 
 const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
   intervention: <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Build size={18} strokeWidth={1.75} /></Box>,
@@ -48,6 +48,7 @@ const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
   contact: <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Email size={18} strokeWidth={1.75} /></Box>,
   document: <Box component="span" sx={{ display: 'inline-flex', color: 'warning.dark' }}><Description size={18} strokeWidth={1.75} /></Box>,
   reservation: <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><EventNote size={18} strokeWidth={1.75} /></Box>,
+  guest_messaging: <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Email size={18} strokeWidth={1.75} /></Box>,
 };
 
 function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string, lang = 'fr'): string {
@@ -198,6 +199,7 @@ export default function NotificationsPage() {
     { value: 'system', label: t('notifications.tabs.system') },
     { value: 'contact', label: t('notifications.tabs.contact') },
     { value: 'document', label: t('notifications.tabs.document') },
+    { value: 'guest_messaging', label: t('notifications.tabs.guestMessaging') },
   ];
 
   return (

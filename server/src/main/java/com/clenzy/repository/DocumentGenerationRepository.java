@@ -53,6 +53,10 @@ public interface DocumentGenerationRepository extends JpaRepository<DocumentGene
 
     long countByStatus(DocumentGenerationStatus status);
 
+    /** Echecs de generation recents de l'org (pastille du menu Documents). */
+    long countByOrganizationIdAndStatusAndCreatedAtAfter(
+        Long organizationId, DocumentGenerationStatus status, java.time.LocalDateTime since);
+
     // ─── Conformite NF ──────────────────────────────────────────────────────
 
     Optional<DocumentGeneration> findByLegalNumber(String legalNumber);

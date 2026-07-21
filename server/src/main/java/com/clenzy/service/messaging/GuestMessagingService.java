@@ -280,8 +280,11 @@ public class GuestMessagingService {
             }
             if (channel == null || !channel.isAvailable()) {
                 log.warn("Aucun canal disponible pour la reservation {}", reservation.getId());
-                return createLog(reservation, guest, template, orgId, channelType,
+                GuestMessageLog failedLog = createLog(reservation, guest, template, orgId, channelType,
                     "N/A", interpolated.subject(), MessageStatus.FAILED, "Aucun canal disponible");
+                notifyDeliveryFailure(NotificationKey.GUEST_MESSAGE_FAILED, reservation, property,
+                    template, orgId, "Aucun canal disponible pour l'envoi (" + channelType + ")");
+                return failedLog;
             }
         }
 
@@ -290,9 +293,18 @@ public class GuestMessagingService {
         if (recipient == null || recipient.isBlank()) {
             log.warn("Pas de destinataire {} pour la reservation {}",
                 channel.getChannelType(), reservation.getId());
-            return createLog(reservation, guest, template, orgId, channel.getChannelType(),
+            GuestMessageLog failedLog = createLog(reservation, guest, template, orgId, channel.getChannelType(),
                 "N/A", interpolated.subject(), MessageStatus.FAILED,
                 "Pas de destinataire pour le canal " + channel.getChannelType());
+            // Email manquant = cle dediee (WARNING) : la fiche voyageur est incomplete,
+            // l'action attendue est de la completer, pas de re-tenter l'envoi.
+            NotificationKey key = channel.getChannelType() == MessageChannelType.EMAIL
+                ? NotificationKey.GUEST_NO_EMAIL_FOR_CHECKIN
+                : NotificationKey.GUEST_MESSAGE_FAILED;
+            notifyDeliveryFailure(key, reservation, property, template, orgId,
+                "Pas de destinataire pour le canal " + channel.getChannelType()
+                    + " — complète la fiche voyageur pour permettre l'envoi");
+            return failedLog;
         }
 
         // Envoyer
@@ -304,23 +316,20 @@ public class GuestMessagingService {
             recipient, interpolated.subject(), status, result.errorMessage()
         );
 
-        // Notification interne
-        String notifTitle = result.success()
-            ? "Message envoye a " + request.recipientName()
-            : "Echec envoi message a " + request.recipientName();
-        String notifMessage = result.success()
-            ? "Template '" + template.getName() + "' envoye via " + channel.getChannelType()
-            : "Erreur: " + result.errorMessage();
-
-        NotificationKey key = result.success()
-            ? NotificationKey.GUEST_MESSAGE_SENT
-            : NotificationKey.GUEST_MESSAGE_FAILED;
-
-        if (property.getOwner() != null && property.getOwner().getKeycloakId() != null) {
-            notificationService.send(
-                property.getOwner().getKeycloakId(), key, notifTitle, notifMessage,
-                "/reservations?highlight=" + reservation.getId()
-            );
+        // Notification interne : succes → owner seul (information) ; echec → owner
+        // + admins/managers (alerte, meme circuit que les echecs de generation de document).
+        if (result.success()) {
+            if (property.getOwner() != null && property.getOwner().getKeycloakId() != null) {
+                notificationService.send(
+                    property.getOwner().getKeycloakId(), NotificationKey.GUEST_MESSAGE_SENT,
+                    "Message envoye a " + request.recipientName(),
+                    "Template '" + template.getName() + "' envoye via " + channel.getChannelType(),
+                    "/reservations?highlight=" + reservation.getId(), orgId
+                );
+            }
+        } else {
+            notifyDeliveryFailure(NotificationKey.GUEST_MESSAGE_FAILED, reservation, property,
+                template, orgId, "Erreur d'envoi a " + request.recipientName() + " : " + result.errorMessage());
         }
 
         return logEntry;
@@ -360,6 +369,35 @@ public class GuestMessagingService {
 
     private static boolean referencesGuideLink(String text) {
         return text != null && text.contains("{guideLink}");
+    }
+
+    /**
+     * Notifie un echec d'envoi : admins/managers de l'org (meme circuit que les echecs de
+     * generation de document, cf. DocumentGenerationFailureRecorder) + owner du logement
+     * s'il existe. Historiquement, les early-returns « pas de destinataire » / « aucun canal »
+     * sortaient AVANT le bloc de notification : l'echec etait persiste en base (visible dans
+     * l'onglet Historique) mais totalement silencieux cote cloche.
+     * Best-effort : une erreur de notification ne doit jamais faire echouer la creation du log.
+     */
+    private void notifyDeliveryFailure(NotificationKey key, Reservation reservation, Property property,
+                                       MessageTemplate template, Long orgId, String detail) {
+        try {
+            String propertyName = property != null && property.getName() != null
+                ? property.getName() : "Logement";
+            String title = "Échec d'envoi au voyageur — " + propertyName;
+            String message = "Template '" + template.getName() + "' (réservation #"
+                + reservation.getId() + ") : " + detail;
+            String actionUrl = "/documents?tab=history";
+            notificationService.notifyAdminsAndManagers(key, title, message, actionUrl, orgId);
+            if (property != null && property.getOwner() != null
+                    && property.getOwner().getKeycloakId() != null) {
+                notificationService.send(property.getOwner().getKeycloakId(), key,
+                    title, message, actionUrl, orgId);
+            }
+        } catch (Exception e) {
+            log.error("Notification d'echec d'envoi impossible (reservation={}) : {}",
+                reservation.getId(), e.getMessage());
+        }
     }
 
     private GuestMessageLog createLog(

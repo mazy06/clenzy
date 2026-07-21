@@ -182,7 +182,12 @@
       "SUGGEST_DEPOSIT_REFUND": "Deposit refund suggested (automation)",
       "SUGGEST_DEPOSIT_RELEASE": "Deposit release suggested (automation)",
       "NOTIFY_RATE_PARITY": "Rate parity gap flagged (automation)",
-      "SUGGEST_CALENDAR_BLOCK": "Calendar block suggested (automation)"
+      "SUGGEST_CALENDAR_BLOCK": "Calendar block suggested (automation)",
+      "SEND_MESSAGE_FAILED": "Message delivery failed (automation)",
+      "SEND_GUIDE_FAILED": "Welcome guide delivery failed (automation)",
+      "SEND_CHECKIN_LINK_FAILED": "Check-in link delivery failed (automation)",
+      "SEND_NOISE_WARNING_FAILED": "Noise alert delivery failed (automation)",
+      "SEND_REVIEW_REQUEST_FAILED": "Review request delivery failed (automation)"
     },
     "approval": {
       "title": "Approval required",
@@ -4457,7 +4462,8 @@
       "system": "System",
       "contact": "Contact",
       "document": "Documents",
-      "reservations": "Reservations"
+      "reservations": "Reservations",
+      "guestMessaging": "Guest messages"
     },
     "new": "new",
     "timeAgo": {

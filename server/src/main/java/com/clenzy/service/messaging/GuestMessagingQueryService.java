@@ -73,6 +73,11 @@ public class GuestMessagingQueryService {
         return messageLogRepository.findByOrganizationIdOrderByCreatedAtDesc(organizationId);
     }
 
+    /** Nombre d'envois en echec depuis {@code since} (pastille du menu Documents). */
+    public long countRecentFailures(Long organizationId, java.time.LocalDateTime since) {
+        return messageLogRepository.countFailedByOrganizationSince(organizationId, since);
+    }
+
     /**
      * Historique des messages d'une reservation, filtre sur l'org du requester.
      * {@code organizationId == null} = platform staff (SUPER_ADMIN/SUPER_MANAGER),
