@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi } from '../../services/api/interventionsApi';
+import type { InterventionListParams } from '../../services/api/interventionsApi';
 import { teamsApi } from '../../services/api/teamsApi';
 import { usersApi } from '../../services/api/usersApi';
 import type { Team } from '../../services/api';
@@ -59,6 +60,39 @@ const assignDataKeys = {
   users: ['assign-users'] as const,
 };
 
+// ─── Pagination serveur ───────────────────────────────────────────────────────
+
+/**
+ * Plafond de la vue carte : la carte a besoin de "toutes" les interventions
+ * géocodées correspondant aux filtres, mais on borne côté serveur pour ne
+ * jamais rapatrier des milliers de lignes (P1-6 audit perf 2026-07-21).
+ */
+export const MAP_VIEW_PAGE_SIZE = 300;
+
+/**
+ * Mappe les filtres UI ('all' = pas de filtre) vers les params serveur.
+ * Exportée pour les tests. La recherche texte (searchTerm) reste volontairement
+ * côté client sur la page courante : title/description ne sont pas indexées et
+ * le endpoint n'expose pas de param de recherche full-text.
+ */
+export function buildInterventionListParams(input: {
+  page: number;
+  size: number;
+  type: string;
+  status: string;
+  priority: string;
+  propertyId?: number;
+}): InterventionListParams {
+  return {
+    page: input.page,
+    size: input.size,
+    type: input.type !== 'all' ? input.type : undefined,
+    status: input.status !== 'all' ? input.status : undefined,
+    priority: input.priority !== 'all' ? input.priority : undefined,
+    propertyId: input.propertyId,
+  };
+}
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useInterventionsList() {
@@ -81,6 +115,8 @@ export function useInterventionsList() {
   const [selectedPriority, setSelectedPriority] = useState('all');
   const [page, setPage] = useState(0);
   const ITEMS_PER_PAGE = 6;
+  // Taille de page serveur, pilotée par la vue active (grille 6, table dynamique, carte plafonnée).
+  const [pageSize, setPageSizeState] = useState<number>(ITEMS_PER_PAGE);
 
   // Assign dialog state
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -112,19 +148,33 @@ export function useInterventionsList() {
     checkAllPermissions();
   }, [hasPermissionAsync]);
 
-  // ─── Interventions list query ───────────────────────────────────────────────
+  // ─── Interventions list query (pagination + filtres SERVEUR) ────────────────
 
-  const interventionsQuery = useQuery({
-    queryKey: interventionsKeys.lists(),
-    queryFn: async () => {
-      const data = await interventionsApi.getAll();
-      return extractApiList<Intervention>(data);
-    },
-    enabled: canViewInterventions && location.pathname === '/interventions',
-    staleTime: 30_000,
+  const propertyIdFilter = propertyIdParam ? Number(propertyIdParam) : undefined;
+  const listParams = buildInterventionListParams({
+    page,
+    size: pageSize,
+    type: selectedType,
+    status: selectedStatus,
+    priority: selectedPriority,
+    propertyId: propertyIdFilter,
   });
 
-  const interventions = useMemo(() => interventionsQuery.data ?? [], [interventionsQuery.data]);
+  const interventionsQuery = useQuery({
+    queryKey: interventionsKeys.list(listParams),
+    queryFn: () => interventionsApi.getPage(listParams),
+    enabled: canViewInterventions && location.pathname === '/interventions',
+    staleTime: 30_000,
+    // Conserve la page précédente pendant le fetch de la suivante (pas de flash vide).
+    placeholderData: keepPreviousData,
+  });
+
+  const interventions = useMemo(
+    () => extractApiList<Intervention>(interventionsQuery.data),
+    [interventionsQuery.data],
+  );
+  /** Total serveur (totalElements) — pilote TablePagination et les compteurs. */
+  const totalCount = interventionsQuery.data?.totalElements ?? 0;
   const loading = interventionsQuery.isLoading;
   const error = interventionsQuery.isError
     ? ((interventionsQuery.error as { status?: number; message?: string })?.status === 401
@@ -138,6 +188,9 @@ export function useInterventionsList() {
 
   // ─── Assign dialog data queries ─────────────────────────────────────────────
 
+  // Chargées uniquement à l'ouverture du dialog d'assignation (enabled), et
+  // dédupliquées entre ouvertures/mounts via React Query (staleTime 5 min) :
+  // pas de re-téléchargement systématique des référentiels teams/users.
   const teamsQuery = useQuery({
     queryKey: assignDataKeys.teams,
     queryFn: async () => {
@@ -145,7 +198,7 @@ export function useInterventionsList() {
       return extractApiList<Team>(data);
     },
     enabled: assignDialogOpen,
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
   });
 
   const usersQuery = useQuery({
@@ -155,7 +208,7 @@ export function useInterventionsList() {
       return extractApiList<User>(data);
     },
     enabled: assignDialogOpen,
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
   });
 
   const teams = teamsQuery.data ?? [];
@@ -262,6 +315,13 @@ export function useInterventionsList() {
 
   // ─── Computed values ────────────────────────────────────────────────────────
 
+  // Les filtres type/statut/priorité/propriété et la pagination sont appliqués
+  // par le SERVEUR (cf. listParams). Côté client il ne reste que :
+  //  - la validation défensive des lignes (shape incomplète),
+  //  - le filtre de rôle historique (redondant avec l'accès serveur, conservé
+  //    en ceinture-bretelles),
+  //  - la recherche texte, volontairement client-side sur la page courante
+  //    (title/description non indexées, pas de param serveur dédié).
   const filteredInterventions = useMemo(() => {
     if (!Array.isArray(interventions) || interventions.length === 0) return [];
 
@@ -269,9 +329,6 @@ export function useInterventionsList() {
     return interventions.filter((intervention) => {
       if (!intervention || typeof intervention !== 'object') return false;
       if (!intervention.id || !intervention.title || !intervention.description || !intervention.type || !intervention.status || !intervention.priority) return false;
-
-      // Property filter (from URL query param)
-      if (propertyIdParam && intervention.propertyId !== Number(propertyIdParam)) return false;
 
       // Role-based filtering
       let roleFilter = true;
@@ -288,21 +345,12 @@ export function useInterventionsList() {
       }
       if (!roleFilter) return false;
 
-      // Search filter
+      // Search filter (client-side, page courante uniquement)
       if (searchTerm && !intervention.title.toLowerCase().includes(searchTerm.toLowerCase()) && !intervention.description.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-
-      // Type filter
-      if (selectedType !== 'all' && intervention.type !== selectedType) return false;
-
-      // Status filter
-      if (selectedStatus !== 'all' && intervention.status !== selectedStatus) return false;
-
-      // Priority filter
-      if (selectedPriority !== 'all' && intervention.priority !== selectedPriority) return false;
 
       return true;
     });
-  }, [interventions, searchTerm, selectedType, selectedStatus, selectedPriority, canEditInterventions, user, propertyIdParam]);
+  }, [interventions, searchTerm, canEditInterventions, user]);
 
   // Reset page when filters change
   const setSearchTermAndReset = useCallback((val: string) => { setSearchTerm(val); setPage(0); }, []);
@@ -310,10 +358,15 @@ export function useInterventionsList() {
   const setSelectedStatusAndReset = useCallback((val: string) => { setSelectedStatus(val); setPage(0); }, []);
   const setSelectedPriorityAndReset = useCallback((val: string) => { setSelectedPriority(val); setPage(0); }, []);
 
-  const paginatedInterventions = useMemo(
-    () => filteredInterventions.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE),
-    [filteredInterventions, page, ITEMS_PER_PAGE],
-  );
+  /** Change la taille de page serveur (au changement de vue) et revient page 0. */
+  const setPageSize = useCallback((size: number) => {
+    setPageSizeState(size);
+    setPage(0);
+  }, []);
+
+  // La page est déjà découpée par le serveur : paginatedInterventions est
+  // conservé pour compatibilité d'API du hook et pointe sur la page courante.
+  const paginatedInterventions = filteredInterventions;
 
   const exportColumns: ExportColumn[] = useMemo(
     () => [
@@ -349,6 +402,8 @@ export function useInterventionsList() {
     selectedStatus,
     selectedPriority,
     page,
+    pageSize,
+    totalCount,
     ITEMS_PER_PAGE,
     assignDialogOpen,
     assignType,
@@ -368,6 +423,7 @@ export function useInterventionsList() {
     setSelectedStatus: setSelectedStatusAndReset,
     setSelectedPriority: setSelectedPriorityAndReset,
     setPage,
+    setPageSize,
     setAssignType,
     setAssignTargetId,
 

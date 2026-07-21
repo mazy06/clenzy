@@ -107,9 +107,13 @@ public class PublicBookingCalendarService {
      * NB perf : 1 requête CalendarDay + 1 résolution PriceEngine par logement filtré. Acceptable à l'échelle
      * d'une conciergerie (dizaines de biens) ; mettre en cache (Redis) si le catalogue grossit.
      */
+    // Cle alignee sur searchCacheKey : inclut configId, dataSourceMode et
+    // featuredPropertyIds — sans eux, deux engines d'une meme org (ou un engine
+    // MOCK vs REEL) partageaient leurs entrees de cache.
     @org.springframework.cache.annotation.Cacheable(
             value = "booking-engine-price-calendar",
-            key = "#ctx.orgId() + ':' + #from + ':' + #months + ':' + #guests + ':' + #currency + ':' + #filters")
+            key = "T(com.clenzy.booking.service.PublicBookingService).searchCacheKey('calendar', #ctx, #currency, #filters)"
+                    + " + ':' + #from + ':' + #months + ':' + #guests")
     @Transactional(readOnly = true)
     public PropertyCalendarDto getPriceCalendar(OrgContext ctx, PropertySearchFilters filters, Integer guests,
                                                 YearMonth from, int months, String currency) {

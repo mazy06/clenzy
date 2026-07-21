@@ -74,6 +74,14 @@ class LedgerServiceTest {
     }
 
     @Test
+    void hasEntriesForReference_delegatesToRepoExists() {
+        when(repo.existsByReferenceTypeAndReferenceId(LedgerReferenceType.PAYMENT, "tx-1"))
+                .thenReturn(true);
+        assertTrue(service.hasEntriesForReference(LedgerReferenceType.PAYMENT, "tx-1"));
+        assertFalse(service.hasEntriesForReference(LedgerReferenceType.PAYMENT, "tx-2"));
+    }
+
+    @Test
     void recordTransfer_nullAmount_throws() {
         Wallet from = wallet(1L, 100L, "EUR");
         Wallet to = wallet(2L, 100L, "EUR");

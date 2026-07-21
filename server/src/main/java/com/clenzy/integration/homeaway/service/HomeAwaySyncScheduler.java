@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -57,6 +58,7 @@ public class HomeAwaySyncScheduler {
      * Toutes les 30 minutes.
      */
     @Scheduled(fixedRate = 1800000) // 30 min
+    @SchedulerLock(name = "homeaway-token-refresh", lockAtMostFor = "PT10M")
     public void refreshExpiringTokens() {
         log.debug("Verification des tokens HomeAway proches de l'expiration...");
 
@@ -82,7 +84,8 @@ public class HomeAwaySyncScheduler {
      * Complementaire aux webhooks, recupere les reservations qui auraient pu etre manquees.
      * Toutes les 15 minutes par defaut.
      */
-    @Scheduled(fixedRateString = "${homeaway.sync.interval-minutes:15}000")
+    @Scheduled(fixedRateString = "#{${homeaway.sync.interval-minutes:15} * 60000}")
+    @SchedulerLock(name = "homeaway-sync-reservations", lockAtMostFor = "PT15M")
     public void syncReservations() {
         log.debug("Sync periodique des reservations HomeAway...");
 

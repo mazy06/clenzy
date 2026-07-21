@@ -583,7 +583,8 @@ class SyncAdminServiceTest {
 
             when(outboxEventRepository.countByStatusStr("PENDING")).thenReturn(3L);
             when(outboxEventRepository.countByStatusStr("FAILED")).thenReturn(1L);
-            when(outboxEventRepository.findPendingEvents()).thenReturn(List.of());
+            when(outboxEventRepository.findFirstByStatusOrderByCreatedAtAsc("PENDING"))
+                    .thenReturn(Optional.empty());
 
             when(syncLogRepository.countByStatusStr("SUCCESS")).thenReturn(50L);
             when(syncLogRepository.countByStatusStr("FAILED")).thenReturn(5L);
@@ -612,7 +613,8 @@ class SyncAdminServiceTest {
             oldEvent.setCreatedAt(LocalDateTime.of(2026, 1, 15, 10, 0));
             when(outboxEventRepository.countByStatusStr("PENDING")).thenReturn(1L);
             when(outboxEventRepository.countByStatusStr("FAILED")).thenReturn(0L);
-            when(outboxEventRepository.findPendingEvents()).thenReturn(List.of(oldEvent));
+            when(outboxEventRepository.findFirstByStatusOrderByCreatedAtAsc("PENDING"))
+                    .thenReturn(Optional.of(oldEvent));
 
             when(syncLogRepository.countByStatusStr(anyString())).thenReturn(0L);
 

@@ -1,14 +1,12 @@
 package com.clenzy.service;
 
-import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionStatus;
-import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.Property;
 import com.clenzy.model.PropertyStatus;
-import com.clenzy.model.Team;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.TeamRepository;
+import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,13 +16,23 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Les rapports PDF s'appuient desormais sur des agregats SQL bornes a la
+ * fenetre demandee (audit perf 2026-07-21) et non plus sur findAll() +
+ * filtres en memoire. Le TenantContext mocke renvoie une org null par defaut
+ * (platform staff cross-org).
+ */
 @ExtendWith(MockitoExtension.class)
 class ReportServiceTest {
 
@@ -37,6 +45,9 @@ class ReportServiceTest {
     @Mock
     private TeamRepository teamRepository;
 
+    @Mock
+    private TenantContext tenantContext;
+
     @InjectMocks
     private ReportService reportService;
 
@@ -47,18 +58,25 @@ class ReportServiceTest {
     void setUp() {
         startDate = LocalDate.now().minusMonths(1);
         endDate = LocalDate.now();
+        lenient().when(tenantContext.getOrganizationId()).thenReturn(null);
     }
 
-    @Test
-    void testGenerateFinancialReport_Revenue() {
-        // Arrange
-        List<Intervention> interventions = createTestInterventions();
-        when(interventionRepository.findAll()).thenReturn(interventions);
+    /** Ligne agregee [count, somme devis PAID, somme devis] de la fenetre. */
+    private void stubFinancialTotals() {
+        when(interventionRepository.financialTotalsForPdfReport(any(), any(), isNull()))
+                .thenReturn(List.<Object[]>of(
+                        new Object[]{5L, new BigDecimal("360"), new BigDecimal("600")}));
+    }
 
-        // Act
-        byte[] pdfBytes = reportService.generateFinancialReport("revenue", startDate, endDate);
+    /** Compteurs par statut [status, count] de la fenetre. */
+    private void stubStatusCounts() {
+        when(interventionRepository.countByStatusInWindowForPdfReport(any(), any(), isNull()))
+                .thenReturn(List.<Object[]>of(
+                        new Object[]{InterventionStatus.COMPLETED, 3L},
+                        new Object[]{InterventionStatus.PENDING, 2L}));
+    }
 
-        // Assert
+    private void assertValidPdf(byte[] pdfBytes) {
         assertNotNull(pdfBytes);
         assertTrue(pdfBytes.length > 0);
         // Vérifier que c'est bien un PDF (commence par %PDF)
@@ -67,141 +85,96 @@ class ReportServiceTest {
     }
 
     @Test
-    void testGenerateFinancialReport_Costs() {
-        // Arrange
-        List<Intervention> interventions = createTestInterventions();
-        when(interventionRepository.findAll()).thenReturn(interventions);
+    void testGenerateFinancialReport_Revenue() {
+        stubFinancialTotals();
 
-        // Act
+        byte[] pdfBytes = reportService.generateFinancialReport("revenue", startDate, endDate);
+
+        assertValidPdf(pdfBytes);
+    }
+
+    @Test
+    void testGenerateFinancialReport_Costs() {
+        stubFinancialTotals();
+
         byte[] pdfBytes = reportService.generateFinancialReport("costs", startDate, endDate);
 
-        // Assert
-        assertNotNull(pdfBytes);
-        assertTrue(pdfBytes.length > 0);
-        String pdfHeader = new String(pdfBytes, 0, Math.min(4, pdfBytes.length));
-        assertEquals("%PDF", pdfHeader);
+        assertValidPdf(pdfBytes);
     }
 
     @Test
     void testGenerateFinancialReport_Profit() {
-        // Arrange
-        List<Intervention> interventions = createTestInterventions();
-        when(interventionRepository.findAll()).thenReturn(interventions);
+        stubFinancialTotals();
 
-        // Act
         byte[] pdfBytes = reportService.generateFinancialReport("profit", startDate, endDate);
 
-        // Assert
-        assertNotNull(pdfBytes);
-        assertTrue(pdfBytes.length > 0);
-        String pdfHeader = new String(pdfBytes, 0, Math.min(4, pdfBytes.length));
-        assertEquals("%PDF", pdfHeader);
+        assertValidPdf(pdfBytes);
     }
 
     @Test
     void testGenerateInterventionReport_Performance() {
-        // Arrange
-        List<Intervention> interventions = createTestInterventions();
-        when(interventionRepository.findAll()).thenReturn(interventions);
+        stubStatusCounts();
 
-        // Act
         byte[] pdfBytes = reportService.generateInterventionReport("performance", startDate, endDate);
 
-        // Assert
-        assertNotNull(pdfBytes);
-        assertTrue(pdfBytes.length > 0);
-        String pdfHeader = new String(pdfBytes, 0, Math.min(4, pdfBytes.length));
-        assertEquals("%PDF", pdfHeader);
+        assertValidPdf(pdfBytes);
     }
 
     @Test
     void testGenerateInterventionReport_Planning() {
-        // Arrange
-        List<Intervention> interventions = createTestInterventions();
-        when(interventionRepository.findAll()).thenReturn(interventions);
+        stubStatusCounts();
 
-        // Act
         byte[] pdfBytes = reportService.generateInterventionReport("planning", startDate, endDate);
 
-        // Assert
-        assertNotNull(pdfBytes);
-        assertTrue(pdfBytes.length > 0);
-        String pdfHeader = new String(pdfBytes, 0, Math.min(4, pdfBytes.length));
-        assertEquals("%PDF", pdfHeader);
+        assertValidPdf(pdfBytes);
     }
 
     @Test
     void testGenerateTeamReport_Performance() {
-        // Arrange
-        List<Team> teams = createTestTeams();
-        when(teamRepository.findAll()).thenReturn(teams);
+        // Compteurs SQL — plus de findAll() ni de lazy-load des membres
+        when(teamRepository.countAllForPdfReport(isNull())).thenReturn(1L);
+        when(teamRepository.countMembersForPdfReport(isNull())).thenReturn(2L);
 
-        // Act
         byte[] pdfBytes = reportService.generateTeamReport("performance", startDate, endDate);
 
-        // Assert
-        assertNotNull(pdfBytes);
-        assertTrue(pdfBytes.length > 0);
-        String pdfHeader = new String(pdfBytes, 0, Math.min(4, pdfBytes.length));
-        assertEquals("%PDF", pdfHeader);
+        assertValidPdf(pdfBytes);
     }
 
     @Test
     void testGeneratePropertyReport_Status() {
-        // Arrange
-        List<Property> properties = createTestProperties();
-        when(propertyRepository.findAll()).thenReturn(properties);
+        // Org null (platform staff) : counts SQL cross-org, plus de findAll()
+        when(propertyRepository.count()).thenReturn(3L);
+        when(propertyRepository.countByStatus(PropertyStatus.ACTIVE)).thenReturn(2L);
 
-        // Act
         byte[] pdfBytes = reportService.generatePropertyReport("status", startDate, endDate);
 
-        // Assert
-        assertNotNull(pdfBytes);
-        assertTrue(pdfBytes.length > 0);
-        String pdfHeader = new String(pdfBytes, 0, Math.min(4, pdfBytes.length));
-        assertEquals("%PDF", pdfHeader);
+        assertValidPdf(pdfBytes);
+        verify(propertyRepository, never()).findAll();
+    }
+
+    @Test
+    void testGeneratePropertyReport_Status_orgScoped_usesCountQueries() {
+        // Org resolue : counts SQL, aucun findAll()
+        when(tenantContext.getOrganizationId()).thenReturn(42L);
+        when(propertyRepository.countForDashboard(42L, null)).thenReturn(3L);
+        when(propertyRepository.countForDashboardByStatus(42L, null, PropertyStatus.ACTIVE)).thenReturn(2L);
+
+        byte[] pdfBytes = reportService.generatePropertyReport("status", startDate, endDate);
+
+        assertValidPdf(pdfBytes);
+        verify(propertyRepository, never()).findAll();
     }
 
     // Helper methods
-    private List<Intervention> createTestInterventions() {
-        List<Intervention> interventions = new ArrayList<>();
-        
-        // Créer quelques interventions de test
-        for (int i = 0; i < 5; i++) {
-            Intervention intervention = new Intervention();
-            intervention.setId((long) i);
-            intervention.setStatus(i % 2 == 0 ? InterventionStatus.COMPLETED : InterventionStatus.PENDING);
-            intervention.setPaymentStatus(i % 2 == 0 ? PaymentStatus.PAID : PaymentStatus.PENDING);
-            intervention.setEstimatedCost(BigDecimal.valueOf(100.0 + i * 10));
-            intervention.setScheduledDate(LocalDateTime.now().minusDays(i));
-            interventions.add(intervention);
-        }
-        
-        return interventions;
-    }
-
-    private List<Team> createTestTeams() {
-        List<Team> teams = new ArrayList<>();
-        
-        Team team = new Team();
-        team.setId(1L);
-        team.setName("Équipe Test");
-        // La liste des membres sera vide par défaut (initialisée dans Team)
-        // Pas besoin de la définir explicitement pour le test
-        teams.add(team);
-        
-        return teams;
-    }
-
     private List<Property> createTestProperties() {
         List<Property> properties = new ArrayList<>();
-        
+
         Property property = new Property();
         property.setId(1L);
         property.setName("Propriété Test");
         property.setStatus(PropertyStatus.ACTIVE);
         properties.add(property);
-        
+
         return properties;
     }
 }

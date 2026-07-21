@@ -1,0 +1,13 @@
+-- Audit perf 2026-07-21 : activation de pg_stat_statements pour
+-- l'observabilite au niveau requete (top requetes par temps total,
+-- appels, I/O). La bibliotheque est prechargee via postgresql-primary.conf
+-- (clenzy-infra) : shared_preload_libraries = 'pg_stat_statements'.
+--
+-- CREATE EXTENSION reussit meme si la bibliotheque n'est pas encore
+-- prechargee (les vues/fonctions sont creees ; la collecte ne demarre
+-- qu'apres redemarrage de postgres avec le preload). Le changeset est
+-- donc independant de l'ordre de deploiement app/infra.
+--
+-- L'extension fait partie de contrib, presente dans l'image
+-- pgvector/pgvector:pg15 utilisee en dev comme en prod.
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;

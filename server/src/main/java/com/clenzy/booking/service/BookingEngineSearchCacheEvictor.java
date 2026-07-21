@@ -18,14 +18,17 @@ import org.springframework.stereotype.Component;
 public class BookingEngineSearchCacheEvictor implements SearchCacheInvalidator {
 
     /**
-     * Vide le calendrier agrégé des prix + le détail propriété (toutes entrées). Éviction grossière mais
-     * sûre : ces caches sont petits + bornés (TTL 10 min), comme l'éviction du cache propriété sur
-     * changement de profil hôte (cf. BookingEngineChannelAdapter).
+     * Vide le calendrier agrégé des prix + le détail propriété + le listing/facettes de recherche
+     * (toutes entrées). Éviction grossière mais sûre : ces caches sont petits + bornés (TTL 10 min),
+     * comme l'éviction du cache propriété sur changement de profil hôte (cf. BookingEngineChannelAdapter).
+     * Le cache {@code booking-engine-search} porte le listing public (prix « à partir de », signaux
+     * dispo 30 j) : un changement de prix ou de disponibilité doit aussi l'invalider.
      */
     @Override
     @Caching(evict = {
         @CacheEvict(value = "booking-engine-price-calendar", allEntries = true),
         @CacheEvict(value = "booking-engine-properties", allEntries = true),
+        @CacheEvict(value = "booking-engine-search", allEntries = true),
     })
     public void onAvailabilityOrPriceChanged() {
         // no-op : le travail d'éviction est fait par @CacheEvict via le proxy Spring.

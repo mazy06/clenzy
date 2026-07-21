@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -78,7 +79,7 @@ class NotificationServiceTest {
             n2.setId(2L);
             n2.setTitle("Second");
 
-            when(notificationRepository.findByUserIdOrderByCreatedAtDesc(USER_ID))
+            when(notificationRepository.findByUserIdOrderByCreatedAtDesc(eq(USER_ID), any(Pageable.class)))
                     .thenReturn(List.of(n1, n2));
 
             List<NotificationDto> result = service.getAllForUser(USER_ID);
@@ -88,17 +89,93 @@ class NotificationServiceTest {
             assertEquals(2L, result.get(1).id);
             assertEquals("info", result.get(0).type);
             assertEquals("warning", result.get(1).type);
-            verify(notificationRepository).findByUserIdOrderByCreatedAtDesc(USER_ID);
+            verify(notificationRepository).findByUserIdOrderByCreatedAtDesc(eq(USER_ID), any(Pageable.class));
         }
 
         @Test
         void getAllForUser_withNoNotifications_returnsEmptyList() {
-            when(notificationRepository.findByUserIdOrderByCreatedAtDesc(USER_ID))
+            when(notificationRepository.findByUserIdOrderByCreatedAtDesc(eq(USER_ID), any(Pageable.class)))
                     .thenReturn(Collections.emptyList());
 
             List<NotificationDto> result = service.getAllForUser(USER_ID);
 
             assertTrue(result.isEmpty());
+        }
+    }
+
+    // ─── getPageForUser (mode pagine opt-in) ──────────────────────────────────
+
+    @Nested
+    class GetPageForUser {
+
+        @Test
+        void getPageForUser_withoutFilter_returnsPageAndTotalCount() {
+            Notification n = buildDefaultNotification();
+            when(notificationRepository.findByUserIdOrderByCreatedAtDesc(eq(USER_ID), any(Pageable.class)))
+                    .thenReturn(List.of(n));
+            when(notificationRepository.countByUserId(USER_ID)).thenReturn(42L);
+
+            com.clenzy.dto.NotificationPageDto result =
+                    service.getPageForUser(USER_ID, null, false, 1, 20);
+
+            assertEquals(1, result.content().size());
+            assertEquals(1, result.page());
+            assertEquals(20, result.size());
+            assertEquals(42L, result.totalElements());
+            verify(notificationRepository).countByUserId(USER_ID);
+        }
+
+        @Test
+        void getPageForUser_unreadOnly_usesUnreadFinderAndCount() {
+            Notification n = buildDefaultNotification();
+            when(notificationRepository.findByUserIdAndReadFalseOrderByCreatedAtDesc(eq(USER_ID), any(Pageable.class)))
+                    .thenReturn(List.of(n));
+            when(notificationRepository.countByUserIdAndReadFalse(USER_ID)).thenReturn(3L);
+
+            com.clenzy.dto.NotificationPageDto result =
+                    service.getPageForUser(USER_ID, null, true, 0, 10);
+
+            assertEquals(3L, result.totalElements());
+            verify(notificationRepository, never()).countByUserId(anyString());
+        }
+
+        @Test
+        void getPageForUser_withCategory_usesCategoryFinderAndCount() {
+            Notification n = buildNotification(USER_ID, NotificationType.SUCCESS, NotificationCategory.PAYMENT);
+            when(notificationRepository.findByUserIdAndCategoryOrderByCreatedAtDesc(
+                    eq(USER_ID), eq(NotificationCategory.PAYMENT), any(Pageable.class)))
+                    .thenReturn(List.of(n));
+            when(notificationRepository.countByUserIdAndCategory(USER_ID, NotificationCategory.PAYMENT))
+                    .thenReturn(7L);
+
+            com.clenzy.dto.NotificationPageDto result =
+                    service.getPageForUser(USER_ID, "payment", false, 0, 10);
+
+            assertEquals(1, result.content().size());
+            assertEquals("payment", result.content().get(0).category);
+            assertEquals(7L, result.totalElements());
+        }
+
+        @Test
+        void getPageForUser_unreadTakesPrecedenceOverCategory() {
+            when(notificationRepository.findByUserIdAndReadFalseOrderByCreatedAtDesc(eq(USER_ID), any(Pageable.class)))
+                    .thenReturn(List.of());
+            when(notificationRepository.countByUserIdAndReadFalse(USER_ID)).thenReturn(0L);
+
+            service.getPageForUser(USER_ID, "payment", true, 0, 10);
+
+            verify(notificationRepository, never())
+                    .findByUserIdAndCategoryOrderByCreatedAtDesc(anyString(), any(NotificationCategory.class), any(Pageable.class));
+        }
+
+        @Test
+        void getPageForUser_withUnknownCategory_returnsEmptyPageWithoutRepositoryCall() {
+            com.clenzy.dto.NotificationPageDto result =
+                    service.getPageForUser(USER_ID, "does_not_exist", false, 0, 10);
+
+            assertTrue(result.content().isEmpty());
+            assertEquals(0L, result.totalElements());
+            verifyNoInteractions(notificationRepository);
         }
     }
 

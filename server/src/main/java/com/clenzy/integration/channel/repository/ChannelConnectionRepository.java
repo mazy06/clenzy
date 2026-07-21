@@ -40,4 +40,11 @@ public interface ChannelConnectionRepository extends JpaRepository<ChannelConnec
      */
     @Query("SELECT cc FROM ChannelConnection cc ORDER BY cc.channel, cc.id")
     List<ChannelConnection> findAllCrossOrg();
+
+    /**
+     * Compteur des connexions actives (KPI Sync Availability) — evite de
+     * charger toutes les entites pour un .size().
+     */
+    @Query("SELECT COUNT(cc) FROM ChannelConnection cc WHERE cc.status = 'ACTIVE'")
+    long countAllActive();
 }

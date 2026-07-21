@@ -208,19 +208,25 @@ public class TeamService {
         UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
         log.debug("list - Role: {}", userRole);
 
+        if (userRole.isPlatformAdmin()) {
+            // SUPER_ADMIN/ADMIN : toutes les équipes — pagination SQL réelle au
+            // lieu d'un findAll() complet re-paginé en mémoire (audit perf 2026-07-21).
+            return teamRepository.findAll(pageable).map(this::convertToDto);
+        }
+
         List<Team> filteredTeams;
 
-        if (userRole.isPlatformAdmin()) {
-            // SUPER_ADMIN/ADMIN : toutes les équipes
-            filteredTeams = teamRepository.findAll();
-        } else if (userRole == UserRole.SUPER_MANAGER) {
-            // MANAGER : seulement les équipes qu'il gère
+        if (userRole == UserRole.SUPER_MANAGER) {
+            // MANAGER : seulement les équipes qu'il gère — 1 findAllById (IN) au
+            // lieu d'1 findById par équipe ; l'ordre des IDs est conservé.
             String keycloakId = jwt.getSubject();
             User managerUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
             if (managerUser != null) {
                 List<Long> teamIds = managerTeamRepository.findTeamIdsByManagerIdAndIsActiveTrue(managerUser.getId(), tenantContext.getRequiredOrganizationId());
+                java.util.Map<Long, Team> teamsById = teamRepository.findAllById(teamIds).stream()
+                    .collect(Collectors.toMap(Team::getId, team -> team));
                 filteredTeams = teamIds.stream()
-                    .map(teamId -> teamRepository.findById(teamId).orElse(null))
+                    .map(teamsById::get)
                     .filter(team -> team != null)
                     .collect(Collectors.toList());
             } else {

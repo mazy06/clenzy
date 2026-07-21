@@ -1,8 +1,6 @@
 package com.clenzy.service;
 
 import com.clenzy.model.Intervention;
-import com.clenzy.model.LedgerEntry;
-import com.clenzy.model.LedgerEntryType;
 import com.clenzy.model.LedgerReferenceType;
 import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.Property;
@@ -287,8 +285,9 @@ class WalletServiceTest {
                     1L, WalletType.ESCROW, "EUR")).thenReturn(Optional.of(escrow));
             lenient().when(interventionRepository.findPaymentHistory(eq(PaymentStatus.PAID), isNull(), any(), eq(1L)))
                     .thenReturn(new PageImpl<>(List.of()));
-            lenient().when(reservationRepository.findAllWithPayment(1L)).thenReturn(List.of());
-            lenient().when(serviceRequestRepository.findAll()).thenReturn(List.<ServiceRequest>of());
+            lenient().when(reservationRepository.findPaidWithOwnerForWalletBackfill(1L)).thenReturn(List.of());
+            lenient().when(serviceRequestRepository.findByOrganizationIdAndPaymentStatus(1L, PaymentStatus.PAID))
+                    .thenReturn(List.<ServiceRequest>of());
             lenient().when(walletRepository.findByOrganizationId(1L)).thenReturn(List.of(platform, escrow));
         }
 
@@ -319,8 +318,8 @@ class WalletServiceTest {
             when(paid.getTitle()).thenReturn("Cleaning");
             when(interventionRepository.findPaymentHistory(eq(PaymentStatus.PAID), isNull(), any(), eq(1L)))
                     .thenReturn(new PageImpl<>(List.of(paid)));
-            when(ledgerService.getEntriesByReference(LedgerReferenceType.PAYMENT, "5"))
-                    .thenReturn(List.of());
+            when(ledgerService.hasEntriesForReference(LedgerReferenceType.PAYMENT, "5"))
+                    .thenReturn(false);
             Wallet ownerWallet = buildWallet(10L, 1L, WalletType.OWNER, 42L);
             when(walletRepository.findByOrganizationIdAndWalletTypeAndOwnerIdAndCurrency(
                     1L, WalletType.OWNER, 42L, "EUR")).thenReturn(Optional.of(ownerWallet));
@@ -343,14 +342,8 @@ class WalletServiceTest {
             when(paid.getEstimatedCost()).thenReturn(new BigDecimal("100"));
             when(interventionRepository.findPaymentHistory(eq(PaymentStatus.PAID), isNull(), any(), eq(1L)))
                     .thenReturn(new PageImpl<>(List.of(paid)));
-            LedgerEntry existing = new LedgerEntry();
-            existing.setId(1L);
-            existing.setEntryType(LedgerEntryType.DEBIT);
-            existing.setAmount(BigDecimal.TEN);
-            existing.setReferenceType(LedgerReferenceType.PAYMENT);
-            existing.setReferenceId("5");
-            when(ledgerService.getEntriesByReference(LedgerReferenceType.PAYMENT, "5"))
-                    .thenReturn(List.of(existing));
+            when(ledgerService.hasEntriesForReference(LedgerReferenceType.PAYMENT, "5"))
+                    .thenReturn(true);
 
             WalletService.WalletInitializationResult result = service.initializeWallets(1L);
 
@@ -387,9 +380,9 @@ class WalletServiceTest {
             Property prop = new Property();
             prop.setOwner(resOwner);
             res.setProperty(prop);
-            when(reservationRepository.findAllWithPayment(1L)).thenReturn(List.of(res));
-            when(ledgerService.getEntriesByReference(LedgerReferenceType.PAYMENT, "7"))
-                    .thenReturn(List.of());
+            when(reservationRepository.findPaidWithOwnerForWalletBackfill(1L)).thenReturn(List.of(res));
+            when(ledgerService.hasEntriesForReference(LedgerReferenceType.PAYMENT, "7"))
+                    .thenReturn(false);
             Wallet ownerWallet = buildWallet(11L, 1L, WalletType.OWNER, 50L);
             when(walletRepository.findByOrganizationIdAndWalletTypeAndOwnerIdAndCurrency(
                     1L, WalletType.OWNER, 50L, "EUR")).thenReturn(Optional.of(ownerWallet));
@@ -412,9 +405,9 @@ class WalletServiceTest {
             res.setPaymentStatus(PaymentStatus.PAID);
             res.setTotalPrice(new BigDecimal("100"));
             res.setGuestName(null);
-            when(reservationRepository.findAllWithPayment(1L)).thenReturn(List.of(res));
-            when(ledgerService.getEntriesByReference(LedgerReferenceType.PAYMENT, "8"))
-                    .thenReturn(List.of());
+            when(reservationRepository.findPaidWithOwnerForWalletBackfill(1L)).thenReturn(List.of(res));
+            when(ledgerService.hasEntriesForReference(LedgerReferenceType.PAYMENT, "8"))
+                    .thenReturn(false);
 
             WalletService.WalletInitializationResult result = service.initializeWallets(1L);
 
@@ -432,13 +425,12 @@ class WalletServiceTest {
 
             ServiceRequest sr = mock(ServiceRequest.class);
             when(sr.getId()).thenReturn(9L);
-            when(sr.getOrganizationId()).thenReturn(1L);
-            when(sr.getPaymentStatus()).thenReturn(PaymentStatus.PAID);
             when(sr.getEstimatedCost()).thenReturn(new BigDecimal("80"));
             when(sr.getTitle()).thenReturn("Repair");
-            when(serviceRequestRepository.findAll()).thenReturn(List.of(sr));
-            when(ledgerService.getEntriesByReference(LedgerReferenceType.PAYMENT, "9"))
-                    .thenReturn(List.of());
+            when(serviceRequestRepository.findByOrganizationIdAndPaymentStatus(1L, PaymentStatus.PAID))
+                    .thenReturn(List.of(sr));
+            when(ledgerService.hasEntriesForReference(LedgerReferenceType.PAYMENT, "9"))
+                    .thenReturn(false);
 
             WalletService.WalletInitializationResult result = service.initializeWallets(1L);
 
@@ -451,13 +443,13 @@ class WalletServiceTest {
         void whenServiceRequestBelongsToOtherOrg_thenSkipped() {
             setupBaseWalletsAndEmptySources();
 
-            ServiceRequest other = mock(ServiceRequest.class);
-            when(other.getOrganizationId()).thenReturn(99L);
-            when(serviceRequestRepository.findAll()).thenReturn(List.of(other));
-
+            // Le scoping org est desormais fait en SQL : la requete est emise pour
+            // l'org courante uniquement, une SR d'une autre org n'est jamais chargee.
             WalletService.WalletInitializationResult result = service.initializeWallets(1L);
 
             assertThat(result.paymentsRecorded()).isEqualTo(0);
+            verify(serviceRequestRepository).findByOrganizationIdAndPaymentStatus(1L, PaymentStatus.PAID);
+            verify(serviceRequestRepository, never()).findAll();
             verify(ledgerService, never()).recordTransfer(any(), any(), any(), any(), any(), anyString());
         }
     }

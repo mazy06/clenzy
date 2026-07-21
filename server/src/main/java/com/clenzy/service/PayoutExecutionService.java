@@ -9,7 +9,6 @@ import com.clenzy.repository.OwnerPayoutRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Orchestrateur des executions de payouts.
@@ -27,6 +26,16 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>Resolution multi-tenant via {@code findByIdAndOrgId}</li>
  *   <li>Vérification de l'existence de la {@link OwnerPayoutConfig}</li>
  * </ul>
+ *
+ * <h2>Transactions</h2>
+ * <p>Ce service est volontairement NON transactionnel (règle audit n°2 — jamais
+ * d'appel HTTP externe dans une transaction DB) : les executors font des appels
+ * réseau (Stripe Transfer, Wise, GoCardless PIS) et persistent eux-mêmes chaque
+ * transition de statut (PROCESSING puis PAID/FAILED) via le repository, chacune
+ * dans sa propre transaction courte. Aucune connexion DB ni verrou n'est donc
+ * tenu pendant le virement. L'anti double-virement ne repose pas sur une
+ * transaction englobante mais sur l'idempotency key du provider
+ * ({@code payout-&lt;id&gt;}, cf. {@link PayoutExecutor}).</p>
  */
 @Service
 public class PayoutExecutionService {
@@ -50,8 +59,11 @@ public class PayoutExecutionService {
      * Exécute un payout en délégant à l'exécuteur correspondant à la méthode
      * configurée par le propriétaire. Seuls les payouts APPROVED peuvent être
      * exécutés, et la config doit être vérifiée.
+     *
+     * <p>HORS transaction : l'executor fait un appel HTTP externe et persiste
+     * lui-même PROCESSING puis PAID/FAILED en transactions courtes (cf. javadoc
+     * de classe).</p>
      */
-    @Transactional
     public OwnerPayout executePayout(Long payoutId, Long orgId) {
         OwnerPayout payout = payoutRepository.findByIdAndOrgId(payoutId, orgId)
             .orElseThrow(() -> new IllegalArgumentException("Payout not found: " + payoutId));
@@ -95,8 +107,14 @@ public class PayoutExecutionService {
      * Relance un payout FAILED en remettant son statut à APPROVED.
      * Le compteur de retry est incrémenté ; au-delà de {@value #MAX_RETRY_COUNT}
      * relances, l'opération est refusée.
+     *
+     * <p>HORS transaction, comme {@link #executePayout} : la remise à APPROVED
+     * est commitée dans la transaction courte du {@code save}, puis l'exécution
+     * (appel HTTP du provider) se fait sans transaction englobante. L'ancienne
+     * auto-invocation {@code this.executePayout} sous {@code @Transactional}
+     * contournait le proxy Spring (T-BP-06) ; sans annotation, l'appel direct
+     * est désormais exactement le comportement voulu.</p>
      */
-    @Transactional
     public OwnerPayout retryPayout(Long payoutId, Long orgId) {
         OwnerPayout payout = payoutRepository.findByIdAndOrgId(payoutId, orgId)
             .orElseThrow(() -> new IllegalArgumentException("Payout not found: " + payoutId));

@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 import java.net.URLEncoder;
@@ -85,6 +86,7 @@ public class AbandonedBookingRecoveryScheduler {
     }
 
     @Scheduled(fixedDelayString = "${clenzy.booking.abandoned-cart.recovery-interval-ms:900000}")
+    @SchedulerLock(name = "abandoned-booking-recovery-emails", lockAtMostFor = "PT10M", lockAtLeastFor = "PT30S")
     public void sendRecoveryEmails() {
         if (!enabled) {
             return; // feature inerte par défaut (flag global de décision)

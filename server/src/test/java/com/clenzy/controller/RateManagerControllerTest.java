@@ -36,9 +36,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -729,6 +727,38 @@ class RateManagerControllerTest {
     @Nested
     @DisplayName("bulkUpdate")
     class BulkUpdate {
+
+        /**
+         * Stub le flux batch (audit perf P1-1) : resolution de toute la plage
+         * inclusive [from, to] en un appel resolvePriceRangeWithSource + aucun
+         * override existant sur la plage.
+         */
+        private void stubResolvedRange(LocalDate from, LocalDate toInclusive, BigDecimal price) {
+            Map<LocalDate, PriceEngine.ResolvedPrice> resolved = new LinkedHashMap<>();
+            for (LocalDate d = from; !d.isAfter(toInclusive); d = d.plusDays(1)) {
+                resolved.put(d, new PriceEngine.ResolvedPrice(
+                        price, PriceEngine.SOURCE_PROPERTY_DEFAULT));
+            }
+            when(priceEngine.resolvePriceRangeWithSource(
+                    PROPERTY_ID, from, toInclusive.plusDays(1), ORG_ID)).thenReturn(resolved);
+            when(rateOverrideRepository.findByPropertyIdAndDateRange(
+                    PROPERTY_ID, from, toInclusive.plusDays(1), ORG_ID)).thenReturn(List.of());
+        }
+
+        @SuppressWarnings("unchecked")
+        private List<RateOverride> savedOverrides() {
+            ArgumentCaptor<List<RateOverride>> captor = ArgumentCaptor.forClass(List.class);
+            verify(rateOverrideRepository).saveAll(captor.capture());
+            return captor.getValue();
+        }
+
+        @SuppressWarnings("unchecked")
+        private List<RateAuditLog> savedAudits() {
+            ArgumentCaptor<List<RateAuditLog>> captor = ArgumentCaptor.forClass(List.class);
+            verify(rateAuditLogRepository).saveAll(captor.capture());
+            return captor.getValue();
+        }
+
         @Test
         void percentageAdjustment_appliesAndSavesOverrides() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
@@ -738,8 +768,7 @@ class RateManagerControllerTest {
 
             LocalDate from = LocalDate.of(2026, 5, 1);
             LocalDate to = LocalDate.of(2026, 5, 3);
-            when(priceEngine.resolvePrice(eq(PROPERTY_ID), any(LocalDate.class), eq(ORG_ID)))
-                    .thenReturn(BigDecimal.valueOf(100));
+            stubResolvedRange(from, to, BigDecimal.valueOf(100));
 
             BulkRateUpdateRequest request = new BulkRateUpdateRequest(
                     List.of(PROPERTY_ID), from, to,
@@ -749,11 +778,12 @@ class RateManagerControllerTest {
 
             assertThat(response.getStatusCode().value()).isEqualTo(202);
 
-            ArgumentCaptor<RateOverride> captor = ArgumentCaptor.forClass(RateOverride.class);
-            verify(rateOverrideRepository, times(3)).save(captor.capture());
-            // +10% on 100 = 110
-            assertThat(captor.getValue().getNightlyPrice()).isEqualByComparingTo("110");
-            verify(rateAuditLogRepository, times(3)).save(any(RateAuditLog.class));
+            // +10% on 100 = 110, un override + un audit par date de la plage
+            List<RateOverride> overrides = savedOverrides();
+            assertThat(overrides).hasSize(3);
+            assertThat(overrides).allSatisfy(override ->
+                    assertThat(override.getNightlyPrice()).isEqualByComparingTo("110"));
+            assertThat(savedAudits()).hasSize(3);
         }
 
         @Test
@@ -764,8 +794,7 @@ class RateManagerControllerTest {
             when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
 
             LocalDate day = LocalDate.of(2026, 5, 1);
-            when(priceEngine.resolvePrice(eq(PROPERTY_ID), eq(day), eq(ORG_ID)))
-                    .thenReturn(BigDecimal.valueOf(100));
+            stubResolvedRange(day, day, BigDecimal.valueOf(100));
 
             BulkRateUpdateRequest request = new BulkRateUpdateRequest(
                     List.of(PROPERTY_ID), day, day,
@@ -773,9 +802,8 @@ class RateManagerControllerTest {
 
             controller.bulkUpdate(request, jwt);
 
-            ArgumentCaptor<RateOverride> captor = ArgumentCaptor.forClass(RateOverride.class);
-            verify(rateOverrideRepository).save(captor.capture());
-            assertThat(captor.getValue().getNightlyPrice()).isEqualByComparingTo("125");
+            assertThat(savedOverrides()).singleElement().satisfies(override ->
+                    assertThat(override.getNightlyPrice()).isEqualByComparingTo("125"));
         }
 
         @Test
@@ -786,8 +814,7 @@ class RateManagerControllerTest {
             when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
 
             LocalDate day = LocalDate.of(2026, 5, 1);
-            when(priceEngine.resolvePrice(eq(PROPERTY_ID), eq(day), eq(ORG_ID)))
-                    .thenReturn(BigDecimal.valueOf(100));
+            stubResolvedRange(day, day, BigDecimal.valueOf(100));
 
             BulkRateUpdateRequest request = new BulkRateUpdateRequest(
                     List.of(PROPERTY_ID), day, day,
@@ -795,9 +822,8 @@ class RateManagerControllerTest {
 
             controller.bulkUpdate(request, jwt);
 
-            ArgumentCaptor<RateOverride> captor = ArgumentCaptor.forClass(RateOverride.class);
-            verify(rateOverrideRepository).save(captor.capture());
-            assertThat(captor.getValue().getNightlyPrice()).isEqualByComparingTo("100");
+            assertThat(savedOverrides()).singleElement().satisfies(override ->
+                    assertThat(override.getNightlyPrice()).isEqualByComparingTo("100"));
         }
 
         @Test
@@ -808,8 +834,7 @@ class RateManagerControllerTest {
             when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
 
             LocalDate day = LocalDate.of(2026, 5, 1);
-            when(priceEngine.resolvePrice(eq(PROPERTY_ID), eq(day), eq(ORG_ID)))
-                    .thenReturn(null);
+            stubResolvedRange(day, day, null);
 
             BulkRateUpdateRequest request = new BulkRateUpdateRequest(
                     List.of(PROPERTY_ID), day, day,
@@ -817,8 +842,8 @@ class RateManagerControllerTest {
 
             controller.bulkUpdate(request, jwt);
 
-            verify(rateOverrideRepository, never()).save(any());
-            verify(rateAuditLogRepository, never()).save(any());
+            assertThat(savedOverrides()).isEmpty();
+            assertThat(savedAudits()).isEmpty();
         }
 
         @Test
@@ -829,8 +854,7 @@ class RateManagerControllerTest {
             when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
 
             LocalDate day = LocalDate.of(2026, 5, 1);
-            when(priceEngine.resolvePrice(eq(PROPERTY_ID), eq(day), eq(ORG_ID)))
-                    .thenReturn(BigDecimal.valueOf(100));
+            stubResolvedRange(day, day, BigDecimal.valueOf(100));
 
             BulkRateUpdateRequest request = new BulkRateUpdateRequest(
                     List.of(PROPERTY_ID), day, day,
@@ -838,9 +862,41 @@ class RateManagerControllerTest {
 
             controller.bulkUpdate(request, jwt);
 
-            ArgumentCaptor<RateOverride> captor = ArgumentCaptor.forClass(RateOverride.class);
-            verify(rateOverrideRepository).save(captor.capture());
-            assertThat(captor.getValue().getNightlyPrice()).isEqualByComparingTo("0");
+            assertThat(savedOverrides()).singleElement().satisfies(override ->
+                    assertThat(override.getNightlyPrice()).isEqualByComparingTo("0"));
+        }
+
+        @Test
+        void existingOverrideOnDate_isUpdatedInsteadOfDuplicated() {
+            // Contrainte unique (property_id, date) : re-passer un bulk update
+            // sur une date deja surchargee met a jour l'override existant.
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
+            when(tenantContext.isSuperAdmin()).thenReturn(true);
+            Property property = buildProperty(PROPERTY_ID, ORG_ID);
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
+
+            LocalDate day = LocalDate.of(2026, 5, 1);
+            Map<LocalDate, PriceEngine.ResolvedPrice> resolved = new LinkedHashMap<>();
+            resolved.put(day, new PriceEngine.ResolvedPrice(
+                    BigDecimal.valueOf(100), PriceEngine.SOURCE_OVERRIDE));
+            when(priceEngine.resolvePriceRangeWithSource(
+                    PROPERTY_ID, day, day.plusDays(1), ORG_ID)).thenReturn(resolved);
+            RateOverride existing = new RateOverride(
+                    property, day, BigDecimal.valueOf(100), "MANUAL", ORG_ID);
+            when(rateOverrideRepository.findByPropertyIdAndDateRange(
+                    PROPERTY_ID, day, day.plusDays(1), ORG_ID)).thenReturn(List.of(existing));
+
+            BulkRateUpdateRequest request = new BulkRateUpdateRequest(
+                    List.of(PROPERTY_ID), day, day,
+                    "FIXED", BigDecimal.valueOf(20));
+
+            controller.bulkUpdate(request, jwt);
+
+            assertThat(savedOverrides()).singleElement().satisfies(override -> {
+                assertThat(override).isSameAs(existing);
+                assertThat(override.getNightlyPrice()).isEqualByComparingTo("120");
+                assertThat(override.getSource()).isEqualTo("MANUAL");
+            });
         }
     }
 

@@ -70,6 +70,7 @@ class ChannexImportServiceTest {
     @Mock private BookingRestrictionRepository bookingRestrictionRepository;
     @Mock private AmenityManagementService amenityManagementService;
     @Mock private ChannexPricingImporter pricingImporter;
+    @Mock private org.springframework.beans.factory.ObjectProvider<ChannexImportService> selfProvider;
 
     private ObjectMapper objectMapper;
     private ChannexImportService service;
@@ -82,7 +83,10 @@ class ChannexImportServiceTest {
             connectService, userRepository, lengthOfStayDiscountRepository,
             ratePlanRepository, occupancyPricingRepository, rateOverrideRepository,
             bookingRestrictionRepository,
-            objectMapper, amenityManagementService, pricingImporter);
+            objectMapper, amenityManagementService, pricingImporter, selfProvider);
+        // Le service s'appelle via le proxy Spring pour la tx courte de
+        // persistance — en test unitaire, self = l'instance elle-meme.
+        lenient().when(selfProvider.getObject()).thenAnswer(inv -> service);
     }
 
     private JsonNode jn(String json) {

@@ -1,15 +1,12 @@
 package com.clenzy.service;
 
-import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionStatus;
-import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.Property;
 import com.clenzy.model.PropertyStatus;
-import com.clenzy.model.Team;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PropertyRepository;
-import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.TeamRepository;
+import com.clenzy.tenant.TenantContext;
 import com.itextpdf.kernel.geom.PageSize;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
@@ -25,22 +22,24 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class ReportService {
-    
+
     private final PropertyRepository propertyRepository;
     private final InterventionRepository interventionRepository;
     private final TeamRepository teamRepository;
+    private final TenantContext tenantContext;
 
     public ReportService(PropertyRepository propertyRepository,
                          InterventionRepository interventionRepository,
-                         TeamRepository teamRepository) {
+                         TeamRepository teamRepository,
+                         TenantContext tenantContext) {
         this.propertyRepository = propertyRepository;
         this.interventionRepository = interventionRepository;
         this.teamRepository = teamRepository;
+        this.tenantContext = tenantContext;
     }
     
     
@@ -176,142 +175,144 @@ public class ReportService {
         return baos.toByteArray();
     }
     
-    // Méthodes pour récupérer les données
+    // Méthodes pour récupérer les données.
+    // Agrégats SQL bornés à la fenêtre [startDate, endDate] et org-scopés via le
+    // TenantContext (orgId null = platform staff cross-org) — remplacent les
+    // findAll() + filtres en mémoire (audit perf 2026-07-21).
+
     private Map<String, Object> getFinancialData(String reportType, LocalDate startDate, LocalDate endDate) {
         Map<String, Object> data = new HashMap<>();
-        
-        List<Intervention> interventions = interventionRepository.findAll().stream()
-            .filter(i -> {
-                if (i.getScheduledDate() == null) return false;
-                LocalDate scheduledDate = i.getScheduledDate().toLocalDate();
-                return !scheduledDate.isBefore(startDate) && !scheduledDate.isAfter(endDate);
-            })
-            .collect(Collectors.toList());
-        
+
+        // Une seule ligne agrégée : [count, somme devis PAID, somme devis].
+        // Fenêtre équivalente à l'ancien filtre scheduledDate.toLocalDate() ∈ [start, end].
+        Object[] totals = interventionRepository.financialTotalsForPdfReport(
+                startDate.atStartOfDay(), endDate.plusDays(1).atStartOfDay(),
+                tenantContext.getOrganizationId()).get(0);
+        long interventionsCount = ((Number) totals[0]).longValue();
+        BigDecimal revenue = totals[1] != null ? (BigDecimal) totals[1] : BigDecimal.ZERO;
+        BigDecimal costs = totals[2] != null ? (BigDecimal) totals[2] : BigDecimal.ZERO;
+
         switch (reportType) {
             case "revenue":
-                BigDecimal totalRevenue = interventions.stream()
-                    .filter(i -> i.getPaymentStatus() == PaymentStatus.PAID && i.getEstimatedCost() != null)
-                    .map(Intervention::getEstimatedCost)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-                data.put("totalRevenue", totalRevenue);
-                data.put("interventionsCount", interventions.size());
+                data.put("totalRevenue", revenue);
+                data.put("interventionsCount", interventionsCount);
                 break;
-                
+
             case "costs":
-                BigDecimal totalCosts = interventions.stream()
-                    .filter(i -> i.getEstimatedCost() != null)
-                    .map(Intervention::getEstimatedCost)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-                data.put("totalCosts", totalCosts);
-                data.put("interventionsCount", interventions.size());
+                data.put("totalCosts", costs);
+                data.put("interventionsCount", interventionsCount);
                 break;
-                
+
             case "profit":
-                BigDecimal revenue = interventions.stream()
-                    .filter(i -> i.getPaymentStatus() == PaymentStatus.PAID && i.getEstimatedCost() != null)
-                    .map(Intervention::getEstimatedCost)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-                BigDecimal costs = interventions.stream()
-                    .filter(i -> i.getEstimatedCost() != null)
-                    .map(Intervention::getEstimatedCost)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
                 data.put("revenue", revenue);
                 data.put("costs", costs);
                 data.put("profit", revenue.subtract(costs));
                 break;
         }
-        
+
         return data;
     }
-    
+
     private Map<String, Object> getInterventionData(String reportType, LocalDate startDate, LocalDate endDate) {
         Map<String, Object> data = new HashMap<>();
-        
-        List<Intervention> interventions = interventionRepository.findAll().stream()
-            .filter(i -> {
-                if (i.getScheduledDate() == null) return false;
-                LocalDate scheduledDate = i.getScheduledDate().toLocalDate();
-                return !scheduledDate.isBefore(startDate) && !scheduledDate.isAfter(endDate);
-            })
-            .collect(Collectors.toList());
-        
+
+        // Compteurs par statut en une requête GROUP BY sur la fenêtre planifiée.
+        long completed = 0;
+        long scheduled = 0;
+        long total = 0;
+        for (Object[] row : interventionRepository.countByStatusInWindowForPdfReport(
+                startDate.atStartOfDay(), endDate.plusDays(1).atStartOfDay(),
+                tenantContext.getOrganizationId())) {
+            InterventionStatus status = (InterventionStatus) row[0];
+            long count = ((Number) row[1]).longValue();
+            total += count;
+            if (status == InterventionStatus.COMPLETED) {
+                completed += count;
+            }
+            if (status == InterventionStatus.PENDING || status == InterventionStatus.IN_PROGRESS) {
+                scheduled += count;
+            }
+        }
+
         switch (reportType) {
             case "performance":
-                long completed = interventions.stream()
-                    .filter(i -> i.getStatus() == InterventionStatus.COMPLETED)
-                    .count();
-                long total = interventions.size();
                 data.put("completed", completed);
                 data.put("total", total);
                 data.put("completionRate", total > 0 ? (completed * 100.0 / total) : 0);
                 break;
-                
+
             case "planning":
-                data.put("scheduled", interventions.stream()
-                    .filter(i -> i.getStatus() == InterventionStatus.PENDING || i.getStatus() == InterventionStatus.IN_PROGRESS)
-                    .count());
-                data.put("total", interventions.size());
+                data.put("scheduled", scheduled);
+                data.put("total", total);
                 break;
-                
+
             case "completion":
-                long completedCount = interventions.stream()
-                    .filter(i -> i.getStatus() == InterventionStatus.COMPLETED)
-                    .count();
-                data.put("completed", completedCount);
-                data.put("total", interventions.size());
+                data.put("completed", completed);
+                data.put("total", total);
                 break;
         }
-        
+
         return data;
     }
-    
+
     private Map<String, Object> getTeamData(String reportType, LocalDate startDate, LocalDate endDate) {
         Map<String, Object> data = new HashMap<>();
-        List<Team> teams = teamRepository.findAll();
-        
+        Long orgId = tenantContext.getOrganizationId();
+        long teamsCount = teamRepository.countAllForPdfReport(orgId);
+
         switch (reportType) {
             case "performance":
-                data.put("teamsCount", teams.size());
-                data.put("totalMembers", teams.stream()
-                    .mapToInt(t -> t.getMembers() != null ? t.getMembers().size() : 0)
-                    .sum());
+                data.put("teamsCount", teamsCount);
+                // COUNT SQL des membres — remplace le lazy-load getMembers() par équipe.
+                data.put("totalMembers", teamRepository.countMembersForPdfReport(orgId));
                 break;
-                
+
             case "availability":
-                data.put("teamsCount", teams.size());
+                data.put("teamsCount", teamsCount);
                 break;
-                
+
             case "workload":
-                data.put("teamsCount", teams.size());
+                data.put("teamsCount", teamsCount);
                 break;
         }
-        
+
         return data;
     }
-    
+
     private Map<String, Object> getPropertyData(String reportType, LocalDate startDate, LocalDate endDate) {
         Map<String, Object> data = new HashMap<>();
-        List<Property> properties = propertyRepository.findAll();
-        
+        Long orgId = tenantContext.getOrganizationId();
+
+        long total;
+        long active;
+        if (orgId != null) {
+            total = propertyRepository.countForDashboard(orgId, null);
+            active = "status".equals(reportType)
+                    ? propertyRepository.countForDashboardByStatus(orgId, null, PropertyStatus.ACTIVE)
+                    : 0;
+        } else {
+            // Platform staff cross-org : counts SQL, plus aucun scan en mémoire.
+            total = propertyRepository.count();
+            active = "status".equals(reportType)
+                    ? propertyRepository.countByStatus(PropertyStatus.ACTIVE)
+                    : 0;
+        }
+
         switch (reportType) {
             case "status":
-                long active = properties.stream()
-                    .filter(p -> p.getStatus() == PropertyStatus.ACTIVE)
-                    .count();
                 data.put("active", active);
-                data.put("total", properties.size());
+                data.put("total", total);
                 break;
-                
+
             case "maintenance":
-                data.put("propertiesCount", properties.size());
+                data.put("propertiesCount", total);
                 break;
-                
+
             case "costs":
-                data.put("propertiesCount", properties.size());
+                data.put("propertiesCount", total);
                 break;
         }
-        
+
         return data;
     }
     

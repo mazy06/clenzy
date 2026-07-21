@@ -21,6 +21,8 @@ import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -36,6 +38,9 @@ import java.util.Map;
  * {@code @Transactional} : elles rejoignent la transaction du caller
  * ({@code generateDocument} / {@code generateFromEvent}), dont le rollback
  * pilote le retry Kafka (voir {@link DocumentGenerationFailureRecorder}).
+ * Exception (audit perf 2026-07-21) : l'envoi email SMTP est differe APRES le
+ * commit via {@code TransactionSynchronization.afterCommit} — jamais d'appel
+ * externe dans une transaction DB (regle n°2).
  */
 @Service
 public class DocumentGenerationPipeline {
@@ -219,6 +224,11 @@ public class DocumentGenerationPipeline {
             byte[] filledOdt = renderer.fillTemplate(templateContent, context);
 
             // 5. Convertir en PDF via LibreOffice
+            //    Appel HTTP volontairement garde DANS la transaction du caller : le numero
+            //    legal NF (etape 2.5) est alloue dans cette meme transaction et DOIT etre
+            //    rollback si la conversion echoue (sinon trou de numerotation), et le
+            //    rollback du caller pilote le retry Kafka (DocumentGenerationFailureRecorder).
+            //    Sortir la conversion imposerait de committer le numero avant l'appel.
             byte[] pdfBytes = conversionService.convertToPdf(filledOdt, template.getOriginalFilename());
 
             // 6. Construire le nom du fichier
@@ -248,6 +258,7 @@ public class DocumentGenerationPipeline {
             }
 
             // 9. Envoyer par email si demande — avec dedup (1 envoi par destinataire/document).
+            boolean deferEmailAfterCommit = false;
             if (command.sendEmail() && emailTo != null && !emailTo.isBlank()) {
                 // Garde d'idempotence : si ce document a deja ete envoye a ce destinataire
                 // pour cette reference (ex: envoi auto a la soumission du formulaire +
@@ -260,28 +271,24 @@ public class DocumentGenerationPipeline {
                             template.getDocumentType().name(), emailTo, referenceType.name(), referenceId);
                     generation.setEmailStatus("SKIPPED");
                 } else {
-                    try {
-                        emailDispatcher.sendDocumentByEmail(template, emailTo, pdfFilename, pdfBytes,
-                                command.emailSubject(), command.emailBody());
-                        generation.setEmailStatus("SENT");
-                        generation.setEmailSentAt(LocalDateTime.now());
-                        generation.setStatus(DocumentGenerationStatus.SENT);
-
-                        notificationService.notifyAdminsAndManagers(
-                                NotificationKey.DOCUMENT_SENT_BY_EMAIL,
-                                "Document envoye par email",
-                                template.getDocumentType().getLabel() + " envoye a " + emailTo,
-                                "/documents?tab=history&highlight=" + generation.getId(),
-                                orgId
-                        );
-                    } catch (Exception emailEx) {
-                        log.error("Failed to send document email: {}", emailEx.getMessage());
-                        generation.setEmailStatus("FAILED");
-                    }
+                    // Audit perf 2026-07-21 (regle n°2 — jamais d'appel externe dans une
+                    // transaction DB) : l'envoi SMTP synchrone est differe APRES le commit
+                    // de la transaction du caller (TransactionSynchronization.afterCommit).
+                    // L'email ne part que si la generation est commitee, et la connexion DB
+                    // n'est plus tenue pendant l'appel SMTP. Le statut retourne est PENDING ;
+                    // l'issue reelle (SENT/FAILED) est persistee dans la transaction courte
+                    // du repository par recordEmailOutcome.
+                    generation.setEmailStatus("PENDING");
+                    deferEmailAfterCommit = true;
                 }
             }
 
             generation = generationRepository.save(generation);
+
+            if (deferEmailAfterCommit) {
+                scheduleEmailAfterCommit(generation.getId(), template, emailTo, pdfFilename,
+                        pdfBytes, command.emailSubject(), command.emailBody(), orgId);
+            }
 
             // 10. Notification + Audit + Metrics
             //     tab=history = onglet 'Historique' de la page Documents ;
@@ -349,6 +356,84 @@ public class DocumentGenerationPipeline {
                 generationTimeMs);
 
         generationFailureCounter.increment();
+    }
+
+    /**
+     * Enregistre une synchronisation qui envoie l'email APRES le commit de la
+     * transaction du caller : l'email ne part que si la generation est effectivement
+     * commitee, et l'appel SMTP ne tient aucune connexion DB. Hors transaction active
+     * (tests directs ou contexte exotique), envoi immediat.
+     */
+    private void scheduleEmailAfterCommit(Long generationId, DocumentTemplate template, String emailTo,
+                                          String pdfFilename, byte[] pdfBytes,
+                                          String emailSubject, String emailBody, Long orgId) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            sendEmailAndRecordOutcome(generationId, template, emailTo, pdfFilename, pdfBytes,
+                    emailSubject, emailBody, orgId);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                sendEmailAndRecordOutcome(generationId, template, emailTo, pdfFilename, pdfBytes,
+                        emailSubject, emailBody, orgId);
+            }
+        });
+    }
+
+    /**
+     * Envoie l'email (hors transaction — on est apres le commit) puis persiste l'issue
+     * (SENT/FAILED). Meme semantique best-effort que l'ancien catch in-transaction :
+     * un echec d'envoi ne remet pas en cause la generation deja commitee.
+     */
+    private void sendEmailAndRecordOutcome(Long generationId, DocumentTemplate template, String emailTo,
+                                           String pdfFilename, byte[] pdfBytes,
+                                           String emailSubject, String emailBody, Long orgId) {
+        boolean sent;
+        try {
+            emailDispatcher.sendDocumentByEmail(template, emailTo, pdfFilename, pdfBytes,
+                    emailSubject, emailBody);
+            sent = true;
+        } catch (Exception emailEx) {
+            log.error("Failed to send document email: {}", emailEx.getMessage());
+            sent = false;
+        }
+        try {
+            recordEmailOutcome(generationId, sent, template, emailTo, orgId);
+        } catch (Exception e) {
+            // Jamais d'exception remontee depuis afterCommit : la generation est commitee
+            // et l'email est deja parti (ou son echec est deja logge ci-dessus).
+            log.error("Impossible de persister l'issue email de la generation #{}: {}",
+                    generationId, e.getMessage());
+        }
+    }
+
+    /**
+     * Persiste l'issue de l'envoi email sur la ligne DocumentGeneration. Appele hors
+     * transaction : chaque appel repository ouvre sa propre transaction courte.
+     */
+    private void recordEmailOutcome(Long generationId, boolean sent, DocumentTemplate template,
+                                    String emailTo, Long orgId) {
+        DocumentGeneration generation = generationRepository.findById(generationId).orElse(null);
+        if (generation != null) {
+            if (sent) {
+                generation.setEmailStatus("SENT");
+                generation.setEmailSentAt(LocalDateTime.now());
+                generation.setStatus(DocumentGenerationStatus.SENT);
+            } else {
+                generation.setEmailStatus("FAILED");
+            }
+            generationRepository.save(generation);
+        }
+        if (sent) {
+            notificationService.notifyAdminsAndManagers(
+                    NotificationKey.DOCUMENT_SENT_BY_EMAIL,
+                    "Document envoye par email",
+                    template.getDocumentType().getLabel() + " envoye a " + emailTo,
+                    "/documents?tab=history&highlight=" + generationId,
+                    orgId
+            );
+        }
     }
 
     /**

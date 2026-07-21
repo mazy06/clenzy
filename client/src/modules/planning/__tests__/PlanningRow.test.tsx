@@ -38,7 +38,7 @@ vi.mock('../../../hooks/useCurrency', () => ({
 }));
 
 import PlanningRow from '../PlanningRow';
-import type { BarLayout, PlanningEvent, PlanningProperty, PlanningDragState } from '../types';
+import type { BarLayout, PlanningEvent, PlanningProperty } from '../types';
 import type { PricingMap } from '../hooks/usePlanningPricing';
 import type { Reservation, PlanningIntervention } from '../../../services/api';
 import type { PlanningServiceRequest } from '../../../services/api/serviceRequestsApi';
@@ -84,14 +84,6 @@ const barLayout: BarLayout = {
   layer: 'primary',
 };
 
-const initialDragState: PlanningDragState = {
-  activeId: null,
-  activeType: null,
-  dragConflict: false,
-  ghostLayout: null,
-  isDragging: false,
-};
-
 const emptyPricingMap: PricingMap = new Map();
 
 let mockOnEmptyClick: ReturnType<typeof vi.fn>;
@@ -112,7 +104,7 @@ function renderRow(overrides?: Partial<React.ComponentProps<typeof PlanningRow>>
         selectedEventId={null}
         conflictEventIds={new Set()}
         isDragging={false}
-        dragState={initialDragState}
+        rowDrag={null}
         onEventClick={mockOnEventClick}
         onEmptyClick={mockOnEmptyClick}
         quickCreateOpen={false}

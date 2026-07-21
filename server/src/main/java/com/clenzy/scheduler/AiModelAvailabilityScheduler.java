@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 /**
@@ -34,6 +35,7 @@ public class AiModelAvailabilityScheduler {
 
     /** Quotidien, 6h UTC. */
     @Scheduled(cron = "0 0 6 * * *")
+    @SchedulerLock(name = "ai-model-availability-probe", lockAtMostFor = "PT10M")
     public void runDaily() {
         if (!enabled) {
             log.debug("AI model availability check disabled (clenzy.ai.availability-check.enabled=false)");

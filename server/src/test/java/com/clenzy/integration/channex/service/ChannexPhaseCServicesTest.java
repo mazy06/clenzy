@@ -199,7 +199,7 @@ class ChannexPhaseCServicesTest {
             property.setOwner(owner);
 
             when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(mapping));
-            when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+            when(propertyRepository.findByIdWithOwnerNoOrgFilter(100L)).thenReturn(Optional.of(property));
             when(photoRepository.findByPropertyIdOrderBySortOrderAsc(100L)).thenReturn(List.of());
             when(channexClient.fetchPhotosForProperty("chx-1")).thenReturn(
                 java.util.Collections.nCopies(8,
@@ -225,7 +225,7 @@ class ChannexPhaseCServicesTest {
             property.setCountryCode("FR");
 
             when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(mapping));
-            when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+            when(propertyRepository.findByIdWithOwnerNoOrgFilter(100L)).thenReturn(Optional.of(property));
             when(photoRepository.findByPropertyIdOrderBySortOrderAsc(100L)).thenReturn(List.of());
             when(channexClient.fetchPhotosForProperty("chx-1")).thenReturn(List.of());
 

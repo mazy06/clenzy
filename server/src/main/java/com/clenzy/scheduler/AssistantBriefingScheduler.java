@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,6 +69,7 @@ public class AssistantBriefingScheduler {
      * dont l'heure locale matche l'heure courante.
      */
     @Scheduled(cron = "0 0 * * * *")
+    @SchedulerLock(name = "assistant-briefing-hourly", lockAtMostFor = "PT30M")
     public void runHourly() {
         runFor(LocalDateTime.now(ZoneId.of("UTC")));
     }

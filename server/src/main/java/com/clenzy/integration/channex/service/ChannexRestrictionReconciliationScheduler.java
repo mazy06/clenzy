@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -65,6 +66,7 @@ public class ChannexRestrictionReconciliationScheduler {
 
     @Scheduled(fixedRateString = "#{${clenzy.channex.restriction-reconciliation.interval-minutes:180} * 60000}",
                initialDelayString = "${clenzy.channex.restriction-reconciliation.initial-delay-ms:180000}")
+    @SchedulerLock(name = "channex-restriction-reconciliation", lockAtMostFor = "PT30M")
     public void scan() {
         if (!channexProperties.isConfigured()) {
             log.debug("ChannexRestrictionReconciliation: scan skip (CHANNEX_API_KEY non configuree)");

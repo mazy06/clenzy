@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -58,6 +59,7 @@ public class ExpediaSyncScheduler {
      * Groupe par org pour isoler les erreurs entre tenants.
      */
     @Scheduled(fixedRateString = "#{${expedia.sync.interval-minutes:15} * 60000}")
+    @SchedulerLock(name = "expedia-sync-reservations", lockAtMostFor = "PT15M")
     public void syncReservations() {
         if (!config.isConfigured()) {
             log.debug("Expedia non configure, sync reservations ignoree");
@@ -99,6 +101,7 @@ public class ExpediaSyncScheduler {
      * Toutes les 30 minutes — verifie les ecarts entre Clenzy et Expedia.
      */
     @Scheduled(fixedRate = 1800000) // 30 min
+    @SchedulerLock(name = "expedia-push-availability", lockAtMostFor = "PT15M")
     public void syncAvailability() {
         if (!config.isConfigured()) {
             return;

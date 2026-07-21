@@ -22,6 +22,23 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
     List<Property> findByOrganizationId(Long organizationId);
 
     /**
+     * Top logements par volume d'interventions + coût cumulé (Rapports Baitly).
+     * LEFT JOIN : les logements sans intervention apparaissent avec 0 (parité
+     * avec l'ancien calcul client). Coût = réel, repli devis. La limite (top N)
+     * vient du {@code Pageable}. Lignes {@code [String name, Long count, BigDecimal cost]}.
+     */
+    @Query("SELECT p.name, COUNT(i), COALESCE(SUM(COALESCE(i.actualCost, i.estimatedCost, 0)), 0) "
+        + "FROM Property p LEFT JOIN Intervention i ON i.property.id = p.id AND i.organizationId = :orgId "
+        + "WHERE p.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR p.owner.keycloakId = :ownerKc) "
+        + "GROUP BY p.id, p.name "
+        + "ORDER BY COUNT(i) DESC")
+    List<Object[]> topByInterventionCountForReport(
+            @Param("orgId") Long orgId,
+            @Param("ownerKc") String ownerKc,
+            org.springframework.data.domain.Pageable pageable);
+
+    /**
      * Proprietes sans coordonnees GPS — utilise par le service de retro-geocodage
      * pour combler les donnees manquantes (creees avant l'introduction de Nominatim).
      */
@@ -75,6 +92,9 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
     long countByOwnerKeycloakId(@Param("ownerKeycloakId") String ownerKeycloakId, @Param("orgId") Long orgId);
 
     long countByOrganizationId(Long organizationId);
+
+    /** Count cross-org par statut (rapports PDF platform staff). */
+    long countByStatus(com.clenzy.model.PropertyStatus status);
 
     /**
      * Compteurs du dashboard overview (org-scope, owner optionnel pour HOST) :

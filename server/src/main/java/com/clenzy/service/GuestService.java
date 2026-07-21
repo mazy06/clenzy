@@ -2,20 +2,24 @@ package com.clenzy.service;
 
 import com.clenzy.dto.GuestDto;
 import com.clenzy.dto.GuestListDto;
+import com.clenzy.dto.GuestPageDto;
 import com.clenzy.model.Guest;
 import com.clenzy.model.GuestChannel;
 import com.clenzy.model.Organization;
-import com.clenzy.model.Reservation;
 import com.clenzy.repository.GuestRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -165,18 +169,21 @@ public class GuestService {
         List<Guest> allGuests = guestRepository.findAll();
         int updated = 0;
 
+        // 1 seule requete agregee (GROUP BY guest_id) au lieu d'1 requete
+        // reservations par guest (audit perf 2026-07-21). Lignes
+        // [guestId, count, totalSpent] ; guest absent = 0 sejour confirme.
+        record ConfirmedStats(long stays, BigDecimal spent) {}
+        Map<Long, ConfirmedStats> statsByGuest = reservationRepository.aggregateConfirmedStaysByGuest()
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> new ConfirmedStats(((Number) row[1]).longValue(), (BigDecimal) row[2])));
+
         for (Guest guest : allGuests) {
-            List<Reservation> reservations = reservationRepository.findByGuestId(guest.getId());
-
-            long confirmedStays = reservations.stream()
-                    .filter(r -> "confirmed".equals(r.getStatus()))
-                    .count();
-
-            BigDecimal totalSpent = reservations.stream()
-                    .filter(r -> "confirmed".equals(r.getStatus()))
-                    .map(Reservation::getTotalPrice)
-                    .filter(p -> p != null)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            ConfirmedStats stats = statsByGuest.getOrDefault(guest.getId(),
+                    new ConfirmedStats(0L, BigDecimal.ZERO));
+            long confirmedStays = stats.stays();
+            BigDecimal totalSpent = stats.spent();
 
             if (guest.getTotalStays() != (int) confirmedStays
                     || guest.getTotalSpent().compareTo(totalSpent) != 0) {
@@ -199,8 +206,13 @@ public class GuestService {
     // ================================================================
 
     /**
-     * Listing complet pour la page Voyageurs, avec filtres search/channel
-     * appliques en memoire (champs chiffres AES-256 en base).
+     * Listing complet pour la page Voyageurs.
+     *
+     * <p>Filtres : {@code channel} et {@code organizationId} ne sont PAS chiffres
+     * → filtres en SQL. Le filtre {@code search} porte sur firstName/lastName/email,
+     * chiffres AES-256 en base → impossible en SQL, il reste applique en memoire.
+     * C'est la limite structurelle de ce listing (assumee, audit perf 2026-07-21) :
+     * la reduction se fait en amont via les filtres SQL.</p>
      *
      * @param organizationId org du requester ; {@code null} = platform staff
      *                       (SUPER_ADMIN/SUPER_MANAGER), lecture cross-org avec
@@ -208,40 +220,86 @@ public class GuestService {
      */
     public List<GuestListDto> listGuests(Long organizationId, String search, String channel) {
         boolean crossTenant = organizationId == null;
-        List<Guest> guests = crossTenant
-                ? guestRepository.findAllOrderByLastName()
-                : guestRepository.findByOrganizationId(organizationId);
 
-        // Lookup des noms d'org pour la vue cross-tenant
-        Map<Long, String> orgNames = crossTenant
-                ? organizationService.findAll().stream()
-                    .collect(Collectors.toMap(Organization::getId, Organization::getName, (a, b) -> a))
-                : Map.of();
+        // Filtre channel en SQL (champ non chiffre). Un libelle inconnu ne matche
+        // aucun canal — meme resultat vide que l'ancien filtre memoire.
+        GuestChannel channelFilter;
+        try {
+            channelFilter = parseChannelFilter(channel);
+        } catch (IllegalArgumentException e) {
+            return List.of();
+        }
 
-        String lowerSearch = (search != null && search.length() >= 2)
-                ? search.toLowerCase().trim() : null;
+        List<Guest> guests = fetchScope(crossTenant, organizationId, channelFilter);
+        Map<Long, String> orgNames = crossTenant ? organizationNamesById() : Map.of();
+        String lowerSearch = normalizeSearch(search);
 
         return guests.stream()
-                .filter(g -> {
-                    // Filtre search (en memoire — champs chiffres)
-                    if (lowerSearch != null) {
-                        String fn = g.getFirstName() != null ? g.getFirstName().toLowerCase() : "";
-                        String ln = g.getLastName() != null ? g.getLastName().toLowerCase() : "";
-                        String email = g.getEmail() != null ? g.getEmail().toLowerCase() : "";
-                        String full = fn + " " + ln;
-                        if (!fn.contains(lowerSearch) && !ln.contains(lowerSearch)
-                                && !full.contains(lowerSearch) && !email.contains(lowerSearch)) {
-                            return false;
-                        }
-                    }
-                    // Filtre channel
-                    if (channel != null && !channel.isBlank()) {
-                        return g.getChannel() != null && g.getChannel().name().equalsIgnoreCase(channel);
-                    }
-                    return true;
-                })
+                // Filtre search (en memoire — champs chiffres, cf. javadoc)
+                .filter(g -> lowerSearch == null || matchesSearch(g, lowerSearch))
                 .map(g -> toListDto(g, orgNames.getOrDefault(g.getOrganizationId(), null)))
                 .toList();
+    }
+
+    /**
+     * Listing pagine (opt-in) de la page Voyageurs.
+     *
+     * <p>Sans {@code search} : pagination SQL vraie (org + channel filtres en SQL,
+     * count SQL). L'ORDER BY lastName/firstName porte sur les valeurs CHIFFREES
+     * (AES) : ordre stable et deterministe mais non alphabetique — strictement le
+     * meme tri que le mode non pagine ({@code findAllOrderByLastName} & co).</p>
+     *
+     * <p>Avec {@code search} (&ge; 2 caracteres) : le scope org/channel est charge
+     * (filtres SQL), le filtre search est applique en memoire apres dechiffrement
+     * (champs chiffres — limite structurelle assumee, cf. {@link #listGuests}),
+     * PUIS la page est decoupee cote serveur : le payload reseau reste borne a la
+     * page demandee, c'est le gain principal.</p>
+     *
+     * @param organizationId org du requester ; {@code null} = platform staff (cross-org)
+     */
+    public GuestPageDto listGuestsPage(Long organizationId, String search, String channel,
+                                       int page, int size) {
+        boolean crossTenant = organizationId == null;
+
+        GuestChannel channelFilter;
+        try {
+            channelFilter = parseChannelFilter(channel);
+        } catch (IllegalArgumentException e) {
+            return new GuestPageDto(List.of(), page, size, 0);
+        }
+
+        String lowerSearch = normalizeSearch(search);
+        Map<Long, String> orgNames = crossTenant ? organizationNamesById() : Map.of();
+
+        if (lowerSearch == null) {
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Guest> guestPage;
+            if (crossTenant) {
+                guestPage = channelFilter != null
+                        ? guestRepository.findAllByChannel(channelFilter, pageable)
+                        : guestRepository.findAllGuests(pageable);
+            } else {
+                guestPage = channelFilter != null
+                        ? guestRepository.findByOrganizationIdAndChannel(organizationId, channelFilter, pageable)
+                        : guestRepository.findByOrganizationId(organizationId, pageable);
+            }
+            List<GuestListDto> content = guestPage.getContent().stream()
+                    .map(g -> toListDto(g, orgNames.getOrDefault(g.getOrganizationId(), null)))
+                    .toList();
+            return new GuestPageDto(content, page, size, guestPage.getTotalElements());
+        }
+
+        // Search : scope reduit en SQL (org + channel), filtre dechiffre en memoire,
+        // puis decoupage serveur de la page.
+        List<Guest> filtered = fetchScope(crossTenant, organizationId, channelFilter).stream()
+                .filter(g -> matchesSearch(g, lowerSearch))
+                .toList();
+        int from = Math.min(page * size, filtered.size());
+        int to = Math.min(from + size, filtered.size());
+        List<GuestListDto> content = filtered.subList(from, to).stream()
+                .map(g -> toListDto(g, orgNames.getOrDefault(g.getOrganizationId(), null)))
+                .toList();
+        return new GuestPageDto(content, page, size, filtered.size());
     }
 
     /**
@@ -376,6 +434,53 @@ public class GuestService {
     // ================================================================
     // Helpers
     // ================================================================
+
+    /**
+     * Parse le filtre canal (champ non chiffre → filtrable en SQL).
+     *
+     * @return l'enum, ou {@code null} si le filtre est absent/blanc
+     * @throws IllegalArgumentException si le libelle est inconnu (l'appelant
+     *         retourne alors un resultat vide, comme l'ancien filtre memoire)
+     */
+    private static GuestChannel parseChannelFilter(String channel) {
+        if (channel == null || channel.isBlank()) {
+            return null;
+        }
+        return GuestChannel.valueOf(channel.trim().toUpperCase(Locale.ROOT));
+    }
+
+    /** Terme de recherche normalise (minuscules, trim), ou {@code null} si &lt; 2 caracteres. */
+    private static String normalizeSearch(String search) {
+        return (search != null && search.length() >= 2) ? search.toLowerCase().trim() : null;
+    }
+
+    /** Match search sur prenom/nom/nom complet/email (valeurs dechiffrees en memoire). */
+    private static boolean matchesSearch(Guest g, String lowerSearch) {
+        String fn = g.getFirstName() != null ? g.getFirstName().toLowerCase() : "";
+        String ln = g.getLastName() != null ? g.getLastName().toLowerCase() : "";
+        String email = g.getEmail() != null ? g.getEmail().toLowerCase() : "";
+        String full = fn + " " + ln;
+        return fn.contains(lowerSearch) || ln.contains(lowerSearch)
+                || full.contains(lowerSearch) || email.contains(lowerSearch);
+    }
+
+    /** Scope SQL du listing : org (ou cross-org) + canal, tri chiffre stable. */
+    private List<Guest> fetchScope(boolean crossTenant, Long organizationId, GuestChannel channelFilter) {
+        if (crossTenant) {
+            return channelFilter != null
+                    ? guestRepository.findAllByChannelOrderByLastName(channelFilter)
+                    : guestRepository.findAllOrderByLastName();
+        }
+        return channelFilter != null
+                ? guestRepository.findByOrganizationIdAndChannel(organizationId, channelFilter)
+                : guestRepository.findByOrganizationId(organizationId);
+    }
+
+    /** Lookup des noms d'organisation (vue cross-tenant platform staff). */
+    private Map<Long, String> organizationNamesById() {
+        return organizationService.findAll().stream()
+                .collect(Collectors.toMap(Organization::getId, Organization::getName, (a, b) -> a));
+    }
 
     /**
      * Met a jour les champs d'un guest existant si les nouvelles valeurs sont non-null.

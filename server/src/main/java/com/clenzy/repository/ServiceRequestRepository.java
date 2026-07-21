@@ -220,6 +220,15 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
     List<ServiceRequest> findAllAwaitingPayment(@Param("orgId") Long orgId);
 
     /**
+     * SR d'une organisation par statut de paiement (backfill wallet : rejoue les
+     * paiements PAID dans le ledger). Remplace le scan findAll() + filtre memoire
+     * cross-org de WalletService (audit perf 2026-07-21).
+     */
+    @Query("SELECT sr FROM ServiceRequest sr WHERE sr.organizationId = :orgId AND sr.paymentStatus = :paymentStatus")
+    List<ServiceRequest> findByOrganizationIdAndPaymentStatus(
+        @Param("orgId") Long orgId, @Param("paymentStatus") PaymentStatus paymentStatus);
+
+    /**
      * ServiceRequests liees a une reservation (via reservationId).
      * Utilise par ICalImportService pour annuler les menages lors d'une annulation OTA.
      */

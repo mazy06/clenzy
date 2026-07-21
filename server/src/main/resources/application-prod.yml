@@ -4,14 +4,35 @@ server:
 spring:
   datasource:
     # Read replica routing (Niveau 8) — si REPLICA_URL non defini, fallback vers PRIMARY
+    # Les blocs hikari sont bindes par DataSourceRoutingConfig (@ConfigurationProperties
+    # "spring.datasource.primary.hikari" / ".replica.hikari") — un bloc global
+    # spring.datasource.hikari serait IGNORE avec ce dual-datasource custom.
     primary:
       url: ${SPRING_DATASOURCE_URL}
       username: ${SPRING_DATASOURCE_USERNAME}
       password: ${SPRING_DATASOURCE_PASSWORD}
+      hikari:
+        pool-name: clenzy-primary
+        maximum-pool-size: ${HIKARI_PRIMARY_MAX_POOL_SIZE:25}
+        minimum-idle: 5
+        connection-timeout: 10000
+        max-lifetime: 1200000
+        leak-detection-threshold: 60000
+        data-source-properties:
+          # Le driver PG reecrit les batchs JDBC en multi-values INSERT
+          # (necessaire pour que hibernate.jdbc.batch_size paie vraiment).
+          reWriteBatchedInserts: true
     replica:
       url: ${SPRING_DATASOURCE_REPLICA_URL:${SPRING_DATASOURCE_URL}}
       username: ${SPRING_DATASOURCE_REPLICA_USERNAME:${SPRING_DATASOURCE_USERNAME}}
       password: ${SPRING_DATASOURCE_REPLICA_PASSWORD:${SPRING_DATASOURCE_PASSWORD}}
+      hikari:
+        pool-name: clenzy-replica
+        maximum-pool-size: ${HIKARI_REPLICA_MAX_POOL_SIZE:15}
+        minimum-idle: 2
+        connection-timeout: 10000
+        max-lifetime: 1200000
+        leak-detection-threshold: 60000
   jpa:
     hibernate:
       ddl-auto: validate

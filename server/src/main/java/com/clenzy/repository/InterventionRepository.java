@@ -66,6 +66,110 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
             @Param("pendingStatus") com.clenzy.model.PaymentStatus pendingStatus);
 
     /**
+     * Totaux financiers des rapports PDF sur la fenêtre planifiée [from, toExclusive) :
+     * {@code [Long count, BigDecimal sumEstimatedCostPaid, BigDecimal sumEstimatedCost]}
+     * (une seule ligne ; les SUM sont {@code null} si aucune ligne ne matche).
+     * Org optionnelle ({@code null} = platform staff cross-org). Remplace le scan
+     * findAll() + filtre dates en mémoire (audit perf 2026-07-21).
+     */
+    @Query("SELECT COUNT(i), "
+        + "SUM(CASE WHEN i.paymentStatus = com.clenzy.model.PaymentStatus.PAID "
+        + "THEN COALESCE(i.estimatedCost, 0) ELSE 0 END), "
+        + "SUM(COALESCE(i.estimatedCost, 0)) "
+        + "FROM Intervention i WHERE i.scheduledDate >= :from AND i.scheduledDate < :toExclusive "
+        + "AND (:orgId IS NULL OR i.organizationId = :orgId)")
+    List<Object[]> financialTotalsForPdfReport(
+            @Param("from") LocalDateTime from,
+            @Param("toExclusive") LocalDateTime toExclusive,
+            @Param("orgId") Long orgId);
+
+    /**
+     * Compteurs par statut sur la fenêtre planifiée [from, toExclusive) — rapports
+     * PDF. Lignes {@code [InterventionStatus, Long count]}. Org optionnelle.
+     */
+    @Query("SELECT i.status, COUNT(i) FROM Intervention i "
+        + "WHERE i.scheduledDate >= :from AND i.scheduledDate < :toExclusive "
+        + "AND (:orgId IS NULL OR i.organizationId = :orgId) "
+        + "GROUP BY i.status")
+    List<Object[]> countByStatusInWindowForPdfReport(
+            @Param("from") LocalDateTime from,
+            @Param("toExclusive") LocalDateTime toExclusive,
+            @Param("orgId") Long orgId);
+
+    /**
+     * Répartition par statut (écran Rapports Baitly) — scopes optionnels :
+     * org strict ; owner (HOST) ; assigné (rôles opérationnels). Lignes
+     * {@code [InterventionStatus, Long count]}.
+     */
+    @Query("SELECT i.status, COUNT(i) FROM Intervention i WHERE i.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR i.property.owner.keycloakId = :ownerKc) "
+        + "AND (:assigneeId IS NULL OR i.assignedUser.id = :assigneeId) "
+        + "GROUP BY i.status")
+    List<Object[]> countByStatusForReport(
+            @Param("orgId") Long orgId,
+            @Param("ownerKc") String ownerKc,
+            @Param("assigneeId") Long assigneeId);
+
+    /**
+     * Compteur + coût cumulé par type BRUT (répartition par type et ventilation
+     * des coûts des Rapports Baitly). Coût = réel, repli devis, repli 0.
+     * Lignes {@code [String type, Long count, BigDecimal cost]}.
+     */
+    @Query("SELECT i.type, COUNT(i), SUM(COALESCE(i.actualCost, i.estimatedCost, 0)) "
+        + "FROM Intervention i WHERE i.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR i.property.owner.keycloakId = :ownerKc) "
+        + "AND (:assigneeId IS NULL OR i.assignedUser.id = :assigneeId) "
+        + "GROUP BY i.type")
+    List<Object[]> countAndCostByTypeForReport(
+            @Param("orgId") Long orgId,
+            @Param("ownerKc") String ownerKc,
+            @Param("assigneeId") Long assigneeId);
+
+    /** Répartition par priorité (Rapports Baitly). Lignes {@code [String priority, Long count]}. */
+    @Query("SELECT i.priority, COUNT(i) FROM Intervention i WHERE i.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR i.property.owner.keycloakId = :ownerKc) "
+        + "AND (:assigneeId IS NULL OR i.assignedUser.id = :assigneeId) "
+        + "GROUP BY i.priority")
+    List<Object[]> countByPriorityForReport(
+            @Param("orgId") Long orgId,
+            @Param("ownerKc") String ownerKc,
+            @Param("assigneeId") Long assigneeId);
+
+    /**
+     * Compteurs et coûts mensuels par statut sur [from, toExclusive) — date
+     * planifiée, repli date de création (parité avec l'ancien calcul client).
+     * Lignes {@code [Integer year, Integer month, InterventionStatus status, Long count, BigDecimal cost]}.
+     */
+    @Query("SELECT YEAR(COALESCE(i.scheduledDate, i.createdAt)), MONTH(COALESCE(i.scheduledDate, i.createdAt)), "
+        + "i.status, COUNT(i), SUM(COALESCE(i.actualCost, i.estimatedCost, 0)) "
+        + "FROM Intervention i WHERE i.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR i.property.owner.keycloakId = :ownerKc) "
+        + "AND (:assigneeId IS NULL OR i.assignedUser.id = :assigneeId) "
+        + "AND COALESCE(i.scheduledDate, i.createdAt) >= :from "
+        + "AND COALESCE(i.scheduledDate, i.createdAt) < :toExclusive "
+        + "GROUP BY YEAR(COALESCE(i.scheduledDate, i.createdAt)), MONTH(COALESCE(i.scheduledDate, i.createdAt)), i.status")
+    List<Object[]> monthlyCountsAndCostsForReport(
+            @Param("from") LocalDateTime from,
+            @Param("toExclusive") LocalDateTime toExclusive,
+            @Param("orgId") Long orgId,
+            @Param("ownerKc") String ownerKc,
+            @Param("assigneeId") Long assigneeId);
+
+    /**
+     * Compteurs par équipe et statut — uniquement les interventions assignées
+     * à une ÉQUIPE (assignedUser null + teamId présent, même convention que
+     * {@code Intervention.getAssignedToType()}). Rapports Baitly, onglet Équipes.
+     * Lignes {@code [Long teamId, InterventionStatus status, Long count]}.
+     */
+    @Query("SELECT i.teamId, i.status, COUNT(i) FROM Intervention i WHERE i.organizationId = :orgId "
+        + "AND i.assignedUser IS NULL AND i.teamId IS NOT NULL "
+        + "AND (:ownerKc IS NULL OR i.property.owner.keycloakId = :ownerKc) "
+        + "GROUP BY i.teamId, i.status")
+    List<Object[]> countByTeamAndStatusForReport(
+            @Param("orgId") Long orgId,
+            @Param("ownerKc") String ownerKc);
+
+    /**
      * Interventions d'un LOT de logements planifiées dans la fenêtre — agrégats
      * de coûts (PropertyPerformanceService). Volontairement SANS join fetch
      * (seuls scheduledDate et les coûts sont lus) : remplace l'appel

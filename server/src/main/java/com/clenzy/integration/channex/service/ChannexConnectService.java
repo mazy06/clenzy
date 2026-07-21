@@ -1051,13 +1051,20 @@ public class ChannexConnectService {
      * qui detecte les doublons via {@code external_uid = "channex:" + booking_id}.
      * Un re-pull retournera les memes counters mais ne dupliquera rien.</p>
      *
+     * <p>Pas de @Transactional : le fetch {@code listBookings} est un appel HTTP
+     * Channex (regle « jamais d'appel HTTP externe dans une transaction DB »).
+     * L'import est deja decoupe par booking : chaque
+     * {@link ChannexBookingService#handleNewBooking} commit dans sa propre
+     * transaction courte (bean separe → proxy Spring effectif), ce qui colle a
+     * la semantique best-effort des counters — un booking en erreur n'annule
+     * pas ceux deja importes.</p>
+     *
      * @param clenzyPropertyId Property Clenzy
      * @param orgId            Organisation
      * @param arrivalFrom      Date d'arrivee min (typiquement today)
      * @param arrivalTo        Date d'arrivee max (typiquement today + 12 mois)
      * @return resume du pull (counters)
      */
-    @Transactional
     public PullBookingsResult pullBookings(Long clenzyPropertyId, Long orgId,
                                             LocalDate arrivalFrom, LocalDate arrivalTo) {
         ChannexPropertyMapping mapping = mappingRepository.findByClenzyPropertyId(clenzyPropertyId, orgId)
@@ -1140,8 +1147,13 @@ public class ChannexConnectService {
      * C'est la valeur a utiliser au go-live d'une propriete (premier OTA
      * branche) et apres incident. {@code months 1-12} → fenetre restreinte
      * (rattrapage leger).</p>
+     *
+     * <p>Pas de @Transactional : pushProperty fait des appels HTTP Channex qui
+     * ne doivent pas tourner dans une transaction DB. Le repassage
+     * DISABLED→PENDING commit dans sa propre transaction courte (save) AVANT
+     * le push — semantique inchangee (le statut final est de toute facon
+     * re-ecrit par pushProperty selon le resultat).</p>
      */
-    @Transactional
     public ChannexSyncService.ChannexSyncResult resync(Long clenzyPropertyId, Long orgId, int months) {
         ChannexPropertyMapping mapping = mappingRepository.findByClenzyPropertyId(clenzyPropertyId, orgId)
             .orElseThrow(() -> new IllegalStateException(

@@ -10,6 +10,7 @@ import com.clenzy.service.StripeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -70,6 +71,7 @@ public class PendingReservationCleanupScheduler {
     }
 
     @Scheduled(fixedRate = 300_000) // 5 minutes
+    @SchedulerLock(name = "pending-reservation-cleanup", lockAtMostFor = "PT10M", lockAtLeastFor = "PT30S")
     public void cleanupExpiredPendingReservations() {
         List<Reservation> holds = pendingReservationRepository.findUnpaidHolds();
         if (holds.isEmpty()) {

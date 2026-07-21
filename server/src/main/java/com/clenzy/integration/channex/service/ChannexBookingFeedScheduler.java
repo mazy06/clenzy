@@ -4,6 +4,7 @@ import com.clenzy.integration.channex.config.ChannexProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 /**
@@ -36,6 +37,7 @@ public class ChannexBookingFeedScheduler {
     @Scheduled(
         fixedRateString = "#{${clenzy.channex.booking-feed-interval-minutes:10} * 60000}",
         initialDelayString = "#{2 * 60000}")
+    @SchedulerLock(name = "channex-booking-feed-poll", lockAtMostFor = "PT10M")
     public void pollFeed() {
         if (!props.isConfigured()) {
             return; // Channex non configure (pas d'API key) : rien a rattraper

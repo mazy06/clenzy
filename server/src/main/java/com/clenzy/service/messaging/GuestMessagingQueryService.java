@@ -27,6 +27,9 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class GuestMessagingQueryService {
 
+    /** Borne de l'historique org (entrees les plus recentes) — table cumulative. */
+    private static final int HISTORY_LIMIT = 500;
+
     private final MessagingAutomationConfigRepository configRepository;
     private final GuestMessageLogRepository messageLogRepository;
 
@@ -69,8 +72,16 @@ public class GuestMessagingQueryService {
             .filter(l -> l.getOrganizationId().equals(organizationId));
     }
 
+    /**
+     * Historique des messages de l'org, borne aux {@link #HISTORY_LIMIT} entrees
+     * les plus recentes : la table des logs est cumulative (croissance sans purge),
+     * un listing non borne finirait par charger des dizaines de milliers de lignes
+     * (audit perf 2026-07-21). La shape de reponse (List) est inchangee — la borne
+     * est un Pageable interne, pas une pagination exposee.
+     */
     public List<GuestMessageLog> getHistory(Long organizationId) {
-        return messageLogRepository.findByOrganizationIdOrderByCreatedAtDesc(organizationId);
+        return messageLogRepository.findByOrganizationIdOrderByCreatedAtDesc(
+            organizationId, org.springframework.data.domain.PageRequest.of(0, HISTORY_LIMIT));
     }
 
     /** Nombre d'envois en echec depuis {@code since} (pastille du menu Documents). */

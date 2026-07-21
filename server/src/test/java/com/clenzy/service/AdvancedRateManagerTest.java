@@ -458,12 +458,15 @@ class AdvancedRateManagerTest {
                     .thenReturn(new ObjectMapper().readTree("{\"daysAhead\": 30}"));
 
             // Target date = today + 30 days
-            // Le yield calcule depuis le prix de base HORS overrides YIELD_RULE (Z5-BUGS-02)
+            // Le yield calcule depuis le prix de base HORS overrides YIELD_RULE (Z5-BUGS-02),
+            // precharge en batch sur la plage [target, target+1) (audit perf P1-3)
             LocalDate targetDate = LocalDate.now(PROPERTY_ZONE).plusDays(30);
-            when(priceEngine.resolvePrice(eq(PROPERTY_ID), eq(targetDate), eq(ORG_ID), anySet()))
-                    .thenReturn(new BigDecimal("100.00"));
-            when(rateOverrideRepository.findByPropertyIdAndDate(PROPERTY_ID, targetDate, ORG_ID))
-                    .thenReturn(Optional.empty());
+            when(priceEngine.resolvePriceRange(eq(PROPERTY_ID), eq(targetDate),
+                    eq(targetDate.plusDays(1)), eq(ORG_ID), anySet()))
+                    .thenReturn(Map.of(targetDate, new BigDecimal("100.00")));
+            when(rateOverrideRepository.findByPropertyIdAndDateRange(
+                    PROPERTY_ID, targetDate, targetDate.plusDays(1), ORG_ID))
+                    .thenReturn(List.of());
 
             // Act
             advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);
@@ -554,10 +557,17 @@ class AdvancedRateManagerTest {
             when(objectMapper.readTree("{\"withinDays\": 2}"))
                     .thenReturn(new com.fasterxml.jackson.databind.ObjectMapper().readTree("{\"withinDays\": 2}"));
 
-            when(priceEngine.resolvePrice(eq(PROPERTY_ID), any(LocalDate.class), eq(ORG_ID), anySet()))
-                    .thenReturn(new BigDecimal("100"));
-            when(rateOverrideRepository.findByPropertyIdAndDate(eq(PROPERTY_ID), any(LocalDate.class), eq(ORG_ID)))
-                    .thenReturn(Optional.empty());
+            // Fenetre last-minute [today, today+2) prechargee en batch (P1-3)
+            LocalDate today = LocalDate.now(PROPERTY_ZONE);
+            Map<LocalDate, BigDecimal> basePrices = new LinkedHashMap<>();
+            basePrices.put(today, new BigDecimal("100"));
+            basePrices.put(today.plusDays(1), new BigDecimal("100"));
+            when(priceEngine.resolvePriceRange(eq(PROPERTY_ID), any(LocalDate.class),
+                    any(LocalDate.class), eq(ORG_ID), anySet()))
+                    .thenReturn(basePrices);
+            when(rateOverrideRepository.findByPropertyIdAndDateRange(
+                    eq(PROPERTY_ID), any(LocalDate.class), any(LocalDate.class), eq(ORG_ID)))
+                    .thenReturn(List.of());
 
             advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);
 
@@ -589,15 +599,18 @@ class AdvancedRateManagerTest {
 
             LocalDate target = LocalDate.now(PROPERTY_ZONE).plusDays(30);
             // Prix de base hors overrides YIELD_RULE = 100 (Z5-BUGS-02)
-            when(priceEngine.resolvePrice(eq(PROPERTY_ID), eq(target), eq(ORG_ID), anySet()))
-                    .thenReturn(new BigDecimal("100"));
+            when(priceEngine.resolvePriceRange(eq(PROPERTY_ID), eq(target),
+                    eq(target.plusDays(1)), eq(ORG_ID), anySet()))
+                    .thenReturn(Map.of(target, new BigDecimal("100")));
 
             // Existing YIELD_RULE override (run precedent) — should be updated, not created
             RateOverride existing = new RateOverride();
+            existing.setDate(target);
             existing.setNightlyPrice(new BigDecimal("80"));
             existing.setSource("YIELD_RULE");
-            when(rateOverrideRepository.findByPropertyIdAndDate(PROPERTY_ID, target, ORG_ID))
-                    .thenReturn(Optional.of(existing));
+            when(rateOverrideRepository.findByPropertyIdAndDateRange(
+                    PROPERTY_ID, target, target.plusDays(1), ORG_ID))
+                    .thenReturn(List.of(existing));
 
             advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);
 
@@ -632,10 +645,12 @@ class AdvancedRateManagerTest {
 
             // Un override importe d'un OTA existe sur la date ciblee par le yield
             RateOverride otaOverride = new RateOverride();
+            otaOverride.setDate(target);
             otaOverride.setNightlyPrice(new BigDecimal("175"));
             otaOverride.setSource("OTA:AIRBNB");
-            when(rateOverrideRepository.findByPropertyIdAndDate(PROPERTY_ID, target, ORG_ID))
-                    .thenReturn(Optional.of(otaOverride));
+            when(rateOverrideRepository.findByPropertyIdAndDateRange(
+                    PROPERTY_ID, target, target.plusDays(1), ORG_ID))
+                    .thenReturn(List.of(otaOverride));
 
             advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);
 
@@ -670,16 +685,19 @@ class AdvancedRateManagerTest {
 
             LocalDate target = LocalDate.now(PROPERTY_ZONE).plusDays(30);
             // Le prix de base HORS overrides YIELD_RULE reste 100 d'un run a l'autre
-            when(priceEngine.resolvePrice(eq(PROPERTY_ID), eq(target), eq(ORG_ID), anySet()))
-                    .thenReturn(new BigDecimal("100.00"));
+            when(priceEngine.resolvePriceRange(eq(PROPERTY_ID), eq(target),
+                    eq(target.plusDays(1)), eq(ORG_ID), anySet()))
+                    .thenReturn(Map.of(target, new BigDecimal("100.00")));
 
             // Run 1 : pas d'override → creation a 90 ; Run 2 : l'override yield de 90 existe
             RateOverride yieldOverride = new RateOverride();
+            yieldOverride.setDate(target);
             yieldOverride.setNightlyPrice(new BigDecimal("90.00"));
             yieldOverride.setSource("YIELD_RULE");
-            when(rateOverrideRepository.findByPropertyIdAndDate(PROPERTY_ID, target, ORG_ID))
-                    .thenReturn(Optional.empty())
-                    .thenReturn(Optional.of(yieldOverride));
+            when(rateOverrideRepository.findByPropertyIdAndDateRange(
+                    PROPERTY_ID, target, target.plusDays(1), ORG_ID))
+                    .thenReturn(List.of())
+                    .thenReturn(List.of(yieldOverride));
 
             // Act : deux runs successifs
             advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);
@@ -716,10 +734,12 @@ class AdvancedRateManagerTest {
 
             LocalDate target = LocalDate.now(PROPERTY_ZONE).plusDays(30);
             RateOverride external = new RateOverride();
+            external.setDate(target);
             external.setNightlyPrice(new BigDecimal("140.00"));
             external.setSource("EXTERNAL_PRICING");
-            when(rateOverrideRepository.findByPropertyIdAndDate(PROPERTY_ID, target, ORG_ID))
-                    .thenReturn(Optional.of(external));
+            when(rateOverrideRepository.findByPropertyIdAndDateRange(
+                    PROPERTY_ID, target, target.plusDays(1), ORG_ID))
+                    .thenReturn(List.of(external));
 
             // Act
             advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);
@@ -754,10 +774,12 @@ class AdvancedRateManagerTest {
                     .thenReturn(new com.fasterxml.jackson.databind.ObjectMapper().readTree("{\"daysAhead\": 30}"));
 
             LocalDate target = LocalDate.now(PROPERTY_ZONE).plusDays(30);
-            when(priceEngine.resolvePrice(eq(PROPERTY_ID), eq(target), eq(ORG_ID), anySet()))
-                    .thenReturn(new BigDecimal("100.00"));
-            when(rateOverrideRepository.findByPropertyIdAndDate(PROPERTY_ID, target, ORG_ID))
-                    .thenReturn(Optional.empty());
+            when(priceEngine.resolvePriceRange(eq(PROPERTY_ID), eq(target),
+                    eq(target.plusDays(1)), eq(ORG_ID), anySet()))
+                    .thenReturn(Map.of(target, new BigDecimal("100.00")));
+            when(rateOverrideRepository.findByPropertyIdAndDateRange(
+                    PROPERTY_ID, target, target.plusDays(1), ORG_ID))
+                    .thenReturn(List.of());
 
             // Act
             advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);
@@ -794,10 +816,12 @@ class AdvancedRateManagerTest {
 
             java.time.ZoneId propertyZone = java.time.ZoneId.of("Pacific/Kiritimati");
             LocalDate expectedTarget = LocalDate.now(propertyZone).plusDays(30);
-            when(priceEngine.resolvePrice(eq(PROPERTY_ID), eq(expectedTarget), eq(ORG_ID), anySet()))
-                    .thenReturn(new BigDecimal("100.00"));
-            when(rateOverrideRepository.findByPropertyIdAndDate(PROPERTY_ID, expectedTarget, ORG_ID))
-                    .thenReturn(Optional.empty());
+            when(priceEngine.resolvePriceRange(eq(PROPERTY_ID), eq(expectedTarget),
+                    eq(expectedTarget.plusDays(1)), eq(ORG_ID), anySet()))
+                    .thenReturn(Map.of(expectedTarget, new BigDecimal("100.00")));
+            when(rateOverrideRepository.findByPropertyIdAndDateRange(
+                    PROPERTY_ID, expectedTarget, expectedTarget.plusDays(1), ORG_ID))
+                    .thenReturn(List.of());
 
             // Act
             advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);
@@ -831,10 +855,12 @@ class AdvancedRateManagerTest {
                     .thenReturn(new ObjectMapper().readTree("{\"daysAhead\": 30}"));
 
             LocalDate expectedTarget = LocalDate.now(java.time.ZoneId.of("Europe/Paris")).plusDays(30);
-            when(priceEngine.resolvePrice(eq(PROPERTY_ID), eq(expectedTarget), eq(ORG_ID), anySet()))
-                    .thenReturn(new BigDecimal("100.00"));
-            when(rateOverrideRepository.findByPropertyIdAndDate(PROPERTY_ID, expectedTarget, ORG_ID))
-                    .thenReturn(Optional.empty());
+            when(priceEngine.resolvePriceRange(eq(PROPERTY_ID), eq(expectedTarget),
+                    eq(expectedTarget.plusDays(1)), eq(ORG_ID), anySet()))
+                    .thenReturn(Map.of(expectedTarget, new BigDecimal("100.00")));
+            when(rateOverrideRepository.findByPropertyIdAndDateRange(
+                    PROPERTY_ID, expectedTarget, expectedTarget.plusDays(1), ORG_ID))
+                    .thenReturn(List.of());
 
             // Act : ne doit pas lever malgre la timezone invalide
             advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);
@@ -1133,14 +1159,17 @@ class AdvancedRateManagerTest {
                     .thenReturn(new ObjectMapper().readTree("{\"daysAhead\": 30}"));
 
             LocalDate target = LocalDate.now(java.time.ZoneId.of("Europe/Paris")).plusDays(30);
-            when(priceEngine.resolvePrice(eq(PROPERTY_ID), eq(target), eq(ORG_ID), anySet()))
-                    .thenReturn(new BigDecimal("100.00"));
+            when(priceEngine.resolvePriceRange(eq(PROPERTY_ID), eq(target),
+                    eq(target.plusDays(1)), eq(ORG_ID), anySet()))
+                    .thenReturn(Map.of(target, new BigDecimal("100.00")));
 
             RateOverride existing = new RateOverride();
+            existing.setDate(target);
             existing.setNightlyPrice(new BigDecimal("90"));
             existing.setSource("YIELD_RULE");
-            when(rateOverrideRepository.findByPropertyIdAndDate(PROPERTY_ID, target, ORG_ID))
-                    .thenReturn(Optional.of(existing));
+            when(rateOverrideRepository.findByPropertyIdAndDateRange(
+                    PROPERTY_ID, target, target.plusDays(1), ORG_ID))
+                    .thenReturn(List.of(existing));
 
             // Act
             advancedRateManager.applyYieldRules(PROPERTY_ID, ORG_ID);

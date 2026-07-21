@@ -57,9 +57,18 @@ export class AgUiPortfolioProvider implements SupervisionProvider<PortfolioSnaps
     return () => this.listeners.delete(listener);
   }
 
+  /** Resync immédiat quand l'onglet redevient visible (les ticks cachés sont sautés). */
+  private readonly handleVisibilityChange = (): void => {
+    if (document.visibilityState === 'visible') void this.pollRefresh();
+  };
+
   private ensurePolling(): void {
     if (this.pollTimer || this.disposed) return;
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
     this.pollTimer = setInterval(() => {
+      // Onglet caché → tick sauté (pas de re-fetch invisible) ;
+      // le retour visible déclenche un resync immédiat via visibilitychange.
+      if (document.hidden) return;
       void this.pollRefresh();
     }, PORTFOLIO_POLL_MS);
   }
@@ -125,6 +134,7 @@ export class AgUiPortfolioProvider implements SupervisionProvider<PortfolioSnaps
       clearInterval(this.pollTimer);
       this.pollTimer = null;
     }
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
     this.listeners.clear();
   }
 }

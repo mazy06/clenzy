@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { PlanningEvent, BarLayout, DensityMode } from '../types';
 import { computePropertyBarLayouts } from '../utils/layoutUtils';
 
@@ -36,9 +36,12 @@ export function usePlanningLayout(
     return map;
   }, [eventsByProperty, days, dayWidth, density]);
 
-  const getBarLayouts = (propertyId: number): BarLayout[] => {
-    return layoutsByProperty.get(propertyId) ?? [];
-  };
+  // Référence stable : cette fonction est passée en prop à PlanningTimeline
+  // (React.memo) — une identité recréée à chaque render cassait la barrière de memo.
+  const getBarLayouts = useCallback(
+    (propertyId: number): BarLayout[] => layoutsByProperty.get(propertyId) ?? [],
+    [layoutsByProperty],
+  );
 
   const totalGridWidth = days.length * dayWidth;
 

@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 
@@ -84,7 +85,7 @@ class OutboxRelayTest {
     @Test
     @DisplayName("relayPendingEvents: aucune event PENDING -> ne fait rien (early return)")
     void relayPending_empty() {
-        when(repo.findPendingEvents()).thenReturn(List.of());
+        when(repo.findPendingEvents(any(Pageable.class))).thenReturn(List.of());
 
         relay.relayPendingEvents();
 
@@ -96,7 +97,7 @@ class OutboxRelayTest {
     @DisplayName("relayPendingEvents: send OK -> markAsSent + payload Map deserialise")
     void relayPending_sendOk_marksAsSent() {
         OutboxEvent e = event(1L, "topic-1", "key-1", "{\"foo\":\"bar\"}");
-        when(repo.findPendingEvents()).thenReturn(List.of(e));
+        when(repo.findPendingEvents(any(Pageable.class))).thenReturn(List.of(e));
         when(kafkaTemplate.send(eq("topic-1"), eq("key-1"), any())).thenReturn(okFuture());
 
         relay.relayPendingEvents();
@@ -110,7 +111,7 @@ class OutboxRelayTest {
     @DisplayName("relayPendingEvents: payload non-JSON -> fallback string brut + markAsSent")
     void relayPending_nonJsonPayload_fallbacksToString() {
         OutboxEvent e = event(2L, "topic-x", "key-x", "not a json !!");
-        when(repo.findPendingEvents()).thenReturn(List.of(e));
+        when(repo.findPendingEvents(any(Pageable.class))).thenReturn(List.of(e));
         when(kafkaTemplate.send(eq("topic-x"), eq("key-x"), any())).thenReturn(okFuture());
 
         relay.relayPendingEvents();
@@ -123,7 +124,7 @@ class OutboxRelayTest {
     @DisplayName("relayPendingEvents: send fail -> markAsFailed avec message tronque")
     void relayPending_sendFail_marksAsFailed() {
         OutboxEvent e = event(3L, "topic-fail", "key-fail", "{}");
-        when(repo.findPendingEvents()).thenReturn(List.of(e));
+        when(repo.findPendingEvents(any(Pageable.class))).thenReturn(List.of(e));
         when(kafkaTemplate.send(eq("topic-fail"), eq("key-fail"), any()))
             .thenReturn(errorFuture("broker down"));
 
@@ -137,7 +138,7 @@ class OutboxRelayTest {
     @DisplayName("relayPendingEvents: send fail avec message > 500 chars -> tronque a 500")
     void relayPending_truncatesLongErrorMessage() {
         OutboxEvent e = event(4L, "t", "k", "{}");
-        when(repo.findPendingEvents()).thenReturn(List.of(e));
+        when(repo.findPendingEvents(any(Pageable.class))).thenReturn(List.of(e));
         String longMsg = "x".repeat(600);
         when(kafkaTemplate.send(eq("t"), eq("k"), any())).thenReturn(errorFuture(longMsg));
 
@@ -153,7 +154,7 @@ class OutboxRelayTest {
     @DisplayName("relayPendingEvents: send fail sans message -> utilise className")
     void relayPending_failWithoutMessage_usesClassName() {
         OutboxEvent e = event(5L, "t", "k", "{}");
-        when(repo.findPendingEvents()).thenReturn(List.of(e));
+        when(repo.findPendingEvents(any(Pageable.class))).thenReturn(List.of(e));
 
         CompletableFuture<SendResult<String, Object>> failed = new CompletableFuture<>();
         failed.completeExceptionally(new ExecutionException(new IllegalStateException((String) null)));
@@ -172,7 +173,7 @@ class OutboxRelayTest {
     void relayPending_multipleEvents() {
         OutboxEvent a = event(10L, "t1", "k1", "{\"a\":1}");
         OutboxEvent b = event(11L, "t2", "k2", "{\"b\":2}");
-        when(repo.findPendingEvents()).thenReturn(List.of(a, b));
+        when(repo.findPendingEvents(any(Pageable.class))).thenReturn(List.of(a, b));
         when(kafkaTemplate.send(any(String.class), any(String.class), any())).thenReturn(okFuture());
 
         relay.relayPendingEvents();
@@ -187,7 +188,7 @@ class OutboxRelayTest {
     @Test
     @DisplayName("retryFailedEvents: aucune event FAILED -> early return")
     void retryFailed_empty() {
-        when(repo.findRetryableEvents(5)).thenReturn(List.of());
+        when(repo.findRetryableEvents(eq(5), any(Pageable.class))).thenReturn(List.of());
 
         relay.retryFailedEvents();
 
@@ -198,7 +199,7 @@ class OutboxRelayTest {
     @DisplayName("retryFailedEvents: retry success -> markAsSent")
     void retryFailed_retrySucceeds() {
         OutboxEvent e = event(20L, "topic-r", "k", "{}");
-        when(repo.findRetryableEvents(5)).thenReturn(List.of(e));
+        when(repo.findRetryableEvents(eq(5), any(Pageable.class))).thenReturn(List.of(e));
         when(kafkaTemplate.send(eq("topic-r"), eq("k"), any())).thenReturn(okFuture());
 
         relay.retryFailedEvents();
@@ -210,7 +211,7 @@ class OutboxRelayTest {
     @DisplayName("retryFailedEvents: retry fail -> markAsFailed (compteur d'attempts gere par le repo)")
     void retryFailed_retryFailsAgain() {
         OutboxEvent e = event(21L, "t", "k", "{}");
-        when(repo.findRetryableEvents(5)).thenReturn(List.of(e));
+        when(repo.findRetryableEvents(eq(5), any(Pageable.class))).thenReturn(List.of(e));
         when(kafkaTemplate.send(eq("t"), eq("k"), any())).thenReturn(errorFuture("still down"));
 
         relay.retryFailedEvents();

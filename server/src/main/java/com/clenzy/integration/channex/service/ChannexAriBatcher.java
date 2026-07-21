@@ -38,6 +38,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>Redemarrage : l'etat est en memoire — une plage non flushee au shutdown
  * est perdue pour ce cycle, puis rattrapee par les schedulers de
  * reconciliation (rates 60 min / restrictions 180 min) et le watchdog.</p>
+ *
+ * <p>PAS de @SchedulerLock sur {@code flush()} (choix delibere — mise en place
+ * ShedLock 2026-07-21) : la queue {@code pending} est un etat <b>in-memory par
+ * instance</b>. En multi-instance, chaque instance DOIT flusher sa propre queue
+ * (celle alimentee par les events Kafka qu'elle a consommes) ; un verrou
+ * partage bloquerait le flush des autres instances et laisserait leurs plages
+ * en attente jusqu'au filet de reconciliation.</p>
  */
 @Component
 public class ChannexAriBatcher {

@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,6 +90,7 @@ public class ReconciliationService {
      * Reconciliation automatique horaire de tous les mappings actifs.
      */
     @Scheduled(cron = "0 0 * * * *")
+    @SchedulerLock(name = "channel-reconciliation-hourly", lockAtMostFor = "PT30M")
     public void scheduledReconciliation() {
         log.info("[Reconciliation] Demarrage reconciliation horaire");
         long start = System.currentTimeMillis();

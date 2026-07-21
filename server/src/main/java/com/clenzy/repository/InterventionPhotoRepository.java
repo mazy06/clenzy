@@ -35,4 +35,17 @@ public interface InterventionPhotoRepository extends JpaRepository<InterventionP
 
     @Query("SELECT COUNT(ip) FROM InterventionPhoto ip WHERE ip.intervention.id = :interventionId AND ip.organizationId = :orgId")
     long countByInterventionId(@Param("interventionId") Long interventionId, @Param("orgId") Long orgId);
+
+    /**
+     * IDs (distincts) des interventions du lot ayant au moins une photo de la
+     * phase donnee — remplace 1 requete photos par intervention dans le calcul
+     * du score housekeeper (audit perf 2026-07-21).
+     */
+    @Query("SELECT DISTINCT ip.intervention.id FROM InterventionPhoto ip " +
+           "WHERE ip.intervention.id IN :interventionIds AND ip.phase = :phase AND ip.organizationId = :orgId")
+    List<Long> findInterventionIdsWithPhase(
+        @Param("interventionIds") List<Long> interventionIds,
+        @Param("phase") InterventionPhoto.PhotoPhase phase,
+        @Param("orgId") Long orgId
+    );
 }

@@ -1049,7 +1049,8 @@ class UserServiceTest {
             org.setId(7L);
             org.setName("MyCo");
             when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-            when(organizationRepository.findById(7L)).thenReturn(Optional.of(org));
+            // Resolution batch des noms d'org (findAllById) — audit perf 2026-07-21
+            when(organizationRepository.findAllById(any())).thenReturn(List.of(org));
 
             UserDto result = userService.getById(1L);
             assertThat(result.organizationName).isEqualTo("MyCo");

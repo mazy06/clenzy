@@ -29,7 +29,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -151,11 +150,16 @@ class RateOverrideServiceTest {
     @DisplayName("createBulk")
     class CreateBulk {
         @Test
+        @SuppressWarnings("unchecked")
         void whenValid_thenCreatesOnePerDay() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             Property property = mock(Property.class);
             when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
-            when(rateOverrideRepository.save(any(RateOverride.class))).thenAnswer(inv -> inv.getArgument(0));
+            // Batch (audit perf P2-2) : plage prechargee en une requete, aucun
+            // override existant — tout est cree puis sauve en un seul saveAll.
+            when(rateOverrideRepository.findByPropertyIdAndDateRange(
+                    1L, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 4), 1L))
+                    .thenReturn(List.of());
 
             Map<String, Object> body = Map.of(
                     "propertyId", 1L,
@@ -167,7 +171,38 @@ class RateOverrideServiceTest {
             Map<String, Object> result = service.createBulk(body, "user-123");
 
             assertThat(result.get("count")).isEqualTo(3);
-            verify(rateOverrideRepository, times(3)).save(any(RateOverride.class));
+            ArgumentCaptor<List<RateOverride>> captor = ArgumentCaptor.forClass(List.class);
+            verify(rateOverrideRepository).saveAll(captor.capture());
+            assertThat(captor.getValue()).hasSize(3);
+        }
+
+        @Test
+        @SuppressWarnings("unchecked")
+        void whenExistingOverrideInRange_thenItIsUpdatedNotDuplicated() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            Property property = mock(Property.class);
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
+            RateOverride existing = new RateOverride(property, LocalDate.of(2026, 3, 2),
+                    BigDecimal.valueOf(90), "MANUAL", 1L);
+            when(rateOverrideRepository.findByPropertyIdAndDateRange(
+                    1L, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 4), 1L))
+                    .thenReturn(List.of(existing));
+
+            Map<String, Object> body = Map.of(
+                    "propertyId", 1L,
+                    "from", "2026-03-01",
+                    "to", "2026-03-04",
+                    "nightlyPrice", 120
+            );
+
+            Map<String, Object> result = service.createBulk(body, "user-123");
+
+            // Upsert : 3 dates dont 1 existante mise a jour en place
+            assertThat(result.get("count")).isEqualTo(3);
+            ArgumentCaptor<List<RateOverride>> captor = ArgumentCaptor.forClass(List.class);
+            verify(rateOverrideRepository).saveAll(captor.capture());
+            assertThat(captor.getValue()).hasSize(3).contains(existing);
+            assertThat(existing.getNightlyPrice()).isEqualByComparingTo("120");
         }
 
         @Test
@@ -184,7 +219,7 @@ class RateOverrideServiceTest {
 
             assertThatThrownBy(() -> service.createBulk(body, "intruder"))
                     .isInstanceOf(AccessDeniedException.class);
-            verify(rateOverrideRepository, never()).save(any());
+            verify(rateOverrideRepository, never()).saveAll(any());
         }
     }
 

@@ -5,6 +5,8 @@ import com.clenzy.model.ExchangeRate;
 import com.clenzy.repository.ExchangeRateRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -82,7 +84,17 @@ public class ExchangeRateProviderService {
     /**
      * Retourne le taux de change le plus recent pour une paire de devises.
      * Si base == target, retourne 1.0.
+     *
+     * <p>Cache {@code exchange-rates} (TTL 12h) : cette methode est appelee PAR LOGEMENT dans les
+     * conversions d'affichage du booking engine (1-2 requetes DB par appel sinon). Cle = paire
+     * normalisee + date demandee ; evince par {@link #fetchDailyRates()} / {@link #refreshRates()}
+     * (seuls chemins d'ecriture des taux). Le cas identite (base == target) n'est pas cache
+     * (condition) : retour immediat sans DB. Un taux introuvable leve une exception → jamais cache.</p>
      */
+    @Cacheable(
+        value = "exchange-rates",
+        key = "#baseCurrency.toUpperCase() + ':' + #targetCurrency.toUpperCase() + ':' + #date",
+        condition = "!#baseCurrency.equalsIgnoreCase(#targetCurrency)")
     @Transactional(readOnly = true)
     public BigDecimal getRate(String baseCurrency, String targetCurrency, LocalDate date) {
         if (baseCurrency.equalsIgnoreCase(targetCurrency)) {
@@ -216,9 +228,12 @@ public class ExchangeRateProviderService {
     /**
      * Recupere et persiste les taux de change depuis open.er-api.com.
      * Execute quotidiennement a 07:00 UTC.
+     * Evince le cache {@code exchange-rates} apres le fetch : une entree « dernier taux ≤ aujourd'hui »
+     * cachee avant 07:00 pointerait sinon vers le taux de la veille jusqu'a expiration du TTL.
      */
     @Scheduled(cron = "0 0 7 * * *")
     @Transactional
+    @CacheEvict(value = "exchange-rates", allEntries = true)
     public void fetchDailyRates() {
         log.info("Fetching daily exchange rates...");
         fetchRates(LocalDate.now());
@@ -259,8 +274,11 @@ public class ExchangeRateProviderService {
 
     /**
      * Force la mise a jour des taux (appel manuel depuis l'API admin).
+     * Porte sa PROPRE annotation @CacheEvict : l'appel interne a {@link #fetchDailyRates()} est une
+     * self-invocation qui contourne le proxy Spring — l'eviction de fetchDailyRates ne s'y applique pas.
      */
     @Transactional
+    @CacheEvict(value = "exchange-rates", allEntries = true)
     public void refreshRates() {
         fetchDailyRates();
     }

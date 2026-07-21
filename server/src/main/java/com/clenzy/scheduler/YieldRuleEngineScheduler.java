@@ -7,6 +7,7 @@ import com.clenzy.tenant.TenantScopedExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -39,6 +40,7 @@ public class YieldRuleEngineScheduler {
     }
 
     @Scheduled(cron = "${clenzy.yield.v1.cron:0 40 4 * * *}")
+    @SchedulerLock(name = "yield-rule-engine-daily", lockAtMostFor = "PT30M")
     public void runDaily() {
         final List<YieldOrgConfig> enabledConfigs = configRepository.findByEnabledTrue();
         if (enabledConfigs.isEmpty()) {

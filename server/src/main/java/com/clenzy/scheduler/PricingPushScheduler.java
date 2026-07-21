@@ -10,6 +10,7 @@ import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -53,6 +54,7 @@ public class PricingPushScheduler {
      * pour les listings qui ont autoPushPricing=true.
      */
     @Scheduled(cron = "0 30 * * * *")
+    @SchedulerLock(name = "airbnb-pricing-push", lockAtMostFor = "PT20M")
     public void pushPricingToAirbnb() {
         List<AirbnbListingMapping> mappings = listingRepository.findBySyncEnabledTrueAndAutoPushPricingTrue();
 

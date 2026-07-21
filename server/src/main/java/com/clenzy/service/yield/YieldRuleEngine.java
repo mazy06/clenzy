@@ -36,8 +36,10 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Moteur des règles de yield v1 (F8a) — « si occupation &lt; X % à J-Y →
@@ -239,17 +241,26 @@ public class YieldRuleEngine {
                 : asSuggestion ? YieldAdjustment.Mode.SUGGESTED
                 : YieldAdjustment.Mode.SIMULATED;
 
+        // Batch (audit perf P1-2) : overrides + prix EFFECTIFS de toute la
+        // fenêtre préchargés en 3-4 requêtes (au lieu de 2-4 par nuit) ;
+        // la sémantique par nuit ci-dessous est inchangée.
+        final LocalDate windowEnd = today.plusDays(window);
+        final Map<LocalDate, RateOverride> overridesByDate = rateOverrideRepository
+                .findByPropertyIdAndDateRange(property.getId(), today, windowEnd, orgId).stream()
+                .collect(Collectors.toMap(RateOverride::getDate, override -> override));
+        final Map<LocalDate, BigDecimal> effectivePrices =
+                priceEngine.resolvePriceRange(property.getId(), today, windowEnd, orgId);
+
         final List<YieldAdjustment> pending = new ArrayList<>();
-        for (LocalDate date = today; date.isBefore(today.plusDays(window)); date = date.plusDays(1)) {
+        for (LocalDate date = today; date.isBefore(windowEnd); date = date.plusDays(1)) {
             if (bookedDates.contains(date)) {
                 continue; // nuit réservée : jamais re-tarifée
             }
-            final Optional<RateOverride> existing =
-                    rateOverrideRepository.findByPropertyIdAndDate(property.getId(), date, orgId);
-            if (existing.isPresent() && !YIELD_OVERRIDE_SOURCE.equals(existing.get().getSource())) {
+            final RateOverride existing = overridesByDate.get(date);
+            if (existing != null && !YIELD_OVERRIDE_SOURCE.equals(existing.getSource())) {
                 continue; // override MANUAL / OTA / externe : jamais écrasé
             }
-            final BigDecimal current = priceEngine.resolvePrice(property.getId(), date, orgId);
+            final BigDecimal current = effectivePrices.get(date);
             if (current == null || current.signum() <= 0) {
                 continue; // pas de prix résolu → rien à ajuster ce jour
             }
@@ -271,7 +282,7 @@ public class YieldRuleEngine {
             pending.add(line);
 
             if (applyNow) {
-                writeOverride(property, date, target, existing.orElse(null), orgId);
+                writeOverride(property, date, target, existing, orgId);
             }
         }
         if (pending.isEmpty()) {

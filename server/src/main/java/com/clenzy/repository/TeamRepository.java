@@ -17,6 +17,13 @@ import java.util.Optional;
 public interface TeamRepository extends JpaRepository<Team, Long> {
 
     /**
+     * Id + nom des équipes de l'org (Rapports Baitly) — projection légère,
+     * sans fetch des membres. Lignes {@code [Long id, String name]}.
+     */
+    @Query("SELECT t.id, t.name FROM Team t WHERE t.organizationId = :orgId ORDER BY t.name")
+    List<Object[]> findIdAndNameForReport(@Param("orgId") Long orgId);
+
+    /**
      * Fetch a team by ID with members and their users eagerly loaded.
      */
     @Query("SELECT t FROM Team t LEFT JOIN FETCH t.members tm LEFT JOIN FETCH tm.user WHERE t.id = :id")
@@ -69,6 +76,20 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
      */
     @Query("SELECT COUNT(t) FROM Team t WHERE t.organizationId = :orgId")
     long countTeams(@Param("orgId") Long orgId);
+
+    /**
+     * Compteur d'équipes pour les rapports PDF — org optionnelle ({@code null}
+     * = platform staff cross-org). Remplace findAll().size() (audit perf 2026-07-21).
+     */
+    @Query("SELECT COUNT(t) FROM Team t WHERE (:orgId IS NULL OR t.organizationId = :orgId)")
+    long countAllForPdfReport(@Param("orgId") Long orgId);
+
+    /**
+     * Nombre total de membres d'équipe — org optionnelle. Remplace le lazy-load
+     * {@code getMembers().size()} par équipe (audit perf 2026-07-21).
+     */
+    @Query("SELECT COUNT(tm) FROM Team t JOIN t.members tm WHERE (:orgId IS NULL OR t.organizationId = :orgId)")
+    long countMembersForPdfReport(@Param("orgId") Long orgId);
 
     @Query("SELECT COUNT(t) FROM Team t WHERE t.interventionType = :interventionType AND t.organizationId = :orgId")
     long countByInterventionType(@Param("interventionType") String interventionType, @Param("orgId") Long orgId);

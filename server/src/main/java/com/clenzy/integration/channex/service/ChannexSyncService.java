@@ -15,8 +15,8 @@ import com.clenzy.service.PriceEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -102,8 +102,13 @@ public class ChannexSyncService {
      * Les echecs de push OTA marquent le mapping ERROR ({@code updateMappingStatus})
      * et remontent success=false — le batcher re-tente avec backoff, puis
      * {@link #retryFailedMappings()} prend le relais.</p>
+     *
+     * <p>Pas de transaction englobante : les push sont des appels HTTP Channex
+     * (regle « jamais d'appel HTTP externe dans une transaction DB »). Les
+     * lectures et l'ecriture du statut mapping ({@link #updateMappingStatus})
+     * se font dans les transactions courtes implicites des repositories,
+     * APRES le resultat du push.</p>
      */
-    @Transactional
     public ChannexSyncResult processCalendarRange(Long propertyId, Long orgId,
                                                   LocalDate from, LocalDate to) {
         Optional<ChannexPropertyMapping> mappingOpt =
@@ -160,8 +165,11 @@ public class ChannexSyncService {
     /**
      * Force un push complet (availability + rates) d'une property sur une periode.
      * Utilise par l'UI onboarding apres creation d'un mapping (push initial).
+     *
+     * <p>Pas de transaction englobante (appels HTTP Channex) : les ecritures DB
+     * (statut mapping, sync log) se font en transactions courtes independantes
+     * apres le resultat du push.</p>
      */
-    @Transactional
     public ChannexSyncResult pushProperty(Long propertyId, Long orgId, LocalDate from, LocalDate to) {
         java.time.Instant startedAt = java.time.Instant.now();
         Optional<ChannexPropertyMapping> mappingOpt =
@@ -441,10 +449,16 @@ public class ChannexSyncService {
      * <p>Best-effort : un echec sur le PUT remonte un {@link ChannexException}
      * que le caller doit gerer. Pas de retry (le push manuel est synchrone).</p>
      *
+     * <p>Pas de @Transactional : le PUT rate_plan est un appel HTTP Channex
+     * (regle « jamais d'appel HTTP externe dans une transaction DB »). Les
+     * lectures preliminaires (mapping, property, sources tarifaires) se font
+     * dans les transactions courtes implicites des repositories, et le sync
+     * log ({@link ChannexSyncLogService#record}) commit deja dans sa propre
+     * transaction REQUIRES_NEW — meme pattern que {@link #pushProperty}.</p>
+     *
      * @return {@link ChannexSyncResult} avec success + message contenant les
      *         champs effectivement pushed
      */
-    @Transactional
     public ChannexSyncResult pushPricingSettings(Long propertyId, Long orgId) {
         java.time.Instant startedAt = java.time.Instant.now();
         Optional<ChannexPropertyMapping> mappingOpt = mappingRepository
@@ -593,9 +607,15 @@ public class ChannexSyncService {
      * <p>Push les 7 prochains jours uniquement (suffisant pour rattraper les
      * derniers changements ; un re-push complet est manuellement declenchable
      * via pushProperty()).</p>
+     *
+     * <p>Pas de @Transactional : chaque iteration fait des appels HTTP Channex
+     * (30-80 s au total pour la boucle) — une transaction unique sur toute la
+     * boucle tiendrait une connexion DB pendant tout ce temps. Chaque
+     * updateMappingStatus commit dans sa propre transaction courte, mapping
+     * par mapping.</p>
      */
     @Scheduled(fixedDelay = 60 * 60 * 1000L, initialDelay = 5 * 60 * 1000L)
-    @Transactional
+    @SchedulerLock(name = "channex-retry-failed-mappings", lockAtMostFor = "PT30M")
     public void retryFailedMappings() {
         List<ChannexPropertyMapping> failed = mappingRepository.findAllInError();
         if (failed.isEmpty()) return;

@@ -546,14 +546,14 @@ class ManagerServiceTest {
             User directUser = buildUser(30L, UserRole.TECHNICIAN);
             when(managerUserRepository.findByManagerIdAndIsActiveTrue(MANAGER_ID, ORG_ID))
                     .thenReturn(List.of(mu));
-            when(userRepository.findById(30L)).thenReturn(Optional.of(directUser));
+            when(userRepository.findAllById(List.of(30L))).thenReturn(List.of(directUser));
 
             // Manager-property associations
             ManagerProperty mp = new ManagerProperty(MANAGER_ID, 100L, "test");
             User host = buildUser(20L, UserRole.HOST);
             Property property = buildProperty(100L, host);
             when(managerPropertyRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of(mp));
-            when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+            when(propertyRepository.findAllById(List.of(100L))).thenReturn(List.of(property));
 
             // Manager-team associations
             ManagerTeam mt = new ManagerTeam(MANAGER_ID, 5L);
@@ -562,7 +562,7 @@ class ManagerServiceTest {
             team.setName("Equipe A");
             team.setDescription("Description");
             when(managerTeamRepository.findByManagerIdAndIsActiveTrue(MANAGER_ID, ORG_ID)).thenReturn(List.of(mt));
-            when(teamRepository.findById(5L)).thenReturn(Optional.of(team));
+            when(teamRepository.findAllById(List.of(5L))).thenReturn(List.of(team));
 
             // Act
             ManagerAssociationsDto result = managerService.getManagerAssociations(MANAGER_ID);
@@ -1168,8 +1168,9 @@ class ManagerServiceTest {
             ManagerUser mu2 = new ManagerUser(MANAGER_ID, 99L);
             when(managerUserRepository.findByManagerIdAndIsActiveTrue(MANAGER_ID, ORG_ID))
                     .thenReturn(List.of(mu1, mu2));
-            when(userRepository.findById(30L)).thenReturn(Optional.of(buildUser(30L, UserRole.TECHNICIAN)));
-            when(userRepository.findById(99L)).thenReturn(Optional.empty());
+            // findAllById ne renvoie que les entites existantes (99L absent)
+            when(userRepository.findAllById(List.of(30L, 99L)))
+                    .thenReturn(List.of(buildUser(30L, UserRole.TECHNICIAN)));
 
             when(managerPropertyRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of());
             when(managerTeamRepository.findByManagerIdAndIsActiveTrue(MANAGER_ID, ORG_ID)).thenReturn(List.of());
@@ -1192,8 +1193,9 @@ class ManagerServiceTest {
             ManagerProperty mp2 = new ManagerProperty(MANAGER_ID, 999L, "b");
             when(managerPropertyRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of(mp1, mp2));
             User host = buildUser(20L, UserRole.HOST);
-            when(propertyRepository.findById(100L)).thenReturn(Optional.of(buildProperty(100L, host)));
-            when(propertyRepository.findById(999L)).thenReturn(Optional.empty());
+            // findAllById ne renvoie que les entites existantes (999L absent)
+            when(propertyRepository.findAllById(List.of(100L, 999L)))
+                    .thenReturn(List.of(buildProperty(100L, host)));
 
             when(managerUserRepository.findByManagerIdAndIsActiveTrue(MANAGER_ID, ORG_ID)).thenReturn(List.of());
             when(managerTeamRepository.findByManagerIdAndIsActiveTrue(MANAGER_ID, ORG_ID)).thenReturn(List.of());
@@ -1216,8 +1218,8 @@ class ManagerServiceTest {
             Team t = new Team();
             t.setId(5L);
             t.setName("Team A");
-            when(teamRepository.findById(5L)).thenReturn(Optional.of(t));
-            when(teamRepository.findById(999L)).thenReturn(Optional.empty());
+            // findAllById ne renvoie que les entites existantes (999L absent)
+            when(teamRepository.findAllById(List.of(5L, 999L))).thenReturn(List.of(t));
 
             when(managerUserRepository.findByManagerIdAndIsActiveTrue(MANAGER_ID, ORG_ID)).thenReturn(List.of());
             when(managerPropertyRepository.findByManagerId(MANAGER_ID, ORG_ID)).thenReturn(List.of());

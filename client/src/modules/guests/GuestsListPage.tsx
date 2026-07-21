@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -19,7 +19,7 @@ import {
 import {
   People as PeopleIcon,
 } from '../../icons';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { guestsApi } from '../../services/api/guestsApi';
 import type { GuestListDto } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
@@ -119,49 +119,45 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
 
   // ── Filters ─────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [channelFilter, setChannelFilter] = useState('');
 
-  // ── Pagination ──────────────────────────────────────────────────────
+  // ── Pagination (serveur) ────────────────────────────────────────────
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
 
-  // ── Data fetching ───────────────────────────────────────────────────
-  const { data: guests = [], isLoading, isError, error } = useQuery({
-    queryKey: ['guests-list'],
-    queryFn: () => guestsApi.list(),
+  // Debounce 300 ms du champ recherche : la requete serveur ne part qu'une
+  // fois la saisie stabilisee ; retour page 0 a chaque nouveau terme.
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(0);
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [searchQuery]);
+
+  // Meme seuil que le backend : < 2 caracteres = pas de filtre search.
+  const effectiveSearch = debouncedSearch.length >= 2 ? debouncedSearch : '';
+
+  // ── Data fetching (pagination serveur) ──────────────────────────────
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['guests-list', page, rowsPerPage, effectiveSearch, channelFilter],
+    queryFn: () => guestsApi.listPage({
+      page,
+      size: rowsPerPage,
+      search: effectiveSearch || undefined,
+      channel: channelFilter || undefined,
+    }),
+    placeholderData: keepPreviousData,
     staleTime: 30_000,
   });
 
-  // ── Client-side filtering ───────────────────────────────────────────
-  const filteredGuests = useMemo(() => {
-    let result = guests;
-
-    if (searchQuery.length >= 2) {
-      const lower = searchQuery.toLowerCase();
-      result = result.filter((g) => {
-        const fullName = (g.fullName || '').toLowerCase();
-        const email = (g.email || '').toLowerCase();
-        const phone = (g.phone || '').toLowerCase();
-        return fullName.includes(lower) || email.includes(lower) || phone.includes(lower);
-      });
-    }
-
-    if (channelFilter) {
-      result = result.filter((g) => g.channel === channelFilter);
-    }
-
-    return result;
-  }, [guests, searchQuery, channelFilter]);
-
-  const paginatedGuests = filteredGuests.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage,
-  );
+  const guests = data?.content ?? [];
+  const totalElements = data?.totalElements ?? 0;
 
   // ── Reset page on filter change ─────────────────────────────────────
   const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
-    setPage(0);
+    setSearchQuery(value); // le retour page 0 est gere par le debounce
   };
 
   const handleChannelChange = (value: string) => {
@@ -175,7 +171,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
       {!embedded && (
         <PageHeader
           title="Voyageurs"
-          subtitle={`${filteredGuests.length} voyageur${filteredGuests.length !== 1 ? 's' : ''}`}
+          subtitle={`${totalElements} voyageur${totalElements !== 1 ? 's' : ''}`}
           iconBadge={<PeopleIcon />}
           backPath="/dashboard"
           showBackButton={false}
@@ -187,7 +183,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           <TextField
             label="Rechercher"
-            placeholder="Nom, email, telephone..."
+            placeholder="Nom, email..."
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             size="small"
@@ -236,7 +232,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
       )}
 
       {/* Empty state */}
-      {!isLoading && !isError && filteredGuests.length === 0 && (
+      {!isLoading && !isError && guests.length === 0 && (
         <EmptyState
           icon={<PeopleIcon />}
           title={searchQuery || channelFilter ? 'Aucun voyageur ne correspond aux filtres' : 'Aucun voyageur enregistre'}
@@ -247,7 +243,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
       )}
 
       {/* Table */}
-      {!isLoading && !isError && filteredGuests.length > 0 && (
+      {!isLoading && !isError && guests.length > 0 && (
         <Paper sx={CARD_SX}>
           <TableContainer>
             <Table size="small">
@@ -266,7 +262,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                 </TableRow>
               </TableHead>
               <TableBody>
-                {paginatedGuests.map((guest) => (
+                {guests.map((guest) => (
                   <TableRow
                     key={guest.id}
                     hover
@@ -364,7 +360,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
           </TableContainer>
           <TablePagination
             component="div"
-            count={filteredGuests.length}
+            count={totalElements}
             page={page}
             onPageChange={(_, p) => setPage(p)}
             rowsPerPage={rowsPerPage}

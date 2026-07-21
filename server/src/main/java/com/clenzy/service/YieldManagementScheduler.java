@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -47,6 +48,7 @@ public class YieldManagementScheduler {
      * et applique les regles de yield pertinentes.
      */
     @Scheduled(cron = "${clenzy.yield.scheduler.cron:0 0 * * * *}")
+    @SchedulerLock(name = "yield-management-hourly", lockAtMostFor = "PT30M")
     public void evaluateYieldRules() {
         log.info("Demarrage evaluation periodique des regles de yield");
 

@@ -6,6 +6,7 @@ import com.clenzy.model.*;
 import com.clenzy.repository.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -87,7 +88,7 @@ class CalendarEngineConcurrencyTest extends AbstractIntegrationTest {
         txTemplate.executeWithoutResult(status -> {
             // Nettoyer dans l'ordre inverse des FK
             for (Long propId : propertyIds) {
-                outboxEventRepository.findPendingEvents().stream()
+                outboxEventRepository.findPendingEvents(Pageable.unpaged()).stream()
                         .filter(e -> String.valueOf(propId).equals(e.getAggregateId()))
                         .forEach(e -> outboxEventRepository.deleteById(e.getId()));
                 calendarCommandRepository.findByPropertyIdOrderByExecutedAtDesc(propId)

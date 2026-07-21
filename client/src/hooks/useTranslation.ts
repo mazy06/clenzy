@@ -5,11 +5,15 @@ export const useTranslation = () => {
   const { t, i18n } = useI18nTranslation();
 
   const changeLanguage = (lng: 'fr' | 'en' | 'ar') => {
-    i18n.changeLanguage(lng);
     storageService.setItem(STORAGE_KEYS.LANGUAGE, lng);
-    // Update document direction for RTL languages
-    document.documentElement.dir = lng === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = lng;
+    // changeLanguage est asynchrone (chunk de locale chargé en lazy) : ne
+    // basculer la direction du document qu'une fois les ressources prêtes,
+    // sinon le layout passerait en RTL avec les textes encore en ancienne
+    // langue le temps du fetch.
+    void i18n.changeLanguage(lng).then(() => {
+      document.documentElement.dir = lng === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.lang = lng;
+    });
   };
 
   const currentLanguage = i18n.language || 'fr';

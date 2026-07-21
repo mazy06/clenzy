@@ -1,4 +1,5 @@
 import apiClient from '../apiClient';
+import type { PaginatedResponse } from '../apiClient';
 import { isMockEnabled, setMockEnabled } from '../storageService';
 import type { InterventionDetailsData } from '../../modules/interventions/interventionUtils';
 
@@ -67,8 +68,14 @@ export interface InterventionFormData {
 export interface InterventionListParams {
   [key: string]: string | number | boolean | undefined | null;
   propertyId?: number;
+  page?: number;
   size?: number;
   sort?: string;
+  type?: string;
+  status?: string;
+  priority?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 // ─── Mock Data ──────────────────────────────────────────────────────────────
@@ -250,6 +257,37 @@ export const interventionsApi = {
       return Promise.resolve(data);
     }
     return apiClient.get<Intervention[]>('/interventions', { params });
+  },
+
+  /**
+   * Liste paginée SERVEUR (Spring Data Page brute, avec totalElements).
+   * Contrairement à getAll (shape historique consommée via extractApiList,
+   * conservée pour compatibilité), cette méthode expose la page complète pour
+   * piloter la pagination UI par le total serveur. Les filtres
+   * type/status/priority/propertyId/startDate/endDate sont appliqués en SQL
+   * par le backend (GET /api/interventions).
+   */
+  getPage(params: InterventionListParams = {}): Promise<PaginatedResponse<Intervention>> {
+    const page = Number(params.page ?? 0);
+    const size = Number(params.size ?? 20);
+    if (import.meta.env.DEV && isMockEnabled('analytics')) {
+      let data = generateMockInterventions();
+      if (params.propertyId) data = data.filter((i) => i.propertyId === params.propertyId);
+      if (params.type) data = data.filter((i) => i.type === params.type);
+      if (params.status) data = data.filter((i) => i.status === params.status);
+      if (params.priority) data = data.filter((i) => i.priority === params.priority);
+      const totalPages = Math.max(1, Math.ceil(data.length / size));
+      return Promise.resolve({
+        content: data.slice(page * size, (page + 1) * size),
+        totalElements: data.length,
+        totalPages,
+        size,
+        number: page,
+        first: page === 0,
+        last: page >= totalPages - 1,
+      });
+    }
+    return apiClient.get<PaginatedResponse<Intervention>>('/interventions', { params });
   },
 
   getById(id: number) {

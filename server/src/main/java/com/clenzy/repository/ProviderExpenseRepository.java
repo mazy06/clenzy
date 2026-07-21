@@ -31,6 +31,18 @@ public interface ProviderExpenseRepository extends JpaRepository<ProviderExpense
     List<ProviderExpense> findByPayoutIdAndOrgId(@Param("payoutId") Long payoutId, @Param("orgId") Long orgId);
 
     /**
+     * Depenses d'un LOT de payouts avec intervention + property fetch — remplace
+     * 1 requete par payout + lazy-loads par depense dans le releve proprietaire
+     * (audit perf 2026-07-21). Tri par date pour un rendu deterministe.
+     */
+    @Query("SELECT e FROM ProviderExpense e " +
+           "LEFT JOIN FETCH e.intervention LEFT JOIN FETCH e.property " +
+           "WHERE e.ownerPayout.id IN :payoutIds AND e.organizationId = :orgId " +
+           "ORDER BY e.expenseDate")
+    List<ProviderExpense> findByPayoutIdInAndOrgId(
+            @Param("payoutIds") List<Long> payoutIds, @Param("orgId") Long orgId);
+
+    /**
      * Trouve les depenses APPROVED liees aux proprietes d'un owner sur une periode.
      * Utilisee lors de la generation du payout pour agreger les depenses.
      */

@@ -66,10 +66,11 @@ public class HousekeeperScoreService {
             return HousekeeperScore.empty();
         }
 
-        long withProof = completed.stream()
-                .filter(i -> !interventionPhotoRepository.findByInterventionIdAndPhaseOrderByCreatedAtAsc(
-                        i.getId(), InterventionPhoto.PhotoPhase.AFTER, orgId).isEmpty())
-                .count();
+        // 1 requête IN (ids distincts ayant ≥ 1 photo AFTER) au lieu d'1 requête
+        // photos par intervention (audit perf 2026-07-21).
+        long withProof = interventionPhotoRepository.findInterventionIdsWithPhase(
+                completed.stream().map(Intervention::getId).toList(),
+                InterventionPhoto.PhotoPhase.AFTER, orgId).size();
 
         double proofRate = (double) withProof / completed.size();
         double volumeFactor = Math.min(1.0, (double) completed.size() / FULL_VOLUME_COUNT);

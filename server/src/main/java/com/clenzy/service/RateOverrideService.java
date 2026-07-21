@@ -149,20 +149,28 @@ public class RateOverrideService {
                 ? body.get("currency").toString()
                 : (property.getDefaultCurrency() != null ? property.getDefaultCurrency() : "EUR");
 
+        // Batch (audit perf P2-2) : les overrides existants de la plage sont
+        // precharges en UNE requete (au lieu d'un SELECT par jour), l'upsert se
+        // fait en memoire puis part en un seul saveAll.
+        Map<LocalDate, RateOverride> existingByDate = rateOverrideRepository
+                .findByPropertyIdAndDateRange(propertyId, from, to, orgId).stream()
+                .collect(Collectors.toMap(RateOverride::getDate, override -> override));
+
         List<RateOverride> created = new ArrayList<>();
         for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
-            final LocalDate d = date;
             // Upsert : ré-appliquer une période chevauchant des dates déjà
             // surchargées met à jour au lieu de planter (unique (property_id, date)).
-            RateOverride override = rateOverrideRepository
-                    .findByPropertyIdAndDate(propertyId, d, orgId)
-                    .orElseGet(() -> new RateOverride(property, d, price, source, orgId));
+            RateOverride override = existingByDate.get(date);
+            if (override == null) {
+                override = new RateOverride(property, date, price, source, orgId);
+            }
             override.setNightlyPrice(price);
             override.setSource(source);
             override.setCurrency(currency);
             override.setCreatedBy(keycloakId);
-            created.add(rateOverrideRepository.save(override));
+            created.add(override);
         }
+        rateOverrideRepository.saveAll(created);
         searchCacheInvalidator.onAvailabilityOrPriceChanged(); // prix changés → invalide le calendrier agrégé
         if (!created.isEmpty()) {
             // Plage source [from, to) exclusive → event inclusif [from, to-1].

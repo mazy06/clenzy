@@ -8,6 +8,7 @@ import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -38,6 +39,7 @@ public class BookingCautionScheduler {
 
     /** Tous les jours à 04:30 : libère les cautions des séjours terminés depuis le délai configuré. */
     @Scheduled(cron = "0 30 4 * * *")
+    @SchedulerLock(name = "booking-caution-release", lockAtMostFor = "PT15M")
     public void releaseExpiredHolds() {
         LocalDate cutoff = LocalDate.now().minusDays(BookingEngineDepositService.RELEASE_DAYS_AFTER_CHECKOUT);
         List<SecurityDeposit> holds = depositService.findHoldsToRelease(cutoff);

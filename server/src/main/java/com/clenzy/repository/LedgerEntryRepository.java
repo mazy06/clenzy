@@ -20,6 +20,10 @@ public interface LedgerEntryRepository extends JpaRepository<LedgerEntry, Long> 
     List<LedgerEntry> findByReferenceTypeAndReferenceId(
         LedgerReferenceType referenceType, String referenceId);
 
+    /** Existence d'une ecriture pour une reference — evite de charger la liste pour un isEmpty. */
+    boolean existsByReferenceTypeAndReferenceId(
+        LedgerReferenceType referenceType, String referenceId);
+
     @Query("SELECT COALESCE(" +
            "SUM(CASE WHEN e.entryType = com.clenzy.model.LedgerEntryType.CREDIT THEN e.amount ELSE java.math.BigDecimal.ZERO END) - " +
            "SUM(CASE WHEN e.entryType = com.clenzy.model.LedgerEntryType.DEBIT THEN e.amount ELSE java.math.BigDecimal.ZERO END), 0) " +

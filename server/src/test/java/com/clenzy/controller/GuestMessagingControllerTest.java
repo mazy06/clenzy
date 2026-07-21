@@ -156,7 +156,9 @@ class GuestMessagingControllerTest {
     @Test
     void whenGetHistory_thenReturnsMappedList() {
         GuestMessageLog logEntry = buildLogEntry();
-        when(messageLogRepository.findByOrganizationIdOrderByCreatedAtDesc(1L))
+        // Historique borne aux N dernieres entrees (Pageable interne — audit perf 2026-07-21)
+        when(messageLogRepository.findByOrganizationIdOrderByCreatedAtDesc(
+                org.mockito.ArgumentMatchers.eq(1L), any(org.springframework.data.domain.Pageable.class)))
             .thenReturn(List.of(logEntry));
 
         var result = controller.getHistory();
@@ -207,7 +209,8 @@ class GuestMessagingControllerTest {
 
     @Test
     void whenGetHistory_empty_thenReturnsEmptyList() {
-        when(messageLogRepository.findByOrganizationIdOrderByCreatedAtDesc(1L))
+        when(messageLogRepository.findByOrganizationIdOrderByCreatedAtDesc(
+                org.mockito.ArgumentMatchers.eq(1L), any(org.springframework.data.domain.Pageable.class)))
             .thenReturn(List.of());
 
         var result = controller.getHistory();

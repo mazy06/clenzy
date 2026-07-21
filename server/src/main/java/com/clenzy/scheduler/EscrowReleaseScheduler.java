@@ -9,6 +9,7 @@ import com.clenzy.service.EscrowService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -44,6 +45,7 @@ public class EscrowReleaseScheduler {
      * This prevents one failed release from rolling back the entire batch.
      */
     @Scheduled(cron = "0 0 * * * *")  // Every hour
+    @SchedulerLock(name = "escrow-release", lockAtMostFor = "PT15M")
     public void releaseEscrowOnCheckIn() {
         log.debug("Checking for releasable escrow holds...");
         LocalDate today = LocalDate.now();

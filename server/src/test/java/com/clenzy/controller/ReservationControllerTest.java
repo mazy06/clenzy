@@ -18,6 +18,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -93,13 +97,18 @@ class ReservationControllerTest {
     @Nested
     @DisplayName("getReservations")
     class GetReservations {
+        // NOTE : depuis P1-6 (audit perf 2026-07-21), le filtre status est applique
+        // en SQL par le service (getReservationsPage) — le controller ne fait plus
+        // que deleguer. Le mode non pagine passe Pageable.unpaged().
+
         @Test
-        void whenGetAll_thenReturnsFiltered() {
+        void whenGetAll_thenDelegatesUnpaged() {
             Jwt jwt = createJwt();
             Reservation reservation = new Reservation();
             reservation.setStatus("confirmed");
-            when(reservationService.getReservations(eq("user-123"), isNull(), any(), any()))
-                    .thenReturn(List.of(reservation));
+            when(reservationService.getReservationsPage(eq("user-123"), isNull(), any(), any(),
+                    isNull(), isNull(), isNull(), eq(Pageable.unpaged())))
+                    .thenReturn(new PageImpl<>(List.of(reservation)));
             when(reservationMapper.toDto(reservation)).thenReturn(sampleDto("confirmed"));
 
             ResponseEntity<List<ReservationDto>> response = controller.getReservations(jwt, null, null, null, null);
@@ -107,33 +116,83 @@ class ReservationControllerTest {
         }
 
         @Test
-        void whenStatusFilter_thenFilters() {
+        void whenStatusFilter_thenPassedToServiceForSqlFiltering() {
             Jwt jwt = createJwt();
             Reservation r1 = new Reservation();
             r1.setStatus("confirmed");
-            Reservation r2 = new Reservation();
-            r2.setStatus("cancelled");
-            when(reservationService.getReservations(eq("user-123"), isNull(), any(), any()))
-                    .thenReturn(List.of(r1, r2));
+            when(reservationService.getReservationsPage(eq("user-123"), isNull(), any(), any(),
+                    eq("confirmed"), isNull(), isNull(), eq(Pageable.unpaged())))
+                    .thenReturn(new PageImpl<>(List.of(r1)));
             when(reservationMapper.toDto(r1)).thenReturn(sampleDto("confirmed"));
 
             ResponseEntity<List<ReservationDto>> response = controller.getReservations(jwt, null, null, null, "confirmed");
             assertThat(response.getBody()).hasSize(1);
+            verify(reservationService).getReservationsPage(eq("user-123"), isNull(), any(), any(),
+                    eq("confirmed"), isNull(), isNull(), eq(Pageable.unpaged()));
         }
 
         @Test
-        void whenStatusAll_thenNoFilter() {
+        void whenStatusAll_thenPassedThroughAndNormalizedByService() {
             Jwt jwt = createJwt();
             Reservation r1 = new Reservation();
             r1.setStatus("confirmed");
             Reservation r2 = new Reservation();
             r2.setStatus("cancelled");
-            when(reservationService.getReservations(any(), any(), any(), any()))
-                    .thenReturn(List.of(r1, r2));
+            when(reservationService.getReservationsPage(any(), any(), any(), any(),
+                    eq("all"), isNull(), isNull(), eq(Pageable.unpaged())))
+                    .thenReturn(new PageImpl<>(List.of(r1, r2)));
             when(reservationMapper.toDto(any())).thenReturn(sampleDto("any"));
 
             ResponseEntity<List<ReservationDto>> response = controller.getReservations(jwt, null, null, null, "all");
             assertThat(response.getBody()).hasSize(2);
+        }
+    }
+
+    @Nested
+    @DisplayName("getReservationsPaged")
+    class GetReservationsPaged {
+        @Test
+        void whenPaged_thenDelegatesWithPageRequestAndReturnsPageMetadata() {
+            Jwt jwt = createJwt();
+            Reservation reservation = new Reservation();
+            reservation.setStatus("confirmed");
+            when(reservationService.getReservationsPage(eq("user-123"), isNull(), any(), any(),
+                    eq("confirmed"), eq("direct"), eq("jean"), eq(PageRequest.of(2, 25))))
+                    .thenReturn(new PageImpl<>(List.of(reservation), PageRequest.of(2, 25), 51));
+            when(reservationMapper.toDto(reservation)).thenReturn(sampleDto("confirmed"));
+
+            ResponseEntity<Page<ReservationDto>> response = controller.getReservationsPaged(
+                    jwt, null, null, null, "confirmed", "direct", "jean", 2, 25);
+
+            assertThat(response.getBody().getContent()).hasSize(1);
+            assertThat(response.getBody().getTotalElements()).isEqualTo(51);
+            assertThat(response.getBody().getNumber()).isEqualTo(2);
+        }
+
+        @Test
+        void whenSizeOutOfBounds_thenClamped() {
+            Jwt jwt = createJwt();
+            when(reservationService.getReservationsPage(eq("user-123"), isNull(), any(), any(),
+                    isNull(), isNull(), isNull(), eq(PageRequest.of(0, 200))))
+                    .thenReturn(new PageImpl<>(List.of()));
+
+            controller.getReservationsPaged(jwt, null, null, null, null, null, null, 0, 5000);
+
+            verify(reservationService).getReservationsPage(eq("user-123"), isNull(), any(), any(),
+                    isNull(), isNull(), isNull(), eq(PageRequest.of(0, 200)));
+        }
+
+        @Test
+        void whenNegativePage_thenClampedToZero() {
+            Jwt jwt = createJwt();
+            when(reservationService.getReservationsPage(eq("user-123"), isNull(), any(), any(),
+                    isNull(), isNull(), isNull(), eq(PageRequest.of(0, 25))))
+                    .thenReturn(new PageImpl<>(List.of()));
+
+            controller.getReservationsPaged(jwt, null, null, null, null, null, null, -3, 25);
+
+            verify(reservationService).getReservationsPage(eq("user-123"), isNull(), any(), any(),
+                    isNull(), isNull(), isNull(), eq(PageRequest.of(0, 25)));
         }
     }
 
@@ -395,12 +454,29 @@ class ReservationControllerTest {
         @Test
         void whenFromIsNull_thenUsesDefaultStart() {
             Jwt jwt = createJwt();
-            when(reservationService.getReservations(eq("user-123"), isNull(), any(), any()))
-                    .thenReturn(List.of());
+            when(reservationService.getReservationsPage(eq("user-123"), isNull(),
+                    eq(java.time.LocalDate.now().minusMonths(3)),
+                    eq(java.time.LocalDate.now().plusMonths(6)),
+                    isNull(), isNull(), isNull(), eq(Pageable.unpaged())))
+                    .thenReturn(new PageImpl<>(List.of()));
 
             ResponseEntity<List<ReservationDto>> response = controller.getReservations(
                     jwt, null, null, null, null);
             assertThat(response.getBody()).isEmpty();
+        }
+
+        @Test
+        void whenPagedModeWithoutDates_thenSameDefaultWindow() {
+            Jwt jwt = createJwt();
+            when(reservationService.getReservationsPage(eq("user-123"), isNull(),
+                    eq(java.time.LocalDate.now().minusMonths(3)),
+                    eq(java.time.LocalDate.now().plusMonths(6)),
+                    isNull(), isNull(), isNull(), eq(PageRequest.of(0, 25))))
+                    .thenReturn(new PageImpl<>(List.of()));
+
+            ResponseEntity<Page<ReservationDto>> response = controller.getReservationsPaged(
+                    jwt, null, null, null, null, null, null, 0, 25);
+            assertThat(response.getBody().getContent()).isEmpty();
         }
     }
 
@@ -523,29 +599,20 @@ class ReservationControllerTest {
     @Nested
     @DisplayName("getReservations - filter combinations")
     class GetReservationsExt {
+        // La normalisation status (""/"all" → null, casse) est testee dans
+        // ReservationServiceTest.GetReservationsPage ; ici on verifie la delegation.
+
         @Test
-        void whenStatusEmpty_thenNoFilter() {
+        void whenStatusEmpty_thenPassedThrough() {
             Jwt jwt = createJwt();
             Reservation r1 = new Reservation();
             r1.setStatus("confirmed");
-            when(reservationService.getReservations(any(), any(), any(), any()))
-                    .thenReturn(List.of(r1));
+            when(reservationService.getReservationsPage(any(), any(), any(), any(),
+                    eq(""), isNull(), isNull(), eq(Pageable.unpaged())))
+                    .thenReturn(new PageImpl<>(List.of(r1)));
             when(reservationMapper.toDto(r1)).thenReturn(sampleDto("confirmed"));
 
             ResponseEntity<List<ReservationDto>> response = controller.getReservations(jwt, null, null, null, "");
-            assertThat(response.getBody()).hasSize(1);
-        }
-
-        @Test
-        void whenStatusFilterCaseInsensitive_thenMatches() {
-            Jwt jwt = createJwt();
-            Reservation r1 = new Reservation();
-            r1.setStatus("CONFIRMED");
-            when(reservationService.getReservations(any(), any(), any(), any()))
-                    .thenReturn(List.of(r1));
-            when(reservationMapper.toDto(r1)).thenReturn(sampleDto("CONFIRMED"));
-
-            ResponseEntity<List<ReservationDto>> response = controller.getReservations(jwt, null, null, null, "confirmed");
             assertThat(response.getBody()).hasSize(1);
         }
 
@@ -554,24 +621,28 @@ class ReservationControllerTest {
             Jwt jwt = createJwt();
             java.time.LocalDate from = java.time.LocalDate.of(2026, 1, 1);
             java.time.LocalDate to = java.time.LocalDate.of(2026, 12, 31);
-            when(reservationService.getReservations(eq("user-123"), isNull(), eq(from), eq(to)))
-                    .thenReturn(List.of());
+            when(reservationService.getReservationsPage(eq("user-123"), isNull(), eq(from), eq(to),
+                    isNull(), isNull(), isNull(), eq(Pageable.unpaged())))
+                    .thenReturn(new PageImpl<>(List.of()));
 
             ResponseEntity<List<ReservationDto>> response = controller.getReservations(jwt, null, from, to, null);
             assertThat(response.getBody()).isEmpty();
-            verify(reservationService).getReservations("user-123", null, from, to);
+            verify(reservationService).getReservationsPage(eq("user-123"), isNull(), eq(from), eq(to),
+                    isNull(), isNull(), isNull(), eq(Pageable.unpaged()));
         }
 
         @Test
         void whenPropertyIdsProvided_thenPassedThrough() {
             Jwt jwt = createJwt();
-            when(reservationService.getReservations(eq("user-123"), eq(List.of(1L, 2L)), any(), any()))
-                    .thenReturn(List.of());
+            when(reservationService.getReservationsPage(eq("user-123"), eq(List.of(1L, 2L)), any(), any(),
+                    isNull(), isNull(), isNull(), eq(Pageable.unpaged())))
+                    .thenReturn(new PageImpl<>(List.of()));
 
             ResponseEntity<List<ReservationDto>> response = controller.getReservations(
                     jwt, List.of(1L, 2L), null, null, null);
             assertThat(response.getBody()).isEmpty();
-            verify(reservationService).getReservations(eq("user-123"), eq(List.of(1L, 2L)), any(), any());
+            verify(reservationService).getReservationsPage(eq("user-123"), eq(List.of(1L, 2L)), any(), any(),
+                    isNull(), isNull(), isNull(), eq(Pageable.unpaged()));
         }
     }
 

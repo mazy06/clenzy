@@ -8,8 +8,10 @@ spring:
       enabled: true
   task:
     scheduling:
-      pool:
-        size: 4          # 1 thread per scheduler (iCal, Noise, Pricing, Messaging)
+      # Avec threads.virtual.enabled=true, Boot auto-configure un
+      # SimpleAsyncTaskScheduler en virtual threads : chaque @Scheduled tourne
+      # sur son propre thread virtuel (pool.size serait ignore — ne pas en
+      # remettre un ici, la vraie borne partagee est le pool Hikari).
       thread-name-prefix: sched-
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
@@ -23,6 +25,19 @@ spring:
       enabled: true
       max-file-size: 10MB
       max-request-size: 10MB
+  jpa:
+    properties:
+      hibernate:
+        # Anti-N+1 global : les associations LAZY se chargent par lots de 32
+        # (N SELECT unitaires -> ceil(N/32) SELECT ... IN (...)).
+        default_batch_fetch_size: 32
+        # Batching JDBC des INSERT/UPDATE (couple a reWriteBatchedInserts cote
+        # driver PG, cf. hikari.data-source-properties en prod).
+        jdbc:
+          batch_size: 30
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
 
 # Configuration Keycloak
 keycloak:

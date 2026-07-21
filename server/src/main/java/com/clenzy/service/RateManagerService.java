@@ -32,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -349,10 +350,19 @@ public class RateManagerService {
     /**
      * Mise a jour tarifaire en masse : ecrit un RateOverride source MANUAL
      * (priorite maximale du PriceEngine) + une entree d'audit par date.
+     *
+     * <p>Batch (audit perf P1-1) : la resolution de prix se fait en UNE passe
+     * par propriete via {@link PriceEngine#resolvePriceRangeWithSource} (2-3
+     * requetes pour toute la plage, au lieu de 3 par jour), les overrides
+     * existants de la plage sont precharges pour l'upsert (contrainte unique
+     * (property_id, date)), et les ecritures partent en {@code saveAll}.
+     * Memes valeurs ecrites et memes entrees d'audit que la version par-date.</p>
      */
     @Transactional
     public void bulkUpdate(BulkRateUpdateRequest request, String keycloakId) {
         Long orgId = tenantContext.getRequiredOrganizationId();
+        LocalDate from = request.from();
+        LocalDate toExclusive = request.to().plusDays(1); // plage requete inclusive → [from, to)
 
         for (Long propertyId : request.propertyIds()) {
             reservationService.validatePropertyAccess(propertyId, keycloakId);
@@ -360,20 +370,37 @@ public class RateManagerService {
             Property property = propertyRepository.findById(propertyId)
                     .orElseThrow(() -> new NotFoundException("Propriete introuvable: " + propertyId));
 
-            for (LocalDate date = request.from(); !date.isAfter(request.to()); date = date.plusDays(1)) {
-                BigDecimal currentPrice = priceEngine.resolvePrice(propertyId, date, orgId);
+            Map<LocalDate, PriceEngine.ResolvedPrice> resolvedPrices =
+                    priceEngine.resolvePriceRangeWithSource(propertyId, from, toExclusive, orgId);
+            Map<LocalDate, RateOverride> existingOverrides = rateOverrideRepository
+                    .findByPropertyIdAndDateRange(propertyId, from, toExclusive, orgId).stream()
+                    .collect(Collectors.toMap(RateOverride::getDate, override -> override));
+
+            List<RateOverride> overridesToSave = new ArrayList<>();
+            List<RateAuditLog> auditsToSave = new ArrayList<>();
+            for (LocalDate date = from; date.isBefore(toExclusive); date = date.plusDays(1)) {
+                PriceEngine.ResolvedPrice resolved = resolvedPrices.get(date);
+                BigDecimal currentPrice = resolved != null ? resolved.price() : null;
                 if (currentPrice == null) continue;
 
                 BigDecimal newPrice = calculateBulkAdjustedPrice(currentPrice, request);
-                RateOverride override = new RateOverride(property, date, newPrice, "MANUAL", orgId);
+                RateOverride override = existingOverrides.get(date);
+                if (override == null) {
+                    override = new RateOverride(property, date, newPrice, "MANUAL", orgId);
+                } else {
+                    override.setNightlyPrice(newPrice);
+                    override.setSource("MANUAL");
+                }
                 override.setCreatedBy(keycloakId);
-                rateOverrideRepository.save(override);
+                overridesToSave.add(override);
 
-                rateAuditLogRepository.save(new RateAuditLog(
+                auditsToSave.add(new RateAuditLog(
                         orgId, propertyId, date,
                         currentPrice, newPrice,
                         "MANUAL", keycloakId, null));
             }
+            rateOverrideRepository.saveAll(overridesToSave);
+            rateAuditLogRepository.saveAll(auditsToSave);
         }
     }
 

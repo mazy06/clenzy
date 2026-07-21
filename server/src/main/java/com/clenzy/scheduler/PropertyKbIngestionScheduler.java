@@ -8,6 +8,7 @@ import com.clenzy.service.AiTokenBudgetService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 /**
@@ -35,6 +36,7 @@ public class PropertyKbIngestionScheduler {
 
     /** Tous les jours à 05:15 (après le crédit fidélité 04:45). */
     @Scheduled(cron = "0 15 5 * * *")
+    @SchedulerLock(name = "property-kb-ingestion", lockAtMostFor = "PT30M")
     public void reindexProperties() {
         int reindexed = 0;
         for (Organization org : organizationRepository.findAll()) {

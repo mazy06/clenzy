@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   useSensor,
   useSensors,
@@ -129,25 +129,53 @@ export function usePlanningDrag({
     });
   }, []);
 
+  // ── Throttle rAF du drag move ─────────────────────────────────────────────
+  // dnd-kit émet onDragMove à chaque mousemove ; un setState par événement
+  // re-rendait toute la grille plusieurs fois par frame. On mémorise le
+  // dernier delta et on n'applique qu'UN setState par frame d'animation.
+  const moveRaf = useRef<number | null>(null);
+  const pendingMove = useRef<{ event: PlanningEvent; deltaX: number; type: DragType } | null>(null);
+
+  const cancelPendingMove = useCallback(() => {
+    if (moveRaf.current !== null) {
+      cancelAnimationFrame(moveRaf.current);
+      moveRaf.current = null;
+    }
+    pendingMove.current = null;
+  }, []);
+
+  // Annule un rAF encore en vol si le composant se démonte en plein drag.
+  useEffect(() => cancelPendingMove, [cancelPendingMove]);
+
   const handleDragMove = useCallback(
     (event: DragMoveEvent) => {
       const data = event.active.data.current as DragBarData | undefined;
       if (!data) return;
 
-      const deltaX = event.delta.x;
-      const { ghost, conflict } = computeGhost(data.event, deltaX, data.type);
+      pendingMove.current = { event: data.event, deltaX: event.delta.x, type: data.type };
+      if (moveRaf.current !== null) return; // un rAF est déjà planifié pour cette frame
 
-      setState((prev) => ({
-        ...prev,
-        ghostLayout: ghost,
-        dragConflict: conflict,
-      }));
+      moveRaf.current = requestAnimationFrame(() => {
+        moveRaf.current = null;
+        const pending = pendingMove.current;
+        if (!pending) return;
+        const { ghost, conflict } = computeGhost(pending.event, pending.deltaX, pending.type);
+        setState((prev) => {
+          // Drop/cancel déjà passé entre la planification et la frame : ne pas
+          // réintroduire un ghost sur l'état réinitialisé.
+          if (!prev.isDragging) return prev;
+          return { ...prev, ghostLayout: ghost, dragConflict: conflict };
+        });
+      });
     },
     [computeGhost],
   );
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
+      // Un rAF de move encore planifié ne doit pas écraser l'état final.
+      cancelPendingMove();
+
       const data = event.active.data.current as DragBarData | undefined;
       if (!data) {
         setState(INITIAL_STATE);
@@ -296,12 +324,13 @@ export function usePlanningDrag({
 
       setState(INITIAL_STATE);
     },
-    [dayWidth, computeGhost, queryClient],
+    [dayWidth, computeGhost, queryClient, cancelPendingMove],
   );
 
   const handleDragCancel = useCallback(() => {
+    cancelPendingMove();
     setState(INITIAL_STATE);
-  }, []);
+  }, [cancelPendingMove]);
 
   return {
     sensors,

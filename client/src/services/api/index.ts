@@ -54,7 +54,7 @@ export { usersApi } from './usersApi';
 export type { User, UserFormData, LockoutStatus } from './usersApi';
 
 export { notificationsApi } from './notificationsApi';
-export type { Notification, UnreadCountResponse } from './notificationsApi';
+export type { Notification, UnreadCountResponse, NotificationPage, NotificationPageParams } from './notificationsApi';
 
 export { reservationsApi } from './reservationsApi';
 export type {
@@ -195,7 +195,7 @@ export type {
 } from './calendarPricingApi';
 
 export { guestsApi } from './guestsApi';
-export type { GuestDto, CreateGuestData, GuestListDto, GuestListParams } from './guestsApi';
+export type { GuestDto, CreateGuestData, GuestListDto, GuestListParams, GuestPage, GuestPageParams } from './guestsApi';
 
 export { guestMessagingApi } from './guestMessagingApi';
 export type {

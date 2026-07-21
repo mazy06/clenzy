@@ -10,6 +10,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -94,6 +95,7 @@ public class ChannexWatchdogScheduler {
      */
     @Scheduled(fixedRateString = "#{${clenzy.channex.watchdog.interval-minutes:15} * 60000}",
                initialDelayString = "${clenzy.channex.watchdog.initial-delay-ms:60000}")
+    @SchedulerLock(name = "channex-watchdog-scan", lockAtMostFor = "PT15M")
     public void scan() {
         // Phase 5 audit fix O5 : skip si l'API key Channex n'est pas configuree.
         // Evite d'inonder les logs en dev/staging sans clef + de polluer les gauges

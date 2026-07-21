@@ -148,7 +148,95 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("to") LocalDate to,
             @Param("orgId") Long orgId);
 
-    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest LEFT JOIN FETCH r.intervention WHERE r.id = :id")
+    // ─── Liste réservations (endpoint GET /api/reservations) ───────────────────
+    // Variantes avec filtres status/source/search en SQL (audit perf 2026-07-21,
+    // P1-6 : fin du filtre status en mémoire + pagination serveur opt-in).
+    // Les filtres sont optionnels (null = pas de filtre) ; status et source sont
+    // normalisés en minuscules par le service (valeurs stockées en minuscules,
+    // cf. ICalEventParser), search est déjà encadré de % et en minuscules.
+    // La recherche ne cible QUE des colonnes en clair (guestName, confirmationCode,
+    // property.name) — jamais les champs PII du Guest.
+
+    @Query(value = "SELECT r FROM Reservation r JOIN FETCH r.property p LEFT JOIN FETCH r.guest " +
+           "WHERE p.id IN :propertyIds AND r.organizationId = :orgId " +
+           "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false " +
+           "AND (:status IS NULL OR LOWER(r.status) = :status) " +
+           "AND (:source IS NULL OR LOWER(r.source) = :source) " +
+           "AND (:search IS NULL OR LOWER(r.guestName) LIKE :search " +
+           "OR LOWER(r.confirmationCode) LIKE :search OR LOWER(p.name) LIKE :search) " +
+           "ORDER BY r.checkIn ASC",
+           countQuery = "SELECT COUNT(r) FROM Reservation r JOIN r.property p " +
+           "WHERE p.id IN :propertyIds AND r.organizationId = :orgId " +
+           "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false " +
+           "AND (:status IS NULL OR LOWER(r.status) = :status) " +
+           "AND (:source IS NULL OR LOWER(r.source) = :source) " +
+           "AND (:search IS NULL OR LOWER(r.guestName) LIKE :search " +
+           "OR LOWER(r.confirmationCode) LIKE :search OR LOWER(p.name) LIKE :search)")
+    Page<Reservation> findPageByPropertyIdsAndDateRange(
+            @Param("propertyIds") List<Long> propertyIds,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("orgId") Long orgId,
+            @Param("status") String status,
+            @Param("source") String source,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query(value = "SELECT r FROM Reservation r JOIN FETCH r.property p LEFT JOIN FETCH r.guest " +
+           "WHERE r.organizationId = :orgId " +
+           "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false " +
+           "AND (:status IS NULL OR LOWER(r.status) = :status) " +
+           "AND (:source IS NULL OR LOWER(r.source) = :source) " +
+           "AND (:search IS NULL OR LOWER(r.guestName) LIKE :search " +
+           "OR LOWER(r.confirmationCode) LIKE :search OR LOWER(p.name) LIKE :search) " +
+           "ORDER BY r.checkIn ASC",
+           countQuery = "SELECT COUNT(r) FROM Reservation r JOIN r.property p " +
+           "WHERE r.organizationId = :orgId " +
+           "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false " +
+           "AND (:status IS NULL OR LOWER(r.status) = :status) " +
+           "AND (:source IS NULL OR LOWER(r.source) = :source) " +
+           "AND (:search IS NULL OR LOWER(r.guestName) LIKE :search " +
+           "OR LOWER(r.confirmationCode) LIKE :search OR LOWER(p.name) LIKE :search)")
+    Page<Reservation> findPageAllByDateRange(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("orgId") Long orgId,
+            @Param("status") String status,
+            @Param("source") String source,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query(value = "SELECT r FROM Reservation r JOIN FETCH r.property p LEFT JOIN FETCH r.guest " +
+           "WHERE p.owner.keycloakId = :keycloakId AND r.organizationId = :orgId " +
+           "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false " +
+           "AND (:status IS NULL OR LOWER(r.status) = :status) " +
+           "AND (:source IS NULL OR LOWER(r.source) = :source) " +
+           "AND (:search IS NULL OR LOWER(r.guestName) LIKE :search " +
+           "OR LOWER(r.confirmationCode) LIKE :search OR LOWER(p.name) LIKE :search) " +
+           "ORDER BY r.checkIn ASC",
+           countQuery = "SELECT COUNT(r) FROM Reservation r JOIN r.property p " +
+           "WHERE p.owner.keycloakId = :keycloakId AND r.organizationId = :orgId " +
+           "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false " +
+           "AND (:status IS NULL OR LOWER(r.status) = :status) " +
+           "AND (:source IS NULL OR LOWER(r.source) = :source) " +
+           "AND (:search IS NULL OR LOWER(r.guestName) LIKE :search " +
+           "OR LOWER(r.confirmationCode) LIKE :search OR LOWER(p.name) LIKE :search)")
+    Page<Reservation> findPageByOwnerKeycloakIdAndDateRange(
+            @Param("keycloakId") String keycloakId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("orgId") Long orgId,
+            @Param("status") String status,
+            @Param("source") String source,
+            @Param("search") String search,
+            Pageable pageable);
+
+    /**
+     * "Fetch all" inclut le owner de la property (LAZY depuis l'audit perf 2026-07-21) :
+     * des consommateurs hors transaction (ReservationPaymentService.sendPaymentLink,
+     * preview des tags documents) lisent {@code property.getOwner()} sur l'entite detachee.
+     */
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH r.guest LEFT JOIN FETCH r.intervention WHERE r.id = :id")
     Optional<Reservation> findByIdFetchAll(@Param("id") Long id);
 
     Optional<Reservation> findByExternalUidAndPropertyId(String externalUid, Long propertyId);
@@ -330,6 +418,29 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
            "WHERE r.totalPrice IS NOT NULL AND r.totalPrice > 0 " +
            "AND r.organizationId = :orgId")
     List<Reservation> findAllWithPayment(@Param("orgId") Long orgId);
+
+    /**
+     * Reservations PAYEES avec property + owner fetch (backfill wallet).
+     * Le fetch join owner evite le lazy-load par reservation dans la boucle
+     * (Property.owner passe en LAZY) et le filtre PAID reduit le scan.
+     */
+    @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.property p LEFT JOIN FETCH p.owner " +
+           "WHERE r.totalPrice IS NOT NULL AND r.totalPrice > 0 " +
+           "AND r.paymentStatus = com.clenzy.model.PaymentStatus.PAID " +
+           "AND r.organizationId = :orgId")
+    List<Reservation> findPaidWithOwnerForWalletBackfill(@Param("orgId") Long orgId);
+
+    /**
+     * Agregat par guest des sejours confirmes : nombre + montant total.
+     * Lignes {@code [Long guestId, Long count, BigDecimal totalSpent]}.
+     * Cross-org volontairement (utilitaire de recalcul GuestService, symetrique
+     * du guestRepository.findAll()) — remplace 1 requete par guest (audit perf
+     * 2026-07-21).
+     */
+    @Query("SELECT r.guest.id, COUNT(r), COALESCE(SUM(COALESCE(r.totalPrice, 0)), 0) " +
+           "FROM Reservation r WHERE r.guest IS NOT NULL AND r.status = 'confirmed' " +
+           "GROUP BY r.guest.id")
+    List<Object[]> aggregateConfirmedStaysByGuest();
 
     /**
      * Reservations RESERVEES (non annulees, tous statuts sauf 'cancelled' : confirmed

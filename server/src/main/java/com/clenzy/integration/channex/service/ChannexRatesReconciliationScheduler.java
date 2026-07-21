@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -88,6 +89,7 @@ public class ChannexRatesReconciliationScheduler {
      */
     @Scheduled(fixedRateString = "#{${clenzy.channex.reconciliation.interval-minutes:60} * 60000}",
                initialDelayString = "${clenzy.channex.reconciliation.initial-delay-ms:120000}")
+    @SchedulerLock(name = "channex-rates-reconciliation", lockAtMostFor = "PT30M")
     public void scan() {
         // Phase 5 audit fix O5 : skip si l'API key Channex n'est pas configuree.
         if (!channexProperties.isConfigured()) {

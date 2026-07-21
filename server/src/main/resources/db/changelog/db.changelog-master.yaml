@@ -3416,3 +3416,31 @@ databaseChangeLog:
       sqlFile:
         path: changes/0356__create_market_data_connections.sql
         relativeToChangelogFile: true
+
+  # Audit perf 2026-07-21 : observabilite requetes. Le preload de la lib est
+  # gere cote infra (postgresql-primary.conf, shared_preload_libraries).
+  - changeSet:
+      id: "0357-enable-pg-stat-statements"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0357__enable_pg_stat_statements.sql
+        relativeToChangelogFile: true
+
+  # Audit perf 2026-07-21 (vague 1) : index manquants sur les chemins chauds —
+  # messagerie (aucun index secondaire), interventions (planning/webhooks),
+  # lookups Stripe/confirmation, backlog service_requests, outbox FAILED, purge funnel.
+  - changeSet:
+      id: "0358-add-missing-hot-path-indexes"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0358__add_missing_hot_path_indexes.sql
+        relativeToChangelogFile: true
+
+  # Audit perf 2026-07-21 (P2-7) : verrous multi-instance ShedLock sur les
+  # jobs @Scheduled a effets externes (emails, paiements, pushes OTA).
+  - changeSet:
+      id: "0359-create-shedlock-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0359__create_shedlock_table.sql
+        relativeToChangelogFile: true

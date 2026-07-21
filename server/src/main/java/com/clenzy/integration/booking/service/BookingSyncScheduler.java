@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -59,6 +60,7 @@ public class BookingSyncScheduler {
      * via l'API XML et les traite comme des evenements "reservation.created".
      */
     @Scheduled(fixedRateString = "#{${booking.sync.interval-minutes:10} * 60000}")
+    @SchedulerLock(name = "booking-com-poll-reservations", lockAtMostFor = "PT15M")
     public void pollReservations() {
         log.debug("Polling des reservations Booking.com...");
 

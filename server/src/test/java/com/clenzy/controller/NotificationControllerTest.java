@@ -60,6 +60,40 @@ class NotificationControllerTest {
     }
 
     @Nested
+    @DisplayName("getPage (mode pagine)")
+    class GetPage {
+        @Test
+        void whenGetPage_thenDelegatesWithFilters() {
+            com.clenzy.dto.NotificationPageDto pageDto =
+                    new com.clenzy.dto.NotificationPageDto(List.of(), 0, 20, 0);
+            when(notificationService.getPageForUser("user-123", "payment", false, 0, 20))
+                    .thenReturn(pageDto);
+
+            Jwt jwt = createJwt();
+            ResponseEntity<com.clenzy.dto.NotificationPageDto> response =
+                    controller.getPage(jwt, 0, 20, "payment", false);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).isSameAs(pageDto);
+        }
+
+        @Test
+        void whenOutOfBoundsParams_thenClampedBeforeDelegation() {
+            com.clenzy.dto.NotificationPageDto pageDto =
+                    new com.clenzy.dto.NotificationPageDto(List.of(), 0, 200, 0);
+            when(notificationService.getPageForUser("user-123", null, true, 0, 200))
+                    .thenReturn(pageDto);
+
+            Jwt jwt = createJwt();
+            ResponseEntity<com.clenzy.dto.NotificationPageDto> response =
+                    controller.getPage(jwt, -5, 9999, null, true);
+
+            assertThat(response.getBody().size()).isEqualTo(200);
+            verify(notificationService).getPageForUser("user-123", null, true, 0, 200);
+        }
+    }
+
+    @Nested
     @DisplayName("getUnreadCount")
     class UnreadCount {
         @Test

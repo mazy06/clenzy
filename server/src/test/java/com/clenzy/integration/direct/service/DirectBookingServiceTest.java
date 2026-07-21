@@ -47,6 +47,7 @@ class DirectBookingServiceTest {
     @Mock private CalendarEngine calendarEngine;
     @Mock private PriceEngine priceEngine;
     @Mock private com.clenzy.payment.StripeGateway stripeGateway;
+    @Mock private org.springframework.beans.factory.ObjectProvider<DirectBookingService> selfProvider;
 
     private DirectBookingService service;
 
@@ -57,7 +58,10 @@ class DirectBookingServiceTest {
     @BeforeEach
     void setUp() {
         service = new DirectBookingService(config, configRepository, promoCodeRepository,
-                propertyRepository, reservationRepository, calendarEngine, priceEngine, stripeGateway);
+                propertyRepository, reservationRepository, calendarEngine, priceEngine, stripeGateway,
+                selfProvider);
+        // createBooking passe par le proxy transactionnel self : en test, le proxy = l'instance.
+        lenient().when(selfProvider.getObject()).thenAnswer(inv -> service);
     }
 
     // ----------------------------------------------------------------
@@ -286,7 +290,7 @@ class DirectBookingServiceTest {
         }
 
         @Test
-        @DisplayName("with payment creates Stripe intent flow")
+        @DisplayName("with payment: Stripe error compensates (resa annulee, calendrier libere)")
         void createBooking_withPayment_pendingIfStripeError() {
             stubConfigDefaults();
             when(config.isStripeEnabled()).thenReturn(true);
@@ -310,17 +314,27 @@ class DirectBookingServiceTest {
                             checkIn.plusDays(1), new BigDecimal("100.00"),
                             checkIn.plusDays(2), new BigDecimal("100.00")
                     ));
+            java.util.List<Reservation> persisted = new java.util.ArrayList<>();
             when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> {
                 Reservation r = inv.getArgument(0);
                 r.setId(100L);
+                if (!persisted.contains(r)) {
+                    persisted.add(r);
+                }
                 return r;
             });
+            // La compensation retrouve la resa commitee par son confirmation code.
+            when(reservationRepository.findAll()).thenAnswer(inv -> List.copyOf(persisted));
 
-            // Stripe is enabled but will fail (no real API key) -> falls back to pending
+            // Stripe is enabled but will fail (gateway mock returns null intent)
             DirectBookingResponse response = service.createBooking(request, ORG_ID);
 
-            // When Stripe fails, the reservation falls back to pending
+            // When Stripe fails, the guest gets a pending response...
             assertThat(response.status()).isEqualTo(DirectBookingResponse.STATUS_PENDING);
+            // ...and the committed reservation is compensated: cancelled + calendar freed
+            // (safe: no client_secret was ever handed out, nobody can pay it).
+            assertThat(persisted.get(0).getStatus()).isEqualTo("cancelled");
+            verify(calendarEngine).cancel(eq(100L), eq(ORG_ID), eq("system"));
         }
     }
 

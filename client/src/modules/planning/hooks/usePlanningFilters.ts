@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { useUserPreference } from '../../../hooks/useUserPreference';
 import type { ReservationStatus, PlanningInterventionType } from '../../../services/api';
 import type { PlanningEvent, PlanningFilters, PlanningProperty } from '../types';
@@ -73,6 +73,10 @@ export function usePlanningFilters(
   // Champs ephemeres (session-scoped, pas persistes — meme comportement qu'avant)
   const [propertyIds, setPropertyIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  // Version differee pour le filtrage : le champ controle reste reactif a la
+  // frappe, mais le recalcul filteredEvents → re-layout complet de la grille
+  // passe en priorite basse (interruptible) au lieu de bloquer chaque keystroke.
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   const filters: PlanningFilters = useMemo(
     () => ({ ...safePersisted, propertyIds, searchQuery }),
@@ -117,33 +121,35 @@ export function usePlanningFilters(
     || !filters.showInterventions
     || !filters.showPrices;
 
+  // Depend des champs individuels (et de la recherche DIFFEREE) : dependre de
+  // l'objet `filters` invalidait le memo a chaque frappe, avant meme le defer.
   const filteredEvents = useMemo(() => {
     let result = events;
 
-    if (filters.statuses.length > 0) {
-      const statusSet = new Set(filters.statuses);
+    if (safePersisted.statuses.length > 0) {
+      const statusSet = new Set(safePersisted.statuses);
       result = result.filter((e) =>
         e.type !== 'reservation' || statusSet.has(e.status as ReservationStatus),
       );
     }
 
-    if (!filters.showInterventions) {
+    if (!safePersisted.showInterventions) {
       result = result.filter((e) => e.type === 'reservation');
-    } else if (filters.interventionTypes.length > 0) {
-      const interventionTypeSet = new Set(filters.interventionTypes);
+    } else if (safePersisted.interventionTypes.length > 0) {
+      const interventionTypeSet = new Set(safePersisted.interventionTypes);
       result = result.filter((e) =>
         e.type === 'reservation'
         || interventionTypeSet.has(e.type as PlanningInterventionType),
       );
     }
 
-    if (filters.propertyIds.length > 0) {
-      const propertyIdSet = new Set(filters.propertyIds);
+    if (propertyIds.length > 0) {
+      const propertyIdSet = new Set(propertyIds);
       result = result.filter((e) => propertyIdSet.has(e.propertyId));
     }
 
-    if (filters.searchQuery) {
-      const q = filters.searchQuery.toLowerCase();
+    if (deferredSearchQuery) {
+      const q = deferredSearchQuery.toLowerCase();
       result = result.filter((e) =>
         e.label.toLowerCase().includes(q)
         || (e.sublabel && e.sublabel.toLowerCase().includes(q)),
@@ -151,7 +157,7 @@ export function usePlanningFilters(
     }
 
     return result;
-  }, [events, filters]);
+  }, [events, safePersisted, propertyIds, deferredSearchQuery]);
 
   const filteredProperties = useMemo(() => {
     if (filters.propertyIds.length === 0) return properties;

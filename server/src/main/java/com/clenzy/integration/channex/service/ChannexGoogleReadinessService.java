@@ -63,10 +63,13 @@ public class ChannexGoogleReadinessService {
             .findByClenzyPropertyId(clenzyPropertyId, orgId)
             .orElseThrow(() -> new IllegalStateException(
                 "Aucun mapping Channex pour la propriete " + clenzyPropertyId));
-        Property property = propertyRepository.findById(clenzyPropertyId)
+        // Variante WithOwner : cette methode n'est pas transactionnelle (appel HTTP Channex
+        // plus bas — regle audit n°2), l'entite est donc detachee et Property.owner (LAZY)
+        // doit etre fetch ici (le telephone du owner est lu pour le check "phone").
+        Property property = propertyRepository.findByIdWithOwnerNoOrgFilter(clenzyPropertyId)
             .orElseThrow(() -> new IllegalStateException(
                 "Propriete introuvable : " + clenzyPropertyId));
-        // findById contourne le filtre Hibernate : validation d'org explicite (audit n°3)
+        // Le filtre Hibernate ne borne pas ce chargement par id : validation d'org explicite (audit n°3)
         if (!orgId.equals(property.getOrganizationId())) {
             throw new org.springframework.security.access.AccessDeniedException(
                 "Propriete " + clenzyPropertyId + " hors de l'organisation " + orgId);

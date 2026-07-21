@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -84,17 +84,6 @@ const ReservationsList: React.FC = () => {
   const { t } = useTranslation();
   const { notify } = useNotification();
 
-  const {
-    reservations,
-    isLoading,
-    isError,
-    error,
-    filters,
-    setFilter,
-    cancelReservation,
-    isCancelling,
-  } = useReservations();
-
   // ─── Local UI state ──────────────────────────────────────────────
   const [page, setPage] = useState(0);
   const { containerRef: tableContainerRef, pageSize: rowsPerPage } = useDynamicPageSize({
@@ -112,6 +101,30 @@ const ReservationsList: React.FC = () => {
   const [guestDialogOpen, setGuestDialogOpen] = useState(false);
   const [selectedGuestId, setSelectedGuestId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Recherche débouncée (300 ms) : évite une requête serveur par frappe.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300);
+    return () => clearTimeout(id);
+  }, [searchTerm]);
+
+  // ─── Pagination serveur (audit perf 2026-07-21, P1-6) ────────────
+  // Le serveur pagine, filtre (status/source en SQL) et cherche (guest,
+  // code de confirmation, logement) ; le client ne slice plus.
+  const {
+    reservations,
+    totalElements,
+    isLoading,
+    isError,
+    error,
+    filters,
+    setFilter,
+    cancelReservation,
+    isCancelling,
+  } = useReservations({
+    pagination: { page, size: rowsPerPage, search: debouncedSearch },
+  });
 
   // ─── Handlers ────────────────────────────────────────────────────
 
@@ -153,35 +166,21 @@ const ReservationsList: React.FC = () => {
     [setFilter],
   );
 
-  // ─── Search filter ───────────────────────────────────────────────
-  const filteredReservations = useMemo(() => {
-    if (!searchTerm.trim()) return reservations;
-    const term = searchTerm.toLowerCase();
-    return reservations.filter((r) =>
-      r.guestName?.toLowerCase().includes(term) ||
-      r.propertyName?.toLowerCase().includes(term) ||
-      r.confirmationCode?.toLowerCase().includes(term)
-    );
-  }, [reservations, searchTerm]);
-
-  // ─── Pagination slice ────────────────────────────────────────────
-  const paginatedReservations = filteredReservations.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage,
-  );
+  // Si le total rétrécit (annulation du dernier élément d'une page), on
+  // revient sur la dernière page valide.
+  useEffect(() => {
+    if (isLoading) return;
+    const maxPage = Math.max(0, Math.ceil(totalElements / rowsPerPage) - 1);
+    if (page > maxPage) setPage(maxPage);
+  }, [isLoading, totalElements, rowsPerPage, page]);
 
   // ─── Deep-link notification (?highlight=<reservationId>) ─────────
+  // Pagination serveur : on ne connaît que la page courante, impossible de
+  // calculer la page cible d'un id absent. Le highlight s'applique si la
+  // réservation est visible sur la page courante (cas nominal : tri
+  // checkIn ASC + fenêtre par défaut → les résas actives sont en tête).
   const highlightId = useHighlightParam();
-  const highlightApplied = useRef(false);
-  useEffect(() => {
-    if (!highlightId || isLoading || highlightApplied.current) return;
-    const idx = filteredReservations.findIndex((r) => String(r.id) === highlightId);
-    if (idx < 0) return;
-    highlightApplied.current = true;
-    setPage(Math.floor(idx / rowsPerPage));
-  }, [highlightId, isLoading, filteredReservations, rowsPerPage]);
-
-  useHighlightTarget(highlightId, !isLoading && filteredReservations.length > 0);
+  useHighlightTarget(highlightId, !isLoading && reservations.length > 0);
 
   // ─── Filter options for FilterSearchBar ─────────────────────────
   const statusOptions = useMemo(() => [
@@ -227,7 +226,7 @@ const ReservationsList: React.FC = () => {
       }}
       counter={{
         label: t('reservations.reservation') || 'réservation',
-        count: filteredReservations.length,
+        count: totalElements,
         singular: '',
         plural: 's',
       }}
@@ -260,7 +259,7 @@ const ReservationsList: React.FC = () => {
       {/* Loading */}
       {isLoading ? (
         <ListSkeleton rows={6} variant="row" />
-      ) : filteredReservations.length === 0 ? (
+      ) : totalElements === 0 ? (
         <EmptyState
           icon={<EventNoteIcon />}
           title={t('reservations.noReservations')}
@@ -291,7 +290,7 @@ const ReservationsList: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {paginatedReservations.map((r) => (
+                {reservations.map((r) => (
                   <TableRow
                     key={r.id}
                     data-highlight-id={String(r.id)}
@@ -389,7 +388,7 @@ const ReservationsList: React.FC = () => {
 
           <TablePagination
             component="div"
-            count={filteredReservations.length}
+            count={totalElements}
             page={page}
             onPageChange={(_, newPage) => setPage(newPage)}
             rowsPerPage={rowsPerPage}

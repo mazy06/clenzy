@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -36,6 +37,7 @@ public class WebhookRetryScheduler {
     }
 
     @Scheduled(fixedDelayString = "${clenzy.webhooks.retry-interval-ms:60000}")
+    @SchedulerLock(name = "webhook-retry", lockAtMostFor = "PT5M", lockAtLeastFor = "PT30S")
     public void retryDueDeliveries() {
         List<WebhookDelivery> due = deliveryRepository.findDue(clock.instant(), PageRequest.of(0, BATCH));
         if (due.isEmpty()) {

@@ -13,6 +13,7 @@ import com.clenzy.service.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -54,6 +55,7 @@ public class PayoutGenerationScheduler {
     }
 
     @Scheduled(cron = "0 0 2 * * *") // Tous les jours a 2h
+    @SchedulerLock(name = "payout-generation", lockAtMostFor = "PT30M")
     public void generateScheduledPayouts() {
         PayoutScheduleConfig config = scheduleConfigRepository.findAll().stream()
                 .findFirst().orElse(null);

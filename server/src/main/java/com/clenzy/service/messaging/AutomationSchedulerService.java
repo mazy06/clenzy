@@ -9,6 +9,7 @@ import com.clenzy.tenant.TenantScopedExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -68,6 +69,7 @@ public class AutomationSchedulerService {
     }
 
     @Scheduled(cron = "0 0 * * * *") // Every hour
+    @SchedulerLock(name = "messaging-automations-hourly", lockAtMostFor = "PT30M")
     public void processScheduledAutomations() {
         log.debug("Verification des automatisations planifiees...");
         try {

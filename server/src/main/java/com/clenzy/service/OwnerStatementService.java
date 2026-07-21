@@ -21,6 +21,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Service de generation et envoi de releves de reversement aux proprietaires.
@@ -299,10 +301,23 @@ public class OwnerStatementService {
      */
     private List<String> buildCleaningAdvisories(List<OwnerPayout> payouts, Long orgId) {
         List<String> lines = new ArrayList<>();
+        List<Long> payoutIds = payouts.stream()
+                .map(OwnerPayout::getId)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+        if (payoutIds.isEmpty()) {
+            return lines;
+        }
+        // 1 requete IN avec fetch intervention/property au lieu d'1 requete par
+        // payout + lazy-loads par depense (audit perf 2026-07-21). L'ordre des
+        // lignes par payout est conserve via le groupement.
+        Map<Long, List<ProviderExpense>> expensesByPayout = providerExpenseRepository
+                .findByPayoutIdInAndOrgId(payoutIds, orgId).stream()
+                .collect(Collectors.groupingBy(e -> e.getOwnerPayout().getId()));
         for (OwnerPayout payout : payouts) {
             if (payout.getId() == null) continue;
-            for (ProviderExpense expense : providerExpenseRepository
-                    .findByPayoutIdAndOrgId(payout.getId(), orgId)) {
+            for (ProviderExpense expense : expensesByPayout
+                    .getOrDefault(payout.getId(), List.of())) {
                 if (expense.getCategory() != ExpenseCategory.CLEANING) continue;
                 if (expense.getIntervention() == null) continue;
                 BigDecimal recommended = expense.getIntervention().getRecommendedCost();
