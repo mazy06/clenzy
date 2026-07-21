@@ -3416,3 +3416,12 @@ databaseChangeLog:
       sqlFile:
         path: changes/0356__create_market_data_connections.sql
         relativeToChangelogFile: true
+
+  # Audit perf 2026-07-21 : observabilite requetes. Le preload de la lib est
+  # gere cote infra (postgresql-primary.conf, shared_preload_libraries).
+  - changeSet:
+      id: "0357-enable-pg-stat-statements"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0357__enable_pg_stat_statements.sql
+        relativeToChangelogFile: true
