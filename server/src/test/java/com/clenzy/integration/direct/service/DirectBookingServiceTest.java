@@ -701,6 +701,95 @@ class DirectBookingServiceTest {
         }
 
         @Test
+        @DisplayName("Z5-SEC — client-sent foreign currency rejected (400), server currency is authoritative")
+        void whenClientSendsForeignCurrency_thenBadRequest() {
+            stubConfigDefaults(); // devise serveur = EUR
+            LocalDate checkIn = futureCheckIn();
+            LocalDate checkOut = futureCheckOut();
+            // Le client tente de payer le montant EUR dans une devise faible
+            var request = new DirectBookingRequest(PROPERTY_ID, checkIn, checkOut,
+                    "J", "D", "j@e.com", null, 2, 0, null, null, null, "IDR");
+
+            assertThatThrownBy(() -> service.createBooking(request, ORG_ID))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Devise non supportee");
+
+            // Rejet AVANT tout effet de bord : ni resa, ni calendrier, ni Stripe
+            verify(reservationRepository, never()).save(any());
+            verify(calendarEngine, never()).book(any(), any(), any(), any(), any(), any(), any());
+            verifyNoInteractions(stripeGateway);
+        }
+
+        @Test
+        @DisplayName("Z5-SEC — omitted client currency: PaymentIntent uses server currency")
+        void whenClientOmitsCurrency_thenServerCurrencyUsed() throws Exception {
+            // Devise serveur MAD (pas EUR) pour prouver qu'aucun defaut client ne s'applique
+            lenient().when(config.getDefaultCurrency()).thenReturn("MAD");
+            lenient().when(config.getMinAdvanceDays()).thenReturn(1);
+            lenient().when(config.getMaxAdvanceDays()).thenReturn(365);
+            when(config.isStripeEnabled()).thenReturn(true);
+
+            LocalDate checkIn = futureCheckIn();
+            LocalDate checkOut = futureCheckOut();
+            var request = new DirectBookingRequest(PROPERTY_ID, checkIn, checkOut,
+                    "J", "D", "j@e.com", null, 2, 0, null, null, null, null);
+
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(activeProperty()));
+            DirectBookingConfiguration cfg = enabledConfig();
+            cfg.setRequirePayment(true);
+            when(configRepository.findEnabledByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(cfg));
+            when(priceEngine.resolvePriceRange(eq(PROPERTY_ID), eq(checkIn), eq(checkOut), eq(ORG_ID)))
+                    .thenReturn(Map.of(checkIn, new BigDecimal("100")));
+            when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> {
+                Reservation r = inv.getArgument(0);
+                r.setId(104L);
+                return r;
+            });
+
+            com.stripe.model.PaymentIntent intent = mock(com.stripe.model.PaymentIntent.class);
+            lenient().when(intent.getId()).thenReturn("pi_test");
+            lenient().when(intent.getClientSecret()).thenReturn("pi_test_secret");
+            when(stripeGateway.createPaymentIntent(any(com.stripe.param.PaymentIntentCreateParams.class), anyString()))
+                    .thenReturn(intent);
+
+            DirectBookingResponse response = service.createBooking(request, ORG_ID);
+
+            ArgumentCaptor<com.stripe.param.PaymentIntentCreateParams> params =
+                    ArgumentCaptor.forClass(com.stripe.param.PaymentIntentCreateParams.class);
+            verify(stripeGateway).createPaymentIntent(params.capture(), anyString());
+            assertThat(params.getValue().getCurrency()).isEqualTo("mad");
+            assertThat(response.currency()).isEqualTo("MAD");
+        }
+
+        @Test
+        @DisplayName("Z5-SEC — matching client currency (case-insensitive) accepted")
+        void whenClientSendsMatchingCurrency_thenAccepted() {
+            stubConfigDefaults(); // devise serveur = EUR
+            LocalDate checkIn = futureCheckIn();
+            LocalDate checkOut = futureCheckOut();
+            var request = new DirectBookingRequest(PROPERTY_ID, checkIn, checkOut,
+                    "J", "D", "j@e.com", null, 2, 0, null, null, null, "eur");
+
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(activeProperty()));
+            when(configRepository.findEnabledByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(enabledConfig()));
+            when(priceEngine.resolvePriceRange(eq(PROPERTY_ID), eq(checkIn), eq(checkOut), eq(ORG_ID)))
+                    .thenReturn(Map.of(checkIn, new BigDecimal("100")));
+            when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> {
+                Reservation r = inv.getArgument(0);
+                r.setId(105L);
+                return r;
+            });
+
+            DirectBookingResponse response = service.createBooking(request, ORG_ID);
+
+            assertThat(response.status()).isEqualTo(DirectBookingResponse.STATUS_CONFIRMED);
+            // La reponse porte la devise serveur, pas la casse envoyee par le client
+            assertThat(response.currency()).isEqualTo(CURRENCY);
+        }
+
+        @Test
         @DisplayName("with promoCode but invalid -> no discount applied")
         void withInvalidPromoCode_noDiscount() {
             stubConfigDefaults();

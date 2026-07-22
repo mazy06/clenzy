@@ -178,8 +178,9 @@ public class DirectBookingService {
         }
 
         // Flux avec paiement : appel Stripe HORS transaction (apres commit).
+        // Devise serveur, jamais celle du client (cross-check fait en transaction).
         return createBookingWithPayment(outcome.reservation(), outcome.property(),
-                outcome.totalPrice(), request.currency(), outcome.bookingId());
+                outcome.totalPrice(), config.getDefaultCurrency(), outcome.bookingId());
     }
 
     /**
@@ -192,6 +193,18 @@ public class DirectBookingService {
     public BookingCreationOutcome createBookingTransactional(DirectBookingRequest request, Long orgId) {
         // Valider les dates
         validateBookingDates(request.checkIn(), request.checkOut());
+
+        // La devise du paiement est TOUJOURS celle du serveur : le prix est resolu
+        // par le PriceEngine dans la devise de l'org, donc facturer ce montant dans
+        // une devise choisie par le client permettrait de payer « 300 IDR » au lieu
+        // de « 300 EUR ». Meme regle que pour les montants (Z3-SEC-01/Z4A-SEC-01) :
+        // la valeur client ne sert que de cross-check -> 400 si elle differe.
+        final String currency = config.getDefaultCurrency();
+        if (request.currency() != null && !request.currency().isBlank()
+                && !request.currency().equalsIgnoreCase(currency)) {
+            throw new IllegalArgumentException(
+                    "Devise non supportee: " + request.currency() + " (devise attendue: " + currency + ")");
+        }
 
         // Charger la propriete
         Property property = propertyRepository.findById(request.propertyId())
@@ -269,13 +282,13 @@ public class DirectBookingService {
             reservationRepository.save(reservation);
             return BookingCreationOutcome.completed(DirectBookingResponse.confirmed(
                     bookingId, property.getName(),
-                    request.checkIn(), request.checkOut(), totalPrice, request.currency(),
+                    request.checkIn(), request.checkOut(), totalPrice, currency,
                     "Reservation confirmee"));
         }
 
         return BookingCreationOutcome.completed(DirectBookingResponse.pending(
                 bookingId, property.getName(),
-                request.checkIn(), request.checkOut(), totalPrice, request.currency(),
+                request.checkIn(), request.checkOut(), totalPrice, currency,
                 "Reservation en attente de confirmation par le proprietaire"));
     }
 
