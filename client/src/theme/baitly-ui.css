@@ -72,6 +72,14 @@
     cursor: pointer;
   }
 
+  /* Ancres du kit (breadcrumb-link, pagination-link, asChild…) : neutraliser
+     le bleu souligné UA — la couleur/décoration vient des classes cn-*.
+     Scopé data-slot pour ne pas toucher les liens du legacy MUI. */
+  a[data-slot] {
+    color: inherit;
+    text-decoration: inherit;
+  }
+
   /* Anti-marges UA (pas de preflight complet — coexistence MUI) : les
      slots titres/descriptions des composants Nova sont des h2/p natifs. */
   [data-slot$="title"],
@@ -81,6 +89,14 @@
   }
   [data-slot="breadcrumb-list"],
   [data-slot="pagination-content"] {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  /* Listes de la Sidebar : ul/li natifs → puces + padding UA sans preflight.
+     :where() garde la spécificité à zéro pour que l'indentation Nova
+     (mx-3.5/px-2.5 de cn-sidebar-menu-sub) reste prioritaire. */
+  :where([data-slot="sidebar-menu"], [data-slot="sidebar-menu-sub"]) {
     margin: 0;
     padding: 0;
     list-style: none;

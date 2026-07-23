@@ -235,13 +235,26 @@ import {
   YAxis,
 } from 'recharts';
 import {
+  ActivityIcon,
+  BarChart3Icon,
   CalendarDaysIcon,
   ChevronDownIcon,
+  ChevronRightIcon,
+  EuroIcon,
+  FileTextIcon,
+  HammerIcon,
   HomeIcon,
   LayoutDashboardIcon,
+  PaletteIcon,
   SettingsIcon,
+  Share2Icon,
+  ShieldCheckIcon,
+  UsersIcon,
   WrenchIcon,
+  ZapIcon,
 } from 'lucide-react';
+import { cn } from '../../utils/cn';
+import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 import { addDays } from 'date-fns';
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from 'input-otp';
 import { useForm } from 'react-hook-form';
@@ -331,6 +344,7 @@ function Section({
   previewTheme,
   rtl,
   action,
+  canvasClassName,
   children,
 }: {
   title: string;
@@ -339,6 +353,8 @@ function Section({
   rtl: boolean;
   /** Slot en fin de ligne de titre (ex. sélecteur de variante). */
   action?: ReactNode;
+  /** Classes additionnelles du canvas (ex. min-height pour les overlays ancrés). */
+  canvasClassName?: string;
   children: ReactNode;
 }) {
   return (
@@ -353,7 +369,7 @@ function Section({
       <div
         data-theme={previewTheme}
         dir={rtl ? 'rtl' : 'ltr'}
-        className="mt-3 rounded-lg border border-border bg-background p-6"
+        className={cn('mt-3 rounded-lg border border-border bg-background p-6', canvasClassName)}
       >
         {children}
       </div>
@@ -1839,68 +1855,184 @@ function EmptyDemo() {
   );
 }
 
+/* Navigation PMS réelle (useNavigationMenu/navigationHubs) : 1 entrée par hub,
+   sous-menus = onglets du hub. Badges réels : Planning = cartes HITL en attente
+   (warning), Documents = échecs d'envoi récents (destructive). */
+interface SidebarNavItem {
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+  badge?: string;
+  badgeTone?: 'warning' | 'destructive';
+  active?: boolean;
+  defaultOpen?: boolean;
+  sub?: string[];
+}
+
+const SIDEBAR_NAV: Array<{ group: string; items: SidebarNavItem[] }> = [
+  {
+    group: 'Principal',
+    items: [
+      { label: 'Planning', icon: CalendarDaysIcon, badge: '12', badgeTone: 'warning' },
+      { label: 'Tableau de bord', icon: LayoutDashboardIcon },
+      {
+        label: 'Exploitation',
+        icon: HomeIcon,
+        defaultOpen: true,
+        sub: ['Propriétés', 'Réservations', 'Interventions'],
+      },
+    ],
+  },
+  {
+    group: 'Gestion',
+    items: [
+      { label: 'Contacts', icon: UsersIcon, sub: ['Messagerie', 'Annuaire'] },
+      {
+        label: 'Documents',
+        icon: FileTextIcon,
+        badge: '3',
+        badgeTone: 'destructive',
+        sub: ['Documents', 'Contrats de gestion'],
+      },
+      { label: 'Finances', icon: EuroIcon, sub: ['Facturation', 'Tarification'] },
+      {
+        label: 'Distribution',
+        icon: Share2Icon,
+        sub: ['Réservation & accueil', 'Boutique', 'Channels'],
+      },
+      { label: 'Rapports', icon: BarChart3Icon },
+      { label: 'Mes tarifs travaux', icon: WrenchIcon },
+    ],
+  },
+  {
+    group: 'Administration',
+    items: [
+      { label: 'Paramètres', icon: SettingsIcon },
+      { label: 'Automatisations', icon: ZapIcon },
+      { label: 'Rôles & permissions', icon: ShieldCheckIcon },
+      { label: 'Monitoring', icon: ActivityIcon },
+      { label: 'Bibliothèque UI', icon: PaletteIcon, active: true },
+      {
+        label: 'Outils plateforme',
+        icon: HammerIcon,
+        sub: ['Diagnostics sync', 'KPI readiness', 'Taux de change', 'Base de données', 'Codes promo'],
+      },
+    ],
+  },
+];
+
+function SidebarNavBadge({ item }: { item: SidebarNavItem }) {
+  if (!item.badge) return null;
+  return (
+    <span
+      className={cn(
+        'ms-auto flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums',
+        item.badgeTone === 'destructive'
+          ? 'bg-destructive/15 text-destructive'
+          : 'bg-warning/15 text-warning',
+      )}
+    >
+      {item.badge}
+    </span>
+  );
+}
+
+function SidebarNavEntry({ item }: { item: SidebarNavItem }) {
+  const Icon = item.icon;
+
+  if (!item.sub) {
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton isActive={item.active} tooltip={item.label}>
+          <Icon />
+          <span>{item.label}</span>
+          <SidebarNavBadge item={item} />
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  }
+
+  return (
+    <Collapsible asChild defaultOpen={item.defaultOpen} className="group/collapsible">
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton tooltip={item.label}>
+            <Icon />
+            <span>{item.label}</span>
+            <SidebarNavBadge item={item} />
+            <ChevronRightIcon
+              className={cn(
+                'transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90',
+                !item.badge && 'ms-auto',
+              )}
+            />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub>
+            {item.sub.map((label) => (
+              <SidebarMenuSubItem key={label}>
+                <SidebarMenuSubButton>{label}</SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
+  );
+}
+
 function SidebarDemo() {
   return (
     /* Le wrapper porte un `transform` : il devient le containing block des
        éléments `position: fixed` de la Sidebar, qui reste donc confinée au
        canvas au lieu de recouvrir le viewport. h-full/min-h-full neutralisent
        les hauteurs viewport (h-svh) via tailwind-merge. */
-    <div className="h-96 overflow-hidden rounded-lg border [transform:translateZ(0)]">
+    <div className="h-[36rem] overflow-hidden rounded-lg border [transform:translateZ(0)]">
       <SidebarProvider className="h-full min-h-full">
         <Sidebar collapsible="icon" className="h-full">
           <SidebarHeader>
-            <span className="truncate px-2 py-1 text-sm font-semibold group-data-[collapsible=icon]:hidden">
-              Baitly PMS
-            </span>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton size="lg" tooltip="Baitly PMS">
+                  <span className="flex size-8 shrink-0 items-center justify-center">
+                    <BaitlyMarkLogo variant="mark" size={30} />
+                  </span>
+                  <span className="grid flex-1 text-start leading-tight">
+                    <span className="truncate text-sm font-semibold">Baitly</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      Property Management
+                    </span>
+                  </span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
           </SidebarHeader>
           <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel>Exploitation</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton isActive tooltip="Dashboard">
-                      <LayoutDashboardIcon />
-                      <span>Dashboard</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton tooltip="Planning">
-                      <CalendarDaysIcon />
-                      <span>Planning</span>
-                    </SidebarMenuButton>
-                    <SidebarMenuBadge>12</SidebarMenuBadge>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton tooltip="Logements">
-                      <HomeIcon />
-                      <span>Logements</span>
-                    </SidebarMenuButton>
-                    <SidebarMenuSub>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton>Riad Yasmine</SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton isActive>Duplex Guéliz</SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    </SidebarMenuSub>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton tooltip="Interventions">
-                      <WrenchIcon />
-                      <span>Interventions</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+            {SIDEBAR_NAV.map((section) => (
+              <SidebarGroup key={section.group}>
+                <SidebarGroupLabel>{section.group}</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {section.items.map((item) => (
+                      <SidebarNavEntry key={item.label} item={item} />
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            ))}
           </SidebarContent>
           <SidebarFooter>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Paramètres">
-                  <SettingsIcon />
-                  <span>Paramètres</span>
+                <SidebarMenuButton size="lg" tooltip="Compte">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground">
+                    TM
+                  </span>
+                  <span className="grid flex-1 text-start leading-tight">
+                    <span className="truncate text-sm font-medium">Toufik M.</span>
+                    <span className="truncate text-xs text-muted-foreground">Super admin</span>
+                  </span>
+                  <ChevronDownIcon className="ms-auto size-4" />
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -1910,7 +2042,7 @@ function SidebarDemo() {
         <SidebarInset className="min-h-0">
           <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
             <SidebarTrigger />
-            <span className="text-sm font-medium">Planning</span>
+            <span className="text-sm font-medium">Bibliothèque UI</span>
           </header>
           <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
             Zone de contenu — replie la sidebar avec le bouton ci-dessus (mode icônes + tooltips).
@@ -1996,6 +2128,8 @@ interface GallerySectionDef {
    *   d'implémentations.
    */
   display?: 'select' | 'stack';
+  /** Classes additionnelles du canvas (ex. min-height pour les panneaux ancrés). */
+  canvasClassName?: string;
 }
 
 const single = (Demo: ComponentType): GalleryVariant[] => [{ key: 'default', label: 'Défaut', Demo }];
@@ -2127,7 +2261,7 @@ const GALLERY_SECTIONS: GallerySectionDef[] = [
   { category: 'display', title: 'Aspect Ratio', component: 'aspect-ratio', i18nKey: 'designSystem.aspectRatio.description', fallback: "Contraint un média à un ratio fixe (16/9, carré, portrait) — photos de logements.", variants: [] },
   { category: 'forms', title: 'Combobox', component: 'combobox', i18nKey: 'designSystem.combobox.description', fallback: "Select avec recherche (Base UI) : simple, multiple, groupes, chips — le futur sélecteur logement/guest.", variants: [] },
   { category: 'forms', title: 'Native Select', component: 'native-select', i18nKey: 'designSystem.nativeSelect.description', fallback: "<select> natif stylé : léger, idéal mobile et formulaires simples.", variants: [] },
-  { category: 'navigation', title: 'Navigation Menu', component: 'navigation-menu', i18nKey: 'designSystem.navigationMenu.description', fallback: "Menu de navigation horizontal riche (panneaux, listes) — header marketing/booking engine.", variants: [] },
+  { category: 'navigation', title: 'Navigation Menu', component: 'navigation-menu', i18nKey: 'designSystem.navigationMenu.description', fallback: "Menu de navigation horizontal riche (panneaux, listes) — header marketing/booking engine. Le canvas réserve la hauteur d'ouverture des panneaux.", canvasClassName: 'min-h-[460px]', variants: [] },
   { category: 'display', title: 'Attachment', component: 'attachment', i18nKey: 'designSystem.attachment.description', fallback: "Pièce jointe (fichier/image) : états, tailles, groupes — messagerie guest et documents.", variants: [] },
   { category: 'display', title: 'Message', component: 'message', i18nKey: 'designSystem.message.description', fallback: "Message de chat : avatar, en-tête/pied, actions, pièces jointes — brique de la messagerie guest.", variants: [] },
   { category: 'display', title: 'Bubble', component: 'bubble', i18nKey: 'designSystem.bubble.description', fallback: "Bulles de conversation : variantes, alignements, réactions, groupes.", variants: [] },
@@ -2261,6 +2395,7 @@ function GallerySection({
       previewTheme={previewTheme}
       rtl={rtl}
       action={selector}
+      canvasClassName={def.canvasClassName}
     >
       {stacked ? (
         <div className="flex flex-col gap-8">

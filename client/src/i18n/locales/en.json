@@ -6427,7 +6427,7 @@
       "description": "Generic list row (media, content, actions) and standardized empty state."
     },
     "sidebar": {
-      "description": "Full side navigation: icon-collapse mode (tooltips), clickable rail, submenus, badge. Demo confined to the canvas — in real use it spans the full height; under 768px it switches to a mobile Sheet. Will replace the MUI Sidebar during the navigation migration."
+      "description": "Projection of the target sidebar: animated Baitly logo, full PMS menu (collapsible hubs, Planning/Documents badges, Main · Management · Administration groups), account card in the footer. Icon-collapse mode (tooltips) via the header button; under 768px it switches to a mobile Sheet. Will replace the MUI Sidebar during the navigation migration."
     },
     "aspectRatio": {
       "description": "Constrains media to a fixed ratio (16/9, square, portrait) — property photos."

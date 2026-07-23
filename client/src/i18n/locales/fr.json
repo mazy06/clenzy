@@ -6454,7 +6454,7 @@
       "description": "Ligne de liste générique (média, contenu, actions) et état vide standardisé."
     },
     "sidebar": {
-      "description": "Navigation latérale complète : repli en mode icônes (tooltips), rail cliquable, sous-menus, badge. Démo confinée au canvas — en réel elle occupe toute la hauteur ; sous 768px elle bascule en Sheet mobile. Remplacera le Sidebar MUI à la migration de la navigation."
+      "description": "Projection de la sidebar cible : logo animé Baitly, menu PMS complet (hubs dépliables, badges Planning/Documents, groupes Principal · Gestion · Administration), carte compte en pied. Repli en mode icônes (tooltips) via le bouton du header ; sous 768px elle bascule en Sheet mobile. Remplacera le Sidebar MUI à la migration de la navigation."
     },
     "aspectRatio": {
       "description": "Contraint un média à un ratio fixe (16/9, carré, portrait) — photos de logements."
