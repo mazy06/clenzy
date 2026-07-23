@@ -63,6 +63,15 @@ const ComplianceProviderCard: React.FC<Props> = ({ provider, onStatusChange }) =
     </Alert>
   );
 
+  // Chekin dispose d'une API publique : la connexion valide la clé par un appel réel
+  // et les fiches de police sont transmises automatiquement. Les providers
+  // gouvernementaux (DGSN / Absher) attendent un partenariat officiel : la connexion
+  // enregistre les credentials mais aucune transmission n'a lieu.
+  const scaffoldingNote =
+    provider === 'CHEKIN'
+      ? 'Votre clé API est validée par un appel réel à Chekin lors de la connexion. Les fiches de police des voyageurs sont ensuite transmises automatiquement dès que le check-in en ligne est complété.'
+      : `L'intégration ${meta.label} nécessite un accès officiel de l'autorité concernée (pas d'API publique). Vos credentials sont enregistrés dès maintenant ; la transmission automatique sera activée dès que le partenariat sera établi.`;
+
   return (
     <ApiKeyConnectionCard
       provider={provider}
@@ -72,7 +81,7 @@ const ComplianceProviderCard: React.FC<Props> = ({ provider, onStatusChange }) =
       onStatusChange={onStatusChange}
       headerChip={headerChip}
       bodyAlert={bodyAlert}
-      scaffoldingNote={`L'intégration ${meta.label} est en cours de scaffolding. La connexion enregistre vos credentials ; les appels de déclaration automatique seront ajoutés prochainement.`}
+      scaffoldingNote={scaffoldingNote}
     />
   );
 };

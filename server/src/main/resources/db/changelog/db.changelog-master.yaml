@@ -3444,3 +3444,12 @@ databaseChangeLog:
       sqlFile:
         path: changes/0359__create_shedlock_table.sql
         relativeToChangelogFile: true
+
+  # Scaffolding services catalogue (marketing/CRM, menage, avis, fiscalite,
+  # assurance) : stockage chiffre des credentials par (org, provider).
+  - changeSet:
+      id: "0360-create-partner-service-connections"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0360__create_partner_service_connections.sql
+        relativeToChangelogFile: true

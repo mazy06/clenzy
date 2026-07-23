@@ -35,6 +35,7 @@ export type ProviderId =
   | 'CHEKIN'
   | 'POLICE_MA'
   | 'ABSHER_KSA'
+  | 'SHOMOOS'
   | 'SUMSUB'
   | 'VERIFF'
   | 'ONFIDO'
@@ -91,6 +92,8 @@ const PALETTE: Record<ProviderId, BrandPalette> = {
   POLICE_MA:  { bg: '#C1272D', fg: '#FFFFFF', accent: '#006233' },
   // Absher KSA : vert profond (couleur drapeau KSA)
   ABSHER_KSA: { bg: '#006C35', fg: '#FFFFFF', accent: '#D4A574' },
+  // Shomoos KSA : ambre desertique (shomoos = « soleils » en arabe)
+  SHOMOOS:    { bg: '#A3762A', fg: '#FFFFFF', accent: '#F2D6A0' },
   // Sumsub : teal/turquoise
   SUMSUB:     { bg: '#0F766E', fg: '#FFFFFF', accent: '#5EEAD4' },
   // Veriff : vert frais (KYC)
@@ -466,6 +469,24 @@ function renderMark(provider: ProviderId, p: BrandPalette): React.ReactNode {
           <path d="M24 22 Q31 12 34 18" stroke={p.fg} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.65" />
           {/* Petit cartouche dore en bas */}
           <line x1="13" y1="40" x2="35" y2="40" stroke={p.accent} strokeWidth="1.5" strokeLinecap="round" />
+        </>
+      );
+
+    case 'SHOMOOS':
+      // Tile ambre, soleil levant (shomoos = « soleils ») + ligne d'horizon
+      return (
+        <>
+          <rect width="48" height="48" rx="12" fill={p.bg} />
+          {/* Disque solaire */}
+          <circle cx="24" cy="26" r="7" fill={p.accent} />
+          {/* Rayons (5, en eventail au-dessus de l'horizon) */}
+          <line x1="24" y1="12" x2="24" y2="16" stroke={p.fg} strokeWidth="2" strokeLinecap="round" />
+          <line x1="13" y1="16" x2="16" y2="19" stroke={p.fg} strokeWidth="2" strokeLinecap="round" />
+          <line x1="35" y1="16" x2="32" y2="19" stroke={p.fg} strokeWidth="2" strokeLinecap="round" />
+          <line x1="9" y1="26" x2="13" y2="26" stroke={p.fg} strokeWidth="2" strokeLinecap="round" />
+          <line x1="39" y1="26" x2="35" y2="26" stroke={p.fg} strokeWidth="2" strokeLinecap="round" />
+          {/* Horizon */}
+          <line x1="11" y1="36" x2="37" y2="36" stroke={p.fg} strokeWidth="2" strokeLinecap="round" opacity="0.85" />
         </>
       );
 

@@ -6,8 +6,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Strategies stub — accepte n'importe quelles credentials non-vides en
- * attendant le cablage des vraies APIs (Chekin / DGSN / Absher).
+ * Strategies stub — accepte n'importe quelles credentials non-vides pour les
+ * providers gouvernementaux sans API publique (DGSN Maroc / Absher KSA).
+ * Chekin a sa propre strategie reelle ({@link ChekinConnectionTestStrategy}).
  *
  * <p>Une sous-classe @Service par provider pour respecter l'unicite
  * cle->strategie dans le registry.</p>
@@ -28,11 +29,6 @@ abstract class StubComplianceConnectionTestStrategy implements ComplianceConnect
 }
 
 @Service
-class ChekinConnectionTestStrategy extends StubComplianceConnectionTestStrategy {
-    @Override public ComplianceProviderType providerType() { return ComplianceProviderType.CHEKIN; }
-}
-
-@Service
 class PoliceMaConnectionTestStrategy extends StubComplianceConnectionTestStrategy {
     @Override public ComplianceProviderType providerType() { return ComplianceProviderType.POLICE_MA; }
 }
@@ -40,4 +36,9 @@ class PoliceMaConnectionTestStrategy extends StubComplianceConnectionTestStrateg
 @Service
 class AbsherKsaConnectionTestStrategy extends StubComplianceConnectionTestStrategy {
     @Override public ComplianceProviderType providerType() { return ComplianceProviderType.ABSHER_KSA; }
+}
+
+@Service
+class ShomoosConnectionTestStrategy extends StubComplianceConnectionTestStrategy {
+    @Override public ComplianceProviderType providerType() { return ComplianceProviderType.SHOMOOS; }
 }

@@ -56,6 +56,8 @@ import ChannexMappingDialog from './components/ChannexMappingDialog';
 import OtaShowcaseSection from './components/OtaShowcaseSection';
 import ServiceCatalogSection from './components/ServiceCatalogSection';
 import ActivityProviderConfigForm from './components/ActivityProviderConfigForm';
+import PartnerServiceConfigForm from './components/PartnerServiceConfigForm';
+import { partnerProviderFromCatalogId } from '../../services/api/partnerConnectionApi';
 import IntegrationsWhatsAppConfig from './IntegrationsWhatsAppConfig';
 import type { ActivityProvider } from '../../services/api/activitiesApi';
 import type { CatalogService } from '../../services/integrations/servicesCatalog';
@@ -71,6 +73,17 @@ const ACTIVITY_PROVIDER_BY_SERVICE: Record<string, ActivityProvider> = {
 function activityConfigForService(service: CatalogService): React.ReactNode {
   const provider = ACTIVITY_PROVIDER_BY_SERVICE[service.id];
   return provider && service.available ? <ActivityProviderConfigForm provider={provider} /> : null;
+}
+
+/**
+ * Scaffolding des services catalogue (marketing/CRM, ménage, avis, fiscalité,
+ * assurance) : le modal du service rend un formulaire d'enregistrement des
+ * credentials (chiffrées côté serveur). L'id catalogue (minuscules) est mappé
+ * vers le provider backend ; les services hors périmètre gardent le modal info.
+ */
+function partnerConfigForService(service: CatalogService): React.ReactNode {
+  const provider = partnerProviderFromCatalogId(service.id);
+  return provider ? <PartnerServiceConfigForm provider={provider} serviceName={service.name} /> : null;
 }
 import ServiceGridCard from './components/ServiceGridCard';
 import BrevoConfigCard from './components/BrevoConfigCard';
@@ -331,6 +344,7 @@ export default function IntegrationsSection({
       safe(complianceConnectionApi.getStatus('CHEKIN')),
       safe(complianceConnectionApi.getStatus('POLICE_MA')),
       safe(complianceConnectionApi.getStatus('ABSHER_KSA')),
+      safe(complianceConnectionApi.getStatus('SHOMOOS')),
       safe(kycConnectionApi.getStatus('SUMSUB')),
       safe(kycConnectionApi.getStatus('VERIFF')),
       safe(kycConnectionApi.getStatus('ONFIDO')),
@@ -340,7 +354,7 @@ export default function IntegrationsSection({
       safe(channelManagerConnectionApi.getStatus('CHANNEX')),
       safe(marketDataConnectionApi.getStatus('AIRBTICS')),
       safe(marketDataConnectionApi.getStatus('AIRROI')),
-    ]).then(([qb, xero, sage, chekin, policeMa, absherKsa,
+    ]).then(([qb, xero, sage, chekin, policeMa, absherKsa, shomoos,
               sumsub, veriff, onfido, siteminder, hostaway, rentalsUnited, channex,
               airbtics, airroi]) => {
       const configuredMarketData = new Set<MarketDataProvider>();
@@ -358,6 +372,7 @@ export default function IntegrationsSection({
       if (chekin?.connected) configuredCompliance.add('CHEKIN');
       if (policeMa?.connected) configuredCompliance.add('POLICE_MA');
       if (absherKsa?.connected) configuredCompliance.add('ABSHER_KSA');
+      if (shomoos?.connected) configuredCompliance.add('SHOMOOS');
       setConnectedCompliance(configuredCompliance);
 
       const configuredKyc = new Set<KycProvider>();
@@ -1051,11 +1066,27 @@ export default function IntegrationsSection({
           <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
             Conformité légale
           </Typography>
-          <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
         </Box>
         <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
           Automatisez la déclaration légale des voyageurs auprès des autorités locales (fiche police France, DGSN Maroc, Absher Arabie Saoudite). Évite les amendes et les contrôles surprises.
         </Typography>
+        {/* Chekin : API publique (clé API → JWT) — connexion + soumission réelles,
+            carte interactive hors du wrapper « Bientôt disponible » des providers
+            gouvernementaux (DGSN / Absher, partenariat officiel requis). */}
+        {matchesService('CHEKIN') && (
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 1.5, mt: 1 }}>
+            <ServiceGridCard
+              providerId="CHEKIN"
+              label="Chekin"
+              description="Fiche police FR · API key"
+              role="button"
+              selected={openComplianceProvider === 'CHEKIN'}
+              status={connectedCompliance.has('CHEKIN') ? 'connected' : 'idle'}
+              onClick={() => setOpenComplianceProvider('CHEKIN')}
+              titleAdornment={<span aria-hidden="true" style={{ fontSize: '0.85rem' }}>🇫🇷</span>}
+            />
+          </Box>
+        )}
         <Box
           aria-disabled="true"
           onClickCapture={blockInteraction}
@@ -1069,8 +1100,8 @@ export default function IntegrationsSection({
           }}
         >
           {([
-            { id: 'CHEKIN',     label: 'Chekin',              desc: 'Fiche police FR · API key',     flag: '🇫🇷' },
             { id: 'POLICE_MA',  label: 'Police Maroc',        desc: 'DGSN · déclaration voyageur',   flag: '🇲🇦' },
+            { id: 'SHOMOOS',    label: 'Shomoos',             desc: 'Enregistrement hébergement KSA', flag: '🇸🇦' },
             { id: 'ABSHER_KSA', label: 'Absher',              desc: 'MOI Arabie Saoudite · KYC',     flag: '🇸🇦' },
           ] as const).filter(({ id }) => matchesService(id)).map(({ id: p, label, desc, flag }) => (
             <ServiceGridCard
@@ -1121,21 +1152,18 @@ export default function IntegrationsSection({
           <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
             Vérification d'identité (KYC)
           </Typography>
-          <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
         </Box>
         <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
           Vérification automatique des pièces d'identité des voyageurs (lutte contre la fraude, conformité LCB-FT). Indispensable pour les paiements sur compte et les réservations à forte valeur.
         </Typography>
+        {/* Les 3 providers ont une API publique : la connexion valide les credentials
+            par un appel réel (Onfido token, Sumsub/Veriff requêtes signées HMAC). */}
         <Box
-          aria-disabled="true"
-          onClickCapture={blockInteraction}
-          onKeyDownCapture={blockInteraction}
           sx={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
             gap: 1.5,
             mt: 1,
-            ...DISABLED_CARDS_SX,
           }}
         >
           {([
@@ -1150,7 +1178,7 @@ export default function IntegrationsSection({
               description={desc}
               role="button"
               selected={openKycProvider === p}
-              status={connectedKyc.has(p) ? 'connected' : 'comingSoon'}
+              status={connectedKyc.has(p) ? 'connected' : 'idle'}
               onClick={() => setOpenKycProvider(p)}
             />
           ))}
@@ -1344,33 +1372,33 @@ export default function IntegrationsSection({
       {showSection('tax_automation') && (
       <Box id="section-tax" sx={{ scrollMarginTop: 80 }}>
         <ServiceCatalogSection
-          disabled
           serviceFilter={selectedServiceId}
           category="tax_automation"
           title="Fiscalité — Taxe de séjour"
-          description="Calcul, collecte et déclaration automatique de la taxe de séjour. Compatible barèmes France et international."
+          description="Calcul, collecte et déclaration automatique de la taxe de séjour. Compatible barèmes France et international. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
+          configForService={partnerConfigForService}
         />
       </Box>
       )}
       {showSection('insurance') && (
         <Box id="section-insurance" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection
-            disabled
             serviceFilter={selectedServiceId}
             category="insurance"
             title="Assurance & screening"
-            description="Vérification des guests, caution dommages, assurances annulation. Réduisez les risques et générez du revenu d'affiliation."
+            description="Vérification des guests, caution dommages, assurances annulation. Réduisez les risques et générez du revenu d'affiliation. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
+            configForService={partnerConfigForService}
           />
         </Box>
       )}
       {showSection('cleaning_operations') && (
         <Box id="section-cleaning" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection
-            disabled
             serviceFilter={selectedServiceId}
             category="cleaning_operations"
             title="Ménage & opérations"
-            description="Marketplaces de cleaners, checklists photo, gestion des inspections. Industrialisez les turnovers."
+            description="Marketplaces de cleaners, checklists photo, gestion des inspections. Industrialisez les turnovers. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
+            configForService={partnerConfigForService}
           />
         </Box>
       )}
@@ -1404,22 +1432,44 @@ export default function IntegrationsSection({
       {showSection('reviews_reputation') && (
         <Box id="section-reviews" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection
-            disabled
             serviceFilter={selectedServiceId}
             category="reviews_reputation"
             title="Avis & réputation"
-            description="Agrégation multi-canaux, sentiment analysis, automated responses. Suivez votre réputation cross-OTA."
+            description="Agrégation multi-canaux, sentiment analysis, automated responses. Suivez votre réputation cross-OTA. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
+            configForService={partnerConfigForService}
           />
         </Box>
       )}
       {showSection('marketing_crm') && (
         <Box id="section-marketing" sx={{ scrollMarginTop: 80 }}>
           <ServiceCatalogSection
-            disabled
             serviceFilter={selectedServiceId}
             category="marketing_crm"
             title="Marketing & CRM"
-            description="Email marketing, automation, CRM commercial pour acquisition de nouveaux propriétaires et campagnes guest."
+            description="Email marketing, automation, CRM commercial pour acquisition de nouveaux propriétaires et campagnes guest. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
+            configForService={partnerConfigForService}
+          />
+        </Box>
+      )}
+      {showSection('automation') && (
+        <Box id="section-automation" sx={{ scrollMarginTop: 80 }}>
+          <ServiceCatalogSection
+            serviceFilter={selectedServiceId}
+            category="automation"
+            title="Automatisation & Webhooks"
+            description="Connectez Baitly à des milliers d'apps via Zapier ou Make : collez l'URL de votre webhook et un secret de signature — l'émission des événements (réservations, check-ins, interventions) sera activée ensuite."
+            configForService={partnerConfigForService}
+          />
+        </Box>
+      )}
+      {showSection('guest_experience') && (
+        <Box id="section-guest-experience" sx={{ scrollMarginTop: 80 }}>
+          <ServiceCatalogSection
+            serviceFilter={selectedServiceId}
+            category="guest_experience"
+            title="Expérience guest"
+            description="Guest apps, check-in en ligne, upsells et boarding pass digital — en complément du livret d'accueil natif Baitly. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
+            configForService={partnerConfigForService}
           />
         </Box>
       )}

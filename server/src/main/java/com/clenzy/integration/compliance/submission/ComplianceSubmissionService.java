@@ -207,7 +207,11 @@ public class ComplianceSubmissionService {
 
     /**
      * Provider applicable selon le pays de la propriété (repli sur le pays de la déclaration).
-     * FR/ES/IT/PT → Chekin ; MA → DGSN ; SA → Absher ; sinon {@code null} (aucun provider).
+     * FR/ES/IT/PT → Chekin ; MA → DGSN ; SA → Shomoos ; sinon {@code null} (aucun provider).
+     *
+     * <p>SA mappe <b>Shomoos</b> (plateforme nationale d'enregistrement des voyageurs du
+     * secteur hébergement) et non Absher (services citoyens) : Absher reste en catalogue
+     * standby mais n'est pas le canal de déclaration des établissements.</p>
      */
     ComplianceProviderType resolveProvider(GuestDeclaration declaration) {
         String country = countryOf(declaration);
@@ -217,7 +221,7 @@ public class ComplianceSubmissionService {
         return switch (country.toUpperCase(Locale.ROOT)) {
             case "FR", "ES", "IT", "PT" -> ComplianceProviderType.CHEKIN;
             case "MA" -> ComplianceProviderType.POLICE_MA;
-            case "SA" -> ComplianceProviderType.ABSHER_KSA;
+            case "SA" -> ComplianceProviderType.SHOMOOS;
             default -> null;
         };
     }

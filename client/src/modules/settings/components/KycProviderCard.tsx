@@ -23,7 +23,7 @@ const KycProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
       meta={meta}
       logoId={provider}
       onStatusChange={onStatusChange}
-      scaffoldingNote={`L'intégration ${meta.label} est en cours de scaffolding. La connexion enregistre vos credentials ; les appels de vérification d'identité (création de verification request, retrieval du résultat KYC) seront ajoutés prochainement.`}
+      scaffoldingNote={`Vos credentials sont validées par un appel réel à l'API ${meta.label} lors de la connexion. Le flux de vérification des voyageurs (création de la demande KYC, récupération du résultat) sera branché dans une prochaine itération.`}
     />
   );
 };

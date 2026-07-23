@@ -30,6 +30,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   CHEKIN: 'Chekin',
   POLICE_MA: 'DGSN',
   ABSHER_KSA: 'Absher',
+  SHOMOOS: 'Shomoos',
 };
 
 /** Date courte tabular-nums, repli sur la chaîne brute. */
