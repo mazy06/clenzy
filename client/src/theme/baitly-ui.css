@@ -56,10 +56,11 @@
     color: inherit;
   }
 
-  button,
-  [type="button"],
-  [type="reset"],
-  [type="submit"] {
+  /* :where() = spécificité ZÉRO : le reset bat l'UA mais jamais une classe.
+     Sans lui, [type="button"] (0,1,0 — attribut ajouté par les triggers Radix)
+     battait les classes cn-* du même layer (ex. p-2 de cn-sidebar-menu-button
+     → boutons Collapsible/Dialog/Dropdown dépouillés de leur padding). */
+  :where(button, [type="button"], [type="reset"], [type="submit"]) {
     appearance: none;
     padding: 0;
     background-color: transparent;
@@ -75,7 +76,7 @@
   /* Ancres du kit (breadcrumb-link, pagination-link, asChild…) : neutraliser
      le bleu souligné UA — la couleur/décoration vient des classes cn-*.
      Scopé data-slot pour ne pas toucher les liens du legacy MUI. */
-  a[data-slot] {
+  :where(a[data-slot]) {
     color: inherit;
     text-decoration: inherit;
   }
@@ -97,6 +98,15 @@
      :where() garde la spécificité à zéro pour que l'indentation Nova
      (mx-3.5/px-2.5 de cn-sidebar-menu-sub) reste prioritaire. */
   :where([data-slot="sidebar-menu"], [data-slot="sidebar-menu-sub"]) {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  /* Panneaux du Navigation Menu : les exemples utilisent des ul/li natifs
+     (grilles de liens) → puces + padding-inline UA sans preflight. */
+  :where([data-slot="navigation-menu-content"], [data-slot="navigation-menu-list"])
+    :where(ul, li),
+  :where([data-slot="navigation-menu-list"]) {
     margin: 0;
     padding: 0;
     list-style: none;

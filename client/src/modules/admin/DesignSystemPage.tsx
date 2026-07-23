@@ -212,6 +212,13 @@ import {
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
 } from '../../components/ui';
 import {
   Area,
@@ -237,18 +244,24 @@ import {
 import {
   ActivityIcon,
   BarChart3Icon,
+  BookOpenIcon,
   CalendarDaysIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  ConciergeBellIcon,
   EuroIcon,
   FileTextIcon,
   HammerIcon,
   HomeIcon,
+  KeyRoundIcon,
   LayoutDashboardIcon,
+  MapPinIcon,
+  MessageCircleIcon,
   PaletteIcon,
   SettingsIcon,
   Share2Icon,
   ShieldCheckIcon,
+  SparklesIcon,
   UsersIcon,
   WrenchIcon,
   ZapIcon,
@@ -1855,6 +1868,136 @@ function EmptyDemo() {
   );
 }
 
+/* Header marketing/booking engine Baitly : panneaux riches (carte de mise en
+   avant bleu nuit + logo, grille destinations, services avec icônes). Pas de
+   ul/li natifs — uniquement des divs, le layout vient des classes. */
+function NavMenuPanelLink({
+  title,
+  children,
+  icon: Icon,
+}: {
+  title: string;
+  children?: ReactNode;
+  icon?: ComponentType<{ className?: string }>;
+}) {
+  return (
+    <NavigationMenuLink asChild>
+      <a href="#" className="group/nav-link">
+        <span className="flex items-center gap-2 text-sm leading-none font-medium">
+          {Icon && (
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary transition-colors group-hover/nav-link:bg-primary group-hover/nav-link:text-primary-foreground">
+              <Icon className="size-4" />
+            </span>
+          )}
+          {title}
+        </span>
+        {children && (
+          <span className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+            {children}
+          </span>
+        )}
+      </a>
+    </NavigationMenuLink>
+  );
+}
+
+function NavigationMenuBaitlyDemo() {
+  return (
+    <NavigationMenu>
+      <NavigationMenuList className="flex-wrap">
+        <NavigationMenuItem>
+          <NavigationMenuTrigger>Séjours</NavigationMenuTrigger>
+          <NavigationMenuContent>
+            <div className="grid gap-2 md:w-[420px] lg:w-[520px] lg:grid-cols-[.8fr_1fr]">
+              <NavigationMenuLink asChild>
+                <a
+                  href="#"
+                  className="flex h-full w-full flex-col justify-end rounded-md bg-primary p-4 text-primary-foreground no-underline outline-hidden select-none focus:shadow-md md:p-5"
+                >
+                  <span className="flex size-9 items-center justify-center rounded-lg bg-primary-foreground/10">
+                    <BaitlyMarkLogo variant="mark" size={26} colorMode="inherit" />
+                  </span>
+                  <span className="mt-3 mb-1 text-lg font-semibold">Baitly Booking</span>
+                  <span className="text-sm leading-tight text-primary-foreground/70">
+                    Réservez en direct, sans commission de plateforme.
+                  </span>
+                </a>
+              </NavigationMenuLink>
+              <div className="grid gap-1">
+                <NavMenuPanelLink title="Recherche par dates">
+                  Disponibilités en temps réel, prix par nuit sur le calendrier.
+                </NavMenuPanelLink>
+                <NavMenuPanelLink title="Panier multi-séjours">
+                  Combinez plusieurs logements et dates dans une seule réservation.
+                </NavMenuPanelLink>
+                <NavMenuPanelLink title="Compte voyageur">
+                  Retrouvez vos séjours, factures et livrets d'accueil.
+                </NavMenuPanelLink>
+              </div>
+            </div>
+          </NavigationMenuContent>
+        </NavigationMenuItem>
+        <NavigationMenuItem>
+          <NavigationMenuTrigger>Logements</NavigationMenuTrigger>
+          <NavigationMenuContent>
+            <div className="grid gap-1 sm:w-[420px] md:w-[540px] md:grid-cols-2">
+              <NavMenuPanelLink icon={MapPinIcon} title="Riads · Marrakech">
+                Médina et Guéliz, patios et terrasses sur les toits.
+              </NavMenuPanelLink>
+              <NavMenuPanelLink icon={MapPinIcon} title="Villas · Agadir">
+                Piscines privées, à 10 minutes des plages.
+              </NavMenuPanelLink>
+              <NavMenuPanelLink icon={MapPinIcon} title="Appartements · Casablanca">
+                Séjours d'affaires, quartiers Racine et Gauthier.
+              </NavMenuPanelLink>
+              <NavMenuPanelLink icon={MapPinIcon} title="Surf houses · Taghazout">
+                Face à l'océan, petit-déjeuner et rooftop inclus.
+              </NavMenuPanelLink>
+              <NavMenuPanelLink icon={HomeIcon} title="Longue durée">
+                Un mois et plus : tarifs dégressifs, ménage hebdomadaire.
+              </NavMenuPanelLink>
+              <NavMenuPanelLink icon={SparklesIcon} title="Nouveautés">
+                Les derniers logements ajoutés au catalogue.
+              </NavMenuPanelLink>
+            </div>
+          </NavigationMenuContent>
+        </NavigationMenuItem>
+        <NavigationMenuItem>
+          <NavigationMenuTrigger>Services</NavigationMenuTrigger>
+          <NavigationMenuContent>
+            <div className="grid w-[340px] gap-1">
+              <NavMenuPanelLink icon={KeyRoundIcon} title="Arrivée autonome">
+                Serrures connectées, code envoyé 3 h avant le check-in.
+              </NavMenuPanelLink>
+              <NavMenuPanelLink icon={SparklesIcon} title="Ménage hôtelier">
+                Linge fourni, contrôle qualité photo après chaque passage.
+              </NavMenuPanelLink>
+              <NavMenuPanelLink icon={ConciergeBellIcon} title="Conciergerie 7j/7">
+                Une équipe locale joignable pendant tout le séjour.
+              </NavMenuPanelLink>
+            </div>
+          </NavigationMenuContent>
+        </NavigationMenuItem>
+        <NavigationMenuItem>
+          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+            <a href="#">Tarifs</a>
+          </NavigationMenuLink>
+        </NavigationMenuItem>
+        <NavigationMenuItem>
+          <NavigationMenuTrigger>Aide</NavigationMenuTrigger>
+          <NavigationMenuContent>
+            <div className="grid w-[280px] gap-1">
+              <NavMenuPanelLink icon={BookOpenIcon} title="Guide du voyageur" />
+              <NavMenuPanelLink icon={MessageCircleIcon} title="Contacter l'équipe" />
+              <NavMenuPanelLink icon={FileTextIcon} title="Conditions & annulation" />
+            </div>
+          </NavigationMenuContent>
+        </NavigationMenuItem>
+      </NavigationMenuList>
+    </NavigationMenu>
+  );
+}
+
 /* Navigation PMS réelle (useNavigationMenu/navigationHubs) : 1 entrée par hub,
    sous-menus = onglets du hub. Badges réels : Planning = cartes HITL en attente
    (warning), Documents = échecs d'envoi récents (destructive). */
@@ -2261,7 +2404,7 @@ const GALLERY_SECTIONS: GallerySectionDef[] = [
   { category: 'display', title: 'Aspect Ratio', component: 'aspect-ratio', i18nKey: 'designSystem.aspectRatio.description', fallback: "Contraint un média à un ratio fixe (16/9, carré, portrait) — photos de logements.", variants: [] },
   { category: 'forms', title: 'Combobox', component: 'combobox', i18nKey: 'designSystem.combobox.description', fallback: "Select avec recherche (Base UI) : simple, multiple, groupes, chips — le futur sélecteur logement/guest.", variants: [] },
   { category: 'forms', title: 'Native Select', component: 'native-select', i18nKey: 'designSystem.nativeSelect.description', fallback: "<select> natif stylé : léger, idéal mobile et formulaires simples.", variants: [] },
-  { category: 'navigation', title: 'Navigation Menu', component: 'navigation-menu', i18nKey: 'designSystem.navigationMenu.description', fallback: "Menu de navigation horizontal riche (panneaux, listes) — header marketing/booking engine. Le canvas réserve la hauteur d'ouverture des panneaux.", canvasClassName: 'min-h-[460px]', variants: [] },
+  { category: 'navigation', title: 'Navigation Menu', component: 'navigation-menu', i18nKey: 'designSystem.navigationMenu.description', fallback: "Menu de navigation horizontal riche (panneaux, listes) — header marketing/booking engine. Le canvas réserve la hauteur d'ouverture des panneaux.", canvasClassName: 'min-h-[460px]', variants: [{ key: 'baitly', label: 'Header Baitly', Demo: NavigationMenuBaitlyDemo }] },
   { category: 'display', title: 'Attachment', component: 'attachment', i18nKey: 'designSystem.attachment.description', fallback: "Pièce jointe (fichier/image) : états, tailles, groupes — messagerie guest et documents.", variants: [] },
   { category: 'display', title: 'Message', component: 'message', i18nKey: 'designSystem.message.description', fallback: "Message de chat : avatar, en-tête/pied, actions, pièces jointes — brique de la messagerie guest.", variants: [] },
   { category: 'display', title: 'Bubble', component: 'bubble', i18nKey: 'designSystem.bubble.description', fallback: "Bulles de conversation : variantes, alignements, réactions, groupes.", variants: [] },
