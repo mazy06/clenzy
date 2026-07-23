@@ -47,6 +47,7 @@ const PROVIDER_COLORS: Record<string, string> = {
   PAYTABS: '#1A8FE3',
   CMI: '#E4002B',
   PAYZONE: '#00B67A',
+  YOUCAN_PAY: '#7B2CBF',
   PAYPAL: '#003087',
 };
 
@@ -55,6 +56,7 @@ const PROVIDER_REGIONS: Record<string, string> = {
   PAYTABS: 'Arabie Saoudite',
   CMI: 'Maroc',
   PAYZONE: 'Maroc',
+  YOUCAN_PAY: 'Maroc',
   PAYPAL: 'Global',
 };
 
@@ -86,10 +88,10 @@ const SHARE_CONCIERGE = 'var(--warn)';
  *  STRIPE est configure cote application.yml (global), pas par-tenant.
  *  Plus aucun stub UI : les 4 providers non-Stripe sont desormais configurables.
  */
-const CONFIGURABLE_PROVIDERS: PaymentProviderType[] = ['PAYTABS', 'CMI', 'PAYZONE', 'PAYPAL'];
+const CONFIGURABLE_PROVIDERS: PaymentProviderType[] = ['PAYTABS', 'CMI', 'PAYZONE', 'YOUCAN_PAY', 'PAYPAL'];
 const STUB_PROVIDERS: PaymentProviderType[] = [];
 
-const allProviders: PaymentProviderType[] = ['STRIPE', 'PAYTABS', 'CMI', 'PAYZONE', 'PAYPAL'];
+const allProviders: PaymentProviderType[] = ['STRIPE', 'PAYTABS', 'CMI', 'PAYZONE', 'YOUCAN_PAY', 'PAYPAL'];
 
 /**
  * Verifie si la config d'un provider est suffisamment renseignee pour
@@ -115,6 +117,11 @@ const isProviderConfigured = (type: PaymentProviderType, config?: PaymentMethodC
     // s'appuie sur la presence d'au moins une clef provider-specific dans
     // configJson — la webhookUrl est requise au moment du saving du dialog.
     return typeof json.webhookUrl === 'string' && json.webhookUrl.length > 0;
+  }
+  if (type === 'YOUCAN_PAY') {
+    // Même logique que PayPal : la clé privée (chiffrée) n'est pas exposée —
+    // l'existence du record suffit (elle est requise au save du dialog).
+    return config.id != null;
   }
   if (type === 'PAYPAL') {
     // PayPal n'a pas de configJson obligatoire — la config est valide dès

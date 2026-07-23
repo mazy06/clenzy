@@ -14,6 +14,13 @@ public enum PaymentProviderType {
      */
     ATTIJARI,
     /**
+     * YouCan Pay (PSP marocain self-serve). Seule passerelle MAD avec un
+     * onboarding sans conventionnement bancaire : clés API publique/privée
+     * obtenues en ligne, sandbox incluse. Flux : tokenize (clé privée) →
+     * redirection sur la page de paiement hébergée → webhook signé HMAC.
+     */
+    YOUCAN_PAY,
+    /**
      * Provider PayPal retiré (décision produit — flux inopérant). Plus aucun
      * {@code PaymentProvider} actif ni endpoint de retour/webhook associé.
      *

@@ -164,6 +164,7 @@ public class SecurityConfig {
                     "/api/properties/with-managers",
                     "/api/sync/**",
                     "/api/webhooks/stripe",
+                    "/api/webhooks/payments/**",
                     "/api/webhooks/airbnb",
                     "/api/webhooks/minut",
                     "/api/webhooks/tripadvisor",
