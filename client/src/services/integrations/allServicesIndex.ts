@@ -46,6 +46,8 @@ export const CATEGORIES: CategoryDef[] = [
   { id: 'activities_affiliate', label: 'Activités & affiliation',     domId: 'section-activities' },
   { id: 'reviews_reputation',   label: 'Avis & réputation',           domId: 'section-reviews' },
   { id: 'marketing_crm',        label: 'Marketing & CRM',             domId: 'section-marketing' },
+  { id: 'automation',           label: 'Automatisation & Webhooks',   domId: 'section-automation' },
+  { id: 'guest_experience',     label: 'Expérience guest',            domId: 'section-guest-experience' },
 ];
 
 const CATEGORY_BY_ID: Record<string, CategoryDef> =
@@ -80,6 +82,7 @@ export const ALL_SERVICES: ServiceIndexEntry[] = [
   entry('CHEKIN', 'Chekin', 'compliance'),
   entry('POLICE_MA', 'Police Maroc', 'compliance'),
   entry('ABSHER_KSA', 'Absher', 'compliance'),
+  entry('SHOMOOS', 'Shomoos', 'compliance'),
 
   // KYC
   entry('SUMSUB', 'Sumsub', 'kyc'),
@@ -118,6 +121,11 @@ export const ALL_SERVICES: ServiceIndexEntry[] = [
   entry('airdna', 'AirDNA', 'market_intelligence'),
   entry('mytse', 'MyTSE', 'tax_automation'),
   entry('avalara', 'Avalara MyLodgeTax', 'tax_automation'),
+  entry('efacture_dgi_ma', 'e-Facture DGI Maroc', 'tax_automation'),
+  entry('zapier', 'Zapier', 'automation'),
+  entry('make', 'Make', 'automation'),
+  entry('duve', 'Duve', 'guest_experience'),
+  entry('enso_connect', 'Enso Connect', 'guest_experience'),
   entry('superhog', 'Superhog', 'insurance'),
   entry('safely', 'Safely', 'insurance'),
   entry('axa_partners', 'AXA Partners', 'insurance'),

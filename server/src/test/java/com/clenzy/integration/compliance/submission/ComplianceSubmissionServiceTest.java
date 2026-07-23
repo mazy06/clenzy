@@ -179,18 +179,19 @@ class ComplianceSubmissionServiceTest {
     }
 
     @Test
-    void retrySubmission_saudi_pendingPropagated() {
+    void retrySubmission_saudi_resolvesShomoos_pendingPropagated() {
+        // SA → Shomoos (plateforme d'enregistrement hébergement), pas Absher.
         GuestDeclaration d = declaration("SA", DeclarationStatus.COMPLETED);
         ComplianceConnection conn = new ComplianceConnection();
-        conn.setProviderType(ComplianceProviderType.ABSHER_KSA);
+        conn.setProviderType(ComplianceProviderType.SHOMOOS);
         conn.setStatus(ComplianceConnection.Status.ACTIVE);
-        ComplianceSubmissionStrategy pending = mockPending(ComplianceProviderType.ABSHER_KSA);
+        ComplianceSubmissionStrategy pending = mockPending(ComplianceProviderType.SHOMOOS);
 
         when(declarationRepository.findById(DECLARATION_ID)).thenReturn(Optional.of(d));
-        when(connectionService.getConnection(ORG_ID, ComplianceProviderType.ABSHER_KSA))
+        when(connectionService.getConnection(ORG_ID, ComplianceProviderType.SHOMOOS))
                 .thenReturn(Optional.of(conn));
         when(connectionService.decryptApiKey(conn)).thenReturn("plain-key");
-        when(strategyRegistry.findFor(ComplianceProviderType.ABSHER_KSA)).thenReturn(Optional.of(pending));
+        when(strategyRegistry.findFor(ComplianceProviderType.SHOMOOS)).thenReturn(Optional.of(pending));
 
         assertThatThrownBy(() -> service.retrySubmission(DECLARATION_ID))
                 .isInstanceOf(ComplianceProviderPendingException.class);

@@ -69,6 +69,16 @@ class PaymentProviderCapabilitiesTest {
     }
 
     @Test
+    @DisplayName("YouCan Pay : PAY seulement (refund via dashboard marchand)")
+    void youCanPaySupportsPayOnly() {
+        PaymentProvider youCanPay = new YouCanPayPaymentProvider(null, null);
+        assertThat(youCanPay.getCapabilities()).containsExactly(PaymentCapability.PAY);
+        assertThat(youCanPay.supports(PaymentCapability.PAY)).isTrue();
+        assertThat(youCanPay.supports(PaymentCapability.REFUND)).isFalse();
+        assertThat(youCanPay.supports(PaymentCapability.PAYOUT)).isFalse();
+    }
+
+    @Test
     @DisplayName("Tout provider supporte au minimum PAY")
     void everyProviderSupportsPay() {
         assertThat(new StripePaymentProvider().supports(PaymentCapability.PAY)).isTrue();
@@ -76,6 +86,7 @@ class PaymentProviderCapabilitiesTest {
         assertThat(new PayTabsPaymentProvider(null, null).supports(PaymentCapability.PAY)).isTrue();
         assertThat(new CmiPaymentProvider(null, null).supports(PaymentCapability.PAY)).isTrue();
         assertThat(new AttijariPaymentProvider(null, null).supports(PaymentCapability.PAY)).isTrue();
+        assertThat(new YouCanPayPaymentProvider(null, null).supports(PaymentCapability.PAY)).isTrue();
     }
 
     private void assertPayAndRefundOnly(PaymentProvider provider) {

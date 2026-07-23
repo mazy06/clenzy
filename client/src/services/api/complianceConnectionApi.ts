@@ -13,7 +13,7 @@
 import { API_CONFIG } from '../../config/api';
 import { getAccessToken } from '../../keycloak';
 
-export type ComplianceProvider = 'CHEKIN' | 'POLICE_MA' | 'ABSHER_KSA';
+export type ComplianceProvider = 'CHEKIN' | 'POLICE_MA' | 'ABSHER_KSA' | 'SHOMOOS';
 
 export interface ComplianceConnectionRequest {
   serverUrl: string;
@@ -152,7 +152,7 @@ export const COMPLIANCE_PROVIDER_META: Record<ComplianceProvider, ComplianceProv
       'SaaS d\'automatisation de la fiche individuelle de police (CERFA 11253*04) pour les voyageurs étrangers. Aussi disponible Espagne, Italie, Portugal.',
     brandColor: '#1E40AF',
     brandInitials: 'CK',
-    serverUrlPlaceholder: 'https://api.chekin.com',
+    serverUrlPlaceholder: 'https://a.chekin.io/public/api/v1',
     apiKeyHelpUrl: 'https://docs.chekin.com/',
     accountIdentifierLabel: 'Account ID (optionnel)',
     countryCode: 'FR',
@@ -181,5 +181,17 @@ export const COMPLIANCE_PROVIDER_META: Record<ComplianceProvider, ComplianceProv
     accountIdentifierLabel: 'Establishment ID',
     countryCode: 'SA',
     legalNote: 'Enregistrement MOI + Tawakkalna (obligatoire non-résidents)',
+  },
+  SHOMOOS: {
+    id: 'SHOMOOS',
+    label: 'Shomoos (Arabie Saoudite)',
+    description:
+      'Plateforme nationale Shomoos (شموس) — enregistrement obligatoire des voyageurs pour les établissements d\'hébergement licenciés. C\'est le canal officiel du secteur hôtelier saoudien (le resolver mappe le pays SA sur Shomoos).',
+    brandColor: '#A3762A',
+    brandInitials: 'SH',
+    serverUrlPlaceholder: 'https://shomoos.com.sa',
+    accountIdentifierLabel: 'Licence établissement',
+    countryCode: 'SA',
+    legalNote: 'Enregistrement voyageurs hébergement (Shomoos, obligatoire établissements licenciés)',
   },
 };

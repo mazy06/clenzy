@@ -117,6 +117,14 @@ export const SERVICE_TOOLTIPS: Record<string, ServiceTooltipData> = {
     websiteUrl: 'https://www.absher.sa',
     region: 'KSA',
   },
+  SHOMOOS: {
+    description:
+      "Plateforme nationale Shomoos (شموس) d'enregistrement des voyageurs pour les établissements d'hébergement saoudiens. C'est le canal officiel du secteur hôtelier (Absher couvre les services citoyens) — enregistrement obligatoire dès le check-in.",
+    accessModality:
+      "Abonnement établissement Shomoos (licence hébergement requise). Accès API réservé aux établissements enregistrés et intégrateurs conventionnés.",
+    websiteUrl: 'https://shomoos.com.sa',
+    region: 'KSA',
+  },
 
   // ─── KYC / Verification d'identite ─────────────────────────────────────
   SUMSUB: {

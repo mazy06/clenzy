@@ -79,26 +79,26 @@ export const KYC_PROVIDER_META: Record<KycProvider, KycProviderMeta> = {
     id: 'SUMSUB',
     label: 'Sumsub',
     description:
-      'Leader vérification d\'identité MENA + Europe. Accepté par les banques saoudiennes. KYC + KYB + transaction monitoring.',
+      'Leader vérification d\'identité MENA + Europe. Accepté par les banques saoudiennes. KYC + KYB + transaction monitoring. Saisir l\'App Token ci-dessous et la Secret Key dans le champ API key : la paire signe chaque requête (HMAC).',
     serverUrlPlaceholder: 'https://api.sumsub.com',
     apiKeyHelpUrl: 'https://developers.sumsub.com/',
-    accountIdentifierLabel: 'App Token (optionnel)',
+    accountIdentifierLabel: 'App Token (requis)',
   },
   VERIFF: {
     id: 'VERIFF',
     label: 'Veriff',
     description:
-      'Vérification d\'identité estonienne, bon rapport qualité/prix. Couverture EU + MENA. Liveness + document check.',
+      'Vérification d\'identité estonienne, bon rapport qualité/prix. Couverture EU + MENA. Liveness + document check. Saisir l\'API key (publishable) ci-dessous et le Shared secret dans le champ API key : la paire signe chaque requête (HMAC).',
     serverUrlPlaceholder: 'https://stationapi.veriff.com',
     apiKeyHelpUrl: 'https://developers.veriff.com/',
-    accountIdentifierLabel: 'Partner ID (optionnel)',
+    accountIdentifierLabel: 'API key publique (requis)',
   },
   ONFIDO: {
     id: 'ONFIDO',
     label: 'Onfido',
     description:
       'Vérification d\'identité premium globale. Qualité UX exceptionnelle, intégrée dans Revolut, Bolt, Zopa. ~95 % approval rate.',
-    serverUrlPlaceholder: 'https://api.onfido.com',
+    serverUrlPlaceholder: 'https://api.eu.onfido.com/v3.6',
     apiKeyHelpUrl: 'https://documentation.onfido.com/',
     accountIdentifierLabel: 'Workflow ID (optionnel)',
   },

@@ -6,6 +6,7 @@ import com.clenzy.model.PaymentTransaction;
 import com.clenzy.payment.provider.CmiHashService;
 import com.clenzy.payment.provider.PayTabsPaymentProvider;
 import com.clenzy.payment.provider.PayzonePaymentProvider;
+import com.clenzy.payment.provider.YouCanPayPaymentProvider;
 import com.clenzy.service.PaymentMethodConfigService;
 import com.clenzy.service.PaymentOrchestrationService;
 import com.clenzy.service.PaymentTransactionService;
@@ -41,6 +42,7 @@ public class PaymentWebhookRouter {
     private final PaymentMethodConfigService configService;
     private final PayTabsPaymentProvider payTabsProvider;
     private final PayzonePaymentProvider payzoneProvider;
+    private final YouCanPayPaymentProvider youCanPayProvider;
     private final CmiHashService cmiHashService;
     private final PaymentTransactionService paymentTransactionService;
     private final ObjectMapper objectMapper;
@@ -52,6 +54,7 @@ public class PaymentWebhookRouter {
                                  PaymentMethodConfigService configService,
                                  PayTabsPaymentProvider payTabsProvider,
                                  PayzonePaymentProvider payzoneProvider,
+                                 YouCanPayPaymentProvider youCanPayProvider,
                                  CmiHashService cmiHashService,
                                  PaymentTransactionService paymentTransactionService,
                                  ObjectMapper objectMapper) {
@@ -59,6 +62,7 @@ public class PaymentWebhookRouter {
         this.configService = configService;
         this.payTabsProvider = payTabsProvider;
         this.payzoneProvider = payzoneProvider;
+        this.youCanPayProvider = youCanPayProvider;
         this.cmiHashService = cmiHashService;
         this.paymentTransactionService = paymentTransactionService;
         this.objectMapper = objectMapper;
@@ -378,6 +382,91 @@ public class PaymentWebhookRouter {
             log.warn("Payzone webhook : status non gere pour ref={} : {}", merchantRef, status);
         }
         return ResponseEntity.ok("OK");
+    }
+
+    /**
+     * YouCan Pay webhook handler.
+     *
+     * <h2>Flow (mirror Payzone)</h2>
+     * <ol>
+     *   <li>Extrait {@code order_id} (= notre {@code transactionRef}) du payload —
+     *       cherché à la racine puis sous les nœuds {@code transaction}/{@code payment}
+     *       (le nesting exact varie selon le type d'événement).</li>
+     *   <li>Lookup la {@code PaymentTransaction} → orgId → clé privée de l'org
+     *       (la signature webhook YouCan Pay est un HMAC-SHA256 du payload).</li>
+     *   <li>Signature valide + événement payé → {@code completeTransaction} ;
+     *       échec/annulation → {@code failTransaction}.</li>
+     * </ol>
+     */
+    @PostMapping("/youcanpay")
+    public ResponseEntity<String> handleYouCanPayWebhook(
+            @RequestBody String payload,
+            @RequestHeader(value = "x-youcanpay-signature", required = false) String signature) {
+
+        if (signature == null || signature.isBlank()) {
+            log.warn("YouCan Pay webhook received without signature — rejecting");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing signature");
+        }
+
+        JsonNode root;
+        try {
+            root = objectMapper.readTree(payload);
+        } catch (Exception e) {
+            log.warn("YouCan Pay webhook : payload invalide ({})", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid JSON");
+        }
+        String merchantRef = firstNonNull(
+            textOrNull(root, "order_id"),
+            root.path("transaction").isObject() ? textOrNull(root.path("transaction"), "order_id") : null,
+            root.path("payment").isObject() ? textOrNull(root.path("payment"), "order_id") : null);
+        if (merchantRef == null || merchantRef.isBlank()) {
+            log.warn("YouCan Pay webhook : order_id absent");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing order_id");
+        }
+
+        PaymentTransaction tx = paymentTransactionService.findByTransactionRef(merchantRef).orElse(null);
+        if (tx == null) {
+            log.warn("YouCan Pay webhook : transaction inconnue ref={}", merchantRef);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Unknown transaction");
+        }
+
+        PaymentMethodConfig config = configService.getOrCreateConfig(
+            tx.getOrganizationId(), PaymentProviderType.YOUCAN_PAY);
+        // La clé privée signe les webhooks ; webhook_secret dédié prioritaire s'il existe.
+        String webhookSecret = configService.decryptWebhookSecret(config);
+        if (webhookSecret == null || webhookSecret.isBlank()) {
+            webhookSecret = configService.decryptApiKey(config);
+        }
+        if (webhookSecret == null || webhookSecret.isBlank()) {
+            log.error("YouCan Pay webhook : secret absent pour org {}", tx.getOrganizationId());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Webhook secret missing");
+        }
+
+        if (!youCanPayProvider.verifyWebhook(payload, signature, webhookSecret)) {
+            log.warn("YouCan Pay webhook : signature invalide pour ref={}", merchantRef);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid signature");
+        }
+
+        String event = firstNonNull(textOrNull(root, "event_name"), textOrNull(root, "status"));
+        if (event != null && (event.toLowerCase().contains("paid")
+                || "completed".equalsIgnoreCase(event) || "succeeded".equalsIgnoreCase(event))) {
+            orchestrationService.completeTransaction(merchantRef);
+            log.info("YouCan Pay webhook : transaction {} confirmee ({})", merchantRef, event);
+        } else if (event != null && (event.toLowerCase().contains("fail")
+                || event.toLowerCase().contains("cancel") || event.toLowerCase().contains("decline"))) {
+            orchestrationService.failTransaction(merchantRef, "YouCan Pay " + event);
+            log.info("YouCan Pay webhook : transaction {} echouee ({})", merchantRef, event);
+        } else {
+            log.warn("YouCan Pay webhook : evenement non gere pour ref={} : {}", merchantRef, event);
+        }
+        return ResponseEntity.ok("OK");
+    }
+
+    private static String firstNonNull(String... values) {
+        for (String v : values) {
+            if (v != null && !v.isBlank()) return v;
+        }
+        return null;
     }
 
     // ─── Internal Stripe Event Processing ───────────────────────────────────────

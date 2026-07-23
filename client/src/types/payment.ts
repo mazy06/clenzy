@@ -1,4 +1,4 @@
-export type PaymentProviderType = 'STRIPE' | 'PAYTABS' | 'CMI' | 'PAYZONE' | 'PAYPAL';
+export type PaymentProviderType = 'STRIPE' | 'PAYTABS' | 'CMI' | 'PAYZONE' | 'YOUCAN_PAY' | 'PAYPAL';
 
 export interface PaymentMethodConfig {
   id: number;
@@ -76,5 +76,6 @@ export const PAYMENT_PROVIDER_LABELS: Record<PaymentProviderType, string> = {
   PAYTABS: 'PayTabs (Arabie Saoudite)',
   CMI: 'CMI (Maroc)',
   PAYZONE: 'Payzone (Maroc)',
+  YOUCAN_PAY: 'YouCan Pay (Maroc)',
   PAYPAL: 'PayPal (Global)',
 };

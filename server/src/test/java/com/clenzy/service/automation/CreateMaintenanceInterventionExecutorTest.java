@@ -12,6 +12,7 @@ import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.NoiseAlertRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.SmartLockDeviceRepository;
+import com.clenzy.service.access.StayTimes;
 import com.clenzy.service.automation.AutomationActionExecutor.ExecutionResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -167,9 +168,12 @@ class CreateMaintenanceInterventionExecutorTest {
                 eq(PROPERTY_ID), eq(ORG_ID), anyList(), anyString())).thenReturn(false);
         when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property(owner)));
 
-        LocalDate before = LocalDate.now(ZoneId.systemDefault());
+        // Même fuseau que l'exécuteur (timezone de la propriété — défaut entité
+        // Europe/Paris), sinon flake CI entre 22h et minuit UTC.
+        ZoneId propertyZone = StayTimes.zoneOf(property(owner));
+        LocalDate before = LocalDate.now(propertyZone);
         ExecutionResult result = executor.execute(rule(), noiseCtx());
-        LocalDate after = LocalDate.now(ZoneId.systemDefault());
+        LocalDate after = LocalDate.now(propertyZone);
 
         assertThat(result.skipped()).isFalse();
         ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
@@ -267,10 +271,13 @@ class CreateMaintenanceInterventionExecutorTest {
                 eq(PROPERTY_ID), eq(ORG_ID), anyList(), anyString())).thenReturn(false);
         when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property(owner)));
 
-        LocalDate before = LocalDate.now(ZoneId.systemDefault());
+        // Même fuseau que l'exécuteur (timezone de la propriété — défaut entité
+        // Europe/Paris), sinon flake CI entre 22h et minuit UTC.
+        ZoneId propertyZone = StayTimes.zoneOf(property(owner));
+        LocalDate before = LocalDate.now(propertyZone);
         ExecutionResult result = executor.execute(rule(),
                 ctx(CreateMaintenanceInterventionExecutor.SUBJECT_SMART_LOCK_DEVICE, DEVICE_ID));
-        LocalDate after = LocalDate.now(ZoneId.systemDefault());
+        LocalDate after = LocalDate.now(propertyZone);
 
         assertThat(result.skipped()).isFalse();
         ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
@@ -286,7 +293,7 @@ class CreateMaintenanceInterventionExecutorTest {
         assertThat(created.getDescription()).contains("batterie critique").contains("8%");
         assertThat(created.getSpecialInstructions())
                 .contains(CreateMaintenanceInterventionExecutor.marker(DEVICE_ID));
-        // Lendemain 10:00 (fuseau du logement — repli systeme sans timezone) ;
+        // Lendemain 10:00 dans le fuseau du logement ;
         // fenetre before/after pour eviter le flake au passage de minuit.
         assertThat(created.getScheduledDate().toLocalDate())
                 .isBetween(before.plusDays(1), after.plusDays(1));

@@ -6,6 +6,7 @@ import com.clenzy.model.PaymentTransaction;
 import com.clenzy.payment.provider.CmiHashService;
 import com.clenzy.payment.provider.PayTabsPaymentProvider;
 import com.clenzy.payment.provider.PayzonePaymentProvider;
+import com.clenzy.payment.provider.YouCanPayPaymentProvider;
 import com.clenzy.repository.PaymentTransactionRepository;
 import com.clenzy.service.PaymentMethodConfigService;
 import com.clenzy.service.PaymentOrchestrationService;
@@ -47,6 +48,7 @@ class PaymentWebhookRouterTest {
     @Mock private PaymentMethodConfigService configService;
     @Mock private PayTabsPaymentProvider payTabsProvider;
     @Mock private PayzonePaymentProvider payzoneProvider;
+    @Mock private YouCanPayPaymentProvider youCanPayProvider;
     @Mock private CmiHashService cmiHashService;
     @Mock private PaymentTransactionRepository transactionRepository;
     @Mock private TenantContext tenantContext;
@@ -62,7 +64,7 @@ class PaymentWebhookRouterTest {
         PaymentTransactionService paymentTransactionService =
                 new PaymentTransactionService(transactionRepository, tenantContext);
         router = new PaymentWebhookRouter(orchestrationService, configService,
-                payTabsProvider, payzoneProvider, cmiHashService,
+                payTabsProvider, payzoneProvider, youCanPayProvider, cmiHashService,
                 paymentTransactionService, objectMapper);
         Field f = PaymentWebhookRouter.class.getDeclaredField("stripeWebhookSecret");
         f.setAccessible(true);

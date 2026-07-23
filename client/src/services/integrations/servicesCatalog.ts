@@ -25,7 +25,9 @@ export type ServiceCategory =
   | 'reviews_reputation'
   | 'marketing_crm'
   | 'key_management'
-  | 'noise_monitoring';
+  | 'noise_monitoring'
+  | 'automation'
+  | 'guest_experience';
 
 /**
  * Tag commercial du service. Affiche comme un petit chip a cote du nom.
@@ -130,6 +132,21 @@ export const CATALOG_SERVICES: CatalogService[] = [
     accessModality: 'Compte Avalara Connect requis → API key fournie après contractualisation. Tarification basée sur le nombre de propriétés actives.',
     available: false,
     region: 'Global',
+  },
+
+  {
+    id: 'efacture_dgi_ma',
+    name: 'e-Facture DGI Maroc',
+    category: 'tax_automation',
+    brandColor: '#C1272D',
+    brandTextColor: '#FFFFFF',
+    shortDescription: 'Facturation électronique Maroc',
+    tooltipDescription:
+      'Système de facturation électronique de la Direction Générale des Impôts marocaine (déploiement progressif à partir de 2026). À terme, les factures des entreprises marocaines devront être transmises/validées via la plateforme DGI. Baitly prépare le branchement depuis son module de facturation conforme (NF).',
+    websiteUrl: 'https://www.tax.gov.ma/',
+    accessModality: 'Identifiant fiscal (IF) + enregistrement de l\'entreprise sur le portail DGI. Les specs API seront publiées par la DGI lors du déploiement — enregistrez vos identifiants dès maintenant.',
+    available: false,
+    region: 'MA',
   },
 
   // ─── Insurance ────────────────────────────────────────────────────────────
@@ -519,6 +536,66 @@ export const CATALOG_SERVICES: CatalogService[] = [
     region: 'Global',
     tag: 'proprietary',
     internalRoute: '/admin?tab=sound',
+  },
+
+  // ─── Automatisation & Webhooks ───────────────────────────────────────────
+  {
+    id: 'zapier',
+    name: 'Zapier',
+    category: 'automation',
+    brandColor: '#FF4F00',
+    brandTextColor: '#FFFFFF',
+    shortDescription: 'Automatisation · 7000+ apps',
+    tooltipDescription:
+      'Plateforme d\'automatisation no-code leader : connectez Baitly à plus de 7 000 applications (Google Sheets, Slack, Notion, CRM…). Le principe : Baitly enverra les événements (nouvelle réservation, check-in, intervention…) vers un webhook Zapier qui déclenche vos Zaps.',
+    websiteUrl: 'https://zapier.com',
+    accessModality: 'Compte Zapier (plan gratuit disponible). Créez un Zap « Webhooks by Zapier » → collez l\'URL du webhook dans le formulaire ci-dessous avec un secret de signature.',
+    available: false,
+    region: 'Global',
+  },
+  {
+    id: 'make',
+    name: 'Make',
+    category: 'automation',
+    brandColor: '#6D00CC',
+    brandTextColor: '#FFFFFF',
+    shortDescription: 'Scénarios visuels · ex-Integromat',
+    tooltipDescription:
+      'Alternative européenne à Zapier (ex-Integromat) : scénarios d\'automatisation visuels, tarification plus généreuse sur les gros volumes. Baitly enverra ses événements vers un webhook Make qui alimente vos scénarios.',
+    websiteUrl: 'https://www.make.com',
+    accessModality: 'Compte Make (plan gratuit disponible). Créez un scénario avec un module « Custom webhook » → collez l\'URL du webhook dans le formulaire ci-dessous avec un secret de signature.',
+    available: false,
+    region: 'EU',
+  },
+
+  // ─── Expérience guest ────────────────────────────────────────────────────
+  {
+    id: 'duve',
+    name: 'Duve',
+    category: 'guest_experience',
+    brandColor: '#2E5BFF',
+    brandTextColor: '#FFFFFF',
+    shortDescription: 'Guest app · check-in en ligne · upsells',
+    tooltipDescription:
+      'Plateforme d\'expérience guest : check-in en ligne, guest app white-label, upsells (early check-in, late checkout), communication multicanale. Complète le livret d\'accueil natif Baitly pour les conciergeries qui veulent une app guest dédiée.',
+    websiteUrl: 'https://www.duve.com',
+    accessModality: 'Compte Duve (à partir de ~4 €/mois par logement). API key dans Settings → Integrations après souscription.',
+    available: false,
+    region: 'Global',
+  },
+  {
+    id: 'enso_connect',
+    name: 'Enso Connect',
+    category: 'guest_experience',
+    brandColor: '#0E1E3C',
+    brandTextColor: '#FFFFFF',
+    shortDescription: 'Boarding pass digital · IA guest',
+    tooltipDescription:
+      'Plateforme canadienne d\'expérience guest : « boarding pass » digital (check-in, accès serrures, upsells, guidebooks) et messagerie IA. Intégration profonde serrures connectées. Alternative à Duve, orientée personnalisation et monétisation du séjour.',
+    websiteUrl: 'https://ensoconnect.com',
+    accessModality: 'Démo commerciale requise (tarification par logement). API key fournie après onboarding.',
+    available: false,
+    region: 'Global',
   },
 ];
 

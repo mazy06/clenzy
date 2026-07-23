@@ -149,6 +149,10 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/webhooks/nuki/**").permitAll()
                         .requestMatchers("/api/webhooks/pennylane/**").permitAll()
                         .requestMatchers("/api/webhooks/channex/**").permitAll()
+                        // Webhooks PSP (PaymentWebhookRouter) : appeles par Stripe/PayTabs/
+                        // CMI/Payzone/YouCan Pay sans JWT — auth par signature crypto par
+                        // provider (HMAC/hash verifie dans chaque handler, fail-closed).
+                        .requestMatchers(HttpMethod.POST, "/api/webhooks/payments/**").permitAll()
                         // Alertes ops (CI/CD, Alertmanager) -> notif in-app. Pas de JWT :
                         // securite par token partage (X-Ops-Token / Bearer) valide dans
                         // OpsAlertController (fail-closed). Couvre /api/ops/alerts et /alertmanager.

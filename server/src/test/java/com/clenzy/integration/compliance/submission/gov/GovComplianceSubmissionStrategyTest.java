@@ -35,4 +35,14 @@ class GovComplianceSubmissionStrategyTest {
                 .isInstanceOf(ComplianceProviderPendingException.class)
                 .hasMessageContaining("Absher");
     }
+
+    @Test
+    void shomoos_provider_andPendingException() {
+        ShomoosComplianceSubmissionStrategy strategy = new ShomoosComplianceSubmissionStrategy();
+        assertThat(strategy.provider()).isEqualTo(ComplianceProviderType.SHOMOOS);
+
+        assertThatThrownBy(() -> strategy.submit(new GuestDeclaration(), new ComplianceConnection(), "key"))
+                .isInstanceOf(ComplianceProviderPendingException.class)
+                .hasMessageContaining("Shomoos");
+    }
 }
