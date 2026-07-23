@@ -109,6 +109,7 @@ const PromoCodesPage = lazy(() => import('./admin/PromoCodesPage'));
 const KpiReadinessPage = lazy(() => import('./admin/KpiReadinessPage'));
 const DatabaseAdminPage = lazy(() => import('./admin/DatabaseAdminPage'));
 const ExchangeRateHistoryPage = lazy(() => import('./admin/ExchangeRateHistoryPage'));
+const DesignSystemPage = lazy(() => import('./admin/DesignSystemPage'));
 
 // Channels & Integrations
 const ChannelsPage = lazy(() => import('./channels/ChannelsPage'));
@@ -498,6 +499,15 @@ const AuthenticatedApp: React.FC = () => {
             (depuis qu'elle est conceptuellement liee aux biens). On garde
             un redirect pour les bookmarks existants. */}
         <Route path="/vouchers" element={<Navigate to="/properties?tab=vouchers" replace />} />
+
+        {/* Bibliothèque Baitly UI — galerie du design system (super admin). */}
+        <Route path="/admin/design-system" element={
+          <ProtectedRoute requiredPermission="users:manage">
+            <ErrorBoundary>
+              <DesignSystemPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
 
         <Route path="/admin/exchange-rates" element={
           <ProtectedRoute requiredPermission="users:manage">

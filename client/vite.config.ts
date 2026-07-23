@@ -1,10 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [
     react(),
+    // Tailwind v4 — moteur de style de la bibliothèque Baitly UI (components/ui).
+    // Preflight DÉSACTIVÉ (cf. theme/baitly-ui.css) : coexistence avec MUI,
+    // le reset Tailwind casserait la baseline Emotion/CssBaseline.
+    tailwindcss(),
     VitePWA({
       // 'prompt' : le nouveau SW est installe en background mais ne prend PAS
       // le controle automatiquement. On expose un hook useRegisterSW au composant

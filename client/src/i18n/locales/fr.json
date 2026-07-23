@@ -802,6 +802,7 @@
     "billing": "Facturation",
     "accounting": "Comptabilité",
     "monitoring": "Monitoring",
+    "designSystem": "Bibliothèque UI",
     "syncDiagnostics": "Sync & Diagnostics",
     "kpiReadiness": "KPI Readiness",
     "exchangeRates": "Taux de change",
@@ -5534,6 +5535,22 @@
     }
   },
   "tabHeaders": {
+    "designSystem": {
+      "foundations": "Fondations",
+      "foundationsSub": "Tokens monochromes, graphiques et primitives de base.",
+      "forms": "Formulaires",
+      "formsSub": "Saisie et contrôles : boutons, champs, sélection, validation.",
+      "display": "Affichage",
+      "displaySub": "Surfaces, listes, états et médias.",
+      "overlays": "Overlays",
+      "overlaysSub": "Modales, panneaux, menus et notifications en portail.",
+      "navigation": "Navigation",
+      "navigationSub": "Onglets, fil d'Ariane, pagination et sidebar.",
+      "primitives": "Primitives Baitly",
+      "primitivesSub": "Les primitives maison (PageHeader, StatTile…) remasterisées avec le kit — prêtes pour la migration.",
+      "projections": "Projections",
+      "projectionsSub": "Écrans du PMS reconstitués avec le kit — la maquette navigable de la cible. Un écran à la fois."
+    },
     "settings": {
       "title": "Paramètres",
       "default": "Configurez votre application selon vos préférences",
@@ -6321,6 +6338,153 @@
         "title": "Channel Manager",
         "description": "Connectez vos OTA via Channex : réservations, tarifs et disponibilités synchronisés dans les deux sens."
       }
+    }
+  },
+  "designSystem": {
+    "title": "Bibliothèque Baitly UI",
+    "subtitle": "Design system de la refonte — composants portés depuis shadcn/ui, identité Baitly (bleu nuit)",
+    "previewLabel": "Prévisualiser :",
+    "previewLight": "Clair",
+    "previewDark": "Sombre",
+    "previewRtl": "RTL (arabe)",
+    "tokens": {
+      "title": "Tokens",
+      "description": "Identité Baitly : primaire bleu nuit #1B2A35 (couleur du wordmark), inversée en sombre sur navy #0A1120. Teintes du mark : #2563EB (info) et #14B8A6 (success). Dark via data-theme."
+    },
+    "button": {
+      "description": "Variants, tailles, icônes et états — classes alignées sur shadcn v4. Focus clavier visible."
+    },
+    "input": {
+      "description": "Fond transparent, bordure neutre, focus en anneau. Icônes positionnées en propriétés logiques (compatibles RTL)."
+    },
+    "badge": {
+      "description": "Variants shadcn (default/secondary/outline/destructive) + statuts PMS sur fonds doux de la palette d'accents."
+    },
+    "card": {
+      "description": "Surface, bordure fine et ombre légère. Composition Header / Content / Footer."
+    },
+    "select": {
+      "description": "Liste déroulante Radix : groupes, libellés, items désactivés, taille sm. Le menu s'affiche en portail (thème global)."
+    },
+    "dialog": {
+      "description": "Boîte modale Radix : overlay, animations d'entrée/sortie, fermeture Échap/clic dehors. S'affiche en portail (thème global)."
+    },
+    "tabs": {
+      "description": "Onglets Radix : variante par défaut (fond muted) et variante line (soulignement). Navigation clavier."
+    },
+    "table": {
+      "description": "Tableau de données : en-têtes, survol de ligne, alignements logiques (RTL) et chiffres tabulaires."
+    },
+    "formControls": {
+      "description": "Libellés associés (htmlFor) et zone de texte multi-lignes, mêmes états de focus que l'Input."
+    },
+    "selectionControls": {
+      "description": "Contrôles de sélection Radix : coche, choix exclusif, interrupteur. Navigation clavier et états désactivés."
+    },
+    "alert": {
+      "description": "Message contextuel inline avec icône, titre et description. Variante destructive."
+    },
+    "feedback": {
+      "description": "Identité et états d'attente : avatar avec fallback initiales, barre de progression, squelettes de chargement, séparateurs."
+    },
+    "tooltipPopover": {
+      "description": "Infobulle au survol et panneau flottant riche. S'affichent en portail (thème global)."
+    },
+    "dropdownMenu": {
+      "description": "Menu d'actions contextuel : libellés, séparateurs, raccourcis, item destructif. S'affiche en portail (thème global)."
+    },
+    "alertDialog": {
+      "description": "Confirmation bloquante pour les actions irréversibles — pas de fermeture au clic dehors. S'affiche en portail (thème global)."
+    },
+    "sheet": {
+      "description": "Panneau latéral coulissant (drawer) pour le détail d'un élément sans quitter l'écran. S'affiche en portail (thème global)."
+    },
+    "accordionCollapsible": {
+      "description": "Sections dépliables : FAQ, détails progressifs. Animation de hauteur native Radix."
+    },
+    "toggleSlider": {
+      "description": "Bascules à état pressé, groupe exclusif (vues planning) et curseur de valeur."
+    },
+    "hoverCardScroll": {
+      "description": "Aperçu riche au survol d'un lien et zone défilante à scrollbar stylée."
+    },
+    "menus": {
+      "description": "Menu au clic droit et barre de menus applicative. S'affichent en portail (thème global)."
+    },
+    "navigation": {
+      "description": "Fil d'Ariane et pagination de listes, construits sur les variants du Button."
+    },
+    "toast": {
+      "description": "Notifications transitoires empilées : succès, erreur, action. Toaster monté sur la page, thème suivi via data-theme."
+    },
+    "command": {
+      "description": "Palette de commandes (cmdk) : recherche floue, groupes, navigation clavier. Base du futur ⌘K global."
+    },
+    "calendar": {
+      "description": "Calendrier react-day-picker — implémentations reprises des blocks du site shadcn : prix par nuit, jours réservés, séjour minimum, pickers en popover, présets."
+    },
+    "drawer": {
+      "description": "Tiroir bas façon mobile (Vaul) : geste de glissement pour fermer. Complément mobile du Sheet."
+    },
+    "inputOtp": {
+      "description": "Saisie de code (2FA, codes serrures) : collage supporté, navigation clavier. Implémentations reprises des exemples du site shadcn."
+    },
+    "carousel": {
+      "description": "Carrousel Embla : défilement des photos de logements, flèches et clavier."
+    },
+    "resizable": {
+      "description": "Panneaux redimensionnables (liste/détail) avec poignée accessible au clavier."
+    },
+    "form": {
+      "description": "Couche formulaire react-hook-form + zod : label, contrôle, description et message d'erreur reliés (aria)."
+    },
+    "chart": {
+      "description": "Wrapper Recharts : config déclarative, tooltip thématisé, séries chart-1..5. Types repris des exemples du site shadcn, données PMS."
+    },
+    "kbdSpinner": {
+      "description": "Touche clavier pour documenter les raccourcis et indicateur de chargement inline."
+    },
+    "buttonInputGroups": {
+      "description": "Boutons accolés (segments) et champ composé avec addons (icône, bouton d'action)."
+    },
+    "field": {
+      "description": "Mise en page de formulaire déclarative (vertical/horizontal), sans lib de formulaire — complément léger de Form."
+    },
+    "itemEmpty": {
+      "description": "Ligne de liste générique (média, contenu, actions) et état vide standardisé."
+    },
+    "sidebar": {
+      "description": "Projection de la sidebar cible : logo animé Baitly, menu PMS complet (hubs dépliables, badges Planning/Documents, groupes Principal · Gestion · Administration), carte compte en pied. Repli en mode icônes (tooltips) via le bouton du header ; sous 768px elle bascule en Sheet mobile. Remplacera le Sidebar MUI à la migration de la navigation."
+    },
+    "aspectRatio": {
+      "description": "Contraint un média à un ratio fixe (16/9, carré, portrait) — photos de logements."
+    },
+    "combobox": {
+      "description": "Select avec recherche (Base UI) : simple, multiple, groupes, chips — le futur sélecteur logement/guest."
+    },
+    "nativeSelect": {
+      "description": "<select> natif stylé : léger, idéal mobile et formulaires simples."
+    },
+    "navigationMenu": {
+      "description": "Menu de navigation horizontal riche (panneaux, listes) — header marketing/booking engine."
+    },
+    "attachment": {
+      "description": "Pièce jointe (fichier/image) : états, tailles, groupes — messagerie guest et documents."
+    },
+    "message": {
+      "description": "Message de chat : avatar, en-tête/pied, actions, pièces jointes — brique de la messagerie guest."
+    },
+    "bubble": {
+      "description": "Bulles de conversation : variantes, alignements, réactions, groupes."
+    },
+    "marker": {
+      "description": "Pastille de statut compacte : variantes, shimmer, icônes — statuts denses du planning."
+    },
+    "remaster": {
+      "description": "Remaster de components/{{file}} (MUI) avec le kit Baitly UI — API équivalente, prêt pour la migration."
+    },
+    "section": {
+      "description": "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « {{screen}} »."
     }
   }
 }

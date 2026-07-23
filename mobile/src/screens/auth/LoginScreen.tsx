@@ -22,7 +22,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient as SvgGradient, Stop, Circle as SvgCircle } from 'react-native-svg';
 import { useAuthStore } from '@/store/authStore';
-import { Button, ClenzyAnimatedLogo } from '@/components/ui';
+import { Button, BaitlyAnimatedLogo } from '@/components/ui';
 import { useTheme } from '@/theme';
 
 const AnimatedView = Animated.createAnimatedComponent(View);
@@ -179,7 +179,7 @@ export function LoginScreen() {
         >
           {/* Logo animé */}
           <View style={{ alignItems: 'center', marginBottom: theme.SPACING['3xl'] }}>
-            <ClenzyAnimatedLogo scale={1.1} />
+            <BaitlyAnimatedLogo scale={1.1} />
           </View>
 
           {/* Form */}

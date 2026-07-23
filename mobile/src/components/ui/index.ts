@@ -13,4 +13,6 @@ export { ProgressBar } from './ProgressBar';
 export { Icon } from './Icon';
 export type { IoniconsName } from './Icon';
 export { SectionHeader } from './SectionHeader';
+export { BaitlyAnimatedLogo } from './BaitlyAnimatedLogo';
+// Ancien logo (goutte + « PROPRETÉ & MULTISERVICES ») — conservé, ne plus utiliser.
 export { ClenzyAnimatedLogo } from './ClenzyAnimatedLogo';

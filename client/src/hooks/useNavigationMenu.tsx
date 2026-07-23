@@ -15,6 +15,7 @@ import {
   CalendarViewWeek,
   Contacts,
   Bolt,
+  Palette,
 } from '../icons';
 import {
   NAVIGATION_HUBS,
@@ -184,6 +185,16 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
       group: 'admin',
     },
   },
+  {
+    kind: 'item',
+    item: {
+      icon: <Palette />,
+      path: '/admin/design-system',
+      roles: ['SUPER_ADMIN'],
+      translationKey: 'navigation.designSystem',
+      group: 'admin',
+    },
+  },
   // Outils plateforme = Sync · KPI · Taux de change · Base de données · Codes promo
   { kind: 'hub', hubId: 'platform-tools', icon: <Build /> },
 ];
@@ -235,6 +246,11 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
 
       if (item.path === '/admin/monitoring') {
         return isAdmin() || isManager();
+      }
+
+      // Bibliothèque Baitly UI : outil interne de refonte, super admin uniquement.
+      if (item.path === '/admin/design-system') {
+        return isAdmin();
       }
 
       return true;

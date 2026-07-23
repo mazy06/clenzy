@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Tile brand background : rayon 64 = ~12% (style iOS/Android app icon). -->
+  <rect width="512" height="512" rx="80" fill="#6B8A9A"/>
+  <!-- Mark "orchestration" : 8 nodes peripheriques + node central.
+       Coordonnees normalisees pour viewBox 512 : centre (256,256), rayon octogone = 144,
+       node peripherique r=24, node central r=44, lignes radiales subtiles. -->
+  <g transform="translate(256 256)">
+    <g stroke="white" stroke-width="6" opacity="0.45">
+      <line x1="0" y1="0" x2="0"      y2="-144" />
+      <line x1="0" y1="0" x2="101.8"  y2="-101.8" />
+      <line x1="0" y1="0" x2="144"    y2="0" />
+      <line x1="0" y1="0" x2="101.8"  y2="101.8" />
+      <line x1="0" y1="0" x2="0"      y2="144" />
+      <line x1="0" y1="0" x2="-101.8" y2="101.8" />
+      <line x1="0" y1="0" x2="-144"   y2="0" />
+      <line x1="0" y1="0" x2="-101.8" y2="-101.8" />
+    </g>
+    <g fill="white">
+      <circle cx="0"      cy="-144"   r="24"/>
+      <circle cx="101.8"  cy="-101.8" r="24"/>
+      <circle cx="144"    cy="0"      r="24"/>
+      <circle cx="101.8"  cy="101.8"  r="24"/>
+      <circle cx="0"      cy="144"    r="24"/>
+      <circle cx="-101.8" cy="101.8"  r="24"/>
+      <circle cx="-144"   cy="0"      r="24"/>
+      <circle cx="-101.8" cy="-101.8" r="24"/>
+    </g>
+    <circle cx="0" cy="0" r="44" fill="white"/>
+  </g>
+</svg>

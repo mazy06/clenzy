@@ -48,17 +48,20 @@ public record DirectBookingRequest(
 
         String locale,
 
+        /**
+         * Devise affichee par le widget, purement indicative : la devise facturee est
+         * TOUJOURS celle du serveur (config org). Null = pas de cross-check ; une
+         * valeur differente de la devise serveur est rejetee en 400 (pas de defaut
+         * "EUR" ici, sinon impossible de distinguer « omise » de « envoyee »).
+         */
         String currency
 ) {
     /**
-     * Constructeur compact avec valeurs par defaut pour locale et currency.
+     * Constructeur compact avec valeur par defaut pour locale.
      */
     public DirectBookingRequest {
         if (locale == null || locale.isBlank()) {
             locale = "fr";
-        }
-        if (currency == null || currency.isBlank()) {
-            currency = "EUR";
         }
     }
 }

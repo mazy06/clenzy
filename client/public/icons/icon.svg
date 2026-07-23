@@ -1,30 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!-- Tile brand background : rayon 64 = ~12% (style iOS/Android app icon). -->
+  <!-- Tile brand background : rayon 80 = ~16% (style iOS/Android app icon). -->
   <rect width="512" height="512" rx="80" fill="#6B8A9A"/>
-  <!-- Mark "orchestration" : 8 nodes peripheriques + node central.
-       Coordonnees normalisees pour viewBox 512 : centre (256,256), rayon octogone = 144,
-       node peripherique r=24, node central r=44, lignes radiales subtiles. -->
-  <g transform="translate(256 256)">
-    <g stroke="white" stroke-width="6" opacity="0.45">
-      <line x1="0" y1="0" x2="0"      y2="-144" />
-      <line x1="0" y1="0" x2="101.8"  y2="-101.8" />
-      <line x1="0" y1="0" x2="144"    y2="0" />
-      <line x1="0" y1="0" x2="101.8"  y2="101.8" />
-      <line x1="0" y1="0" x2="0"      y2="144" />
-      <line x1="0" y1="0" x2="-101.8" y2="101.8" />
-      <line x1="0" y1="0" x2="-144"   y2="0" />
-      <line x1="0" y1="0" x2="-101.8" y2="-101.8" />
-    </g>
-    <g fill="white">
-      <circle cx="0"      cy="-144"   r="24"/>
-      <circle cx="101.8"  cy="-101.8" r="24"/>
-      <circle cx="144"    cy="0"      r="24"/>
-      <circle cx="101.8"  cy="101.8"  r="24"/>
-      <circle cx="0"      cy="144"    r="24"/>
-      <circle cx="-101.8" cy="101.8"  r="24"/>
-      <circle cx="-144"   cy="0"      r="24"/>
-      <circle cx="-101.8" cy="-101.8" r="24"/>
-    </g>
-    <circle cx="0" cy="0" r="44" fill="white"/>
+  <!-- Nouveau mark Baitly : maison « flux » tracée en un trait continu.
+       Le path est en coordonnées viewBox 1024 (centre maison ~511,511) ;
+       on le recentre et le met à l'échelle sur la tuile 512 via le groupe.
+       Version STATIQUE (pas de packets animés) pour un favicon net et lisible. -->
+  <g transform="translate(256 256) scale(0.66) translate(-511 -511.5)"
+     fill="none" stroke="#FFFFFF" stroke-width="21"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M463 590.25 A30.25 30.25 0 0 1 463 529.75 A30.25 30.25 0 0 1 463 590.25 V710 A30 30 0 0 1 433 740 H368 A65 65 0 0 1 303 675 V441.8 A28 28 0 0 1 313.9 419.6 L478.2 294.1 A54 54 0 0 1 543.8 294.1 L708.1 419.6 A28 28 0 0 1 719 441.8 V675 A65 65 0 0 1 654 740 H589 A30 30 0 0 1 559 710 V590.25 A30.25 30.25 0 0 1 559 529.75 A30.25 30.25 0 0 1 559 590.25"/>
   </g>
 </svg>
