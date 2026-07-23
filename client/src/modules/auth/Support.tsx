@@ -17,7 +17,7 @@ import {
 import { ArrowBack, CheckCircle } from '../../icons';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
-import clenzyLogo from '../../assets/Baitly_logo.png';
+import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 import apiClient from '../../services/apiClient';
 
 const textFieldSx = {
@@ -100,11 +100,7 @@ export default function Support() {
         {/* Header avec logo */}
         <Box sx={{ textAlign: 'center', mb: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
-            <img
-              src={clenzyLogo}
-              alt="Baitly Logo"
-              style={{ height: '48px', width: 'auto', maxWidth: '200px' }}
-            />
+            <BaitlyMarkLogo variant="full" size={42} />
           </Box>
           <Typography variant="body2" sx={{
             fontWeight: 500,

@@ -13,7 +13,7 @@ import {
 import { ArrowBack } from '../../icons';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
-import clenzyLogo from '../../assets/Baitly_logo.png';
+import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 
 /**
  * Layout commun pour les pages legales publiques (CGU, Politique de confidentialite).
@@ -55,12 +55,7 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
           <Container maxWidth="md">
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Link component={RouterLink} to="/login" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-                <Box
-                  component="img"
-                  src={clenzyLogo}
-                  alt="Baitly"
-                  sx={{ height: 32, width: 'auto' }}
-                />
+                <BaitlyMarkLogo variant="full" size={30} />
               </Link>
               <Link
                 component={RouterLink}

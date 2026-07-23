@@ -16,6 +16,12 @@ import PWAInstallBanner from '../../components/PWAInstallBanner';
 // est lourd et monté sur CHAQUE page — le sortir du chunk layout permet au premier
 // écran de s'afficher sans lui (la bulle apparaît dès que son chunk arrive).
 const AssistantWidget = lazy(() => import('../../components/AssistantWidget'));
+const AssistantDockTab = lazy(() => import('../../components/AssistantDockTab'));
+
+// Présentation de l'assistant — les deux coexistent le temps de trancher :
+//  - 'dock' : encoche « classeur » collée en bas à droite (phrases animées + chevron)
+//  - 'fab'  : logo flottant draggable + bulle Popper (présentation historique)
+const ASSISTANT_PRESENTATION: 'dock' | 'fab' = 'dock';
 
 interface MainLayoutFullProps {
   children: React.ReactNode;
@@ -163,11 +169,12 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       {/* PWA install prompt */}
       <PWAInstallBanner />
 
-      {/* Assistant : widget bulle (logo flottant) accessible depuis toutes les
-          pages, agrandissable en plein ecran. Unique point d'entree de
-          l'assistant (la page dediee /assistant a ete supprimee). */}
+      {/* Assistant : accessible depuis toutes les pages, agrandissable en
+          plein ecran. Unique point d'entree de l'assistant (la page dediee
+          /assistant a ete supprimee). Deux presentations disponibles, choisies
+          via ASSISTANT_PRESENTATION ci-dessus. */}
       <Suspense fallback={null}>
-        <AssistantWidget />
+        {ASSISTANT_PRESENTATION === 'dock' ? <AssistantDockTab /> : <AssistantWidget />}
       </Suspense>
     </Box>
   );

@@ -1,0 +1,11 @@
+import { Calendar } from '../../../../components/ui'
+
+export function CalendarCaption() {
+  return (
+    <Calendar
+      mode="single"
+      captionLayout="dropdown"
+      className="rounded-lg border"
+    />
+  )
+}

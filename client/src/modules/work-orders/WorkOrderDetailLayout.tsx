@@ -55,7 +55,7 @@ import bookingLogoSmall from '../../assets/logo/logo-booking-planning.png';
 import homeAwayLogo from '../../assets/logo/HomeAway-logo.png';
 import expediaLogo from '../../assets/logo/expedia-logo.png';
 import leboncoinLogo from '../../assets/logo/Leboncoin-logo.png';
-import clenzyLogo from '../../assets/logo/clenzy-logo.svg';
+import baitlyMark from '../../assets/logo/baitly-mark.svg';
 
 const ICAL_SOURCE_LOGOS: Record<string, string> = {
   airbnb: airbnbLogoSmall,
@@ -65,7 +65,7 @@ const ICAL_SOURCE_LOGOS: Record<string, string> = {
   homeaway: homeAwayLogo,
   expedia: expediaLogo,
   leboncoin: leboncoinLogo,
-  direct: clenzyLogo,
+  direct: baitlyMark,
 };
 
 // ─── Stable sx constants (tokens DESIGN_BASELINE) ───────────────────────────

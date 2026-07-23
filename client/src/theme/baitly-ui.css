@@ -1,0 +1,319 @@
+/* ============================================================
+   Baitly UI — couche Tailwind v4 de la bibliothèque de composants
+   (client/src/components/ui, portage shadcn/ui).
+
+   RÈGLES DE COEXISTENCE AVEC MUI :
+   - PAS de preflight complet : le reset Tailwind écraserait la
+     baseline Emotion/CssBaseline de l'app legacy. On n'importe que
+     le thème + les utilities + un sous-ensemble minimal (plus bas).
+   - Identité BAITLY (validée 2026-07-23, rupture avec le bleu-gris
+     Clenzy #6B8A9A) : primaire = BLEU NUIT #1B2A35 (couleur du
+     wordmark « Baitly » de la sidebar), inversée en sombre (#E8EEF5
+     sur navy) comme le wordmark. Dark = navy profond #0A1120, cards
+     #111B31. Teintes du nouveau mark : #2563EB (request → info),
+     #14B8A6 (response → success). Les variables sont namespacées
+     --bui-* pour ne pas entrer en collision avec les tokens legacy
+     que MUI consomme encore.
+   - Dark mode piloté par l'attribut existant (<html data-theme>).
+   - RTL : utiliser exclusivement les utilities logiques
+     (ps-* / pe-* / ms-* / me-* / start-* / end-* / text-start).
+   ============================================================ */
+
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+/* Animations d'entrée/sortie (animate-in/out, fade-*, zoom-*, slide-*)
+   utilisées par les composants à portail (Dialog, Select…). */
+@import "tw-animate-css";
+/* Variantes data-open/closed/checked…, keyframes accordion/caret et
+   utilitaire shimmer — requis par la feuille Nova (package shadcn). */
+@import "shadcn/tailwind.css";
+/* Classes sémantiques cn-* des composants (style « Nova » du site shadcn). */
+@import "./baitly-nova.css" layer(base);
+
+/* Sous-ensemble minimal du preflight dont dépendent les composants ui/ :
+   sans lui, `border` ne rend rien (border-style: none natif), les <button>
+   gardent le chrome navigateur et les titres leurs marges UA.
+   Sans danger pour le legacy : audit 2026-07-23 → zéro <input>/<button>/<hr>
+   natif hors ui/ (tout est MUI, dont les styles Emotion non-layerés
+   priment sur @layer base), et MUI CssBaseline fournit déjà box-sizing. */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-width: 0;
+    border-style: solid;
+    border-color: var(--bui-border);
+  }
+
+  button,
+  input,
+  optgroup,
+  select,
+  textarea {
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+  }
+
+  button,
+  [type="button"],
+  [type="reset"],
+  [type="submit"] {
+    appearance: none;
+    padding: 0;
+    background-color: transparent;
+    background-image: none;
+  }
+
+  /* Même règle que les globals du site shadcn : tout bouton actif est cliquable. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Anti-marges UA (pas de preflight complet — coexistence MUI) : les
+     slots titres/descriptions des composants Nova sont des h2/p natifs. */
+  [data-slot$="title"],
+  [data-slot$="description"],
+  [data-slot="accordion-trigger"] {
+    margin: 0;
+  }
+  [data-slot="breadcrumb-list"],
+  [data-slot="pagination-content"] {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  [data-slot="table"] {
+    border-collapse: collapse;
+  }
+  [data-slot="field-set"] {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+  [data-slot="field-legend"] {
+    padding: 0;
+  }
+
+  /* Utilitaires cn-* définis dans les globals du site (hors style Nova). */
+  .cn-font-heading {
+    font-family: var(--font-heading);
+  }
+  [dir="rtl"] .cn-rtl-flip {
+    transform: scaleX(-1);
+  }
+}
+
+/* Dark mode piloté par l'attribut existant (useThemeMode → <html data-theme>). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---- Palette Baitly (light) — brand bleu nuit #1B2A35 (wordmark) ---- */
+:root {
+  --bui-background: #F4F7F9;
+  --bui-foreground: #1B2A35;
+
+  --bui-card: #FBFCFD; /* paper — pas blanc pur */
+  --bui-popover: #FBFCFD;
+
+  --bui-primary: #1B2A35; /* bleu nuit Baitly — couleur du wordmark */
+  --bui-primary-deep: #2E4356; /* survols secondaires (le Button utilise primary/90) */
+  --bui-primary-soft: rgba(27, 42, 53, 0.08);
+  --bui-primary-foreground: #FFFFFF;
+
+  --bui-secondary: #EEF3F7;
+  --bui-muted: #EEF3F7;
+  --bui-muted-foreground: #5F7382;
+
+  --bui-destructive: #C97A7A;
+  --bui-destructive-soft: rgba(201, 122, 122, 0.13);
+
+  --bui-border: #E2E8F0;
+  --bui-input: #CBD5E1;
+  --bui-ring: #1B2A35;
+
+  --bui-ink: #1B2A35;
+  --bui-faint: #94A7B8;
+
+  /* Statuts : teintes du nouveau mark (teal response, bleu request) */
+  --bui-success: #14B8A6;
+  --bui-success-soft: rgba(20, 184, 166, 0.13);
+  --bui-warning: #D4A574;
+  --bui-warning-soft: rgba(212, 165, 116, 0.16);
+  --bui-info: #2563EB;
+  --bui-info-soft: rgba(37, 99, 235, 0.11);
+
+  --bui-field: #EEF3F7;
+  --bui-field-line: #CBD5E1;
+
+  /* Sidebar (tokens shadcn dédiés) */
+  --bui-sidebar: #FBFCFD;
+  --bui-sidebar-foreground: #1B2A35;
+  --bui-sidebar-primary: #1B2A35;
+  --bui-sidebar-primary-foreground: #FFFFFF;
+  --bui-sidebar-accent: #EEF3F7;
+  --bui-sidebar-accent-foreground: #1B2A35;
+  --bui-sidebar-border: #E2E8F0;
+  --bui-sidebar-ring: #1B2A35;
+
+  /* Séries graphiques : bleu/teal du mark + bleu nuit */
+  --bui-chart-1: #2563EB;
+  --bui-chart-2: #14B8A6;
+  --bui-chart-3: #1B2A35;
+  --bui-chart-4: #D4A574;
+  --bui-chart-5: #C97A7A;
+
+  /* Teinte des chips à couleur arbitraire (StatusChip/FilterChipRow) :
+     texte = mix(couleur, ink). En clair l'ink est sombre → la couleur domine ;
+     en sombre l'ink est claire → on RÉDUIT la part de couleur pour éclaircir,
+     sinon les canaux foncés (Booking #003580) deviennent illisibles. */
+  --bui-tint-text: 82%;
+  --bui-tint-bg: 14%;
+}
+
+/* ---- Palette Baitly (dark) — navy profond #0A1120, primaire inversée ---- */
+[data-theme="dark"] {
+  --bui-background: #0A1120; /* bleu nuit prononcé */
+  --bui-foreground: #D7E1EE;
+
+  --bui-card: #111B31;
+  --bui-popover: #111B31;
+
+  /* Primaire inversée (comme le wordmark : bleu nuit en clair, blanc en sombre) */
+  --bui-primary: #E8EEF5;
+  --bui-primary-deep: #D2DDE9;
+  --bui-primary-soft: rgba(232, 238, 245, 0.1);
+  --bui-primary-foreground: #0A1120;
+
+  --bui-secondary: #16223A;
+  --bui-muted: #16223A;
+  --bui-muted-foreground: #8FA3BD;
+
+  --bui-destructive: #D98E8E;
+  --bui-destructive-soft: rgba(217, 142, 142, 0.18);
+
+  --bui-border: #1E293F;
+  --bui-input: #2A3A55;
+  --bui-ring: #8FA3BD;
+
+  --bui-ink: #EDF3FA;
+  --bui-faint: #7186A8;
+
+  --bui-success: #2DD4BF;
+  --bui-success-soft: rgba(45, 212, 191, 0.14);
+  --bui-warning: #E0B483;
+  --bui-warning-soft: rgba(224, 180, 131, 0.16);
+  --bui-info: #5B8DF6;
+  --bui-info-soft: rgba(91, 141, 246, 0.16);
+
+  --bui-field: #16223A;
+  --bui-field-line: #2A3A55;
+
+  --bui-sidebar: #0D1526;
+  --bui-sidebar-foreground: #D7E1EE;
+  --bui-sidebar-primary: #E8EEF5;
+  --bui-sidebar-primary-foreground: #0A1120;
+  --bui-sidebar-accent: #16223A;
+  --bui-sidebar-accent-foreground: #EDF3FA;
+  --bui-sidebar-border: #1E293F;
+  --bui-sidebar-ring: #8FA3BD;
+
+  --bui-chart-1: #5B8DF6;
+  --bui-chart-2: #2DD4BF;
+  --bui-chart-3: #E8EEF5;
+  --bui-chart-4: #E0B483;
+  --bui-chart-5: #D98E8E;
+
+  --bui-tint-text: 48%;
+  --bui-tint-bg: 24%;
+}
+
+@theme inline {
+  /* Neutralise la palette par défaut de Tailwind : dans les composants ui/,
+     seule la palette monochrome Baitly UI est autorisée. white/black restent
+     disponibles (l'upstream shadcn les utilise : text-white, bg-black/50). */
+  --color-*: initial;
+  --color-white: #fff;
+  --color-black: #000;
+
+  /* ---- Tokens shadcn ---- */
+  --color-background: var(--bui-background);
+  --color-foreground: var(--bui-foreground);
+
+  --color-card: var(--bui-card);
+  --color-card-foreground: var(--bui-foreground);
+  --color-popover: var(--bui-popover);
+  --color-popover-foreground: var(--bui-foreground);
+
+  --color-primary: var(--bui-primary);
+  --color-primary-deep: var(--bui-primary-deep);
+  --color-primary-soft: var(--bui-primary-soft);
+  --color-primary-foreground: var(--bui-primary-foreground);
+
+  --color-secondary: var(--bui-secondary);
+  --color-secondary-foreground: var(--bui-ink);
+
+  --color-muted: var(--bui-muted);
+  --color-muted-foreground: var(--bui-muted-foreground);
+
+  --color-accent: var(--bui-muted);
+  --color-accent-foreground: var(--bui-ink);
+
+  --color-destructive: var(--bui-destructive);
+  --color-destructive-soft: var(--bui-destructive-soft);
+  --color-destructive-foreground: #ffffff;
+
+  --color-border: var(--bui-border);
+  --color-input: var(--bui-input);
+  --color-ring: var(--bui-ring);
+
+  /* ---- Sémantique Baitly (au-delà de shadcn) ---- */
+  --color-ink: var(--bui-ink);
+  --color-faint: var(--bui-faint);
+  --color-success: var(--bui-success);
+  --color-success-soft: var(--bui-success-soft);
+  --color-warning: var(--bui-warning);
+  --color-warning-soft: var(--bui-warning-soft);
+  --color-info: var(--bui-info);
+  --color-info-soft: var(--bui-info-soft);
+  --color-field: var(--bui-field);
+  --color-field-line: var(--bui-field-line);
+
+  --color-sidebar: var(--bui-sidebar);
+  --color-sidebar-foreground: var(--bui-sidebar-foreground);
+  --color-sidebar-primary: var(--bui-sidebar-primary);
+  --color-sidebar-primary-foreground: var(--bui-sidebar-primary-foreground);
+  --color-sidebar-accent: var(--bui-sidebar-accent);
+  --color-sidebar-accent-foreground: var(--bui-sidebar-accent-foreground);
+  --color-sidebar-border: var(--bui-sidebar-border);
+  --color-sidebar-ring: var(--bui-sidebar-ring);
+
+  --color-chart-1: var(--bui-chart-1);
+  --color-chart-2: var(--bui-chart-2);
+  --color-chart-3: var(--bui-chart-3);
+  --color-chart-4: var(--bui-chart-4);
+  --color-chart-5: var(--bui-chart-5);
+
+  /* ---- Rayons (échelle shadcn : base 0.625rem) ---- */
+  --radius-*: initial;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
+  --radius-3xl: 1.375rem;
+  --radius-4xl: 1.625rem;
+  --radius-full: 9999px;
+
+  /* Typo : défauts Tailwind/shadcn. --font-heading (utilisé par la feuille
+     Nova via cn-font-heading) suit la stack sans. */
+  --font-heading: ui-sans-serif, system-ui, sans-serif;
+
+  /* Échelle de texte : défauts Tailwind. Seule addition : text-2xs. */
+  --text-2xs: 0.625rem;
+
+  /* ---- Mouvement ---- */
+  --ease-out-quart: cubic-bezier(0.16, 1, 0.3, 1);
+}
