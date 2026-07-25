@@ -55,9 +55,9 @@ export default function Privacy() {
         sous-traitants techniques :
       </Typography>
       <ul>
-        <li>Stripe (paiement)</li>
-        <li>Brevo et Postal (envoi d'emails transactionnels)</li>
-        <li>Twilio (envoi de SMS et WhatsApp)</li>
+        <li>Stripe, CMI, PayZone, YouCan Pay et PayTabs (encaissement des paiements)</li>
+        <li>Brevo (envoi d'emails transactionnels)</li>
+        <li>Meta Platforms — WhatsApp Business Cloud API (messagerie voyageurs)</li>
         <li>Hébergeur cloud (stockage et calcul)</li>
       </ul>
 

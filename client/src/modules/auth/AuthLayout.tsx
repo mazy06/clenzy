@@ -146,15 +146,18 @@ const SLIDES: CarouselSlide[] = [
       { slug: null, name: 'Tuya' },
     ],
   },
-  // ─── Guest messaging multi-channel (8) — Twilio prod ──────────────────
+  // ─── Guest messaging multi-channel (8) — WhatsApp Business Cloud + email ──
+  // Pas de SMS ni de Twilio : aucun provider SMS n'est implémenté côté serveur
+  // (`MessageChannelType.SMS` existe dans le modèle mais n'a pas de canal
+  // d'envoi). Annoncer le contraire promettait une capacité inexistante.
   {
     tagline: '',
-    highlight: 'WhatsApp, SMS, email — tout sur un seul fil de discussion',
+    highlight: 'WhatsApp et email — tout sur un seul fil de discussion',
     end: '.',
-    subtitle: "Vos guests vous répondent où ils sont, sans installer d'app. Verify pour la confirmation d'identité, conversations centralisées côté Baitly, réponses IA suggérées. La concurrence éclate ça en 3 outils, vous l'avez en un.",
+    subtitle:
+      "Vos guests vous répondent où ils sont, sans installer d'app. Conversations centralisées côté Baitly, traduction automatique et réponses IA suggérées. La concurrence éclate ça en plusieurs outils, vous l'avez en un.",
     services: [
       { slug: 'whatsapp', name: 'WhatsApp' },
-      { slug: 'twilio', name: 'Twilio' },
       { slug: 'gmail', name: 'Email' },
     ],
   },
