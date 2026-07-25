@@ -236,11 +236,16 @@ jobs:
         run: |
           COMMENT_BODY="## Performance Test Results\n\n"
 
+          # Format --summary-export (plat) : .metrics.<name>.<stat>, PAS .values.<stat>
+          # (le niveau "values" n'existe que dans les donnees handleSummary de k6).
+          ROUND_MS='if type == "number" then (. * 100 | round) / 100 else . end'
+          PCT='if type == "number" then "\((. * 10000 | round) / 100)%" else . end'
+
           # Smoke test summary
           if [ -f tests/performance/results/smoke-summary.json ]; then
-            SMOKE_DURATION=$(jq -r '.metrics.http_req_duration.values."p(95)" // "N/A"' tests/performance/results/smoke-summary.json 2>/dev/null || echo "N/A")
-            SMOKE_REQS=$(jq -r '.metrics.http_reqs.values.count // "N/A"' tests/performance/results/smoke-summary.json 2>/dev/null || echo "N/A")
-            SMOKE_FAIL=$(jq -r '.metrics.http_req_failed.values.rate // "N/A"' tests/performance/results/smoke-summary.json 2>/dev/null || echo "N/A")
+            SMOKE_DURATION=$(jq -r ".metrics.http_req_duration[\"p(95)\"] // \"N/A\" | $ROUND_MS" tests/performance/results/smoke-summary.json 2>/dev/null || echo "N/A")
+            SMOKE_REQS=$(jq -r '.metrics.http_reqs.count // "N/A"' tests/performance/results/smoke-summary.json 2>/dev/null || echo "N/A")
+            SMOKE_FAIL=$(jq -r ".metrics.http_req_failed.value // \"N/A\" | $PCT" tests/performance/results/smoke-summary.json 2>/dev/null || echo "N/A")
             COMMENT_BODY+="### Smoke Test\n"
             COMMENT_BODY+="| Metric | Value |\n|--------|-------|\n"
             COMMENT_BODY+="| Total requests | ${SMOKE_REQS} |\n"
@@ -250,10 +255,10 @@ jobs:
 
           # Load test summary
           if [ -f tests/performance/results/load-summary.json ]; then
-            LOAD_DURATION=$(jq -r '.metrics.http_req_duration.values."p(95)" // "N/A"' tests/performance/results/load-summary.json 2>/dev/null || echo "N/A")
-            LOAD_REQS=$(jq -r '.metrics.http_reqs.values.count // "N/A"' tests/performance/results/load-summary.json 2>/dev/null || echo "N/A")
-            LOAD_FAIL=$(jq -r '.metrics.http_req_failed.values.rate // "N/A"' tests/performance/results/load-summary.json 2>/dev/null || echo "N/A")
-            LOAD_API=$(jq -r '.metrics.api_duration.values."p(95)" // "N/A"' tests/performance/results/load-summary.json 2>/dev/null || echo "N/A")
+            LOAD_DURATION=$(jq -r ".metrics.http_req_duration[\"p(95)\"] // \"N/A\" | $ROUND_MS" tests/performance/results/load-summary.json 2>/dev/null || echo "N/A")
+            LOAD_REQS=$(jq -r '.metrics.http_reqs.count // "N/A"' tests/performance/results/load-summary.json 2>/dev/null || echo "N/A")
+            LOAD_FAIL=$(jq -r ".metrics.http_req_failed.value // \"N/A\" | $PCT" tests/performance/results/load-summary.json 2>/dev/null || echo "N/A")
+            LOAD_API=$(jq -r ".metrics.api_duration[\"p(95)\"] // \"N/A\" | $ROUND_MS" tests/performance/results/load-summary.json 2>/dev/null || echo "N/A")
             COMMENT_BODY+="### Load Test (50 VUs)\n"
             COMMENT_BODY+="| Metric | Value | Threshold |\n|--------|-------|----------|\n"
             COMMENT_BODY+="| Total requests | ${LOAD_REQS} | — |\n"

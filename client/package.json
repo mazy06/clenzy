@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:site": "vite --config vite.site.config.ts",
+    "build:site": "vite build --config vite.site.config.ts",
     "build:sdk": "vite build --config vite.config.sdk.ts",
     "prebuild": "vite build --config vite.config.sdk.ts",
     "build": "tsc -b && vite build",
