@@ -81,7 +81,7 @@ export default function RevenueByChannelCard({
                       <span
                         className={cn(
                           'text-2xs font-bold tabular-nums',
-                          delta > 0 ? 'text-success' : 'text-destructive'
+                          delta > 0 ? 'text-success-ink' : 'text-destructive'
                         )}
                       >
                         {delta > 0 ? '▲' : '▼'}

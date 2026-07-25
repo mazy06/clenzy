@@ -219,7 +219,7 @@ export function BPlanningSectionDemo() {
                 key={index}
                 className={cn(
                   'py-1.5 text-center text-2xs font-medium tabular-nums',
-                  pct === 100 ? 'text-success' : pct >= 60 ? 'text-foreground' : 'text-warning'
+                  pct === 100 ? 'text-success-ink' : pct >= 60 ? 'text-foreground' : 'text-warning-ink'
                 )}
               >
                 {pct}%
@@ -568,7 +568,7 @@ export function BMessagingSectionDemo() {
           <div>
             <div className="mb-1.5 flex items-center gap-2">
               <Switch id="msg-internal" checked={internalNote} onCheckedChange={setInternalNote} />
-              <label htmlFor="msg-internal" className={cn('flex cursor-pointer items-center gap-1 text-xs', internalNote ? 'text-warning' : 'text-muted-foreground')}>
+              <label htmlFor="msg-internal" className={cn('flex cursor-pointer items-center gap-1 text-xs', internalNote ? 'text-warning-ink' : 'text-muted-foreground')}>
                 <StickyNoteIcon className="size-3.5" /> Note interne (invisible pour le guest)
               </label>
             </div>

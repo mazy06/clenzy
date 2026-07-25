@@ -19,8 +19,8 @@ export default function OfflineBanner({ forceVisible = false }: OfflineBannerPro
       role="status"
       className={
         forceVisible
-          ? 'flex items-center justify-center gap-2 rounded-lg bg-warning-soft px-3 py-2 text-sm font-medium text-warning'
-          : 'fixed inset-x-0 top-0 z-[1400] flex items-center justify-center gap-2 bg-warning-soft px-3 py-2 text-sm font-medium text-warning backdrop-blur'
+          ? 'flex items-center justify-center gap-2 rounded-lg bg-warning-soft px-3 py-2 text-sm font-medium text-warning-ink'
+          : 'fixed inset-x-0 top-0 z-[1400] flex items-center justify-center gap-2 bg-warning-soft px-3 py-2 text-sm font-medium text-warning-ink backdrop-blur'
       }
     >
       <WifiOffIcon className="size-4" />

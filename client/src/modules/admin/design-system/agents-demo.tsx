@@ -3,7 +3,7 @@ import {
   BotIcon,
   CalendarSyncIcon,
   CheckIcon,
-  ListIcon,
+  LayoutGridIcon,
   MessageSquareIcon,
   OrbitIcon,
   PencilIcon,
@@ -36,9 +36,10 @@ import { cn } from '../../../utils/cn';
  * Langage inspiré de Notion, appliqué au registre « product » :
  * <ul>
  *   <li><b>La surface signale l'action.</b> Seuls les blocs sur lesquels on agit
- *       (propositions à valider) reçoivent un fond ; ce qui se lit seulement
- *       (feed, diagramme, liste d'agents) vit sur le fond de page, séparé par
- *       des filets d'1px. Une carte n'existe que si l'élévation porte du sens.</li>
+ *       reçoivent un fond : les propositions à valider, et les cartes agent qui
+ *       portent l'interrupteur auto/validation. Ce qui se lit seulement (feed,
+ *       diagramme) vit sur le fond de page, séparé par des filets d'1px. Une
+ *       surface n'existe que si l'élévation porte du sens.</li>
  *   <li><b>Un seul accent.</b> L'ambre ne désigne QUE « ça attend une décision
  *       de votre part ». Tout le reste est neutre — y compris les états
  *       « actif » et « auto », qui sont la norme et n'ont donc pas à être
@@ -94,14 +95,20 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ─── Vue liste ───────────────────────────────────────────────────────────────
+// ─── Vue cartes ──────────────────────────────────────────────────────────────
 
 /**
- * Les agents en lignes plutôt qu'en grille de cartes identiques : même densité
- * d'information, sans quatre conteneurs qui se répètent. Le survol teinte la
- * ligne, comme une ligne de base Notion.
+ * Une carte par agent, sur quatre colonnes. En lignes pleine largeur, ces mêmes
+ * données laissaient un vide de plusieurs centaines de pixels au milieu de
+ * l'écran et coûtaient quatre fois la hauteur ; la carte referme l'espace
+ * horizontal et rend l'ensemble scannable d'un coup d'œil.
+ *
+ * La carte porte une surface parce qu'on agit dessus (l'interrupteur
+ * auto/validation). Elle reste dans le langage de la refonte : pas de bordure
+ * (la surface suffit), rayon serré, et l'état ne sort du gris que lorsqu'il
+ * appelle une décision.
  */
-function AgentRow({
+function AgentCard({
   agent,
   auto,
   onAutoChange,
@@ -112,35 +119,36 @@ function AgentRow({
 }) {
   const status = AGENT_STATUS[agent.status];
   return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border px-2 py-3 transition-colors duration-100 first:border-t-0 hover:bg-muted/60">
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground [&>svg]:size-4">
-        {agent.icon}
-      </span>
-      <div className="min-w-0 flex-1 basis-48">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-foreground">Agent {agent.name}</span>
-          <span className={cn('flex items-center gap-1.5 text-xs', status.text)}>
-            <span className={cn('size-1.5 rounded-[2px]', status.dot)} aria-hidden />
-            {status.label}
-          </span>
+    <article className="flex flex-col gap-2.5 rounded-md bg-card p-3">
+      <div className="flex items-start gap-2.5">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground [&>svg]:size-4">
+          {agent.icon}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="m-0 text-sm font-medium text-foreground">Agent {agent.name}</h3>
+          <p className="m-0 text-xs text-muted-foreground">{agent.role}</p>
         </div>
-        <p className="m-0 text-xs text-muted-foreground">{agent.role}</p>
       </div>
-      {/* Largeurs fixes : sans elles les colonnes de droite flottent d'une
-          ligne à l'autre et la liste perd sa verticale de lecture. */}
-      <span className="w-20 text-end text-xs text-foreground tabular-nums">
-        {agent.tasksToday} tâches
-      </span>
-      <span className="w-24 text-end text-xs text-muted-foreground">{agent.lastRun}</span>
-      <label className="flex cursor-pointer items-center justify-end gap-2 text-xs text-muted-foreground">
-        <span className="w-16 text-end">{auto ? 'Auto' : 'Validation'}</span>
+
+      <p className={cn('m-0 flex items-center gap-1.5 text-xs', status.text)}>
+        <span className={cn('size-1.5 shrink-0 rounded-[2px]', status.dot)} aria-hidden />
+        {status.label}
+      </p>
+
+      <div className="flex items-center justify-between gap-2 border-t border-border pt-2.5 text-xs text-muted-foreground">
+        <span className="text-foreground tabular-nums">{agent.tasksToday} tâches</span>
+        <span>{agent.lastRun}</span>
+      </div>
+
+      <label className="flex cursor-pointer items-center justify-between gap-2 text-xs text-muted-foreground">
+        {auto ? 'Auto-application' : 'Validation humaine'}
         <Switch
           checked={auto}
           onCheckedChange={onAutoChange}
           aria-label={`Mode auto — Agent ${agent.name}`}
         />
       </label>
-    </li>
+    </article>
   );
 }
 
@@ -752,7 +760,7 @@ function ActivityFeed() {
 
 export function BAgentsConstellationSectionDemo() {
   const [decisions, setDecisions] = useState<string[]>([]);
-  const [view, setView] = useState<'list' | 'orbit'>('list');
+  const [view, setView] = useState<'cards' | 'orbit'>('cards');
   const [autoMap, setAutoMap] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(AGENTS.map((agent) => [agent.name, agent.auto]))
   );
@@ -793,16 +801,16 @@ export function BAgentsConstellationSectionDemo() {
               size="sm"
               spacing={0}
               value={view}
-              onValueChange={(next) => next && setView(next as 'list' | 'orbit')}
+              onValueChange={(next) => next && setView(next as 'cards' | 'orbit')}
               className="rounded-md bg-muted p-0.5"
             >
               <ToggleGroupItem
-                value="list"
-                aria-label="Vue liste"
-                title="Vue liste"
+                value="cards"
+                aria-label="Vue cartes"
+                title="Vue cartes"
                 className="data-[state=on]:bg-card"
               >
-                <ListIcon />
+                <LayoutGridIcon />
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="orbit"
@@ -820,20 +828,20 @@ export function BAgentsConstellationSectionDemo() {
         }
       />
 
-      {view === 'list' ? (
-        <div key="list" className="bo-view flex flex-col gap-6">
+      {view === 'cards' ? (
+        <div key="cards" className="bo-view flex flex-col gap-6">
           <section className="flex flex-col gap-2">
             <SectionLabel>Agents</SectionLabel>
-            <ul className="m-0 list-none p-0">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {AGENTS.map((agent) => (
-                <AgentRow
+                <AgentCard
                   key={agent.name}
                   agent={agent}
                   auto={autoMap[agent.name]}
                   onAutoChange={(auto) => setAutoMap((prev) => ({ ...prev, [agent.name]: auto }))}
                 />
               ))}
-            </ul>
+            </div>
           </section>
           <div className="grid grid-cols-1 items-start gap-x-8 gap-y-6 lg:grid-cols-[1.1fr_1fr]">
             <ProposalQueue decisions={decisions} onDecide={decide} />

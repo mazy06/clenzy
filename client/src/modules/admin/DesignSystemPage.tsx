@@ -2071,7 +2071,7 @@ function SidebarNavBadge({ item }: { item: SidebarNavItem }) {
         'ms-auto flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums',
         item.badgeTone === 'destructive'
           ? 'bg-destructive/15 text-destructive'
-          : 'bg-warning/15 text-warning',
+          : 'bg-warning/15 text-warning-ink',
       )}
     >
       {item.badge}
