@@ -5,6 +5,7 @@ import {
   CheckIcon,
   LayoutGridIcon,
   MessageSquareIcon,
+  MousePointerClickIcon,
   OrbitIcon,
   PencilIcon,
   SlidersHorizontalIcon,
@@ -82,6 +83,184 @@ const AGENT_STATUS = {
   waiting: { label: 'Attend validation', dot: 'bg-warning', text: 'text-warning-ink' },
 };
 
+// ─── File de propositions ────────────────────────────────────────────────────
+
+/** [libellé du bouton, icône, participe passé pour la trace]. */
+interface Action {
+  label: string;
+  icon: React.ReactNode;
+  done: string;
+}
+
+interface PendingItem {
+  id: string;
+  agent: string;
+  title: string;
+  motif: string;
+  /**
+   * Minutes restantes avant échéance. C'est le pendant de `expiresAt` du module
+   * de supervision réel, en valeur relative pour que la démo reste stable.
+   */
+  expiresInMin: number;
+  actions: [primary: Action, secondary: Action, dismiss: Action];
+  /** Contenu enrichi propre à la proposition (chiffres, message proposé). */
+  extra?: React.ReactNode;
+}
+
+/** Action déjà lancée par l'agent : elle s'observe, elle ne se valide pas. */
+interface RunningItem {
+  agent: string;
+  label: string;
+}
+
+const VALIDATE: Action = { label: 'Appliquer', icon: <CheckIcon />, done: 'appliquée' };
+const ADJUST: Action = { label: 'Ajuster', icon: <SlidersHorizontalIcon />, done: 'ouverte pour ajustement' };
+const REFUSE: Action = { label: 'Refuser', icon: <XIcon />, done: 'refusée' };
+const SEND: Action = { label: 'Envoyer', icon: <CheckIcon />, done: 'envoyée' };
+const EDIT: Action = { label: 'Modifier', icon: <PencilIcon />, done: 'ouverte en édition' };
+const IGNORE: Action = { label: 'Ignorer', icon: <XIcon />, done: 'ignorée' };
+
+const PENDING: PendingItem[] = [
+  {
+    id: 'rev-block',
+    agent: 'Revenue',
+    title: 'Blocage calendrier sur Villa Palmeraie',
+    motif: 'Trois nuits isolées entre deux séjours, invendables en l\'état. Blocage proposé pour éviter un ménage à perte.',
+    expiresInMin: 55,
+    actions: [VALIDATE, ADJUST, REFUSE],
+  },
+  {
+    id: 'rev-weekend',
+    agent: 'Revenue',
+    title: 'Hausse sur les week-ends de septembre',
+    motif: 'Occupation à 88 % sur les 4 week-ends. Hausse de 8 % proposée, plafond de gamme respecté.',
+    expiresInMin: 300,
+    actions: [VALIDATE, ADJUST, REFUSE],
+  },
+  {
+    id: 'rev-yield',
+    agent: 'Revenue',
+    title: 'Baisse tarifaire sur Riad Yasmine',
+    motif: '9 nuits invendues du 18 au 27 août. Baisse de 12 % sur ces dates seulement, prix plancher respecté.',
+    expiresInMin: 1320,
+    actions: [VALIDATE, ADJUST, REFUSE],
+    extra: (
+      <>
+        {/* Chiffres en ligne : un encadré gris dans un bloc déjà surfacé serait
+            une surface imbriquée. La hiérarchie passe par la graisse.
+            Le revenu attendu est l'espérance réelle (9 nuits × 70 € × 74 %). */}
+        <p className="m-0 mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs">
+          <span className="text-muted-foreground">
+            Nuitée <span className="tabular-nums"><Money value={80} decimals={0} /></span>
+            <span className="mx-1">→</span>
+            <span className="font-medium text-foreground tabular-nums"><Money value={70} decimals={0} /></span>
+          </span>
+          <span className="text-muted-foreground">
+            Revenu attendu{' '}
+            <span className="font-medium text-foreground tabular-nums">
+              +<Money value={466} decimals={0} />
+            </span>
+          </span>
+        </p>
+        <div className="mt-2.5 flex items-center gap-2.5">
+          <Progress value={74} className="h-1 w-28 shrink-0" />
+          <span className="text-xs text-muted-foreground tabular-nums">
+            74 % de probabilité de remplissage
+          </span>
+        </div>
+      </>
+    ),
+  },
+  {
+    id: 'com-late',
+    agent: 'Messaging',
+    title: 'Demande de départ tardif — Sofia Marchetti',
+    motif: 'Départ à 15 h demandé sur le Duplex Guéliz. Aucune arrivée le jour même, le ménage reste tenable.',
+    expiresInMin: 175,
+    actions: [SEND, EDIT, IGNORE],
+  },
+  {
+    id: 'com-cart',
+    agent: 'Messaging',
+    title: 'Relance de Karim El Fassi',
+    motif: '2 nuits au Duplex Guéliz, 940 €, panier abandonné il y a 26 h. Message proposé :',
+    expiresInMin: 700,
+    actions: [SEND, EDIT, IGNORE],
+    extra: (
+      <blockquote className="m-0 mt-2 rounded-sm bg-muted px-2.5 py-2 text-xs text-foreground">
+        Bonjour Karim, votre séjour du 14 au 16 août au Duplex Guéliz est toujours disponible.
+        Réservez avant ce soir et profitez du petit-déjeuner offert.
+      </blockquote>
+    ),
+  },
+  {
+    id: 'ops-clean',
+    agent: 'Ops',
+    title: 'Réaffectation du ménage de RES-1042',
+    motif: 'Nadia Berrada est déjà sur deux départs à 11 h. Bascule proposée vers Youssef Amrani, disponible et à 900 m.',
+    expiresInMin: 40,
+    actions: [VALIDATE, EDIT, REFUSE],
+  },
+];
+
+/** Ce que les agents exécutent en ce moment, sans validation humaine. */
+const RUNNING: RunningItem[] = [
+  { agent: 'Revenue', label: 'Recalcul des prix sur 12 logements' },
+  { agent: 'Messaging', label: 'Traduction de 3 réponses en arabe' },
+  { agent: 'Ops', label: 'Création de 4 interventions de ménage' },
+  { agent: 'Ops', label: 'Synchronisation des disponibilités prestataires' },
+  { agent: 'Sync', label: 'Réconciliation Airbnb et Booking' },
+];
+
+/**
+ * Tri des propositions : échéance croissante.
+ *
+ * C'est la règle de production. Contrairement à ce qu'on pourrait supposer,
+ * `PendingAction` ne porte AUCUN champ de priorité ou de sévérité côté
+ * supervision — vérifié dans `src/modules/supervision/types.ts`. La seule
+ * hiérarchie réelle est l'ordre des piles par agent (`TYPE_ORDER` dans
+ * `components/TaskDeckQueue.tsx`) puis, à l'intérieur d'une pile, le tri par
+ * `expiresAt` croissant. Une pile ne contenant qu'un agent, il ne reste ici
+ * que l'échéance.
+ */
+function waitingFor(agent: string, decided: Record<string, string>) {
+  return PENDING.filter((item) => item.agent === agent && !decided[item.id]).sort(
+    (a, b) => a.expiresInMin - b.expiresInMin
+  );
+}
+
+function runningFor(agent: string) {
+  return RUNNING.filter((item) => item.agent === agent);
+}
+
+/**
+ * Agent pré-sélectionné : celui qui porte le plus de propositions, l'échéance
+ * la plus proche départageant les ex aequo.
+ *
+ * Écart assumé avec la production, où `SupervisionPanel` initialise la
+ * sélection à `null` et n'ouvre le tiroir que sur clic. Ici l'écran s'ouvre
+ * déjà sur le travail à faire plutôt que sur un panneau vide.
+ */
+function busiestAgent(decided: Record<string, string>) {
+  return [...AGENTS].sort((a, b) => {
+    const wa = waitingFor(a.name, decided);
+    const wb = waitingFor(b.name, decided);
+    if (wa.length !== wb.length) return wb.length - wa.length;
+    return (wa[0]?.expiresInMin ?? Infinity) - (wb[0]?.expiresInMin ?? Infinity);
+  })[0].name;
+}
+
+/** Reprend le formatage de `remainingLabel` (TaskDeckQueue de production). */
+function formatRemaining(minutes: number) {
+  if (minutes >= 60) {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m ? `${h} h ${String(m).padStart(2, '0')}` : `${h} h`;
+  }
+  if (minutes >= 1) return `${minutes} min`;
+  return '< 1 min';
+}
+
 /**
  * Micro-label de section (h2 : le PageHeader porte le h1). 12 px minimum,
  * comme tout le texte de la section : la densité vient du rythme des lignes,
@@ -112,12 +291,23 @@ function AgentCard({
   agent,
   auto,
   onAutoChange,
+  waiting,
+  running,
 }: {
   agent: AgentNode;
   auto: boolean;
   onAutoChange: (auto: boolean) => void;
+  waiting: number;
+  running: number;
 }) {
-  const status = AGENT_STATUS[agent.status];
+  // Statut dérivé de la file, comme le fait le provider de supervision réel :
+  // un agent qui porte une proposition passe en attente, les autres suivent
+  // leur activité. Le champ `status` des données ne sert plus que de repli.
+  const status = waiting
+    ? AGENT_STATUS.waiting
+    : running
+      ? AGENT_STATUS.active
+      : AGENT_STATUS.idle;
   return (
     <article className="flex flex-col gap-2.5 rounded-md bg-card p-3">
       <div className="flex items-start gap-2.5">
@@ -206,6 +396,13 @@ const ORBIT_STYLES = `
 .bo-view { animation: bo-view-in .16s cubic-bezier(.25,1,.5,1) both; }
 @keyframes bo-view-in { from { opacity: 0; } to { opacity: 1; } }
 
+/* ── Rotation de l'anneau à la sélection ─────────────────────────────── */
+/* L'anneau porte la rotation, chaque nœud porte la rotation inverse : même
+   durée et même courbe des deux côtés, sinon les libellés partiraient de
+   travers en cours de route. Les agents glissent ainsi le long de l'orbite
+   au lieu de sauter en travers du diagramme. */
+.bo-ring, .bo-node { transition: transform 720ms cubic-bezier(.25,1,.5,1); }
+
 /* ── Flux request/response : masqué au repos, joué au survol/focus ────── */
 .bo-packet {
   display: none;
@@ -233,6 +430,8 @@ ${AGENTS.map(
 @media (prefers-reduced-motion: reduce) {
   .bo-ripple { display: none; }
   .bo-view, .bo-packet { animation: none; }
+  /* La sélection reste fonctionnelle : l'agent rejoint sa place sans trajet. */
+  .bo-ring, .bo-node { transition: none; }
 }
 `;
 
@@ -241,12 +440,45 @@ ${AGENTS.map(
  * Positions en `left/top` physiques (et non logiques) : c'est un schéma
  * géométrique, il ne se miroite pas en RTL — seul le rattachement aux cartes
  * s'adapte au sens de lecture (cf. `useTethers`).
+ *//**
+ * Emplacement de l'agent sélectionné : en haut à droite, face à la file. Tous
+ * les autres se répartissent à intervalle régulier à partir de là.
+ */
+const SLOT_ANGLE = -45;
+
+/** Angle canonique d'un agent, avant rotation de l'anneau. */
+function baseAngle(index: number, total: number) {
+  return (index * 360) / total;
+}
+
+/** Rotation à appliquer pour amener l'agent `index` sur l'emplacement de tête. */
+function rotationFor(index: number, total: number) {
+  return SLOT_ANGLE - baseAngle(index, total);
+}
+
+/**
+ * Diagramme orbital : noyau Baitly au centre, agents en orbite.
+ *
+ * Positions en `left/top` physiques (et non logiques) : c'est un schéma
+ * géométrique, il ne se miroite pas en RTL — seul le rattachement aux cartes
+ * s'adapte au sens de lecture (cf. `useTethers`).
+ *
+ * La sélection ne déplace pas les nœuds un à un : elle fait pivoter TOUT
+ * l'anneau (`rotation`), si bien que les agents glissent le long de l'orbite au
+ * lieu de sauter en travers. Chaque nœud applique la rotation inverse pour
+ * rester droit.
  */
 function AgentOrbit({
-  autoMap,
+  selected,
+  onSelect,
+  rotation,
+  decided,
   registerNode,
 }: {
-  autoMap: Record<string, boolean>;
+  selected: string;
+  onSelect: (name: string) => void;
+  rotation: number;
+  decided: Record<string, string>;
   registerNode: (name: string, el: HTMLElement | null) => void;
 }) {
   const maxTasks = Math.max(...AGENTS.map((agent) => agent.tasksToday));
@@ -256,11 +488,8 @@ function AgentOrbit({
     <div className="bo-canvas relative mx-auto aspect-square w-full max-w-[420px]">
       <style>{ORBIT_STYLES}</style>
 
+      {/* L'anneau ne tourne pas : il est invariant par rotation. */}
       <svg viewBox="0 0 100 100" className="absolute inset-0 size-full" aria-hidden>
-        {/* Trait plein très fin plutôt que pointillé : un cercle en tirets se
-            lit comme un placeholder, et le motif était l'élément le plus
-            bruyant du diagramme alors qu'il n'encode rien. Il ne reste ici que
-            pour poser le plan sur lequel les agents sont alignés. */}
         <circle
           cx="50"
           cy="50"
@@ -270,31 +499,140 @@ function AgentOrbit({
           strokeWidth="0.25"
           opacity="0.65"
         />
-        {AGENTS.map((agent, index) => {
-          const angle = orbitAngle(index, AGENTS.length);
-          const from = polar(angle, CORE_SIZE / 2 + 1.3);
-          const to = polar(angle, ORBIT_RADIUS - nodeDiameter(agent.tasksToday, maxTasks) / 2 - 0.6);
-          const segment = { x1: from.x, y1: from.y, x2: to.x, y2: to.y };
-          return (
-            <g key={agent.name} className="bo-flow" data-agent={agent.name}>
-              <line {...segment} strokeWidth="0.3" className="stroke-border" />
-              <line
-                {...segment}
-                pathLength={100}
-                strokeWidth="1.1"
-                className="bo-packet bo-packet-request stroke-info"
-              />
-              <line
-                {...segment}
-                pathLength={100}
-                strokeWidth="1.1"
-                className="bo-packet bo-packet-response stroke-success"
-              />
-            </g>
-          );
-        })}
       </svg>
 
+      <div
+        className="bo-ring absolute inset-0"
+        style={{ transform: `rotate(${rotation}deg)` }}
+      >
+        <svg viewBox="0 0 100 100" className="absolute inset-0 size-full" aria-hidden>
+          {AGENTS.map((agent, index) => {
+            const angle = baseAngle(index, AGENTS.length);
+            const from = polar(angle, CORE_SIZE / 2 + 1.3);
+            const to = polar(angle, ORBIT_RADIUS - nodeDiameter(agent.tasksToday, maxTasks) / 2 - 0.6);
+            const segment = { x1: from.x, y1: from.y, x2: to.x, y2: to.y };
+            return (
+              <g key={agent.name} className="bo-flow" data-agent={agent.name}>
+                <line {...segment} strokeWidth="0.3" className="stroke-border" />
+                <line
+                  {...segment}
+                  pathLength={100}
+                  strokeWidth="1.1"
+                  className="bo-packet bo-packet-request stroke-info"
+                />
+                <line
+                  {...segment}
+                  pathLength={100}
+                  strokeWidth="1.1"
+                  className="bo-packet bo-packet-response stroke-success"
+                />
+              </g>
+            );
+          })}
+        </svg>
+
+        {AGENTS.map((agent, index) => {
+          const diameter = nodeDiameter(agent.tasksToday, maxTasks);
+          const point = polar(baseAngle(index, AGENTS.length), ORBIT_RADIUS);
+          const waiting = waitingFor(agent.name, decided);
+          const running = runningFor(agent.name);
+          const isSelected = agent.name === selected;
+          // Le halo ne signale que ce qui n'est PAS déjà ouvert à droite :
+          // pulser sur l'agent dont on lit justement la file serait redondant.
+          const needsAttention = waiting.length > 0 && !isSelected;
+          const status = waiting.length
+            ? AGENT_STATUS.waiting
+            : running.length
+              ? AGENT_STATUS.active
+              : AGENT_STATUS.idle;
+
+          return (
+            <div
+              key={agent.name}
+              className="bo-node absolute"
+              style={{
+                left: `${point.x}%`,
+                top: `${point.y}%`,
+                width: `${diameter}%`,
+                height: `${diameter}%`,
+                transform: `translate(-50%, -50%) rotate(${-rotation}deg)`,
+              }}
+            >
+              {needsAttention && (
+                <>
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute -inset-[10%] rounded-full ring-1 ring-warning/30"
+                  />
+                  <span
+                    aria-hidden
+                    className="bo-ripple pointer-events-none absolute -inset-[10%] rounded-full ring-1 ring-warning/45"
+                  />
+                </>
+              )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    data-agent={agent.name}
+                    aria-pressed={isSelected}
+                    onClick={() => onSelect(agent.name)}
+                    ref={(el) => {
+                      registerNode(agent.name, el);
+                    }}
+                    aria-label={`Agent ${agent.name} · ${waiting.length} à valider · ${running.length} en cours${isSelected ? ' · file ouverte' : ''}`}
+                    className={cn(
+                      'bo-hit relative flex size-full cursor-pointer items-center justify-center rounded-full border bg-card transition-colors duration-100 hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+                      isSelected && 'border-primary/45 text-foreground ring-1 ring-primary/25',
+                      !isSelected && needsAttention && 'border-warning/60 text-warning-ink',
+                      !isSelected && !needsAttention && 'border-border text-muted-foreground'
+                    )}
+                  >
+                    {/* L'icône identifie l'agent (variable catégorielle), le
+                        diamètre encode le volume (variable quantitative) : les
+                        faire varier ensemble double l'encodage, vide les gros
+                        nœuds et rend les petits illisibles. D'où une taille
+                        quasi constante, juste bornée par clamp. */}
+                    <span
+                      className="flex aspect-square items-center justify-center [&>svg]:size-full"
+                      style={{ width: 'clamp(14px, 32%, 22px)' }}
+                    >
+                      {agent.icon}
+                    </span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[16rem] p-0">
+                  <AgentTooltip
+                    agent={agent}
+                    waiting={waiting}
+                    running={running}
+                    isSelected={isSelected}
+                  />
+                </TooltipContent>
+              </Tooltip>
+              <span className="absolute inset-x-0 top-full mt-2 flex flex-col items-center gap-0.5 leading-tight">
+                <span className="text-xs font-medium whitespace-nowrap text-foreground">
+                  {agent.name}
+                </span>
+                <span
+                  className={cn(
+                    'text-xs whitespace-nowrap tabular-nums',
+                    waiting.length ? 'font-medium text-warning-ink' : 'text-muted-foreground'
+                  )}
+                >
+                  {waiting.length
+                    ? `${waiting.length} à valider`
+                    : running.length
+                      ? `${running.length} en cours`
+                      : status.label.toLowerCase()}
+                </span>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Le noyau reste au centre, donc hors de l'anneau qui pivote. */}
       <Tooltip>
         <TooltipTrigger asChild>
           <div
@@ -314,104 +652,91 @@ function AgentOrbit({
         </TooltipTrigger>
         <TooltipContent>Noyau Baitly · {totalTasks} tâches orchestrées aujourd'hui</TooltipContent>
       </Tooltip>
+    </div>
+  );
+}
 
-      {AGENTS.map((agent, index) => {
-        const diameter = nodeDiameter(agent.tasksToday, maxTasks);
-        const point = polar(orbitAngle(index, AGENTS.length), ORBIT_RADIUS);
-        const status = AGENT_STATUS[agent.status];
-        const waiting = agent.status === 'waiting';
-        return (
-          <div
-            key={agent.name}
-            className="bo-node absolute"
-            style={{
-              left: `${point.x}%`,
-              top: `${point.y}%`,
-              width: `${diameter}%`,
-              height: `${diameter}%`,
-              transform: 'translate(-50%, -50%)',
-            }}
-          >
-            {waiting && (
-              <>
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute -inset-[10%] rounded-full ring-1 ring-warning/30"
-                />
-                <span
-                  aria-hidden
-                  className="bo-ripple pointer-events-none absolute -inset-[10%] rounded-full ring-1 ring-warning/45"
-                />
-              </>
-            )}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  data-agent={agent.name}
-                  ref={(el) => {
-                    registerNode(agent.name, el);
-                  }}
-                  aria-label={`Agent ${agent.name} · ${agent.tasksToday} tâches aujourd'hui · ${status.label} · ${autoMap[agent.name] ? 'auto-application' : 'validation humaine'}`}
-                  className={cn(
-                    // bg-card, plus CLAIR que la page : le nœud se détache au
-                    // lieu de s'enfoncer, comme les blocs de proposition. En
-                    // bg-muted il était plus sombre que le fond et disparaissait.
-                    'bo-hit relative flex size-full cursor-pointer items-center justify-center rounded-full border bg-card transition-colors duration-100 hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
-                    waiting
-                      ? 'border-warning/60 text-warning-ink'
-                      : 'border-border text-muted-foreground'
-                  )}
-                >
-                  {/* L'icône identifie l'agent (variable catégorielle), le
-                      diamètre encode le volume (variable quantitative) : les
-                      faire varier ensemble double l'encodage, vide les gros
-                      nœuds et rend les petits illisibles. D'où une taille
-                      quasi constante, juste bornée par clamp.
-                      aspect-square donne une hauteur définie au conteneur :
-                      sans elle, le size-full de l'icône n'a rien à résoudre. */}
-                  <span
-                    className="flex aspect-square items-center justify-center [&>svg]:size-full"
-                    style={{ width: 'clamp(14px, 32%, 22px)' }}
-                  >
-                    {agent.icon}
-                  </span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                Agent {agent.name} · {agent.role} · {agent.lastRun}
-              </TooltipContent>
-            </Tooltip>
-            <span className="absolute inset-x-0 top-full mt-2 flex flex-col items-center gap-0.5 leading-tight">
-              <span className="text-xs font-medium whitespace-nowrap text-foreground">
-                {agent.name}
-              </span>
-              {/* Le mode auto/validation reste lisible ici : la vue liste porte
-                  l'interrupteur, mais basculer de vue ne doit pas faire perdre
-                  l'information elle-même.
-                  L'aire encode le volume, donc le nœud le plus chargé est le
-                  plus gros — pas forcément le plus urgent. La mention « à
-                  valider » en ambre rétablit la priorité : la couleur ressort
-                  en pré-attentif là où la taille joue contre nous. */}
+/** Nombre de lignes montrées dans l'infobulle avant de renvoyer vers la file. */
+const TOOLTIP_MAX_ITEMS = 3;
+
+/**
+ * Infobulle enrichie : identité de l'agent, puis un aperçu BORNÉ de ce qu'il a
+ * en attente et de ce qu'il exécute. Au-delà de trois lignes on ne déroule pas,
+ * on invite à ouvrir la file — une infobulle qui déborde n'est plus une
+ * infobulle.
+ */
+function AgentTooltip({
+  agent,
+  waiting,
+  running,
+  isSelected,
+}: {
+  agent: AgentNode;
+  waiting: PendingItem[];
+  running: RunningItem[];
+  isSelected: boolean;
+}) {
+  const rows = [
+    ...waiting.map((item) => ({
+      key: item.id,
+      label: item.title,
+      hint: formatRemaining(item.expiresInMin),
+      pending: true,
+    })),
+    ...running.map((item) => ({
+      key: item.label,
+      label: item.label,
+      hint: 'en cours',
+      pending: false,
+    })),
+  ];
+  const shown = rows.slice(0, TOOLTIP_MAX_ITEMS);
+  const rest = rows.length - shown.length;
+
+  return (
+    <div className="flex flex-col gap-2 px-3 py-2.5">
+      <div>
+        <p className="m-0 text-xs font-medium">Agent {agent.name}</p>
+        <p className="m-0 text-xs opacity-70">{agent.role}</p>
+      </div>
+
+      {rows.length > 0 && (
+        <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+          {shown.map((row) => (
+            <li key={row.key} className="flex items-start gap-1.5 text-xs">
               <span
+                aria-hidden
                 className={cn(
-                  'text-xs whitespace-nowrap tabular-nums',
-                  waiting ? 'font-medium text-warning-ink' : 'text-muted-foreground'
+                  'mt-1 size-1.5 shrink-0 rounded-[2px]',
+                  row.pending ? 'bg-warning' : 'bg-current opacity-50'
                 )}
-              >
-                {agent.tasksToday} tâches · {waiting ? 'à valider' : autoMap[agent.name] ? 'auto' : 'validation'}
-              </span>
-            </span>
-          </div>
-        );
-      })}
+              />
+              <span className="min-w-0 flex-1">{row.label}</span>
+              <span className="shrink-0 tabular-nums opacity-70">{row.hint}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p className="m-0 flex items-center gap-1 text-xs opacity-70">
+        {isSelected ? (
+          'File ouverte à droite'
+        ) : (
+          <>
+            <MousePointerClickIcon className="size-3" />
+            {rest > 0
+              ? `Cliquer pour voir ${rest} autre${rest > 1 ? 's' : ''}`
+              : 'Cliquer pour ouvrir la file'}
+          </>
+        )}
+      </p>
     </div>
   );
 }
 
 interface Tether {
   name: string;
-  waiting: boolean;
+  urgent: boolean;
   x1: number;
   y1: number;
   x2: number;
@@ -419,12 +744,13 @@ interface Tether {
 }
 
 /**
- * Mesure les traits qui rattachent chaque proposition à son agent. Les
- * coordonnées ne sont calculables qu'après layout (les deux extrémités vivent
- * dans des colonnes distinctes) : on lit les rects et on redessine sur resize.
- * Quand les colonnes s'empilent (mobile), aucun trait n'est tracé.
+ * Mesure les traits qui relient l'agent sélectionné à chacune de ses
+ * propositions. Les coordonnées ne sont calculables qu'après layout (les deux
+ * extrémités vivent dans des colonnes distinctes) : on lit les rects et on
+ * redessine sur resize. Quand les colonnes s'empilent (mobile), aucun trait
+ * n'est tracé.
  */
-function useTethers(enabled: boolean, revision: number) {
+function useTethers(enabled: boolean, selected: string, revision: string | number) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const nodeEls = useRef<Record<string, HTMLElement | null>>({});
   const cardEls = useRef<Record<string, HTMLElement | null>>({});
@@ -446,12 +772,16 @@ function useTethers(enabled: boolean, revision: number) {
 
     const measure = () => {
       const base = wrap.getBoundingClientRect();
+      const node = nodeEls.current[selected];
       const next: Tether[] = [];
-      for (const agent of AGENTS) {
-        const node = nodeEls.current[agent.name];
-        const card = cardEls.current[agent.name];
-        if (!node || !card) continue;
-        const n = node.getBoundingClientRect();
+      if (!node) {
+        setTethers((prev) => (prev.length ? [] : prev));
+        return;
+      }
+      const n = node.getBoundingClientRect();
+      for (const item of waitingFor(selected, {})) {
+        const card = cardEls.current[item.id];
+        if (!card) continue;
         const c = card.getBoundingClientRect();
         // Carte franchement à droite (LTR) ou à gauche (RTL) du nœud ; sinon les
         // colonnes sont empilées et un trait n'aurait aucun sens.
@@ -459,8 +789,8 @@ function useTethers(enabled: boolean, revision: number) {
         const toLeft = c.right <= n.left;
         if (!toRight && !toLeft) continue;
         next.push({
-          name: agent.name,
-          waiting: agent.status === 'waiting',
+          name: item.id,
+          urgent: item.expiresInMin < 60,
           x1: Math.round((toRight ? n.right : n.left) - base.left),
           y1: Math.round(n.top + n.height / 2 - base.top),
           x2: Math.round((toRight ? c.left : c.right) - base.left),
@@ -479,7 +809,7 @@ function useTethers(enabled: boolean, revision: number) {
       if (el) observer.observe(el);
     }
     return () => observer.disconnect();
-  }, [enabled, revision]);
+  }, [enabled, selected, revision]);
 
   return { wrapRef, registerNode, registerCard, tethers };
 }
@@ -493,7 +823,7 @@ function TetherOverlay({ tethers }: { tethers: Tether[] }) {
         return (
           <g
             key={tether.name}
-            className={cn('bo-tether', tether.waiting ? 'stroke-warning/70' : 'stroke-border')}
+            className={cn('bo-tether', tether.urgent ? 'stroke-warning/70' : 'stroke-border')}
             data-agent={tether.name}
           >
             <path
@@ -506,7 +836,7 @@ function TetherOverlay({ tethers }: { tethers: Tether[] }) {
               cy={tether.y2}
               r="2"
               strokeWidth="0"
-              className={tether.waiting ? 'fill-warning/70' : 'fill-border'}
+              className={tether.urgent ? 'fill-warning/70' : 'fill-border'}
             />
           </g>
         );
@@ -522,26 +852,16 @@ function TetherOverlay({ tethers }: { tethers: Tether[] }) {
  * dessus : dans cette section, une surface signale une action possible. Les
  * actions secondaires n'apparaissent qu'au survol ou au focus clavier ;
  * l'action principale reste toujours visible.
- */
-function ProposalBlock({
-  agent,
-  meta,
-  urgent,
-  title,
-  children,
-  actions,
+ */function ProposalBlock({
+  item,
   onDecide,
 }: {
-  agent: string;
-  meta: string;
-  urgent?: boolean;
-  title: string;
-  children: React.ReactNode;
-  /** [libellé du bouton, icône, participe passé pour la trace]. */
-  actions: [primary: Action, secondary: Action, dismiss: Action];
-  onDecide: (decision: string) => void;
+  item: PendingItem;
+  onDecide: (id: string, decision: string) => void;
 }) {
-  const [primary, secondary, dismiss] = actions;
+  const [primary, secondary, dismiss] = item.actions;
+  // Sous l'heure, l'échéance devient l'information la plus urgente du bloc.
+  const urgent = item.expiresInMin < 60;
   return (
     <article className="group/proposal rounded-md bg-card p-3.5">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -549,15 +869,20 @@ function ProposalBlock({
           className={cn('size-1.5 rounded-[2px]', urgent ? 'bg-warning' : 'bg-muted-foreground/30')}
           aria-hidden
         />
-        <span className="font-medium text-foreground">Agent {agent}</span>
-        <span className={urgent ? 'text-warning-ink' : undefined}>{meta}</span>
+        <span className="font-medium text-foreground">Agent {item.agent}</span>
+        <span className={cn('tabular-nums', urgent && 'text-warning-ink')}>
+          expire dans {formatRemaining(item.expiresInMin)}
+        </span>
       </div>
 
-      <h3 className="m-0 mt-2 text-sm font-medium text-foreground [text-wrap:balance]">{title}</h3>
-      {children}
+      <h3 className="m-0 mt-2 text-sm font-medium text-foreground [text-wrap:balance]">
+        {item.title}
+      </h3>
+      <p className="m-0 mt-1 max-w-[60ch] text-xs text-muted-foreground">{item.motif}</p>
+      {item.extra}
 
       <div className="mt-3 flex items-center gap-1">
-        <Button size="sm" onClick={() => onDecide(primary.done)}>
+        <Button size="sm" onClick={() => onDecide(item.id, primary.done)}>
           {primary.icon} {primary.label}
         </Button>
         {/* Secondaires révélées au survol ou au focus clavier, à la manière des
@@ -572,7 +897,7 @@ function ProposalBlock({
               size="sm"
               variant="ghost"
               className="text-muted-foreground"
-              onClick={() => onDecide(action.done)}
+              onClick={() => onDecide(item.id, action.done)}
             >
               {action.icon} {action.label}
             </Button>
@@ -583,137 +908,76 @@ function ProposalBlock({
   );
 }
 
-interface Action {
-  label: string;
-  icon: React.ReactNode;
-  /** Participe passé, pour la ligne de trace une fois la décision prise. */
-  done: string;
-}
-
-function YieldProposal({ onDecide }: { onDecide: (decision: string) => void }) {
-  return (
-    <ProposalBlock
-      agent="Revenue"
-      meta="expire dans 22 h"
-      urgent
-      title="Baisse tarifaire sur Riad Yasmine"
-      actions={[
-        { label: 'Appliquer', icon: <CheckIcon />, done: 'appliquée' },
-        { label: 'Ajuster', icon: <SlidersHorizontalIcon />, done: 'ouverte pour ajustement' },
-        { label: 'Refuser', icon: <XIcon />, done: 'refusée' },
-      ]}
-      onDecide={onDecide}
-    >
-      <p className="m-0 mt-1 max-w-[60ch] text-xs text-muted-foreground">
-        9 nuits invendues du 18 au 27 août. Baisse de <b className="font-medium text-foreground">12 %</b> sur
-        ces dates seulement, prix plancher respecté.
-      </p>
-      {/* Chiffres en ligne : un encadré gris dans un bloc déjà surfacé serait
-          une surface imbriquée. La hiérarchie passe par la graisse.
-          Le revenu attendu est l'espérance réelle (9 nuits × 70 € × 74 %), pas
-          un chiffre d'ambiance : sur un écran de décision financière, un nombre
-          qui ne se recalcule pas coûte la confiance dans tout le reste. */}
-      <p className="m-0 mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs">
-        <span className="text-muted-foreground">
-          Nuitée{' '}
-          <span className="tabular-nums"><Money value={80} decimals={0} /></span>
-          <span className="mx-1">→</span>
-          <span className="font-medium text-foreground tabular-nums"><Money value={70} decimals={0} /></span>
-        </span>
-        <span className="text-muted-foreground">
-          Revenu attendu{' '}
-          <span className="font-medium text-foreground tabular-nums">
-            +<Money value={466} decimals={0} />
-          </span>
-        </span>
-      </p>
-      <div className="mt-2.5 flex items-center gap-2.5">
-        <Progress value={74} className="h-1 w-28 shrink-0" />
-        <span className="text-xs text-muted-foreground tabular-nums">
-          74 % de probabilité de remplissage
-        </span>
-      </div>
-    </ProposalBlock>
-  );
-}
-
-function MessageProposal({ onDecide }: { onDecide: (decision: string) => void }) {
-  return (
-    <ProposalBlock
-      agent="Messaging"
-      meta="panier abandonné il y a 26 h"
-      title="Relance de Karim El Fassi"
-      actions={[
-        { label: 'Envoyer', icon: <CheckIcon />, done: 'envoyée' },
-        { label: 'Modifier', icon: <PencilIcon />, done: 'ouverte en édition' },
-        { label: 'Ignorer', icon: <XIcon />, done: 'ignorée' },
-      ]}
-      onDecide={onDecide}
-    >
-      <p className="m-0 mt-1 max-w-[60ch] text-xs text-muted-foreground">
-        2 nuits au Duplex Guéliz, 940 €. Message proposé :
-      </p>
-      <blockquote className="m-0 mt-2 rounded-sm bg-muted px-2.5 py-2 text-xs text-foreground">
-        Bonjour Karim, votre séjour du 14 au 16 août au Duplex Guéliz est toujours disponible.
-        Réservez avant ce soir et profitez du petit-déjeuner offert.
-      </blockquote>
-    </ProposalBlock>
-  );
-}
-
 /**
- * File de validation, partagée par les deux vues. `registerCard` n'est fourni
- * que par la vue constellation, qui a besoin d'ancrer les traits.
+ * File de l'agent sélectionné. `registerCard` n'est fourni que par la vue
+ * constellation, qui a besoin d'ancrer les traits de rattachement.
  */
 function ProposalQueue({
-  decisions,
+  agent,
+  decided,
   onDecide,
   registerCard,
 }: {
-  decisions: string[];
-  onDecide: (decision: string) => void;
-  registerCard?: (name: string, el: HTMLElement | null) => void;
+  agent: string;
+  decided: Record<string, string>;
+  onDecide: (id: string, decision: string) => void;
+  registerCard?: (id: string, el: HTMLElement | null) => void;
 }) {
-  const pending = 2 - decisions.length;
+  const waiting = waitingFor(agent, decided);
+  const running = runningFor(agent);
+  const trace = PENDING.filter((item) => item.agent === agent && decided[item.id]);
+
   return (
     <section className="flex flex-col gap-2">
-      <SectionLabel>À valider · {pending}</SectionLabel>
-      {decisions.length < 1 && (
+      <SectionLabel>
+        À valider · {agent} · {waiting.length}
+      </SectionLabel>
+
+      {waiting.map((item) => (
         <div
+          key={item.id}
           ref={(el) => {
-            registerCard?.('Revenue', el);
+            registerCard?.(item.id, el);
           }}
         >
-          <YieldProposal onDecide={(d) => onDecide(`Proposition tarifaire ${d}`)} />
+          <ProposalBlock item={item} onDecide={onDecide} />
         </div>
+      ))}
+
+      {waiting.length === 0 && (
+        <p className="m-0 px-1 py-2 text-xs text-muted-foreground">
+          Rien à valider pour cet agent. Il continue en autonomie.
+        </p>
       )}
-      {decisions.length < 2 && (
-        <div
-          ref={(el) => {
-            registerCard?.('Messaging', el);
-          }}
-        >
-          <MessageProposal onDecide={(d) => onDecide(`Relance ${d}`)} />
-        </div>
-      )}
-      {decisions.map((decision) => (
+
+      {trace.map((item) => (
         <p
-          key={decision}
+          key={item.id}
           className="m-0 flex items-center gap-2 px-1 py-1.5 text-xs text-muted-foreground"
         >
-          <CheckIcon className="size-3.5 shrink-0" /> {decision}
+          <CheckIcon className="size-3.5 shrink-0" /> {item.title} : {decided[item.id]}
         </p>
       ))}
-      {pending === 0 && (
-        <p className="m-0 px-1 py-2 text-xs text-muted-foreground">
-          Rien à valider. Les agents continuent en autonomie.
-        </p>
+
+      {running.length > 0 && (
+        <div className="mt-1 flex flex-col gap-1.5">
+          <SectionLabel>En cours</SectionLabel>
+          <ul className="m-0 list-none p-0">
+            {running.map((item) => (
+              <li
+                key={item.label}
+                className="flex items-center gap-2 border-t border-border px-1 py-2 text-xs text-muted-foreground first:border-t-0"
+              >
+                <span className="size-1.5 shrink-0 rounded-[2px] bg-foreground/40" aria-hidden />
+                {item.label}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </section>
   );
 }
-
-// ─── Feed d'activité ─────────────────────────────────────────────────────────
 
 const FEED = [
   { agent: 'Messaging', icon: <MessageSquareIcon />, text: 'Réponse envoyée à Amina Benali (heure d\'arrivée, lit bébé).', hitl: false, time: 'il y a 2 min' },
@@ -757,20 +1021,64 @@ function ActivityFeed() {
 }
 
 // ─── Section complète ────────────────────────────────────────────────────────
+// ─── Section complète ────────────────────────────────────────────────────────
+
+/** Durée de la rotation de l'anneau, alignée sur `.bo-ring` dans ORBIT_STYLES. */
+const ROTATION_MS = 720;
 
 export function BAgentsConstellationSectionDemo() {
-  const [decisions, setDecisions] = useState<string[]>([]);
+  const [decided, setDecided] = useState<Record<string, string>>({});
   const [view, setView] = useState<'cards' | 'orbit'>('cards');
   const [autoMap, setAutoMap] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(AGENTS.map((agent) => [agent.name, agent.auto]))
   );
-  const pending = 2 - decisions.length;
+
+  const [selected, setSelected] = useState(() => busiestAgent({}));
+  const initialRotation = rotationFor(
+    AGENTS.findIndex((agent) => agent.name === busiestAgent({})),
+    AGENTS.length
+  );
+  const [rotation, setRotation] = useState(initialRotation);
+  const rotationRef = useRef(initialRotation);
+  const [rotating, setRotating] = useState(false);
+
+  const pending = AGENTS.reduce((sum, agent) => sum + waitingFor(agent.name, decided).length, 0);
+
+  /**
+   * On ne recale pas chaque nœud : on fait pivoter l'anneau entier pour amener
+   * l'agent choisi sur l'emplacement de tête. L'angle cible est « déroulé »
+   * autour de l'angle courant afin que la rotation prenne toujours le chemin le
+   * plus court — sans ça, passer de 225° à −45° partirait faire trois quarts de
+   * tour à l'envers.
+   */
+  const selectAgent = (name: string) => {
+    if (name === selected) return;
+    const index = AGENTS.findIndex((agent) => agent.name === name);
+    let target = rotationFor(index, AGENTS.length);
+    while (target - rotationRef.current > 180) target -= 360;
+    while (target - rotationRef.current < -180) target += 360;
+    rotationRef.current = target;
+    setRotation(target);
+    setSelected(name);
+    setRotating(true);
+  };
+
+  // Les traits de rattachement sont mesurés en pixels : pendant la rotation ils
+  // pointeraient vers une position périmée. On les retire, puis on remesure.
+  useLayoutEffect(() => {
+    if (!rotating) return;
+    const timer = window.setTimeout(() => setRotating(false), ROTATION_MS + 40);
+    return () => window.clearTimeout(timer);
+  }, [rotating]);
+
   const { wrapRef, registerNode, registerCard, tethers } = useTethers(
-    view === 'orbit',
-    decisions.length
+    view === 'orbit' && !rotating,
+    selected,
+    `${selected}:${Object.keys(decided).length}`
   );
 
-  const decide = (decision: string) => setDecisions((prev) => [...prev, decision]);
+  const decide = (id: string, decision: string) =>
+    setDecided((prev) => ({ ...prev, [id]: decision }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -839,12 +1147,14 @@ export function BAgentsConstellationSectionDemo() {
                   agent={agent}
                   auto={autoMap[agent.name]}
                   onAutoChange={(auto) => setAutoMap((prev) => ({ ...prev, [agent.name]: auto }))}
+                  waiting={waitingFor(agent.name, decided).length}
+                  running={runningFor(agent.name).length}
                 />
               ))}
             </div>
           </section>
           <div className="grid grid-cols-1 items-start gap-x-8 gap-y-6 lg:grid-cols-[1.1fr_1fr]">
-            <ProposalQueue decisions={decisions} onDecide={decide} />
+            <ProposalQueue agent={selected} decided={decided} onDecide={decide} />
             <ActivityFeed />
           </div>
         </div>
@@ -855,14 +1165,25 @@ export function BAgentsConstellationSectionDemo() {
             className="bo-wrap relative grid grid-cols-1 items-start gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,1fr)]"
           >
             <div className="flex flex-col gap-3">
-              <AgentOrbit autoMap={autoMap} registerNode={registerNode} />
+              <AgentOrbit
+                selected={selected}
+                onSelect={selectAgent}
+                rotation={rotation}
+                decided={decided}
+                registerNode={registerNode}
+              />
               <p className="m-0 max-w-[52ch] text-xs text-muted-foreground">
-                L'aire d'un nœud est proportionnelle à ses tâches du jour. Survolez un agent pour
-                voir ses échanges avec le noyau. L'interrupteur auto/validation est dans la vue
-                liste.
+                L'aire d'un nœud est proportionnelle à ses tâches du jour. Cliquez un agent pour
+                amener sa file à droite ; survolez-le pour un aperçu. Les propositions sont triées
+                par échéance.
               </p>
             </div>
-            <ProposalQueue decisions={decisions} onDecide={decide} registerCard={registerCard} />
+            <ProposalQueue
+              agent={selected}
+              decided={decided}
+              onDecide={decide}
+              registerCard={registerCard}
+            />
             <TetherOverlay tethers={tethers} />
           </div>
           <ActivityFeed />
