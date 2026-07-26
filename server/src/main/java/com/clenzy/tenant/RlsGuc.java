@@ -1,6 +1,8 @@
 package com.clenzy.tenant;
 
 import jakarta.persistence.EntityManager;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Pose les variables de session PostgreSQL (GUC) utilisées par la Row-Level Security
@@ -44,6 +46,24 @@ public final class RlsGuc {
      */
     private static volatile boolean strictContext = false;
 
+    /**
+     * Marqueur : les GUC ont-elles ete posees sur la transaction en cours ?
+     *
+     * <p>Sert exclusivement a l'instrumentation de mesure ({@code RlsMissingGucInspector}) :
+     * une requete sur une table sous RLS qui s'execute SANS ces GUC renverra zero ligne le
+     * jour ou la RLS sera activee. Le but est de recenser ces chemins pendant que la RLS est
+     * encore inactive — donc sans aucun risque — plutot que de les decouvrir en production.
+     *
+     * <p>Le marqueur est efface a la fin de la transaction, pas laisse au thread : un thread
+     * de pool reutilise donnerait sinon un faux negatif, exactement ce qu'on cherche a eviter.
+     */
+    private static final ThreadLocal<Boolean> GUC_POSEE = new ThreadLocal<>();
+
+    /** @return vrai si les GUC ont ete posees sur la transaction courante. */
+    public static boolean estGucPosee() {
+        return Boolean.TRUE.equals(GUC_POSEE.get());
+    }
+
     private RlsGuc() {
     }
 
@@ -71,11 +91,30 @@ public final class RlsGuc {
             em.createNativeQuery("select set_config('app.bypass_rls', :bypass, true)")
                     .setParameter("bypass", bypass ? "on" : "off")
                     .getSingleResult();
+            marquerGucPosee();
         } catch (RuntimeException e) {
             // Pas de transaction/connexion liée (ne devrait pas arriver sous @Transactional) :
             // on NE relance PAS — la pose de GUC ne doit jamais casser une opération métier.
             // NB : si la GUC n'est pas posée alors que la RLS est active, les requêtes
             // renverront 0 ligne (fail-closed visible en staging), pas une fuite.
         }
+    }
+
+    /**
+     * Pose le marqueur et programme son effacement a la fin de la transaction.
+     * Hors transaction synchronisee, le marqueur n'est pas pose : le laisser trainer
+     * masquerait precisement les appels que l'instrumentation cherche a recenser.
+     */
+    private static void marquerGucPosee() {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+        GUC_POSEE.set(Boolean.TRUE);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                GUC_POSEE.remove();
+            }
+        });
     }
 }
