@@ -35,6 +35,17 @@ public class RlsAuditConfig {
             @Value("${clenzy.security.rls.enabled:false}") boolean rlsActive) {
 
         if (auditActif) {
+            if (!rlsActive) {
+                // Sans l'aspect, AUCUNE GUC n'est posee : l'audit signalerait alors toutes
+                // les requetes sur les cinq tables, pas seulement les chemins a risque.
+                // L'inventaire serait ininterpretable — et son abondance pourrait meme
+                // faire croire a un probleme massif inexistant.
+                log.error("RLS/AUDIT : instrumentation activee mais clenzy.security.rls.enabled=false. "
+                        + "L'aspect est INERTE, aucune GUC n'est posee, et TOUTES les requetes sur les "
+                        + "tables sous RLS vont etre signalees : l'inventaire produit sera SANS VALEUR. "
+                        + "Poser clenzy.security.rls.enabled=true — sans risque tant que le contexte "
+                        + "Liquibase `rls` reste inactif, puisque aucune politique ne lit ces GUC.");
+            }
             log.warn("RLS/AUDIT : instrumentation ACTIVE. Les requetes sur les tables sous RLS "
                     + "sans contexte tenant seront signalees (une fois par chemin distinct). "
                     + "A desactiver une fois l'inventaire termine.");
