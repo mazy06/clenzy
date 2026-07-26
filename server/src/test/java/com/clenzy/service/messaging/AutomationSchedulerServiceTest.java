@@ -38,8 +38,17 @@ class AutomationSchedulerServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Auto-injection : renvoie l'instance elle-meme. En production le proxy Spring
+        // s'intercale pour porter @Transactional et l'aspect qui pose les GUC ; ici
+        // l'appel direct suffit a exercer la logique de sweep.
+        @SuppressWarnings("unchecked")
+        org.springframework.beans.factory.ObjectProvider<AutomationSchedulerService> self =
+            org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class);
+
         scheduler = new AutomationSchedulerService(evaluationService, ruleRepository,
-            reservationRepository, tenantScopedExecutor, clock);
+            reservationRepository, tenantScopedExecutor, clock, self);
+
+        org.mockito.Mockito.lenient().when(self.getObject()).thenReturn(scheduler);
     }
 
     private void tenantExecutorRunsInline() {

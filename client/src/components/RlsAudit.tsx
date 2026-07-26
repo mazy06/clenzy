@@ -63,13 +63,39 @@ const RlsAudit: React.FC = () => {
   });
 
   if (error) {
+    // Distinguer les causes : un message unique ferait chercher au mauvais endroit.
+    // Un 404 signifie que le backend ne connait pas encore cette route — cas frequent en
+    // developpement, ou le front recharge a chaud pendant que le serveur tourne un build
+    // anterieur.
+    const status = (error as { status?: number }).status;
+    if (status === 404) {
+      return (
+        <Alert severity="warning">
+          <AlertTitle>Backend non a jour</AlertTitle>
+          Cette instance ne connait pas encore l'endpoint <code>/api/admin/rls-audit</code>.
+          Le front a ete recharge a chaud, mais le serveur tourne un build anterieur —
+          le reconstruire et le relancer.
+        </Alert>
+      );
+    }
+    if (status === 403) {
+      return (
+        <Alert severity="warning">
+          <AlertTitle>Acces reserve</AlertTitle>
+          Cet inventaire designe du code et sert une decision d'infrastructure : il est
+          reserve au personnel plateforme (SUPER_ADMIN ou SUPER_MANAGER).
+        </Alert>
+      );
+    }
     return (
       <Alert severity="error">
-        Inventaire indisponible. L'instrumentation est peut-etre desactivee sur cette instance.
+        <AlertTitle>Inventaire indisponible</AlertTitle>
+        {(error as { message?: string }).message ?? 'Erreur inattendue lors du chargement.'}
       </Alert>
     );
   }
 
+  const enAttente = data?.enAttente ?? 0;
   const ouverts = data?.chemins.filter((c) => !c.resolvedAt) ?? [];
   const traites = data?.chemins.filter((c) => c.resolvedAt) ?? [];
   const plusAncien = ouverts.length
@@ -117,18 +143,29 @@ const RlsAudit: React.FC = () => {
         </Alert>
       )}
 
+      {enAttente > 0 && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          <AlertTitle>{enAttente} constat(s) en attente d'ecriture</AlertTitle>
+          Des chemins viennent d'etre detectes mais ne sont pas encore enregistres — le
+          vidage a lieu toutes les 5 minutes. Ils apparaitront ci-dessous au prochain
+          passage. D'ici la, ne pas lire cet ecran comme « aucun chemin a traiter ».
+        </Alert>
+      )}
+
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatTile
             icon={ouverts.length === 0 ? <ShieldCheck /> : <ShieldAlert />}
             label="Chemins a traiter"
-            value={isLoading ? '—' : ouverts.length}
-            color={ouverts.length === 0 ? VERT : ROUGE}
+            value={isLoading ? '—' : ouverts.length + enAttente}
+            color={ouverts.length + enAttente === 0 ? VERT : ROUGE}
             loading={isLoading}
             hint={
-              ouverts.length === 0
+              ouverts.length + enAttente === 0
                 ? 'Condition d’activation remplie'
-                : 'La RLS ne peut pas etre activee'
+                : enAttente > 0 && ouverts.length === 0
+                  ? `${enAttente} constat(s) detecte(s), pas encore ecrit(s)`
+                  : 'La RLS ne peut pas etre activee'
             }
           />
         </Grid>
@@ -156,7 +193,7 @@ const RlsAudit: React.FC = () => {
           <StatTile
             icon={<Layers />}
             label="En attente d'ecriture"
-            value={isLoading ? '—' : (data?.enAttente ?? 0)}
+            value={isLoading ? '—' : enAttente}
             color={BLEU}
             loading={isLoading}
             hint="Vidage automatique toutes les 5 min"
@@ -175,7 +212,7 @@ const RlsAudit: React.FC = () => {
             casserait plus d'ecrans qu'un chemin marginal.
           </Typography>
 
-          {!isLoading && ouverts.length === 0 && traites.length === 0 ? (
+          {!isLoading && ouverts.length === 0 && traites.length === 0 && enAttente === 0 ? (
             <EmptyState
               icon={<ShieldCheck />}
               title="Aucun chemin detecte"

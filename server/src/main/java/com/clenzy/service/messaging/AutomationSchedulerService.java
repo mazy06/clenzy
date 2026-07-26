@@ -8,6 +8,8 @@ import com.clenzy.repository.ReservationRepository;
 import com.clenzy.tenant.TenantScopedExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.scheduling.annotation.Scheduled;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
@@ -54,18 +56,26 @@ public class AutomationSchedulerService {
     private final AutomationRuleRepository ruleRepository;
     private final ReservationRepository reservationRepository;
     private final TenantScopedExecutor tenantScopedExecutor;
+
+    /**
+     * Auto-injection : appeler une methode {@code @Transactional} de cette classe
+     * directement ne passerait pas par le proxy Spring (regle CLAUDE.md n°6).
+     */
+    private final ObjectProvider<AutomationSchedulerService> self;
     private final Clock clock;
 
     public AutomationSchedulerService(AutomationEvaluationService evaluationService,
                                       AutomationRuleRepository ruleRepository,
                                       ReservationRepository reservationRepository,
                                       TenantScopedExecutor tenantScopedExecutor,
-                                      Clock clock) {
+                                      Clock clock,
+                                      ObjectProvider<AutomationSchedulerService> self) {
         this.evaluationService = evaluationService;
         this.ruleRepository = ruleRepository;
         this.reservationRepository = reservationRepository;
         this.tenantScopedExecutor = tenantScopedExecutor;
         this.clock = clock;
+        this.self = self;
     }
 
     @Scheduled(cron = "0 0 * * * *") // Every hour
@@ -103,8 +113,10 @@ public class AutomationSchedulerService {
             try {
                 // Z2-EFFETS : hors HTTP, contexte tenant pose via TenantScopedExecutor
                 // (TenantContext + filtre Hibernate, nettoyes en finally cote executor).
+                // Via le proxy (self) : un appel direct resterait interne a l'instance et
+                // ne declencherait ni la transaction ni l'aspect (regle CLAUDE.md n°6).
                 tenantScopedExecutor.runAsOrganization(orgId,
-                    () -> sweepOrganization(orgId, entry.getValue()));
+                    () -> self.getObject().sweepOrganization(orgId, entry.getValue()));
             } catch (Exception e) {
                 // Isolation par org (pattern ICalSyncScheduler).
                 log.error("Sweep automation en erreur pour org={}: {}", orgId, e.getMessage(), e);
@@ -112,7 +124,21 @@ public class AutomationSchedulerService {
         }
     }
 
-    private void sweepOrganization(Long orgId, List<AutomationRule> rules) {
+    /**
+     * Balaye les declencheurs temporels d'une organisation.
+     *
+     * <p>{@code @Transactional} et methode PUBLIQUE : {@link com.clenzy.tenant.TenantScopedExecutor}
+     * pose le {@code TenantContext} et active le filtre Hibernate, mais ce n'est pas lui qui
+     * ecrit les GUC PostgreSQL — c'est {@code RlsTenantGucAspect}, qui ne se declenche que sur
+     * une methode {@code @Transactional} traversant le proxy Spring. Une methode privee y
+     * echappe, et ces lectures renverraient zero ligne des que la RLS sera active.
+     *
+     * <p>Detecte par l'instrumentation de mesure (audit 2026-07-26, plan REM-T-01) alors meme
+     * que le TenantScopedExecutor etait deja en place : les deux mecanismes sont necessaires,
+     * pas interchangeables.
+     */
+    @Transactional
+    public void sweepOrganization(Long orgId, List<AutomationRule> rules) {
         // Fenetres calculees en date serveur avec une marge d'un jour de chaque cote pour
         // couvrir tous les fuseaux possibles des logements de l'org (le tranchage fin par
         // fuseau du logement est fait par calculateScheduledTime cote evaluation).
