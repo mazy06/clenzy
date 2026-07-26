@@ -58,6 +58,7 @@ class PaymentEventConsumerTest {
 
     private EscrowHold escrow() {
         EscrowHold hold = new EscrowHold();
+        hold.setOrganizationId(7L);
         hold.setId(11L);
         hold.setAmount(new BigDecimal("200.00"));
         hold.setCurrency("EUR");
@@ -70,6 +71,7 @@ class PaymentEventConsumerTest {
         Property property = new Property();
         property.setOwner(owner);
         Reservation reservation = new Reservation();
+        reservation.setOrganizationId(7L);
         reservation.setProperty(property);
         return reservation;
     }
@@ -141,6 +143,7 @@ class PaymentEventConsumerTest {
         @Test
         void reservationWithoutProperty_skipsSplit() {
             Reservation reservation = new Reservation();
+            reservation.setOrganizationId(7L);
             reservation.setProperty(null);
 
             Map<String, Object> event = Map.of("eventType", "ESCROW_RELEASED",
@@ -158,6 +161,7 @@ class PaymentEventConsumerTest {
             Property property = new Property();
             property.setOwner(null);
             Reservation reservation = new Reservation();
+            reservation.setOrganizationId(7L);
             reservation.setProperty(property);
 
             Map<String, Object> event = Map.of("eventType", "ESCROW_RELEASED",
@@ -193,14 +197,25 @@ class PaymentEventConsumerTest {
             verify(splitPaymentService, never()).splitPayment(any(), any(), any(), any());
         }
 
+        /**
+         * Ce test verifiait auparavant que l'exception etait AVALEE (« Should not throw »).
+         * C'est ce comportement qui rendait le constat P1-14 invisible : chaque reversement
+         * d'escrow echouait en silence, et personne n'etait credite.
+         *
+         * <p>Un echec doit desormais remonter, pour que le retry puis le topic {@code .DLT}
+         * jouent leur role (regle CLAUDE.md n°7 : jamais de {@code catch (Exception)} avaleur).
+         * Un reversement rate est un incident financier, pas une ligne de log.
+         */
         @Test
-        void exceptionDuringProcessing_caught() {
+        void exceptionDuringProcessing_isPropagatedForRetryAndDlt() {
             Map<String, Object> event = Map.of("eventType", "ESCROW_RELEASED",
                     "escrowId", 11L, "reservationId", 22L);
             when(escrowHoldRepository.findById(11L)).thenThrow(new RuntimeException("boom"));
 
-            // Should not throw
-            consumer.handlePaymentEvent(event);
+            org.assertj.core.api.Assertions
+                    .assertThatThrownBy(() -> consumer.handlePaymentEvent(event))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("boom");
         }
     }
 

@@ -63,48 +63,69 @@ public class PaymentEventConsumer {
         }
     }
 
+    /**
+     * ESCROW_RELEASED : reversement au proprietaire et aux concierges.
+     *
+     * <p><b>Contexte tenant obligatoire</b> — {@link SplitPaymentService#splitPayment} appelle
+     * {@code tenantContext.getRequiredOrganizationId()}. Sur un thread Kafka le contexte est vide :
+     * l'appel levait donc systematiquement, et l'exception etait avalee par un
+     * {@code catch (Exception)}. Consequence observee (audit 2026-07-26, constat P1-14) :
+     * <b>aucun escrow n'etait jamais reparti</b>, les fonds restaient sur le wallet plateforme,
+     * sans la moindre alerte. L'organisation est donc posee ici, depuis la base et non depuis
+     * le payload (regle CLAUDE.md : l'emetteur ne choisit pas le tenant).
+     *
+     * <p>Aucun {@code catch} generique : un echec doit remonter pour que le retry puis le
+     * {@code .DLT} jouent (regle CLAUDE.md n°7). Un reversement rate est un incident financier,
+     * pas une ligne de log.
+     */
     private void handleEscrowReleased(Map<String, Object> event) {
-        try {
-            Long escrowId = toLong(event.get("escrowId"));
-            Long reservationId = toLong(event.get("reservationId"));
+        Long escrowId = toLong(event.get("escrowId"));
+        Long reservationId = toLong(event.get("reservationId"));
 
-            if (escrowId == null || reservationId == null) {
-                log.warn("ESCROW_RELEASED event missing escrowId or reservationId");
-                return;
-            }
-
-            log.info("Processing ESCROW_RELEASED for escrow {} reservation {}", escrowId, reservationId);
-
-            EscrowHold hold = escrowHoldRepository.findById(escrowId).orElse(null);
-            if (hold == null) {
-                log.warn("Escrow {} not found", escrowId);
-                return;
-            }
-
-            // Find reservation to get owner
-            Reservation reservation = reservationRepository.findById(reservationId).orElse(null);
-            if (reservation == null) {
-                log.warn("Reservation {} not found for split", reservationId);
-                return;
-            }
-
-            // Get owner ID from reservation's property
-            Long ownerId = null;
-            if (reservation.getProperty() != null && reservation.getProperty().getOwner() != null) {
-                ownerId = reservation.getProperty().getOwner().getId();
-            }
-
-            if (ownerId == null) {
-                log.warn("Could not determine owner for reservation {}", reservationId);
-                return;
-            }
-
-            splitPaymentService.splitPayment(
-                reservationId, hold.getAmount(), hold.getCurrency(), ownerId);
-
-        } catch (Exception e) {
-            log.error("Failed to process ESCROW_RELEASED event: {}", e.getMessage(), e);
+        if (escrowId == null || reservationId == null) {
+            log.warn("ESCROW_RELEASED event missing escrowId or reservationId");
+            return;
         }
+
+        log.info("Processing ESCROW_RELEASED for escrow {} reservation {}", escrowId, reservationId);
+
+        EscrowHold hold = escrowHoldRepository.findById(escrowId).orElse(null);
+        if (hold == null) {
+            log.warn("Escrow {} not found", escrowId);
+            return;
+        }
+
+        Reservation reservation = reservationRepository.findById(reservationId).orElse(null);
+        if (reservation == null) {
+            log.warn("Reservation {} not found for split", reservationId);
+            return;
+        }
+
+        // L'escrow et la reservation doivent designer la meme organisation. Une divergence
+        // signale un evenement forge ou une corruption : on refuse plutot que de crediter
+        // le mauvais tenant.
+        if (hold.getOrganizationId() != null && reservation.getOrganizationId() != null
+                && !hold.getOrganizationId().equals(reservation.getOrganizationId())) {
+            log.error("SECURITE : ESCROW_RELEASED escrow={} porte l'organisation {} alors que la "
+                    + "reservation {} porte {}. Reversement refuse.",
+                    escrowId, hold.getOrganizationId(), reservationId, reservation.getOrganizationId());
+            return;
+        }
+
+        Long ownerId = null;
+        if (reservation.getProperty() != null && reservation.getProperty().getOwner() != null) {
+            ownerId = reservation.getProperty().getOwner().getId();
+        }
+
+        if (ownerId == null) {
+            log.warn("Could not determine owner for reservation {}", reservationId);
+            return;
+        }
+
+        final Long owner = ownerId;
+        kafkaTenantScope.run(KafkaConfig.TOPIC_PAYMENT_EVENTS, reservation.getOrganizationId(),
+                () -> splitPaymentService.splitPayment(
+                        reservationId, hold.getAmount(), hold.getCurrency(), owner));
     }
 
     /**
