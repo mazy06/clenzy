@@ -24,12 +24,46 @@ import jakarta.persistence.EntityManager;
  */
 public final class RlsGuc {
 
+    /**
+     * Mode strict : refuse le bypass <b>implicite</b> accordé à un thread sans contexte tenant.
+     *
+     * <p>Audit 2026-07, défaut R3 : la règle {@code bypass = … || org == null} exempte de RLS
+     * <b>toute</b> exécution dépourvue de contexte tenant — soit l'intégralité de
+     * {@code /api/public/**} (exclu du {@code TenantFilter}), les 18 consumers Kafka et les
+     * schedulers financiers. Le filet ne couvrait donc précisément pas les surfaces où
+     * l'audit a trouvé les fuites cross-tenant.</p>
+     *
+     * <p><b>Opt-in, défaut {@code false}</b> : activer ce mode avant d'avoir donné un contexte
+     * tenant à ces chemins (REM-S1-05 — {@code TenantScopedExecutor} sur les consumers,
+     * scoping de la surface publique) ne produirait pas une fuite mais un <b>outage</b> :
+     * sans {@code app.current_org} ni bypass, la policy ne matche aucune ligne. Le mécanisme
+     * de fermeture est ici, testé ; son activation attend que les chemins soient scopés.</p>
+     *
+     * <p>Le bypass <b>explicite</b> (staff plateforme, organisation SYSTEM) n'est jamais
+     * affecté : le mode strict ne ferme que l'exemption accidentelle.</p>
+     */
+    private static volatile boolean strictContext = false;
+
     private RlsGuc() {
+    }
+
+    /** Voir {@link #strictContext}. Piloté par {@code clenzy.security.rls.strict-context}. */
+    public static void setStrictContext(boolean strict) {
+        strictContext = strict;
+    }
+
+    public static boolean isStrictContext() {
+        return strictContext;
     }
 
     public static void apply(EntityManager em, TenantContext ctx) {
         final Long org = ctx.getOrganizationId();
-        final boolean bypass = ctx.isSuperAdmin() || ctx.isSystemOrg() || org == null;
+        // Bypass EXPLICITE : décision métier assumée (staff plateforme, org SYSTEM).
+        final boolean explicitBypass = ctx.isSuperAdmin() || ctx.isSystemOrg();
+        // Bypass IMPLICITE : simple absence de contexte tenant — accordé par défaut pour ne pas
+        // casser les exécutions internes, refusé en mode strict (défaut R3).
+        final boolean implicitBypass = org == null && !strictContext;
+        final boolean bypass = explicitBypass || implicitBypass;
         try {
             em.createNativeQuery("select set_config('app.current_org', :org, true)")
                     .setParameter("org", org == null ? "" : org.toString())
