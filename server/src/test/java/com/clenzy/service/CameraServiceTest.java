@@ -46,7 +46,11 @@ class CameraServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new CameraService(cameraRepository, propertyRepository, encryptionService, cameraStreamService, tenantContext, tuyaApiService, claimService);
+        service = new CameraService(cameraRepository, propertyRepository, encryptionService, cameraStreamService, tenantContext, tuyaApiService, claimService,
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
+        // Isolation multi-tenant (audit P1-09/P1-10/P1-15) : sans organisation courante,
+        // le garde refuse — il est fail-closed. Les entites de ces tests portent la meme.
+        org.mockito.Mockito.lenient().when(tenantContext.getOrganizationId()).thenReturn(99L);
     }
 
     @Test
@@ -54,6 +58,7 @@ class CameraServiceTest {
     void create_encryptsAndRegisters() {
         Property property = org.mockito.Mockito.mock(Property.class);
         when(property.getId()).thenReturn(10L);
+        when(property.getOrganizationId()).thenReturn(99L);
         when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
         when(tenantContext.getRequiredOrganizationId()).thenReturn(99L);
         when(encryptionService.encrypt("rtsp://u:p@host/stream")).thenReturn("ENC");
@@ -86,6 +91,7 @@ class CameraServiceTest {
     @DisplayName("deleteCamera — retire le flux go2rtc puis supprime")
     void delete_removesStream() {
         Camera camera = new Camera();
+        camera.setOrganizationId(99L);
         camera.setId(5L);
         camera.setName("Entree");
         camera.setStreamName("cam_abc");
@@ -101,6 +107,7 @@ class CameraServiceTest {
     @DisplayName("getUserCameras — mappe entite -> DTO (webrtcUrl, online si ACTIVE)")
     void list_maps() {
         Camera camera = new Camera();
+        camera.setOrganizationId(99L);
         camera.setId(1L);
         camera.setName("Entree");
         camera.setPropertyId(10L);

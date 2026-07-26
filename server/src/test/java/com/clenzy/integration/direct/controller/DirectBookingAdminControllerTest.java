@@ -36,6 +36,8 @@ class DirectBookingAdminControllerTest {
     private TenantContext tenantContext;
     private DirectBookingAdminController controller;
 
+    @org.mockito.Mock private com.clenzy.repository.PropertyRepository propertyRepository;
+
     private static final Long ORG_ID = 5L;
     private static final Long PROPERTY_ID = 100L;
 
@@ -46,7 +48,8 @@ class DirectBookingAdminControllerTest {
         // Service admin reel sur repositories mockes (refactor T-ARCH-01)
         controller = new DirectBookingAdminController(
                 new com.clenzy.integration.direct.service.DirectBookingAdminService(
-                        configRepository, promoCodeRepository),
+                        configRepository, promoCodeRepository, propertyRepository,
+                        new com.clenzy.service.access.OrganizationAccessGuard(tenantContext)),
                 widgetService, tenantContext);
     }
 
@@ -78,6 +81,20 @@ class DirectBookingAdminControllerTest {
     @Nested
     @DisplayName("updateWidgetConfig")
     class UpdateWidgetConfig {
+
+        /**
+         * Depuis P1-17, le logement est resolu et son organisation verifiee avant toute
+         * creation de configuration : sans cela, une config pouvait etre posee sur le
+         * bien d'un autre tenant.
+         */
+        @org.junit.jupiter.api.BeforeEach
+        void logementDeLOrganisation() {
+            com.clenzy.model.Property p = new com.clenzy.model.Property();
+            p.setId(PROPERTY_ID);
+            p.setOrganizationId(ORG_ID);
+            org.mockito.Mockito.lenient().when(propertyRepository.findById(PROPERTY_ID))
+                    .thenReturn(Optional.of(p));
+        }
 
         @Test
         @DisplayName("creates new config when none exists")

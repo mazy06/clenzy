@@ -14,6 +14,13 @@ public interface KeyExchangePointRepository extends JpaRepository<KeyExchangePoi
 
     List<KeyExchangePoint> findByStatus(PointStatus status);
 
+    /**
+     * Listing des points de l'organisation courante.
+     * {@code findByStatus} seul retournait les points de TOUTES les organisations
+     * (audit securite 2026-07-26, constat P1-02).
+     */
+    List<KeyExchangePoint> findByOrganizationIdAndStatus(Long organizationId, PointStatus status);
+
     List<KeyExchangePoint> findByPropertyId(Long propertyId);
 
     List<KeyExchangePoint> findByPropertyIdAndStatus(Long propertyId, PointStatus status);

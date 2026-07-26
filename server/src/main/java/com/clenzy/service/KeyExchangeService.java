@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.keyexchange.*;
+import com.clenzy.service.access.OrganizationAccessGuard;
 import com.clenzy.model.KeyExchangeCode;
 import com.clenzy.model.KeyExchangeCode.CodeStatus;
 import com.clenzy.model.KeyExchangeCode.CodeType;
@@ -8,6 +9,7 @@ import com.clenzy.model.KeyExchangeEvent;
 import com.clenzy.model.KeyExchangeEvent.EventSource;
 import com.clenzy.model.KeyExchangeEvent.EventType;
 import com.clenzy.model.KeyExchangePoint;
+import com.clenzy.model.Property;
 import com.clenzy.model.KeyExchangePoint.GuardianType;
 import com.clenzy.model.KeyExchangePoint.PointStatus;
 import com.clenzy.model.KeyExchangePoint.Provider;
@@ -48,19 +50,37 @@ public class KeyExchangeService {
     private final PropertyRepository propertyRepository;
     private final TenantContext tenantContext;
     private final KeyVerificationThrottle verificationThrottle;
+    private final OrganizationAccessGuard organizationAccessGuard;
 
     public KeyExchangeService(KeyExchangePointRepository pointRepository,
                               KeyExchangeCodeRepository codeRepository,
                               KeyExchangeEventRepository eventRepository,
                               PropertyRepository propertyRepository,
                               TenantContext tenantContext,
-                              KeyVerificationThrottle verificationThrottle) {
+                              KeyVerificationThrottle verificationThrottle,
+                              OrganizationAccessGuard organizationAccessGuard) {
         this.pointRepository = pointRepository;
         this.codeRepository = codeRepository;
         this.eventRepository = eventRepository;
         this.propertyRepository = propertyRepository;
         this.tenantContext = tenantContext;
         this.verificationThrottle = verificationThrottle;
+        this.organizationAccessGuard = organizationAccessGuard;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Isolation multi-tenant (audit 2026-07-26, constat P1-02)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Refuse l'acces si l'entite chargee n'appartient pas a l'organisation courante.
+     *
+     * <p>Les chargements par identifiant ne traversent pas le filtre Hibernate
+     * {@code organizationFilter}, lui-meme inerte en HTTP ({@code open-in-view: false}) :
+     * la verification doit etre explicite.
+     */
+    private void requireSameOrganization(Long entityOrgId, String resourceLabel) {
+        organizationAccessGuard.requireSameOrganization(entityOrgId, resourceLabel);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -71,7 +91,9 @@ public class KeyExchangeService {
      * Liste tous les points d'echange actifs de l'organisation.
      */
     public List<KeyExchangePointDto> getPoints(String userId) {
-        return pointRepository.findByStatus(PointStatus.ACTIVE).stream()
+        return pointRepository
+                .findByOrganizationIdAndStatus(tenantContext.getRequiredOrganizationId(), PointStatus.ACTIVE)
+                .stream()
                 .map(this::toPointDto)
                 .collect(Collectors.toList());
     }
@@ -81,8 +103,9 @@ public class KeyExchangeService {
      */
     @Transactional
     public KeyExchangePointDto createPoint(String userId, CreateKeyExchangePointDto dto) {
-        propertyRepository.findById(dto.getPropertyId())
+        Property property = propertyRepository.findById(dto.getPropertyId())
                 .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable: " + dto.getPropertyId()));
+        requireSameOrganization(property.getOrganizationId(), "Propriete hors de votre organisation");
 
         Provider provider;
         try {
@@ -150,6 +173,10 @@ public class KeyExchangeService {
      * Liste les codes actifs d'un point.
      */
     public List<KeyExchangeCodeDto> getActiveCodesByPoint(Long pointId) {
+        KeyExchangePoint point = pointRepository.findById(pointId)
+                .orElseThrow(() -> new IllegalArgumentException("Point d'echange introuvable: " + pointId));
+        requireSameOrganization(point.getOrganizationId(), "Point d'echange hors de votre organisation");
+
         return codeRepository.findByPointIdAndStatus(pointId, CodeStatus.ACTIVE).stream()
                 .map(this::toCodeDto)
                 .collect(Collectors.toList());
@@ -181,6 +208,7 @@ public class KeyExchangeService {
     public KeyExchangeCodeDto generateCode(String userId, CreateKeyExchangeCodeDto dto) {
         KeyExchangePoint point = pointRepository.findById(dto.getPointId())
                 .orElseThrow(() -> new IllegalArgumentException("Point d'echange introuvable: " + dto.getPointId()));
+        requireSameOrganization(point.getOrganizationId(), "Point d'echange hors de votre organisation");
 
         CodeType codeType = CodeType.COLLECTION;
         if (dto.getCodeType() != null) {
@@ -239,6 +267,7 @@ public class KeyExchangeService {
     public void cancelCode(String userId, Long codeId) {
         KeyExchangeCode code = codeRepository.findById(codeId)
                 .orElseThrow(() -> new IllegalArgumentException("Code introuvable: " + codeId));
+        requireSameOrganization(code.getOrganizationId(), "Code d'echange hors de votre organisation");
 
         if (code.getStatus() != CodeStatus.ACTIVE) {
             throw new IllegalStateException("Le code n'est pas actif (statut: " + code.getStatus() + ")");
@@ -403,11 +432,13 @@ public class KeyExchangeService {
     public Page<KeyExchangeEventDto> getEvents(Long propertyId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
 
+        Long organizationId = tenantContext.getRequiredOrganizationId();
         Page<KeyExchangeEvent> events;
         if (propertyId != null) {
-            events = eventRepository.findByPropertyIdOrderByCreatedAtDesc(propertyId, pageable);
+            events = eventRepository.findByOrganizationIdAndPropertyIdOrderByCreatedAtDesc(
+                    organizationId, propertyId, pageable);
         } else {
-            events = eventRepository.findAllByOrderByCreatedAtDesc(pageable);
+            events = eventRepository.findByOrganizationIdOrderByCreatedAtDesc(organizationId, pageable);
         }
 
         return events.map(this::toEventDto);
@@ -469,7 +500,6 @@ public class KeyExchangeService {
         dto.setStoreLat(point.getStoreLat());
         dto.setStoreLng(point.getStoreLng());
         dto.setStoreOpeningHours(point.getStoreOpeningHours());
-        dto.setVerificationToken(point.getVerificationToken());
         dto.setStatus(point.getStatus().name());
         dto.setCreatedAt(point.getCreatedAt());
         dto.setActiveCodesCount(codeRepository.countByPointIdAndStatus(point.getId(), CodeStatus.ACTIVE));

@@ -22,6 +22,7 @@ import com.clenzy.repository.SmartLockAccessCodeRepository;
 import com.clenzy.repository.SmartLockDeviceRepository;
 import com.clenzy.service.OutboxPublisher;
 import com.clenzy.service.access.AccessCodeGenerator;
+import com.clenzy.service.access.OrganizationAccessGuard;
 import com.clenzy.service.messaging.GuestMessagingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -71,6 +72,7 @@ public class SmartLockAccessCodeService {
     private final CheckInInstructionsRepository checkInInstructionsRepository;
     private final AccessCodeGenerator accessCodeGenerator;
     private final SmartLockProviderRegistry providerRegistry;
+    private final OrganizationAccessGuard organizationAccessGuard;
 
     public SmartLockAccessCodeService(SmartLockAccessCodeRepository codeRepo,
                                       SmartLockAccessCodeEventRepository eventRepo,
@@ -83,7 +85,8 @@ public class SmartLockAccessCodeService {
                                       PropertyRepository propertyRepository,
                                       CheckInInstructionsRepository checkInInstructionsRepository,
                                       AccessCodeGenerator accessCodeGenerator,
-                                      SmartLockProviderRegistry providerRegistry) {
+                                      SmartLockProviderRegistry providerRegistry,
+                                      OrganizationAccessGuard organizationAccessGuard) {
         this.codeRepo = codeRepo;
         this.eventRepo = eventRepo;
         this.deviceRepo = deviceRepo;
@@ -96,6 +99,30 @@ public class SmartLockAccessCodeService {
         this.checkInInstructionsRepository = checkInInstructionsRepository;
         this.accessCodeGenerator = accessCodeGenerator;
         this.providerRegistry = providerRegistry;
+        this.organizationAccessGuard = organizationAccessGuard;
+    }
+
+    // ─── Isolation multi-tenant ─────────────────────────────────
+
+    /**
+     * Refuse l'acces si la serrure n'appartient pas a l'organisation courante.
+     *
+     * <p>Les methodes exposees en HTTP recoivent un {@code deviceId} pris dans l'URL.
+     * {@code findById} ne traverse pas le filtre Hibernate {@code organizationFilter},
+     * et ce filtre est de toute facon inerte en HTTP ({@code open-in-view: false}) :
+     * la verification doit donc etre explicite (audit 2026-07-26, constat P1-01).
+     *
+     * @return la serrure, ou {@link Optional#empty()} si elle n'existe pas — un
+     *         identifiant inconnu ne doit pas se distinguer d'un identifiant interdit,
+     *         sans quoi l'endpoint devient un oracle d'existence.
+     * @throws org.springframework.security.access.AccessDeniedException si la serrure
+     *         existe mais appartient a une autre organisation
+     */
+    private Optional<SmartLockDevice> loadDeviceForCurrentOrg(Long deviceId) {
+        Optional<SmartLockDevice> device = deviceRepo.findById(deviceId);
+        device.ifPresent(d -> organizationAccessGuard.requireSameOrganization(
+                d.getOrganizationId(), "Serrure hors de votre organisation"));
+        return device;
     }
 
     // ─── Generation par reservation (auto) ──────────────────────
@@ -128,7 +155,7 @@ public class SmartLockAccessCodeService {
     @Transactional
     public SmartLockAccessCode rotateManual(Long deviceId, LocalDateTime validFrom, LocalDateTime validUntil,
                                             Long reservationId, String actor) {
-        SmartLockDevice device = deviceRepo.findById(deviceId)
+        SmartLockDevice device = loadDeviceForCurrentOrg(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Serrure introuvable: " + deviceId));
 
         // Une seule fenetre active a la fois → revoque l'existant.
@@ -157,9 +184,15 @@ public class SmartLockAccessCodeService {
         }
     }
 
-    /** Revoque le code actif courant d'une serrure (action manuelle). */
+    /**
+     * Revoque le code actif courant d'une serrure (action manuelle).
+     * Appele depuis HTTP avec un {@code deviceId} d'URL → ownership org verifie.
+     */
     @Transactional
     public void revokeForDevice(Long deviceId, String actor) {
+        if (loadDeviceForCurrentOrg(deviceId).isEmpty()) {
+            return;
+        }
         for (SmartLockAccessCode code : codeRepo.findByDeviceIdAndStatus(deviceId, CodeStatus.ACTIVE)) {
             revoke(code, actor, SmartLockAccessCodeEvent.EventSource.MANUAL);
         }
@@ -197,9 +230,17 @@ public class SmartLockAccessCodeService {
 
     // ─── Lecture (code courant) ─────────────────────────────────
 
-    /** Code actif courant d'une serrure, ou vide (avec bascule paresseuse en EXPIRED). */
+    /**
+     * Code actif courant d'une serrure, ou vide (avec bascule paresseuse en EXPIRED).
+     *
+     * <p>Le PIN retourne est rendu tel quel par {@code GET /{id}/access-code}, endpoint
+     * ouvert a tout utilisateur authentifie : l'ownership org est donc verifie ici.
+     */
     @Transactional
     public Optional<SmartLockAccessCode> getCurrentForDevice(Long deviceId) {
+        if (loadDeviceForCurrentOrg(deviceId).isEmpty()) {
+            return Optional.empty();
+        }
         return activeOrExpire(codeRepo.findFirstByDeviceIdAndStatusOrderByCreatedAtDesc(deviceId, CodeStatus.ACTIVE));
     }
 

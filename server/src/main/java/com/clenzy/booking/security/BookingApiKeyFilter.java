@@ -46,6 +46,7 @@ public class BookingApiKeyFilter extends OncePerRequestFilter {
     private final BookingEngineConfigRepository configRepository;
     private final ObjectMapper objectMapper;
     private final boolean strictOriginMode;
+    private final boolean allowOriginlessRequests;
 
     public BookingApiKeyFilter(BookingEngineConfigRepository configRepository,
                                 ObjectMapper objectMapper,
@@ -55,6 +56,11 @@ public class BookingApiKeyFilter extends OncePerRequestFilter {
         // Deny by default en production quand allowedOrigins n'est pas configure ;
         // en dev/test le comportement permissif historique est conserve.
         this.strictOriginMode = environment.acceptsProfiles(Profiles.of("prod"));
+        // Soupape : si un client serveur legitime (sans navigateur, donc sans Origin ni
+        // Referer) devait appeler l'API du moteur de reservation, cette propriete permet
+        // de restaurer l'ancien comportement sans redeploiement de code. Defaut : refus.
+        this.allowOriginlessRequests = environment.getProperty(
+                "clenzy.booking.allow-originless-requests", Boolean.class, Boolean.FALSE);
     }
 
     @Override
@@ -101,7 +107,22 @@ public class BookingApiKeyFilter extends OncePerRequestFilter {
         boolean hasOrigin = origin != null && !origin.isBlank();
         String effectiveOrigin = hasOrigin ? origin : extractOriginFromReferer(request.getHeader("Referer"));
 
-        if (effectiveOrigin != null) {
+        if (effectiveOrigin == null) {
+            // Ni Origin ni Referer : aucun navigateur ne se presente ainsi sur une requete
+            // cross-site. La branche de validation etait purement et simplement sautee, si
+            // bien qu'un simple `curl` porteur de la cle passait sans le moindre controle
+            // d'origine (audit securite 2026-07-26, constat P1-16). Or cette cle n'est pas
+            // un secret : elle est distribuee en clair dans le HTML des sites publics
+            // (SiteDeliveryService) — c'est l'origine, et elle seule, qui borne son usage.
+            if (strictOriginMode && !allowOriginlessRequests) {
+                log.warn("Booking Engine — requete sans Origin ni Referer refusee (org {})",
+                    config.getOrganizationId());
+                sendError(response, HttpServletResponse.SC_FORBIDDEN, "Origine non autorisee");
+                return;
+            }
+            log.debug("Booking Engine — requete sans Origin ni Referer acceptee (org {}) : "
+                + "mode non strict ou soupape activee", config.getOrganizationId());
+        } else {
             if (!isOriginAllowed(config, effectiveOrigin)) {
                 log.warn("Booking Engine — Origin non autorise : {} (org {})",
                     effectiveOrigin, config.getOrganizationId());

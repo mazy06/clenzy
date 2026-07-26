@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.camera.CameraDto;
+import com.clenzy.service.access.OrganizationAccessGuard;
 import com.clenzy.dto.camera.CreateCameraDto;
 import com.clenzy.integration.tuya.service.TuyaApiService;
 import com.clenzy.integration.tuya.service.TuyaDeviceClaimService;
@@ -34,6 +35,7 @@ public class CameraService {
     private static final String TUYA_SOURCE_PREFIX = "tuya:";
 
     private final CameraRepository cameraRepository;
+    private final OrganizationAccessGuard organizationAccessGuard;
     private final PropertyRepository propertyRepository;
     private final TokenEncryptionService encryptionService;
     private final CameraStreamService cameraStreamService;
@@ -47,7 +49,8 @@ public class CameraService {
                          CameraStreamService cameraStreamService,
                          TenantContext tenantContext,
                          TuyaApiService tuyaApiService,
-                         TuyaDeviceClaimService claimService) {
+                         TuyaDeviceClaimService claimService,
+                                    OrganizationAccessGuard organizationAccessGuard) {
         this.cameraRepository = cameraRepository;
         this.propertyRepository = propertyRepository;
         this.encryptionService = encryptionService;
@@ -55,6 +58,7 @@ public class CameraService {
         this.tenantContext = tenantContext;
         this.tuyaApiService = tuyaApiService;
         this.claimService = claimService;
+        this.organizationAccessGuard = organizationAccessGuard;
     }
 
     /** Liste les cameras de l'organisation (filtre Hibernate = isolation). */
@@ -68,6 +72,8 @@ public class CameraService {
     public CameraDto createCamera(String userId, CreateCameraDto dto) {
         Property property = propertyRepository.findById(dto.propertyId())
                 .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable: " + dto.propertyId()));
+        organizationAccessGuard.requireSameOrganization(
+                property.getOrganizationId(), "Logement hors de votre organisation");
 
         Camera camera = new Camera();
         camera.setUserId(userId);
@@ -96,6 +102,8 @@ public class CameraService {
     public void deleteCamera(String userId, Long cameraId) {
         Camera camera = cameraRepository.findById(cameraId)
                 .orElseThrow(() -> new IllegalArgumentException("Camera introuvable: " + cameraId));
+        organizationAccessGuard.requireSameOrganization(
+                camera.getOrganizationId(), "Camera hors de votre organisation");
         // Libere la reclamation Tuya si la source en est une.
         String stored = encryptionService.decrypt(camera.getRtspUrlEncrypted());
         if (stored != null && stored.startsWith(TUYA_SOURCE_PREFIX)) {
@@ -108,12 +116,19 @@ public class CameraService {
 
     /**
      * Re-alloue et re-enregistre le flux d'une camera (utile pour les sources Tuya dont l'URL
-     * allouee expire). Scopee org via le filtre Hibernate sur findById. Best-effort.
+     * allouee expire). Best-effort.
+     *
+     * <p>L'organisation est verifiee explicitement : contrairement a ce que ce commentaire
+     * affirmait, le filtre Hibernate {@code organizationFilter} ne s'applique PAS a
+     * {@code findById} — et il est de toute facon inerte en HTTP ({@code open-in-view: false}).
+     * Audit securite 2026-07-26, constat P1-10.
      */
     @Transactional(readOnly = true)
     public void refreshStream(Long cameraId) {
         Camera camera = cameraRepository.findById(cameraId)
                 .orElseThrow(() -> new IllegalArgumentException("Camera introuvable: " + cameraId));
+        organizationAccessGuard.requireSameOrganization(
+                camera.getOrganizationId(), "Camera hors de votre organisation");
         registerResolvedStream(camera);
     }
 

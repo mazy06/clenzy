@@ -62,7 +62,9 @@ public class DocumentTemplateManager {
 
     @Transactional(readOnly = true)
     public List<DocumentTemplate> listTemplates() {
-        return templateRepository.findAllByOrderByDocumentTypeAscVersionDesc();
+        // Les modeles globaux (organizationId NULL) restent visibles par tous ; ceux des
+        // autres organisations ne le sont plus (audit P1-18).
+        return templateRepository.findVisibleForOrganization(tenantContext.getRequiredOrganizationId());
     }
 
     @Transactional(readOnly = true)

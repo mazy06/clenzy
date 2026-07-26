@@ -1,6 +1,9 @@
 package com.clenzy.integration.direct.service;
 
 import com.clenzy.integration.direct.model.DirectBookingConfiguration;
+import com.clenzy.service.access.OrganizationAccessGuard;
+import com.clenzy.repository.PropertyRepository;
+import com.clenzy.model.Property;
 import com.clenzy.integration.direct.model.PromoCode;
 import com.clenzy.integration.direct.repository.DirectBookingConfigRepository;
 import com.clenzy.integration.direct.repository.PromoCodeRepository;
@@ -24,11 +27,33 @@ public class DirectBookingAdminService {
 
     private final DirectBookingConfigRepository configRepository;
     private final PromoCodeRepository promoCodeRepository;
+    private final PropertyRepository propertyRepository;
+    private final OrganizationAccessGuard organizationAccessGuard;
 
     public DirectBookingAdminService(DirectBookingConfigRepository configRepository,
-                                     PromoCodeRepository promoCodeRepository) {
+                                     PromoCodeRepository promoCodeRepository,
+                                     PropertyRepository propertyRepository,
+                                     OrganizationAccessGuard organizationAccessGuard) {
         this.configRepository = configRepository;
         this.promoCodeRepository = promoCodeRepository;
+        this.propertyRepository = propertyRepository;
+        this.organizationAccessGuard = organizationAccessGuard;
+    }
+
+    /**
+     * Refuse la creation d'une configuration sur un logement d'une autre organisation.
+     *
+     * <p>{@code findByPropertyIdAndOrganizationId} est bien borne, mais quand il ne trouve
+     * rien le code construisait une configuration NEUVE sur le {@code propertyId} demande,
+     * sans jamais verifier a qui ce logement appartient. La config d'un bien tiers etait
+     * ainsi rattachee a l'organisation de l'appelant, exposant prix et disponibilites via
+     * l'endpoint anonyme du widget (audit securite 2026-07-26, constat P1-17).
+     */
+    private void requirePropertyInOrganization(Long propertyId, Long orgId) {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new IllegalArgumentException("Logement introuvable: " + propertyId));
+        organizationAccessGuard.requireSameOrganization(
+                property.getOrganizationId(), orgId, "Logement hors de votre organisation");
     }
 
     // ── Configuration du widget ──────────────────────────────────────────
@@ -37,6 +62,7 @@ public class DirectBookingAdminService {
     @Transactional
     public DirectBookingConfiguration updateWidgetConfig(Long propertyId, Long orgId,
                                                          DirectBookingConfiguration update) {
+        requirePropertyInOrganization(propertyId, orgId);
         DirectBookingConfiguration existing = configRepository
                 .findByPropertyIdAndOrganizationId(propertyId, orgId)
                 .orElseGet(() -> new DirectBookingConfiguration(orgId, propertyId));

@@ -112,7 +112,10 @@ class DocumentGeneratorServiceTest {
     class ListTemplates {
         @Test void whenCalled_thenReturnsList() {
             DocumentTemplate t = new DocumentTemplate();
-            when(templateRepository.findAllByOrderByDocumentTypeAscVersionDesc()).thenReturn(List.of(t));
+            // Le listing ne balaie plus la table : il rend les templates de l'organisation
+            // courante et les modeles globaux (audit P1-18).
+            when(templateRepository.findVisibleForOrganization(org.mockito.ArgumentMatchers.anyLong()))
+                    .thenReturn(List.of(t));
             List<DocumentTemplate> result = service.listTemplates();
             assertThat(result).hasSize(1);
         }

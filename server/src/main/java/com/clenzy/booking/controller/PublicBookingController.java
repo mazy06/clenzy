@@ -2,6 +2,7 @@ package com.clenzy.booking.controller;
 
 import com.clenzy.booking.dto.*;
 import com.clenzy.booking.model.BookingEngineConfig;
+import com.clenzy.booking.service.PublicPropertyPhotoService;
 import com.clenzy.booking.service.PublicBookingCalendarService;
 import com.clenzy.booking.service.BookingDisplayCurrencyService;
 import com.clenzy.booking.service.BookingServiceOptionsService;
@@ -53,7 +54,7 @@ public class PublicBookingController {
 
     private final PublicBookingService bookingService;
     private final BookingServiceOptionsService serviceOptionsService;
-    private final com.clenzy.service.PropertyPhotoService photoService;
+    private final PublicPropertyPhotoService publicPhotoService;
     private final com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter;
     private final BookingDisplayCurrencyService displayCurrencyService;
     private final PublicBookingCalendarService calendarService;
@@ -71,7 +72,7 @@ public class PublicBookingController {
 
     public PublicBookingController(PublicBookingService bookingService,
                                     BookingServiceOptionsService serviceOptionsService,
-                                    com.clenzy.service.PropertyPhotoService photoService,
+                                    PublicPropertyPhotoService publicPhotoService,
                                     com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter,
                                     BookingDisplayCurrencyService displayCurrencyService,
                                     PublicBookingCalendarService calendarService,
@@ -85,7 +86,7 @@ public class PublicBookingController {
                                     com.clenzy.booking.service.BookingFunnelRecorder funnelRecorder) {
         this.bookingService = bookingService;
         this.serviceOptionsService = serviceOptionsService;
-        this.photoService = photoService;
+        this.publicPhotoService = publicPhotoService;
         this.rateLimiter = rateLimiter;
         this.displayCurrencyService = displayCurrencyService;
         this.calendarService = calendarService;
@@ -536,15 +537,21 @@ public class PublicBookingController {
             @PathVariable Long propertyId,
             @PathVariable Long photoId,
             HttpServletRequest request) {
-        // Valider que la propriete appartient a l'org du booking engine
+        // Valide le slug et l'API key du moteur de reservation (le filtre a normalement
+        // deja pose la config en attribut de requete).
         resolveContext(slug, request);
         try {
-            final byte[] data = photoService.getPhotoData(propertyId, photoId);
-            final String contentType = photoService.getPhotoContentType(propertyId, photoId);
+            // La garde marketing vit dans PublicPropertyPhotoService : une photo n'est
+            // servie que si son logement est expose au public (bookingEngineVisible ou
+            // mappe Channex). Le commentaire precedent annoncait une validation d'org que
+            // le code ne faisait pas — resolveContext etait appele, son resultat jete, et
+            // n'importe quel propertyId d'un autre tenant etait servi (audit P1-12).
+            final PublicPropertyPhotoService.PublicPhoto photo =
+                    publicPhotoService.getVisiblePhoto(propertyId, photoId);
             return ResponseEntity.ok()
-                    .contentType(MediaType.parseMediaType(contentType))
+                    .contentType(MediaType.parseMediaType(photo.contentType()))
                     .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic())
-                    .body(data);
+                    .body(photo.data());
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }

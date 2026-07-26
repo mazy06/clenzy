@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -236,6 +237,10 @@ public class SmartLockController {
                     "error", "not_found",
                     "message", e.getMessage()
             ));
+        } catch (AccessDeniedException e) {
+            // Laisser Spring Security produire un 403. Sans ce relais, le catch generique
+            // ci-dessous transformerait un refus d'autorisation en 500 « server_error ».
+            throw e;
         } catch (Exception e) {
             log.error("Erreur rotation code serrure {} pour user {}: {}", id, userId, e.getMessage());
             return ResponseEntity.internalServerError().body(Map.of(

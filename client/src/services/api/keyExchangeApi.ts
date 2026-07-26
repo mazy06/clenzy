@@ -15,7 +15,6 @@ export interface KeyExchangePointDto {
   storeLat: number | null;
   storeLng: number | null;
   storeOpeningHours: string | null;
-  verificationToken: string | null;
   status: string;
   activeCodesCount: number;
   createdAt: string;
