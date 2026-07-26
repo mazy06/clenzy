@@ -9,6 +9,8 @@ import com.clenzy.service.CalendarEngine;
 import com.clenzy.service.StripeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.scheduling.annotation.Scheduled;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
@@ -55,25 +57,55 @@ public class PendingReservationCleanupScheduler {
     private final StripeService stripeService;
     private final com.clenzy.service.AbandonedBookingService abandonedBookingService;
     private final TransactionTemplate transactionTemplate;
+    private final com.clenzy.tenant.TenantScopedExecutor tenantScopedExecutor;
+
+    /**
+     * Auto-injection : appeler une methode {@code @Transactional} de CETTE classe
+     * directement ne passerait pas par le proxy Spring — ni la transaction ni l'aspect
+     * qui pose les GUC de contexte tenant ne se declencheraient (regle CLAUDE.md n°6).
+     * {@link ObjectProvider} evite la dependance circulaire au demarrage.
+     */
+    private final ObjectProvider<PendingReservationCleanupScheduler> self;
 
     public PendingReservationCleanupScheduler(BookingPendingReservationRepository pendingReservationRepository,
                                                BookingEngineConfigRepository configRepository,
                                                CalendarEngine calendarEngine,
                                                StripeService stripeService,
                                                com.clenzy.service.AbandonedBookingService abandonedBookingService,
-                                               PlatformTransactionManager transactionManager) {
+                                               PlatformTransactionManager transactionManager,
+                                              com.clenzy.tenant.TenantScopedExecutor tenantScopedExecutor,
+                                              ObjectProvider<PendingReservationCleanupScheduler> self) {
         this.pendingReservationRepository = pendingReservationRepository;
         this.configRepository = configRepository;
         this.calendarEngine = calendarEngine;
         this.stripeService = stripeService;
         this.abandonedBookingService = abandonedBookingService;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.tenantScopedExecutor = tenantScopedExecutor;
+        this.self = self;
+    }
+
+    /**
+     * Charge les holds impayes de TOUTES les organisations.
+     *
+     * <p>{@code @Transactional} est ici indispensable — non pour la transaction, mais pour
+     * que {@code RlsTenantGucAspect} se declenche et pose les GUC. Sans elles, cette lecture
+     * renverrait zero ligne des que la RLS sera active : le nettoyage cesserait en silence,
+     * et les calendriers resteraient bloques sur des reservations expirees.
+     * Audit securite 2026-07-26, plan REM-T-01.
+     */
+    @Transactional(readOnly = true)
+    public List<Reservation> chargerHoldsImpayes() {
+        return pendingReservationRepository.findUnpaidHolds();
     }
 
     @Scheduled(fixedRate = 300_000) // 5 minutes
     @SchedulerLock(name = "pending-reservation-cleanup", lockAtMostFor = "PT10M", lockAtLeastFor = "PT30S")
     public void cleanupExpiredPendingReservations() {
-        List<Reservation> holds = pendingReservationRepository.findUnpaidHolds();
+        // Via le proxy : la methode est @Transactional, l'aspect pose donc les GUC de
+        // contexte tenant. Sans contexte d'organisation, RlsGuc accorde le bypass — ce
+        // balayage est cross-organisation par nature.
+        List<Reservation> holds = self.getObject().chargerHoldsImpayes();
         if (holds.isEmpty()) {
             return;
         }
@@ -102,7 +134,13 @@ public class PendingReservationCleanupScheduler {
                 }
                 // Annulation + liberation calendrier dans une transaction dediee :
                 // l'echec d'une reservation n'annule pas les autres.
-                transactionTemplate.executeWithoutResult(status -> cancelAndReleaseCalendar(reservation));
+                //
+                // Le contexte tenant de SON organisation est pose pour la duree du
+                // traitement : l'aspect y lit l'organisation courante et pose les GUC en
+                // consequence, au lieu du bypass large de la lecture ci-dessus.
+                tenantScopedExecutor.runAsOrganization(
+                        reservation.getOrganizationId(),
+                        () -> self.getObject().cancelAndReleaseCalendar(reservation));
             } catch (Exception e) {
                 log.error("Erreur lors de l'annulation de la reservation {} : {}",
                     reservation.getId(), e.getMessage(), e);
@@ -142,7 +180,8 @@ public class PendingReservationCleanupScheduler {
         return false;
     }
 
-    private void cancelAndReleaseCalendar(Reservation reservation) {
+    @Transactional
+    public void cancelAndReleaseCalendar(Reservation reservation) {
         reservation.markCancelled();
         reservation.setPaymentStatus(PaymentStatus.CANCELLED);
         pendingReservationRepository.save(reservation);
