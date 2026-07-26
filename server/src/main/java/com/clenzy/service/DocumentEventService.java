@@ -1,6 +1,8 @@
 package com.clenzy.service;
 
 import com.clenzy.config.KafkaConfig;
+import com.clenzy.service.document.DocumentReferenceOrgResolver;
+import com.clenzy.tenant.KafkaTenantScope;
 import com.clenzy.model.DocumentType;
 import com.clenzy.model.ReferenceType;
 import org.slf4j.Logger;
@@ -29,9 +31,15 @@ public class DocumentEventService {
     private static final Logger log = LoggerFactory.getLogger(DocumentEventService.class);
 
     private final DocumentGeneratorService generatorService;
+    private final DocumentReferenceOrgResolver referenceOrgResolver;
+    private final KafkaTenantScope kafkaTenantScope;
 
-    public DocumentEventService(DocumentGeneratorService generatorService) {
+    public DocumentEventService(DocumentGeneratorService generatorService,
+                                DocumentReferenceOrgResolver referenceOrgResolver,
+                                KafkaTenantScope kafkaTenantScope) {
         this.generatorService = generatorService;
+        this.referenceOrgResolver = referenceOrgResolver;
+        this.kafkaTenantScope = kafkaTenantScope;
     }
 
     @KafkaListener(
@@ -57,20 +65,31 @@ public class DocumentEventService {
                     ? ((Number) referenceIdObj).longValue()
                     : Long.parseLong(referenceIdObj.toString());
 
-            Long organizationId = null;
+            Long payloadOrganizationId = null;
             if (organizationIdObj instanceof Number n) {
-                organizationId = n.longValue();
+                payloadOrganizationId = n.longValue();
             } else if (organizationIdObj != null) {
-                organizationId = Long.parseLong(organizationIdObj.toString());
+                payloadOrganizationId = Long.parseLong(organizationIdObj.toString());
             }
 
             ReferenceType referenceType = parseReferenceType(referenceTypeStr);
+
+            // Audit 2026-07 (P1-03) : l'organisation est RE-DERIVEE de l'entite referencee,
+            // jamais lue dans le payload. Sans cela, un evenement forge faisait generer le
+            // document d'un autre tenant et l'expediait a l'adresse de son choix — le broker
+            // etant en PLAINTEXT sans ACL. La politique (refus si introuvable, refus si le
+            // payload contredit, pose du contexte tenant) est portee par KafkaTenantScope.
+            final Long organizationId =
+                    referenceOrgResolver.resolve(referenceType, referenceId).orElse(null);
 
             log.info("Processing document generation event: type={}, ref={}#{}, emailTo={}, orgId={}",
                     documentType, referenceType, referenceId,
                     com.clenzy.util.PiiMasker.maskEmail(emailTo), organizationId);
 
-            generatorService.generateFromEvent(documentType, referenceId, referenceType, emailTo, organizationId);
+            kafkaTenantScope.run(KafkaConfig.TOPIC_DOCUMENT_GENERATE, organizationId,
+                    payloadOrganizationId,
+                    () -> generatorService.generateFromEvent(
+                            documentType, referenceId, referenceType, emailTo, organizationId));
 
         } catch (ClassCastException e) {
             log.error("Invalid field type in document generation event: {}", event, e);

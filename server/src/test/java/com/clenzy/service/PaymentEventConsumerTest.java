@@ -33,14 +33,27 @@ class PaymentEventConsumerTest {
     @Mock private ReservationPaymentReconciliationService reservationPaymentReconciliationService;
     @Mock private com.clenzy.booking.service.BookingBalanceReconciliationService bookingBalanceReconciliationService;
     @Mock private PeripheralPaymentReconciliationService peripheralPaymentReconciliationService;
+    @Mock private com.clenzy.repository.PaymentTransactionRepository transactionRepository;
+    @Mock private com.clenzy.tenant.KafkaTenantScope kafkaTenantScope;
 
     private PaymentEventConsumer consumer;
 
     @BeforeEach
     void setUp() {
+        // Contrat de KafkaTenantScope rejoue ici (teste isolement dans KafkaTenantScopeTest).
+        org.mockito.Mockito.lenient().doAnswer(inv -> {
+            Long trusted = inv.getArgument(1);
+            if (trusted == null) {
+                return false;
+            }
+            ((Runnable) inv.getArgument(2)).run();
+            return true;
+        }).when(kafkaTenantScope).run(org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(Runnable.class));
         consumer = new PaymentEventConsumer(splitPaymentService, escrowHoldRepository, reservationRepository,
                 deferredPaymentReconciliationService, reservationPaymentReconciliationService,
-                bookingBalanceReconciliationService, peripheralPaymentReconciliationService);
+                bookingBalanceReconciliationService, peripheralPaymentReconciliationService,
+                transactionRepository, kafkaTenantScope);
     }
 
     private EscrowHold escrow() {
@@ -195,8 +208,22 @@ class PaymentEventConsumerTest {
     @DisplayName("PAYMENT_COMPLETED")
     class PaymentCompleted {
 
+        /**
+         * Depuis l'audit P1-04, le routage suit le sourceType de la TRANSACTION. Les tests de
+         * dispatch doivent donc provisionner la transaction correspondante, et non se contenter
+         * de l'annoncer dans le payload.
+         */
+        private void givenTransaction(String ref, String sourceType) {
+            com.clenzy.model.PaymentTransaction tx = new com.clenzy.model.PaymentTransaction();
+            tx.setTransactionRef(ref);
+            tx.setOrganizationId(7L);
+            tx.setSourceType(sourceType);
+            when(transactionRepository.findByTransactionRef(ref)).thenReturn(java.util.Optional.of(tx));
+        }
+
         @Test
         void deferredSourceType_reconciles() {
+            givenTransaction("TX-123", "DEFERRED_INTERVENTIONS_HOST");
             Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
                     "transactionRef", "TX-123",
                     "sourceType", "DEFERRED_INTERVENTIONS_HOST");
@@ -209,6 +236,7 @@ class PaymentEventConsumerTest {
 
         @Test
         void propertyScopeSourceType_reconciles() {
+            givenTransaction("TX-456", "DEFERRED_INTERVENTIONS_PROPERTY");
             Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
                     "transactionRef", "TX-456",
                     "sourceType", "DEFERRED_INTERVENTIONS_PROPERTY");
@@ -220,6 +248,7 @@ class PaymentEventConsumerTest {
 
         @Test
         void reservationSourceType_reconciles() {
+            givenTransaction("TX-RES", "RESERVATION");
             Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
                     "transactionRef", "TX-RES",
                     "sourceType", "RESERVATION");
@@ -232,6 +261,7 @@ class PaymentEventConsumerTest {
 
         @Test
         void bookingBalanceSourceType_reconciles() {
+            givenTransaction("TX-BAL", "BOOKING_BALANCE");
             Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
                     "transactionRef", "TX-BAL",
                     "sourceType", "BOOKING_BALANCE");
@@ -244,6 +274,7 @@ class PaymentEventConsumerTest {
 
         @Test
         void aiCreditTopUpSourceType_reconciles() {
+            givenTransaction("TX-AI", "AI_CREDIT_TOPUP");
             Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
                     "transactionRef", "TX-AI",
                     "sourceType", "AI_CREDIT_TOPUP");
@@ -257,6 +288,7 @@ class PaymentEventConsumerTest {
 
         @Test
         void serviceRequestSourceType_reconciles() {
+            givenTransaction("TX-SR", "SERVICE_REQUEST");
             Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
                     "transactionRef", "TX-SR",
                     "sourceType", "SERVICE_REQUEST");
@@ -268,6 +300,7 @@ class PaymentEventConsumerTest {
 
         @Test
         void upsellSourceType_reconciles() {
+            givenTransaction("TX-UP", "UPSELL");
             Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
                     "transactionRef", "TX-UP",
                     "sourceType", "UPSELL");
@@ -319,5 +352,48 @@ class PaymentEventConsumerTest {
         consumer.handlePaymentEvent(event);
 
         verifyNoInteractions(splitPaymentService, escrowHoldRepository, reservationRepository);
+    }
+
+    /**
+     * Audit 2026-07 (P1-04) — le {@code sourceType} qui pilote le routage etait lu dans le
+     * PAYLOAD. Un evenement forge portant le {@code transactionRef} legitime d'une reservation
+     * et le {@code sourceType} des credits IA partait donc en dotation de credits : l'attaquant
+     * choisissait l'effet metier applique a une transaction qui ne lui appartenait pas.
+     * Le routage suit desormais le {@code sourceType} de la TRANSACTION en base.
+     */
+    @Test
+    @DisplayName("PAYMENT_COMPLETED : le routage suit la transaction, pas le payload (P1-04)")
+    void paymentCompleted_routingIgnoresForgedSourceType() {
+        com.clenzy.model.PaymentTransaction tx = new com.clenzy.model.PaymentTransaction();
+        tx.setTransactionRef("TX-RES-1");
+        tx.setOrganizationId(7L);
+        tx.setSourceType(ReservationPaymentService.SOURCE_TYPE);   // reellement une reservation
+        when(transactionRepository.findByTransactionRef("TX-RES-1")).thenReturn(java.util.Optional.of(tx));
+
+        Map<String, Object> event = new HashMap<>();
+        event.put("eventType", "PAYMENT_COMPLETED");
+        event.put("transactionRef", "TX-RES-1");
+        event.put("sourceType", com.clenzy.service.ai.AiCreditPurchaseService.SOURCE_TYPE); // forge
+
+        consumer.handlePaymentEvent(event);
+
+        verify(peripheralPaymentReconciliationService, never()).reconcileAiCreditTopUp(anyString());
+        verify(reservationPaymentReconciliationService, never()).reconcile(anyString());
+    }
+
+    @Test
+    @DisplayName("PAYMENT_COMPLETED : transaction inconnue → aucun effet metier")
+    void paymentCompleted_unknownTransactionIsRejected() {
+        when(transactionRepository.findByTransactionRef("TX-NOPE")).thenReturn(java.util.Optional.empty());
+
+        Map<String, Object> event = new HashMap<>();
+        event.put("eventType", "PAYMENT_COMPLETED");
+        event.put("transactionRef", "TX-NOPE");
+        event.put("sourceType", ReservationPaymentService.SOURCE_TYPE);
+
+        consumer.handlePaymentEvent(event);
+
+        verifyNoInteractions(reservationPaymentReconciliationService,
+                peripheralPaymentReconciliationService, deferredPaymentReconciliationService);
     }
 }

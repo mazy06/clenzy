@@ -17,6 +17,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -78,13 +79,21 @@ public class ExpediaCalendarService {
             }
 
             String expediaPropertyId = (String) data.get("property_id");
-            Long orgId = parseOrgId(data);
-
-            Optional<ChannelMapping> mappingOpt = findExpediaMapping(expediaPropertyId, orgId);
+            // Audit 2026-07 (P1-19) : l'organisation est RE-DERIVEE du mapping en base ;
+            // celle annoncee dans le payload ne sert plus que de controle de coherence.
+            Long declaredOrgId = parseOrgId(data);
+            Optional<ChannelMapping> mappingOpt = findExpediaMapping(expediaPropertyId);
+            Long orgId = mappingOpt.map(ChannelMapping::getOrganizationId).orElse(null);
 
             if (mappingOpt.isEmpty()) {
                 log.warn("Propriete Expedia {} non liee, evenement calendrier ignore",
                         expediaPropertyId);
+                webhookService.markAsProcessed(eventId);
+                return;
+            }
+            if (declaredOrgId != null && !declaredOrgId.equals(orgId)) {
+                log.error("SECURITE : evenement Expedia annonce l'organisation {} pour la propriete {} "
+                        + "qui appartient a {}. Evenement rejete.", declaredOrgId, expediaPropertyId, orgId);
                 webhookService.markAsProcessed(eventId);
                 return;
             }
@@ -234,12 +243,23 @@ public class ExpediaCalendarService {
     // Helpers
     // ================================================================
 
-    private Optional<ChannelMapping> findExpediaMapping(String expediaPropertyId, Long orgId) {
-        if (expediaPropertyId == null || orgId == null) {
+    /**
+     * Mapping Expedia par identifiant externe, <b>sans organisation</b> : c'est lui qui
+     * determine le tenant proprietaire (audit 2026-07, P1-19). Un identifiant mappe dans
+     * plusieurs organisations est anormal — on refuse plutot que d'en choisir une.
+     */
+    private Optional<ChannelMapping> findExpediaMapping(String expediaPropertyId) {
+        if (expediaPropertyId == null) {
             return Optional.empty();
         }
-        return channelMappingRepository.findByExternalIdAndChannel(
-                expediaPropertyId, ChannelName.VRBO, orgId);
+        List<ChannelMapping> mappings = channelMappingRepository
+                .findByExternalIdAndChannelAcrossOrganizations(expediaPropertyId, ChannelName.VRBO);
+        if (mappings.size() > 1) {
+            log.error("SECURITE : la propriete Expedia {} est mappee dans {} organisations — "
+                    + "evenement refuse (ambiguite de tenant)", expediaPropertyId, mappings.size());
+            return Optional.empty();
+        }
+        return mappings.stream().findFirst();
     }
 
     private Long parseOrgId(Map<String, Object> data) {

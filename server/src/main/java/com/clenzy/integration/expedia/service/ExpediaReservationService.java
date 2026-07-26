@@ -103,12 +103,18 @@ public class ExpediaReservationService {
     public void handleReservationCreated(Map<String, Object> data) {
         String expediaPropertyId = (String) data.get("property_id");
         String reservationId = (String) data.get("reservation_id");
-        Long orgId = parseOrgId(data);
+        Long declaredOrgId = parseOrgId(data);
 
         log.info("Nouvelle reservation Expedia pour propriete {} (reservation: {})",
                 expediaPropertyId, reservationId);
 
-        Optional<ChannelMapping> mappingOpt = findExpediaMapping(expediaPropertyId, orgId);
+        Optional<ChannelMapping> mappingOpt = findExpediaMapping(expediaPropertyId);
+        Long orgId = mappingOpt.map(ChannelMapping::getOrganizationId).orElse(null);
+        if (declaredOrgId != null && orgId != null && !declaredOrgId.equals(orgId)) {
+            log.error("SECURITE : evenement Expedia annonce l'organisation {} pour la propriete {} "
+                    + "qui appartient a {}. Evenement rejete.", declaredOrgId, expediaPropertyId, orgId);
+            return;
+        }
         if (mappingOpt.isEmpty()) {
             log.warn("Propriete Expedia {} non liee a une propriete Clenzy, evenement ignore",
                     expediaPropertyId);
@@ -141,7 +147,7 @@ public class ExpediaReservationService {
         log.info("Mise a jour reservation Expedia: {} (propriete: {})",
                 reservationId, expediaPropertyId);
 
-        Optional<ChannelMapping> mappingOpt = findExpediaMapping(expediaPropertyId, orgId);
+        Optional<ChannelMapping> mappingOpt = findExpediaMapping(expediaPropertyId);
         if (mappingOpt.isEmpty()) {
             return;
         }
@@ -204,7 +210,7 @@ public class ExpediaReservationService {
         log.info("Annulation reservation Expedia: {} (propriete: {})",
                 reservationId, expediaPropertyId);
 
-        Optional<ChannelMapping> mappingOpt = findExpediaMapping(expediaPropertyId, orgId);
+        Optional<ChannelMapping> mappingOpt = findExpediaMapping(expediaPropertyId);
         if (mappingOpt.isEmpty()) {
             return;
         }
@@ -290,12 +296,23 @@ public class ExpediaReservationService {
                 intervention.getId(), property.getName(), source, reservationId);
     }
 
-    private Optional<ChannelMapping> findExpediaMapping(String expediaPropertyId, Long orgId) {
-        if (expediaPropertyId == null || orgId == null) {
+    /**
+     * Mapping Expedia par identifiant externe, <b>sans organisation</b> : c'est lui qui
+     * determine le tenant proprietaire (audit 2026-07, P1-19). Un identifiant mappe dans
+     * plusieurs organisations est anormal — on refuse plutot que d'en choisir une.
+     */
+    private Optional<ChannelMapping> findExpediaMapping(String expediaPropertyId) {
+        if (expediaPropertyId == null) {
             return Optional.empty();
         }
-        return channelMappingRepository.findByExternalIdAndChannel(
-                expediaPropertyId, ChannelName.VRBO, orgId);
+        List<ChannelMapping> mappings = channelMappingRepository
+                .findByExternalIdAndChannelAcrossOrganizations(expediaPropertyId, ChannelName.VRBO);
+        if (mappings.size() > 1) {
+            log.error("SECURITE : la propriete Expedia {} est mappee dans {} organisations — "
+                    + "evenement refuse (ambiguite de tenant)", expediaPropertyId, mappings.size());
+            return Optional.empty();
+        }
+        return mappings.stream().findFirst();
     }
 
     private Long parseOrgId(Map<String, Object> data) {

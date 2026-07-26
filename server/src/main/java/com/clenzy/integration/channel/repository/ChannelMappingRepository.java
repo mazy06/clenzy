@@ -73,6 +73,24 @@ public interface ChannelMappingRepository extends JpaRepository<ChannelMapping, 
             @Param("channel") ChannelName channel,
             @Param("orgId") Long orgId);
 
+    /**
+     * Lookup inverse <b>sans organisation</b> : sert a RE-DERIVER l'organisation proprietaire
+     * d'un identifiant externe recu par webhook ou par evenement Kafka.
+     *
+     * <p>Audit 2026-07 (P1-19) : les consommateurs Expedia lisaient {@code organization_id}
+     * dans le payload pour pouvoir appeler {@link #findByExternalIdAndChannel} — l'emetteur
+     * choisissait donc le tenant. Cette requete inverse la dependance : le mapping fait foi,
+     * et l'organisation annoncee n'est plus qu'un controle de coherence.</p>
+     *
+     * <p>Retourne une liste : un meme identifiant externe mappe dans deux organisations est
+     * anormal, et l'appelant doit refuser plutot que d'en choisir une (fail-closed).</p>
+     */
+    @Query("SELECT cm FROM ChannelMapping cm JOIN cm.connection cc " +
+           "WHERE cm.externalId = :externalId AND cc.channel = :channel")
+    List<ChannelMapping> findByExternalIdAndChannelAcrossOrganizations(
+            @Param("externalId") String externalId,
+            @Param("channel") ChannelName channel);
+
     // ── Admin queries (cross-org, SUPER_ADMIN only) ─────────────────────────
 
     /**

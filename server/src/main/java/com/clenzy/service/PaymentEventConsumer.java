@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.config.KafkaConfig;
+import com.clenzy.model.PaymentTransaction;
 import com.clenzy.model.EscrowHold;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.EscrowHoldRepository;
@@ -28,6 +29,8 @@ public class PaymentEventConsumer {
     private final ReservationPaymentReconciliationService reservationPaymentReconciliationService;
     private final com.clenzy.booking.service.BookingBalanceReconciliationService bookingBalanceReconciliationService;
     private final PeripheralPaymentReconciliationService peripheralPaymentReconciliationService;
+    private final com.clenzy.repository.PaymentTransactionRepository transactionRepository;
+    private final com.clenzy.tenant.KafkaTenantScope kafkaTenantScope;
 
     public PaymentEventConsumer(SplitPaymentService splitPaymentService,
                                  EscrowHoldRepository escrowHoldRepository,
@@ -35,7 +38,9 @@ public class PaymentEventConsumer {
                                  DeferredPaymentReconciliationService deferredPaymentReconciliationService,
                                  ReservationPaymentReconciliationService reservationPaymentReconciliationService,
                                  com.clenzy.booking.service.BookingBalanceReconciliationService bookingBalanceReconciliationService,
-                                 PeripheralPaymentReconciliationService peripheralPaymentReconciliationService) {
+                                 PeripheralPaymentReconciliationService peripheralPaymentReconciliationService,
+                                 com.clenzy.repository.PaymentTransactionRepository transactionRepository,
+                                 com.clenzy.tenant.KafkaTenantScope kafkaTenantScope) {
         this.splitPaymentService = splitPaymentService;
         this.escrowHoldRepository = escrowHoldRepository;
         this.reservationRepository = reservationRepository;
@@ -43,6 +48,8 @@ public class PaymentEventConsumer {
         this.reservationPaymentReconciliationService = reservationPaymentReconciliationService;
         this.bookingBalanceReconciliationService = bookingBalanceReconciliationService;
         this.peripheralPaymentReconciliationService = peripheralPaymentReconciliationService;
+        this.transactionRepository = transactionRepository;
+        this.kafkaTenantScope = kafkaTenantScope;
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_PAYMENT_EVENTS, groupId = "clenzy-payment-consumer")
@@ -111,7 +118,6 @@ public class PaymentEventConsumer {
      * donc un retry est sûr.</p>
      */
     private void handlePaymentCompleted(Map<String, Object> event) {
-        String sourceType = String.valueOf(event.getOrDefault("sourceType", ""));
         Object rawRef = event.get("transactionRef");
         String transactionRef = rawRef != null ? String.valueOf(rawRef) : null;
         if (transactionRef == null || transactionRef.isBlank()) {
@@ -119,6 +125,31 @@ public class PaymentEventConsumer {
             return;
         }
 
+        // Audit 2026-07 (P1-04) : le sourceType pilote le routage vers six services aux effets
+        // metier tres differents. Le lire dans le payload laissait l'emetteur CHOISIR cet effet :
+        // un transactionRef legitime de reservation, annonce avec le sourceType des credits IA,
+        // partait en dotation de credits. Le sourceType et l'organisation sont desormais lus sur
+        // la TRANSACTION ; le payload ne sert que de controle de coherence.
+        PaymentTransaction tx = transactionRepository.findByTransactionRef(transactionRef).orElse(null);
+        if (tx == null) {
+            log.warn("PAYMENT_COMPLETED tx={} introuvable — ignore", transactionRef);
+            return;
+        }
+        final String sourceType = tx.getSourceType() != null ? tx.getSourceType() : "";
+        String payloadSourceType = String.valueOf(event.getOrDefault("sourceType", ""));
+        if (!payloadSourceType.isBlank() && !payloadSourceType.equals(sourceType)) {
+            log.error("SECURITE : PAYMENT_COMPLETED tx={} annonce sourceType={} alors que la "
+                    + "transaction porte {}. Evenement rejete.",
+                    transactionRef, payloadSourceType, sourceType);
+            return;
+        }
+        // Politique commune a tous les consommateurs : refus si l'organisation de confiance
+        // est introuvable, refus si le payload la contredit, pose du contexte tenant sinon.
+        kafkaTenantScope.run(KafkaConfig.TOPIC_PAYMENT_EVENTS, tx.getOrganizationId(),
+                () -> dispatchPaymentCompleted(sourceType, transactionRef));
+    }
+
+    private void dispatchPaymentCompleted(String sourceType, String transactionRef) {
         if (sourceType.startsWith(DeferredPaymentService.SOURCE_TYPE_PREFIX)) {
             log.info("PAYMENT_COMPLETED differe : tx={} sourceType={} → reconciliation interventions",
                     transactionRef, sourceType);
