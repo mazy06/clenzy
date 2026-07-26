@@ -459,6 +459,10 @@ public class ConversationService {
         return msg;
     }
 
+    // @Transactional(readOnly) : requis pour que RlsTenantGucAspect pose le contexte
+    // tenant en base. Sans lui, ces lectures renverraient ZERO ligne des que la RLS
+    // sera active — boite de reception vide, sans erreur (audit REM-T-01).
+    @Transactional(readOnly = true)
     public Page<Conversation> getInbox(Long orgId, ConversationStatus status, Pageable pageable) {
         if (status != null) {
             return conversationRepository.findByOrganizationIdAndStatusOrderByLastMessageAtDesc(orgId, status, pageable);
@@ -471,6 +475,10 @@ public class ConversationService {
     /**
      * Inbox filtre par liste de channels (ex: AIRBNB, BOOKING).
      */
+    // @Transactional(readOnly) : requis pour que RlsTenantGucAspect pose le contexte
+    // tenant en base. Sans lui, ces lectures renverraient ZERO ligne des que la RLS
+    // sera active — boite de reception vide, sans erreur (audit REM-T-01).
+    @Transactional(readOnly = true)
     public Page<Conversation> getInboxByChannels(Long orgId, List<ConversationChannel> channels,
                                                    ConversationStatus status, Pageable pageable) {
         if (status != null) {
@@ -482,15 +490,27 @@ public class ConversationService {
             orgId, channels, ConversationStatus.ARCHIVED, pageable);
     }
 
+    // @Transactional(readOnly) : requis pour que RlsTenantGucAspect pose le contexte
+    // tenant en base. Sans lui, ces lectures renverraient ZERO ligne des que la RLS
+    // sera active — boite de reception vide, sans erreur (audit REM-T-01).
+    @Transactional(readOnly = true)
     public Page<Conversation> getMyConversations(Long orgId, String keycloakId, Pageable pageable) {
         return conversationRepository.findByOrganizationIdAndAssignedToKeycloakIdOrderByLastMessageAtDesc(
             orgId, keycloakId, pageable);
     }
 
+    // @Transactional(readOnly) : requis pour que RlsTenantGucAspect pose le contexte
+    // tenant en base. Sans lui, ces lectures renverraient ZERO ligne des que la RLS
+    // sera active — boite de reception vide, sans erreur (audit REM-T-01).
+    @Transactional(readOnly = true)
     public Optional<Conversation> getById(Long id, Long orgId) {
         return conversationRepository.findByIdAndOrganizationId(id, orgId);
     }
 
+    // @Transactional(readOnly) : requis pour que RlsTenantGucAspect pose le contexte
+    // tenant en base. Sans lui, ces lectures renverraient ZERO ligne des que la RLS
+    // sera active — boite de reception vide, sans erreur (audit REM-T-01).
+    @Transactional(readOnly = true)
     public Page<ConversationMessage> getMessages(Long conversationId, Long orgId, Pageable pageable) {
         return messageRepository.findByConversationIdAndOrganizationIdOrderBySentAtAsc(
             conversationId, orgId, pageable);
