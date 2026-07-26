@@ -82,19 +82,19 @@ class AgentTrustRuleServiceTest {
     @Test
     void recentRefusalInWindow_blocksSuggestion() {
         when(pendingActionRepository.findTrustRuleCandidates(THRESHOLD))
-                .thenReturn(List.<Object[]>of(new Object[]{42L, "send_guest_message"}));
-        when(ruleRepository.existsByOrganizationIdAndToolName(42L, "send_guest_message"))
+                .thenReturn(List.<Object[]>of(new Object[]{42L, "create_intervention"}));
+        when(ruleRepository.existsByOrganizationIdAndToolName(42L, "create_intervention"))
                 .thenReturn(false);
         // 4 confirmations + 1 REFUS recent : le pattern est invalide.
         when(pendingActionRepository
                 .findByOrganizationIdAndToolNameAndStatusNotOrderByResolvedAtDesc(
-                        eq(42L), eq("send_guest_message"), eq(AgentPendingAction.STATUS_PENDING), any()))
+                        eq(42L), eq("create_intervention"), eq(AgentPendingAction.STATUS_PENDING), any()))
                 .thenReturn(List.of(
-                        resolved("send_guest_message", AgentPendingAction.STATUS_REFUSED),
-                        resolved("send_guest_message", AgentPendingAction.STATUS_CONFIRMED),
-                        resolved("send_guest_message", AgentPendingAction.STATUS_CONFIRMED),
-                        resolved("send_guest_message", AgentPendingAction.STATUS_CONFIRMED),
-                        resolved("send_guest_message", AgentPendingAction.STATUS_CONFIRMED)));
+                        resolved("create_intervention", AgentPendingAction.STATUS_REFUSED),
+                        resolved("create_intervention", AgentPendingAction.STATUS_CONFIRMED),
+                        resolved("create_intervention", AgentPendingAction.STATUS_CONFIRMED),
+                        resolved("create_intervention", AgentPendingAction.STATUS_CONFIRMED),
+                        resolved("create_intervention", AgentPendingAction.STATUS_CONFIRMED)));
 
         assertThat(service().evaluateSuggestions()).isZero();
         verify(ruleRepository, never()).save(any());
@@ -127,10 +127,10 @@ class AgentTrustRuleServiceTest {
         when(ruleRepository.existsByOrganizationIdAndToolNameAndStatus(
                 42L, "block_calendar_day", AgentTrustRule.STATUS_ACTIVE)).thenReturn(true);
         when(ruleRepository.existsByOrganizationIdAndToolNameAndStatus(
-                42L, "send_guest_message", AgentTrustRule.STATUS_ACTIVE)).thenReturn(false);
+                42L, "create_intervention", AgentTrustRule.STATUS_ACTIVE)).thenReturn(false);
 
         assertThat(service().isAutoApproved(42L, "block_calendar_day")).isTrue();
-        assertThat(service().isAutoApproved(42L, "send_guest_message")).isFalse();
+        assertThat(service().isAutoApproved(42L, "create_intervention")).isFalse();
     }
 
     @Test
@@ -139,6 +139,47 @@ class AgentTrustRuleServiceTest {
         assertThat(service().isAutoApproved(42L, "settle_intervention_payment")).isFalse();
         verify(ruleRepository, never()).existsByOrganizationIdAndToolNameAndStatus(
                 anyLong(), anyString(), anyString());
+    }
+
+    /**
+     * Audit 2026-07 (P7-03) — la liste jamais-auto-approuvable ne couvrait que deux outils
+     * d'argent. Sur les 19 outils d'ecriture, 17 restaient eligibles a l'auto-approbation :
+     * une regle de confiance acceptee par un operateur (5 confirmations, comportement nominal
+     * du produit) supprimait ensuite la pause pour {@code cancel_reservation},
+     * {@code send_guest_message} ou {@code reply_to_review} — des actions irreversibles et
+     * publiques, d'impact superieur a {@code settle_intervention_payment}. Combine a une
+     * injection de prompt dans un avis ou un message voyageur (P7-06, resultats d'outils
+     * reinjectes sans balisage), l'action s'executait sans aucun humain dans la boucle.
+     *
+     * <p>Le {@code verify(never())} est la partie essentielle du test : il prouve que le refus
+     * vient de la liste et non de l'absence de regle en base.</p>
+     */
+    @Test
+    void gate_irreversibleTools_neverAutoApproved_evenWithActiveRule() {
+        assertThat(service().isAutoApproved(42L, "cancel_reservation")).isFalse();
+        assertThat(service().isAutoApproved(42L, "send_guest_message")).isFalse();
+        assertThat(service().isAutoApproved(42L, "send_owner_statement")).isFalse();
+        assertThat(service().isAutoApproved(42L, "reply_to_review")).isFalse();
+        assertThat(service().isAutoApproved(42L, "create_reservation")).isFalse();
+        assertThat(service().isAutoApproved(42L, "create_invoice")).isFalse();
+        assertThat(service().isAutoApproved(42L, "update_property_status")).isFalse();
+        assertThat(service().isAutoApproved(42L, "open_close_channel_availability")).isFalse();
+        assertThat(service().isAutoApproved(42L, "batch_block_calendar")).isFalse();
+
+        verify(ruleRepository, never()).existsByOrganizationIdAndToolNameAndStatus(
+                anyLong(), anyString(), anyString());
+    }
+
+    /** Ces outils ne sont jamais proposes a l'apprentissage non plus (pas de regle SUGGESTED). */
+    @Test
+    void suggestions_neverProposeIrreversibleTools() {
+        assertThat(AgentTrustRuleService.NEVER_AUTO_APPROVE)
+                .contains("cancel_reservation", "send_guest_message", "reply_to_review",
+                        "send_owner_statement", "create_reservation", "create_invoice",
+                        "update_property_status", "open_close_channel_availability",
+                        "batch_block_calendar")
+                .as("l'invariant argent historique doit rester couvert")
+                .contains("initiate_refund", "settle_intervention_payment");
     }
 
     @Test

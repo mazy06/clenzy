@@ -128,6 +128,9 @@ public class CameraService {
         if (dto.rtspUrl() == null || dto.rtspUrl().isBlank()) {
             throw new IllegalArgumentException("rtspUrl requis pour une camera non-Tuya");
         }
+        // Audit 2026-07 (P3-01) : valider le schema AVANT la persistance — createCamera
+        // sauvegarde puis enregistre le flux, un rejet tardif laisserait une ligne orpheline.
+        CameraStreamService.assertAllowedSourceScheme(dto.rtspUrl());
         return dto.rtspUrl();
     }
 

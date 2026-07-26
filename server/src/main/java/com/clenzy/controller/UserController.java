@@ -106,7 +106,22 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.create(dto));
     }
 
+    /**
+     * Mise a jour administrative d'un utilisateur.
+     *
+     * <p>Reserve a SUPER_ADMIN (audit 2026-07, P2-01/P2-02) : le corps accepte
+     * {@code role}, {@code status}, {@code organizationId} et {@code deferredPayment},
+     * que {@link UserService#update} applique sans controle de privilege. Ouvert au
+     * proprietaire, cet endpoint permettait a tout compte authentifie de se promouvoir
+     * SUPER_ADMIN — donc de desactiver le filtre d'isolation multi-tenant, le role en
+     * base pilotant {@code TenantFilter#resolveTenant} — ou de se rattacher a
+     * l'organisation d'un autre client.</p>
+     *
+     * <p>Le self-service passe par {@code PATCH /me/profile}
+     * ({@link UserService#updateOwnProfile}), qui n'expose aucun champ de privilege.</p>
+     */
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Mettre à jour un utilisateur")
     public UserDto update(@PathVariable Long id, @RequestBody UserDto dto, @AuthenticationPrincipal Jwt jwt) {
         validateOwnershipOrAdmin(id, jwt);

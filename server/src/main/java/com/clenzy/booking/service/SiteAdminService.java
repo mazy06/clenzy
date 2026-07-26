@@ -21,6 +21,12 @@ import com.clenzy.booking.repository.SitePageRepository;
 import com.clenzy.booking.repository.SiteRepository;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.integration.cloudflare.CloudflareCustomHostnameService;
+import com.clenzy.util.CssSanitizer;
+import com.clenzy.util.EmailHtmlSanitizer;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.clenzy.model.NotificationCategory;
 import com.clenzy.model.NotificationType;
 import com.clenzy.model.User;
@@ -46,6 +52,9 @@ import java.util.Locale;
  */
 @Service
 public class SiteAdminService {
+
+    /** Lecture/ecriture de l'enveloppe GrapesJS lors de l'assainissement (audit 2026-07, P9-01). */
+    private static final ObjectMapper ENVELOPE_MAPPER = new ObjectMapper();
 
     private final SiteRepository siteRepository;
     private final SitePageRepository pageRepository;
@@ -484,11 +493,50 @@ public class SiteAdminService {
         site.setBookingEngineConfigId(req.bookingEngineConfigId());
     }
 
+    /**
+     * Assainit l'enveloppe GrapesJS avant persistance (audit 2026-07, P9-01).
+     *
+     * <p>L'enveloppe ({@code {format, html, css, projectData}}) est servie telle quelle au
+     * public via {@code SitePagePublicDto}, et le rendu client injecte son champ {@code html}
+     * dans le DOM. Le seul rempart etait {@code sanitizeHtml.ts}, un filtre par expressions
+     * regulieres contournable ({@code <img/onerror=...>} sans espace, {@code href=javascript:}
+     * sans guillemets). {@link EmailHtmlSanitizer} s'appuie sur jsoup — un vrai parseur — et
+     * n'a donc pas cette faiblesse.</p>
+     *
+     * <p>Les services voisins ({@code SiteGenerationService}, {@code SiteTemplateService},
+     * {@code SiteRefinementService}) assainissent deja leur HTML : seule l'ecriture directe
+     * par l'API d'administration y echappait.</p>
+     *
+     * <p>{@code projectData} n'est pas traite : il n'alimente que l'editeur, jamais le rendu
+     * public. Un contenu qui n'est pas une enveloppe JSON (page legacy) est assaini comme du
+     * HTML brut plutot que rejete, pour ne pas casser l'edition de l'existant.</p>
+     */
+    static String sanitizeGrapesEnvelope(String blocks) {
+        if (blocks == null || blocks.isBlank()) {
+            return blocks;
+        }
+        try {
+            JsonNode parsed = ENVELOPE_MAPPER.readTree(blocks);
+            if (parsed instanceof ObjectNode envelope) {
+                if (envelope.hasNonNull("html")) {
+                    envelope.put("html", EmailHtmlSanitizer.sanitize(envelope.get("html").asText("")));
+                }
+                if (envelope.hasNonNull("css")) {
+                    envelope.put("css", CssSanitizer.sanitizeCss(envelope.get("css").asText("")));
+                }
+                return ENVELOPE_MAPPER.writeValueAsString(envelope);
+            }
+        } catch (JsonProcessingException notAnEnvelope) {
+            // Contenu legacy non-JSON : on retombe sur l'assainissement HTML ci-dessous.
+        }
+        return EmailHtmlSanitizer.sanitize(blocks);
+    }
+
     private void applyPage(SitePage page, SitePageDto req) {
         if (req.path() != null) page.setPath(req.path());
         if (req.type() != null) page.setType(parsePageType(req.type()));
         page.setTitle(req.title());
-        page.setBlocks(req.blocks());
+        page.setBlocks(sanitizeGrapesEnvelope(req.blocks()));
         page.setLocale(req.locale());
         if (req.status() != null) page.setStatus(parseStatus(req.status()));
         page.setSortOrder(req.sortOrder());
