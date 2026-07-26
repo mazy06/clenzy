@@ -52,8 +52,28 @@ class PendingReservationCleanupSchedulerTest {
             .thenReturn(new SimpleTransactionStatus());
         // Pas de duree de hold configuree pour l'org → defaut systeme (30 min).
         lenient().when(configRepository.findFirstByOrganizationId(ORG_ID)).thenReturn(Optional.empty());
+        // TenantScopedExecutor : execute l'action telle quelle. Le contexte tenant reel
+        // est verifie par les tests d'integration, pas ici — ce test porte sur la logique
+        // d'expiration et l'ordre Stripe/calendrier.
+        com.clenzy.tenant.TenantScopedExecutor tenantScopedExecutor =
+            org.mockito.Mockito.mock(com.clenzy.tenant.TenantScopedExecutor.class);
+        lenient().doAnswer(inv -> {
+            ((Runnable) inv.getArgument(1)).run();
+            return null;
+        }).when(tenantScopedExecutor).runAsOrganization(any(), any(Runnable.class));
+
+        // Auto-injection : renvoie l'instance elle-meme. En production le proxy Spring
+        // s'intercale pour porter @Transactional et l'aspect RLS ; ici l'appel direct
+        // suffit a exercer la logique.
+        @SuppressWarnings("unchecked")
+        org.springframework.beans.factory.ObjectProvider<PendingReservationCleanupScheduler> self =
+            org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class);
+
         scheduler = new PendingReservationCleanupScheduler(
-            pendingReservationRepository, configRepository, calendarEngine, stripeService, abandonedBookingService, transactionManager);
+            pendingReservationRepository, configRepository, calendarEngine, stripeService,
+            abandonedBookingService, transactionManager, tenantScopedExecutor, self);
+
+        lenient().when(self.getObject()).thenReturn(scheduler);
     }
 
     private Reservation buildExpiredReservation(Long id, String stripeSessionId) {
