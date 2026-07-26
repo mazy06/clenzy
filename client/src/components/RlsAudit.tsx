@@ -63,9 +63,34 @@ const RlsAudit: React.FC = () => {
   });
 
   if (error) {
+    // Distinguer les causes : un message unique ferait chercher au mauvais endroit.
+    // Un 404 signifie que le backend ne connait pas encore cette route — cas frequent en
+    // developpement, ou le front recharge a chaud pendant que le serveur tourne un build
+    // anterieur.
+    const status = (error as { status?: number }).status;
+    if (status === 404) {
+      return (
+        <Alert severity="warning">
+          <AlertTitle>Backend non a jour</AlertTitle>
+          Cette instance ne connait pas encore l'endpoint <code>/api/admin/rls-audit</code>.
+          Le front a ete recharge a chaud, mais le serveur tourne un build anterieur —
+          le reconstruire et le relancer.
+        </Alert>
+      );
+    }
+    if (status === 403) {
+      return (
+        <Alert severity="warning">
+          <AlertTitle>Acces reserve</AlertTitle>
+          Cet inventaire designe du code et sert une decision d'infrastructure : il est
+          reserve au personnel plateforme (SUPER_ADMIN ou SUPER_MANAGER).
+        </Alert>
+      );
+    }
     return (
       <Alert severity="error">
-        Inventaire indisponible. L'instrumentation est peut-etre desactivee sur cette instance.
+        <AlertTitle>Inventaire indisponible</AlertTitle>
+        {(error as { message?: string }).message ?? 'Erreur inattendue lors du chargement.'}
       </Alert>
     );
   }
