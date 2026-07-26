@@ -52,11 +52,13 @@ class NoiseDeviceServiceTest {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
         service = new NoiseDeviceService(noiseDeviceRepository, propertyRepository,
-                minutApiService, tuyaApiService, tenantContext, claimService);
+                minutApiService, tuyaApiService, tenantContext, claimService,
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
     }
 
     private NoiseDevice buildDevice(Long id, String name, DeviceType type) {
         NoiseDevice device = new NoiseDevice();
+        device.setOrganizationId(ORG_ID);
         device.setId(id);
         device.setName(name);
         device.setDeviceType(type);
@@ -68,6 +70,9 @@ class NoiseDeviceServiceTest {
 
     private Property buildProperty(Long id, String name) {
         Property property = new Property();
+        // Un logement en base porte toujours une organisation ; sans elle le garde
+        // d'isolation refuse (fail-closed).
+        property.setOrganizationId(ORG_ID);
         property.setId(id);
         property.setName(name);
         return property;

@@ -95,8 +95,13 @@
 }
 
 /* MARK: Badge */
+/* Divergence assumée vs l'upstream shadcn : `rounded-4xl` (26px) sur une puce
+   de 20px de haut produit une pilule, forme que les checklists anti-slop
+   signalent comme générique et que les tags Notion n'utilisent pas. Rayon
+   ramené sur l'échelle du kit (6px) : une puce rectangulaire adoucie, qui se
+   distingue enfin d'un bouton arrondi. */
 .cn-badge {
-  @apply h-5 gap-1 rounded-4xl border border-transparent px-2 py-0.5 text-xs font-medium transition-all has-data-[icon=inline-end]:pe-1.5 has-data-[icon=inline-start]:ps-1.5 [&>svg]:size-3!;
+  @apply h-5 gap-1 rounded-sm border border-transparent px-2 py-0.5 text-xs font-medium transition-all has-data-[icon=inline-end]:pe-1.5 has-data-[icon=inline-start]:ps-1.5 [&>svg]:size-3!;
 }
 
 .cn-badge-variant-default {

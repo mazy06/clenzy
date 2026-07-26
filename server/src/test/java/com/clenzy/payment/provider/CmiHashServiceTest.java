@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
@@ -215,6 +216,78 @@ class CmiHashServiceTest {
     void verifyHash_missingHash_false() {
         Map<String, String> params = Map.of("clientid", "M1", "amount", "100");
         assertThat(service.verifyHash(params, "key")).isFalse();
+    }
+
+    // ─── Collision de casse (audit 2026-07, P6-01) ──────────────────────────
+
+    /**
+     * Audit 2026-07 (P6-01) — contournement complet de la signature CMI/Attijari.
+     *
+     * <p>Le plaintext hashe est construit dans un {@code TreeMap(CASE_INSENSITIVE_ORDER)},
+     * qui fusionne {@code oid} et {@code OID} en une seule entree (la derniere valeur
+     * inseree gagne), alors que le routeur lit les parametres en <b>casse exacte</b>
+     * ({@code params.get("oid")}, {@code params.get("ProcReturnCode")},
+     * {@code params.get("Response")}). Un attaquant provoquait donc un paiement
+     * <b>refuse</b> sur sa propre transaction — ce qui lui livrait un HASH valide dans son
+     * navigateur — puis rejouait ce POST en dupliquant les trois champs decisifs avec une
+     * casse differente : le hash recalcule restait identique, mais le routage completait la
+     * transaction d'une <b>autre</b> reservation, sans aucun mouvement d'argent et sans
+     * jamais connaitre le {@code store_key}.</p>
+     */
+    @Test
+    @DisplayName("verifyHash rejette une collision de casse (audit 2026-07 P6-01)")
+    void verifyHash_caseCollidingDuplicate_false() {
+        String storeKey = "STORE_KEY_TEST_123";
+
+        // 1. Le callback legitime de l'attaquant : paiement REFUSE sur SA transaction.
+        Map<String, String> attackerCallback = new LinkedHashMap<>();
+        attackerCallback.put("clientid", "M1");
+        attackerCallback.put("oid", "TX-attaquant");
+        attackerCallback.put("ProcReturnCode", "99");
+        attackerCallback.put("Response", "Declined");
+        String legitimateHash = service.computeHash(attackerCallback, storeKey);
+
+        // 2. Le rejeu : valeurs ciblees en casse exacte + valeurs d'origine en casse differente.
+        Map<String, String> forged = new LinkedHashMap<>();
+        forged.put("clientid", "M1");
+        forged.put("oid", "TX-victime");            // lu par le routeur
+        forged.put("ProcReturnCode", "00");         // lu par le routeur
+        forged.put("Response", "Approved");         // lu par le routeur
+        forged.put("OID", "TX-attaquant");          // gagne dans le TreeMap insensible a la casse
+        forged.put("PROCRETURNCODE", "99");
+        forged.put("RESPONSE", "Declined");
+        forged.put("HASH", legitimateHash);
+
+        assertThat(service.verifyHash(forged, storeKey))
+                .as("un doublon de nom insensible a la casse doit invalider la signature")
+                .isFalse();
+    }
+
+    @Test
+    @DisplayName("computeHash leve sur doublon de nom insensible a la casse")
+    void computeHash_caseCollidingDuplicate_throws() {
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("oid", "TX-victime");
+        params.put("OID", "TX-attaquant");
+
+        assertThatThrownBy(() -> service.computeHash(params, "key"))
+                .isInstanceOf(IllegalArgumentException.class)
+                // Le message porte le nom en conflit tel qu'insere en second (« OID » ici),
+                // pour que le diagnostic pointe directement le champ fautif.
+                .hasMessageContaining("OID");
+    }
+
+    @Test
+    @DisplayName("computeHash accepte un callback legitime a casse mixte (pas de faux positif)")
+    void computeHash_mixedCaseDistinctNames_ok() {
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("clientid", "M1");
+        params.put("oid", "TX-1");
+        params.put("ProcReturnCode", "00");
+        params.put("Response", "Approved");
+        params.put("TranType", "Auth");
+
+        assertThatCode(() -> service.computeHash(params, "key")).doesNotThrowAnyException();
     }
 
     @Test

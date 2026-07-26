@@ -1,6 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.PricingConfigDto;
+import com.clenzy.service.access.OrganizationAccessGuard;
 import com.clenzy.dto.inventory.*;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.User;
@@ -36,13 +37,16 @@ public class PropertyInventoryController {
     private final PropertyInventoryService inventoryService;
     private final PropertyService propertyService;
     private final UserService userService;
+    private final OrganizationAccessGuard organizationAccessGuard;
 
     public PropertyInventoryController(PropertyInventoryService inventoryService,
                                         PropertyService propertyService,
-                                        UserService userService) {
+                                        UserService userService,
+                                       OrganizationAccessGuard organizationAccessGuard) {
         this.inventoryService = inventoryService;
         this.propertyService = propertyService;
         this.userService = userService;
+        this.organizationAccessGuard = organizationAccessGuard;
     }
 
     // ── Inventory Items ──────────────────────────────────────────────────
@@ -172,17 +176,42 @@ public class PropertyInventoryController {
 
     // ── Security ─────────────────────────────────────────────────────────
 
+    /**
+     * Verifie l'acces au logement pour TOUS les roles, et non pour le seul HOST.
+     *
+     * <p>La version precedente n'entrait dans le controle que si {@code role == HOST} :
+     * pour TECHNICIAN, HOUSEKEEPER, SUPERVISOR, LAUNDRY ou EXTERIOR_TECH, la methode ne
+     * faisait rien du tout. Ces roles accedaient donc en lecture ET en ecriture a
+     * l'inventaire, au linge et aux devis de n'importe quel logement de n'importe quelle
+     * organisation, sur les 11 endpoints (audit securite 2026-07-26, constat P1-08).
+     *
+     * <p>Aligne sur {@code PropertyController.checkPropertyAccess} :
+     * <ul>
+     *   <li>personnel plateforme : acces transverse assume ;</li>
+     *   <li>tout role d'organisation : le logement doit appartenir a son organisation —
+     *       {@code getPropertyEntityById} charge par {@code findById}, qui ne traverse pas
+     *       le filtre Hibernate {@code organizationFilter} ;</li>
+     *   <li>HOST : doit en plus etre proprietaire du logement.</li>
+     * </ul>
+     */
     private void checkAccess(Long propertyId, Jwt jwt) {
         final UserRole role = JwtRoleExtractor.extractUserRole(jwt);
+        if (role.isPlatformStaff()) {
+            return;
+        }
+
+        final var property = propertyService.getPropertyEntityById(propertyId);
+        if (property == null) {
+            throw new NotFoundException("Propriete introuvable");
+        }
+        organizationAccessGuard.requireSameOrganization(
+                property.getOrganizationId(), "Vous n'avez pas acces a cette propriete");
+
         if (role == UserRole.HOST) {
             final String keycloakId = jwt.getSubject();
             final User user = userService.findByKeycloakId(keycloakId);
             if (user == null) {
                 throw new AccessDeniedException("Utilisateur introuvable");
-            }
-            final var property = propertyService.getPropertyEntityById(propertyId);
-            if (property == null) {
-                throw new NotFoundException("Propriete introuvable");
             }
             if (property.getOwner() == null || !property.getOwner().getId().equals(user.getId())) {
                 throw new AccessDeniedException("Vous n'avez pas acces a cette propriete");

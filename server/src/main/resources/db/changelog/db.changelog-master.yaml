@@ -3453,3 +3453,44 @@ databaseChangeLog:
       sqlFile:
         path: changes/0360__create_partner_service_connections.sql
         relativeToChangelogFile: true
+
+  # Unicite des references de transaction de paiement (audit securite 2026-07-26,
+  # P6-05) : transaction_ref et idempotency_key n'avaient aucune contrainte, laissant
+  # les rejeux de webhook et les POST concurrents creer des doublons.
+  # splitStatements/stripComments false : le changeset contient un bloc DO $$ (garde
+  # anti-doublons avec RAISE EXCEPTION nommant les references fautives).
+  - changeSet:
+      id: "0361-unique-payment-transaction-refs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0361__unique_payment_transaction_refs.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  # Privileges du role applicatif non-superuser (audit securite 2026-07-26, P4-03 /
+  # REM-T-02). Prerequis de la RLS : un superuser la contourne meme FORCEE, ce que
+  # RlsEnforcementIT demontre. NO-OP tant que le role n'existe pas — la creation du
+  # role (avec mot de passe) releve de l'infrastructure, pas d'un fichier versionne.
+  # runOnChange/runAlways non poses : le changeset est rejoue via Liquibase Bootstrap
+  # apres creation du role (etape 2 du rollout).
+  - changeSet:
+      id: "0362-grant-privileges-to-app-role"
+      author: clenzy-team
+      # runAlways : ce changeset est un no-op tant que le role clenzy_app n'existe pas.
+      # Sans cette option il serait marque EXECUTED des le premier boot, puis jamais
+      # rejoue — donc AUCUN privilege ne serait accorde le jour ou le role est cree, et
+      # l'application basculee se retrouverait sans aucun droit. Les GRANT sont
+      # idempotents : les rejouer a chaque demarrage est sans effet de bord.
+      runAlways: true
+      sqlFile:
+        path: changes/0362__grant_privileges_to_app_role.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+  - changeSet:
+      id: "0363-add-public-token-to-media-assets"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0363__add_public_token_to_media_assets.sql
+        relativeToChangelogFile: true

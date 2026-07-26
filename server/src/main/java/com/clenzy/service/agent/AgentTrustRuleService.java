@@ -27,9 +27,10 @@ import java.util.Set;
  *   <li><b>Gate</b> ({@link #isAutoApproved}) : une regle ACTIVE fait passer
  *       l'outil de « confirmer » a « notifier » (execution sans pause, toujours
  *       tracee : audit, agent_step, ledger, SSE) ;</li>
- *   <li><b>Invariant argent</b> : les outils de paiement/remboursement ne sont
- *       JAMAIS suggeres ni auto-approuves ({@link #MONEY_TOOLS}) — quelle que
- *       soit la donnee.</li>
+ *   <li><b>Invariant irreversibilite</b> : les outils de paiement/remboursement, de
+ *       communication reelle, de publication publique et d'annulation ne sont JAMAIS
+ *       suggeres ni auto-approuves ({@link #NEVER_AUTO_APPROVE}) — quelle que soit la
+ *       donnee.</li>
  * </ul>
  */
 @Service
@@ -38,12 +39,41 @@ public class AgentTrustRuleService {
     private static final Logger log = LoggerFactory.getLogger(AgentTrustRuleService.class);
 
     /**
-     * Outils argent : exclus de l'apprentissage (invariant securite — un
-     * mouvement d'argent reste TOUJOURS sous confirmation explicite).
+     * Outils exclus de l'apprentissage ET de l'auto-approbation (invariant securite).
+     *
+     * <p>Deux familles, toutes deux irreversibles :</p>
+     * <ul>
+     *   <li><b>Argent</b> — un mouvement d'argent reste TOUJOURS sous confirmation
+     *       explicite ({@code initiate_refund}, {@code settle_intervention_payment}) ;</li>
+     *   <li><b>Effet externe irreversible</b> (audit 2026-07, P7-03) — communication reelle
+     *       vers un voyageur ou un proprietaire, publication publique au nom de l'hote,
+     *       annulation, ecriture fiscale, fermeture de ventes sur les OTA. La liste ne
+     *       couvrait auparavant que l'argent : sur 19 outils d'ecriture, 17 restaient
+     *       auto-approuvables des qu'une regle de confiance etait acceptee — alors que
+     *       {@code cancel_reservation} ou {@code reply_to_review} ont un impact metier et
+     *       reputationnel superieur a {@code settle_intervention_payment}.</li>
+     * </ul>
+     *
+     * <p>Critere d'ajout : l'action est-elle rattrapable par l'operateur apres coup ?
+     * Un message envoye, un avis publie, une reservation annulee et une facture emise ne
+     * le sont pas. Un blocage de calendrier a l'unite, si.</p>
      */
-    static final Set<String> MONEY_TOOLS = Set.of(
+    static final Set<String> NEVER_AUTO_APPROVE = Set.of(
+            // Argent (invariant historique)
             "initiate_refund",
-            "settle_intervention_payment");
+            "settle_intervention_payment",
+            // Communication reelle / publication publique
+            "send_guest_message",
+            "send_owner_statement",
+            "reply_to_review",
+            // Annulation et ecritures metier irreversibles
+            "cancel_reservation",
+            "create_reservation",
+            "create_invoice",
+            "update_property_status",
+            // Effet de masse sur la distribution
+            "open_close_channel_availability",
+            "batch_block_calendar");
 
     private final AgentTrustRuleRepository ruleRepository;
     private final AgentPendingActionRepository pendingActionRepository;
@@ -62,13 +92,14 @@ public class AgentTrustRuleService {
 
     /**
      * True si l'outil peut s'executer SANS pause de confirmation pour cette org
-     * (regle ACTIVE — donc explicitement acceptee par un humain). Les outils
-     * argent retournent toujours false. Best-effort : une erreur DB retombe sur
-     * false (= confirmation demandee, comportement le plus sur).
+     * (regle ACTIVE — donc explicitement acceptee par un humain). Les outils de
+     * {@link #NEVER_AUTO_APPROVE} retournent toujours false, sans meme consulter la
+     * base. Best-effort : une erreur DB retombe sur false (= confirmation demandee,
+     * comportement le plus sur).
      */
     public boolean isAutoApproved(Long organizationId, String toolName) {
         if (!enabled || organizationId == null || toolName == null
-                || MONEY_TOOLS.contains(toolName)) {
+                || NEVER_AUTO_APPROVE.contains(toolName)) {
             return false;
         }
         try {
@@ -97,7 +128,7 @@ public class AgentTrustRuleService {
         for (Object[] candidate : pendingActionRepository.findTrustRuleCandidates(threshold)) {
             Long orgId = (Long) candidate[0];
             String toolName = (String) candidate[1];
-            if (MONEY_TOOLS.contains(toolName)
+            if (NEVER_AUTO_APPROVE.contains(toolName)
                     || ruleRepository.existsByOrganizationIdAndToolName(orgId, toolName)) {
                 continue;
             }
@@ -129,7 +160,7 @@ public class AgentTrustRuleService {
     @Transactional
     public AgentTrustRule accept(Long ruleId, Long organizationId, String decidedBy) {
         AgentTrustRule rule = requireOwnedRule(ruleId, organizationId);
-        if (MONEY_TOOLS.contains(rule.getToolName())) {
+        if (NEVER_AUTO_APPROVE.contains(rule.getToolName())) {
             throw new IllegalStateException("Les outils de paiement ne sont jamais auto-approuves.");
         }
         rule.decide(AgentTrustRule.STATUS_ACTIVE, decidedBy);

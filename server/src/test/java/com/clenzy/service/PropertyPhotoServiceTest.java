@@ -50,11 +50,19 @@ class PropertyPhotoServiceTest {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
         service = new PropertyPhotoService(photoRepository, propertyRepository,
-                storageService, tenantContext);
+                storageService, tenantContext,
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
+        // Depuis P1-07, toute operation sur les photos resout d'abord le logement pour
+        // verifier son organisation. Les tests qui n'exercent pas ce chemin le fournissent
+        // ici une fois pour toutes.
+        org.mockito.Mockito.lenient().when(propertyRepository.findById(PROPERTY_ID))
+                .thenReturn(java.util.Optional.of(buildProperty()));
     }
 
     private Property buildProperty() {
         Property p = new Property();
+        // Toute operation sur les photos verifie desormais l'organisation du logement (P1-07).
+        p.setOrganizationId(ORG_ID);
         p.setId(PROPERTY_ID);
         p.setOrganizationId(ORG_ID);
         return p;

@@ -69,7 +69,17 @@ public class CmiHashService {
             for (String excluded : HASH_EXCLUDED_FIELDS) {
                 if (excluded.equalsIgnoreCase(k)) return;
             }
-            sorted.put(k, v != null ? v : "");
+            String previous = sorted.put(k, v != null ? v : "");
+            if (previous != null) {
+                // Audit 2026-07 (P6-01) : ce TreeMap est insensible a la casse, alors que les
+                // parametres HTTP ne le sont pas et que le routeur les relit en casse exacte
+                // (oid, ProcReturnCode, Response). Un doublon oid/OID faisait donc diverger le
+                // texte hashe du texte route : le hash d'un callback REFUSE restait valide
+                // pendant que le routage completait une transaction arbitraire. Un callback
+                // est3Dgate legitime ne contient jamais deux fois le meme nom de champ.
+                throw new IllegalArgumentException(
+                        "Doublon de parametre insensible a la casse dans le callback: " + k);
+            }
         });
 
         // 2. Joindre les valeurs echappees avec "|".
@@ -104,7 +114,14 @@ public class CmiHashService {
         if (params == null) return false;
         String receivedHash = params.get("HASH");
         if (receivedHash == null || receivedHash.isBlank()) return false;
-        String computed = computeHash(params, storeKey);
+        final String computed;
+        try {
+            computed = computeHash(params, storeKey);
+        } catch (IllegalArgumentException malformedCallback) {
+            // Doublon de nom insensible a la casse (audit 2026-07, P6-01) : callback
+            // malforme ou tentative de collision → signature invalide, fail-closed.
+            return false;
+        }
         // Hash CMI sensible à la casse (base64/hex) → comparaison constant-time exacte.
         return WebhookSignatures.constantTimeEquals(computed, receivedHash.trim());
     }

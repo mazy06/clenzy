@@ -110,8 +110,9 @@ class ExpediaReservationServiceTest {
     }
 
     private void stubMappingFound() {
-        when(channelMappingRepository.findByExternalIdAndChannel(EXPEDIA_PROPERTY_ID, ChannelName.VRBO, ORG_ID))
-                .thenReturn(Optional.of(buildMapping()));
+        when(channelMappingRepository.findByExternalIdAndChannelAcrossOrganizations(
+                EXPEDIA_PROPERTY_ID, ChannelName.VRBO))
+                .thenReturn(java.util.List.of(buildMapping()));
     }
 
     // ─── handleReservationEvent (Kafka entry point) ───────────────────────
@@ -158,7 +159,8 @@ class ExpediaReservationServiceTest {
         @Test
         @DisplayName("exception in dispatch marks event as failed")
         void exceptionMarksFailed() {
-            when(channelMappingRepository.findByExternalIdAndChannel(EXPEDIA_PROPERTY_ID, ChannelName.VRBO, ORG_ID))
+            when(channelMappingRepository.findByExternalIdAndChannelAcrossOrganizations(
+                    EXPEDIA_PROPERTY_ID, ChannelName.VRBO))
                     .thenThrow(new RuntimeException("DB unavailable"));
 
             Map<String, Object> event = buildEvent("reservation.created", buildReservationData());
@@ -203,8 +205,9 @@ class ExpediaReservationServiceTest {
         @Test
         @DisplayName("when no mapping, no intervention created")
         void noMappingNoOp() {
-            when(channelMappingRepository.findByExternalIdAndChannel(EXPEDIA_PROPERTY_ID, ChannelName.VRBO, ORG_ID))
-                    .thenReturn(Optional.empty());
+            when(channelMappingRepository.findByExternalIdAndChannelAcrossOrganizations(
+                EXPEDIA_PROPERTY_ID, ChannelName.VRBO))
+                    .thenReturn(java.util.List.of());
 
             service.handleReservationCreated(buildReservationData());
 
@@ -341,8 +344,9 @@ class ExpediaReservationServiceTest {
         @Test
         @DisplayName("when no mapping, exits silently")
         void noMappingExits() {
-            when(channelMappingRepository.findByExternalIdAndChannel(EXPEDIA_PROPERTY_ID, ChannelName.VRBO, ORG_ID))
-                    .thenReturn(Optional.empty());
+            when(channelMappingRepository.findByExternalIdAndChannelAcrossOrganizations(
+                EXPEDIA_PROPERTY_ID, ChannelName.VRBO))
+                    .thenReturn(java.util.List.of());
 
             service.handleReservationUpdated(buildReservationData());
 
@@ -425,8 +429,9 @@ class ExpediaReservationServiceTest {
         @Test
         @DisplayName("when no mapping, exits silently")
         void noMappingExits() {
-            when(channelMappingRepository.findByExternalIdAndChannel(EXPEDIA_PROPERTY_ID, ChannelName.VRBO, ORG_ID))
-                    .thenReturn(Optional.empty());
+            when(channelMappingRepository.findByExternalIdAndChannelAcrossOrganizations(
+                EXPEDIA_PROPERTY_ID, ChannelName.VRBO))
+                    .thenReturn(java.util.List.of());
 
             service.handleReservationCancelled(buildReservationData());
 

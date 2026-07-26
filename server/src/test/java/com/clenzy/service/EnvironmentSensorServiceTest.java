@@ -54,7 +54,11 @@ class EnvironmentSensorServiceTest {
     void setUp() {
         service = new EnvironmentSensorService(sensorRepository, propertyRepository,
                 tuyaApiService, tenantContext, claimService, notificationService, netatmoApiService,
-                supervisionActivityService);
+                supervisionActivityService,
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
+        // Isolation multi-tenant (audit P1-09/P1-10/P1-15) : sans organisation courante,
+        // le garde refuse — il est fail-closed. Les entites de ces tests portent la meme.
+        org.mockito.Mockito.lenient().when(tenantContext.getOrganizationId()).thenReturn(1L);
     }
 
     private EnvironmentSensor buildSensor(SensorType type, String externalId) {
@@ -83,7 +87,8 @@ class EnvironmentSensorServiceTest {
             Property property = new Property();
             property.setId(10L);
             property.setName("Villa");
-            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            property.setOrganizationId(1L);
+        when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(sensorRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -99,7 +104,8 @@ class EnvironmentSensorServiceTest {
         void whenInvalidType_thenThrows() {
             Property property = new Property();
             property.setId(10L);
-            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            property.setOrganizationId(1L);
+        when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
 
             assertThatThrownBy(() -> service.createSensor("kc-1",
                     new CreateEnvironmentSensorDto("X", 10L, null, "NOPE", null, null)))

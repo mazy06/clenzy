@@ -341,7 +341,7 @@ function templateBtVars(theme?: { primaryColor?: string | null; fontFamily?: str
   return out;
 }
 
-/** Résout l'URL d'un média Clenzy en absolu (l'API renvoie un chemin relatif keyless `/api/public/media/{id}`). */
+/** Résout l'URL d'un média Baitly en absolu (l'API renvoie un chemin relatif keyless `/api/public/media/t/{token}`). */
 function resolveMediaUrl(url: string): string {
   return url.startsWith('http') ? url : `${API_CONFIG.BASE_URL}${url}`;
 }

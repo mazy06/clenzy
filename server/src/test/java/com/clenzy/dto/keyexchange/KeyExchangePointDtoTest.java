@@ -24,7 +24,6 @@ class KeyExchangePointDtoTest {
         assertNull(dto.getStoreLat());
         assertNull(dto.getStoreLng());
         assertNull(dto.getStoreOpeningHours());
-        assertNull(dto.getVerificationToken());
         assertNull(dto.getStatus());
         assertEquals(0L, dto.getActiveCodesCount());
         assertNull(dto.getCreatedAt());
@@ -47,7 +46,6 @@ class KeyExchangePointDtoTest {
         dto.setStoreLat(48.8566);
         dto.setStoreLng(2.3522);
         dto.setStoreOpeningHours("Mon-Fri 9-18");
-        dto.setVerificationToken("tok_abc");
         dto.setStatus("ACTIVE");
         dto.setActiveCodesCount(5L);
         dto.setCreatedAt(now);
@@ -64,7 +62,6 @@ class KeyExchangePointDtoTest {
         assertEquals(48.8566, dto.getStoreLat());
         assertEquals(2.3522, dto.getStoreLng());
         assertEquals("Mon-Fri 9-18", dto.getStoreOpeningHours());
-        assertEquals("tok_abc", dto.getVerificationToken());
         assertEquals("ACTIVE", dto.getStatus());
         assertEquals(5L, dto.getActiveCodesCount());
         assertEquals(now, dto.getCreatedAt());

@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.noise.CreateNoiseDeviceDto;
+import com.clenzy.service.access.OrganizationAccessGuard;
 import com.clenzy.dto.noise.NoiseChartDataDto;
 import com.clenzy.dto.noise.NoiseDataPointDto;
 import com.clenzy.dto.noise.NoiseDeviceDto;
@@ -33,6 +34,7 @@ public class NoiseDeviceService {
     private static final Logger log = LoggerFactory.getLogger(NoiseDeviceService.class);
 
     private final NoiseDeviceRepository noiseDeviceRepository;
+    private final OrganizationAccessGuard organizationAccessGuard;
     private final PropertyRepository propertyRepository;
     private final MinutApiService minutApiService;
     private final TuyaApiService tuyaApiService;
@@ -44,13 +46,15 @@ public class NoiseDeviceService {
                               MinutApiService minutApiService,
                               TuyaApiService tuyaApiService,
                               TenantContext tenantContext,
-                              TuyaDeviceClaimService claimService) {
+                              TuyaDeviceClaimService claimService,
+                                    OrganizationAccessGuard organizationAccessGuard) {
         this.noiseDeviceRepository = noiseDeviceRepository;
         this.propertyRepository = propertyRepository;
         this.minutApiService = minutApiService;
         this.tuyaApiService = tuyaApiService;
         this.tenantContext = tenantContext;
         this.claimService = claimService;
+        this.organizationAccessGuard = organizationAccessGuard;
     }
 
     // ─── CRUD ───────────────────────────────────────────────────
@@ -71,6 +75,8 @@ public class NoiseDeviceService {
         // Verifier que la propriete existe
         Property property = propertyRepository.findById(dto.getPropertyId())
                 .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable: " + dto.getPropertyId()));
+        organizationAccessGuard.requireSameOrganization(
+                property.getOrganizationId(), "Logement hors de votre organisation");
 
         NoiseDevice device = new NoiseDevice();
         device.setUserId(userId);
@@ -105,6 +111,8 @@ public class NoiseDeviceService {
     public void deleteDevice(String userId, Long deviceId) {
         NoiseDevice device = noiseDeviceRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Capteur introuvable: " + deviceId));
+        organizationAccessGuard.requireSameOrganization(
+                device.getOrganizationId(), "Capteur de bruit hors de votre organisation");
 
         if (DeviceType.TUYA.equals(device.getDeviceType())) {
             claimService.release(device.getExternalDeviceId());
@@ -123,6 +131,8 @@ public class NoiseDeviceService {
                                                   String startAt, String endAt) {
         NoiseDevice device = noiseDeviceRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Capteur introuvable: " + deviceId));
+        organizationAccessGuard.requireSameOrganization(
+                device.getOrganizationId(), "Capteur de bruit hors de votre organisation");
 
         if (device.getExternalDeviceId() == null || device.getExternalDeviceId().isEmpty()) {
             log.warn("Pas d'external device ID pour le capteur {}, retour donnees vides", deviceId);
@@ -152,6 +162,8 @@ public class NoiseDeviceService {
     public Map<String, Object> getDeviceStatus(String userId, Long deviceId) {
         NoiseDevice device = noiseDeviceRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Capteur introuvable: " + deviceId));
+        organizationAccessGuard.requireSameOrganization(
+                device.getOrganizationId(), "Capteur de bruit hors de votre organisation");
 
         boolean online = fetchOnline(userId, device);
         device.setOnline(online);

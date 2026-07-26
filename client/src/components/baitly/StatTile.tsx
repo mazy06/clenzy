@@ -57,7 +57,7 @@ export default function StatTile({
           {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
         </span>
       )}
-      {hint && <span className="text-xs text-muted-foreground [&_b]:font-semibold [&_b]:text-success">{hint}</span>}
+      {hint && <span className="text-xs text-muted-foreground [&_b]:font-semibold [&_b]:text-success-ink">{hint}</span>}
     </Comp>
   );
 }

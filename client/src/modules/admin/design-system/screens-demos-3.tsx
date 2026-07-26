@@ -837,14 +837,14 @@ export function BAssistantSectionDemo() {
                     80 € → <b className="text-primary"><Money value={70} decimals={0} /></b> /nuit
                   </span>
                   <span>
-                    revenu estimé <b className="text-success">+<Money value={680} decimals={0} /></b>
+                    revenu estimé <b className="text-success-ink">+<Money value={680} decimals={0} /></b>
                   </span>
                 </div>
                 {hitlDecision ? (
                   <div
                     className={cn(
                       'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs',
-                      hitlDecision === 'appliquée' ? 'bg-success-soft text-success' : 'bg-muted text-muted-foreground'
+                      hitlDecision === 'appliquée' ? 'bg-success-soft text-success-ink' : 'bg-muted text-muted-foreground'
                     )}
                   >
                     <CheckIcon className="size-3.5" /> Proposition {hitlDecision}

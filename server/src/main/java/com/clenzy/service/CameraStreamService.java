@@ -7,6 +7,9 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.util.Locale;
+import java.util.Set;
+
 /**
  * Passerelle media go2rtc : enregistre/retire les flux cote go2rtc (RTSP en
  * passthrough, HTTP/HLS via ffmpeg) et construit l'URL de lecture pour le frontend.
@@ -22,6 +25,9 @@ import org.springframework.web.client.RestClient;
 public class CameraStreamService {
 
     private static final Logger log = LoggerFactory.getLogger(CameraStreamService.class);
+
+    /** Schemes de source media acceptes ; tout le reste est refuse (audit 2026-07, P3-01). */
+    private static final Set<String> ALLOWED_SOURCE_SCHEMES = Set.of("rtsp", "rtsps", "http", "https");
 
     private final String publicBaseUrl;
     private final String apiUrl;
@@ -82,21 +88,62 @@ public class CameraStreamService {
     /**
      * Construit le {@code src} go2rtc selon le scheme de l'URL fournie.
      * <ul>
-     *   <li>{@code rtsp://} (et autres schemes natifs go2rtc) : passthrough — le H.264
-     *       RTSP passe directement en WebRTC, sans transcodage (cout CPU nul).</li>
+     *   <li>{@code rtsp://} / {@code rtsps://} : passthrough — le H.264 RTSP passe
+     *       directement en WebRTC, sans transcodage (cout CPU nul).</li>
      *   <li>{@code http(s)://} (HLS {@code .m3u8}, MP4, flux HTTP) : go2rtc ne lit pas
      *       l'URL brute. On passe par ffmpeg avec transcodage {@code video=h264} /
      *       {@code audio=opus} (codecs natifs WebRTC) <b>cap a 640x360</b> pour limiter
      *       le CPU — le transcodage est lourd, c'est une source secondaire/test. Le
      *       RTSP, lui, passe en direct (passthrough) sans transcodage.</li>
+     *   <li>tout autre scheme : <b>refuse</b> (voir {@link #assertAllowedSourceScheme}).</li>
      * </ul>
      */
     static String toGo2rtcSource(String url) {
-        String lower = url.toLowerCase();
-        if (lower.startsWith("http://") || lower.startsWith("https://")) {
+        String scheme = assertAllowedSourceScheme(url);
+        if ("http".equals(scheme) || "https".equals(scheme)) {
             return "ffmpeg:" + url + "#video=h264#audio=opus#width=640#height=360";
         }
         return url;
+    }
+
+    /**
+     * Verifie que la source appartient a l'allow-list de schemes et retourne ce scheme
+     * en minuscules.
+     *
+     * <p>Audit 2026-07 (P3-01) : la source etait auparavant transmise telle quelle a
+     * l'API go2rtc pour tout scheme non-HTTP (« passthrough »). Or go2rtc supporte des
+     * sources d'execution — {@code exec:} notamment — et la configuration deployee
+     * ({@code alexxit/go2rtc:1.9.4}, {@code go2rtc/go2rtc.yaml}) ne restreint pas les
+     * sources. Une URL de camera devenait donc une primitive d'execution de commande
+     * dans le conteneur media, lui-meme sur le reseau Docker de la base et de Keycloak.
+     * Comme {@code POST /api/cameras} est ouvert a tout compte authentifie, le vecteur
+     * etait accessible a n'importe quel role, y compris HOUSEKEEPER.</p>
+     *
+     * <p>Le filtrage des adresses privees/loopback n'est <b>volontairement pas</b> fait
+     * ici : une camera IP legitime peut vivre derriere une adresse RFC1918 selon la
+     * topologie reseau du client. Restreindre les plages est une decision produit, a
+     * instruire separement — la faille traitee ici est l'execution de commande.</p>
+     *
+     * @return le scheme valide, en minuscules
+     * @throws IllegalArgumentException si le scheme est absent ou hors allow-list
+     */
+    static String assertAllowedSourceScheme(String url) {
+        String scheme = schemeOf(url);
+        if (!ALLOWED_SOURCE_SCHEMES.contains(scheme)) {
+            throw new IllegalArgumentException(
+                    "Schema de source camera non autorise: '" + scheme + "' — attendu "
+                            + ALLOWED_SOURCE_SCHEMES);
+        }
+        return scheme;
+    }
+
+    /** Scheme d'une URI ({@code exec:...} comme {@code rtsp://...}), minuscules, "" si absent. */
+    private static String schemeOf(String url) {
+        if (url == null) {
+            return "";
+        }
+        int separator = url.indexOf(':');
+        return separator <= 0 ? "" : url.substring(0, separator).toLowerCase(Locale.ROOT);
     }
 
     /** Retire le flux cote go2rtc (best-effort). */

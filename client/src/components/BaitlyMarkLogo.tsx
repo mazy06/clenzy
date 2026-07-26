@@ -89,7 +89,7 @@ export interface BaitlyMarkLogoProps {
  * Tracé de la maison en un trait continu, dessiné dans un viewBox 1024.
  * Les deux packets réutilisent exactement ce même path (ils circulent dessus).
  */
-const MARK_PATH =
+export const MARK_PATH =
   'M463 590.25 A30.25 30.25 0 0 1 463 529.75 A30.25 30.25 0 0 1 463 590.25 V710 ' +
   'A30 30 0 0 1 433 740 H368 A65 65 0 0 1 303 675 V441.8 A28 28 0 0 1 313.9 419.6 ' +
   'L478.2 294.1 A54 54 0 0 1 543.8 294.1 L708.1 419.6 A28 28 0 0 1 719 441.8 V675 ' +
@@ -99,10 +99,10 @@ const MARK_PATH =
 // viewBox resserré sur les limites du tracé (maison ~x[293,730] y[273,751] avec
 // demi-épaisseur de trait) pour que le mark remplisse la boîte comme l'ancien
 // octogone, sans padding excessif hérité du canvas 1024 d'origine.
-const MARK_VIEWBOX = '251 251 522 522';
+export const MARK_VIEWBOX = '251 251 522 522';
 
 // Épaisseur de trait en unités du viewBox 1024 (identique au SVG source).
-const STROKE_WIDTH = 21;
+export const STROKE_WIDTH = 21;
 
 /**
  * Teintes signature du flux de données (request bleu / response ambre —

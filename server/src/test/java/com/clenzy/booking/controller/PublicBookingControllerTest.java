@@ -20,7 +20,7 @@ import com.clenzy.booking.service.BookingServiceOptionsService;
 import com.clenzy.booking.service.PublicBookingService;
 import com.clenzy.booking.service.PublicBookingService.OrgContext;
 import com.clenzy.model.Organization;
-import com.clenzy.service.PropertyPhotoService;
+import com.clenzy.booking.service.PublicPropertyPhotoService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,7 +50,7 @@ class PublicBookingControllerTest {
 
     @Mock private PublicBookingService bookingService;
     @Mock private BookingServiceOptionsService serviceOptionsService;
-    @Mock private PropertyPhotoService photoService;
+    @Mock private PublicPropertyPhotoService photoService;
     @Mock private com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter;
     @Mock private HttpServletRequest request;
 
@@ -237,8 +237,8 @@ class PublicBookingControllerTest {
     void getPublicPhotoData_success() {
         when(request.getAttribute("bookingConfig")).thenReturn(ctx.config());
         when(bookingService.resolveFromFilter(any())).thenReturn(ctx);
-        when(photoService.getPhotoData(10L, 100L)).thenReturn(new byte[]{1, 2, 3});
-        when(photoService.getPhotoContentType(10L, 100L)).thenReturn("image/jpeg");
+        when(photoService.getVisiblePhoto(10L, 100L))
+                .thenReturn(new PublicPropertyPhotoService.PublicPhoto(new byte[]{1, 2, 3}, "image/jpeg"));
 
         ResponseEntity<byte[]> response = controller.getPublicPhotoData("slug", 10L, 100L, request);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
@@ -249,7 +249,7 @@ class PublicBookingControllerTest {
     void getPublicPhotoData_failure_returns404() {
         when(request.getAttribute("bookingConfig")).thenReturn(ctx.config());
         when(bookingService.resolveFromFilter(any())).thenReturn(ctx);
-        when(photoService.getPhotoData(10L, 100L)).thenThrow(new RuntimeException("not found"));
+        when(photoService.getVisiblePhoto(10L, 100L)).thenThrow(new RuntimeException("not found"));
 
         ResponseEntity<byte[]> response = controller.getPublicPhotoData("slug", 10L, 100L, request);
         assertThat(response.getStatusCode().value()).isEqualTo(404);

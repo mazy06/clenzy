@@ -42,13 +42,37 @@ public class RlsTenantGucAspect {
 
     public RlsTenantGucAspect(EntityManager entityManager,
                               TenantContext tenantContext,
-                              @Value("${clenzy.security.rls.enabled:false}") boolean rlsEnabled) {
+                              @Value("${clenzy.security.rls.enabled:false}") boolean rlsEnabled,
+                              @Value("${clenzy.security.rls.strict-context:false}") boolean strictContext) {
         this.entityManager = entityManager;
         this.tenantContext = tenantContext;
         this.rlsEnabled = rlsEnabled;
+        // {@link RlsGuc} est un utilitaire statique (appele depuis un @Before, sans injection) :
+        // le flag est propage ici, au seul point ou le contexte Spring est disponible.
+        RlsGuc.setStrictContext(strictContext);
     }
 
-    @Before("@annotation(org.springframework.transaction.annotation.Transactional) && within(com.clenzy..*)")
+    /**
+     * Couvre les <b>deux</b> formes de {@code @Transactional} :
+     * <ul>
+     *   <li>{@code @annotation(...)} — annotation portée par la <b>méthode</b> ;</li>
+     *   <li>{@code @within(...)} — annotation portée par la <b>classe</b>, qui s'applique
+     *       alors à toutes ses méthodes publiques.</li>
+     * </ul>
+     *
+     * <p>Audit 2026-07, défaut R1 : le pointcut ne comportait que le premier terme. Or
+     * <b>97 classes</b> de {@code com.clenzy} sont annotées au niveau classe
+     * ({@code PublicBookingService}, {@code KpiService}, {@code ChannelConnectionService}…) :
+     * aucune de leurs méthodes ne posait de GUC. Sous RLS active, leurs requêtes auraient
+     * renvoyé 0 ligne (fail-closed) — soit un outage sur une part majeure du produit dès le
+     * premier déploiement avec {@code clenzy.security.rls.enabled=true}.</p>
+     *
+     * <p>Correctif sans risque tant que la RLS est inactive : le flag coupe la méthode avant
+     * tout accès base. Verrouillé par {@code RlsTenantGucAspectTest}.</p>
+     */
+    @Before("(@annotation(org.springframework.transaction.annotation.Transactional)"
+            + " || @within(org.springframework.transaction.annotation.Transactional))"
+            + " && within(com.clenzy..*)")
     public void applyTenantGuc() {
         if (!rlsEnabled) {
             return;

@@ -10,12 +10,22 @@ import { cn } from '../../utils/cn';
 export type StatusTone = 'ok' | 'warn' | 'err' | 'info' | 'accent' | 'neutral';
 
 const TONE_CLASSES: Record<StatusTone, string> = {
-  ok: 'bg-success-soft text-success border-transparent',
-  warn: 'bg-warning-soft text-warning border-transparent',
-  err: 'bg-destructive-soft text-destructive border-transparent',
-  info: 'bg-info-soft text-info border-transparent',
+  ok: 'bg-success-soft text-success-ink border-transparent',
+  warn: 'bg-warning-soft text-warning-ink border-transparent',
+  err: 'bg-destructive-soft text-destructive-ink border-transparent',
+  info: 'bg-info-soft text-info-ink border-transparent',
   accent: 'bg-primary-soft text-primary border-transparent',
   neutral: 'bg-muted text-muted-foreground border-transparent',
+};
+
+/** La pastille garde la teinte vive : seul le texte passe en `-ink` (WCAG AA). */
+const TONE_DOT: Record<StatusTone, string> = {
+  ok: 'bg-success',
+  warn: 'bg-warning',
+  err: 'bg-destructive',
+  info: 'bg-info',
+  accent: 'bg-primary',
+  neutral: 'bg-muted-foreground',
 };
 
 export interface StatusChipProps {
@@ -57,7 +67,12 @@ export default function StatusChip({
         className
       )}
     >
-      {icon ?? (dot && <span className="size-1.5 rounded-[3px] bg-current" />)}
+      {icon ??
+        (dot && (
+          <span
+            className={cn('size-1.5 rounded-[3px]', color ? 'bg-current' : TONE_DOT[tone])}
+          />
+        ))}
       {label}
     </Badge>
   );

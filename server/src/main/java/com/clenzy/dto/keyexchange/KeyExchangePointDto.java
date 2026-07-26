@@ -2,6 +2,13 @@ package com.clenzy.dto.keyexchange;
 
 import java.time.LocalDateTime;
 
+/*
+ * Le champ `verificationToken` a ete RETIRE le 2026-07-26 (audit securite, constat P1-02).
+ * Ce jeton ouvre la page publique de verification du gardien : le diffuser dans le listing
+ * des points le rendait lisible par tout utilisateur pouvant appeler GET /points — listing
+ * qui, de surcroit, n'etait pas borne a l'organisation. Le jeton reste genere et sert
+ * toujours la page publique ; il n'est simplement plus expose par l'API.
+ */
 public class KeyExchangePointDto {
 
     private Long id;
@@ -16,7 +23,6 @@ public class KeyExchangePointDto {
     private Double storeLat;
     private Double storeLng;
     private String storeOpeningHours;
-    private String verificationToken;
     private String status;
     private long activeCodesCount;
     private LocalDateTime createdAt;
@@ -59,8 +65,6 @@ public class KeyExchangePointDto {
     public String getStoreOpeningHours() { return storeOpeningHours; }
     public void setStoreOpeningHours(String storeOpeningHours) { this.storeOpeningHours = storeOpeningHours; }
 
-    public String getVerificationToken() { return verificationToken; }
-    public void setVerificationToken(String verificationToken) { this.verificationToken = verificationToken; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

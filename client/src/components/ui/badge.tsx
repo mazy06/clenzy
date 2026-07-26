@@ -21,9 +21,10 @@ const badgeVariants = cva(
         ghost: "cn-badge-variant-ghost",
         link: "cn-badge-variant-link",
         // Extension Baitly : statuts PMS sur fonds doux (tokens --bui-*).
-        success: "border-transparent bg-success-soft text-success",
-        warning: "border-transparent bg-warning-soft text-warning",
-        info: "border-transparent bg-info-soft text-info",
+        // Texte en `-ink` : la teinte vive ne passe pas AA en clair.
+        success: "border-transparent bg-success-soft text-success-ink",
+        warning: "border-transparent bg-warning-soft text-warning-ink",
+        info: "border-transparent bg-info-soft text-info-ink",
       },
     },
     defaultVariants: {

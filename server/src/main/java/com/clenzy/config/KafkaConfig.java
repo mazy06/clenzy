@@ -17,13 +17,18 @@ import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Configuration Apache Kafka pour Clenzy.
@@ -122,10 +127,16 @@ public class KafkaConfig {
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
-            DefaultErrorHandler kafkaErrorHandler) {
+            DefaultErrorHandler kafkaErrorHandler,
+            TenantIsolatingRecordInterceptor tenantIsolatingRecordInterceptor) {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
+
+        // Isolation tenant (audit 2026-07, REM-S1-05) : les threads de consommation sont
+        // reutilises entre messages et TenantContext est un ThreadLocal. Sans ce nettoyage,
+        // un message heritait du contexte laisse par le precedent.
+        factory.setRecordInterceptor(tenantIsolatingRecordInterceptor);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
 
         // Concurrence : 1 consumer par partition (max 3 partitions)
@@ -343,5 +354,73 @@ public class KafkaConfig {
                 .partitions(3)
                 .replicas(1)
                 .build();
+    }
+
+    // ─── Topics consommes et files de rebut (audit 2026-07, P5-02 / P5-03) ──────
+
+    /**
+     * Topics reellement consommes par un {@code @KafkaListener}.
+     *
+     * <p>Source unique de verite : cette liste pilote la creation des topics metier
+     * <b>et</b> de leurs files de rebut. Elle est verifiee par
+     * {@code KafkaTopicDeclarationTest}, qui echoue si un listener consomme un topic
+     * absent d'ici.</p>
+     *
+     * <p>Quatre topics OTA ({@code booking.*}, {@code agoda.*}) etaient consommes par
+     * litteral sans jamais etre declares : avec {@code auto.create.topics.enable=false}
+     * en production, ces flux echouaient silencieusement (P5-03).</p>
+     */
+    public static final Set<String> CONSUMED_TOPICS = Set.of(
+            TOPIC_AIRBNB_RESERVATIONS,
+            TOPIC_AIRBNB_CALENDAR,
+            TOPIC_AIRBNB_MESSAGES,
+            TOPIC_AIRBNB_LISTINGS,
+            TOPIC_EXPEDIA_RESERVATIONS,
+            TOPIC_EXPEDIA_CALENDAR,
+            TOPIC_MINUT_WEBHOOKS,
+            TOPIC_CALENDAR_UPDATES,
+            TOPIC_DOCUMENT_GENERATE,
+            TOPIC_NOTIFICATIONS,
+            TOPIC_PAYMENT_EVENTS,
+            "booking.reservations",
+            "booking.calendar.sync",
+            "agoda.reservations",
+            "agoda.calendar.sync");
+
+    /** Noms des files de rebut, derives de {@link #CONSUMED_TOPICS}. */
+    public static Set<String> deadLetterTopicNames() {
+        return CONSUMED_TOPICS.stream()
+                .map(topic -> topic + ".DLT")
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    /**
+     * Declare les topics OTA manquants et toutes les files de rebut.
+     *
+     * <p>Le {@link DeadLetterPublishingRecoverer} route les echecs definitifs vers
+     * {@code <topic>.DLT}. Ces topics n'etaient pas declares et le commentaire d'origine
+     * supposait une auto-creation — desactivee en production. Un message empoisonne
+     * enchainait donc : 6 tentatives, publication DLT en echec, offset non commite,
+     * <b>boucle de retry infinie bloquant la partition</b> (P5-02).</p>
+     *
+     * <p>Une seule partition et une retention courte suffisent pour une file de rebut :
+     * elle sert au diagnostic et au rejeu manuel, pas au debit.</p>
+     */
+    @Bean
+    public KafkaAdmin.NewTopics deadLetterAndMissingTopics() {
+        List<NewTopic> topics = new java.util.ArrayList<>();
+
+        // Topics metier consommes mais jamais declares (P5-03).
+        for (String topic : List.of("booking.reservations", "booking.calendar.sync",
+                "agoda.reservations", "agoda.calendar.sync")) {
+            topics.add(TopicBuilder.name(topic).partitions(3).replicas(1).build());
+        }
+
+        // Files de rebut (P5-02).
+        for (String deadLetterTopic : deadLetterTopicNames()) {
+            topics.add(TopicBuilder.name(deadLetterTopic).partitions(1).replicas(1).build());
+        }
+
+        return new KafkaAdmin.NewTopics(topics.toArray(new NewTopic[0]));
     }
 }

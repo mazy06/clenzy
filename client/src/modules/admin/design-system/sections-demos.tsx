@@ -734,7 +734,7 @@ export function BReservationDetailSectionDemo() {
                 >
                   {step.state === 'done' ? <CircleCheckIcon className="size-3" /> : <span className="size-1.5 rounded-full bg-current" />}
                 </span>
-                <span className={cn('text-2xs font-medium whitespace-nowrap', step.state === 'current' ? 'text-warning' : 'text-foreground')}>
+                <span className={cn('text-2xs font-medium whitespace-nowrap', step.state === 'current' ? 'text-warning-ink' : 'text-foreground')}>
                   {step.label}
                 </span>
                 <span className="text-2xs whitespace-nowrap text-muted-foreground">{step.detail}</span>
@@ -789,11 +789,11 @@ export function BReservationDetailSectionDemo() {
               <span>Total</span>
               <span className="tabular-nums"><Money value={1240} decimals={0} /></span>
             </div>
-            <div className="flex justify-between text-success">
+            <div className="flex justify-between text-success-ink">
               <span>Acompte reçu (3 juil.)</span>
               <span className="tabular-nums">−<Money value={372} decimals={0} /></span>
             </div>
-            <div className="flex justify-between font-semibold text-warning">
+            <div className="flex justify-between font-semibold text-warning-ink">
               <span>Solde dû avant le 5 août</span>
               <span className="tabular-nums"><Money value={868} decimals={0} /></span>
             </div>

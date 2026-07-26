@@ -49,11 +49,16 @@ class ThermostatServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ThermostatService(thermostatRepository, propertyRepository, tuyaApiService, tenantContext, claimService, netatmoApiService);
+        service = new ThermostatService(thermostatRepository, propertyRepository, tuyaApiService, tenantContext, claimService, netatmoApiService,
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
+        // Isolation multi-tenant (audit P1-09/P1-10/P1-15) : sans organisation courante,
+        // le garde refuse — il est fail-closed. Les entites de ces tests portent la meme.
+        org.mockito.Mockito.lenient().when(tenantContext.getOrganizationId()).thenReturn(99L);
     }
 
     private Thermostat persisted(String externalId) {
         Thermostat t = new Thermostat();
+        t.setOrganizationId(99L);
         t.setId(1L);
         t.setName("Salon");
         t.setPropertyId(10L);
@@ -67,6 +72,7 @@ class ThermostatServiceTest {
     void create_setsDefaults() {
         Property property = org.mockito.Mockito.mock(Property.class);
         when(property.getId()).thenReturn(10L);
+        when(property.getOrganizationId()).thenReturn(99L);
         when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
         when(tenantContext.getRequiredOrganizationId()).thenReturn(99L);
         when(thermostatRepository.save(any(Thermostat.class))).thenAnswer(inv -> inv.getArgument(0));

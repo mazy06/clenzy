@@ -37,6 +37,7 @@ class SplitPaymentServiceTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private WalletService walletService;
     @Mock private LedgerService ledgerService;
+    @Mock private com.clenzy.repository.LedgerEntryRepository ledgerEntryRepository;
 
     private TenantContext tenantContext;
     private SplitPaymentService service;
@@ -47,7 +48,27 @@ class SplitPaymentServiceTest {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
         service = new SplitPaymentService(splitConfigRepository, managementContractService,
-                reservationRepository, walletService, ledgerService, tenantContext);
+                reservationRepository, walletService, ledgerService, ledgerEntryRepository,
+                tenantContext);
+    }
+
+    /**
+     * Audit 2026-07 (P5-05) — ESCROW_RELEASED arrive par Kafka, donc at-least-once. Le statut
+     * de l'EscrowHold ne peut pas servir de garde : il vaut deja RELEASED quand l'evenement
+     * est publie. Sans idempotence, un rejeu — y compris un simple redemarrage ou un timeout
+     * de broker, sans aucun attaquant — recrediterait le wallet du proprietaire.
+     */
+    @Test
+    @DisplayName("splitPayment : un rejeu n'ecrit aucune nouvelle ligne au ledger (P5-05)")
+    void splitPayment_replayIsIdempotent() {
+        when(ledgerEntryRepository.existsByReferenceTypeAndReferenceId(
+                LedgerReferenceType.SPLIT, "SPLIT-RES-55")).thenReturn(true);
+
+        var result = service.splitPayment(55L, new java.math.BigDecimal("100.00"), "EUR", 9L);
+
+        assertThat(result.ownerAmount()).isEqualByComparingTo("0");
+        verify(ledgerService, never()).recordTransfer(any(), any(), any(), any(), any(), any());
+        verify(walletService, never()).getOrCreateWallet(any(), any(), any(), any());
     }
 
     private Wallet wallet(Long id, WalletType type) {

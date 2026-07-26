@@ -18,6 +18,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.Instant;
@@ -99,8 +100,16 @@ class UserControllerTest {
     @DisplayName("update")
     class Update {
 
+        /**
+         * Verifie la delegation et la garde d'ownership de la couche service.
+         *
+         * <p>L'autorisation d'acces a l'endpoint est desormais portee par
+         * {@code @PreAuthorize("hasRole('SUPER_ADMIN')")} (audit 2026-07 P2-01), qui n'est
+         * pas evalue ici faute de proxy Spring Security : en runtime, ce JWT non-admin
+         * serait rejete en amont. Voir {@link #updateEndpointIsRestrictedToSuperAdmin()}.</p>
+         */
         @Test
-        @DisplayName("owner can update their own resource")
+        @DisplayName("delegates to the service and enforces the ownership guard")
         void whenOwnerUpdates_thenDelegates() {
             // Arrange
             Jwt jwt = buildJwt("kc-123", false);
@@ -150,6 +159,41 @@ class UserControllerTest {
             // Act & Assert
             assertThatThrownBy(() -> controller.update(1L, dto, jwt))
                     .isInstanceOf(AccessDeniedException.class);
+        }
+
+        /**
+         * Audit 2026-07 (P2-01 / P2-02) — escalade de privileges self-service.
+         *
+         * <p>Sans garde de role, tout compte authentifie (y compris HOUSEKEEPER) pouvait
+         * appeler {@code PUT /api/users/{son-propre-id}} avec {@code {"role":"SUPER_ADMIN"}}
+         * ou {@code {"organizationId": <org tierce>}} : {@code requireOwnershipOrAdmin}
+         * autorise le proprietaire, et {@code UserService.update} applique {@code role},
+         * {@code status}, {@code organizationId} et {@code deferredPayment} sans aucun
+         * controle de privilege. Or le role en base pilote le bypass tenant
+         * ({@code TenantFilter#resolveTenant} → {@code isPlatformStaff}), donc l'escalade
+         * desactivait l'isolation multi-tenant entiere.</p>
+         *
+         * <p>Le self-service legitime passe par {@code PATCH /api/users/me/profile}
+         * ({@code updateOwnProfile}), qui n'expose aucun champ de privilege — cet endpoint
+         * n'a donc pas besoin d'etre accessible au proprietaire.</p>
+         *
+         * <p>Ce test verifie l'annotation et non le comportement : {@code @PreAuthorize}
+         * est evalue par le proxy Spring Security, absent d'un test unitaire Mockito.</p>
+         */
+        @Test
+        @DisplayName("PUT /{id} exige le role SUPER_ADMIN (audit 2026-07 P2-01)")
+        void updateEndpointIsRestrictedToSuperAdmin() throws NoSuchMethodException {
+            var updateMethod = UserController.class.getMethod("update", Long.class, UserDto.class, Jwt.class);
+
+            PreAuthorize preAuthorize = updateMethod.getAnnotation(PreAuthorize.class);
+
+            assertThat(preAuthorize)
+                    .as("PUT /api/users/{id} ecrit role/status/organizationId : "
+                            + "une garde de role au niveau methode est obligatoire")
+                    .isNotNull();
+            assertThat(preAuthorize.value())
+                    .as("la garde doit exiger SUPER_ADMIN, comme create/list/delete du meme controller")
+                    .contains("SUPER_ADMIN");
         }
     }
 

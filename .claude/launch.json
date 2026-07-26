@@ -10,6 +10,13 @@
       "autoPort": true
     },
     {
+      "name": "baitly-site",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:site"],
+      "cwd": "client",
+      "port": 3005
+    },
+    {
       "name": "backend",
       "runtimeExecutable": "mvn",
       "runtimeArgs": ["spring-boot:run", "-Dspring-boot.run.profiles=dev,local"],

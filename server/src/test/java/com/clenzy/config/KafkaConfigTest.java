@@ -71,13 +71,19 @@ class KafkaConfigTest {
         DefaultErrorHandler errorHandler = config.kafkaErrorHandler(
             config.kafkaDeadLetterPublishingRecoverer(config.kafkaTemplate()));
 
+        TenantIsolatingRecordInterceptor tenantInterceptor =
+            new TenantIsolatingRecordInterceptor(new com.clenzy.tenant.TenantContext());
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
-            config.kafkaListenerContainerFactory(errorHandler);
+            config.kafkaListenerContainerFactory(errorHandler, tenantInterceptor);
 
         assertThat(factory).isNotNull();
         assertThat(factory.getContainerProperties().getAckMode())
             .isEqualTo(org.springframework.kafka.listener.ContainerProperties.AckMode.RECORD);
         assertThat(factory.getContainerProperties()).isNotNull();
+        assertThat(ReflectionTestUtils.getField(factory, "recordInterceptor"))
+            .as("l'intercepteur d'isolation tenant doit etre branche : sans lui, un message "
+                + "herite du TenantContext laisse par le precedent sur le meme thread")
+            .isSameAs(tenantInterceptor);
         assertThat(ReflectionTestUtils.getField(factory, "commonErrorHandler"))
             .as("le DefaultErrorHandler avec DLQ doit etre branche sur la factory")
             .isSameAs(errorHandler);

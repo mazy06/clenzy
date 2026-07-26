@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.thermostat.CreateThermostatDto;
+import com.clenzy.service.access.OrganizationAccessGuard;
 import com.clenzy.dto.thermostat.ThermostatDto;
 import com.clenzy.integration.netatmo.service.NetatmoApiService;
 import com.clenzy.integration.tuya.service.TuyaApiService;
@@ -38,6 +39,7 @@ public class ThermostatService {
     private static final Logger log = LoggerFactory.getLogger(ThermostatService.class);
 
     private final ThermostatRepository thermostatRepository;
+    private final OrganizationAccessGuard organizationAccessGuard;
     private final PropertyRepository propertyRepository;
     private final TuyaApiService tuyaApiService;
     private final TenantContext tenantContext;
@@ -49,13 +51,15 @@ public class ThermostatService {
                              TuyaApiService tuyaApiService,
                              TenantContext tenantContext,
                              TuyaDeviceClaimService claimService,
-                             NetatmoApiService netatmoApiService) {
+                             NetatmoApiService netatmoApiService,
+                                    OrganizationAccessGuard organizationAccessGuard) {
         this.thermostatRepository = thermostatRepository;
         this.propertyRepository = propertyRepository;
         this.tuyaApiService = tuyaApiService;
         this.tenantContext = tenantContext;
         this.claimService = claimService;
         this.netatmoApiService = netatmoApiService;
+        this.organizationAccessGuard = organizationAccessGuard;
     }
 
     // ─── CRUD ───────────────────────────────────────────────────
@@ -70,6 +74,8 @@ public class ThermostatService {
     public ThermostatDto createThermostat(String userId, CreateThermostatDto dto) {
         Property property = propertyRepository.findById(dto.propertyId())
                 .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable: " + dto.propertyId()));
+        organizationAccessGuard.requireSameOrganization(
+                property.getOrganizationId(), "Logement hors de votre organisation");
 
         Thermostat thermostat = new Thermostat();
         thermostat.setUserId(userId);
@@ -95,6 +101,8 @@ public class ThermostatService {
     public void deleteThermostat(String userId, Long thermostatId) {
         Thermostat thermostat = thermostatRepository.findById(thermostatId)
                 .orElseThrow(() -> new IllegalArgumentException("Thermostat introuvable: " + thermostatId));
+        organizationAccessGuard.requireSameOrganization(
+                thermostat.getOrganizationId(), "Thermostat hors de votre organisation");
         if ("TUYA".equalsIgnoreCase(thermostat.getBrand())) {
             claimService.release(thermostat.getExternalDeviceId());
         }
@@ -110,6 +118,8 @@ public class ThermostatService {
     public ThermostatDto refreshStatus(String userId, Long thermostatId) {
         Thermostat t = thermostatRepository.findById(thermostatId)
                 .orElseThrow(() -> new IllegalArgumentException("Thermostat introuvable: " + thermostatId));
+        organizationAccessGuard.requireSameOrganization(
+                t.getOrganizationId(), "Thermostat hors de votre organisation");
 
         if (t.getExternalDeviceId() == null || t.getExternalDeviceId().isEmpty()) {
             return toDto(t);
@@ -177,6 +187,8 @@ public class ThermostatService {
     public ThermostatDto setTargetTemp(String userId, Long thermostatId, double targetTempC) {
         Thermostat t = thermostatRepository.findById(thermostatId)
                 .orElseThrow(() -> new IllegalArgumentException("Thermostat introuvable: " + thermostatId));
+        organizationAccessGuard.requireSameOrganization(
+                t.getOrganizationId(), "Thermostat hors de votre organisation");
 
         if (t.getExternalDeviceId() == null || t.getExternalDeviceId().isEmpty()) {
             throw new IllegalStateException("Pas d'ID device configure pour ce thermostat");

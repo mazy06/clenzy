@@ -45,6 +45,14 @@ class BookingApiKeyFilterTest {
         return new BookingApiKeyFilter(configRepository, mapper, env);
     }
 
+    /** Filtre prod avec la soupape `allow-originless-requests` activee. */
+    private BookingApiKeyFilter prodFilterWithOriginlessAllowed() {
+        org.springframework.mock.env.MockEnvironment env = new org.springframework.mock.env.MockEnvironment();
+        env.setActiveProfiles("prod");
+        env.setProperty("clenzy.booking.allow-originless-requests", "true");
+        return new BookingApiKeyFilter(configRepository, mapper, env);
+    }
+
     private static BookingEngineConfig config(boolean enabled, String allowedOrigins) {
         BookingEngineConfig c = new BookingEngineConfig();
         c.setEnabled(enabled);
@@ -297,5 +305,69 @@ class BookingApiKeyFilterTest {
         verify(chain).doFilter(req, resp);
         // Pas d'Origin → pas de headers CORS refletes
         assertThat(resp.getHeader("Access-Control-Allow-Origin")).isNull();
+    }
+
+    // ─── P1-16 : le controle d'origine ne doit plus etre contournable ────────
+
+    /**
+     * Sans Origin NI Referer, la branche de validation etait entierement sautee : un
+     * `curl` porteur de la cle passait sans controle. La cle n'etant pas un secret (elle
+     * est publiee en clair dans le HTML des sites), c'est l'origine qui borne son usage.
+     */
+    @Test
+    void doFilterInternal_prodSansOriginNiReferer_refuse() throws Exception {
+        BookingEngineConfig cfg = config(true, "https://client.example.com");
+        when(configRepository.findByApiKey("ok")).thenReturn(Optional.of(cfg));
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/public/booking/x");
+        req.addHeader("X-Booking-Key", "ok");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+
+        prodFilter().doFilterInternal(req, resp, new MockFilterChain());
+
+        assertThat(resp.getStatus()).isEqualTo(403);
+    }
+
+    /** Meme requete, mais la soupape de configuration restaure le comportement historique. */
+    @Test
+    void doFilterInternal_prodSansOrigine_acceptee_siSoupapeActivee() throws Exception {
+        BookingEngineConfig cfg = config(true, "https://client.example.com");
+        when(configRepository.findByApiKey("ok")).thenReturn(Optional.of(cfg));
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/public/booking/x");
+        req.addHeader("X-Booking-Key", "ok");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+
+        prodFilterWithOriginlessAllowed().doFilterInternal(req, resp, new MockFilterChain());
+
+        assertThat(resp.getStatus()).isEqualTo(200);
+    }
+
+    /** Hors production, le comportement permissif historique est conserve (dev/test). */
+    @Test
+    void doFilterInternal_horsProdSansOrigine_reste_accepte() throws Exception {
+        BookingEngineConfig cfg = config(true, "https://client.example.com");
+        when(configRepository.findByApiKey("ok")).thenReturn(Optional.of(cfg));
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/public/booking/x");
+        req.addHeader("X-Booking-Key", "ok");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+
+        filter.doFilterInternal(req, resp, new MockFilterChain());
+
+        assertThat(resp.getStatus()).isEqualTo(200);
+    }
+
+    /** Une origine legitime continue de passer en production : pas de regression. */
+    @Test
+    void doFilterInternal_prodAvecOrigineAutorisee_passe() throws Exception {
+        BookingEngineConfig cfg = config(true, "https://client.example.com");
+        when(configRepository.findByApiKey("ok")).thenReturn(Optional.of(cfg));
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/public/booking/x");
+        req.addHeader("X-Booking-Key", "ok");
+        req.addHeader("Origin", "https://client.example.com");
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+
+        prodFilter().doFilterInternal(req, resp, new MockFilterChain());
+
+        assertThat(resp.getStatus()).isEqualTo(200);
+        assertThat(resp.getHeader("Access-Control-Allow-Origin")).isEqualTo("https://client.example.com");
     }
 }

@@ -1,0 +1,215 @@
+/* Base du site marketing — contrairement au PMS (coexistence MUI), ici on peut
+   se permettre un reset complet : pas d'Emotion/CssBaseline à préserver. */
+@layer base {
+  /* box-sizing : l'app PMS l'hérite de MUI CssBaseline ; le site standalone
+     doit le poser lui-même — sans lui, paddings et bordures s'ajoutent aux
+     largeurs (champs qui se chevauchent, cartes qui débordent des grilles). */
+  *,
+  ::before,
+  ::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-heading, ui-sans-serif, system-ui, sans-serif);
+    background: var(--bui-background);
+    color: var(--bui-foreground);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  img,
+  svg {
+    max-width: 100%;
+    display: block;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* Un <input> natif impose une largeur minimale intrinsèque (~265px) qui
+     déborde des colonnes de grille plus étroites → champs qui se chevauchent.
+     w-full pilote la largeur réelle ; le minimum UA n'apporte rien ici. */
+  input,
+  select,
+  textarea {
+    min-width: 0;
+  }
+
+  ul,
+  ol {
+    list-style: none;
+  }
+}
+
+/* ─── Motion — révélation au scroll (ease-out-quint, GPU-only) ─────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+  .reveal-d1 { transition-delay: 70ms; }
+  .reveal-d2 { transition-delay: 140ms; }
+  .reveal-d3 { transition-delay: 210ms; }
+  .reveal-d4 { transition-delay: 280ms; }
+
+  /* Pouls discret des pastilles « live » (feed d'agents). */
+  @keyframes site-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--bui-success) 35%, transparent); }
+    55% { box-shadow: 0 0 0 5px transparent; }
+  }
+  .pulse-dot { animation: site-pulse 2.4s ease-out infinite; }
+}
+
+/* Fond héro : trame de points teintée brand, s'estompe vers le bas. */
+.hero-grid {
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--bui-primary) 14%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to bottom, black 55%, transparent);
+}
+
+/* Cartes partenaires : glow teinté à la couleur de marque + lift au survol.
+   La couleur de marque est passée via la variable --brand (inline). */
+.partner-card {
+  --brand: var(--bui-primary);
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s ease-out,
+    border-color 0.2s ease-out;
+}
+.partner-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--brand) 42%, var(--bui-border));
+  box-shadow: 0 12px 30px -12px color-mix(in srgb, var(--brand) 45%, transparent);
+}
+
+/* ─── Mur de logos partenaires (3 lignes défilantes, pattern Mobbin) ───────── */
+.brandwall {
+  /* Les bords s'estompent : les items entrent et sortent sans coupe nette. */
+  mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes brandwall-scroll {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  .brandwall-track {
+    /* Durée de repli seulement : le composant la recalcule depuis la largeur
+       mesurée pour garantir une vitesse constante (cf. PartnerMarquee). */
+    animation: brandwall-scroll 240s linear infinite;
+    will-change: transform;
+  }
+  /* Ligne du milieu à contresens : `reverse` rejoue la même image-clé de -50%
+     vers 0, donc le défilement part vers la droite sans casser la boucle. */
+  .brandwall-track--reverse {
+    animation-direction: reverse;
+  }
+  /* Survoler le mur suspend les 3 lignes : on peut lire un nom au passage. */
+  .brandwall:hover .brandwall-track {
+    animation-play-state: paused;
+  }
+}
+
+/* Brique de planning en attente d'action (fiche voyageur incomplète) :
+   anneau pulsé à la couleur de la brique — reprise de `planningUrgency.css`. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes pl-ring-wave {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--pl-bc, #C28A52) 55%, transparent); }
+    70% { box-shadow: 0 0 0 7px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+  /* Mouvement « wobble » — keyframes reprises telles quelles de
+     planning/planningUrgency.css (variante [data-wizz="wobble"]). */
+  @keyframes pl-wizz-wobble {
+    0%, 16%, 100% { transform: rotate(0); }
+    2% { transform: rotate(-1.6deg); }
+    5% { transform: rotate(1.6deg); }
+    8% { transform: rotate(-1deg); }
+    11% { transform: rotate(.7deg); }
+    14% { transform: rotate(0); }
+  }
+  .pl-urgent {
+    animation:
+      pl-wizz-wobble 4s ease-in-out infinite,
+      pl-ring-wave 2.4s ease-out infinite;
+  }
+}
+
+/* Ombre teintée brand (jamais de noir pur) pour les mockups produit. */
+.shadow-brand {
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--bui-primary) 10%, transparent),
+    0 16px 40px -12px color-mix(in srgb, var(--bui-primary) 25%, transparent);
+}
+
+/* Mockup IoT : la projection embarquée est rendue à largeur fixe (1240px) mais
+   ses breakpoints Tailwind suivent le viewport (étroit dans un pane / mobile) ;
+   on force chaque grille responsive sur sa disposition DESKTOP prévue — c'est
+   une capture de l'app en grand écran, quel que soit le viewport réel.
+   Chaque motif de colonnes est unique dans la projection (KPIs = 5, cartes du
+   parc = 3, dalles caméras = 4), donc le ciblage reste sûr. */
+.iot-stage [class*="grid-cols-5"] {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+}
+.iot-stage [class*="xl:grid-cols-3"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+.iot-stage [class*="lg:grid-cols-4"] {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+/* Mockup Portail propriétaire : même principe — forcer la disposition desktop
+   (KPIs 3 colonnes, bloc graphique + relevés côte à côte) quel que soit le
+   viewport. */
+.owner-stage [class*="sm:grid-cols-3"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+.owner-stage [class*="grid-cols-[1.4fr_1fr]"] {
+  grid-template-columns: 1.4fr 1fr !important;
+}
+
+/* Stage générique de mockup : force toute grille responsive d'une projection
+   embarquée sur sa disposition DESKTOP, quel que soit le viewport (capture de
+   l'app en grand écran). Chaque motif de colonnes est unique par projection. */
+.projection-stage [class*="grid-cols-5"] {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+}
+.projection-stage [class*="lg:grid-cols-4"],
+.projection-stage [class*="xl:grid-cols-4"] {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+.projection-stage [class*="lg:grid-cols-3"],
+.projection-stage [class*="xl:grid-cols-3"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+.projection-stage [class*="sm:grid-cols-3"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+.projection-stage [class*="grid-cols-[1.4fr_1fr]"] {
+  grid-template-columns: 1.4fr 1fr !important;
+}

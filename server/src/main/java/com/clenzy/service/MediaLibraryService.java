@@ -12,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.Locale;
 import java.util.Set;
 
@@ -77,10 +78,31 @@ public class MediaLibraryService {
         }
     }
 
-    /** Sert le binaire d'un média (public). NULL si introuvable. L'id résout un média réel (garde-fou). */
+    /**
+     * Sert le binaire d'un média depuis son jeton public opaque. NULL si introuvable.
+     *
+     * <p>Route publique à privilégier : le jeton n'est pas devinable, contrairement à
+     * l'identifiant séquentiel qui rendait toute la médiathèque énumérable (audit P1-06).
+     */
+    @Transactional(readOnly = true)
+    public ServedMedia serveByToken(UUID publicToken) {
+        return toServedMedia(repository.findByPublicToken(publicToken).orElse(null));
+    }
+
+    /**
+     * Sert le binaire d'un média depuis son identifiant. NULL si introuvable.
+     *
+     * @deprecated Identifiant séquentiel, donc énumérable par un anonyme (audit P1-06).
+     *             Conservé pour les pages publiées avant l'introduction du jeton ;
+     *             utiliser {@link #serveByToken(UUID)} pour tout nouveau lien.
+     */
+    @Deprecated(since = "2026-07-26")
     @Transactional(readOnly = true)
     public ServedMedia serve(Long id) {
-        MediaAsset m = repository.findById(id).orElse(null);
+        return toServedMedia(repository.findById(id).orElse(null));
+    }
+
+    private ServedMedia toServedMedia(MediaAsset m) {
         if (m == null) {
             return null;
         }

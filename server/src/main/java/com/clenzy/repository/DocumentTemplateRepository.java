@@ -22,6 +22,19 @@ public interface DocumentTemplateRepository extends JpaRepository<DocumentTempla
     @Query("SELECT DISTINCT t FROM DocumentTemplate t LEFT JOIN FETCH t.tags ORDER BY t.documentType ASC, t.version DESC")
     List<DocumentTemplate> findAllByOrderByDocumentTypeAscVersionDesc();
 
+    /**
+     * Templates visibles par une organisation : les siens, plus les modeles globaux
+     * de la plateforme ({@code organizationId IS NULL}).
+     *
+     * <p>{@link #findAllByOrderByDocumentTypeAscVersionDesc()} rendait les templates de
+     * TOUTES les organisations, exposant leurs {@code emailSubject}, {@code emailBody} et
+     * {@code createdBy} a tout HOST (audit securite 2026-07-26, constat P1-18).
+     */
+    @Query("SELECT DISTINCT t FROM DocumentTemplate t LEFT JOIN FETCH t.tags "
+         + "WHERE t.organizationId = :organizationId OR t.organizationId IS NULL "
+         + "ORDER BY t.documentType ASC, t.version DESC")
+    List<DocumentTemplate> findVisibleForOrganization(@Param("organizationId") Long organizationId);
+
     boolean existsByDocumentTypeAndActiveTrue(DocumentType documentType);
 
     @Modifying

@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.config.KafkaConfig;
+import com.clenzy.model.PaymentTransaction;
 import com.clenzy.model.EscrowHold;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.EscrowHoldRepository;
@@ -28,6 +29,8 @@ public class PaymentEventConsumer {
     private final ReservationPaymentReconciliationService reservationPaymentReconciliationService;
     private final com.clenzy.booking.service.BookingBalanceReconciliationService bookingBalanceReconciliationService;
     private final PeripheralPaymentReconciliationService peripheralPaymentReconciliationService;
+    private final com.clenzy.repository.PaymentTransactionRepository transactionRepository;
+    private final com.clenzy.tenant.KafkaTenantScope kafkaTenantScope;
 
     public PaymentEventConsumer(SplitPaymentService splitPaymentService,
                                  EscrowHoldRepository escrowHoldRepository,
@@ -35,7 +38,9 @@ public class PaymentEventConsumer {
                                  DeferredPaymentReconciliationService deferredPaymentReconciliationService,
                                  ReservationPaymentReconciliationService reservationPaymentReconciliationService,
                                  com.clenzy.booking.service.BookingBalanceReconciliationService bookingBalanceReconciliationService,
-                                 PeripheralPaymentReconciliationService peripheralPaymentReconciliationService) {
+                                 PeripheralPaymentReconciliationService peripheralPaymentReconciliationService,
+                                 com.clenzy.repository.PaymentTransactionRepository transactionRepository,
+                                 com.clenzy.tenant.KafkaTenantScope kafkaTenantScope) {
         this.splitPaymentService = splitPaymentService;
         this.escrowHoldRepository = escrowHoldRepository;
         this.reservationRepository = reservationRepository;
@@ -43,6 +48,8 @@ public class PaymentEventConsumer {
         this.reservationPaymentReconciliationService = reservationPaymentReconciliationService;
         this.bookingBalanceReconciliationService = bookingBalanceReconciliationService;
         this.peripheralPaymentReconciliationService = peripheralPaymentReconciliationService;
+        this.transactionRepository = transactionRepository;
+        this.kafkaTenantScope = kafkaTenantScope;
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_PAYMENT_EVENTS, groupId = "clenzy-payment-consumer")
@@ -56,48 +63,69 @@ public class PaymentEventConsumer {
         }
     }
 
+    /**
+     * ESCROW_RELEASED : reversement au proprietaire et aux concierges.
+     *
+     * <p><b>Contexte tenant obligatoire</b> — {@link SplitPaymentService#splitPayment} appelle
+     * {@code tenantContext.getRequiredOrganizationId()}. Sur un thread Kafka le contexte est vide :
+     * l'appel levait donc systematiquement, et l'exception etait avalee par un
+     * {@code catch (Exception)}. Consequence observee (audit 2026-07-26, constat P1-14) :
+     * <b>aucun escrow n'etait jamais reparti</b>, les fonds restaient sur le wallet plateforme,
+     * sans la moindre alerte. L'organisation est donc posee ici, depuis la base et non depuis
+     * le payload (regle CLAUDE.md : l'emetteur ne choisit pas le tenant).
+     *
+     * <p>Aucun {@code catch} generique : un echec doit remonter pour que le retry puis le
+     * {@code .DLT} jouent (regle CLAUDE.md n°7). Un reversement rate est un incident financier,
+     * pas une ligne de log.
+     */
     private void handleEscrowReleased(Map<String, Object> event) {
-        try {
-            Long escrowId = toLong(event.get("escrowId"));
-            Long reservationId = toLong(event.get("reservationId"));
+        Long escrowId = toLong(event.get("escrowId"));
+        Long reservationId = toLong(event.get("reservationId"));
 
-            if (escrowId == null || reservationId == null) {
-                log.warn("ESCROW_RELEASED event missing escrowId or reservationId");
-                return;
-            }
-
-            log.info("Processing ESCROW_RELEASED for escrow {} reservation {}", escrowId, reservationId);
-
-            EscrowHold hold = escrowHoldRepository.findById(escrowId).orElse(null);
-            if (hold == null) {
-                log.warn("Escrow {} not found", escrowId);
-                return;
-            }
-
-            // Find reservation to get owner
-            Reservation reservation = reservationRepository.findById(reservationId).orElse(null);
-            if (reservation == null) {
-                log.warn("Reservation {} not found for split", reservationId);
-                return;
-            }
-
-            // Get owner ID from reservation's property
-            Long ownerId = null;
-            if (reservation.getProperty() != null && reservation.getProperty().getOwner() != null) {
-                ownerId = reservation.getProperty().getOwner().getId();
-            }
-
-            if (ownerId == null) {
-                log.warn("Could not determine owner for reservation {}", reservationId);
-                return;
-            }
-
-            splitPaymentService.splitPayment(
-                reservationId, hold.getAmount(), hold.getCurrency(), ownerId);
-
-        } catch (Exception e) {
-            log.error("Failed to process ESCROW_RELEASED event: {}", e.getMessage(), e);
+        if (escrowId == null || reservationId == null) {
+            log.warn("ESCROW_RELEASED event missing escrowId or reservationId");
+            return;
         }
+
+        log.info("Processing ESCROW_RELEASED for escrow {} reservation {}", escrowId, reservationId);
+
+        EscrowHold hold = escrowHoldRepository.findById(escrowId).orElse(null);
+        if (hold == null) {
+            log.warn("Escrow {} not found", escrowId);
+            return;
+        }
+
+        Reservation reservation = reservationRepository.findById(reservationId).orElse(null);
+        if (reservation == null) {
+            log.warn("Reservation {} not found for split", reservationId);
+            return;
+        }
+
+        // L'escrow et la reservation doivent designer la meme organisation. Une divergence
+        // signale un evenement forge ou une corruption : on refuse plutot que de crediter
+        // le mauvais tenant.
+        if (hold.getOrganizationId() != null && reservation.getOrganizationId() != null
+                && !hold.getOrganizationId().equals(reservation.getOrganizationId())) {
+            log.error("SECURITE : ESCROW_RELEASED escrow={} porte l'organisation {} alors que la "
+                    + "reservation {} porte {}. Reversement refuse.",
+                    escrowId, hold.getOrganizationId(), reservationId, reservation.getOrganizationId());
+            return;
+        }
+
+        Long ownerId = null;
+        if (reservation.getProperty() != null && reservation.getProperty().getOwner() != null) {
+            ownerId = reservation.getProperty().getOwner().getId();
+        }
+
+        if (ownerId == null) {
+            log.warn("Could not determine owner for reservation {}", reservationId);
+            return;
+        }
+
+        final Long owner = ownerId;
+        kafkaTenantScope.run(KafkaConfig.TOPIC_PAYMENT_EVENTS, reservation.getOrganizationId(),
+                () -> splitPaymentService.splitPayment(
+                        reservationId, hold.getAmount(), hold.getCurrency(), owner));
     }
 
     /**
@@ -111,7 +139,6 @@ public class PaymentEventConsumer {
      * donc un retry est sûr.</p>
      */
     private void handlePaymentCompleted(Map<String, Object> event) {
-        String sourceType = String.valueOf(event.getOrDefault("sourceType", ""));
         Object rawRef = event.get("transactionRef");
         String transactionRef = rawRef != null ? String.valueOf(rawRef) : null;
         if (transactionRef == null || transactionRef.isBlank()) {
@@ -119,6 +146,31 @@ public class PaymentEventConsumer {
             return;
         }
 
+        // Audit 2026-07 (P1-04) : le sourceType pilote le routage vers six services aux effets
+        // metier tres differents. Le lire dans le payload laissait l'emetteur CHOISIR cet effet :
+        // un transactionRef legitime de reservation, annonce avec le sourceType des credits IA,
+        // partait en dotation de credits. Le sourceType et l'organisation sont desormais lus sur
+        // la TRANSACTION ; le payload ne sert que de controle de coherence.
+        PaymentTransaction tx = transactionRepository.findByTransactionRef(transactionRef).orElse(null);
+        if (tx == null) {
+            log.warn("PAYMENT_COMPLETED tx={} introuvable — ignore", transactionRef);
+            return;
+        }
+        final String sourceType = tx.getSourceType() != null ? tx.getSourceType() : "";
+        String payloadSourceType = String.valueOf(event.getOrDefault("sourceType", ""));
+        if (!payloadSourceType.isBlank() && !payloadSourceType.equals(sourceType)) {
+            log.error("SECURITE : PAYMENT_COMPLETED tx={} annonce sourceType={} alors que la "
+                    + "transaction porte {}. Evenement rejete.",
+                    transactionRef, payloadSourceType, sourceType);
+            return;
+        }
+        // Politique commune a tous les consommateurs : refus si l'organisation de confiance
+        // est introuvable, refus si le payload la contredit, pose du contexte tenant sinon.
+        kafkaTenantScope.run(KafkaConfig.TOPIC_PAYMENT_EVENTS, tx.getOrganizationId(),
+                () -> dispatchPaymentCompleted(sourceType, transactionRef));
+    }
+
+    private void dispatchPaymentCompleted(String sourceType, String transactionRef) {
         if (sourceType.startsWith(DeferredPaymentService.SOURCE_TYPE_PREFIX)) {
             log.info("PAYMENT_COMPLETED differe : tx={} sourceType={} → reconciliation interventions",
                     transactionRef, sourceType);

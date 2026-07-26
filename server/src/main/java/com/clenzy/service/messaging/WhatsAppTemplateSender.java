@@ -1,6 +1,7 @@
 package com.clenzy.service.messaging;
 
 import com.clenzy.dto.ConversationDto;
+import com.clenzy.service.access.OrganizationAccessGuard;
 import com.clenzy.model.CheckInInstructions;
 import com.clenzy.model.Conversation;
 import com.clenzy.model.ConversationChannel;
@@ -46,6 +47,7 @@ public class WhatsAppTemplateSender {
     private final TemplateInterpolationService interpolation;
     private final WhatsAppVariableConverter variableConverter;
     private final WhatsAppChannel whatsAppChannel;
+    private final OrganizationAccessGuard organizationAccessGuard;
 
     public WhatsAppTemplateSender(ConversationRepository conversationRepository,
                                   ReservationRepository reservationRepository,
@@ -54,7 +56,8 @@ public class WhatsAppTemplateSender {
                                   WhatsAppTemplateService templateService,
                                   TemplateInterpolationService interpolation,
                                   WhatsAppVariableConverter variableConverter,
-                                  WhatsAppChannel whatsAppChannel) {
+                                  WhatsAppChannel whatsAppChannel,
+                                   OrganizationAccessGuard organizationAccessGuard) {
         this.conversationRepository = conversationRepository;
         this.reservationRepository = reservationRepository;
         this.instructionsRepository = instructionsRepository;
@@ -63,6 +66,24 @@ public class WhatsAppTemplateSender {
         this.interpolation = interpolation;
         this.variableConverter = variableConverter;
         this.whatsAppChannel = whatsAppChannel;
+        this.organizationAccessGuard = organizationAccessGuard;
+    }
+
+    /**
+     * Refuse l'envoi si la conversation ou la reservation visee releve d'une autre
+     * organisation.
+     *
+     * <p>L'organisation utilisee pour l'envoi etait celle portee par l'entite chargee
+     * ({@code conv.getOrganizationId()}), jamais confrontee au {@code TenantContext} —
+     * alors que tous les autres endpoints de {@code ConversationController} passent
+     * explicitement {@code tenantContext.getRequiredOrganizationId()}. Un identifiant
+     * suffisait donc a declencher un envoi REEL au voyageur d'un autre tenant, y compris
+     * le template {@code checkin_instructions} qui contient les codes d'acces au logement
+     * (audit securite 2026-07-26, constat P1-11).
+     */
+    private void requireSameOrganization(Long entityOrgId) {
+        organizationAccessGuard.requireSameOrganization(
+            entityOrgId, "Conversation hors de votre organisation");
     }
 
     @Transactional
@@ -70,6 +91,7 @@ public class WhatsAppTemplateSender {
                                         String senderName, String senderKeycloakId) {
         Conversation conv = conversationRepository.findById(conversationId)
             .orElseThrow(() -> new IllegalArgumentException("Conversation introuvable: " + conversationId));
+        requireSameOrganization(conv.getOrganizationId());
 
         Reservation res = conv.getReservation();
         if (res == null) {
@@ -121,6 +143,7 @@ public class WhatsAppTemplateSender {
                                                       String senderName, String senderKeycloakId) {
         Reservation res = reservationRepository.findById(reservationId)
             .orElseThrow(() -> new IllegalArgumentException("Réservation introuvable: " + reservationId));
+        requireSameOrganization(res.getOrganizationId());
         Conversation conv = conversationService.getOrCreateForReservation(
             res.getOrganizationId(), reservationId, ConversationChannel.WHATSAPP,
             res.getGuest(), res.getProperty(), res);

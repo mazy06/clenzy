@@ -78,8 +78,9 @@ class ExpediaCalendarServiceTest {
     }
 
     private void stubMapping() {
-        when(channelMappingRepository.findByExternalIdAndChannel(EXPEDIA_PROPERTY_ID, ChannelName.VRBO, ORG_ID))
-                .thenReturn(Optional.of(buildMapping()));
+        when(channelMappingRepository.findByExternalIdAndChannelAcrossOrganizations(
+                EXPEDIA_PROPERTY_ID, ChannelName.VRBO))
+                .thenReturn(java.util.List.of(buildMapping()));
     }
 
     // ===== AVAILABILITY UPDATED =====
@@ -259,8 +260,9 @@ class ExpediaCalendarServiceTest {
         @Test
         @DisplayName("skips and marks as processed when mapping not found")
         void handleCalendarEvent_unmappedProperty_skips() {
-            when(channelMappingRepository.findByExternalIdAndChannel(EXPEDIA_PROPERTY_ID, ChannelName.VRBO, ORG_ID))
-                    .thenReturn(Optional.empty());
+            when(channelMappingRepository.findByExternalIdAndChannelAcrossOrganizations(
+                EXPEDIA_PROPERTY_ID, ChannelName.VRBO))
+                    .thenReturn(java.util.List.of());
 
             Map<String, Object> data = buildCalendarData();
             Map<String, Object> event = buildEvent("availability.updated", data);

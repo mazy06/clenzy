@@ -37,12 +37,16 @@ class PropertyInventoryControllerTest {
     @Mock private UserService userService;
 
     private PropertyInventoryController controller;
+    private com.clenzy.tenant.TenantContext tenantContext;
     private Jwt hostJwt;
     private Jwt adminJwt;
 
     @BeforeEach
     void setUp() {
-        controller = new PropertyInventoryController(inventoryService, propertyService, userService);
+        tenantContext = new com.clenzy.tenant.TenantContext();
+        tenantContext.setOrganizationId(1L);
+        controller = new PropertyInventoryController(inventoryService, propertyService, userService,
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
 
         hostJwt = Jwt.withTokenValue("t").header("alg", "RS")
                 .claim("sub", "host-1")
@@ -69,6 +73,7 @@ class PropertyInventoryControllerTest {
 
     private Property propWithOwner(Long propId, Long ownerId) {
         Property p = new Property();
+        p.setOrganizationId(1L);
         p.setId(propId);
         User u = new User();
         u.setId(ownerId);
@@ -87,6 +92,9 @@ class PropertyInventoryControllerTest {
 
     @Test
     void getItems_host_userNotFound_throws() {
+        // Depuis P1-08, le logement et son organisation sont resolus AVANT l'utilisateur :
+        // le controle d'organisation s'applique a tous les roles, celui d'ownership au seul HOST.
+        when(propertyService.getPropertyEntityById(10L)).thenReturn(propWithOwner(10L, 7L));
         when(userService.findByKeycloakId("host-1")).thenReturn(null);
 
         assertThatThrownBy(() -> controller.getItems(10L, hostJwt))
@@ -96,9 +104,7 @@ class PropertyInventoryControllerTest {
 
     @Test
     void getItems_host_propertyNotFound_throws() {
-        User u = new User();
-        u.setId(7L);
-        when(userService.findByKeycloakId("host-1")).thenReturn(u);
+        // L'utilisateur n'est plus consulte : l'absence de logement tranche avant.
         when(propertyService.getPropertyEntityById(10L)).thenReturn(null);
 
         assertThatThrownBy(() -> controller.getItems(10L, hostJwt))
@@ -227,10 +233,49 @@ class PropertyInventoryControllerTest {
         u.setId(7L);
         when(userService.findByKeycloakId("host-1")).thenReturn(u);
         Property p = new Property();
+        p.setOrganizationId(1L);
         p.setOwner(null);
         when(propertyService.getPropertyEntityById(10L)).thenReturn(p);
 
         assertThatThrownBy(() -> controller.getItems(10L, hostJwt))
                 .isInstanceOf(AccessDeniedException.class);
+    }
+
+    // ─── P1-08 : le controle ne doit plus dependre du seul role HOST ─────────
+
+    /**
+     * Coeur du constat : {@code checkAccess} n'entrait dans le controle que pour HOST.
+     * Pour TECHNICIAN, HOUSEKEEPER, SUPERVISOR, LAUNDRY ou EXTERIOR_TECH, la methode
+     * etait un no-op — ces roles lisaient et modifiaient l'inventaire, le linge et les
+     * devis de n'importe quel logement de n'importe quelle organisation.
+     */
+    @Test
+    void technicien_dUneAutreOrganisation_estRefuse() {
+        Jwt technicienJwt = Jwt.withTokenValue("t").header("alg", "RS")
+                .claim("sub", "tech-1")
+                .claim("realm_access", Map.of("roles", List.of("TECHNICIAN")))
+                .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(3600)).build();
+
+        Property autreOrg = new Property();
+        autreOrg.setId(10L);
+        autreOrg.setOrganizationId(999L); // le contexte du test porte l'organisation 1
+        when(propertyService.getPropertyEntityById(10L)).thenReturn(autreOrg);
+
+        assertThatThrownBy(() -> controller.getItems(10L, technicienJwt))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    /** Le meme role garde bien acces a l'inventaire de sa propre organisation. */
+    @Test
+    void technicien_deSonOrganisation_estAutorise() {
+        Jwt technicienJwt = Jwt.withTokenValue("t").header("alg", "RS")
+                .claim("sub", "tech-1")
+                .claim("realm_access", Map.of("roles", List.of("TECHNICIAN")))
+                .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(3600)).build();
+
+        when(propertyService.getPropertyEntityById(10L)).thenReturn(propWithOwner(10L, 7L));
+        when(inventoryService.getInventoryItems(10L)).thenReturn(List.of());
+
+        assertThat(controller.getItems(10L, technicienJwt).getStatusCode().value()).isEqualTo(200);
     }
 }

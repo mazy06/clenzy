@@ -86,12 +86,17 @@ const SHARE_CONCIERGE = 'var(--warn)';
 
 /** Providers configurables via le dialog (credentials chiffres en BDD).
  *  STRIPE est configure cote application.yml (global), pas par-tenant.
- *  Plus aucun stub UI : les 4 providers non-Stripe sont desormais configurables.
+ *
+ *  PAYPAL est volontairement absent : le provider a ete retire du backend
+ *  (cf. `PaymentProviderType` cote serveur — la valeur d'enum n'est conservee
+ *  que pour Hibernate, aucun `PaymentProvider` ni webhook ne l'implemente).
+ *  L'exposer ici laissait un admin saisir des credentials pour un fournisseur
+ *  inexistant, et activer un moyen de paiement qui n'encaisserait jamais.
  */
-const CONFIGURABLE_PROVIDERS: PaymentProviderType[] = ['PAYTABS', 'CMI', 'PAYZONE', 'YOUCAN_PAY', 'PAYPAL'];
+const CONFIGURABLE_PROVIDERS: PaymentProviderType[] = ['PAYTABS', 'CMI', 'PAYZONE', 'YOUCAN_PAY'];
 const STUB_PROVIDERS: PaymentProviderType[] = [];
 
-const allProviders: PaymentProviderType[] = ['STRIPE', 'PAYTABS', 'CMI', 'PAYZONE', 'YOUCAN_PAY', 'PAYPAL'];
+const allProviders: PaymentProviderType[] = ['STRIPE', 'PAYTABS', 'CMI', 'PAYZONE', 'YOUCAN_PAY'];
 
 /**
  * Verifie si la config d'un provider est suffisamment renseignee pour
@@ -100,7 +105,7 @@ const allProviders: PaymentProviderType[] = ['STRIPE', 'PAYTABS', 'CMI', 'PAYZON
  * - PAYTABS  : profileId + region dans configJson (server_key chiffré BDD).
  * - CMI      : okUrl + failUrl dans configJson (client_id + store_key BDD).
  * - PAYZONE  : webhookUrl dans configJson (api_key BDD). MAD principal.
- * - PAYPAL   : client_id + client_secret BDD (presence = config valide).
+ * - YOUCAN_PAY : presence du record (cle privee chiffree, non exposee).
  */
 const isProviderConfigured = (type: PaymentProviderType, config?: PaymentMethodConfig): boolean => {
   if (type === 'STRIPE') return true;
@@ -119,15 +124,8 @@ const isProviderConfigured = (type: PaymentProviderType, config?: PaymentMethodC
     return typeof json.webhookUrl === 'string' && json.webhookUrl.length > 0;
   }
   if (type === 'YOUCAN_PAY') {
-    // Même logique que PayPal : la clé privée (chiffrée) n'est pas exposée —
-    // l'existence du record suffit (elle est requise au save du dialog).
-    return config.id != null;
-  }
-  if (type === 'PAYPAL') {
-    // PayPal n'a pas de configJson obligatoire — la config est valide dès
-    // que sandbox mode + credentials ont été enregistrés au moins une fois.
-    // L'API renvoie le sandboxMode mais pas les credentials. On considère
-    // que si le record existe et que sandboxMode est défini, c'est configuré.
+    // La clé privée (chiffrée) n'est pas exposée par l'API — l'existence du
+    // record suffit (elle est requise au save du dialog).
     return config.id != null;
   }
   return false;

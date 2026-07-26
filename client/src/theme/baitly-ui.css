@@ -31,6 +31,14 @@
 /* Classes sémantiques cn-* des composants (style « Nova » du site shadcn). */
 @import "./baitly-nova.css" layer(base);
 
+/* Le site marketing (client/site, racine Vite séparée) compile cette feuille
+   depuis un root qui ne couvre pas src/ : déclarer explicitement les sources de
+   scan. Sans lui, les classes utilisées UNIQUEMENT hors de site/ (ex. le padding
+   p-3.5 des cartes de la projection IoT embarquée) ne sont pas générées.
+   Sans effet pour l'app PMS (déjà scannée par son propre root Vite). */
+@source "../components";
+@source "../modules/admin/design-system";
+
 /* Sous-ensemble minimal du preflight dont dépendent les composants ui/ :
    sans lui, `border` ne rend rien (border-style: none natif), les <button>
    gardent le chrome navigateur et les titres leurs marges UA.
@@ -44,6 +52,16 @@
     border-width: 0;
     border-style: solid;
     border-color: var(--bui-border);
+  }
+
+  /* Encre de base. Sans elle, tout élément sans classe de couleur retombe sur
+     le NOIR PUR de l'UA — jamais le noir : l'encre de marque est le bleu nuit
+     du wordmark (--bui-foreground, #1B2A35 en clair, #D7E1EE en sombre).
+     Posée sur `html` et non sur `body` : le CssBaseline MUI de l'app PMS écrit
+     sur `body` et garde donc la main, sans conflit. Ce sont les consommateurs
+     du kit SANS baseline propre qui en bénéficient. */
+  html {
+    color: var(--bui-foreground);
   }
 
   button,
@@ -155,6 +173,9 @@
 
   --bui-destructive: #C97A7A;
   --bui-destructive-soft: rgba(201, 122, 122, 0.13);
+  /* Même logique que success/warning : #C97A7A en texte plafonne à 2,63:1 sur
+     son propre fond pastel. Mesuré : 5,61:1 sur la page, 5,86:1 sur --card. */
+  --bui-destructive-ink: #93413F;
 
   --bui-border: #E2E8F0;
   --bui-input: #CBD5E1;
@@ -163,13 +184,23 @@
   --bui-ink: #1B2A35;
   --bui-faint: #94A7B8;
 
-  /* Statuts : teintes du nouveau mark (teal response, bleu request) */
+  /* Statuts : teintes du nouveau mark (teal response, bleu request).
+     `-ink` = variante ASSOMBRIE réservée au TEXTE : en clair les teintes vives
+     plafonnent à ~2,2:1 sur --bui-card, très loin du seuil WCAG AA de 4,5:1.
+     Fonds (`-soft`), pastilles, bordures et icônes décoratives gardent la
+     teinte vive — c'est le couple fond pastel / encre foncée des tags Notion.
+     Mesuré sur --bui-card : success-ink 5,73:1, warning-ink 6,63:1. */
   --bui-success: #14B8A6;
   --bui-success-soft: rgba(20, 184, 166, 0.13);
+  --bui-success-ink: #0C7166;
   --bui-warning: #D4A574;
   --bui-warning-soft: rgba(212, 165, 116, 0.16);
+  --bui-warning-ink: #7A5320;
   --bui-info: #2563EB;
   --bui-info-soft: rgba(37, 99, 235, 0.11);
+  /* 4,14:1 sur son fond pastel : sous le seuil de peu, mais dessous.
+     Mesuré : 5,37:1 sur la page, 5,61:1 sur --card. */
+  --bui-info-ink: #1D4ED8;
 
   --bui-field: #EEF3F7;
   --bui-field-line: #CBD5E1;
@@ -219,6 +250,7 @@
 
   --bui-destructive: #D98E8E;
   --bui-destructive-soft: rgba(217, 142, 142, 0.18);
+  --bui-destructive-ink: #D98E8E; /* 5,59:1 en sombre : la teinte suffit */
 
   --bui-border: #1E293F;
   --bui-input: #2A3A55;
@@ -227,12 +259,17 @@
   --bui-ink: #EDF3FA;
   --bui-faint: #7186A8;
 
+  /* En sombre les teintes vives passent déjà largement AA sur --bui-card
+     (9,2:1 et 9,0:1) : l'encre reste identique à la teinte. */
   --bui-success: #2DD4BF;
   --bui-success-soft: rgba(45, 212, 191, 0.14);
+  --bui-success-ink: #2DD4BF;
   --bui-warning: #E0B483;
   --bui-warning-soft: rgba(224, 180, 131, 0.16);
+  --bui-warning-ink: #E0B483;
   --bui-info: #5B8DF6;
   --bui-info-soft: rgba(91, 141, 246, 0.16);
+  --bui-info-ink: #5B8DF6; /* 4,78:1 en sombre : la teinte suffit */
 
   --bui-field: #16223A;
   --bui-field-line: #2A3A55;
@@ -289,6 +326,7 @@
 
   --color-destructive: var(--bui-destructive);
   --color-destructive-soft: var(--bui-destructive-soft);
+  --color-destructive-ink: var(--bui-destructive-ink);
   --color-destructive-foreground: #ffffff;
 
   --color-border: var(--bui-border);
@@ -300,10 +338,13 @@
   --color-faint: var(--bui-faint);
   --color-success: var(--bui-success);
   --color-success-soft: var(--bui-success-soft);
+  --color-success-ink: var(--bui-success-ink);
   --color-warning: var(--bui-warning);
   --color-warning-soft: var(--bui-warning-soft);
+  --color-warning-ink: var(--bui-warning-ink);
   --color-info: var(--bui-info);
   --color-info-soft: var(--bui-info-soft);
+  --color-info-ink: var(--bui-info-ink);
   --color-field: var(--bui-field);
   --color-field-line: var(--bui-field-line);
 

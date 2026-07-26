@@ -133,7 +133,7 @@ function DeviceCardView({ device }: { device: DeviceCard }) {
           ) : (
             <StatusChip tone="neutral" label={`${device.battery} %`} size="sm" icon={<BatteryFullIcon className="size-3" />} />
           ))}
-        {device.alert && <span className="truncate text-2xs text-warning">{device.alert}</span>}
+        {device.alert && <span className="truncate text-2xs text-warning-ink">{device.alert}</span>}
       </div>
       <div className="flex items-center justify-between border-t border-border pt-2.5">
         <span className="text-xs font-medium text-foreground">{device.metric ?? <span className="text-faint">—</span>}</span>
@@ -306,7 +306,7 @@ function NoiseSensorDetail() {
             Niveau sonore — dernières 24 h
           </h4>
           <span className="text-2xs text-muted-foreground">
-            <span className="me-3 text-warning">— seuil avertissement 70 dB</span>
+            <span className="me-3 text-warning-ink">— seuil avertissement 70 dB</span>
             <span className="text-destructive">— seuil critique 85 dB</span>
           </span>
         </div>
@@ -369,7 +369,7 @@ function NoiseSensorDetail() {
             <div className="grid grid-cols-1 gap-4 pt-1 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
                 <span className="text-xs text-foreground">
-                  Seuil avertissement : <b className="text-warning tabular-nums">{warningLevel[0]} dB</b>
+                  Seuil avertissement : <b className="text-warning-ink tabular-nums">{warningLevel[0]} dB</b>
                 </span>
                 <Slider value={warningLevel} onValueChange={setWarningLevel} min={40} max={100} step={1} />
               </div>

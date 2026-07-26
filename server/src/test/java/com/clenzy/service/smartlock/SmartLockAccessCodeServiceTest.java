@@ -52,10 +52,18 @@ class SmartLockAccessCodeServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Les serrures de ce test appartiennent a l'org 99 : le tenant courant est la meme,
+        // de sorte que le controle d'organisation (P1-01) laisse passer les cas nominaux.
+        // L'isolation elle-meme est couverte par SmartLockAccessCodeServiceCrossTenantTest.
+        com.clenzy.tenant.TenantContext tenantContext =
+                org.mockito.Mockito.mock(com.clenzy.tenant.TenantContext.class);
+        lenient().when(tenantContext.getOrganizationId()).thenReturn(99L);
+
         service = new SmartLockAccessCodeService(codeRepo, eventRepo, deviceRepo, tuyaApiService,
                 outboxPublisher, guestMessagingService, templateRepository, new ObjectMapper(), propertyRepository,
                 checkInInstructionsRepository, new com.clenzy.service.access.AccessCodeGenerator(),
-                org.mockito.Mockito.mock(com.clenzy.service.smartlock.SmartLockProviderRegistry.class));
+                org.mockito.Mockito.mock(com.clenzy.service.smartlock.SmartLockProviderRegistry.class),
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
     }
 
     private SmartLockDevice device() {

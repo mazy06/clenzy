@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.environment.CreateEnvironmentSensorDto;
+import com.clenzy.service.access.OrganizationAccessGuard;
 import com.clenzy.dto.environment.EnvironmentSensorDto;
 import com.clenzy.integration.netatmo.service.NetatmoApiService;
 import com.clenzy.integration.tuya.service.TuyaApiService;
@@ -46,6 +47,7 @@ public class EnvironmentSensorService {
     private static final long MOTION_COOLDOWN_MIN = 15;
 
     private final EnvironmentSensorRepository sensorRepository;
+    private final OrganizationAccessGuard organizationAccessGuard;
     private final PropertyRepository propertyRepository;
     private final TuyaApiService tuyaApiService;
     private final TenantContext tenantContext;
@@ -61,7 +63,8 @@ public class EnvironmentSensorService {
                                     TuyaDeviceClaimService claimService,
                                     NotificationService notificationService,
                                     NetatmoApiService netatmoApiService,
-                                    SupervisionActivityService supervisionActivityService) {
+                                    SupervisionActivityService supervisionActivityService,
+                                    OrganizationAccessGuard organizationAccessGuard) {
         this.sensorRepository = sensorRepository;
         this.propertyRepository = propertyRepository;
         this.tuyaApiService = tuyaApiService;
@@ -70,6 +73,7 @@ public class EnvironmentSensorService {
         this.notificationService = notificationService;
         this.netatmoApiService = netatmoApiService;
         this.supervisionActivityService = supervisionActivityService;
+        this.organizationAccessGuard = organizationAccessGuard;
     }
 
     // ─── CRUD ───────────────────────────────────────────────────
@@ -84,6 +88,8 @@ public class EnvironmentSensorService {
     public EnvironmentSensorDto createSensor(String userId, CreateEnvironmentSensorDto dto) {
         Property property = propertyRepository.findById(dto.propertyId())
                 .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable: " + dto.propertyId()));
+        organizationAccessGuard.requireSameOrganization(
+                property.getOrganizationId(), "Logement hors de votre organisation");
 
         SensorType type = parseType(dto.sensorType());
 
@@ -114,6 +120,8 @@ public class EnvironmentSensorService {
     public void deleteSensor(String userId, Long sensorId) {
         EnvironmentSensor sensor = sensorRepository.findById(sensorId)
                 .orElseThrow(() -> new IllegalArgumentException("Capteur introuvable: " + sensorId));
+        organizationAccessGuard.requireSameOrganization(
+                sensor.getOrganizationId(), "Capteur hors de votre organisation");
         if ("TUYA".equalsIgnoreCase(sensor.getBrand()) && sensor.getExternalDeviceId() != null
                 && !sensor.getExternalDeviceId().isBlank()) {
             claimService.release(sensor.getExternalDeviceId());
@@ -129,6 +137,8 @@ public class EnvironmentSensorService {
     public EnvironmentSensorDto refreshStatus(String userId, Long sensorId) {
         EnvironmentSensor sensor = sensorRepository.findById(sensorId)
                 .orElseThrow(() -> new IllegalArgumentException("Capteur introuvable: " + sensorId));
+        organizationAccessGuard.requireSameOrganization(
+                sensor.getOrganizationId(), "Capteur hors de votre organisation");
         return refresh(sensor);
     }
 

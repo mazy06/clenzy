@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.SplitRatios;
 import com.clenzy.dto.SplitResult;
 import com.clenzy.model.*;
+import com.clenzy.repository.LedgerEntryRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.SplitConfigurationRepository;
 import com.clenzy.tenant.TenantContext;
@@ -26,6 +27,7 @@ public class SplitPaymentService {
     private final ReservationRepository reservationRepository;
     private final WalletService walletService;
     private final LedgerService ledgerService;
+    private final LedgerEntryRepository ledgerEntryRepository;
     private final TenantContext tenantContext;
 
     public SplitPaymentService(SplitConfigurationRepository splitConfigRepository,
@@ -33,13 +35,20 @@ public class SplitPaymentService {
                                 ReservationRepository reservationRepository,
                                 WalletService walletService,
                                 LedgerService ledgerService,
+                                LedgerEntryRepository ledgerEntryRepository,
                                 TenantContext tenantContext) {
         this.splitConfigRepository = splitConfigRepository;
         this.managementContractService = managementContractService;
         this.reservationRepository = reservationRepository;
         this.walletService = walletService;
         this.ledgerService = ledgerService;
+        this.ledgerEntryRepository = ledgerEntryRepository;
         this.tenantContext = tenantContext;
+    }
+
+    /** Reference stable des ecritures de split d'une reservation (cle d'idempotence). */
+    static String splitReference(Long reservationId) {
+        return "SPLIT-RES-" + reservationId;
     }
 
     /**
@@ -59,6 +68,22 @@ public class SplitPaymentService {
     public SplitResult splitPayment(Long reservationId, BigDecimal totalAmount,
                                      String currency, Long ownerId) {
         Long orgId = tenantContext.getRequiredOrganizationId();
+
+        // Idempotence (audit 2026-07, P5-05) : ESCROW_RELEASED arrive par Kafka, donc
+        // at-least-once. Le statut de l'EscrowHold ne peut pas servir de garde — il est
+        // deja RELEASED quand l'evenement est publie (EscrowService#releaseFunds). Le
+        // ledger, lui, porte une reference stable : sa presence prouve que le split a
+        // deja ete applique. Sans cette garde, un rejeu — y compris un simple redemarrage
+        // ou un timeout de broker — recrediterait le wallet du proprietaire.
+        final String splitRef = splitReference(reservationId);
+        if (ledgerEntryRepository.existsByReferenceTypeAndReferenceId(
+                LedgerReferenceType.SPLIT, splitRef)) {
+            log.warn("Split deja applique pour la reservation {} (ref {}) — rejeu ignore",
+                reservationId, splitRef);
+            return new SplitResult(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                totalAmount, null, null);
+        }
+
         log.info("Splitting {} {} for reservation {} (org {}, owner {})",
             totalAmount, currency, reservationId, orgId, ownerId);
 
@@ -79,7 +104,7 @@ public class SplitPaymentService {
         Wallet conciergeWallet = walletService.getOrCreateWallet(orgId, WalletType.CONCIERGE, null, currency);
 
         // 4. Record ledger transfers
-        String splitRef = "SPLIT-RES-" + reservationId;
+        // splitRef : calcule en tete de methode, il sert aussi de cle d'idempotence.
 
         // Owner share: platform -> owner
         if (ownerAmount.compareTo(BigDecimal.ZERO) > 0) {

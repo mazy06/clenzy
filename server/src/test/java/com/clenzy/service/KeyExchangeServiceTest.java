@@ -70,7 +70,8 @@ class KeyExchangeServiceTest {
         tenantContext.setOrganizationId(ORG_ID);
         service = new KeyExchangeService(
                 pointRepository, codeRepository, eventRepository,
-                propertyRepository, tenantContext, verificationThrottle);
+                propertyRepository, tenantContext, verificationThrottle,
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -79,6 +80,9 @@ class KeyExchangeServiceTest {
         Property p = new Property();
         p.setId(id);
         p.setName(name);
+        // Les logements de ces tests appartiennent a l'organisation courante : sans org,
+        // le controle d'isolation (P1-02) refuse l'acces — il est fail-closed.
+        p.setOrganizationId(ORG_ID);
         return p;
     }
 
@@ -130,12 +134,12 @@ class KeyExchangeServiceTest {
     class GetPoints {
 
         @Test
-        @DisplayName("returns all ACTIVE points mapped to DTOs")
+        @DisplayName("retourne les points ACTIFS de son organisation (P1-02)")
         void whenCalled_thenReturnsActivePoints() {
             KeyExchangePoint p1 = point(1L, Provider.CLENZY_KEYVAULT);
             KeyExchangePoint p2 = point(2L, Provider.KEYNEST);
 
-            when(pointRepository.findByStatus(PointStatus.ACTIVE))
+            when(pointRepository.findByOrganizationIdAndStatus(ORG_ID, PointStatus.ACTIVE))
                     .thenReturn(List.of(p1, p2));
             when(propertyRepository.findById(20L))
                     .thenReturn(Optional.of(property(20L, "MaProp")));
@@ -154,7 +158,7 @@ class KeyExchangeServiceTest {
         @Test
         @DisplayName("empty list when no active points")
         void whenNoPoints_thenEmpty() {
-            when(pointRepository.findByStatus(PointStatus.ACTIVE)).thenReturn(List.of());
+            when(pointRepository.findByOrganizationIdAndStatus(ORG_ID, PointStatus.ACTIVE)).thenReturn(List.of());
             assertThat(service.getPoints(USER_ID)).isEmpty();
         }
     }
@@ -330,6 +334,10 @@ class KeyExchangeServiceTest {
         @Test
         @DisplayName("empty when no codes")
         void whenNoCodes_thenEmpty() {
+            // Le point est charge avant les codes depuis le correctif P1-02 : son
+            // organisation doit etre verifiee avant toute lecture.
+            when(pointRepository.findById(50L))
+                    .thenReturn(Optional.of(point(50L, Provider.CLENZY_KEYVAULT)));
             when(codeRepository.findByPointIdAndStatus(50L, CodeStatus.ACTIVE))
                     .thenReturn(List.of());
             assertThat(service.getActiveCodesByPoint(50L)).isEmpty();
@@ -980,7 +988,7 @@ class KeyExchangeServiceTest {
     class GetEvents {
 
         @Test
-        @DisplayName("when no propertyId - calls findAllByOrderByCreatedAtDesc")
+        @DisplayName("sans propertyId - interroge l'historique de son organisation (P1-02)")
         void whenNoProperty_thenAll() {
             KeyExchangeEvent ev = new KeyExchangeEvent();
             ev.setId(1L);
@@ -992,7 +1000,7 @@ class KeyExchangeServiceTest {
             ev.setPointId(50L);
 
             Page<KeyExchangeEvent> page = new PageImpl<>(List.of(ev), PageRequest.of(0, 10), 1);
-            when(eventRepository.findAllByOrderByCreatedAtDesc(any())).thenReturn(page);
+            when(eventRepository.findByOrganizationIdOrderByCreatedAtDesc(eq(ORG_ID), any())).thenReturn(page);
             when(pointRepository.findById(50L))
                     .thenReturn(Optional.of(point(50L, Provider.CLENZY_KEYVAULT)));
             when(propertyRepository.findById(20L))
@@ -1009,7 +1017,7 @@ class KeyExchangeServiceTest {
         }
 
         @Test
-        @DisplayName("when propertyId provided - calls findByPropertyIdOrderByCreatedAtDesc")
+        @DisplayName("avec propertyId - filtre le logement DANS son organisation (P1-02)")
         void whenPropertyId_thenFiltered() {
             KeyExchangeEvent ev = new KeyExchangeEvent();
             ev.setId(2L);
@@ -1018,7 +1026,7 @@ class KeyExchangeServiceTest {
             ev.setSource(EventSource.PUBLIC_PAGE);
 
             Page<KeyExchangeEvent> page = new PageImpl<>(List.of(ev), PageRequest.of(0, 5), 1);
-            when(eventRepository.findByPropertyIdOrderByCreatedAtDesc(eq(20L), any()))
+            when(eventRepository.findByOrganizationIdAndPropertyIdOrderByCreatedAtDesc(eq(ORG_ID), eq(20L), any()))
                     .thenReturn(page);
             when(propertyRepository.findById(20L))
                     .thenReturn(Optional.of(property(20L, "PropName")));
@@ -1028,7 +1036,11 @@ class KeyExchangeServiceTest {
             assertThat(result.getContent()).hasSize(1);
             assertThat(result.getContent().get(0).getId()).isEqualTo(2L);
             assertThat(result.getContent().get(0).getEventType()).isEqualTo("KEY_COLLECTED");
-            verify(eventRepository).findByPropertyIdOrderByCreatedAtDesc(eq(20L), any());
+            // Le filtre logement doit rester borne a l'organisation : la variante
+            // non scopee laissait lire l'historique d'un logement d'un autre tenant.
+            verify(eventRepository).findByOrganizationIdAndPropertyIdOrderByCreatedAtDesc(
+                    eq(ORG_ID), eq(20L), any());
+            verify(eventRepository, never()).findByPropertyIdOrderByCreatedAtDesc(any(), any());
         }
     }
 }

@@ -15,27 +15,32 @@ export interface DescriptionNotesDisplayProps {
   variant?: ConsigneVariant;
 }
 
+/** `accent` colore le titre et les marqueurs (encre, lisible AA) ; `dot` garde
+ *  la teinte vive de la variante pour la pastille des lignes simples. */
 const VARIANT_CONFIG: Record<
   ConsigneVariant,
-  { title: string; icon: React.ReactNode; tile: string; accent: string }
+  { title: string; icon: React.ReactNode; tile: string; accent: string; dot: string }
 > = {
   cleaning: {
     title: 'Consignes de ménage',
     icon: <ListChecksIcon />,
     tile: 'bg-primary-soft border-primary/25',
     accent: 'text-primary',
+    dot: 'bg-primary',
   },
   maintenance: {
     title: 'Consignes de travaux',
     icon: <WrenchIcon />,
     tile: 'bg-warning-soft border-warning/25',
-    accent: 'text-warning',
+    accent: 'text-warning-ink',
+    dot: 'bg-warning',
   },
   other: {
     title: 'Consignes diverses',
     icon: <EllipsisIcon />,
     tile: 'bg-muted border-border',
     accent: 'text-muted-foreground',
+    dot: 'bg-muted-foreground',
   },
 };
 
@@ -77,7 +82,7 @@ export default function DescriptionNotesDisplay({
                   {isChecklist ? (
                     <CheckSquareIcon className={cn('mt-0.5 size-3.5 shrink-0', config.accent)} />
                   ) : (
-                    <span className={cn('mt-2 size-1 shrink-0 rounded-full bg-current', config.accent)} />
+                    <span className={cn('mt-2 size-1 shrink-0 rounded-full', config.dot)} />
                   )}
                   {text}
                 </li>

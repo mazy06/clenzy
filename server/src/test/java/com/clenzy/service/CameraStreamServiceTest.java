@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("CameraStreamService")
 class CameraStreamServiceTest {
@@ -78,5 +79,45 @@ class CameraStreamServiceTest {
         assertThat(CameraStreamService.toGo2rtcSource("HTTPS://cdn.example.com/s.m3u8"))
                 .startsWith("ffmpeg:");
         assertThat(CameraStreamService.toGo2rtcSource("RTSP://host/s")).isEqualTo("RTSP://host/s");
+    }
+
+    /**
+     * Audit 2026-07 (P3-01) — la source etait transmise telle quelle a l'API go2rtc pour
+     * tout scheme autre que http(s) (« passthrough »). go2rtc supporte nativement la source
+     * {@code exec:}, et la configuration deployee (alexxit/go2rtc:1.9.4) ne restreint pas les
+     * sources : une source {@code exec:} enregistree depuis {@code POST /api/cameras} — ouvert
+     * a tout compte authentifie — revenait a faire executer une commande dans le conteneur
+     * media, place sur le meme reseau Docker que la base et Keycloak.
+     */
+    @Test
+    @DisplayName("toGo2rtcSource — rejette les schemes hors allow-list (audit 2026-07 P3-01)")
+    void toGo2rtcSource_rejectsNonAllowlistedSchemes() {
+        assertThatThrownBy(() -> CameraStreamService.toGo2rtcSource("exec:/bin/sh -c id"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("exec");
+
+        assertThatThrownBy(() -> CameraStreamService.toGo2rtcSource("echo:hello"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> CameraStreamService.toGo2rtcSource("file:///etc/passwd"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> CameraStreamService.toGo2rtcSource("ffmpeg:rtsp://host/s"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> CameraStreamService.toGo2rtcSource("EXEC:/bin/sh"))
+                .as("l'allow-list doit etre insensible a la casse")
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("toGo2rtcSource — rejette une valeur sans scheme")
+    void toGo2rtcSource_rejectsSchemeless() {
+        assertThatThrownBy(() -> CameraStreamService.toGo2rtcSource("host/stream"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("registerStream — une source hors allow-list n'atteint jamais go2rtc")
+    void registerStream_rejectsNonAllowlistedScheme() {
+        assertThatThrownBy(() -> service.registerStream("cam_x", "exec:/bin/sh -c id"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

@@ -25,12 +25,26 @@ import static org.mockito.Mockito.*;
 class FcmNotificationConsumerTest {
 
     private FcmService fcmService;
+    private com.clenzy.repository.NotificationRepository notificationRepository;
     private FcmNotificationConsumer consumer;
 
     @BeforeEach
     void setUp() {
         fcmService = mock(FcmService.class);
-        consumer = new FcmNotificationConsumer(fcmService);
+        notificationRepository = mock(com.clenzy.repository.NotificationRepository.class);
+        consumer = new FcmNotificationConsumer(fcmService, notificationRepository);
+    }
+
+    /** La notification persistee : desormais seule source du destinataire et du contenu. */
+    private com.clenzy.model.Notification storedNotification(String userId, String title, String message) {
+        com.clenzy.model.Notification n = new com.clenzy.model.Notification();
+        n.setId(42L);
+        n.setOrganizationId(7L);
+        n.setUserId(userId);
+        n.setTitle(title);
+        n.setMessage(message);
+        when(notificationRepository.findById(42L)).thenReturn(java.util.Optional.of(n));
+        return n;
     }
 
     @Test
@@ -85,13 +99,11 @@ class FcmNotificationConsumerTest {
             FirebaseApp app = mock(FirebaseApp.class);
             mocked.when(FirebaseApp::getApps).thenReturn(List.of(app));
 
+            storedNotification("u1", "Hello", "Body");
+
             Map<String, Object> event = new HashMap<>();
-            event.put("userId", "u1");
-            event.put("title", "Hello");
-            event.put("message", "Body");
-            event.put("notificationType", "BOOKING");
+            event.put("notificationId", 42L);
             event.put("entityId", 12345L);
-            event.put("actionUrl", "/bookings/1");
 
             consumer.handleNotificationEvent(event);
 
@@ -99,41 +111,70 @@ class FcmNotificationConsumerTest {
         }
     }
 
+    /**
+     * Audit 2026-07 (P5-08) — ce test validait auparavant le broadcast par targetUserIds.
+     * Ce champ n'etait produit par AUCUN code du projet : sa seule voie d'acces etait un
+     * evenement forge, ce qui en faisait une primitive de push de masse avec titre et corps
+     * libres. Il est supprime ; le test verifie desormais qu'il n'est plus honore.
+     */
     @Test
-    @DisplayName("sends to multiple users when targetUserIds list provided")
-    void multipleUsers_sendsToList() {
+    @DisplayName("targetUserIds forge n'est plus honore — pas de broadcast (P5-08)")
+    void forgedBroadcastListIsIgnored() {
         try (MockedStatic<FirebaseApp> mocked = mockStatic(FirebaseApp.class)) {
             FirebaseApp app = mock(FirebaseApp.class);
             mocked.when(FirebaseApp::getApps).thenReturn(List.of(app));
+            storedNotification("u1", "Titre legitime", "Corps legitime");
 
             Map<String, Object> event = new HashMap<>();
-            event.put("userId", "ignored");
-            event.put("title", "Group");
-            event.put("message", "Multi");
+            event.put("notificationId", 42L);
             event.put("targetUserIds", List.of("u1", "u2", "u3"));
 
             consumer.handleNotificationEvent(event);
 
-            verify(fcmService).sendToUsers(eq(List.of("u1", "u2", "u3")), eq("Group"), eq("Multi"), any());
-            verify(fcmService, never()).sendToUser(anyString(), anyString(), any(), any());
+            verify(fcmService, never()).sendToUsers(any(), anyString(), any(), any());
+            verify(fcmService).sendToUser(eq("u1"), eq("Titre legitime"), eq("Corps legitime"), any());
+        }
+    }
+
+    /**
+     * Le cas d'attaque complet : un evenement forge annoncant un autre destinataire et un
+     * contenu de phishing. Seule la notification persistee fait foi.
+     */
+    @Test
+    @DisplayName("titre, corps et destinataire viennent de la base, pas de l'evenement (P5-08)")
+    void contentComesFromStoredNotification() {
+        try (MockedStatic<FirebaseApp> mocked = mockStatic(FirebaseApp.class)) {
+            FirebaseApp app = mock(FirebaseApp.class);
+            mocked.when(FirebaseApp::getApps).thenReturn(List.of(app));
+            storedNotification("kc-victime", "Intervention assignee", "Demain 14h");
+
+            Map<String, Object> event = new HashMap<>();
+            event.put("notificationId", 42L);
+            event.put("userId", "kc-attaquant");
+            event.put("title", "Votre compte va etre suspendu");
+            event.put("message", "Confirmez vos identifiants ici");
+
+            consumer.handleNotificationEvent(event);
+
+            verify(fcmService).sendToUser(
+                    eq("kc-victime"), eq("Intervention assignee"), eq("Demain 14h"), any());
         }
     }
 
     @Test
-    @DisplayName("filters non-String items from targetUserIds")
-    void targetUserIds_filtersNonString() {
+    @DisplayName("notification inconnue : aucun push")
+    void unknownNotification_skips() {
         try (MockedStatic<FirebaseApp> mocked = mockStatic(FirebaseApp.class)) {
             FirebaseApp app = mock(FirebaseApp.class);
             mocked.when(FirebaseApp::getApps).thenReturn(List.of(app));
+            when(notificationRepository.findById(4242L)).thenReturn(java.util.Optional.empty());
 
             Map<String, Object> event = new HashMap<>();
-            event.put("userId", "fallback");
-            event.put("title", "T");
-            event.put("targetUserIds", List.of("u1", 42, "u2"));
+            event.put("notificationId", 4242L);
 
             consumer.handleNotificationEvent(event);
 
-            verify(fcmService).sendToUsers(eq(List.of("u1", "u2")), eq("T"), any(), any());
+            verifyNoInteractions(fcmService);
         }
     }
 
@@ -144,10 +185,11 @@ class FcmNotificationConsumerTest {
             FirebaseApp app = mock(FirebaseApp.class);
             mocked.when(FirebaseApp::getApps).thenReturn(List.of(app));
 
+            storedNotification("u1", "T", "B");
             doThrow(new RuntimeException("boom")).when(fcmService)
                     .sendToUser(anyString(), anyString(), any(), any());
 
-            Map<String, Object> event = Map.of("userId", "u1", "title", "T", "message", "B");
+            Map<String, Object> event = Map.of("notificationId", 42L);
 
             // Must not throw
             consumer.handleNotificationEvent(event);
@@ -161,11 +203,11 @@ class FcmNotificationConsumerTest {
             FirebaseApp app = mock(FirebaseApp.class);
             mocked.when(FirebaseApp::getApps).thenReturn(List.of(app));
 
+            storedNotification("u1", "T", null);
+
             Map<String, Object> event = new HashMap<>();
-            event.put("userId", "u1");
-            event.put("title", "T");
+            event.put("notificationId", 42L);
             event.put("entityId", 999L);
-            event.put("notificationType", "INTERVENTION");
 
             consumer.handleNotificationEvent(event);
 
