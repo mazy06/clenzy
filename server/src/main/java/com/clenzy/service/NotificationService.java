@@ -269,9 +269,13 @@ public class NotificationService {
             return;
         }
         try {
-            // Payload aligné sur le contrat de FcmNotificationConsumer
-            // (userId, title, message, notificationType, entityId, actionUrl).
+            // Payload aligné sur le contrat de FcmNotificationConsumer.
+            // notificationId est le SEUL champ dont il dépend pour le destinataire et le
+            // contenu : il recharge la notification en base (audit 2026-07, P5-08 — un
+            // payload dictant titre et destinataire permettait un push de phishing forgé).
+            // Les autres champs sont conservés pour la lisibilité des events et le debug.
             Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("notificationId", notificationId);
             payload.put("userId", userId);
             payload.put("title", title);
             payload.put("message", message);
