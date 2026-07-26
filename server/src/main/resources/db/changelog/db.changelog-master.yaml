@@ -3467,3 +3467,18 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  # Privileges du role applicatif non-superuser (audit securite 2026-07-26, P4-03 /
+  # REM-T-02). Prerequis de la RLS : un superuser la contourne meme FORCEE, ce que
+  # RlsEnforcementIT demontre. NO-OP tant que le role n'existe pas — la creation du
+  # role (avec mot de passe) releve de l'infrastructure, pas d'un fichier versionne.
+  # runOnChange/runAlways non poses : le changeset est rejoue via Liquibase Bootstrap
+  # apres creation du role (etape 2 du rollout).
+  - changeSet:
+      id: "0362-grant-privileges-to-app-role"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0362__grant_privileges_to_app_role.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false

@@ -219,6 +219,77 @@ class RlsEnforcementIT {
         }
     }
 
+
+    // ── 4. Role applicatif non-superuser (REM-T-02, changeset 0362) ──────────
+
+    /**
+     * Le changeset 0362 n'accorde des privileges que si le role existe deja : sa creation
+     * (avec mot de passe) releve de l'infrastructure, pas d'un fichier versionne. Ce test
+     * verifie que l'absence du role ne fait PAS echouer le replay — c'est ce qui rend le
+     * rollout progressif sur (deploiement du changeset ; creation du role ; bascule des
+     * credentials).
+     */
+    @Test
+    @DisplayName("0362 est un no-op silencieux tant que le role applicatif n'existe pas")
+    void grantChangesetIsNoOpWithoutRole() throws Exception {
+        try (Connection admin = openAsSuperuser(); Statement st = admin.createStatement()) {
+            // Le replay de @BeforeAll a deja execute 0362 : il doit etre marque EXECUTED
+            // alors meme que le role 'clenzy_app' n'existait pas.
+            try (ResultSet rs = st.executeQuery(
+                    "SELECT count(*) FROM databasechangelog "
+                            + "WHERE id = '0362-grant-privileges-to-app-role'")) {
+                rs.next();
+                assertThat(rs.getInt(1))
+                        .as("le changeset doit s'etre applique sans erreur malgre l'absence du role")
+                        .isEqualTo(1);
+            }
+        }
+    }
+
+    /**
+     * Le role applicatif cible doit etre NON-SUPERUSER : c'est la condition meme de
+     * l'efficacite de la RLS, demontree par
+     * {@link #superuserBypassesRls_documentsPrerequisite()}. Ce test rejoue le contrat du
+     * changeset (privileges DML, aucune propriete) et verifie que la RLS s'applique bien
+     * au role ainsi configure.
+     */
+    @Test
+    @DisplayName("le role applicatif non-superuser est soumis a la RLS (REM-T-02)")
+    void applicationRoleIsSubjectToRls() throws Exception {
+        final String appRole = "clenzy_app_grant_check";
+        try (Connection admin = openAsSuperuser(); Statement st = admin.createStatement()) {
+            st.execute("DROP ROLE IF EXISTS " + appRole);
+            st.execute("CREATE ROLE " + appRole + " LOGIN PASSWORD 'x' NOSUPERUSER");
+            st.execute("GRANT USAGE ON SCHEMA public TO " + appRole);
+            st.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "
+                    + appRole);
+        }
+
+        try (Connection app = DriverManager.getConnection(postgres.getJdbcUrl(), appRole, "x");
+             Statement st = app.createStatement()) {
+            st.execute("SELECT set_config('app.current_org', '" + ORG_A + "', false)");
+
+            assertThat(countTransactions(st))
+                    .as("un role non-superuser, non-proprietaire, ne voit que son organisation")
+                    .isEqualTo(1);
+        }
+    }
+
+    @Test
+    @DisplayName("un role SUPERUSER ne doit jamais etre le role applicatif")
+    void superuserRoleWouldDefeatRls() throws Exception {
+        try (Connection admin = openAsSuperuser(); Statement st = admin.createStatement()) {
+            try (ResultSet rs = st.executeQuery(
+                    "SELECT rolsuper FROM pg_roles WHERE rolname = current_user")) {
+                rs.next();
+                assertThat(rs.getBoolean(1))
+                        .as("le compte de test EST superuser — c'est precisement la configuration "
+                                + "de production a corriger (P4-03)")
+                        .isTrue();
+            }
+        }
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static Connection openAsSuperuser() throws SQLException {

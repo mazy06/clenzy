@@ -44,8 +44,14 @@ spring:
   liquibase:
     enabled: true
     url: ${SPRING_DATASOURCE_URL}
-    user: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    # Credentials DISTINCTS de ceux de l'application (audit 2026-07, P4-03 / REM-T-02).
+    # Liquibase fait du DDL : il lui faut la propriete des tables. L'application, elle,
+    # doit tourner avec un role NON-SUPERUSER, sans quoi la RLS lui est inopposable —
+    # un superuser la contourne meme FORCEE (cf. RlsEnforcementIT).
+    # Repli sur les credentials du datasource : tant que SPRING_LIQUIBASE_USERNAME n'est
+    # pas defini, le comportement est strictement inchange.
+    user: ${SPRING_LIQUIBASE_USERNAME:${SPRING_DATASOURCE_USERNAME}}
+    password: ${SPRING_LIQUIBASE_PASSWORD:${SPRING_DATASOURCE_PASSWORD}}
   jackson:
     time-zone: Europe/Paris
   mail:
