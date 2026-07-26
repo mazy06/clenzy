@@ -186,27 +186,41 @@ public class PaymentPersistence {
 
     // ─── Webhooks (pas d'appel externe : simple mise à jour d'état + outbox) ────
 
-    /** Marque la transaction COMPLETED (idempotent : ne fait rien si déjà COMPLETED). */
+    /**
+     * Marque la transaction COMPLETED, par UPDATE conditionnel (audit 2026-07, P6-05).
+     *
+     * <p>Idempotent <b>et</b> concurrent-safe : seul l'appel qui gagne le compare-and-set
+     * publie l'evenement. Les rejeux — Kafka at-least-once, re-livraison de webhook,
+     * redemarrage — obtiennent 0 ligne modifiee et ne republient rien.</p>
+     */
     @Transactional
     public PaymentTransaction completeTransaction(String transactionRef) {
+        int updated = transactionRepository.markCompleted(transactionRef);
         PaymentTransaction tx = requireTx(transactionRef);
-        if (tx.getStatus() == TransactionStatus.COMPLETED) {
+        if (updated == 0) {
             log.info("Transaction {} already completed, skipping", transactionRef);
             return tx;
         }
-        tx.setStatus(TransactionStatus.COMPLETED);
-        tx = transactionRepository.save(tx);
         publishEvent(tx, "PAYMENT_COMPLETED", tx.getOrganizationId());
         return tx;
     }
 
-    /** Marque la transaction FAILED (appelé depuis un webhook d'échec). */
+    /**
+     * Marque la transaction FAILED (appelé depuis un webhook d'échec), <b>sans jamais
+     * dégrader</b> une transaction déjà encaissée (audit 2026-07, P6-12).
+     *
+     * <p>Un webhook d'échec rejoué après un succès laisse la transaction COMPLETED et ne
+     * publie aucun PAYMENT_FAILED : le ledger reste cohérent avec l'entité métier.</p>
+     */
     @Transactional
     public PaymentTransaction failTransaction(String transactionRef, String errorMessage) {
+        int updated = transactionRepository.markFailed(transactionRef, errorMessage);
         PaymentTransaction tx = requireTx(transactionRef);
-        tx.setStatus(TransactionStatus.FAILED);
-        tx.setErrorMessage(errorMessage);
-        tx = transactionRepository.save(tx);
+        if (updated == 0) {
+            log.warn("Transaction {} en statut {} : echec ignore (transition refusee) — {}",
+                    transactionRef, tx.getStatus(), errorMessage);
+            return tx;
+        }
         publishEvent(tx, "PAYMENT_FAILED", tx.getOrganizationId());
         return tx;
     }

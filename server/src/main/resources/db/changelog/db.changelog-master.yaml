@@ -3453,3 +3453,17 @@ databaseChangeLog:
       sqlFile:
         path: changes/0360__create_partner_service_connections.sql
         relativeToChangelogFile: true
+
+  # Unicite des references de transaction de paiement (audit securite 2026-07-26,
+  # P6-05) : transaction_ref et idempotency_key n'avaient aucune contrainte, laissant
+  # les rejeux de webhook et les POST concurrents creer des doublons.
+  # splitStatements/stripComments false : le changeset contient un bloc DO $$ (garde
+  # anti-doublons avec RAISE EXCEPTION nommant les references fautives).
+  - changeSet:
+      id: "0361-unique-payment-transaction-refs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0361__unique_payment_transaction_refs.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false

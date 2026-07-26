@@ -306,9 +306,11 @@ class PaymentPersistenceTest {
         @Test
         @DisplayName("completeTransaction → COMPLETED + outbox")
         void complete() {
-            PaymentTransaction t = tx("TX-1", TransactionStatus.PROCESSING, PaymentProviderType.STRIPE);
+            // La transition passe par un UPDATE conditionnel (P6-05) : le CAS est gagne
+            // (1 ligne), puis requireTx relit l'entite — deja COMPLETED en base.
+            PaymentTransaction t = tx("TX-1", TransactionStatus.COMPLETED, PaymentProviderType.STRIPE);
+            when(transactionRepository.markCompleted("TX-1")).thenReturn(1);
             when(transactionRepository.findByTransactionRef("TX-1")).thenReturn(Optional.of(t));
-            when(transactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
             PaymentTransaction result = persistence.completeTransaction("TX-1");
 
@@ -321,6 +323,7 @@ class PaymentPersistenceTest {
         @DisplayName("completeTransaction idempotent → skips when already COMPLETED")
         void completeIdempotent() {
             PaymentTransaction t = tx("TX-1", TransactionStatus.COMPLETED, PaymentProviderType.STRIPE);
+            when(transactionRepository.markCompleted("TX-1")).thenReturn(0);
             when(transactionRepository.findByTransactionRef("TX-1")).thenReturn(Optional.of(t));
 
             persistence.completeTransaction("TX-1");
@@ -340,9 +343,11 @@ class PaymentPersistenceTest {
         @Test
         @DisplayName("failTransaction → FAILED + outbox")
         void fail() {
-            PaymentTransaction t = tx("TX-1", TransactionStatus.PROCESSING, PaymentProviderType.STRIPE);
+            // Idem pour l'echec : UPDATE conditionnel puis relecture (P6-12).
+            PaymentTransaction t = tx("TX-1", TransactionStatus.FAILED, PaymentProviderType.STRIPE);
+            t.setErrorMessage("Card declined");
+            when(transactionRepository.markFailed("TX-1", "Card declined")).thenReturn(1);
             when(transactionRepository.findByTransactionRef("TX-1")).thenReturn(Optional.of(t));
-            when(transactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
             PaymentTransaction result = persistence.failTransaction("TX-1", "Card declined");
 
@@ -350,6 +355,48 @@ class PaymentPersistenceTest {
             assertThat(result.getErrorMessage()).isEqualTo("Card declined");
             verify(outboxPublisher).publish(eq("PAYMENT"), anyString(), eq("PAYMENT_FAILED"),
                     anyString(), anyString(), anyString(), eq(ORG_ID));
+        }
+
+        /**
+         * Audit 2026-07 (P6-05) — {@code completeTransaction} etait un check-then-act :
+         * {@code findByTransactionRef} sans verrou, test du statut, puis {@code save}
+         * inconditionnel. Sous READ COMMITTED, deux rejeux concurrents du meme webhook
+         * lisaient tous deux PROCESSING et publiaient chacun un PAYMENT_COMPLETED dans
+         * l'outbox. La transition passe desormais par un UPDATE conditionnel : le perdant
+         * du CAS obtient 0 ligne modifiee et ne publie rien.
+         */
+        @Test
+        @DisplayName("completeTransaction : le perdant du CAS ne publie aucun evenement (P6-05)")
+        void completeLosesCasAndPublishesNothing() {
+            PaymentTransaction t = tx("TX-1", TransactionStatus.COMPLETED, PaymentProviderType.STRIPE);
+            when(transactionRepository.markCompleted("TX-1")).thenReturn(0);
+            when(transactionRepository.findByTransactionRef("TX-1")).thenReturn(Optional.of(t));
+
+            PaymentTransaction result = persistence.completeTransaction("TX-1");
+
+            assertThat(result.getStatus()).isEqualTo(TransactionStatus.COMPLETED);
+            verify(outboxPublisher, never()).publish(any(), any(), any(), any(), any(), any(), any());
+        }
+
+        /**
+         * Audit 2026-07 (P6-12) — {@code failTransaction} n'avait aucune garde d'etat :
+         * {@code COMPLETED → FAILED} etait autorise. Le rejeu d'un webhook d'echec signe,
+         * apres un succes, degradait une transaction encaissee et publiait PAYMENT_FAILED,
+         * desynchronisant le ledger de l'entite metier restee PAID.
+         */
+        @Test
+        @DisplayName("failTransaction ne degrade pas une transaction COMPLETED (P6-12)")
+        void failDoesNotDowngradeCompleted() {
+            PaymentTransaction t = tx("TX-1", TransactionStatus.COMPLETED, PaymentProviderType.STRIPE);
+            when(transactionRepository.markFailed("TX-1", "Card declined")).thenReturn(0);
+            when(transactionRepository.findByTransactionRef("TX-1")).thenReturn(Optional.of(t));
+
+            PaymentTransaction result = persistence.failTransaction("TX-1", "Card declined");
+
+            assertThat(result.getStatus())
+                    .as("une transaction encaissee ne doit jamais repasser en echec")
+                    .isEqualTo(TransactionStatus.COMPLETED);
+            verify(outboxPublisher, never()).publish(any(), any(), any(), any(), any(), any(), any());
         }
     }
 
@@ -364,9 +411,9 @@ class PaymentPersistenceTest {
             when(failingMapper.writeValueAsString(any())).thenThrow(new JsonProcessingException("boom") {});
             PaymentPersistence failing = new PaymentPersistence(transactionRepository, outboxPublisher, failingMapper);
 
-            PaymentTransaction t = tx("TX-1", TransactionStatus.PROCESSING, PaymentProviderType.STRIPE);
+            PaymentTransaction t = tx("TX-1", TransactionStatus.COMPLETED, PaymentProviderType.STRIPE);
+            when(transactionRepository.markCompleted("TX-1")).thenReturn(1);
             when(transactionRepository.findByTransactionRef("TX-1")).thenReturn(Optional.of(t));
-            when(transactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
             PaymentTransaction result = failing.completeTransaction("TX-1");
 
