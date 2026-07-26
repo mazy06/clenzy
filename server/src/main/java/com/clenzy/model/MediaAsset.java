@@ -3,12 +3,18 @@ package com.clenzy.model;
 import jakarta.persistence.*;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Média de la médiathèque (2.1) — org-scopé. Référencé par les champs image des blocs du Studio
  * (logos, galeries, avatars…). Le binaire vit dans le {@code PhotoStorageService} (S3 ou BYTEA selon
  * profil) ; cette table porte les métadonnées + le lien org. Servi publiquement via
- * {@code GET /api/public/media/{id}} (le contenu est destiné au site/widget public).
+ * {@code GET /api/public/media/t/{publicToken}} (le contenu est destiné au site/widget public).
+ *
+ * <p>La route historique {@code /api/public/media/{id}} reste servie pour les pages déjà
+ * publiées, mais elle est <b>dépréciée</b> : l'identifiant est séquentiel, ce qui rendait
+ * toute la médiathèque de toutes les organisations énumérable par un anonyme (audit
+ * 2026-07-26, constat P1-06). {@link #publicToken} est l'identifiant public à utiliser.
  */
 @Entity
 @Table(name = "media_assets", indexes = { @Index(name = "idx_media_assets_org", columnList = "organization_id") })
@@ -20,6 +26,14 @@ public class MediaAsset {
 
     @Column(name = "organization_id", nullable = false)
     private Long organizationId;
+
+    /**
+     * Identifiant public opaque, seul à figurer dans les URLs servies aux visiteurs.
+     * Généré à la création : un média n'est jamais atteignable par devinette, y compris
+     * lorsqu'il est déposé sans être publié dans une page.
+     */
+    @Column(name = "public_token", nullable = false, updatable = false)
+    private UUID publicToken = UUID.randomUUID();
 
     @Column(name = "storage_key", nullable = false, length = 512)
     private String storageKey;
@@ -38,6 +52,8 @@ public class MediaAsset {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    public UUID getPublicToken() { return publicToken; }
+    public void setPublicToken(UUID publicToken) { this.publicToken = publicToken; }
     public Long getOrganizationId() { return organizationId; }
     public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
     public String getStorageKey() { return storageKey; }

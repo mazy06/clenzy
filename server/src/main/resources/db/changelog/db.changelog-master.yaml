@@ -3482,3 +3482,9 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+  - changeSet:
+      id: "0363-add-public-token-to-media-assets"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0363__add_public_token_to_media_assets.sql
+        relativeToChangelogFile: true
