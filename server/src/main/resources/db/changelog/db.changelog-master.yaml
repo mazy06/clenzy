@@ -3477,6 +3477,12 @@ databaseChangeLog:
   - changeSet:
       id: "0362-grant-privileges-to-app-role"
       author: clenzy-team
+      # runAlways : ce changeset est un no-op tant que le role clenzy_app n'existe pas.
+      # Sans cette option il serait marque EXECUTED des le premier boot, puis jamais
+      # rejoue — donc AUCUN privilege ne serait accorde le jour ou le role est cree, et
+      # l'application basculee se retrouverait sans aucun droit. Les GRANT sont
+      # idempotents : les rejouer a chaque demarrage est sans effet de bord.
+      runAlways: true
       sqlFile:
         path: changes/0362__grant_privileges_to_app_role.sql
         relativeToChangelogFile: true
