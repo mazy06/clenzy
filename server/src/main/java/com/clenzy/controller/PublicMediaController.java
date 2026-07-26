@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -37,6 +38,25 @@ public class PublicMediaController {
 
     private static final Logger log = LoggerFactory.getLogger(PublicMediaController.class);
 
+    /**
+     * Compteur d'usage de la route heritee.
+     *
+     * <p>Le {@code log.debug} initial etait inexploitable : la production tourne en
+     * {@code com.clenzy: info}, il n'etait donc jamais emis. On ne pouvait pas savoir si
+     * la route servait encore — et retirer une route sans cette mesure reviendrait a parier
+     * que plus aucune page publiee n'en depend (audit 2026-07-26, constat P1-06).
+     *
+     * <p>Un compteur plutot qu'un log par appel : cette route peut servir des milliers
+     * d'images par heure sur un site actif. Le total est journalise periodiquement, ce qui
+     * donne l'ordre de grandeur sans inonder.
+     */
+    private static final AtomicLong APPELS_ROUTE_HERITEE = new AtomicLong();
+
+    /** Horodatage du dernier releve, pour ne journaliser qu'une fois par heure. */
+    private static final AtomicLong DERNIER_RELEVE = new AtomicLong(System.currentTimeMillis());
+
+    private static final long INTERVALLE_RELEVE_MS = 3_600_000L;
+
     private final MediaLibraryService service;
 
     public PublicMediaController(MediaLibraryService service) {
@@ -52,17 +72,37 @@ public class PublicMediaController {
     /**
      * Route héritée, servie pour ne pas casser les pages publiées avant l'introduction du jeton.
      *
-     * <p>Chaque appel est tracé : c'est cette trace qui dira quand plus aucune page publiée n'en
-     * dépend, et donc quand la route peut être retirée sans casse. Le niveau reste {@code debug}
-     * — un site à fort trafic passe encore massivement par ici, un {@code warn} noierait les logs.
+     * <p>Chaque appel est compté : c'est cette mesure qui dira quand plus aucune page publiée
+     * n'en dépend, et donc quand la route peut être retirée sans casse. Un compteur, et non un
+     * log par appel — cette route peut servir des milliers d'images par heure.
      *
      * @deprecated Identifiant séquentiel et donc énumérable (audit P1-06).
      */
     @Deprecated(since = "2026-07-26")
     @GetMapping("/{id}")
     public ResponseEntity<byte[]> serve(@PathVariable Long id) {
-        log.debug("Media servi via la route depreciee par identifiant (P1-06) : id={}", id);
+        compterAppelHerite();
         return respond(service.serve(id));
+    }
+
+    /**
+     * Comptabilise l'appel et journalise le total au plus une fois par heure.
+     *
+     * <p>C'est cette mesure qui dira quand la route peut etre retiree sans casse : un total
+     * qui reste a zero sur plusieurs jours, apres republication des pages, est la seule
+     * preuve acceptable. Tant qu'il augmente, retirer la route casserait des images sur des
+     * sites en production.
+     */
+    private static void compterAppelHerite() {
+        long total = APPELS_ROUTE_HERITEE.incrementAndGet();
+        long maintenant = System.currentTimeMillis();
+        long precedent = DERNIER_RELEVE.get();
+        if (maintenant - precedent >= INTERVALLE_RELEVE_MS
+                && DERNIER_RELEVE.compareAndSet(precedent, maintenant)) {
+            log.info("MEDIA/P1-06 : route heritee par identifiant appelee {} fois depuis le "
+                    + "demarrage. Elle ne pourra etre retiree que lorsque ce total cessera "
+                    + "d'augmenter — republier les pages des sites d'ici la.", total);
+        }
     }
 
     private ResponseEntity<byte[]> respond(MediaLibraryService.ServedMedia media) {
