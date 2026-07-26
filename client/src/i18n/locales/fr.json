@@ -5687,13 +5687,15 @@
         "tokens": "Monitoring des Tokens",
         "keycloak": "Métriques Keycloak",
         "audit": "Audit et Logging",
-        "healthChecks": "Health Checks Avancés"
+        "healthChecks": "Health Checks Avancés",
+        "rlsAudit": "Isolation RLS"
       },
       "subtitle": {
         "tokens": "Surveillance des tokens IA consommés par feature : compteurs, coûts et rotation des clés.",
         "keycloak": "Métriques Keycloak (sessions, login, refresh) et couverture des tests d'intégration.",
         "audit": "Journal d'audit horodaté : connexions, accès aux données, actions admin et permissions refusées.",
-        "healthChecks": "Health checks des services dépendants (DB, Redis, Kafka, OAuth) et métriques système temps réel."
+        "healthChecks": "Health checks des services dépendants (DB, Redis, Kafka, OAuth) et métriques système temps réel.",
+        "rlsAudit": "Chemins dont les requêtes s'exécutent sans contexte tenant. Une fois la Row-Level Security active, ils renverraient zéro ligne sans lever d'erreur."
       }
     },
     "syncAdmin": {

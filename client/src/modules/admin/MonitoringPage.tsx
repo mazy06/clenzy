@@ -6,6 +6,7 @@ import {
   Assignment,
   HealthAndSafety,
 } from '../../icons';
+import { ShieldAlert } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
 import { useTabKeyParam } from '../../components/tabKeyParam';
@@ -18,6 +19,7 @@ import TokenMonitoring from '../../components/TokenMonitoring';
 import KeycloakMetrics from '../../components/KeycloakMetrics';
 import AuditLogging from '../../components/AuditLogging';
 import HealthChecks from '../../components/HealthChecks';
+import RlsAudit from '../../components/RlsAudit';
 
 // Le contexte interne MonitoringHeader est conserve : il porte une semantique
 // supplementaire (lastUpdate timestamp affiche dans le header) que la primitive
@@ -43,6 +45,7 @@ const TAB_ICONS = [
   <TrendingUp />,
   <Assignment />,
   <HealthAndSafety />,
+  <ShieldAlert />,
 ] as const;
 
 const MonitoringPage: React.FC = () => {
@@ -55,6 +58,7 @@ const MonitoringPage: React.FC = () => {
     { key: 'keycloak', label: t('tabHeaders.monitoring.tabs.keycloak', 'Métriques Keycloak'), icon: TAB_ICONS[1] },
     { key: 'audit', label: t('tabHeaders.monitoring.tabs.audit', 'Audit et Logging'), icon: TAB_ICONS[2] },
     { key: 'health-checks', label: t('tabHeaders.monitoring.tabs.healthChecks', 'Health Checks Avancés'), icon: TAB_ICONS[3] },
+    { key: 'rls-audit', label: t('tabHeaders.monitoring.tabs.rlsAudit', 'Isolation RLS'), icon: TAB_ICONS[4] },
   ];
   const [tabValue, setTabValue] = useTabKeyParam(monitoringTabs);
   const [headerActions, setHeaderActions] = useState<React.ReactNode>(null);
@@ -84,6 +88,9 @@ const MonitoringPage: React.FC = () => {
     },
     [t('tabHeaders.monitoring.tabs.healthChecks', 'Health Checks Avancés')]: {
       subtitle: t('tabHeaders.monitoring.subtitle.healthChecks', 'Health checks des services dépendants (DB, Redis, Kafka, OAuth) et métriques système temps réel.'),
+    },
+    [t('tabHeaders.monitoring.tabs.rlsAudit', 'Isolation RLS')]: {
+      subtitle: t('tabHeaders.monitoring.subtitle.rlsAudit', "Chemins dont les requêtes s'exécutent sans contexte tenant. Une fois la Row-Level Security active, ils renverraient zéro ligne sans lever d'erreur."),
     },
   };
 
@@ -131,6 +138,7 @@ const MonitoringPage: React.FC = () => {
           {tabValue === 1 && <KeycloakMetrics />}
           {tabValue === 2 && <AuditLogging />}
           {tabValue === 3 && <HealthChecks />}
+          {tabValue === 4 && <RlsAudit />}
         </MonitoringHeaderContext.Provider>
       </Box>
     </Box>

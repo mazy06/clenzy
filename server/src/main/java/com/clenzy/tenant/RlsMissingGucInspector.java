@@ -5,8 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Locale;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Recense les requêtes qui échapperaient à la Row-Level Security — audit sécurité
@@ -42,14 +40,6 @@ public class RlsMissingGucInspector implements StatementInspector {
         "reservations", "invoices", "document_generations", "service_requests", "payment_transactions"
     };
 
-    /**
-     * Chemins déjà signalés. Un même appel se répète des milliers de fois par jour :
-     * sans cette déduplication, le journal serait illisible et le signal noyé.
-     * Borné pour ne pas devenir une fuite mémoire si la diversité des chemins surprend.
-     */
-    private static final Set<String> DEJA_SIGNALES = ConcurrentHashMap.newKeySet();
-    private static final int MAX_CHEMINS_SIGNALES = 500;
-
     private final boolean actif;
 
     public RlsMissingGucInspector(boolean actif) {
@@ -83,20 +73,23 @@ public class RlsMissingGucInspector implements StatementInspector {
 
     private static void signaler(String table, String sql) {
         String origine = premierAppelantApplicatif();
-        if (!DEJA_SIGNALES.add(origine + "|" + table)) {
+        String extrait = extraitSql(sql);
+
+        // Le tampon agrege ; il dit si le chemin est inedit, ce qui evite d'inonder le
+        // journal pour un appel qui se repete des milliers de fois par jour.
+        boolean premiereFois = RlsAuditBuffer.enregistrer(origine, table, extrait);
+        if (!premiereFois) {
             return;
         }
-        if (DEJA_SIGNALES.size() > MAX_CHEMINS_SIGNALES) {
-            // On ne coupe pas le journal en silence : un plafond atteint est en soi une
-            // information (la diversité des chemins dépasse ce qui était anticipé).
-            log.warn("RLS/AUDIT : plafond de {} chemins distincts atteint, signalements "
-                    + "suspendus. Traiter les chemins deja remontes avant d'aller plus loin.",
-                    MAX_CHEMINS_SIGNALES);
+        if (RlsAuditBuffer.plafondAtteint()) {
+            // Un plafond atteint n'est pas tronque en silence : c'est une information.
+            log.warn("RLS/AUDIT : plafond de chemins distincts atteint, nouveaux constats "
+                    + "ignores. Traiter les chemins deja remontes avant d'aller plus loin.");
             return;
         }
         log.warn("RLS/AUDIT : requete sur '{}' SANS contexte tenant pose. Une fois la RLS "
                 + "active, elle renverra 0 ligne (pas une erreur). Origine : {} — SQL : {}",
-                table, origine, extraitSql(sql));
+                table, origine, extrait);
     }
 
     /**

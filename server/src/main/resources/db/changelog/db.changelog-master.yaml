@@ -3494,3 +3494,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0363__add_public_token_to_media_assets.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0364-create-rls-audit-findings"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0364__create_rls_audit_findings.sql
+        relativeToChangelogFile: true
