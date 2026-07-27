@@ -41,7 +41,7 @@ const HERO_METRICS = [
 
 function Hero() {
   return (
-    <section className="mx-auto max-w-6xl px-4 pt-16 pb-12">
+    <section className="site-shell pt-16 pb-12">
       {/* Deux colonnes : discours à gauche, assistant en action à droite. */}
       <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[1fr_1.05fr]">
         <div>
@@ -97,7 +97,7 @@ const TRUST_ITEMS = [
 function TrustBar() {
   return (
     <section className="border-y border-border bg-card">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 py-4">
+      <div className="site-shell flex flex-wrap items-center justify-center gap-x-8 gap-y-2 py-4">
         {TRUST_ITEMS.map((item) => (
           <span key={item} className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <ShieldCheckIcon className="size-3.5 text-success" /> {item}
@@ -146,7 +146,7 @@ const AGENTS: AgentDef[] = [
 
 function AgentsSection() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-16">
+    <section className="site-shell py-16">
       <div className="mb-8 max-w-2xl">
         <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
           Des agents nommés, chacun son métier.
@@ -156,7 +156,7 @@ function AgentsSection() {
           garde-fous et un journal d’activité.
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
         {AGENTS.map((agent) => (
           <div
             key={agent.name}
@@ -237,7 +237,7 @@ const HITL_POINTS = [
 function HitlSection() {
   return (
     <section className="border-y border-border bg-card">
-      <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-4 py-16 lg:grid-cols-2">
+      <div className="site-shell grid grid-cols-1 items-center gap-10 py-16 lg:grid-cols-2">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
             Vous gardez la main. Vraiment.
@@ -298,7 +298,7 @@ const TAB_PANELS = [
 
 function CapabilitiesSection() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-16">
+    <section className="site-shell py-16">
       <h2 className="mb-8 max-w-2xl text-2xl font-semibold tracking-tight sm:text-3xl">
         Tout ce que la constellation sait faire.
       </h2>
@@ -340,7 +340,7 @@ function CapabilitiesSection() {
 function TransparencySection() {
   return (
     <section className="bg-foreground text-background">
-      <div className="mx-auto max-w-6xl px-4 py-16">
+      <div className="site-shell py-16">
         <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[1.2fr_1fr]">
           <div>
             <Badge variant="outline" className="mb-4 border-background/25 text-background">
@@ -398,7 +398,7 @@ const SEGMENTS = [
 
 function SegmentsSection() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-16">
+    <section className="site-shell py-16">
       <h2 className="mb-8 text-2xl font-semibold tracking-tight sm:text-3xl">
         À chaque taille de portefeuille, son usage.
       </h2>
@@ -426,7 +426,7 @@ const PLANS = [
 function PricingSection() {
   return (
     <section className="border-y border-border bg-card">
-      <div className="mx-auto max-w-6xl px-4 py-16">
+      <div className="site-shell py-16">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
@@ -539,7 +539,7 @@ function FaqSection() {
 
 function FinalCta() {
   return (
-    <section className="mx-auto max-w-6xl px-4 pb-16">
+    <section className="site-shell pb-16">
       <div className="rounded-2xl bg-foreground px-6 py-12 text-center text-background sm:px-12">
         <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
           Mettez une équipe d’agents sur vos logements.

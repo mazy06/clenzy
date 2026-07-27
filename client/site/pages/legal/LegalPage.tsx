@@ -9,7 +9,7 @@ export default function LegalPage() {
   if (!doc) return <Navigate to="/" replace />;
 
   return (
-    <section className="mx-auto grid max-w-6xl grid-cols-1 items-start gap-10 px-4 py-14 lg:grid-cols-[260px_1fr]">
+    <section className="site-shell grid grid-cols-1 items-start gap-10 py-14 lg:grid-cols-[260px_1fr]">
       {/* Sommaire */}
       <aside className="top-24 lg:sticky">
         <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">

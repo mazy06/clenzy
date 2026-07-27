@@ -71,7 +71,7 @@ export default function ModulePage() {
       {/* Hero — deux colonnes : discours à gauche, panneau récap à droite */}
       <section className="relative overflow-hidden border-b border-border">
         <div className="hero-grid absolute inset-x-0 top-0 h-80 -z-10" aria-hidden />
-        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-4 pt-16 pb-16 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="site-shell grid grid-cols-1 items-center gap-10 pt-16 pb-16 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
             <Reveal>
               <Badge variant="outline">
@@ -110,7 +110,7 @@ export default function ModulePage() {
 
       {/* Démo animée (modules qui en disposent) — projection réelle pilotée */}
       {demo && (
-        <section className="mx-auto max-w-6xl px-4 pt-16">
+        <section className="site-shell pt-16">
           <Reveal className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div className="max-w-2xl">
               <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">{demo.title}</h2>
@@ -130,9 +130,9 @@ export default function ModulePage() {
         </section>
       )}
 
-      {/* Features — rythme alterné 2×2 */}
-      <section className="mx-auto max-w-6xl px-4 py-16">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {/* Features — 2×2 en tablette, une seule rangée de 4 en grand écran */}
+      <section className="site-shell py-16">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
           {module.features.map((feature, index) => (
             <Reveal key={feature.title} delay={((index % 2) + 1) as 1 | 2}>
               <div className="flex h-full flex-col gap-2 rounded-xl border border-border bg-card p-6">
@@ -151,7 +151,7 @@ export default function ModulePage() {
       {module.slug === 'livret-accueil' && (
         <section className="relative overflow-hidden border-y border-border bg-card">
           <div className="hero-grid absolute inset-x-0 top-0 h-48 -z-10" aria-hidden />
-          <div className="mx-auto max-w-6xl px-4 pt-16">
+          <div className="site-shell pt-16">
             {/* En-tête + commission mise en avant */}
             <div className="grid grid-cols-1 items-end gap-6 lg:grid-cols-[1.6fr_1fr]">
               <Reveal>
@@ -183,7 +183,7 @@ export default function ModulePage() {
             <PartnerMarquee rows={MARKETPLACE_ROWS} />
           </Reveal>
 
-          <div className="mx-auto max-w-6xl px-4 pb-16">
+          <div className="site-shell pb-16">
             {/* Une seule unité, scindée par un filet : à gauche ce qu'on
                 encaisse via un tiers, à droite ce qu'on vend soi-même. Pas de
                 tarifs — le prix se fixe dans le produit, pas sur la page. */}
@@ -247,7 +247,7 @@ export default function ModulePage() {
 
       {/* Segmentation par taille (pattern Hostaway) */}
       <section className="border-y border-border bg-card">
-        <div className="mx-auto max-w-6xl px-4 py-14">
+        <div className="site-shell py-14">
           <Reveal>
             <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
               Pensé pour votre taille de portefeuille
@@ -292,7 +292,7 @@ export default function ModulePage() {
       )}
 
       {/* Autres modules */}
-      <section className="mx-auto max-w-6xl px-4 pb-16">
+      <section className="site-shell pb-16">
         <Reveal>
           <p className="mb-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             Explorer les autres modules

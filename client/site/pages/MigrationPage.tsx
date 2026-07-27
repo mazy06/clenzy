@@ -29,7 +29,7 @@ export default function MigrationPage() {
     <>
       <section className="relative overflow-hidden border-b border-border">
         <div className="hero-grid absolute inset-x-0 top-0 h-64 -z-10" aria-hidden />
-        <div className="mx-auto max-w-6xl px-4 pt-16 pb-12">
+        <div className="site-shell pt-16 pb-12">
           <Reveal>
             <Badge variant="outline">Migration</Badge>
           </Reveal>
@@ -47,13 +47,13 @@ export default function MigrationPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-16">
+      <section className="site-shell py-16">
         <Reveal>
           <h2 className="mb-6 text-xl font-semibold tracking-tight sm:text-2xl">
             Quatre façons d'importer vos données
           </h2>
         </Reveal>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
           {IMPORT_CHANNELS.map((channel, index) => (
             <Reveal key={channel.name} delay={((index % 2) + 1) as 1 | 2}>
               <div className="flex h-full flex-col gap-2 rounded-xl border border-border bg-card p-6">
@@ -76,7 +76,7 @@ export default function MigrationPage() {
       </section>
 
       <section className="border-y border-border bg-card">
-        <div className="mx-auto max-w-6xl px-4 py-14">
+        <div className="site-shell py-14">
           <Reveal>
             <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
               La bascule, en quatre étapes
@@ -98,7 +98,7 @@ export default function MigrationPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-16">
+      <section className="site-shell py-16">
         <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
           <Reveal>
             <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">

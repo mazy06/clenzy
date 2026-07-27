@@ -9,7 +9,7 @@ export default function SolutionsPage() {
     <>
       <section className="relative overflow-hidden border-b border-border">
         <div className="hero-grid absolute inset-x-0 top-0 h-64 -z-10" aria-hidden />
-        <div className="mx-auto max-w-6xl px-4 pt-16 pb-12">
+        <div className="site-shell pt-16 pb-12">
           <Reveal>
             <Badge variant="outline">Solutions</Badge>
           </Reveal>
@@ -27,7 +27,7 @@ export default function SolutionsPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-16">
+      <section className="site-shell py-16">
         <div className="flex flex-col gap-6">
           {SOLUTIONS.map((solution, index) => (
             <Reveal key={solution.slug}>

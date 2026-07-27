@@ -20,7 +20,7 @@ import { MODULES } from '../data/catalog';
 function Hero() {
   return (
     <section className="relative overflow-hidden">
-      <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 pt-16 pb-16 lg:grid-cols-[1.05fr_1fr]">
+      <div className="site-shell grid grid-cols-1 items-center gap-12 pt-16 pb-16 lg:grid-cols-[1.05fr_1fr]">
         <div>
           <Reveal>
             <Badge variant="outline">Le PMS conçu pour le Maroc et la France</Badge>
@@ -93,7 +93,7 @@ function ModulesBento() {
   const agents = MODULES.find((module) => module.slug === 'agents-ia')!;
   const others = MODULES.filter((module) => module.slug !== 'agents-ia');
   return (
-    <section className="mx-auto max-w-6xl px-4 py-16">
+    <section className="site-shell py-16">
       <Reveal className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-2xl">
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
@@ -168,7 +168,7 @@ const COMPLIANCE_POINTS = [
 function ComplianceSection() {
   return (
     <section className="border-y border-border bg-card">
-      <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-4 py-16 lg:grid-cols-2">
+      <div className="site-shell grid grid-cols-1 items-center gap-10 py-16 lg:grid-cols-2">
         <Reveal>
           <Badge variant="success">
             <MapPinIcon /> Conçu pour le Maroc
@@ -232,7 +232,7 @@ function ComplianceSection() {
 
 function OutcomesSection() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-16">
+    <section className="site-shell py-16">
       <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3">
         {[
           { value: '15 h', label: 'rendues chaque semaine à votre équipe' },
@@ -265,7 +265,7 @@ function OutcomesSection() {
 
 function FinalCta() {
   return (
-    <section className="mx-auto max-w-6xl px-4 pb-16">
+    <section className="site-shell pb-16">
       <Reveal>
         <div className="rounded-2xl bg-foreground px-6 py-12 text-center text-background sm:px-12">
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
