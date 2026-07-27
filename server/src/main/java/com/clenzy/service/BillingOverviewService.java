@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.dto.BillingOverviewDto;
 import com.clenzy.dto.ChannelRevenueDto;
+import com.clenzy.model.ChannelSources;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.ReservationRepository;
 import org.springframework.stereotype.Service;
@@ -51,30 +52,6 @@ public class BillingOverviewService {
         CHANNEL_LABELS.put("expedia", "Expedia");
         CHANNEL_LABELS.put("direct", "Direct");
         CHANNEL_LABELS.put("other", "Autre");
-    }
-
-    /**
-     * Mots-cles reconnus dans {@code Reservation.sourceName} — le nom du feed
-     * iCal saisi par l'hote, ou l'OTA renvoyee par Channex.
-     *
-     * <p>C'est la seule trace fine du canal : {@code Reservation.source} ne
-     * connait que airbnb / booking / direct / other, car
-     * {@code ICalImportService.detectSource} replie vrbo et homeaway sur
-     * "other". Cette taxonomie grossiere est lue par la facturation
-     * ({@code PaymentQueryService.isOtaPaidReservation}, qui traite airbnb,
-     * booking et other comme deja regles sur le canal) : l'elargir ferait
-     * basculer des sejours OTA en « reste a payer ». On resout donc le canal a
-     * l'affichage, sans toucher aux donnees ni a leur signification.</p>
-     */
-    private static final Map<String, String> SOURCE_NAME_KEYWORDS = new LinkedHashMap<>();
-    static {
-        SOURCE_NAME_KEYWORDS.put("airbnb", "airbnb");
-        SOURCE_NAME_KEYWORDS.put("booking", "booking");
-        SOURCE_NAME_KEYWORDS.put("vrbo", "vrbo");
-        SOURCE_NAME_KEYWORDS.put("abritel", "vrbo");
-        SOURCE_NAME_KEYWORDS.put("homeaway", "vrbo");
-        SOURCE_NAME_KEYWORDS.put("expedia", "expedia");
-        SOURCE_NAME_KEYWORDS.put("direct", "direct");
     }
 
     private final ReservationRepository reservationRepository;
@@ -172,21 +149,20 @@ public class BillingOverviewService {
     }
 
     /**
-     * Canal d'affichage d'une reservation : le nom de source d'abord (seul a
-     * distinguer Vrbo d'Expedia, cf. {@link #SOURCE_NAME_KEYWORDS}), la source
-     * technique en repli. Tout ce qui reste inconnu tombe dans "other".
+     * Canal d'affichage d'une reservation.
+     *
+     * <p>La source technique d'abord : depuis que le vocabulaire est ouvert, elle
+     * distingue elle-meme Vrbo d'Expedia. Le nom de source ne sert plus qu'aux
+     * lignes ANCIENNES, ecrites quand tout ce qui n'etait ni Airbnb ni Booking
+     * etait replie sur « other » — sans ce repli, leur chiffre d'affaires
+     * resterait dans « Autre » a jamais.</p>
      */
     private String resolveChannel(Reservation reservation) {
-        String sourceName = reservation.getSourceName();
-        if (sourceName != null) {
-            String lower = sourceName.toLowerCase();
-            for (Map.Entry<String, String> keyword : SOURCE_NAME_KEYWORDS.entrySet()) {
-                if (lower.contains(keyword.getKey())) {
-                    return keyword.getValue();
-                }
-            }
+        String key = normalizeSource(reservation.getSource());
+        if (!"other".equals(key)) {
+            return key;
         }
-        return normalizeSource(reservation.getSource());
+        return normalizeSource(ChannelSources.fromName(reservation.getSourceName()));
     }
 
     private String normalizeSource(String rawSource) {

@@ -23,11 +23,15 @@ import java.util.Set;
 public final class OtaPaidSources {
 
     /**
-     * {@code other} y figure parce que {@code ICalImportService.detectSource} y
-     * replie tout canal iCal non reconnu — Vrbo, Expedia, Abritel… — qui encaisse
-     * lui aussi pour le compte de l'hote.
+     * {@code other} y figure parce qu'un canal non reconnu reste un canal de
+     * vente, qui encaisse pour le compte de l'hote — un flux iCal ne se branche
+     * pas sur une vente en direct.
+     *
+     * <p>{@code channex} n'est plus produit depuis que la source derive du nom de
+     * l'OTA, mais reste ici pour les lignes anterieures.</p>
      */
-    private static final Set<String> VALUES = Set.of("airbnb", "booking", "other", "channex");
+    private static final Set<String> VALUES =
+        Set.of("airbnb", "booking", "vrbo", "expedia", "other", "channex");
 
     private OtaPaidSources() {
     }

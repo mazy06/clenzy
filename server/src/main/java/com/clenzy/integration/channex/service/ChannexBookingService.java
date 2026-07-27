@@ -4,6 +4,7 @@ import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.dto.ChannexBookingDto;
 import com.clenzy.integration.channex.model.ChannexPropertyMapping;
 import com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository;
+import com.clenzy.model.ChannelSources;
 import com.clenzy.model.Guest;
 import com.clenzy.model.GuestChannel;
 import com.clenzy.model.PaymentStatus;
@@ -352,7 +353,10 @@ public class ChannexBookingService {
         r.setCheckInTime(property.getDefaultCheckInTime());
         r.setCheckOutTime(property.getDefaultCheckOutTime());
         r.setStatus("confirmed");
-        r.setSource("channex");
+        // Le canal est celui qui a VENDU, pas le tuyau qui l'a transporte : une
+        // reservation Expedia arrivee par Channex vient d'Expedia. « channex »
+        // rangeait tout le trafic du channel manager dans « Autre ».
+        r.setSource(ChannelSources.fromName(booking.otaName()));
         r.setSourceName(booking.otaName() != null ? booking.otaName() : "Channex");
         r.setTotalPrice(booking.amount());
         r.setCurrency(booking.currency() != null ? booking.currency().toUpperCase() : property.getDefaultCurrency());

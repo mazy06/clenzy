@@ -198,7 +198,12 @@ const PlanningPage: React.FC = () => {
     return filteredEvents.filter((e) => {
       if (e.type !== 'reservation') return true;
       const source = e.reservation?.source;
-      if (source && source !== 'other' && !activeChannels.has(source)) return false;
+      // On ne masque QUE les canaux qui ont un chip pour les réafficher.
+      // L'ancienne règle excluait tout ce qui n'était ni dans la légende ni
+      // 'other' : dès qu'un chip était décoché, une réservation Vrbo ou Expedia
+      // disparaissait du planning sans aucun moyen de la faire revenir.
+      const togglable = PLANNING_CHANNEL_KEYS.find((key) => key === source);
+      if (togglable && !activeChannels.has(togglable)) return false;
       return activeStatuses.has(e.status as ReservationStatus);
     });
   }, [filteredEvents, activeChannels, activeStatuses]);

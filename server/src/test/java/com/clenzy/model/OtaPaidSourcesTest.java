@@ -25,8 +25,12 @@ class OtaPaidSourcesTest {
     void whenSourceIsAKnownOta_thenItCountsAsPaidOnTheChannel() {
         assertThat(OtaPaidSources.contains("airbnb")).isTrue();
         assertThat(OtaPaidSources.contains("booking")).isTrue();
-        // `other` : tout canal iCal non reconnu (Vrbo, Expedia, Abritel…), qui
-        // encaisse lui aussi pour le compte de l'hote.
+        // Vrbo et Expedia sont desormais des sources a part entiere, plus des
+        // « other » : sans eux ici, l'elargissement du vocabulaire ferait
+        // basculer leurs sejours en « reste a payer ».
+        assertThat(OtaPaidSources.contains("vrbo")).isTrue();
+        assertThat(OtaPaidSources.contains("expedia")).isTrue();
+        // `other` : un canal non reconnu reste un canal de vente, qui encaisse.
         assertThat(OtaPaidSources.contains("other")).isTrue();
     }
 
