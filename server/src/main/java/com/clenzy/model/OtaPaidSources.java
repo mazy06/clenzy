@@ -30,8 +30,11 @@ public final class OtaPaidSources {
      * <p>{@code channex} n'est plus produit depuis que la source derive du nom de
      * l'OTA, mais reste ici pour les lignes anterieures.</p>
      */
-    private static final Set<String> VALUES =
-        Set.of("airbnb", "booking", "vrbo", "expedia", "other", "channex");
+    private static final Set<String> VALUES = Set.of(
+        "airbnb", "booking", "vrbo", "expedia",
+        // Longue traine : ces plateformes encaissent elles aussi pour l'hote.
+        "agoda", "hotels_com", "hometogo", "mabeet", "rentelly", "gathern",
+        "other", "channex");
 
     private OtaPaidSources() {
     }

@@ -113,17 +113,6 @@ async function fetchProperties(
 ): Promise<PlanningProperty[]> {
   if (!user) return [];
 
-  // Mock mode for admin
-  if (isAdmin && reservationsApi.isMockMode()) {
-    return reservationsApi.getMockProperties().map((p) => ({
-      id: p.id,
-      name: p.name,
-      address: p.address,
-      city: p.city,
-      ownerName: p.ownerName || '',
-    }));
-  }
-
   let propertyList: Property[] = [];
 
   if (isAdmin || isManager || isHost) {

@@ -3522,3 +3522,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0367__backfill_reservation_channel_from_source_name.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0368-require-reservation-payment-collection"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0368__require_reservation_payment_collection.sql
+        relativeToChangelogFile: true

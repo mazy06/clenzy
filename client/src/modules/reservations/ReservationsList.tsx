@@ -63,6 +63,12 @@ const SOURCE_OPTIONS: ReservationSource[] = [
   'booking',
   'vrbo',
   'expedia',
+  'agoda',
+  'hotels_com',
+  'hometogo',
+  'mabeet',
+  'rentelly',
+  'gathern',
   'direct',
   'other',
 ];

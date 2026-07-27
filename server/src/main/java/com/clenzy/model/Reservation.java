@@ -197,7 +197,7 @@ public class Reservation {
      * financier, pastille du planning, facturation — qui consomment ce champ, au
      * lieu de redeviner le regime depuis le nom du canal chacun de leur cote.</p>
      */
-    @Column(name = "payment_collection", length = 20)
+    @Column(name = "payment_collection", length = 20, nullable = false)
     @Enumerated(EnumType.STRING)
     private PaymentCollection paymentCollection;
 
@@ -438,15 +438,14 @@ public class Reservation {
     /**
      * Le canal a-t-il deja encaisse ce sejour ?
      *
-     * <p>Repli sur la deduction depuis {@code source} tant que le champ est
-     * {@code null} — une ligne ecrite par un producteur qui aurait echappe au
-     * hook, ou lue avant l'application du backfill. Ce repli est le filet de la
-     * migration : il doit disparaitre une fois toutes les lignes renseignees.</p>
+     * <p>Simple LECTURE du regime persiste. Le repli sur {@code OtaPaidSources}
+     * qui couvrait la periode de migration a ete retire avec le changeset 0368,
+     * qui rend la colonne NOT NULL : l'invariant est tenu par la base, plus par
+     * une deduction en Java. Une entite jamais persistee (donc sans @PrePersist)
+     * repond {@code false} — elle n'a de toute facon pas encore de regime.</p>
      */
     public boolean isCollectedByChannel() {
-        return paymentCollection != null
-            ? paymentCollection == PaymentCollection.CHANNEL
-            : OtaPaidSources.contains(source);
+        return paymentCollection == PaymentCollection.CHANNEL;
     }
 
     public LocalDateTime getPaidAt() { return paidAt; }

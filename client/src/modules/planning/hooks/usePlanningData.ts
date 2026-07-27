@@ -70,23 +70,6 @@ async function fetchProperties(
 ): Promise<PlanningProperty[]> {
   if (!user) return [];
 
-  // Mock mode: return mock properties regardless of role
-  if (reservationsApi.isMockMode()) {
-    return reservationsApi.getMockProperties().map((p) => ({
-      id: p.id,
-      name: p.name,
-      address: p.address,
-      city: p.city,
-      ownerName: p.ownerName || '',
-      maxGuests: p.maxGuests,
-      type: p.type,
-      nightlyPrice: 0,
-      minimumNights: 1,
-      defaultCheckInTime: '15:00',
-      defaultCheckOutTime: '11:00',
-    }));
-  }
-
   let propertyList: Property[] = [];
 
   if (isAdmin || isManager || isHost) {

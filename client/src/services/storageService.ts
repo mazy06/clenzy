@@ -18,6 +18,12 @@ const LEGACY_TOKEN_KEYS = [
   'kc_refresh_token',
   'kc_id_token',
   'kc_expires_in',
+  // Flags du mode « donnees de demonstration », supprime du produit. Ils
+  // trainent encore dans le navigateur des admins qui l'avaient active ; plus
+  // personne ne les lit, on les efface au boot pour ne pas les laisser derriere.
+  'clenzy_planning_mock',
+  'clenzy_noise_monitoring_mock',
+  'clenzy_analytics_mock',
 ] as const;
 
 export const STORAGE_KEYS = {
@@ -29,12 +35,6 @@ export const STORAGE_KEYS = {
 
   // Currency d'affichage (per-device)
   CURRENCY: 'clenzy_currency',
-
-  // Mocks dev/demo — utiliser isMockEnabled() / setMockEnabled() au lieu
-  // de lire/ecrire ces cles directement.
-  PLANNING_MOCK: 'clenzy_planning_mock',
-  NOISE_MONITORING_MOCK: 'clenzy_noise_monitoring_mock',
-  ANALYTICS_MOCK: 'clenzy_analytics_mock',
 
   // Cache backend (source de verite = serveur, fallback offline local)
   NOISE_DEVICES: 'clenzy_noise_devices',
@@ -138,7 +138,6 @@ export function setJSON<T>(key: StorageKey, value: T): void {
  * Le cookie HttpOnly `clenzy_auth` est invalide cote serveur via
  * AuthSessionController#logout. On nettoie ici :
  *  - d'eventuelles cles legacy localStorage (residus de versions anterieures)
- *  - les flags mock (analytics/planning/noise)
  *  - le cookie cross-domain `clenzy_session` (partage avec la landing)
  */
 export function clearTokens(): void {
@@ -150,15 +149,14 @@ export function clearTokens(): void {
       // Silent fail
     }
   });
-  clearMockFlags();
   clearSessionCookie();
 }
 
 /**
- * Nettoyage one-shot au boot pour purger les anciens tokens Keycloak
- * stockes dans localStorage par les versions anterieures (avant la migration
- * vers cookie HttpOnly). A appeler une seule fois au demarrage de l'app
- * depuis `main.tsx` ou equivalent.
+ * Nettoyage one-shot au boot pour purger les cles localStorage devenues
+ * obsoletes : anciens tokens Keycloak (avant la migration vers cookie HttpOnly)
+ * et flags du mode demonstration (fonctionnalite retiree). A appeler une seule
+ * fois au demarrage de l'app depuis `main.tsx` ou equivalent.
  *
  * Operation idempotente — peut etre appelee plusieurs fois sans effet.
  */
@@ -170,43 +168,6 @@ export function cleanupLegacyTokens(): void {
       // Silent fail
     }
   });
-}
-
-/**
- * Reinitialise tous les flags de mode mock (analytics, planning, noise).
- * Appele au logout et au login pour eviter que les donnees mock
- * d'un admin soient visibles par un autre utilisateur.
- */
-export function clearMockFlags(): void {
-  removeItem(STORAGE_KEYS.ANALYTICS_MOCK);
-  removeItem(STORAGE_KEYS.PLANNING_MOCK);
-  removeItem(STORAGE_KEYS.NOISE_MONITORING_MOCK);
-}
-
-// ─── Mock Flags (dev/demo) ──────────────────────────────────────────────────
-//
-// Centralisation des flags mock dispersés dans plusieurs api/ files. Les
-// callers doivent utiliser ces helpers plutot que de lire/ecrire la cle
-// localStorage en direct (eviter les `localStorage.getItem('clenzy_*_mock')`
-// dupliques avec leur propre constante).
-
-/** Noms identifiants des modes mock disponibles. */
-export type MockFlag = 'analytics' | 'planning' | 'noiseMonitoring';
-
-const MOCK_FLAG_KEYS: Record<MockFlag, StorageKey> = {
-  analytics: STORAGE_KEYS.ANALYTICS_MOCK,
-  planning: STORAGE_KEYS.PLANNING_MOCK,
-  noiseMonitoring: STORAGE_KEYS.NOISE_MONITORING_MOCK,
-};
-
-/** Retourne `true` si le mode mock est actif pour le flag donne. */
-export function isMockEnabled(flag: MockFlag): boolean {
-  return getItem(MOCK_FLAG_KEYS[flag]) === 'true';
-}
-
-/** Active ou desactive le mode mock pour le flag donne. */
-export function setMockEnabled(flag: MockFlag, enabled: boolean): void {
-  setItem(MOCK_FLAG_KEYS[flag], enabled ? 'true' : 'false');
 }
 
 // ─── Cross-domain Cookie (shared with landing page) ────────────────────────
@@ -352,9 +313,6 @@ const storageService = {
   setJSON,
   clearTokens,
   cleanupLegacyTokens,
-  clearMockFlags,
-  isMockEnabled,
-  setMockEnabled,
   setSessionCookie,
   setSessionCookieUntil,
   getSessionCookie,

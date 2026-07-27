@@ -206,43 +206,16 @@ export function usePlanningDrag({
       try {
         if (isInterventionEvent) {
           // ── Intervention mutation ──────────────────────────────────────────
-          const numericId = parseInt(data.event.id.replace('int-', ''), 10);
-
-          if (reservationsApi.isMockMode()) {
-            queryClient.setQueriesData(
-              { queryKey: [...planningKeys.all, 'interventions'] },
-              (old: unknown) => {
-                if (!Array.isArray(old)) return old;
-                return old.map((i: any) => {
-                  if (i.id !== numericId) return i;
-                  const updated = { ...i };
-                  if (data.type === 'move') {
-                    updated.startDate = newEvent.startDate;
-                    updated.endDate = newEvent.endDate;
-                    // Unlink if moved independently from its reservation
-                    if (i.linkedReservationId) {
-                      updated.linkedReservationId = undefined;
-                    }
-                  } else {
-                    // Resize: only change endDate
-                    updated.endDate = newEvent.endDate;
-                  }
-                  return updated;
-                });
-              },
-            );
+          // Real API: update intervention dates
+          const payload: Record<string, string> = {};
+          if (data.type === 'move') {
+            payload.startDate = newEvent.startDate;
+            payload.endDate = newEvent.endDate;
           } else {
-            // Real API: update intervention dates
-            const payload: Record<string, string> = {};
-            if (data.type === 'move') {
-              payload.startDate = newEvent.startDate;
-              payload.endDate = newEvent.endDate;
-            } else {
-              payload.endDate = newEvent.endDate;
-            }
-            // TODO: call real interventions API when available
-            queryClient.invalidateQueries({ queryKey: planningKeys.all });
+            payload.endDate = newEvent.endDate;
           }
+          // TODO: call real interventions API when available
+          queryClient.invalidateQueries({ queryKey: planningKeys.all });
         } else {
           // ── Reservation mutation (existing logic) ─────────────────────────
           const numericId = parseInt(data.event.id.replace('res-', ''), 10);
@@ -302,20 +275,18 @@ export function usePlanningDrag({
             },
           );
 
-          // 3. Persist to backend (skip in mock mode — mock data regenerates)
-          if (!reservationsApi.isMockMode()) {
-            try {
-              const result = await reservationsApi.update(numericId, newDates);
-            } catch (err) {
-              // API failed — rollback by refetching authoritative data
-              console.error('[drag-resize]', err);
-              queryClient.invalidateQueries({ queryKey: planningKeys.all });
-              setState(INITIAL_STATE);
-              return;
-            }
-            // 4. Refetch to sync with backend (linked interventions, etc.)
+          // 3. Persist to backend
+          try {
+            const result = await reservationsApi.update(numericId, newDates);
+          } catch (err) {
+            // API failed — rollback by refetching authoritative data
+            console.error('[drag-resize]', err);
             queryClient.invalidateQueries({ queryKey: planningKeys.all });
+            setState(INITIAL_STATE);
+            return;
           }
+          // 4. Refetch to sync with backend (linked interventions, etc.)
+          queryClient.invalidateQueries({ queryKey: planningKeys.all });
         }
       } catch {
         // Rollback: refetch authoritative data on any error

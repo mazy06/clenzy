@@ -2318,6 +2318,12 @@
       "booking": "Booking.com",
       "vrbo": "Vrbo",
       "expedia": "Expedia",
+      "agoda": "Agoda",
+      "hotels_com": "Hotels.com",
+      "hometogo": "HomeToGo",
+      "mabeet": "Mabeet",
+      "rentelly": "Rentelly",
+      "gathern": "Gathern",
       "direct": "Direct",
       "other": "Other"
     },

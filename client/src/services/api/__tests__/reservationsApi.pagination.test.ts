@@ -6,17 +6,10 @@ vi.mock('../../apiClient', () => {
   const mock = { get: vi.fn() };
   return { default: mock, apiClient: mock };
 });
-vi.mock('../../storageService', () => ({
-  isMockEnabled: vi.fn(() => false),
-  setMockEnabled: vi.fn(),
-}));
-
 import apiClient from '../../apiClient';
-import { isMockEnabled } from '../../storageService';
 import { reservationsApi } from '../reservationsApi';
 
 const apiGet = vi.mocked(apiClient.get);
-const mockEnabled = vi.mocked(isMockEnabled);
 
 /**
  * Pagination serveur des réservations (audit perf 2026-07-21, P1-6).
@@ -27,7 +20,6 @@ const mockEnabled = vi.mocked(isMockEnabled);
 describe('reservationsApi — pagination serveur', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockEnabled.mockReturnValue(false);
   });
 
   describe('getAll (mode historique)', () => {
@@ -77,31 +69,6 @@ describe('reservationsApi — pagination serveur', () => {
 
       const params = apiGet.mock.calls[0][1]!.params as Record<string, unknown>;
       expect(params).not.toHaveProperty('search');
-    });
-  });
-
-  describe('getPage (mode mock)', () => {
-    beforeEach(() => {
-      mockEnabled.mockReturnValue(true);
-    });
-
-    it('pagine le jeu mock et calcule les métadonnées', async () => {
-      const size = 3;
-      const firstPage = await reservationsApi.getPage({ page: 0, size });
-
-      expect(apiGet).not.toHaveBeenCalled();
-      expect(firstPage.number).toBe(0);
-      expect(firstPage.size).toBe(size);
-      expect(firstPage.content.length).toBeLessThanOrEqual(size);
-      expect(firstPage.totalPages).toBe(Math.ceil(firstPage.totalElements / size));
-    });
-
-    it('retourne une page vide au-delà du total', async () => {
-      const probe = await reservationsApi.getPage({ page: 0, size: 5 });
-      const beyond = await reservationsApi.getPage({ page: probe.totalPages + 1, size: 5 });
-
-      expect(beyond.content).toHaveLength(0);
-      expect(beyond.totalElements).toBe(probe.totalElements);
     });
   });
 });

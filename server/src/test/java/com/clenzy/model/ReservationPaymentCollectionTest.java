@@ -9,9 +9,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * <p>C'est le coeur du decouplage. Le nom du canal ne sert plus qu'a DECIDER le
  * regime, une seule fois, au moment ou la reservation est ecrite ; les lecteurs
- * lisent le resultat. Ces tests fixent les trois proprietes qui rendent la
- * bascule sure : la derivation reproduit l'ancienne regle, un producteur peut
- * l'outrepasser, et une ligne non renseignee se comporte comme avant.</p>
+ * lisent le resultat. Ces tests fixent les proprietes qui rendent la bascule
+ * sure : la derivation reproduit l'ancienne regle, un producteur peut
+ * l'outrepasser, et la lecture ne devine plus rien.</p>
  */
 class ReservationPaymentCollectionTest {
 
@@ -59,15 +59,40 @@ class ReservationPaymentCollectionTest {
     }
 
     /**
-     * Filet de migration : une ligne ecrite avant le backfill, ou par un
-     * producteur qui aurait echappe au hook, se comporte exactement comme avant.
+     * La lecture ne devine plus rien.
+     *
+     * <p>Tant que la colonne etait nullable, {@code isCollectedByChannel} rejouait
+     * l'ancienne deduction depuis {@code source} — le filet de la migration. Le
+     * changeset 0368 rend la colonne NOT NULL : l'invariant est tenu par la base,
+     * et la lecture redevient une lecture. Une entite jamais persistee n'a pas
+     * encore de regime, et repond donc « non », y compris sur un canal qui
+     * encaisse — c'est ce que ce test verrouille, pour qu'un futur appelant ne
+     * reintroduise pas la deduction en croyant corriger un oubli.</p>
      */
     @Test
-    void whenRegimeIsUnset_thenTheLegacyRuleStillAnswers() {
-        assertThat(withSource("booking").isCollectedByChannel()).isTrue();
-        assertThat(withSource("other").isCollectedByChannel()).isTrue();
-        assertThat(withSource("direct").isCollectedByChannel()).isFalse();
+    void whenNeverPersisted_thenReadingDoesNotGuessFromTheChannelName() {
+        assertThat(withSource("booking").isCollectedByChannel()).isFalse();
         assertThat(withSource(null).isCollectedByChannel()).isFalse();
+    }
+
+    /**
+     * Longue traine : ces canaux n'ont pas d'adapter dedie, ils arrivent par un
+     * flux iCal. Ils encaissent malgre tout pour le compte de l'hote — les
+     * oublier redonnerait un solde du sur de l'argent deja percu, le bug meme
+     * que ce chantier corrige.
+     */
+    @Test
+    void whenChannelIsLongTail_thenItCollectsToo() {
+        for (String channel : new String[] {
+                "agoda", "hotels_com", "hometogo", "mabeet", "rentelly", "gathern" }) {
+            Reservation r = withSource(channel);
+
+            r.derivePaymentCollection();
+
+            assertThat(r.getPaymentCollection())
+                .as("canal %s", channel)
+                .isEqualTo(PaymentCollection.CHANNEL);
+        }
     }
 
     /** « DIRECT » a existe en base ; la derivation ne doit pas s'y laisser prendre. */

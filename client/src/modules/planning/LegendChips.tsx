@@ -24,6 +24,15 @@ export const CHANNEL_LEGEND: { key: PlanningChannelKey; label: string; logo: str
   { key: 'vrbo', label: RESERVATION_SOURCE_LABELS.vrbo, logo: getSourceLogo('vrbo') },
   // Expedia n'a pas de logo dans les assets → globe accent, comme « Direct ».
   { key: 'expedia', label: RESERVATION_SOURCE_LABELS.expedia, logo: null },
+  // Longue traîne : pas de logo non plus, et pas de couleur de marque inventée
+  // (`getChannelChipTokens` les laisse en gris neutre). Ces chips n'apparaissent
+  // que sur les organisations qui vendent réellement sur ces canaux.
+  { key: 'agoda', label: RESERVATION_SOURCE_LABELS.agoda, logo: null },
+  { key: 'hotels_com', label: RESERVATION_SOURCE_LABELS.hotels_com, logo: null },
+  { key: 'hometogo', label: RESERVATION_SOURCE_LABELS.hometogo, logo: null },
+  { key: 'mabeet', label: RESERVATION_SOURCE_LABELS.mabeet, logo: null },
+  { key: 'rentelly', label: RESERVATION_SOURCE_LABELS.rentelly, logo: null },
+  { key: 'gathern', label: RESERVATION_SOURCE_LABELS.gathern, logo: null },
   { key: 'direct', label: RESERVATION_SOURCE_LABELS.direct, logo: null },
 ];
 

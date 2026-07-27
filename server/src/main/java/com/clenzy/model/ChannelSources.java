@@ -36,6 +36,16 @@ public final class ChannelSources {
         KEYWORDS.put("abritel", "vrbo");
         KEYWORDS.put("homeaway", "vrbo");
         KEYWORDS.put("expedia", "expedia");
+        // Longue traine : ces canaux n'ont pas d'adapter dedie, ils arrivent par
+        // un flux iCal que l'hote nomme lui-meme. Les nommer suffit a ce que leur
+        // chiffre d'affaires cesse de tomber dans « Autre ».
+        KEYWORDS.put("agoda", "agoda");
+        KEYWORDS.put("hotels.com", "hotels_com");
+        KEYWORDS.put("hotels com", "hotels_com");
+        KEYWORDS.put("hometogo", "hometogo");
+        KEYWORDS.put("mabeet", "mabeet");
+        KEYWORDS.put("rentelly", "rentelly");
+        KEYWORDS.put("gathern", "gathern");
         KEYWORDS.put("direct", "direct");
     }
 
@@ -69,7 +79,9 @@ public final class ChannelSources {
      * deduire une information d'une autre parce qu'elles se ressemblent.</p>
      */
     private static final Set<String> ANONYMIZING = Set.of(
-        "airbnb", "booking", "vrbo", "expedia", "other", "channex");
+        "airbnb", "booking", "vrbo", "expedia",
+        "agoda", "hotels_com", "hometogo", "mabeet", "rentelly", "gathern",
+        "other", "channex");
 
     /**
      * Le canal masque-t-il l'email du voyageur ?

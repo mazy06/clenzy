@@ -48,7 +48,6 @@ import {
   useSupervisionPendingCounts,
   type SupervisionScope,
 } from '../supervision';
-import { isMockEnabled } from '../../services/storageService';
 
 const PlanningPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -377,11 +376,6 @@ const PlanningPage: React.FC = () => {
   const startIntervention = useCallback(async (interventionId: number) => {
     try {
       const { interventionsApi } = await import('../../services/api');
-      if (interventionsApi.isMockMode()) {
-        // Mock: update status in cache
-        const { useQueryClient } = await import('@tanstack/react-query');
-        return { success: true, error: null };
-      }
       await interventionsApi.start(interventionId);
       return { success: true, error: null };
     } catch (err) {
@@ -414,9 +408,6 @@ const PlanningPage: React.FC = () => {
   const uploadPhotos = useCallback(async (interventionId: number, photos: File[], type: 'before' | 'after') => {
     try {
       const { interventionsApi } = await import('../../services/api');
-      if (interventionsApi.isMockMode()) {
-        return { success: true, error: null };
-      }
       await interventionsApi.uploadPhotos(interventionId, photos, type);
       return { success: true, error: null };
     } catch (err) {
@@ -427,9 +418,6 @@ const PlanningPage: React.FC = () => {
   const updateInterventionProgress = useCallback(async (interventionId: number, progress: number) => {
     try {
       const { interventionsApi } = await import('../../services/api');
-      if (interventionsApi.isMockMode()) {
-        return { success: true, error: null };
-      }
       await interventionsApi.updateProgress(interventionId, progress);
       return { success: true, error: null };
     } catch (err) {
@@ -544,7 +532,7 @@ const PlanningPage: React.FC = () => {
   // recréée à chaque render du parent cassait la barrière de memo de toute la grille.
   const renderExpandedPanel = useCallback(
     (property: PlanningProperty) => {
-      const mockMode = isMockEnabled('planning') || !isSupervisionLiveEnabled();
+      const mockMode = !isSupervisionLiveEnabled();
       const firstResa = visibleEvents.find(
         (e) => e.type === 'reservation' && e.propertyId === property.id && e.reservation,
       );
@@ -554,7 +542,7 @@ const PlanningPage: React.FC = () => {
       return (
         <SupervisionPanel
           createProvider={() =>
-            // Mode démo planning OU live désactivé → provider MOCK
+            // Superviseur live désactivé → provider de démonstration
             // (constellation + « En direct » alimentés par des données
             // fictives variées par logement). Sinon → moteur réel.
             mockMode
@@ -569,7 +557,7 @@ const PlanningPage: React.FC = () => {
                   onOpenGuestCard: handleOpenGuestCard,
                 })
           }
-          // cometReservationId ne pilote QUE le mock : en live, l'inclure
+          // cometReservationId ne pilote QUE le provider de démo : en live, l'inclure
           // dans les deps détruisait/recréait le provider (teardown SSE +
           // re-snapshot) quand les réservations finissaient de charger.
           deps={mockMode ? [property.id, cometReservationId] : [property.id]}

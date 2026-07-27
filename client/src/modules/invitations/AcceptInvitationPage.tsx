@@ -30,7 +30,7 @@ import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi
 import apiClient, { ApiError } from '../../services/apiClient';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
-import { clearMockFlags, setSessionCookie } from '../../services/storageService';
+import { setSessionCookie } from '../../services/storageService';
 
 // Brand color Baitly — aligne avec EmailWrapperService.BRAND_PRIMARY.
 const BRAND_PRIMARY = '#6B8A9A';
@@ -285,7 +285,6 @@ export default function AcceptInvitationPage() {
       keycloak.authenticated = true;
       keycloak.tokenParsed = decodeJwt(tokens.access_token);
 
-      clearMockFlags();
       setSessionCookie(tokens.access_token);
 
       window.dispatchEvent(new CustomEvent('keycloak-auth-success'));

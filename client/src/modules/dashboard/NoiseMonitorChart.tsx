@@ -33,8 +33,8 @@ import {
   useXAxisDomain,
   useYAxisDomain,
 } from 'recharts';
-import type { NoiseMonitoringData } from '../../hooks/useNoiseMonitoring';
-import { NOISE_THRESHOLDS } from '../../hooks/useNoiseMonitoring';
+import type { NoiseMonitoringData } from '../../hooks/noiseMonitoring';
+import { NOISE_THRESHOLDS } from '../../hooks/noiseMonitoring';
 import type { TimeWindowThreshold } from './NoiseAlertConfigPanel';
 
 // ─── Styling constants ──────────────────────────────────────────────────────

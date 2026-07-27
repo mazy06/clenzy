@@ -16,6 +16,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Calcule les donnees du widget dashboard « Revenus par canal » pour
@@ -26,9 +27,10 @@ import java.util.Map;
  * donnees DB de l'org (Reservation), org-scope. Les reversements proprietaires
  * sont calcules cote client (carte « Gestion &amp; reversements »).</p>
  *
- * <p>Le catalogue de canaux est renvoye <b>en entier a chaque appel</b>, canaux
- * sans revenu compris, et <b>classe par revenu decroissant</b> : la carte se lit
- * comme un classement, et sa hauteur ne varie plus d'une periode a l'autre.</p>
+ * <p>Les canaux PRINCIPAUX sont renvoyes a chaque appel, meme sans revenu, et
+ * <b>classes par revenu decroissant</b> : la carte se lit comme un classement et
+ * sa hauteur ne varie plus d'une periode a l'autre. Les canaux de longue traine
+ * n'apparaissent que s'ils ont produit du revenu (cf. {@code ALWAYS_SHOWN}).</p>
  *
  * <p>Service strictement read-only, aucun appel HTTP externe.</p>
  */
@@ -39,10 +41,9 @@ public class BillingOverviewService {
     private static final String DEFAULT_CURRENCY = "EUR";
 
     /**
-     * Catalogue des canaux, dans l'ordre de depart (ex aequo et canaux a zero).
-     * Toutes ces lignes sont renvoyees a chaque appel, meme sans revenu : une
-     * carte dont les lignes apparaissent et disparaissent d'un mois a l'autre
-     * n'est pas comparable, et un canal a zero est une information en soi.
+     * Catalogue des canaux et leur libelle, dans l'ordre de depart (ex aequo et
+     * canaux a zero). Toutes les cles resolvables y figurent ; c'est
+     * {@code ALWAYS_SHOWN} qui decide lesquelles s'affichent meme a zero.
      */
     private static final Map<String, String> CHANNEL_LABELS = new LinkedHashMap<>();
     static {
@@ -50,9 +51,27 @@ public class BillingOverviewService {
         CHANNEL_LABELS.put("booking", "Booking.com");
         CHANNEL_LABELS.put("vrbo", "Vrbo");
         CHANNEL_LABELS.put("expedia", "Expedia");
+        CHANNEL_LABELS.put("agoda", "Agoda");
+        CHANNEL_LABELS.put("hotels_com", "Hotels.com");
+        CHANNEL_LABELS.put("hometogo", "HomeToGo");
+        CHANNEL_LABELS.put("mabeet", "Mabeet");
+        CHANNEL_LABELS.put("rentelly", "Rentelly");
+        CHANNEL_LABELS.put("gathern", "Gathern");
         CHANNEL_LABELS.put("direct", "Direct");
         CHANNEL_LABELS.put("other", "Autre");
     }
+
+    /**
+     * Canaux affiches meme a zero.
+     *
+     * <p>Tout lister a chaque appel avait du sens a six canaux : la carte se
+     * lisait comme un classement stable. A douze, elle deviendrait un mur de
+     * lignes vides. Les canaux de longue traine n'apparaissent donc que s'ils ont
+     * produit du revenu — leur absence est alors l'information, et leur presence
+     * aussi.</p>
+     */
+    private static final Set<String> ALWAYS_SHOWN =
+        Set.of("airbnb", "booking", "vrbo", "expedia", "direct", "other");
 
     private final ReservationRepository reservationRepository;
 
@@ -114,6 +133,13 @@ public class BillingOverviewService {
         List<ChannelRevenueDto> channels = new ArrayList<>();
         for (Map.Entry<String, String> catalogEntry : CHANNEL_LABELS.entrySet()) {
             String channel = catalogEntry.getKey();
+            // Longue traine sans revenu ni sur la periode ni sur la precedente :
+            // la ligne n'apprendrait rien, on ne l'affiche pas.
+            if (!ALWAYS_SHOWN.contains(channel)
+                    && !currentByChannel.containsKey(channel)
+                    && !previousByChannel.containsKey(channel)) {
+                continue;
+            }
             BigDecimal amount = scale(currentByChannel.getOrDefault(channel, BigDecimal.ZERO));
             double pct = percentage(amount, currentTotal);
 

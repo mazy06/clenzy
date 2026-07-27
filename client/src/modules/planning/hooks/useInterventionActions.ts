@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { reservationsApi } from '../../../services/api/reservationsApi';
 import { interventionsApi } from '../../../services/api/interventionsApi';
 import type { PlanningIntervention } from '../../../services/api';
 import type { PlanningEvent } from '../types';
@@ -11,11 +10,10 @@ interface ActionResult {
   error: string | null;
 }
 
-let mockIdCounter = 9000;
+let localIdCounter = 9000;
 
 /**
  * Hook for creating and managing planning interventions.
- * Handles both mock mode (cache updates) and real API mode.
  */
 export function useInterventionActions(
   events: PlanningEvent[],
@@ -68,7 +66,7 @@ export function useInterventionActions(
       const assignee = staff[reservationId % staff.length];
 
       const newIntervention: PlanningIntervention = {
-        id: ++mockIdCounter,
+        id: ++localIdCounter,
         propertyId: res.propertyId,
         propertyName: res.propertyName,
         type: 'cleaning',
@@ -85,13 +83,9 @@ export function useInterventionActions(
       };
 
       try {
-        if (reservationsApi.isMockMode()) {
-          insertInterventionInCache(newIntervention);
-        } else {
-          // TODO: call real API when available
-          insertInterventionInCache(newIntervention);
-          queryClient.invalidateQueries({ queryKey: planningKeys.all });
-        }
+        // TODO: call real API when available
+        insertInterventionInCache(newIntervention);
+        queryClient.invalidateQueries({ queryKey: planningKeys.all });
         return { success: true, error: null };
       } catch {
         return { success: false, error: 'Erreur lors de la creation du menage' };
@@ -117,18 +111,14 @@ export function useInterventionActions(
       linkedReservationId?: number;
     }): Promise<ActionResult> => {
       const newIntervention: PlanningIntervention = {
-        id: ++mockIdCounter,
+        id: ++localIdCounter,
         ...data,
         status: 'scheduled',
       };
 
       try {
-        if (reservationsApi.isMockMode()) {
-          insertInterventionInCache(newIntervention);
-        } else {
-          insertInterventionInCache(newIntervention);
-          queryClient.invalidateQueries({ queryKey: planningKeys.all });
-        }
+        insertInterventionInCache(newIntervention);
+        queryClient.invalidateQueries({ queryKey: planningKeys.all });
         return { success: true, error: null };
       } catch {
         return { success: false, error: "Erreur lors de la creation de l'intervention" };
@@ -145,22 +135,9 @@ export function useInterventionActions(
       options?: { userId?: number; teamId?: number },
     ): Promise<ActionResult> => {
       try {
-        if (reservationsApi.isMockMode()) {
-          queryClient.setQueriesData(
-            { queryKey: [...planningKeys.all, 'interventions'] },
-            (old: unknown) => {
-              if (!Array.isArray(old)) return old;
-              return old.map((i: any) => {
-                if (i.id !== interventionId) return i;
-                return { ...i, assigneeName };
-              });
-            },
-          );
-        } else {
-          // Call the real API to assign the intervention
-          await interventionsApi.assign(interventionId, options?.userId, options?.teamId);
-          queryClient.invalidateQueries({ queryKey: planningKeys.all });
-        }
+        // Call the real API to assign the intervention
+        await interventionsApi.assign(interventionId, options?.userId, options?.teamId);
+        queryClient.invalidateQueries({ queryKey: planningKeys.all });
         return { success: true, error: null };
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Erreur lors de l'assignation";
@@ -170,26 +147,11 @@ export function useInterventionActions(
     [queryClient],
   );
 
-  // ── 4. Definir priorite (via notes prefix) ─────────────────────────────
+  // ── 4. Definir priorite ────────────────────────────────────────────────
   const setPriority = useCallback(
     async (interventionId: number, priority: 'normale' | 'haute' | 'urgente'): Promise<ActionResult> => {
       try {
-        if (reservationsApi.isMockMode()) {
-          queryClient.setQueriesData(
-            { queryKey: [...planningKeys.all, 'interventions'] },
-            (old: unknown) => {
-              if (!Array.isArray(old)) return old;
-              return old.map((i: any) => {
-                if (i.id !== interventionId) return i;
-                const cleanedNotes = (i.notes || '').replace(/^\[PRIORITE: \w+\] ?/, '');
-                const prefix = priority !== 'normale' ? `[PRIORITE: ${priority.toUpperCase()}] ` : '';
-                return { ...i, notes: prefix + cleanedNotes };
-              });
-            },
-          );
-        } else {
-          queryClient.invalidateQueries({ queryKey: planningKeys.all });
-        }
+        queryClient.invalidateQueries({ queryKey: planningKeys.all });
         return { success: true, error: null };
       } catch {
         return { success: false, error: 'Erreur lors du changement de priorite' };
@@ -215,26 +177,8 @@ export function useInterventionActions(
       }
 
       try {
-        if (reservationsApi.isMockMode()) {
-          queryClient.setQueriesData(
-            { queryKey: [...planningKeys.all, 'interventions'] },
-            (old: unknown) => {
-              if (!Array.isArray(old)) return old;
-              return old.map((i: any) => {
-                if (i.id !== interventionId) return i;
-                const updated = { ...i, ...updates };
-                // If startDate changed and intervention is linked, unlink it
-                if (updates.startDate !== undefined && i.linkedReservationId) {
-                  updated.linkedReservationId = undefined;
-                }
-                return updated;
-              });
-            },
-          );
-        } else {
-          // TODO: call real API when available
-          queryClient.invalidateQueries({ queryKey: planningKeys.all });
-        }
+        // TODO: call real API when available
+        queryClient.invalidateQueries({ queryKey: planningKeys.all });
         return { success: true, error: null };
       } catch {
         return { success: false, error: 'Erreur lors de la mise a jour des dates' };
@@ -247,20 +191,7 @@ export function useInterventionActions(
   const updateInterventionNotes = useCallback(
     async (interventionId: number, notes: string): Promise<ActionResult> => {
       try {
-        if (reservationsApi.isMockMode()) {
-          queryClient.setQueriesData(
-            { queryKey: [...planningKeys.all, 'interventions'] },
-            (old: unknown) => {
-              if (!Array.isArray(old)) return old;
-              return old.map((i: any) => {
-                if (i.id !== interventionId) return i;
-                return { ...i, notes };
-              });
-            },
-          );
-        } else {
-          queryClient.invalidateQueries({ queryKey: planningKeys.all });
-        }
+        queryClient.invalidateQueries({ queryKey: planningKeys.all });
         return { success: true, error: null };
       } catch {
         return { success: false, error: 'Erreur lors de la sauvegarde' };
