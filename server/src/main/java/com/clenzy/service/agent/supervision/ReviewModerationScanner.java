@@ -33,7 +33,12 @@ public class ReviewModerationScanner {
 
     private static final Logger log = LoggerFactory.getLogger(ReviewModerationScanner.class);
 
-    /** Note (incluse) à partir de laquelle un avis est jugé négatif → à modérer. */
+    /**
+     * Note (incluse) en dessous de laquelle un avis est jugé négatif. Ne décide
+     * plus de l'ÉLIGIBILITÉ — tout avis sans réponse mérite qu'on lui en propose
+     * une — mais seulement du TON de la carte : modérer un mécontentement n'est
+     * pas remercier un client satisfait.
+     */
     static final int NEGATIVE_RATING_MAX = 2;
     /** Repli de timezone quand la propriété n'en déclare pas (règle projet). */
     private static final ZoneId DEFAULT_ZONE = ZoneId.of("Europe/Paris");
@@ -60,19 +65,28 @@ public class ReviewModerationScanner {
     }
 
     /**
-     * Émet une carte HITL par avis négatif non traité du logement. Chaque avis
-     * porte un {@code organizationId} + {@code propertyId} (colonnes NOT NULL de
-     * {@code guest_reviews}) : la carte est toujours rattachable à une constellation.
+     * Émet une carte HITL par avis non traité du logement, <b>quelle que soit la
+     * note</b>. Un avis élogieux laissé sans réponse est une occasion manquée, pas
+     * un non-sujet : la carte « À traiter » du tableau de bord les liste tous, et
+     * l'agent doit couvrir le même périmètre — sans quoi l'hôte voit une
+     * proposition sur certains avis et rien sur les autres, sans comprendre
+     * pourquoi.
+     *
+     * <p>Chaque avis porte un {@code organizationId} + {@code propertyId} (colonnes
+     * NOT NULL de {@code guest_reviews}) : la carte est toujours rattachable à une
+     * constellation. Le budget d'appels LLM reste plafonné par {@code AutoApplyGate} ;
+     * l'ordre de la requête (plus mal notés d'abord) décide de qui est servi
+     * lorsqu'il s'épuise.</p>
      */
     public void scanProperty(Long orgId, Long propertyId) {
         try {
-            List<GuestReview> negatives = reviewRepository
-                    .findUntreatedNegativeByPropertyId(propertyId, orgId, NEGATIVE_RATING_MAX);
-            if (negatives.isEmpty()) {
+            List<GuestReview> untreated = reviewRepository
+                    .findUntreatedByPropertyId(propertyId, orgId);
+            if (untreated.isEmpty()) {
                 return;
             }
             final ZoneId zone = resolveZone(propertyId, orgId);
-            for (GuestReview review : negatives) {
+            for (GuestReview review : untreated) {
                 emitModeration(orgId, propertyId, review, zone);
             }
         } catch (Exception e) {
@@ -82,9 +96,15 @@ public class ReviewModerationScanner {
     }
 
     private void emitModeration(Long orgId, Long propertyId, GuestReview review, ZoneId zone) {
+        // Un avis sans note connue est traité comme neutre, pas comme négatif :
+        // rien ne justifie d'annoncer un mécontentement qu'on n'a pas constaté.
+        final boolean negative = review.getRating() != null
+                && review.getRating() <= NEGATIVE_RATING_MAX;
+
         // Titre STABLE incluant l'ID de l'avis → dédup fiable ET une carte par avis
-        // distinct (deux avis négatifs = deux cartes ; re-scan = pas de doublon).
-        final String title = "Avis négatif à modérer — avis #" + review.getId();
+        // distinct (deux avis = deux cartes ; re-scan = pas de doublon).
+        final String title = (negative ? "Avis négatif à modérer" : "Avis sans réponse")
+                + " — avis #" + review.getId();
 
         final String reviewDate = review.getReviewDate() != null
                 ? REVIEW_DATE_FMT.format(review.getReviewDate())
@@ -95,13 +115,20 @@ public class ReviewModerationScanner {
                 ? review.getGuestName() : "voyageur";
 
         final StringBuilder motif = new StringBuilder()
-                .append("Avis ").append(review.getRating()).append("/5 de ").append(guest)
+                .append("Avis ")
+                .append(review.getRating() != null ? review.getRating() + "/5" : "sans note")
+                .append(" de ").append(guest)
                 .append(" le ").append(reviewDate)
                 .append(" (").append(channel).append("), sans réponse hôte. ");
         if (review.getReviewText() != null && !review.getReviewText().isBlank()) {
             motif.append("« ").append(excerpt(review.getReviewText())).append(" » ");
         }
-        motif.append("Rédiger une réponse publique pour limiter l'impact réputationnel.");
+        // L'enjeu n'est pas le même selon la note : on limite un dommage d'un côté,
+        // on entretient une relation de l'autre. Annoncer « impact réputationnel »
+        // sur un avis élogieux ferait mentir la carte.
+        motif.append(negative
+                ? "Rédiger une réponse publique pour limiter l'impact réputationnel."
+                : "Rédiger une réponse publique : un avis positif sans réponse est une occasion manquée.");
 
         // Timezone de la propriété résolue (repli Europe/Paris) : conservée pour un
         // usage éventuel d'affichage ; la date de l'avis étant journalière, elle ne

@@ -40,19 +40,35 @@ public interface GuestReviewRepository extends JpaRepository<GuestReview, Long> 
     List<GuestReview> findByPropertyIdAndDateRange(@Param("propertyId") Long propertyId,
         @Param("orgId") Long orgId, @Param("from") LocalDate from, @Param("to") LocalDate to);
 
+    /**
+     * Avis publics sans réponse de l'hôte, toutes notes confondues.
+     *
+     * <p>Complète {@code findNegativeWithoutResponse}, qui ne remonte que les
+     * notes sous un seuil : le bloc « à traiter » du dashboard veut TOUS les
+     * avis en attente de réponse, pas seulement les mauvais.</p>
+     */
+    @Query("SELECT r FROM GuestReview r WHERE r.hostResponse IS NULL AND r.isPublic = true "
+        + "AND r.organizationId = :orgId ORDER BY r.reviewDate DESC")
+    List<GuestReview> findPublicWithoutHostResponse(@Param("orgId") Long orgId);
+
     @Query("SELECT r FROM GuestReview r WHERE r.rating < :threshold AND r.hostResponse IS NULL " +
            "AND r.organizationId = :orgId ORDER BY r.reviewDate DESC")
     List<GuestReview> findNegativeWithoutResponse(@Param("threshold") int threshold, @Param("orgId") Long orgId);
 
     /**
-     * Avis NÉGATIFS non traités d'un logement (règle de scan « rep » de la constellation) :
-     * note ≤ {@code ratingMax} et aucune réponse hôte encore rédigée. Scopé org + propriété.
+     * Avis non traités d'un logement (règle de scan « rep » de la constellation) :
+     * aucune réponse hôte rédigée, quelle que soit la note. Scopé org + propriété.
+     *
+     * <p>Les plus mal notés d'abord : le budget d'appels LLM est plafonné en
+     * amont ({@code AutoApplyGate}), donc l'ordre décide de qui est servi quand
+     * il s'épuise — et un avis à 1 étoile sans réponse coûte plus cher qu'un
+     * avis à 5. À note égale, le plus récent d'abord.</p>
      */
     @Query("SELECT r FROM GuestReview r WHERE r.propertyId = :propertyId AND r.organizationId = :orgId " +
-           "AND r.rating IS NOT NULL AND r.rating <= :ratingMax AND r.hostResponse IS NULL " +
-           "ORDER BY r.reviewDate DESC")
-    List<GuestReview> findUntreatedNegativeByPropertyId(@Param("propertyId") Long propertyId,
-            @Param("orgId") Long orgId, @Param("ratingMax") int ratingMax);
+           "AND r.hostResponse IS NULL " +
+           "ORDER BY r.rating ASC NULLS LAST, r.reviewDate DESC")
+    List<GuestReview> findUntreatedByPropertyId(@Param("propertyId") Long propertyId,
+            @Param("orgId") Long orgId);
 
     @Query("SELECT AVG(r.rating) FROM GuestReview r WHERE r.propertyId = :propertyId AND r.organizationId = :orgId")
     Double averageRatingByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
@@ -116,6 +132,33 @@ public interface GuestReviewRepository extends JpaRepository<GuestReview, Long> 
     @Query("SELECT COUNT(r) FROM GuestReview r WHERE r.propertyId = :propertyId " +
            "AND r.organizationId = :orgId AND r.isPublic = true")
     long countPublicByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
+
+    /**
+     * Note moyenne des avis publics sur une fenêtre, restreinte aux logements de
+     * l'hôte quand {@code ownerKc} est fourni.
+     *
+     * <p>{@code GuestReview} ne porte qu'un {@code propertyId} (pas de relation) :
+     * le périmètre propriétaire passe donc par un EXISTS. Sans ce filtre, un hôte
+     * verrait la moyenne de toute l'organisation, y compris les logements des autres.</p>
+     */
+    @Query("SELECT AVG(r.rating) FROM GuestReview r WHERE r.organizationId = :orgId "
+        + "AND r.isPublic = true AND r.reviewDate >= :from AND r.reviewDate < :toExclusive "
+        + "AND (:ownerKc IS NULL OR EXISTS (SELECT 1 FROM Property p "
+        + "WHERE p.id = r.propertyId AND p.owner.keycloakId = :ownerKc))")
+    Double averagePublicRatingBetween(@Param("orgId") Long orgId,
+                                      @Param("from") java.time.LocalDate from,
+                                      @Param("toExclusive") java.time.LocalDate toExclusive,
+                                      @Param("ownerKc") String ownerKc);
+
+    /** Nombre d'avis publics sur une fenêtre, même périmètre que la moyenne. */
+    @Query("SELECT COUNT(r) FROM GuestReview r WHERE r.organizationId = :orgId "
+        + "AND r.isPublic = true AND r.reviewDate >= :from AND r.reviewDate < :toExclusive "
+        + "AND (:ownerKc IS NULL OR EXISTS (SELECT 1 FROM Property p "
+        + "WHERE p.id = r.propertyId AND p.owner.keycloakId = :ownerKc))")
+    long countPublicBetween(@Param("orgId") Long orgId,
+                            @Param("from") java.time.LocalDate from,
+                            @Param("toExclusive") java.time.LocalDate toExclusive,
+                            @Param("ownerKc") String ownerKc);
 
     @Query("SELECT AVG(r.rating) FROM GuestReview r WHERE r.organizationId = :orgId AND r.isPublic = true")
     Double averagePublicRatingByOrgId(@Param("orgId") Long orgId);
