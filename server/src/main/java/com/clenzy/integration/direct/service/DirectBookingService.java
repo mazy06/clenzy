@@ -239,8 +239,13 @@ public class DirectBookingService {
 
         // Creer la reservation dans le systeme
         String guestFullName = request.guestFirstName() + " " + request.guestLastName();
+        // « direct » en MINUSCULES : quatre requetes JPQL comparent `r.source =
+        // 'direct'` et PostgreSQL est sensible a la casse. Avec "DIRECT", ces
+        // reservations etaient invisibles pour l'eligibilite au credit fidelite,
+        // le re-booking en un clic, le comptage des conversions du booking engine
+        // et le compteur « paiements en attente » du tableau de bord.
         Reservation reservation = new Reservation(property, guestFullName,
-                request.checkIn(), request.checkOut(), "pending", "DIRECT");
+                request.checkIn(), request.checkOut(), "pending", "direct");
         reservation.setOrganizationId(orgId);
         reservation.setGuestCount(request.numberOfGuests());
         // Ventilation adultes/enfants (0314) : numberOfGuests est le total, dont

@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.PaymentHistoryDto;
 import com.clenzy.dto.PaymentSummaryDto;
 import com.clenzy.model.Intervention;
+import com.clenzy.model.OtaPaidSources;
 import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.ServiceRequest;
@@ -394,14 +395,16 @@ public class PaymentQueryService {
     }
 
     /**
-     * Réservation OTA (Airbnb, Booking, autres canaux iCal) : déjà réglée sur le canal externe,
-     * le PMS n'encaisse rien. Elle doit donc compter comme "payée" dans la facturation et les KPI,
-     * en cohérence avec le panneau réservation (PanelFinancial.isOTABooking → reste à payer 0) et
-     * la pastille du planning (usePlanningData). Mêmes sources que detectSource (ICalImportService).
+     * Réservation déjà réglée sur le canal externe : le PMS n'encaisse rien, le
+     * séjour compte comme « payé » dans la facturation et les KPI.
+     *
+     * <p>Le régime est LU sur la réservation ({@code payment_collection}), il
+     * n'est plus déduit du nom du canal. C'est cette déduction, recopiée à cinq
+     * endroits avec des listes divergentes, qui avait laissé les séjours Channex
+     * comptés « reste à payer ».</p>
      */
     private static boolean isOtaPaidReservation(Reservation r) {
-        String src = r.getSource();
-        return "airbnb".equals(src) || "booking".equals(src) || "other".equals(src);
+        return r.isCollectedByChannel();
     }
 
     private PaymentHistoryDto toReservationPaymentDto(Reservation r) {

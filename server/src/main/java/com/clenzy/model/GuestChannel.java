@@ -9,6 +9,7 @@ public enum GuestChannel {
     AIRBNB,     // Via Airbnb
     BOOKING,    // Via Booking.com
     VRBO,       // Via VRBO / Abritel
+    EXPEDIA,    // Via Expedia
     ICAL,       // Import iCal (source generique)
     OTHER       // Autre canal
 }

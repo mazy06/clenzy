@@ -45,6 +45,7 @@ public class ReservationMapper {
             entity.getStatus(),
             entity.getSource(),
             entity.getSourceName(),
+            entity.isCollectedByChannel(),
             entity.getTotalPrice() != null ? entity.getTotalPrice().doubleValue() : 0.0,
             entity.getConfirmationCode(),
             entity.getNotes(),

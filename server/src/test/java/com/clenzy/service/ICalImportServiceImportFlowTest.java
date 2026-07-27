@@ -1256,9 +1256,15 @@ class ICalImportServiceImportFlowTest {
         // Tester via une seule importation pour chaque source dans des invocations distinctes
         for (String[] pair : new String[][]{
             {"Booking.com Cal", "booking"},
-            {"Vrbo Cal", "other"},
-            {"HomeAway Cal", "other"},
+            // Vrbo et Abritel/HomeAway sont la MEME plateforme selon le pays :
+            // les trois noms doivent produire la meme cle de canal.
+            {"Vrbo Cal", "vrbo"},
+            {"HomeAway Cal", "vrbo"},
+            {"Abritel Cal", "vrbo"},
+            {"Agoda Cal", "agoda"},
             {"Direct Reservation Cal", "direct"},
+            // Un nom que rien ne reconnait reste muet : mieux vaut « other »
+            // qu'un canal invente.
             {"Generic Cal", "other"}
         }) {
             // Reset mocks

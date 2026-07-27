@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.dto.BillingOverviewDto;
 import com.clenzy.dto.ChannelRevenueDto;
+import com.clenzy.model.ChannelSources;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.ReservationRepository;
 import org.springframework.stereotype.Service;
@@ -11,18 +12,25 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Calcule les donnees du widget dashboard « Revenus par canal » pour
  * l'organisation courante.
  *
- * <p>Revenu RESERVE (reservations non annulees) regroupe par source, sur le mois
+ * <p>Revenu RESERVE (reservations non annulees) regroupe par canal, sur le mois
  * ou l'annee en cours (comparaison periode precedente). Tout est derive des
  * donnees DB de l'org (Reservation), org-scope. Les reversements proprietaires
  * sont calcules cote client (carte « Gestion &amp; reversements »).</p>
+ *
+ * <p>Les canaux PRINCIPAUX sont renvoyes a chaque appel, meme sans revenu, et
+ * <b>classes par revenu decroissant</b> : la carte se lit comme un classement et
+ * sa hauteur ne varie plus d'une periode a l'autre. Les canaux de longue traine
+ * n'apparaissent que s'ils ont produit du revenu (cf. {@code ALWAYS_SHOWN}).</p>
  *
  * <p>Service strictement read-only, aucun appel HTTP externe.</p>
  */
@@ -33,16 +41,37 @@ public class BillingOverviewService {
     private static final String DEFAULT_CURRENCY = "EUR";
 
     /**
-     * Canaux connus regroupes, dans l'ordre d'affichage. Toute source non
-     * reconnue est repliee sur "other".
+     * Catalogue des canaux et leur libelle, dans l'ordre de depart (ex aequo et
+     * canaux a zero). Toutes les cles resolvables y figurent ; c'est
+     * {@code ALWAYS_SHOWN} qui decide lesquelles s'affichent meme a zero.
      */
     private static final Map<String, String> CHANNEL_LABELS = new LinkedHashMap<>();
     static {
         CHANNEL_LABELS.put("airbnb", "Airbnb");
         CHANNEL_LABELS.put("booking", "Booking.com");
+        CHANNEL_LABELS.put("vrbo", "Vrbo");
+        CHANNEL_LABELS.put("expedia", "Expedia");
+        CHANNEL_LABELS.put("agoda", "Agoda");
+        CHANNEL_LABELS.put("hotels_com", "Hotels.com");
+        CHANNEL_LABELS.put("hometogo", "HomeToGo");
+        CHANNEL_LABELS.put("mabeet", "Mabeet");
+        CHANNEL_LABELS.put("rentelly", "Rentelly");
+        CHANNEL_LABELS.put("gathern", "Gathern");
         CHANNEL_LABELS.put("direct", "Direct");
         CHANNEL_LABELS.put("other", "Autre");
     }
+
+    /**
+     * Canaux affiches meme a zero.
+     *
+     * <p>Tout lister a chaque appel avait du sens a six canaux : la carte se
+     * lisait comme un classement stable. A douze, elle deviendrait un mur de
+     * lignes vides. Les canaux de longue traine n'apparaissent donc que s'ils ont
+     * produit du revenu — leur absence est alors l'information, et leur presence
+     * aussi.</p>
+     */
+    private static final Set<String> ALWAYS_SHOWN =
+        Set.of("airbnb", "booking", "vrbo", "expedia", "direct", "other");
 
     private final ReservationRepository reservationRepository;
 
@@ -93,45 +122,73 @@ public class BillingOverviewService {
 
     private List<ChannelRevenueDto> buildChannels(List<Reservation> currentMonth,
                                                   List<Reservation> previousMonth) {
-        Map<String, BigDecimal> currentBySource = revenueBySource(currentMonth);
-        Map<String, BigDecimal> previousBySource = revenueBySource(previousMonth);
+        Map<String, BigDecimal> currentByChannel = revenueByChannel(currentMonth);
+        Map<String, BigDecimal> previousByChannel = revenueByChannel(previousMonth);
 
-        BigDecimal currentTotal = currentBySource.values().stream()
+        BigDecimal currentTotal = currentByChannel.values().stream()
             .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal previousTotal = previousBySource.values().stream()
+        BigDecimal previousTotal = previousByChannel.values().stream()
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         List<ChannelRevenueDto> channels = new ArrayList<>();
-        for (Map.Entry<String, BigDecimal> entry : currentBySource.entrySet()) {
-            String source = entry.getKey();
-            BigDecimal amount = scale(entry.getValue());
+        for (Map.Entry<String, String> catalogEntry : CHANNEL_LABELS.entrySet()) {
+            String channel = catalogEntry.getKey();
+            // Longue traine sans revenu ni sur la periode ni sur la precedente :
+            // la ligne n'apprendrait rien, on ne l'affiche pas.
+            if (!ALWAYS_SHOWN.contains(channel)
+                    && !currentByChannel.containsKey(channel)
+                    && !previousByChannel.containsKey(channel)) {
+                continue;
+            }
+            BigDecimal amount = scale(currentByChannel.getOrDefault(channel, BigDecimal.ZERO));
             double pct = percentage(amount, currentTotal);
 
-            Double comparePct = null;
-            BigDecimal prevAmount = previousBySource.get(source);
-            // Pas de comparaison si le mois precedent n'a aucun revenu (N/A).
-            if (prevAmount != null && previousTotal.compareTo(BigDecimal.ZERO) > 0) {
-                comparePct = percentage(prevAmount, previousTotal);
-            }
+            // Pas de comparaison si la periode precedente n'a aucun revenu (N/A).
+            // Sinon, un canal absent de cette periode y pesait bien 0 % : le dire
+            // explicitement fait apparaitre la chute (▼ x pt) au lieu de la masquer.
+            Double comparePct = previousTotal.compareTo(BigDecimal.ZERO) > 0
+                ? percentage(previousByChannel.getOrDefault(channel, BigDecimal.ZERO), previousTotal)
+                : null;
 
             channels.add(new ChannelRevenueDto(
-                source, CHANNEL_LABELS.getOrDefault(source, "Autre"), amount, pct, comparePct));
+                channel, catalogEntry.getValue(), amount, pct, comparePct));
         }
+
+        // Classement par revenu decroissant. `List.sort` est stable : les ex aequo
+        // — au premier rang desquels les canaux a zero — gardent l'ordre du catalogue.
+        channels.sort(Comparator.comparing(ChannelRevenueDto::amount).reversed());
         return channels;
     }
 
     /**
-     * Revenu encaisse par canal connu (airbnb/booking/direct/other). Toute
-     * source inconnue est repliee sur "other". Conserve l'ordre d'affichage.
+     * Revenu agrege par canal du catalogue. Les canaux sans reservation sont
+     * simplement absents de la map — c'est {@link #buildChannels} qui garantit
+     * la ligne a zero.
      */
-    private Map<String, BigDecimal> revenueBySource(List<Reservation> reservations) {
-        Map<String, BigDecimal> bySource = new LinkedHashMap<>();
+    private Map<String, BigDecimal> revenueByChannel(List<Reservation> reservations) {
+        Map<String, BigDecimal> byChannel = new LinkedHashMap<>();
         for (Reservation r : reservations) {
-            String source = normalizeSource(r.getSource());
             BigDecimal price = r.getTotalPrice() != null ? r.getTotalPrice() : BigDecimal.ZERO;
-            bySource.merge(source, price, BigDecimal::add);
+            byChannel.merge(resolveChannel(r), price, BigDecimal::add);
         }
-        return bySource;
+        return byChannel;
+    }
+
+    /**
+     * Canal d'affichage d'une reservation.
+     *
+     * <p>La source technique d'abord : depuis que le vocabulaire est ouvert, elle
+     * distingue elle-meme Vrbo d'Expedia. Le nom de source ne sert plus qu'aux
+     * lignes ANCIENNES, ecrites quand tout ce qui n'etait ni Airbnb ni Booking
+     * etait replie sur « other » — sans ce repli, leur chiffre d'affaires
+     * resterait dans « Autre » a jamais.</p>
+     */
+    private String resolveChannel(Reservation reservation) {
+        String key = normalizeSource(reservation.getSource());
+        if (!"other".equals(key)) {
+            return key;
+        }
+        return normalizeSource(ChannelSources.fromName(reservation.getSourceName()));
     }
 
     private String normalizeSource(String rawSource) {

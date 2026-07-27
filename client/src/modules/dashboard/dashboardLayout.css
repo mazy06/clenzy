@@ -1,0 +1,36 @@
+/* ─── Mode « Personnaliser » du tableau de bord ─────────────────────────────
+ *
+ * Le cadre en tirets de chaque tuile est tracé en SVG (DashboardWidgetGrid) et
+ * non avec `outline-dashed` : le motif d'une bordure CSS n'est pas réglable —
+ * chaque moteur choisit sa longueur de tiret, et à 2 px Chrome produit des
+ * créneaux épais qui saturent l'écran une fois répétés sur huit tuiles. Le
+ * tracé SVG donne la maîtrise du rythme, de l'épaisseur et du rayon.
+ */
+
+/* Tuile survolée pendant un glisser : les tirets défilent le long du tracé.
+   C'est le seul mouvement du mode édition — il ne sert qu'à désigner la cible
+   de dépôt sous le curseur. Le décalage vaut un motif complet (tiret + espace),
+   sans quoi la boucle saute. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes dashboardDashMarch {
+    to {
+      stroke-dashoffset: -16;
+    }
+  }
+  .db-frame--target rect {
+    animation: dashboardDashMarch 900ms linear infinite;
+  }
+}
+
+/* Interligne d'accueil : filet en tirets visible en permanence en mode édition.
+   Sans lui, rien n'indiquait qu'on pouvait déposer une tuile entre deux lignes
+   pour la sortir sur sa propre ligne — la zone n'apparaissait qu'une fois le
+   curseur dessus, donc après coup. La couleur suit `currentColor` : l'état de
+   survol se pilote depuis les classes utilitaires, sans dupliquer le motif. */
+.db-rowgap-rule {
+  background-image: repeating-linear-gradient(
+    to right,
+    currentColor 0 6px,
+    transparent 6px 12px
+  );
+}

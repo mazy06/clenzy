@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { interventionsApi } from '../interventionsApi';
 import apiClient from '../../apiClient';
-import { isMockEnabled } from '../../storageService';
 
 // Le apiClient réel dépend de Keycloak/fetch : stub déterministe.
 vi.mock('../../apiClient', () => ({
@@ -10,18 +9,11 @@ vi.mock('../../apiClient', () => ({
   },
 }));
 
-vi.mock('../../storageService', () => ({
-  isMockEnabled: vi.fn(() => false),
-  setMockEnabled: vi.fn(),
-}));
-
 const mockedGet = vi.mocked(apiClient.get);
-const mockedIsMockEnabled = vi.mocked(isMockEnabled);
 
 describe('interventionsApi.getPage — pagination serveur', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedIsMockEnabled.mockReturnValue(false);
   });
 
   it('whenCalledWithPageSizeAndFilters_thenPassesParamsToServer', async () => {
@@ -67,32 +59,4 @@ describe('interventionsApi.getPage — pagination serveur', () => {
     expect(mockedGet).toHaveBeenCalledWith('/interventions', { params: {} });
   });
 
-  it('whenMockModeEnabled_thenFiltersAndPaginatesLocally', async () => {
-    // import.meta.env.DEV est true sous Vitest : le mode mock est actif.
-    mockedIsMockEnabled.mockReturnValue(true);
-
-    const page0 = await interventionsApi.getPage({ page: 0, size: 4, type: 'CLEANING' });
-
-    expect(mockedGet).not.toHaveBeenCalled();
-    expect(page0.content).toHaveLength(4);
-    expect(page0.content.every((i) => i.type === 'CLEANING')).toBe(true);
-    expect(page0.totalElements).toBe(10); // 10 CLEANING dans le jeu mock
-    expect(page0.totalPages).toBe(3);
-    expect(page0.first).toBe(true);
-    expect(page0.last).toBe(false);
-
-    const lastPage = await interventionsApi.getPage({ page: 2, size: 4, type: 'CLEANING' });
-    expect(lastPage.content).toHaveLength(2);
-    expect(lastPage.last).toBe(true);
-  });
-
-  it('whenMockModeWithStatusFilter_thenOnlyMatchingRows', async () => {
-    mockedIsMockEnabled.mockReturnValue(true);
-
-    const result = await interventionsApi.getPage({ page: 0, size: 50, status: 'SCHEDULED' });
-
-    expect(result.content.length).toBeGreaterThan(0);
-    expect(result.content.every((i) => i.status === 'SCHEDULED')).toBe(true);
-    expect(result.totalElements).toBe(result.content.length);
-  });
 });

@@ -554,16 +554,16 @@ public class ICalImportService {
     }
 
     /**
-     * Detecte la source (airbnb, booking, etc.) a partir du nom fourni par l'utilisateur.
+     * Detecte le canal a partir du nom de flux saisi par l'hote.
+     *
+     * <p>Vrbo et HomeAway etaient jusqu'ici replies sur « other » : leur chiffre
+     * d'affaires atterrissait dans « Autre » et leur nom n'apparaissait nulle
+     * part. Le repli n'avait qu'une raison — la source servait aussi a deviner
+     * qui avait encaisse. Ce n'est plus le cas depuis que le regime est persiste
+     * sur la reservation, le vocabulaire peut donc s'ouvrir.</p>
      */
     private String detectSource(String sourceName) {
-        if (sourceName == null) return "other";
-        String lower = sourceName.toLowerCase();
-        if (lower.contains("airbnb")) return "airbnb";
-        if (lower.contains("booking")) return "booking";
-        if (lower.contains("vrbo") || lower.contains("homeaway")) return "other";
-        if (lower.contains("direct")) return "direct";
-        return "other";
+        return ChannelSources.fromName(sourceName);
     }
 
     // ---- Gestion des feeds ----

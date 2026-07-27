@@ -11,7 +11,7 @@ import NoiseAlertHistory from '../../dashboard/NoiseAlertHistory';
 import EmptyState from '../../../components/EmptyState';
 import StatTile from '../../../components/StatTile';
 import { useNoiseDeviceDetail } from '../useNoiseDeviceDetail';
-import { NOISE_THRESHOLDS } from '../../../hooks/useNoiseMonitoring';
+import { NOISE_THRESHOLDS } from '../../../hooks/noiseMonitoring';
 import type { ConnectedDevice } from '../types';
 
 const NEUTRAL = '#9CA3AF';

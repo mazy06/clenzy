@@ -2316,6 +2316,14 @@
     "source": {
       "airbnb": "Airbnb",
       "booking": "Booking.com",
+      "vrbo": "Vrbo",
+      "expedia": "Expedia",
+      "agoda": "Agoda",
+      "hotels_com": "Hotels.com",
+      "hometogo": "HomeToGo",
+      "mabeet": "Mabeet",
+      "rentelly": "Rentelly",
+      "gathern": "Gathern",
       "direct": "Direct",
       "other": "Other"
     },
@@ -6460,6 +6468,15 @@
     },
     "section": {
       "description": "Screen section composed only of Baitly UI primitives — a preview of the migration target for “{{screen}}”."
+    },
+    "teardown": {
+      "onboardingChecklist": "Master-detail getting-started guide: groups on the left, steps as an accordion on the right. Three step states (done, to do, locked by plan), duration estimate, a Skip action, and two progress granularities shown together.",
+      "showcaseEmpty": "Two-column showcase empty state for screens that are empty before setup: the title carries the value proposition, the right column previews the filled product, and the fallback avoids a dead end when the main action assumes a missing prerequisite.",
+      "settingSentence": "A setting written as a sentence with inline controls (“Mark the property [unknown] after [5] days”) — the rule reads as a rule instead of being rebuilt from a stack of fields.",
+      "optionalSection": "Optional section block inside a long form: tinted panel, “(optional)” mention, fields revealed only on demand — required fields keep the visual weight.",
+      "channelBadges": "Channel badge cluster with connection state (validation pastille, disconnected channels desaturated but still readable), with an overlay variant for property photos.",
+      "cornerRibbon": "Diagonal corner ribbon (promo, exclusive, new) — flags an offer on a card without taking space in the content flow. The parent must be positioned and clip overflow.",
+      "onboardingDock": "Floating, persistent getting-started dock: the guide follows the user from screen to screen instead of living only on the home page. Three states (collapsed, expanded, completed), group navigation via a pager, global progress visible in every state, and always dismissible."
     }
   }
 }

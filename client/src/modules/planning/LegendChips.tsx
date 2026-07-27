@@ -21,6 +21,18 @@ export const STATUS_OPTIONS: { value: ReservationStatus; label: string }[] = [
 export const CHANNEL_LEGEND: { key: PlanningChannelKey; label: string; logo: string | null }[] = [
   { key: 'airbnb', label: RESERVATION_SOURCE_LABELS.airbnb, logo: getSourceLogo('airbnb') },
   { key: 'booking', label: RESERVATION_SOURCE_LABELS.booking, logo: getSourceLogo('booking') },
+  { key: 'vrbo', label: RESERVATION_SOURCE_LABELS.vrbo, logo: getSourceLogo('vrbo') },
+  // Expedia n'a pas de logo dans les assets → globe accent, comme « Direct ».
+  { key: 'expedia', label: RESERVATION_SOURCE_LABELS.expedia, logo: null },
+  // Longue traîne : pas de logo non plus, et pas de couleur de marque inventée
+  // (`getChannelChipTokens` les laisse en gris neutre). Ces chips n'apparaissent
+  // que sur les organisations qui vendent réellement sur ces canaux.
+  { key: 'agoda', label: RESERVATION_SOURCE_LABELS.agoda, logo: null },
+  { key: 'hotels_com', label: RESERVATION_SOURCE_LABELS.hotels_com, logo: null },
+  { key: 'hometogo', label: RESERVATION_SOURCE_LABELS.hometogo, logo: null },
+  { key: 'mabeet', label: RESERVATION_SOURCE_LABELS.mabeet, logo: null },
+  { key: 'rentelly', label: RESERVATION_SOURCE_LABELS.rentelly, logo: null },
+  { key: 'gathern', label: RESERVATION_SOURCE_LABELS.gathern, logo: null },
   { key: 'direct', label: RESERVATION_SOURCE_LABELS.direct, logo: null },
 ];
 
@@ -93,10 +105,17 @@ const chipSxFor = (variant: LegendChipVariant, selected: boolean) =>
 export const ChannelLegendChips: React.FC<{
   activeChannels: ReadonlySet<PlanningChannelKey>;
   onToggleChannel: (key: PlanningChannelKey) => void;
+  /**
+   * Canaux effectivement présents dans les données affichées. Seuls ceux-là
+   * reçoivent un chip : un filtre sur un canal où l'organisation ne vend pas
+   * n'a aucun effet et encombre la barre. Absent → toute la légende, ce qui
+   * préserve les appelants qui n'ont pas la donnée sous la main.
+   */
+  presentChannels?: ReadonlySet<PlanningChannelKey>;
   variant?: LegendChipVariant;
-}> = ({ activeChannels, onToggleChannel, variant = 'legend' }) => (
+}> = ({ activeChannels, onToggleChannel, presentChannels, variant = 'legend' }) => (
   <>
-    {CHANNEL_LEGEND.map((ch) => {
+    {CHANNEL_LEGEND.filter((ch) => !presentChannels || presentChannels.has(ch.key)).map((ch) => {
       const selected = activeChannels.has(ch.key);
       return (
         <Tooltip key={ch.key} title={selected ? `Masquer le canal ${ch.label}` : `Afficher le canal ${ch.label}`} arrow>

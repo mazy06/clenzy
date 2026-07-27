@@ -52,12 +52,21 @@ export default function RevenueByChannelCard({
             channel.comparePct != null
               ? Math.round((channel.pct - channel.comparePct) * 10) / 10
               : null;
+          // Les canaux du catalogue sont tous affichés, y compris ceux qui n'ont
+          // rien produit : les estomper garde le classement lisible d'un coup
+          // d'œil, sans les faire disparaître.
+          const idle = channel.amount != null && channel.amount <= 0;
           return (
             <div
               key={channel.name}
               className="flex items-center gap-3 border-t border-border py-2.5 first:border-t-0"
             >
-              <span className="w-[74px] shrink-0 text-xs font-semibold text-foreground">
+              <span
+                className={cn(
+                  'w-[74px] shrink-0 text-xs font-semibold',
+                  idle ? 'text-muted-foreground' : 'text-foreground'
+                )}
+              >
                 {channel.name}
               </span>
               <div className="h-2 flex-1 overflow-hidden rounded-[5px] bg-field">
@@ -67,7 +76,12 @@ export default function RevenueByChannelCard({
                 />
               </div>
               <div className="min-w-[66px] shrink-0 text-end">
-                <div className="cn-font-heading text-[13px] leading-tight font-semibold text-foreground tabular-nums">
+                <div
+                  className={cn(
+                    'cn-font-heading text-[13px] leading-tight font-semibold tabular-nums',
+                    idle ? 'text-muted-foreground' : 'text-foreground'
+                  )}
+                >
                   {channel.amount != null ? <Money value={channel.amount} decimals={0} /> : `${channel.pct}%`}
                 </div>
                 {(channel.amount != null || (delta != null && delta !== 0)) && (

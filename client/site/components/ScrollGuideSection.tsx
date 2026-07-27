@@ -361,7 +361,7 @@ export default function ScrollGuideSection() {
        par le temps — l'étirer ralentit tout le déroulé d'autant. */
     <section ref={wrapperRef} className="relative" style={{ height: reduced ? 'auto' : SCROLL_RUN }}>
       <div className="sticky top-16 flex h-[calc(100vh-4rem)] items-center">
-        <div className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-10 px-4 lg:grid-cols-2">
+        <div className="site-shell grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
           {/* Colonne récit : le fil d'étapes se synchronise avec le téléphone */}
           <Reveal>
             <Badge variant="outline">Aperçu</Badge>

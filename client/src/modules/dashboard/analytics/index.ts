@@ -9,5 +9,4 @@ export { default as AnalyticsRecommendations } from './AnalyticsRecommendations'
 export { default as AnalyticsClientAnalysis } from './AnalyticsClientAnalysis';
 export { default as AnalyticsPropertyPerformance } from './AnalyticsPropertyPerformance';
 export { default as AnalyticsBenchmark } from './AnalyticsBenchmark';
-export { default as AnalyticsSimulator } from './AnalyticsSimulator';
 export { default as AnalyticsAlerts } from './AnalyticsAlerts';

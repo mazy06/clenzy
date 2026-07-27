@@ -384,3 +384,18 @@
   /* ---- Mouvement ---- */
   --ease-out-quart: cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* ---- Sidebar : respect de prefers-reduced-motion ----
+   Le kit shadcn anime la largeur, la marge et l'opacité de la sidebar sans
+   garde de mouvement réduit. L'ancienne sidebar MUI neutralisait explicitement
+   ces transitions (cf. components/SIDEBAR-PARITY.md §A.4) — on tient la même
+   promesse ici plutôt que de modifier la feuille Nova portée. */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='sidebar-container'],
+  [data-slot='sidebar-gap'],
+  [data-slot='sidebar-menu-button'],
+  [data-slot='sidebar-menu-sub-button'],
+  [data-slot='sidebar-group-label'] {
+    transition: none;
+  }
+}

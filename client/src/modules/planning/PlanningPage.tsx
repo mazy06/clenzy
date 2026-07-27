@@ -48,7 +48,6 @@ import {
   useSupervisionPendingCounts,
   type SupervisionScope,
 } from '../supervision';
-import { isMockEnabled } from '../../services/storageService';
 
 const PlanningPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -185,6 +184,23 @@ const PlanningPage: React.FC = () => {
     setActiveStatuses(new Set(PLANNING_STATUS_KEYS));
   }, [clearFilters]);
 
+  // Canaux réellement représentés dans les données chargées. La légende ne
+  // propose que ceux-là : afficher un chip « Expedia » à une organisation qui
+  // n'y vend pas donne un filtre sans effet et allonge la barre pour rien.
+  //
+  // Calculé sur `filteredEvents` — donc AVANT le filtrage par légende, sinon
+  // décocher un canal le ferait disparaître de sa propre légende et il
+  // deviendrait impossible de le réafficher.
+  const presentChannels = useMemo(() => {
+    const present = new Set<PlanningChannelKey>();
+    for (const event of filteredEvents) {
+      const source = event.reservation?.source;
+      const known = PLANNING_CHANNEL_KEYS.find((key) => key === source);
+      if (known) present.add(known);
+    }
+    return present;
+  }, [filteredEvents]);
+
   // Masquage client-side des briques réservation selon les toggles légende.
   // S'applique APRÈS usePlanningFilters (hooks de données inchangés) et AVANT
   // le layout/rendu de la grille. Seul l'affichage est filtré : sélection,
@@ -198,7 +214,12 @@ const PlanningPage: React.FC = () => {
     return filteredEvents.filter((e) => {
       if (e.type !== 'reservation') return true;
       const source = e.reservation?.source;
-      if (source && source !== 'other' && !activeChannels.has(source)) return false;
+      // On ne masque QUE les canaux qui ont un chip pour les réafficher.
+      // L'ancienne règle excluait tout ce qui n'était ni dans la légende ni
+      // 'other' : dès qu'un chip était décoché, une réservation Vrbo ou Expedia
+      // disparaissait du planning sans aucun moyen de la faire revenir.
+      const togglable = PLANNING_CHANNEL_KEYS.find((key) => key === source);
+      if (togglable && !activeChannels.has(togglable)) return false;
       return activeStatuses.has(e.status as ReservationStatus);
     });
   }, [filteredEvents, activeChannels, activeStatuses]);
@@ -355,11 +376,6 @@ const PlanningPage: React.FC = () => {
   const startIntervention = useCallback(async (interventionId: number) => {
     try {
       const { interventionsApi } = await import('../../services/api');
-      if (interventionsApi.isMockMode()) {
-        // Mock: update status in cache
-        const { useQueryClient } = await import('@tanstack/react-query');
-        return { success: true, error: null };
-      }
       await interventionsApi.start(interventionId);
       return { success: true, error: null };
     } catch (err) {
@@ -392,9 +408,6 @@ const PlanningPage: React.FC = () => {
   const uploadPhotos = useCallback(async (interventionId: number, photos: File[], type: 'before' | 'after') => {
     try {
       const { interventionsApi } = await import('../../services/api');
-      if (interventionsApi.isMockMode()) {
-        return { success: true, error: null };
-      }
       await interventionsApi.uploadPhotos(interventionId, photos, type);
       return { success: true, error: null };
     } catch (err) {
@@ -405,9 +418,6 @@ const PlanningPage: React.FC = () => {
   const updateInterventionProgress = useCallback(async (interventionId: number, progress: number) => {
     try {
       const { interventionsApi } = await import('../../services/api');
-      if (interventionsApi.isMockMode()) {
-        return { success: true, error: null };
-      }
       await interventionsApi.updateProgress(interventionId, progress);
       return { success: true, error: null };
     } catch (err) {
@@ -522,7 +532,7 @@ const PlanningPage: React.FC = () => {
   // recréée à chaque render du parent cassait la barrière de memo de toute la grille.
   const renderExpandedPanel = useCallback(
     (property: PlanningProperty) => {
-      const mockMode = isMockEnabled('planning') || !isSupervisionLiveEnabled();
+      const mockMode = !isSupervisionLiveEnabled();
       const firstResa = visibleEvents.find(
         (e) => e.type === 'reservation' && e.propertyId === property.id && e.reservation,
       );
@@ -532,7 +542,7 @@ const PlanningPage: React.FC = () => {
       return (
         <SupervisionPanel
           createProvider={() =>
-            // Mode démo planning OU live désactivé → provider MOCK
+            // Superviseur live désactivé → provider de démonstration
             // (constellation + « En direct » alimentés par des données
             // fictives variées par logement). Sinon → moteur réel.
             mockMode
@@ -547,7 +557,7 @@ const PlanningPage: React.FC = () => {
                   onOpenGuestCard: handleOpenGuestCard,
                 })
           }
-          // cometReservationId ne pilote QUE le mock : en live, l'inclure
+          // cometReservationId ne pilote QUE le provider de démo : en live, l'inclure
           // dans les deps détruisait/recréait le provider (teardown SSE +
           // re-snapshot) quand les réservations finissaient de charger.
           deps={mockMode ? [property.id, cometReservationId] : [property.id]}
@@ -648,6 +658,7 @@ const PlanningPage: React.FC = () => {
                   showLegendChips={legendInModal}
                   activeChannels={activeChannels}
                   onToggleChannel={toggleChannel}
+                  presentChannels={presentChannels}
                   activeStatuses={activeStatuses}
                   onToggleStatus={toggleStatus}
                 />
@@ -703,6 +714,7 @@ const PlanningPage: React.FC = () => {
             onShowInterventionsChange={setShowInterventions}
             activeChannels={activeChannels}
             onToggleChannel={toggleChannel}
+                  presentChannels={presentChannels}
             activeStatuses={activeStatuses}
             onToggleStatus={toggleStatus}
           />

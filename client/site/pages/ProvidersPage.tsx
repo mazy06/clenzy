@@ -23,7 +23,7 @@ export default function ProvidersPage() {
       {/* ─── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden border-b border-border">
         <div className="hero-grid absolute inset-x-0 top-0 h-80 -z-10" aria-hidden />
-        <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pt-16 pb-14 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="site-shell grid items-center gap-12 pt-16 pb-14 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
             <Reveal>
               <Badge variant="outline">Marketplace prestataires</Badge>
@@ -81,7 +81,7 @@ export default function ProvidersPage() {
       </section>
 
       {/* ─── Catégories de services ───────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-16">
+      <section className="site-shell py-16">
         <Reveal>
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
             Quel que soit votre métier, il a sa place.
@@ -124,7 +124,7 @@ export default function ProvidersPage() {
 
       {/* ─── Comment ça marche ────────────────────────────────────────────── */}
       <section className="border-y border-border bg-card">
-        <div className="mx-auto max-w-6xl px-4 py-16">
+        <div className="site-shell py-16">
           <Reveal>
             <Badge variant="secondary">Comment ça marche</Badge>
             <h2 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
@@ -156,7 +156,7 @@ export default function ProvidersPage() {
       </section>
 
       {/* ─── Mockup : la vue prestataire (projection réelle Opérations) ───── */}
-      <section className="mx-auto max-w-6xl px-4 py-16">
+      <section className="site-shell py-16">
         <div className="grid items-center gap-10 lg:grid-cols-2">
           <Reveal>
             <Badge variant="outline">L’application prestataire</Badge>
@@ -192,7 +192,7 @@ export default function ProvidersPage() {
 
       {/* ─── Avantages ────────────────────────────────────────────────────── */}
       <section className="border-t border-border bg-card">
-        <div className="mx-auto max-w-6xl px-4 py-16">
+        <div className="site-shell py-16">
           <Reveal>
             <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
               Pourquoi rejoindre le réseau Baitly.
@@ -215,7 +215,7 @@ export default function ProvidersPage() {
       </section>
 
       {/* ─── CTA final ────────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-20">
+      <section className="site-shell py-20">
         <Reveal>
           <div className="shadow-brand relative overflow-hidden rounded-3xl border border-border bg-primary px-6 py-14 text-center text-primary-foreground">
             <div className="hero-grid absolute inset-0 opacity-20" aria-hidden />

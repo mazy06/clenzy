@@ -61,6 +61,14 @@ const STATUS_OPTIONS: ReservationStatus[] = [
 const SOURCE_OPTIONS: ReservationSource[] = [
   'airbnb',
   'booking',
+  'vrbo',
+  'expedia',
+  'agoda',
+  'hotels_com',
+  'hometogo',
+  'mabeet',
+  'rentelly',
+  'gathern',
   'direct',
   'other',
 ];

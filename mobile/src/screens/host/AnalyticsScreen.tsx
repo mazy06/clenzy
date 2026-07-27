@@ -40,13 +40,21 @@ const TABS: Array<{ key: TabKey; label: string; icon: IoniconsName }> = [
   { key: 'forecast', label: 'Previsions', icon: 'sparkles-outline' },
 ];
 
+/**
+ * Clés en MINUSCULES, et lookup normalisé côté appelant.
+ *
+ * Le regroupement se fait sur `sourceName`, un nom de flux saisi par l'hôte :
+ * « Vrbo », « VRBO » et « vrbo » produisaient trois séries distinctes, aucune
+ * ne trouvant sa couleur. Normaliser la clé règle les deux à la fois.
+ */
 const CHANNEL_COLORS: Record<string, string> = {
-  Airbnb: '#FF5A5F',
-  'Booking.com': '#003580',
-  Booking: '#003580',
-  Direct: '#059669',
-  VRBO: '#3B5998',
-  Expedia: '#FBCE00',
+  airbnb: '#FF5A5F',
+  'booking.com': '#003580',
+  booking: '#003580',
+  channex: '#003580',
+  direct: '#059669',
+  vrbo: '#3B5998',
+  expedia: '#FBCE00',
 };
 
 const DEFAULT_CHANNEL_COLOR = '#6B7280';
@@ -227,21 +235,24 @@ function computeAnalytics(
   }).sort((a, b) => b.score - a.score);
 
   // By channel
-  const channelMap = new Map<string, { revenue: number; count: number }>();
+  // Regroupement sur une clé normalisée, affichage sur le premier libellé vu :
+  // sans cela « Vrbo », « VRBO » et « vrbo » comptaient pour trois canaux.
+  const channelMap = new Map<string, { label: string; revenue: number; count: number }>();
   for (const r of confirmed) {
-    const channel = r.sourceName || r.source || 'Direct';
-    const existing = channelMap.get(channel) ?? { revenue: 0, count: 0 };
+    const label = r.sourceName || r.source || 'Direct';
+    const key = label.toLowerCase();
+    const existing = channelMap.get(key) ?? { label, revenue: 0, count: 0 };
     existing.revenue += r.totalPrice ?? 0;
     existing.count += 1;
-    channelMap.set(channel, existing);
+    channelMap.set(key, existing);
   }
 
   const byChannel: ChannelMetrics[] = Array.from(channelMap.entries())
-    .map(([name, data]) => ({
-      name,
+    .map(([key, data]) => ({
+      name: data.label,
       revenue: data.revenue,
       count: data.count,
-      color: CHANNEL_COLORS[name] ?? DEFAULT_CHANNEL_COLOR,
+      color: CHANNEL_COLORS[key] ?? DEFAULT_CHANNEL_COLOR,
     }))
     .sort((a, b) => b.revenue - a.revenue);
 

@@ -56,6 +56,24 @@
   }
 }
 
+/* ─── Conteneur de page ────────────────────────────────────────────────────── */
+
+/* Toutes les sections partagent ce conteneur : largeur fluide, gouttières qui
+   grandissent avec le viewport. Un `max-w-6xl` (1152 px) laissait ~350 px de
+   vide de chaque côté sur un écran 1920 — le site paraissait posé dans une
+   colonne centrale. Le plafond (1760 px) n'existe que pour les très grands
+   écrans, où une pleine largeur casserait la longueur de ligne.
+   Déclaré dans la couche `components` : une classe Tailwind (`max-w-*`, `px-*`)
+   posée sur le même élément reste prioritaire pour les cas particuliers. */
+@layer components {
+  .site-shell {
+    width: 100%;
+    max-width: var(--site-shell-max, 1760px);
+    margin-inline: auto;
+    padding-inline: clamp(1rem, 4vw, 4rem);
+  }
+}
+
 /* ─── Motion — révélation au scroll (ease-out-quint, GPU-only) ─────────────── */
 @media (prefers-reduced-motion: no-preference) {
   .reveal {

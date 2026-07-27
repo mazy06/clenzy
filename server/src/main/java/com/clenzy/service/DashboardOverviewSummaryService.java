@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.dto.DashboardOverviewSummaryDto;
 import com.clenzy.dto.DashboardOverviewSummaryDto.InterventionsStatDto;
+import com.clenzy.dto.DashboardOverviewSummaryDto.GuestRatingDto;
 import com.clenzy.dto.DashboardOverviewSummaryDto.KpiTrendDto;
 import com.clenzy.dto.DashboardOverviewSummaryDto.PropertiesStatDto;
 import com.clenzy.dto.DashboardOverviewSummaryDto.ServiceRequestsStatDto;
@@ -12,6 +13,7 @@ import com.clenzy.model.PropertyStatus;
 import com.clenzy.model.RequestStatus;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.UserRole;
+import com.clenzy.repository.GuestReviewRepository;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
@@ -63,6 +65,7 @@ public class DashboardOverviewSummaryService {
     private final ReservationRepository reservationRepository;
     private final InterventionRepository interventionRepository;
     private final ServiceRequestRepository serviceRequestRepository;
+    private final GuestReviewRepository guestReviewRepository;
     private final UserRepository userRepository;
     private final Clock clock;
 
@@ -70,12 +73,14 @@ public class DashboardOverviewSummaryService {
                                            ReservationRepository reservationRepository,
                                            InterventionRepository interventionRepository,
                                            ServiceRequestRepository serviceRequestRepository,
+                                           GuestReviewRepository guestReviewRepository,
                                            UserRepository userRepository,
                                            Clock clock) {
         this.propertyRepository = propertyRepository;
         this.reservationRepository = reservationRepository;
         this.interventionRepository = interventionRepository;
         this.serviceRequestRepository = serviceRequestRepository;
+        this.guestReviewRepository = guestReviewRepository;
         this.userRepository = userRepository;
         this.clock = clock;
     }
@@ -108,6 +113,7 @@ public class DashboardOverviewSummaryService {
         final KpiTrendDto revenue;
         final KpiTrendDto adr;
         final KpiTrendDto revPan;
+        final KpiTrendDto bookings;
         if (financial && propertiesActive > 0) {
             final List<Reservation> span = reservationRepository.findOverlappingWindowForDashboard(
                     prevStart, curEndExclusive, orgId, ownerKc);
@@ -117,12 +123,21 @@ public class DashboardOverviewSummaryService {
             revenue = new KpiTrendDto(cur.revenue, growthPct(cur.revenue, prev.revenue));
             adr = new KpiTrendDto(cur.adr, growthPct(cur.adr, prev.adr));
             revPan = new KpiTrendDto(cur.revPan, growthPct(cur.revPan, prev.revPan));
+            bookings = new KpiTrendDto(cur.bookings, growthPct(cur.bookings, prev.bookings));
         } else {
             occupancy = new KpiTrendDto(0, 0);
             revenue = new KpiTrendDto(0, 0);
             adr = new KpiTrendDto(0, 0);
             revPan = new KpiTrendDto(0, 0);
+            bookings = new KpiTrendDto(0, 0);
         }
+
+        // ── Avis : moyenne et volume sur la fenêtre, périmètre hôte respecté ──
+        final Double avgRating = guestReviewRepository.averagePublicRatingBetween(
+                orgId, curStart, curEndExclusive, ownerKc);
+        final GuestRatingDto guestRating = new GuestRatingDto(
+                avgRating == null ? 0.0 : round1(avgRating),
+                guestReviewRepository.countPublicBetween(orgId, curStart, curEndExclusive, ownerKc));
 
         // ── Interventions : fenêtre étendue [prevStart .. today+8) pour couvrir
         //    la période précédente (growth) ET les 7 prochains jours (upcoming) ──
@@ -146,7 +161,7 @@ public class DashboardOverviewSummaryService {
                 + reservationRepository.countDirectPendingPaymentsForDashboard(orgId, ownerKc, PaymentStatus.PENDING);
 
         return new DashboardOverviewSummaryDto(
-                occupancy, revenue, adr, revPan,
+                occupancy, revenue, adr, revPan, bookings, guestRating,
                 properties,
                 new ServiceRequestsStatDto(srPending, srTotal),
                 interventionsStat,
@@ -159,10 +174,16 @@ public class DashboardOverviewSummaryService {
                                                    LocalDate start, LocalDate endExclusive,
                                                    long activeProperties, int days) {
         long occupiedNights = 0L;
+        long bookings = 0L;
         BigDecimal revenue = BigDecimal.ZERO;
         for (Reservation r : reservations) {
             if ("cancelled".equalsIgnoreCase(r.getStatus())) {
                 continue;
+            }
+            // « Réservations de la période » = celles qui COMMENCENT dans la
+            // fenêtre — un séjour à cheval n'est pas compté deux fois.
+            if (!r.getCheckIn().isBefore(start) && r.getCheckIn().isBefore(endExclusive)) {
+                bookings++;
             }
             final LocalDate s = r.getCheckIn().isBefore(start) ? start : r.getCheckIn();
             final LocalDate e = r.getCheckOut().isBefore(endExclusive) ? r.getCheckOut() : endExclusive;
@@ -187,7 +208,8 @@ public class DashboardOverviewSummaryService {
         final double revPan = availableNights > 0
                 ? revenue.divide(BigDecimal.valueOf(availableNights), 2, RoundingMode.HALF_UP).doubleValue()
                 : 0.0;
-        return new FinancialWindow(round1(occupancyRate), revenue.setScale(2, RoundingMode.HALF_UP).doubleValue(), adr, revPan);
+        return new FinancialWindow(round1(occupancyRate),
+                revenue.setScale(2, RoundingMode.HALF_UP).doubleValue(), adr, revPan, bookings);
     }
 
     private InterventionsStatDto aggregateInterventions(List<Intervention> interventions,
@@ -246,5 +268,6 @@ public class DashboardOverviewSummaryService {
         return Math.round(v * 10.0) / 10.0;
     }
 
-    private record FinancialWindow(double occupancyRate, double revenue, double adr, double revPan) {}
+    private record FinancialWindow(double occupancyRate, double revenue, double adr, double revPan,
+                                   long bookings) {}
 }

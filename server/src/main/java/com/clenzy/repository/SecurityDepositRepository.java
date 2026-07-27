@@ -22,6 +22,11 @@ public interface SecurityDepositRepository extends JpaRepository<SecurityDeposit
      * Cautions encore bloquées (HELD) dont le séjour s'est terminé avant {@code cutoff}
      * — candidates à la libération automatique (scheduler). Jointure logique sur reservationId.
      */
+    /** Cautions encore retenues pour un lot de réservations (départs du jour). */
+    @Query("SELECT d FROM SecurityDeposit d WHERE d.reservationId IN :reservationIds "
+        + "AND d.status = com.clenzy.model.SecurityDepositStatus.HELD")
+    List<SecurityDeposit> findHeldByReservationIds(@Param("reservationIds") java.util.Collection<Long> reservationIds);
+
     @Query("SELECT d FROM SecurityDeposit d WHERE d.status = com.clenzy.model.SecurityDepositStatus.HELD "
         + "AND EXISTS (SELECT 1 FROM Reservation r WHERE r.id = d.reservationId AND r.checkOut < :cutoff)")
     List<SecurityDeposit> findHeldWithCheckoutBefore(@Param("cutoff") LocalDate cutoff);

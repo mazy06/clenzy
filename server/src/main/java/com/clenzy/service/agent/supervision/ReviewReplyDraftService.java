@@ -13,6 +13,7 @@ import com.clenzy.service.agent.AgentTier;
 import com.clenzy.service.agent.TierModelResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,52 +47,90 @@ public class ReviewReplyDraftService {
     private final AiTargetResolver targetResolver;
     private final TierModelResolver tierModelResolver;
     private final Clock clock;
+    /** Proxy de soi-meme : indispensable pour que les etapes transactionnelles le soient vraiment. */
+    private final ObjectProvider<ReviewReplyDraftService> self;
 
     public ReviewReplyDraftService(GuestReviewRepository reviewRepository,
                                    ChatLLMProvider chatProvider,
                                    AiTargetResolver targetResolver,
                                    TierModelResolver tierModelResolver,
-                                   Clock clock) {
+                                   Clock clock,
+                                   ObjectProvider<ReviewReplyDraftService> self) {
         this.reviewRepository = reviewRepository;
         this.chatProvider = chatProvider;
         this.targetResolver = targetResolver;
         this.tierModelResolver = tierModelResolver;
         this.clock = clock;
+        this.self = self;
+    }
+
+    /** Ce dont le prompt a besoin, extrait sous transaction courte. */
+    private record ReviewSnapshot(Integer rating, String guestName, String reviewText) {}
+
+    /**
+     * Génère et enregistre un brouillon de réponse pour l'avis. Ne publie rien :
+     * écrit seulement {@code host_response_draft}.
+     *
+     * <p><b>Pas de {@code @Transactional} ici, volontairement.</b> L'appel LLM dure
+     * plusieurs secondes ; l'englober dans une transaction immobiliserait une
+     * connexion Hikari pendant tout ce temps — c'est l'interdit n°2 du CLAUDE.md
+     * (jamais d'appel externe DANS une transaction). Le travail est donc découpé :
+     * lecture courte, appel hors transaction, écriture courte. L'ownership org est
+     * revalidé <b>dans chacune</b> des deux transactions, l'état ayant pu changer
+     * entre-temps (règle d'audit n°3).</p>
+     */
+    public void generateDraft(Long orgId, Long reviewId) {
+        final ReviewSnapshot snapshot = self.getObject().loadSnapshot(orgId, reviewId);
+        final String draft = callLlm(orgId, snapshot);
+        if (draft == null || draft.isBlank()) {
+            throw new IllegalStateException("Brouillon de réponse non généré (LLM indisponible)");
+        }
+        self.getObject().persistDraft(orgId, reviewId, draft.strip());
+        log.info("REVIEW_DRAFT_REPLY brouillon généré org={} review={}", orgId, reviewId);
     }
 
     /**
-     * Génère et enregistre un brouillon de réponse pour l'avis. EFFET EXTERNE (appel LLM) :
-     * exécuté HORS transaction d'apply. L'état de l'avis est relu, l'ownership org re-validé
-     * (règle audit n°3). Ne publie rien : écrit seulement {@code host_response_draft}.
+     * Étape 1 — lecture. Public et appelé via {@code self} : une invocation
+     * directe ne passerait pas par le proxy Spring et perdrait la transaction
+     * (CLAUDE.md, piège d'auto-invocation).
      */
+    @Transactional(readOnly = true)
+    public ReviewSnapshot loadSnapshot(Long orgId, Long reviewId) {
+        final GuestReview review = requireInOrg(orgId, reviewId);
+        // On ne laisse PAS l'entité sortir de la transaction : un record de
+        // valeurs, donc aucun accès paresseux hors session.
+        return new ReviewSnapshot(review.getRating(), review.getGuestName(), review.getReviewText());
+    }
+
+    /** Étape 3 — écriture, après l'appel externe. */
     @Transactional
-    public void generateDraft(Long orgId, Long reviewId) {
+    public void persistDraft(Long orgId, Long reviewId, String draft) {
+        final GuestReview review = requireInOrg(orgId, reviewId);
+        review.setHostResponseDraft(draft);
+        review.setHostResponseDraftAt(clock.instant());
+        reviewRepository.save(review);
+    }
+
+    private GuestReview requireInOrg(Long orgId, Long reviewId) {
         final GuestReview review = reviewRepository.findById(reviewId).orElseThrow(
                 () -> new IllegalStateException("Avis introuvable : " + reviewId));
         if (!orgId.equals(review.getOrganizationId())) {
             throw new IllegalStateException("Avis " + reviewId + " hors organisation " + orgId);
         }
-        final String draft = callLlm(orgId, review);
-        if (draft == null || draft.isBlank()) {
-            throw new IllegalStateException("Brouillon de réponse non généré (LLM indisponible)");
-        }
-        review.setHostResponseDraft(draft.strip());
-        review.setHostResponseDraftAt(clock.instant());
-        reviewRepository.save(review);
-        log.info("REVIEW_DRAFT_REPLY brouillon généré org={} review={}", orgId, reviewId);
+        return review;
     }
 
-    private String callLlm(Long orgId, GuestReview review) {
+    private String callLlm(Long orgId, ReviewSnapshot review) {
         final ResolvedTarget target = targetResolver.resolvePrimary(orgId, AiFeature.ASSISTANT_CHAT, null);
         final String model = tierModelResolver != null
                 ? tierModelResolver.resolveModel(AgentTier.SMALL, target.provider(), target.model())
                 : target.model();
         final String userPrompt = "Avis ("
-                + (review.getRating() != null ? review.getRating() + "/5" : "note inconnue") + ") de "
-                + (review.getGuestName() != null && !review.getGuestName().isBlank()
-                        ? review.getGuestName() : "un voyageur") + " :\n"
-                + (review.getReviewText() != null && !review.getReviewText().isBlank()
-                        ? review.getReviewText() : "(pas de texte)");
+                + (review.rating() != null ? review.rating() + "/5" : "note inconnue") + ") de "
+                + (review.guestName() != null && !review.guestName().isBlank()
+                        ? review.guestName() : "un voyageur") + " :\n"
+                + (review.reviewText() != null && !review.reviewText().isBlank()
+                        ? review.reviewText() : "(pas de texte)");
         final ChatRequest request = new ChatRequest(
                 SYSTEM_PROMPT, List.of(ChatMessage.user(userPrompt)), List.of(),
                 model, 0.5, MAX_TOKENS, null, target.provider(), target.baseUrl());

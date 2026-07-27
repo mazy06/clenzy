@@ -23,6 +23,19 @@ public interface ICalFeedRepository extends JpaRepository<ICalFeed, Long> {
      * Appele par le scheduler AVANT tout contexte tenant : le filtre org sur User ne
      * s'applique pas, le LEFT JOIN FETCH est sur.
      */
+    /**
+     * Flux actifs en échec, jamais synchronisés, ou muets depuis {@code staleBefore}.
+     *
+     * <p>Alimente le bloc « à traiter » du dashboard : un calendrier qui ne se
+     * synchronise plus est la première cause de double-réservation.</p>
+     */
+    @Query("SELECT f FROM ICalFeed f JOIN FETCH f.property WHERE f.organizationId = :orgId "
+        + "AND f.syncEnabled = true "
+        + "AND (f.lastSyncAt IS NULL OR f.lastSyncAt < :staleBefore OR f.lastSyncStatus = 'ERROR') "
+        + "ORDER BY f.lastSyncAt ASC NULLS FIRST")
+    List<ICalFeed> findStaleOrFailing(@Param("orgId") Long orgId,
+                                      @Param("staleBefore") java.time.LocalDateTime staleBefore);
+
     @Query("SELECT f FROM ICalFeed f JOIN FETCH f.property p LEFT JOIN FETCH p.owner WHERE f.syncEnabled = true")
     List<ICalFeed> findBySyncEnabledTrue();
 

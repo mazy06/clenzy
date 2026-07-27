@@ -148,7 +148,10 @@ class ChannexBookingServiceTest {
         assertThat(saved.getCheckIn()).isEqualTo(LocalDate.of(2026, 6, 1));
         assertThat(saved.getCheckOut()).isEqualTo(LocalDate.of(2026, 6, 5));
         assertThat(saved.getStatus()).isEqualTo("confirmed");
-        assertThat(saved.getSource()).isEqualTo("channex");
+        // Le canal qui a VENDU, pas le tuyau par lequel la reservation est
+        // arrivee : tout ranger sous « channex » laissait le chiffre d'affaires
+        // Airbnb invisible dans « Revenus par canal ».
+        assertThat(saved.getSource()).isEqualTo("airbnb");
         assertThat(saved.getSourceName()).isEqualTo("Airbnb");
         assertThat(saved.getExternalUid()).isEqualTo("channex:book-1");
         assertThat(saved.getCurrency()).isEqualTo("EUR");

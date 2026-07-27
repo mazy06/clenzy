@@ -14,11 +14,25 @@ export interface KpiTrend {
   growth: number;
 }
 
+/** Note moyenne et volume d'avis publics **sur la période**. */
+export interface GuestRating {
+  /** Moyenne sur 5 ; 0 si aucun avis sur la fenêtre. */
+  average: number;
+  count: number;
+}
+
 export interface DashboardOverviewSummary {
   occupancyRate: KpiTrend;
   totalRevenue: KpiTrend;
   adr: KpiTrend;
+  /**
+   * Revenu par nuit disponible. ⚠️ C'est un **RevPAN**, pas un RevPAR : le
+   * dénominateur est le nombre de nuits-logements disponibles.
+   */
   revPan: KpiTrend;
+  /** Réservations **commençant** dans la fenêtre (un séjour à cheval n'est compté qu'une fois). */
+  bookings: KpiTrend;
+  guestRating: GuestRating;
   properties: { active: number; total: number; growth: number };
   serviceRequests: { pending: number; total: number };
   interventions: {

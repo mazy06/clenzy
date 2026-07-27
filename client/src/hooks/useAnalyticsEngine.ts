@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { isMockEnabled } from '../services/storageService';
 import { reservationsApi } from '../services/api/reservationsApi';
 import { propertiesApi } from '../services/api/propertiesApi';
 import { serviceRequestsApi } from '../services/api/serviceRequestsApi';
@@ -64,11 +63,10 @@ interface UseAnalyticsEngineParams {
 // compat de signature ; les coûts viennent désormais du serveur (portfolio + performance-summaries).
 export function useAnalyticsEngine({ period, interventions: _interventions, enabled = true }: UseAnalyticsEngineParams) {
   const days = periodToDays(period);
-  const isMock = isMockEnabled('analytics');
 
   // Slices rapatriées côté serveur (formules corrigées, coûts d'intervention réels).
   const portfolioQuery = useQuery({
-    queryKey: ['analytics-portfolio', period, isMock],
+    queryKey: ['analytics-portfolio', period],
     queryFn: () => portfolioAnalyticsApi.get(period),
     staleTime: 60_000,
     enabled,
@@ -76,7 +74,7 @@ export function useAnalyticsEngine({ period, interventions: _interventions, enab
 
   // Performance par logement (serveur) — remplace computePropertyPerformance.
   const performanceQuery = useQuery({
-    queryKey: ['analytics-performance', days, isMock],
+    queryKey: ['analytics-performance', days],
     queryFn: () => propertiesApi.getPerformanceSummaries(days),
     staleTime: 60_000,
     enabled,
@@ -85,13 +83,13 @@ export function useAnalyticsEngine({ period, interventions: _interventions, enab
   // Données brutes encore nécessaires aux slices restées client (pricing, forecast,
   // clients — heuristiques ou dérivées, sans gain de correctness à porter serveur).
   const reservationsQuery = useQuery({
-    queryKey: ['analytics-reservations', isMock],
+    queryKey: ['analytics-reservations'],
     queryFn: () => reservationsApi.getAll(),
     staleTime: 60_000,
     enabled,
   });
   const propertiesQuery = useQuery({
-    queryKey: ['analytics-properties', isMock],
+    queryKey: ['analytics-properties'],
     queryFn: () => propertiesApi.getAll({ size: 1000 }).then((res) => {
       if (Array.isArray(res)) return res;
       if (res && typeof res === 'object' && 'content' in (res as Record<string, unknown>)) {

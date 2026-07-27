@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { noiseDevicesApi } from '../../services/api/noiseApi';
-import type { NoiseMonitoringData, PropertyNoiseData } from '../../hooks/useNoiseMonitoring';
+import type { NoiseMonitoringData, PropertyNoiseData } from '../../hooks/noiseMonitoring';
 import type { ConnectedDevice } from './types';
 
 /**

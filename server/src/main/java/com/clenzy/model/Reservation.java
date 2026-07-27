@@ -189,6 +189,18 @@ public class Reservation {
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
 
+    /**
+     * Qui a encaisse ce sejour. Voir {@link PaymentCollection}.
+     *
+     * <p>Renseigne a la persistance par {@link #derivePaymentCollection()} si le
+     * producteur ne l'a pas pose explicitement. Ce sont les lecteurs — panneau
+     * financier, pastille du planning, facturation — qui consomment ce champ, au
+     * lieu de redeviner le regime depuis le nom du canal chacun de leur cote.</p>
+     */
+    @Column(name = "payment_collection", length = 20, nullable = false)
+    @Enumerated(EnumType.STRING)
+    private PaymentCollection paymentCollection;
+
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
@@ -222,6 +234,28 @@ public class Reservation {
     private List<ReservationServiceItem> serviceItems = new ArrayList<>();
 
     // Constructeurs
+    /**
+     * Derive le regime d'encaissement du nom du canal, UNE seule fois, au moment
+     * ou la reservation est ecrite.
+     *
+     * <p>C'est le point de bascule de tout le decouplage : la deduction depuis la
+     * chaine `source` existe toujours, mais elle ne se produit plus qu'ici, a la
+     * persistance, et son resultat est fige sur la ligne. Les lecteurs n'en
+     * refont plus chacun leur version — c'est cette duplication qui avait laisse
+     * Channex compte « reste a payer ».</p>
+     *
+     * <p>Un producteur qui connait mieux le regime que le nom du canal peut le
+     * poser explicitement : la valeur deja presente n'est jamais ecrasee.</p>
+     */
+    @PrePersist
+    void derivePaymentCollection() {
+        if (paymentCollection == null) {
+            paymentCollection = OtaPaidSources.contains(source)
+                ? PaymentCollection.CHANNEL
+                : PaymentCollection.PMS;
+        }
+    }
+
     public Reservation() {}
 
     public Reservation(Property property, String guestName, LocalDate checkIn, LocalDate checkOut,
@@ -397,6 +431,22 @@ public class Reservation {
 
     public PaymentStatus getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public PaymentCollection getPaymentCollection() { return paymentCollection; }
+    public void setPaymentCollection(PaymentCollection paymentCollection) { this.paymentCollection = paymentCollection; }
+
+    /**
+     * Le canal a-t-il deja encaisse ce sejour ?
+     *
+     * <p>Simple LECTURE du regime persiste. Le repli sur {@code OtaPaidSources}
+     * qui couvrait la periode de migration a ete retire avec le changeset 0368,
+     * qui rend la colonne NOT NULL : l'invariant est tenu par la base, plus par
+     * une deduction en Java. Une entite jamais persistee (donc sans @PrePersist)
+     * repond {@code false} — elle n'a de toute facon pas encore de regime.</p>
+     */
+    public boolean isCollectedByChannel() {
+        return paymentCollection == PaymentCollection.CHANNEL;
+    }
 
     public LocalDateTime getPaidAt() { return paidAt; }
     public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }

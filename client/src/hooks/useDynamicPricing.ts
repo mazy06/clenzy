@@ -64,7 +64,7 @@ export function useDynamicPricing() {
   }, []);
 
   // ── Properties query ──
-  // propertiesApi.getAll() returns Page<Property> (real) or Property[] (mock)
+  // propertiesApi.getAll() peut renvoyer Page<Property> ou Property[] selon la route
   const propertiesQuery = useQuery<Property[]>({
     queryKey: dynamicPricingKeys.properties(),
     queryFn: async () => {

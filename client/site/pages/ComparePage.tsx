@@ -35,7 +35,7 @@ export default function ComparePage() {
     <>
       <section className="relative overflow-hidden border-b border-border">
         <div className="hero-grid absolute inset-x-0 top-0 h-64 -z-10" aria-hidden />
-        <div className="mx-auto max-w-6xl px-4 pt-16 pb-12">
+        <div className="site-shell pt-16 pb-12">
           <Reveal>
             <Badge variant="outline">Comparer</Badge>
           </Reveal>
@@ -53,7 +53,7 @@ export default function ComparePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-16">
+      <section className="site-shell py-16">
         <Reveal>
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full border-collapse bg-card text-sm">
@@ -93,7 +93,7 @@ export default function ComparePage() {
       </section>
 
       <section className="border-y border-border bg-card">
-        <div className="mx-auto max-w-6xl px-4 py-14">
+        <div className="site-shell py-14">
           <Reveal>
             <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
               Les comparatifs détaillés

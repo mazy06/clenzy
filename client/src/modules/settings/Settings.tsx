@@ -20,11 +20,9 @@ import {
   Palette,
   Storage,
   TuneOutlined,
-  BugReport,
   LightMode,
   DarkMode,
   SettingsBrightness,
-  VolumeUp,
   BarChart,
   GroupAdd,
   ChatBubbleOutline,
@@ -40,10 +38,9 @@ import {
 import { guestMessagingApi } from '../../services/api/guestMessagingApi';
 import type { MessagingAutomationConfig } from '../../services/api/guestMessagingApi';
 import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
-import { useNoiseMonitoring } from '../../hooks/useNoiseMonitoring';
 import { useAuth } from '../../hooks/useAuth';
 import { useThemeMode } from '../../hooks/useThemeMode';
-import storageService, { STORAGE_KEYS, isMockEnabled } from '../../services/storageService';
+import storageService, { STORAGE_KEYS } from '../../services/storageService';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useQueryClient } from '@tanstack/react-query';
@@ -346,18 +343,6 @@ export default function Settings() {
       }
     }).catch(() => { /* ignore */ });
   }, [user?.organizationId]);
-
-  const [planningMock, setPlanningMock] = useState(
-    () => isMockEnabled('planning')
-  );
-
-  // Noise monitoring (Minut) mock
-  const { enabled: noiseMonitoringEnabled, setEnabled: setNoiseMonitoringEnabled } = useNoiseMonitoring();
-
-  // Analytics mock
-  const [analyticsMock, setAnalyticsMock] = useState(
-    () => isMockEnabled('analytics')
-  );
 
   // Auto-push pricing global toggle
   const [autoPushPricingEnabled, setAutoPushPricingEnabled] = useState(false);
@@ -993,56 +978,6 @@ export default function Settings() {
             </SettingsSection>
           </Grid>
 
-          {/* Développement (admin only) */}
-          {(user.roles.includes('SUPER_ADMIN')) && (
-            <Grid item xs={12} md={6}>
-              <SettingsSection
-                title="Développement"
-                icon={BugReport}
-                accent="danger"
-                description="Données fictives et outils de démo (admin uniquement)"
-              >
-                <SettingsToggleRow
-                  icon={BugReport}
-                  iconColor="var(--err)"
-                  title="Données de démonstration (Planning)"
-                  description="Afficher des réservations et interventions fictives dans le planning"
-                  checked={planningMock}
-                  onChange={(enabled) => {
-                    setPlanningMock(enabled);
-                    reservationsApi.setMockMode(enabled);
-                    queryClient.invalidateQueries({ queryKey: planningKeys.all });
-                  }}
-                />
-                <SettingsToggleRow
-                  icon={VolumeUp}
-                  iconColor="var(--info)"
-                  title="Monitoring sonore Minut (démo)"
-                  description="Simuler les données de capteurs de bruit dans le dashboard Analytics"
-                  checked={noiseMonitoringEnabled}
-                  onChange={setNoiseMonitoringEnabled}
-                />
-                <SettingsToggleRow
-                  icon={BarChart}
-                  iconColor="var(--ok)"
-                  title="Données de démonstration (Analytics)"
-                  description="Afficher des KPIs, graphiques et recommandations avec des données fictives"
-                  checked={analyticsMock}
-                  onChange={(enabled) => {
-                    setAnalyticsMock(enabled);
-                    reservationsApi.setAnalyticsMockMode(enabled);
-                    propertiesApi.setMockMode(enabled);
-                    queryClient.invalidateQueries({ queryKey: ['analytics-reservations'] });
-                    queryClient.invalidateQueries({ queryKey: ['analytics-properties'] });
-                    queryClient.invalidateQueries({ queryKey: ['analytics-interventions'] });
-                    queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] });
-                    queryClient.invalidateQueries({ queryKey: planningKeys.all });
-                  }}
-                  divider={false}
-                />
-              </SettingsSection>
-            </Grid>
-          )}
         </Grid>
       </TabPanel>
 

@@ -7,6 +7,7 @@ import com.clenzy.model.PropertyStatus;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
+import com.clenzy.repository.GuestReviewRepository;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
@@ -51,6 +52,7 @@ class DashboardOverviewSummaryServiceTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private InterventionRepository interventionRepository;
     @Mock private ServiceRequestRepository serviceRequestRepository;
+    @Mock private GuestReviewRepository guestReviewRepository;
     @Mock private UserRepository userRepository;
 
     private DashboardOverviewSummaryService service;
@@ -62,7 +64,7 @@ class DashboardOverviewSummaryServiceTest {
                 ZoneId.of("Europe/Paris"));
         service = new DashboardOverviewSummaryService(
                 propertyRepository, reservationRepository, interventionRepository,
-                serviceRequestRepository, userRepository, fixed);
+                serviceRequestRepository, guestReviewRepository, userRepository, fixed);
     }
 
     private void stubActiveProperties(long active) {

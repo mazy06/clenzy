@@ -6,7 +6,14 @@ import type { ReservationStatus } from '../../services/api';
 // Clés des chips togglables des rangées 2-3 du toolbar. Tout est sélectionné
 // par défaut ; un clic masque les briques du canal / statut correspondant.
 // Les sources hors légende (ex: 'other') ne sont jamais masquées.
-export const PLANNING_CHANNEL_KEYS = ['airbnb', 'booking', 'direct'] as const;
+// La longue traîne (Agoda → Gathern) y figure sans allonger la barre : la
+// légende ne rend que les canaux effectivement présents dans les données
+// (`presentChannels`), une organisation qui ne vend pas sur Mabeet ne verra
+// jamais ce chip.
+export const PLANNING_CHANNEL_KEYS =
+  ['airbnb', 'booking', 'vrbo', 'expedia',
+   'agoda', 'hotels_com', 'hometogo', 'mabeet', 'rentelly', 'gathern',
+   'direct'] as const;
 export type PlanningChannelKey = (typeof PLANNING_CHANNEL_KEYS)[number];
 
 export const PLANNING_STATUS_KEYS: readonly ReservationStatus[] = [

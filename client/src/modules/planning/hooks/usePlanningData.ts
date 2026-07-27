@@ -3,7 +3,7 @@ import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../hooks/useAuth';
 import { propertiesApi } from '../../../services/api/propertiesApi';
 import { managersApi } from '../../../services/api/portfoliosApi';
-import { reservationsApi } from '../../../services/api/reservationsApi';
+import { reservationsApi, isCollectedByChannel } from '../../../services/api/reservationsApi';
 import { serviceRequestsApi } from '../../../services/api/serviceRequestsApi';
 import { calendarPricingApi } from '../../../services/api/calendarPricingApi';
 import type { CalendarBlockedDay } from '../../../services/api/calendarPricingApi';
@@ -69,23 +69,6 @@ async function fetchProperties(
   isOperational: boolean,
 ): Promise<PlanningProperty[]> {
   if (!user) return [];
-
-  // Mock mode: return mock properties regardless of role
-  if (reservationsApi.isMockMode()) {
-    return reservationsApi.getMockProperties().map((p) => ({
-      id: p.id,
-      name: p.name,
-      address: p.address,
-      city: p.city,
-      ownerName: p.ownerName || '',
-      maxGuests: p.maxGuests,
-      type: p.type,
-      nightlyPrice: 0,
-      minimumNights: 1,
-      defaultCheckInTime: '15:00',
-      defaultCheckOutTime: '11:00',
-    }));
-  }
 
   let propertyList: Property[] = [];
 
@@ -190,7 +173,7 @@ function reservationToEvent(
   // Réservations OTA (Airbnb, Booking, autres canaux iCal) : déjà réglées sur le canal externe,
   // le PMS n'encaisse rien (cf. PanelFinancial isOTABooking → reste à payer 0). Pas de pastille
   // de paiement, sinon incohérence avec le panneau qui affiche « Payé OTA ».
-  const isOtaPaid = r.source === 'airbnb' || r.source === 'booking' || r.source === 'other';
+  const isOtaPaid = isCollectedByChannel(r);
   const hasUnpaidAmount = (r.totalPrice ?? 0) > 0;
   const needsBadge = !isTerminal && !isPaid && !isOtaPaid && hasUnpaidAmount;
   const badgeStatus: 'PENDING' | 'PROCESSING' | 'FAILED' | undefined = needsBadge

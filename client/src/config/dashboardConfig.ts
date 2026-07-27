@@ -20,12 +20,10 @@ export const DASHBOARD_TABS: DashboardTabConfig[] = [
   // Les services « objets connectés » (bruit, serrures, clés) ont migré vers le
   // Hub /connected-objects (écran unique groupé par logement). Les vues riches
   // restent accessibles via /connected-objects/{noise,locks,keys}.
-  {
-    key: 'simulator',
-    labelKey: 'dashboard.tabs.simulator',
-    iconName: 'Analytics',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
-  },
+  //
+  // L'onglet « Simulateur » a été retiré : le Dashboard suit désormais la
+  // disposition unique de la projection. Les vues analytiques restent servies
+  // par le module Rapports, qui consomme les mêmes composants `analytics/*`.
 ];
 
 /** Filter tabs visible for a given role */

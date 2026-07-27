@@ -1,18 +1,32 @@
 import { useState } from 'react';
 import {
   BellIcon,
+  BrushCleaningIcon,
   CalendarCheckIcon,
   EuroIcon,
   HomeIcon,
+  InboxIcon,
   LinkIcon,
   PercentIcon,
   PlusIcon,
+  RocketIcon,
   SearchXIcon,
   SettingsIcon,
   SparklesIcon,
+  TrendingUpIcon,
   WrenchIcon,
 } from 'lucide-react';
-import { Button } from '../../../components/ui';
+import {
+  Badge,
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Skeleton,
+} from '../../../components/ui';
 import { useUserPreference } from '../../../hooks/useUserPreference';
 import PageHeader from '../../../components/baitly/PageHeader';
 import StatTile from '../../../components/baitly/StatTile';
@@ -34,6 +48,18 @@ import LoadingStates from '../../../components/baitly/LoadingStates';
 import PageTabs from '../../../components/baitly/PageTabs';
 import DateRangePicker from '../../../components/baitly/DateRangePicker';
 import ThemedTooltip from '../../../components/baitly/ThemedTooltip';
+import CornerRibbon from '../../../components/baitly/CornerRibbon';
+import SettingSentence from '../../../components/baitly/SettingSentence';
+import OptionalSection from '../../../components/baitly/OptionalSection';
+import ChannelBadges from '../../../components/baitly/ChannelBadges';
+import OnboardingChecklist from '../../../components/baitly/OnboardingChecklist';
+import OnboardingDock from '../../../components/baitly/OnboardingDock';
+import ShowcaseEmpty from '../../../components/baitly/ShowcaseEmpty';
+import airbnbLogo from '../../../assets/logo/airbnb-logo-small.svg';
+import bookingLogo from '../../../assets/logo/booking-logo-small.svg';
+import vrboLogo from '../../../assets/logo/vrbo-logo-small.svg';
+import abritelLogo from '../../../assets/logo/abritel-logo-small.svg';
+import agodaLogo from '../../../assets/logo/agoda-logo-small.svg';
 
 /**
  * Démos des primitives maison remasterisées (components/baitly/) — l'onglet
@@ -438,5 +464,365 @@ export function BConfirmationModalDemo() {
         loading={loading}
       />
     </>
+  );
+}
+
+// ─── Vague « teardown » — primitives issues de l'audit concurrentiel ─────────
+// Voir analyse-concurrentielle/46-teardown-guesty-produit.md §2.
+
+export function BCornerRibbonDemo() {
+  return (
+    <div className="grid max-w-3xl gap-4 sm:grid-cols-3">
+      {(
+        [
+          { tone: 'promo', label: '-50 %', title: 'Offre annuelle', body: 'Engagement 12 mois, deux mois offerts.' },
+          { tone: 'exclusive', label: 'Exclusif', title: 'Partenaire Baitly', body: 'Tarif négocié pour les comptes Baitly.' },
+          { tone: 'new', label: 'Nouveau', title: 'Serrures connectées', body: 'Codes d’accès générés à la réservation.' },
+        ] as const
+      ).map((item) => (
+        <div
+          key={item.tone}
+          className="relative overflow-hidden rounded-xl border border-border bg-card p-4 pt-10"
+        >
+          <CornerRibbon label={item.label} tone={item.tone} />
+          <div className="text-sm font-semibold text-foreground">{item.title}</div>
+          <p className="m-0 mt-1 text-xs text-muted-foreground">{item.body}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function BSettingSentenceDemo() {
+  const [status, setStatus] = useState('inconnu');
+  const [days, setDays] = useState('5');
+  const [threshold, setThreshold] = useState('80');
+  return (
+    <div className="flex max-w-2xl flex-col gap-6">
+      <SettingSentence
+        label="Statut de ménage"
+        description="Appliqué à tous les logements de l’organisation."
+      >
+        Marquer le logement
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="inconnu">inconnu</SelectItem>
+            <SelectItem value="à nettoyer">à nettoyer</SelectItem>
+          </SelectContent>
+        </Select>
+        après
+        <Input
+          type="number"
+          value={days}
+          onChange={(e) => setDays(e.target.value)}
+          className="w-16 text-center tabular-nums"
+        />
+        jours sans séjour.
+      </SettingSentence>
+
+      <SettingSentence label="Alerte de tarification">
+        Me prévenir quand l’occupation des 30 prochains jours passe sous
+        <Input
+          type="number"
+          value={threshold}
+          onChange={(e) => setThreshold(e.target.value)}
+          className="w-16 text-center tabular-nums"
+        />
+        %.
+      </SettingSentence>
+
+      <SettingSentence label="Règle désactivée" disabled>
+        Bloquer les arrivées le
+        <Select value="dimanche">
+          <SelectTrigger className="w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="dimanche">dimanche</SelectItem>
+          </SelectContent>
+        </Select>
+        en haute saison.
+      </SettingSentence>
+    </div>
+  );
+}
+
+export function BOptionalSectionDemo() {
+  return (
+    <div className="flex max-w-2xl flex-col gap-4">
+      <OptionalSection
+        title="Planification de l’envoi"
+        description="Restreindre l’envoi à certains jours de la semaine."
+        addLabel="Définir un calendrier"
+      >
+        <div className="flex flex-wrap gap-2">
+          {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day) => (
+            <Badge key={day} variant="outline">
+              {day}
+            </Badge>
+          ))}
+        </div>
+      </OptionalSection>
+
+      <OptionalSection
+        title="Conditions"
+        description="N’envoyer que si la réservation correspond aux critères."
+        addLabel="Ajouter une condition"
+        help={
+          <a href="#" onClick={(e) => e.preventDefault()} className="text-primary underline underline-offset-4">
+            Comment ça marche ?
+          </a>
+        }
+        defaultOpen
+      >
+        <div className="rounded-lg border border-border bg-card p-3 text-sm text-muted-foreground">
+          Canal = <span className="font-medium text-foreground">Direct</span> · Durée ≥{' '}
+          <span className="font-medium text-foreground">3 nuits</span>
+        </div>
+      </OptionalSection>
+    </div>
+  );
+}
+
+const DEMO_CHANNELS = [
+  { key: 'airbnb', label: 'Airbnb', logo: airbnbLogo, connected: true, hint: 'synchronisé il y a 4 min' },
+  { key: 'booking', label: 'Booking.com', logo: bookingLogo, connected: true },
+  { key: 'vrbo', label: 'Vrbo', logo: vrboLogo },
+  { key: 'abritel', label: 'Abritel', logo: abritelLogo },
+  { key: 'agoda', label: 'Agoda', logo: agodaLogo },
+];
+
+export function BChannelBadgesDemo() {
+  return (
+    <div className="flex max-w-3xl flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-medium text-muted-foreground">Taille md · dans le flux</span>
+        <ChannelBadges channels={DEMO_CHANNELS} />
+      </div>
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-medium text-muted-foreground">Taille sm · repliée au-delà de 3</span>
+        <ChannelBadges channels={DEMO_CHANNELS} size="sm" max={3} />
+      </div>
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-medium text-muted-foreground">Superposée sur un média</span>
+        <div className="relative w-full max-w-sm overflow-hidden rounded-xl">
+          <div className="aspect-[16/9] w-full bg-gradient-to-br from-primary-soft to-muted" />
+          <div className="absolute top-3 end-3">
+            <ChannelBadges channels={DEMO_CHANNELS} size="sm" max={4} overlay />
+          </div>
+          <span className="absolute bottom-3 start-3 rounded-full bg-foreground/75 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-background uppercase">
+            Publié
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function BOnboardingChecklistDemo() {
+  return (
+    <OnboardingChecklist
+      className="max-w-5xl"
+      actions={
+        <>
+          <Button variant="outline" size="sm">
+            Voir le tutoriel
+          </Button>
+          <Button variant="outline" size="sm">
+            Centre d’aide
+          </Button>
+        </>
+      }
+      groups={[
+        {
+          key: 'channels',
+          title: 'Connecter vos canaux',
+          media: <LinkIcon />,
+          steps: [
+            { key: 'account', title: 'Créer votre compte Baitly', state: 'done' },
+            {
+              key: 'property',
+              title: 'Ajouter un premier logement',
+              description:
+                'Baitly a besoin d’au moins un logement pour ouvrir le planning et la tarification.',
+              duration: '≈ 3 min',
+              action: { label: 'Ajouter un logement' },
+              onSkip: () => {},
+            },
+            {
+              key: 'ical',
+              title: 'Importer un calendrier iCal',
+              description: 'Reprenez vos réservations existantes sans double saisie.',
+              duration: '≈ 2 min',
+              action: { label: 'Importer un iCal' },
+              onSkip: () => {},
+            },
+          ],
+        },
+        {
+          key: 'revenue',
+          title: 'Optimiser vos revenus',
+          media: <TrendingUpIcon />,
+          steps: [
+            {
+              key: 'pricing',
+              title: 'Définir vos tarifs de base',
+              description: 'Le moteur de prix part de ce tarif pour construire ses recommandations.',
+              duration: '≈ 5 min',
+              action: { label: 'Définir les tarifs' },
+            },
+            {
+              key: 'yield',
+              title: 'Activer les recommandations tarifaires',
+              badge: <Badge variant="secondary">Offre Pro</Badge>,
+              state: 'locked',
+              description: 'Disponible à partir de l’offre Pro.',
+              action: { label: 'Comparer les offres' },
+            },
+          ],
+        },
+        {
+          key: 'ops',
+          title: 'Automatiser l’exploitation',
+          media: <BrushCleaningIcon />,
+          steps: [
+            {
+              key: 'messages',
+              title: 'Automatiser vos messages voyageurs',
+              description: 'Confirmation, instructions d’arrivée, relance d’avis.',
+              duration: '≈ 4 min',
+              action: { label: 'Créer une automatisation' },
+              onSkip: () => {},
+            },
+            {
+              key: 'cleaning',
+              title: 'Planifier le ménage entre deux séjours',
+              duration: '≈ 3 min',
+              action: { label: 'Configurer le ménage' },
+              onSkip: () => {},
+            },
+          ],
+        },
+      ]}
+    />
+  );
+}
+
+export function BShowcaseEmptyDemo() {
+  return (
+    <ShowcaseEmpty
+      className="max-w-5xl"
+      eyebrow={{ icon: <InboxIcon />, label: 'Messagerie unifiée' }}
+      title="Répondez à vos voyageurs de tous les canaux depuis une seule boîte"
+      description="Connectez un canal de distribution pour commencer à recevoir les messages dans Baitly."
+      action={<Button>Connecter un canal</Button>}
+      fallback={
+        <>
+          Pas encore de canal connecté ?{' '}
+          <a href="#" onClick={(e) => e.preventDefault()}>
+            Créer une réservation directe
+          </a>
+        </>
+      }
+      preview={
+        <div className="flex flex-col gap-2">
+          {[
+            { name: 'Amina B.', logo: airbnbLogo, active: true },
+            { name: 'Lucas M.', logo: bookingLogo },
+            { name: 'Sofia R.', logo: vrboLogo },
+          ].map((row) => (
+            <div
+              key={row.name}
+              className={`flex items-center gap-3 rounded-lg border p-3 ${
+                row.active ? 'border-primary/40 bg-card' : 'border-transparent bg-card/60'
+              }`}
+            >
+              <img src={row.logo} alt="" className="size-5 shrink-0 object-contain" />
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <span className="text-xs font-medium text-foreground">{row.name}</span>
+                {/* Convention : le texte secondaire des aperçus reste en Skeleton
+                    — rien à traduire, aucune fausse donnée crédible à maintenir. */}
+                <Skeleton className="h-2 w-3/4" />
+              </div>
+            </div>
+          ))}
+        </div>
+      }
+    />
+  );
+}
+
+/** Fixture courte : la démo montre les ÉTATS du dock, pas le parcours réel
+ *  (celui-ci est dans l'onglet Projections › Onboarding › « Dock persistant »). */
+const DOCK_DEMO_GROUPS = [
+  {
+    key: 'account',
+    title: 'Ouvrir votre compte',
+    media: <RocketIcon />,
+    steps: [
+      { key: 'profile', title: 'Compléter votre profil', state: 'done' as const },
+      {
+        key: 'property',
+        title: 'Créer votre premier logement',
+        description: 'Baitly a besoin d’un logement pour ouvrir le planning et la tarification.',
+        duration: '≈ 5 min',
+        action: { label: 'Créer un logement' },
+        onSkip: () => {},
+      },
+    ],
+  },
+  {
+    key: 'revenue',
+    title: 'Vendre et encaisser',
+    media: <TrendingUpIcon />,
+    steps: [
+      {
+        key: 'pricing',
+        title: 'Définir votre tarification',
+        duration: '≈ 5 min',
+        action: { label: 'Définir les tarifs' },
+      },
+      {
+        key: 'booking_engine',
+        title: 'Publier votre site de réservation',
+        state: 'locked' as const,
+        badge: <Badge variant="secondary">Add-on</Badge>,
+        description: 'Disponible avec l’add-on Site de réservation.',
+        action: { label: 'Découvrir l’add-on' },
+      },
+    ],
+  },
+];
+
+const DOCK_DEMO_GROUPS_DONE = DOCK_DEMO_GROUPS.map((group) => ({
+  ...group,
+  steps: group.steps.map((step) => ({ ...step, state: 'done' as const })),
+}));
+
+export function BOnboardingDockDemo() {
+  return (
+    <div className="grid items-start gap-6 lg:grid-cols-3">
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-medium text-muted-foreground">Replié</span>
+        <OnboardingDock floating={false} groups={DOCK_DEMO_GROUPS} onDismiss={() => {}} />
+      </div>
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-medium text-muted-foreground">Déplié</span>
+        <OnboardingDock floating={false} groups={DOCK_DEMO_GROUPS} defaultOpen onDismiss={() => {}} />
+      </div>
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-medium text-muted-foreground">Terminé</span>
+        <OnboardingDock
+          floating={false}
+          groups={DOCK_DEMO_GROUPS_DONE}
+          defaultOpen
+          onDismiss={() => {}}
+          completion="Votre compte est opérationnel : logement publié, tarifs actifs et canal connecté."
+        />
+      </div>
+    </div>
   );
 }

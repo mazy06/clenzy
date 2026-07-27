@@ -16,7 +16,7 @@ import {
 import { Visibility, VisibilityOff } from '../../icons';
 import keycloak, { decodeJwt } from '../../keycloak';
 import apiClient, { ApiError } from '../../services/apiClient';
-import { clearMockFlags, setSessionCookie } from '../../services/storageService';
+import { setSessionCookie } from '../../services/storageService';
 import TurnstileCaptcha from '../../components/TurnstileCaptcha';
 import AuthLayout from './AuthLayout';
 
@@ -73,7 +73,6 @@ export default function Login() {
       keycloak.authenticated = true;
       keycloak.tokenParsed = decodeJwt(data.access_token);
 
-      clearMockFlags();
       setSessionCookie(data.access_token);
       window.dispatchEvent(new CustomEvent('keycloak-auth-success'));
     } catch (err) {

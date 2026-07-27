@@ -19,8 +19,10 @@ const EXPECTATIONS = [
 ];
 
 export default function DemoPage() {
+  // Le formulaire garde une largeur de saisie confortable même en très grand
+  // écran ; c'est la colonne de discours qui absorbe l'espace restant.
   return (
-    <section className="mx-auto grid max-w-6xl grid-cols-1 items-start gap-12 px-4 py-16 lg:grid-cols-2">
+    <section className="site-shell grid grid-cols-1 items-start gap-12 py-16 lg:grid-cols-[1fr_minmax(0,480px)]">
       <Reveal>
         <Badge variant="outline">Démo</Badge>
         <h1 className="mt-4 text-4xl leading-tight font-semibold tracking-tight">

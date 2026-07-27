@@ -7,7 +7,7 @@ export default function ResourcesPage() {
     <>
       <section className="relative overflow-hidden border-b border-border">
         <div className="hero-grid absolute inset-x-0 top-0 h-64 -z-10" aria-hidden />
-        <div className="mx-auto max-w-6xl px-4 pt-16 pb-12">
+        <div className="site-shell pt-16 pb-12">
           <Reveal>
             <Badge variant="outline">Ressources</Badge>
           </Reveal>
@@ -25,7 +25,7 @@ export default function ResourcesPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-16">
+      <section className="site-shell py-16">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {RESOURCES.map((resource, index) => (
             <Reveal key={resource.name} delay={((index % 3) + 1) as 1 | 2 | 3}>

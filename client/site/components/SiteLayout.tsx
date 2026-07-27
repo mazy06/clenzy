@@ -141,7 +141,7 @@ function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-5 px-4">
+      <div className="site-shell flex h-16 items-center gap-5">
         <Link to="/" className="flex items-center gap-2.5">
           <span className="text-primary">
             <BaitlyMarkLogo variant="mark" size={30} colorMode="inherit" />
@@ -176,7 +176,7 @@ function SiteHeader() {
       </div>
       {mobileOpen && (
         <nav className="border-t border-border bg-background lg:hidden">
-          <div className="mx-auto flex max-w-6xl flex-col px-4 py-2">
+          <div className="site-shell flex flex-col py-2">
             {MOBILE_LINKS.map((link) => (
               <NavLink
                 key={link.to}
@@ -234,7 +234,7 @@ const FOOTER_COLUMNS: Array<{ title: string; links: Array<{ label: string; to: s
 function SiteFooter() {
   return (
     <footer className="border-t border-border bg-card">
-      <div className="mx-auto max-w-6xl px-4 py-12">
+      <div className="site-shell py-12">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-[1.2fr_repeat(4,1fr)]">
           <div className="col-span-2 md:col-span-1">
             <Link to="/" className="flex items-center gap-2.5">
