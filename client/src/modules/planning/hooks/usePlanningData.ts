@@ -3,7 +3,7 @@ import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../hooks/useAuth';
 import { propertiesApi } from '../../../services/api/propertiesApi';
 import { managersApi } from '../../../services/api/portfoliosApi';
-import { reservationsApi } from '../../../services/api/reservationsApi';
+import { reservationsApi, isOtaPaidSource } from '../../../services/api/reservationsApi';
 import { serviceRequestsApi } from '../../../services/api/serviceRequestsApi';
 import { calendarPricingApi } from '../../../services/api/calendarPricingApi';
 import type { CalendarBlockedDay } from '../../../services/api/calendarPricingApi';
@@ -190,7 +190,7 @@ function reservationToEvent(
   // Réservations OTA (Airbnb, Booking, autres canaux iCal) : déjà réglées sur le canal externe,
   // le PMS n'encaisse rien (cf. PanelFinancial isOTABooking → reste à payer 0). Pas de pastille
   // de paiement, sinon incohérence avec le panneau qui affiche « Payé OTA ».
-  const isOtaPaid = r.source === 'airbnb' || r.source === 'booking' || r.source === 'other';
+  const isOtaPaid = isOtaPaidSource(r.source);
   const hasUnpaidAmount = (r.totalPrice ?? 0) > 0;
   const needsBadge = !isTerminal && !isPaid && !isOtaPaid && hasUnpaidAmount;
   const badgeStatus: 'PENDING' | 'PROCESSING' | 'FAILED' | undefined = needsBadge

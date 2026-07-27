@@ -269,7 +269,10 @@ export function computeClientMetrics(reservations: Reservation[]): ClientMetrics
   const bySource: ChannelRevenue[] = Object.entries(sourceMap).map(([name, value]) => ({
     name: name.charAt(0).toUpperCase() + name.slice(1),
     value,
-    color: CHANNEL_COLORS[name] || '#94A3B8',
+    // `toLowerCase()` : la table est en minuscules et rien ne garantit que la
+    // source l'est — `DirectBookingService` a longtemps ecrit « DIRECT », qui
+    // retombait alors sur le gris par defaut.
+    color: CHANNEL_COLORS[name.toLowerCase()] || '#94A3B8',
   }));
 
   const avgGuestCount = nonCancelled.length > 0

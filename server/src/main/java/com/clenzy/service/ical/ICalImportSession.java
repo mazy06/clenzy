@@ -2,6 +2,7 @@ package com.clenzy.service.ical;
 
 import com.clenzy.dto.ICalImportDto.ImportRequest;
 import com.clenzy.model.ICalFeed;
+import com.clenzy.model.OtaPaidSources;
 import com.clenzy.model.Property;
 
 import java.util.ArrayList;
@@ -79,7 +80,8 @@ public final class ICalImportSession {
         this.feed = feed;
         this.orgId = orgId;
         this.sourceKey = sourceKey;
-        this.otaPaidSource = "airbnb".equals(sourceKey)
-                || "booking".equals(sourceKey) || "other".equals(sourceKey);
+        // Liste unique (cf. OtaPaidSources) : recopiee ici auparavant, elle avait
+        // divergé de celle de la facturation.
+        this.otaPaidSource = OtaPaidSources.contains(sourceKey);
     }
 }

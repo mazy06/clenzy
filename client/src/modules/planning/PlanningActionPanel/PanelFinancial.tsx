@@ -51,7 +51,7 @@ import {
 } from '../../../icons';
 import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
-import { RESERVATION_SOURCE_LABELS } from '../../../services/api/reservationsApi';
+import { RESERVATION_SOURCE_LABELS, isOtaPaidSource } from '../../../services/api/reservationsApi';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { Money } from '../../../components/Money';
 import StatusChip, { STATUS_TONES, toneTokensSx, type ToneTokens } from '../../../components/StatusChip';
@@ -694,7 +694,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     setPaymentModalTarget(null);
   }, []);
 
-  const isICalImport = reservation && (reservation.source === 'airbnb' || reservation.source === 'booking' || reservation.source === 'other');
+  const isICalImport = !!reservation && isOtaPaidSource(reservation.source);
   const hasTotalPrice = totalPrice > 0;
 
   // ── OTA bookings : reservation deja payee sur le canal externe ────────

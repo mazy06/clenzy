@@ -3501,3 +3501,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0364__create_rls_audit_findings.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0365-normalize-direct-reservation-source"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0365__normalize_direct_reservation_source.sql
+        relativeToChangelogFile: true

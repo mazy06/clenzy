@@ -164,6 +164,27 @@ export const RESERVATION_SOURCE_LABELS: Record<ReservationSource, string> = {
   other: 'Autre',
 };
 
+/**
+ * Sources pour lesquelles le voyageur a déjà réglé SUR LE CANAL : le PMS
+ * n'encaisse rien, le séjour compte comme payé.
+ *
+ * **Référence unique.** Cette liste était recopiée dans `PanelFinancial`,
+ * `usePlanningData` et `GuestCardDialog`, et deux fois côté serveur. Quand
+ * Channex a été branché en écrivant `source = "channex"`, aucune des cinq copies
+ * n'a été mise à jour : tout séjour arrivé par Channex s'affichait avec un solde
+ * dû et un bouton « Envoyer lien de paiement », alors qu'il était réglé.
+ * Miroir de `OtaPaidSources` côté serveur — les deux doivent rester alignées.
+ *
+ * `other` y figure parce que le serveur y replie tout canal iCal non reconnu
+ * (Vrbo, Expedia, Abritel…), qui encaisse lui aussi pour le compte de l'hôte.
+ */
+const OTA_PAID_SOURCES = new Set(['airbnb', 'booking', 'other', 'channex']);
+
+/** Insensible à la casse : les producteurs n'ont pas tous été rigoureux. */
+export function isOtaPaidSource(source: string | null | undefined): boolean {
+  return source != null && OTA_PAID_SOURCES.has(source.toLowerCase());
+}
+
 export const INTERVENTION_TYPE_COLORS: Record<PlanningInterventionType, string> = {
   cleaning: '#5083C9',    // bleu cobalt — distinct du bleu ciel maintenance
   maintenance: '#7EBAD0', // bleu ciel clair — distinct de pending (#D4A574)

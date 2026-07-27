@@ -50,11 +50,18 @@ const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: 'success' | 
   PARTIALLY_PAID: { label: 'Partiel', color: 'warning' },
 };
 
+/**
+ * Clés en MINUSCULES : le serveur normalise `Reservation.source` ainsi
+ * (`ICalImportService.detectSource`). Avec des clés en majuscules, aucune
+ * entrée ne correspondait jamais et l'icône de repli s'appliquait à toutes les
+ * réservations — la table était morte.
+ */
 const SOURCE_ICONS: Record<string, IoniconsName> = {
-  AIRBNB: 'logo-no-smoking',
-  BOOKING: 'globe-outline',
-  DIRECT: 'person-outline',
-  ICAL: 'calendar-outline',
+  airbnb: 'logo-no-smoking',
+  booking: 'globe-outline',
+  channex: 'globe-outline',
+  direct: 'person-outline',
+  ical: 'calendar-outline',
 };
 
 /* --- Helpers --- */
@@ -214,7 +221,7 @@ function TabInfos({ reservation, theme, openPhone, openEmail }: {
   openEmail: (email: string) => void;
 }) {
   const nights = nightCount(reservation.checkIn, reservation.checkOut);
-  const sourceIcon = SOURCE_ICONS[reservation.source ?? ''] ?? 'globe-outline';
+  const sourceIcon = SOURCE_ICONS[(reservation.source ?? '').toLowerCase()] ?? 'globe-outline';
   const sourceName = reservation.sourceName || reservation.source || 'Direct';
 
   return (
