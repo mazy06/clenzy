@@ -2315,6 +2315,8 @@
     "source": {
       "airbnb": "Airbnb",
       "booking": "Booking.com",
+      "vrbo": "Vrbo",
+      "expedia": "Expedia",
       "direct": "مباشر",
       "other": "أخرى"
     },

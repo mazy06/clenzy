@@ -64,6 +64,10 @@
   /* ---- Canaux de distribution ---- */
   --airbnb:  #E0735A;  --airbnb-soft:  rgba(224,115,90,.12);  --airbnb-ink:  #A24A33;
   --booking: #4A6B9A;  --booking-soft: rgba(74,107,154,.12);  --booking-ink: #39527A;
+  /* Teintes de marque desaturees vers la palette Signature — jamais le bleu
+     Vrbo ni le jaune Expedia bruts, qui jureraient sur une brique de planning. */
+  --vrbo:    #3F8FA6;  --vrbo-soft:    rgba(63,143,166,.12);   --vrbo-ink:    #2E6B7C;
+  --expedia: #C6A24A;  --expedia-soft: rgba(198,162,74,.14);   --expedia-ink: #8A6F28;
   /* « Direct » = canal de marque → suit l'accent automatiquement */
   --direct:  var(--accent);  --direct-soft:  var(--accent-soft);  --direct-ink:  var(--accent-deep);
 
@@ -136,6 +140,8 @@
 
   --airbnb-soft:  rgba(224,115,90,.20);  --airbnb-ink:  #EC9580;
   --booking-soft: rgba(74,107,154,.26);  --booking-ink: #A6BCDB;
+  --vrbo-soft:    rgba(63,143,166,.24);  --vrbo-ink:    #7FBECF;
+  --expedia-soft: rgba(198,162,74,.24);  --expedia-ink: #DCC383;
   /* --direct-* héritent de --accent (redéfini ci-dessus) */
 
   --bar: #2A3640;

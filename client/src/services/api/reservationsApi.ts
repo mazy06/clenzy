@@ -4,7 +4,7 @@ import { isMockEnabled, setMockEnabled } from '../storageService';
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type ReservationStatus = 'confirmed' | 'pending' | 'cancelled' | 'checked_in' | 'checked_out';
-export type ReservationSource = 'airbnb' | 'booking' | 'direct' | 'other';
+export type ReservationSource = 'airbnb' | 'booking' | 'vrbo' | 'expedia' | 'direct' | 'other';
 
 export interface Reservation {
   id: number;
@@ -170,6 +170,8 @@ export const RESERVATION_STATUS_LABELS: Record<ReservationStatus, string> = {
 export const RESERVATION_SOURCE_LABELS: Record<ReservationSource, string> = {
   airbnb: 'Airbnb',
   booking: 'Booking.com',
+  vrbo: 'Vrbo',
+  expedia: 'Expedia',
   direct: 'Direct',
   other: 'Autre',
 };
@@ -185,10 +187,19 @@ export const RESERVATION_SOURCE_LABELS: Record<ReservationSource, string> = {
  * dû et un bouton « Envoyer lien de paiement », alors qu'il était réglé.
  * Miroir de `OtaPaidSources` côté serveur — les deux doivent rester alignées.
  *
- * `other` y figure parce que le serveur y replie tout canal iCal non reconnu
- * (Vrbo, Expedia, Abritel…), qui encaisse lui aussi pour le compte de l'hôte.
+ * `other` y figure parce qu'un canal non reconnu reste un canal de vente, qui
+ * encaisse pour le compte de l'hôte — un flux iCal ne se branche pas sur une
+ * vente en direct. `channex` n'est plus produit depuis que la source dérive du
+ * nom de l'OTA, mais reste ici pour les lignes antérieures.
  */
-const OTA_PAID_SOURCES = new Set(['airbnb', 'booking', 'other', 'channex']);
+const OTA_PAID_SOURCES = new Set([
+  'airbnb',
+  'booking',
+  'vrbo',
+  'expedia',
+  'other',
+  'channex',
+]);
 
 /** Insensible à la casse : les producteurs n'ont pas tous été rigoureux. */
 export function isOtaPaidSource(source: string | null | undefined): boolean {

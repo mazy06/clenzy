@@ -61,6 +61,8 @@ const STATUS_OPTIONS: ReservationStatus[] = [
 const SOURCE_OPTIONS: ReservationSource[] = [
   'airbnb',
   'booking',
+  'vrbo',
+  'expedia',
   'direct',
   'other',
 ];

@@ -6,7 +6,8 @@ import type { ReservationStatus } from '../../services/api';
 // Clés des chips togglables des rangées 2-3 du toolbar. Tout est sélectionné
 // par défaut ; un clic masque les briques du canal / statut correspondant.
 // Les sources hors légende (ex: 'other') ne sont jamais masquées.
-export const PLANNING_CHANNEL_KEYS = ['airbnb', 'booking', 'direct'] as const;
+export const PLANNING_CHANNEL_KEYS =
+  ['airbnb', 'booking', 'vrbo', 'expedia', 'direct'] as const;
 export type PlanningChannelKey = (typeof PLANNING_CHANNEL_KEYS)[number];
 
 export const PLANNING_STATUS_KEYS: readonly ReservationStatus[] = [

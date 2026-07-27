@@ -7,6 +7,7 @@ import {
   PLANNING_DEPARTURE_VIOLET,
 } from '../planning/constants';
 import { getSourceLogo } from '../planning/utils/sourceLogos';
+import { getChannelChipTokens } from '../../utils/channelChipTokens';
 import { useTranslation } from '../../hooks/useTranslation';
 import { toneTokensSx } from '../../components/StatusChip';
 
@@ -65,15 +66,6 @@ export const ReservationStatusChip: React.FC<StatusChipProps> = ({ status }) => 
 // ─── Source Badge : pastille canal (logo + tokens de canal) ──────────────────
 
 /** Tokens de canal (airbnb / booking / direct), repli neutre — pattern planning. */
-function getChannelChipTokens(source: string): { bg: string; color: string } {
-  switch (source) {
-    case 'airbnb': return { bg: 'var(--airbnb-soft)', color: 'var(--airbnb-ink)' };
-    case 'booking': return { bg: 'var(--booking-soft)', color: 'var(--booking-ink)' };
-    case 'direct': return { bg: 'var(--direct-soft)', color: 'var(--direct-ink)' };
-    default: return { bg: 'var(--field)', color: 'var(--muted)' };
-  }
-}
-
 interface SourceBadgeProps {
   source: ReservationSource;
 }

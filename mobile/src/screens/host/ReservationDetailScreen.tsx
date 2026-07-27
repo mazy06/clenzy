@@ -59,6 +59,8 @@ const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: 'success' | 
 const SOURCE_ICONS: Record<string, IoniconsName> = {
   airbnb: 'logo-no-smoking',
   booking: 'globe-outline',
+  vrbo: 'globe-outline',
+  expedia: 'globe-outline',
   channex: 'globe-outline',
   direct: 'person-outline',
   ical: 'calendar-outline',

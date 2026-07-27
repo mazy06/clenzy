@@ -21,6 +21,9 @@ export const STATUS_OPTIONS: { value: ReservationStatus; label: string }[] = [
 export const CHANNEL_LEGEND: { key: PlanningChannelKey; label: string; logo: string | null }[] = [
   { key: 'airbnb', label: RESERVATION_SOURCE_LABELS.airbnb, logo: getSourceLogo('airbnb') },
   { key: 'booking', label: RESERVATION_SOURCE_LABELS.booking, logo: getSourceLogo('booking') },
+  { key: 'vrbo', label: RESERVATION_SOURCE_LABELS.vrbo, logo: getSourceLogo('vrbo') },
+  // Expedia n'a pas de logo dans les assets → globe accent, comme « Direct ».
+  { key: 'expedia', label: RESERVATION_SOURCE_LABELS.expedia, logo: null },
   { key: 'direct', label: RESERVATION_SOURCE_LABELS.direct, logo: null },
 ];
 

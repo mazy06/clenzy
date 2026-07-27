@@ -26,6 +26,7 @@ import {
 import type { ReservationStatus, ReservationSource } from '../../../services/api';
 import { RESERVATION_STATUS_TOKEN_COLORS, PLANNING_DEPARTURE_VIOLET } from '../constants';
 import { getSourceLogo } from '../utils/sourceLogos';
+import { getChannelChipTokens } from '../../../utils/channelChipTokens';
 import { toDate } from '../utils/dateUtils';
 import { toneTokensSx } from '../../../components/StatusChip';
 import GuestAvatar from '../../../components/GuestAvatar';
@@ -98,15 +99,6 @@ const NOTE_NEW_INPUT_STYLE: React.CSSProperties = {
 };
 
 /** Chip canal : tokens de canal (airbnb / booking / direct), repli neutre. */
-function getChannelChipTokens(source: string): { bg: string; color: string } {
-  switch (source) {
-    case 'airbnb': return { bg: 'var(--airbnb-soft)', color: 'var(--airbnb-ink)' };
-    case 'booking': return { bg: 'var(--booking-soft)', color: 'var(--booking-ink)' };
-    case 'direct': return { bg: 'var(--direct-soft)', color: 'var(--direct-ink)' };
-    default: return { bg: 'var(--field)', color: 'var(--muted)' };
-  }
-}
-
 interface PanelReservationInfoProps {
   event: PlanningEvent;
   onUpdateReservation?: (reservationId: number, updates: {
