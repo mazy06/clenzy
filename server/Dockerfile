@@ -46,18 +46,34 @@ RUN (for i in 1 2 3; do \
     rm -rf ~/.m2/repository
 
 # ====== Runtime stage ======
-FROM eclipse-temurin:21-jre
+# Base epinglee sur Ubuntu 24.04 LTS (noble) et non sur le tag flottant
+# `21-jre`, qui suit la derniere Ubuntu en date — actuellement 25.10 (resolute),
+# une version NON-LTS au support court et aux miroirs nettement plus instables.
+# C'est elle qui a provoque l'echec "Mirror sync in progress" du 2026-07-27.
+FROM eclipse-temurin:21-jre-noble
 WORKDIR /app
 
 # Librairies necessaires pour java.awt (CAPTCHA) + pg_dump + Playwright Chromium
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libfontconfig1 libfreetype6 fontconfig fonts-dejavu-core \
-    postgresql-client \
-    libnss3 libxss1 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdbus-1-3 \
-    libexpat1 libgbm1 libpango-1.0-0 libpangocairo-1.0-0 libxcomposite1 \
-    libxdamage1 libxext6 libxfixes3 libxkbcommon0 libxrandr2 libxrender1 \
-    libxshmfence1 libasound2t64 \
-    && rm -rf /var/lib/apt/lists/*
+#
+# Resilience reseau : les miroirs Ubuntu publient parfois un index qui ne
+# correspond plus au fichier Release ("File has unexpected size ... Mirror sync
+# in progress"). apt refuse alors, a juste titre, et le build casse sans qu'il y
+# ait le moindre probleme dans notre code. Trois tentatives espacees suffisent a
+# absorber une synchronisation de miroir, comme pour l'etape Maven ci-dessus.
+RUN for i in 1 2 3; do \
+      echo "=== Tentative apt $i/3 ===" && \
+      apt-get -o Acquire::Retries=5 update && \
+      apt-get install -y --no-install-recommends \
+        libfontconfig1 libfreetype6 fontconfig fonts-dejavu-core \
+        postgresql-client \
+        libnss3 libxss1 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdbus-1-3 \
+        libexpat1 libgbm1 libpango-1.0-0 libpangocairo-1.0-0 libxcomposite1 \
+        libxdamage1 libxext6 libxfixes3 libxkbcommon0 libxrandr2 libxrender1 \
+        libxshmfence1 libasound2t64 \
+      && break || { echo "=== apt echoue, nouvelle tentative dans 15 s ===" && sleep 15; }; \
+    done; \
+    dpkg -s postgresql-client > /dev/null 2>&1 || { echo "apt a echoue apres 3 tentatives"; exit 1; }; \
+    rm -rf /var/lib/apt/lists/*
 
 # Non-root user for security
 RUN groupadd -r clenzy && useradd -r -g clenzy -s /bin/false clenzy
