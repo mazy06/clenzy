@@ -29,6 +29,10 @@ export interface FinancialKpis {
   totalRevenue: KpiTrend;
   adr: KpiTrend;
   revPAN: KpiTrend;
+  /** Réservations commençant dans la fenêtre. */
+  bookings: KpiTrend;
+  /** Note moyenne et volume d'avis publics sur la période. */
+  guestRating: { average: number; count: number };
 }
 
 interface UseDashboardOverviewParams {
@@ -70,6 +74,8 @@ export function useDashboardOverview({ period, t }: UseDashboardOverviewParams) 
       totalRevenue: summary.totalRevenue,
       adr: summary.adr,
       revPAN: summary.revPan,
+      bookings: summary.bookings,
+      guestRating: summary.guestRating,
     };
   }, [summary]);
 

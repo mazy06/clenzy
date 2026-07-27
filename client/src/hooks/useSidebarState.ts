@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { useTheme, useMediaQuery } from '@mui/material';
 
 const SIDEBAR_KEY = 'clenzy_sidebar_collapsed';
 
@@ -11,47 +10,32 @@ function getSavedCollapsed(): boolean {
   }
 }
 
-export const SIDEBAR_WIDTH_EXPANDED = 240;
-export const SIDEBAR_WIDTH_COLLAPSED = 68;
-
+/**
+ * Préférence de repli de la navigation, persistée par appareil.
+ *
+ * Ne concerne **que** le desktop : sous 1024 px la sidebar est une feuille
+ * latérale gérée par le kit (`SIDEBAR_SHEET_BREAKPOINT` dans `ui/sidebar`), où
+ * la notion de repli n'a pas de sens. Aucun palier n'est donc géré ici — c'est
+ * précisément le mélange de deux échelles de points de rupture qui avait
+ * introduit un trou entre 768 et 900 px (cf. `components/SIDEBAR-PARITY.md` §E).
+ *
+ * Lecture synchrone au montage : la valeur est lue avant le premier rendu pour
+ * éviter que la sidebar s'affiche déployée puis se replie.
+ */
 export function useSidebarState() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  // Medium screens (md–lg): auto-collapse for better space usage
-  const isMediumScreen = useMediaQuery(theme.breakpoints.between('md', 'lg'));
-  const [userCollapsed, setUserCollapsed] = useState(getSavedCollapsed);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
-
-  // On medium screens, always collapsed; on large+, respect user preference
-  const isCollapsed = isMediumScreen || userCollapsed;
+  const [isCollapsed, setIsCollapsed] = useState(getSavedCollapsed);
 
   const toggleCollapsed = useCallback(() => {
-    const next = !userCollapsed;
-    setUserCollapsed(next);
-    try {
-      localStorage.setItem(SIDEBAR_KEY, String(next));
-    } catch {
-      // ignore
-    }
-  }, [userCollapsed]);
+    setIsCollapsed((current) => {
+      const next = !current;
+      try {
+        localStorage.setItem(SIDEBAR_KEY, String(next));
+      } catch {
+        // Mode privé ou quota plein : la préférence ne survit pas au rechargement.
+      }
+      return next;
+    });
+  }, []);
 
-  const openMobile = useCallback(() => setIsMobileOpen(true), []);
-  const closeMobile = useCallback(() => setIsMobileOpen(false), []);
-
-  const sidebarWidth = isMobile
-    ? 0
-    : isCollapsed
-      ? SIDEBAR_WIDTH_COLLAPSED
-      : SIDEBAR_WIDTH_EXPANDED;
-
-  return {
-    isCollapsed,
-    isMobileOpen,
-    isMobile,
-    isMediumScreen,
-    sidebarWidth,
-    toggleCollapsed,
-    openMobile,
-    closeMobile,
-  };
+  return { isCollapsed, toggleCollapsed };
 }

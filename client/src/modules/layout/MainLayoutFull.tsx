@@ -1,13 +1,18 @@
 import React, { useCallback, useMemo, lazy, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Box, IconButton } from '@mui/material';
-import { Menu as MenuIcon } from '../../icons';
+import { Box } from '@mui/material';
 import { useLayoutState } from '../../hooks/useLayoutState';
 import { useNavigationMenu } from '../../hooks/useNavigationMenu';
 import { useSidebarState } from '../../hooks/useSidebarState';
 import { useFormsStats } from '../../hooks/useReceivedForms';
 import { useAuth } from '../../hooks/useAuth';
-import Sidebar from '../../components/Sidebar';
+import AppSidebar from '../../components/AppSidebar';
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+  useSidebar,
+} from '../../components/ui';
 import { LoadingStates } from '../../components/LoadingStates';
 import OfflineBanner from '../../components/OfflineBanner';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
@@ -25,6 +30,23 @@ const ASSISTANT_PRESENTATION: 'dock' | 'fab' = 'dock';
 
 interface MainLayoutFullProps {
   children: React.ReactNode;
+}
+
+/**
+ * Barre supérieure mobile — n'existe que pour ouvrir la navigation.
+ * Isolée dans un composant car `useSidebar` exige d'être sous le provider, que
+ * `MainLayoutFull` rend lui-même. C'est aussi ce qui garantit **une seule**
+ * définition de « mobile » : celle du kit (768 px), partagée avec la sidebar.
+ */
+function MobileTopBar() {
+  const { isMobile } = useSidebar();
+  if (!isMobile) return null;
+
+  return (
+    <div className="flex h-12 shrink-0 items-center border-b border-border bg-background px-2">
+      <SidebarTrigger />
+    </div>
+  );
 }
 
 export default function MainLayoutFull({ children }: MainLayoutFullProps) {
@@ -51,15 +73,9 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
         : item,
     );
   }, [menuItems, isAdminOrManager, newFormsCount]);
-  const {
-    isCollapsed,
-    isMobileOpen,
-    isMobile,
-    sidebarWidth,
-    toggleCollapsed,
-    openMobile,
-    closeMobile,
-  } = useSidebarState();
+  // `useSidebarState` porte la préférence de repli desktop (localStorage).
+  // Sous 1024 px, le provider du kit prend le relais en feuille latérale.
+  const { isCollapsed, toggleCollapsed } = useSidebarState();
 
   // Determiner l'etat de chargement
   const loadingState = useMemo(() => {
@@ -94,58 +110,34 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
   }
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', overflow: 'hidden' }}>
+    // Le provider est le conteneur flex de l'application : il place la sidebar
+    // (qui réserve sa propre gouttière) et l'inset côte à côte. `h-svh` +
+    // `overflow-hidden` conservent la règle historique — c'est le contenu qui
+    // scrolle, jamais la page.
+    <SidebarProvider
+      open={!isCollapsed}
+      onOpenChange={(open) => {
+        // Le provider annonce l'état souhaité ; `toggleCollapsed` bascule la
+        // préférence persistée. On ne bascule que s'ils divergent, pour que le
+        // rail, le raccourci clavier et le bouton du pied restent d'accord.
+        if (open === isCollapsed) toggleCollapsed();
+      }}
+      className="h-svh min-h-svh overflow-hidden"
+    >
       {/* Banniere hors ligne */}
       <OfflineBanner />
 
-      {/* Sidebar */}
-      <Sidebar
+      <AppSidebar
         menuItems={decoratedMenuItems}
         isCollapsed={isCollapsed}
-        isMobileOpen={isMobileOpen}
-        isMobile={isMobile}
         onToggleCollapsed={toggleCollapsed}
-        onCloseMobile={closeMobile}
       />
 
-      {/* Zone principale — le Drawer permanent reserve deja son espace dans le flex */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          flexGrow: 1,
-          minWidth: 0,
-          height: '100vh',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Hamburger mobile — barre minimale visible uniquement sur mobile */}
-        {isMobile && (
-          <Box
-            sx={{
-              flexShrink: 0,
-              display: 'flex',
-              alignItems: 'center',
-              height: 48,
-              px: 1.5,
-              backgroundColor: 'background.paper',
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
-            <IconButton
-              onClick={openMobile}
-              size="small"
-              sx={{ color: 'text.secondary' }}
-            >
-              <MenuIcon />
-            </IconButton>
-          </Box>
-        )}
+      <SidebarInset className="min-w-0 overflow-hidden">
+        <MobileTopBar />
 
         {/* Contenu principal — flex container pour que les enfants puissent remplir l'espace */}
         <Box
-          component="main"
           sx={{
             display: 'flex',
             flexDirection: 'column',
@@ -164,7 +156,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
               (cf. HubScreenSwitcher), pas comme un bandeau séparé. */}
           {children}
         </Box>
-      </Box>
+      </SidebarInset>
 
       {/* PWA install prompt */}
       <PWAInstallBanner />
@@ -176,6 +168,6 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       <Suspense fallback={null}>
         {ASSISTANT_PRESENTATION === 'dock' ? <AssistantDockTab /> : <AssistantWidget />}
       </Suspense>
-    </Box>
+    </SidebarProvider>
   );
 }

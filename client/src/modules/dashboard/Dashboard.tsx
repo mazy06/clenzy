@@ -15,7 +15,6 @@ import {
   Sync as SyncIcon,
 } from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
-import { useAnalyticsEngine } from '../../hooks/useAnalyticsEngine';
 import PageHeader from '../../components/PageHeader';
 import {
   PageHeaderActionsProvider,
@@ -28,10 +27,14 @@ import DashboardDateFilter from './DashboardDateFilter';
 import DashboardErrorBoundary from './DashboardErrorBoundary';
 import DashboardOverview from './DashboardOverview';
 import UpgradeBanner from './UpgradeBanner';
-import AnalyticsSimulator from './analytics/AnalyticsSimulator';
 import { getVisibleTabs } from '../../config/dashboardConfig';
+import { useNavigate } from 'react-router-dom';
+import { PlusIcon } from 'lucide-react';
+import { Button } from '../../components/ui';
 import ChannexMappingDialog from '../settings/components/ChannexMappingDialog';
 import type { DashboardPeriod, DateFilterOption } from './DashboardDateFilter';
+import { useDashboardOverview } from '../../hooks/useDashboardOverview';
+import { useDashboardActionItems } from '../../hooks/useDashboardOperations';
 
 // ─── Tab icon mapping ────────────────────────────────────────────────────────
 
@@ -58,7 +61,6 @@ const PERIOD_OPTIONS: DateFilterOption<DashboardPeriod>[] = [
   { value: 'week', label: '7j' },
   { value: 'month', label: '30j' },
   { value: 'quarter', label: '90j' },
-  { value: 'year', label: '1 an' },
 ];
 
 const EMPTY_INTERVENTIONS: Array<{ estimatedCost?: number; actualCost?: number; type: string; status: string; scheduledDate?: string; createdAt?: string }> = [];
@@ -75,6 +77,7 @@ const Dashboard: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   // Channel Manager : ouvre la modale guidee de distribution OTA (Channex).
   const [cmOpen, setCmOpen] = useState(false);
+  const navigate = useNavigate();
 
   // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
   // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
@@ -98,14 +101,6 @@ const Dashboard: React.FC = () => {
   // Get the tab key for the current selection
   const activeTabKey = visibleTabs[tabValue]?.key ?? 'overview';
 
-  // Analytics engine (for simulator tab) — inactif tant que l'onglet Simulateur
-  // n'est pas affiché : sinon cette instance doublait les fetchs + l'agrégation
-  // lourde de celle de DashboardOverview à chaque montage du dashboard.
-  const { analytics } = useAnalyticsEngine({
-    period,
-    interventions: EMPTY_INTERVENTIONS,
-    enabled: activeTabKey === 'simulator',
-  });
 
   // ─── Titles ─────────────────────────────────────────────────────────────
   const getDashboardTitle = () => {
@@ -132,13 +127,37 @@ const Dashboard: React.FC = () => {
   // Title racine = role-based (getDashboardTitle), subtitle racine = role-based
   // (getDashboardDescription) — utilises comme fallback quand le tab n'a pas de meta.
   const visibleTabLabels = visibleTabs.map((tab) => t(tab.labelKey) || tab.key);
+  // Sous-titre et badge de l'en-tête (projection §1.2 et §1.4).
+  // Les deux hooks sont déjà montés par DashboardOverview : React Query
+  // dédoublonne par clé de requête, il n'y a donc aucun appel supplémentaire.
+  const { stats: headerStats } = useDashboardOverview({ period, t });
+  const { data: headerActionItems } = useDashboardActionItems(activeTabKey === 'overview');
+  const actionItemsCount = headerActionItems
+    ? headerActionItems.balancesDue.length
+      + headerActionItems.unansweredReviews.length
+      + headerActionItems.staleFeeds.length
+    : 0;
+
+  /** « Mercredi 23 juillet · 4 logements actifs » — contexte du jour. */
+  const overviewSubtitle = useMemo(() => {
+    const today = new Date().toLocaleDateString(undefined, {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+    const dateLabel = today.charAt(0).toUpperCase() + today.slice(1);
+    const active = headerStats?.properties.active;
+    if (active === undefined) return dateLabel;
+    return `${dateLabel} · ${active} ${t('dashboard.activePropertiesShort', 'logements actifs')}`;
+  }, [headerStats?.properties.active, t]);
+
   // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
   const dashboardTabMeta: Record<string, TabHeaderMeta> = {
     [t('dashboard.tabs.overview', "Vue d'ensemble")]: {
-      subtitle: t('tabHeaders.dashboard.subtitle.overview', "Vue d'ensemble : KPIs, planning, alertes critiques et accès rapides à votre activité."),
-    },
-    [t('dashboard.tabs.simulator', 'Simulateur')]: {
-      subtitle: t('tabHeaders.dashboard.subtitle.simulator', 'Simulateur analytique : projection revenus, occupation et performance sur scenarios variables.'),
+      // Contexte du jour plutôt qu'une description figée : sur un écran consulté
+      // quotidiennement, la date et le parc actif valent mieux qu'un rappel de
+      // ce que contient la page.
+      subtitle: overviewSubtitle,
     },
   };
   const { title, subtitle } = resolveTabHeader(
@@ -149,8 +168,8 @@ const Dashboard: React.FC = () => {
     dashboardTabMeta,
   );
 
-  // ─── Date filter: period chips on Overview and Simulator
-  const showDateFilter = activeTabKey === 'overview' || activeTabKey === 'simulator';
+  // ─── Filtre de période — la vue d'ensemble est le seul onglet restant.
+  const showDateFilter = activeTabKey === 'overview';
   const dateFilterElement = useMemo(() => {
     if (!showDateFilter) return null;
     return (
@@ -178,46 +197,35 @@ const Dashboard: React.FC = () => {
             title={title}
             subtitle={subtitle}
             iconBadge={<DashboardIcon />}
+            titleAdornment={
+              activeTabKey === 'overview' && actionItemsCount > 0 ? (
+                <Chip
+                  label={`${actionItemsCount} ${t('dashboard.toHandle', 'à traiter')}`}
+                  size="small"
+                  sx={{
+                    height: 22,
+                    fontSize: '0.6875rem',
+                    fontWeight: 600,
+                    bgcolor: 'var(--warn-soft)',
+                    color: 'var(--warn-ink)',
+                  }}
+                />
+              ) : undefined
+            }
             backPath="/"
             showBackButton={false}
             actions={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                 {headerActionsPortal}
-                {(isAdmin || isManager || isHost) && (
-                  <Tooltip title="Connecter vos OTA via le Channel Manager (Channex)" arrow>
-                    <Chip
-                      icon={<SyncIcon size={14} strokeWidth={1.75} />}
-                      label="Channel Manager"
-                      size="small"
-                      variant="outlined"
-                      clickable
-                      onClick={() => setCmOpen(true)}
-                      sx={{
-                        fontSize: '0.6875rem',
-                        fontWeight: 600,
-                        height: 28,
-                        cursor: 'pointer',
-                        borderColor: 'var(--line-2)',
-                        color: 'var(--body)',
-                        '& .MuiChip-icon': { fontSize: 14, color: 'var(--accent)' },
-                        '&:hover': {
-                          borderColor: 'var(--accent)',
-                          color: 'var(--accent)',
-                          backgroundColor: 'var(--accent-soft)',
-                          '& .MuiChip-icon': { color: 'var(--accent)' },
-                        },
-                        transition: 'border-color .15s, color .15s, background-color .15s',
-                        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                      }}
-                    />
-                  </Tooltip>
-                )}
-                {dateFilterElement && (
-                  <>
-                    <Box sx={{ width: '1px', height: 20, backgroundColor: 'divider', mx: 0.25 }} />
-                    {dateFilterElement}
-                  </>
-                )}
+                {dateFilterElement}
+                {/* Action primaire de la projection : créer une réservation. */}
+                <Button
+                  size="sm"
+                  onClick={() => navigate('/reservations/new')}
+                >
+                  <PlusIcon className="size-4" />
+                  {t('dashboard.newReservation', 'Réservation')}
+                </Button>
               </Box>
             }
           />
@@ -278,16 +286,6 @@ const Dashboard: React.FC = () => {
           </Box>
         )}
 
-        {activeTabKey === 'simulator' && (
-          <Box
-            role="tabpanel"
-            sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
-          >
-            <DashboardErrorBoundary widgetName="Simulateur">
-              <AnalyticsSimulator data={analytics} />
-            </DashboardErrorBoundary>
-          </Box>
-        )}
 
         {/* Channel Manager : modale guidee de distribution OTA (Channex).
             Mode guided = formulation end-user + degradation gracieuse. */}

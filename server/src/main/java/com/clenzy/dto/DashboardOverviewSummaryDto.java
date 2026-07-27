@@ -18,6 +18,8 @@ public record DashboardOverviewSummaryDto(
         KpiTrendDto totalRevenue,
         KpiTrendDto adr,
         KpiTrendDto revPan,
+        KpiTrendDto bookings,
+        GuestRatingDto guestRating,
         PropertiesStatDto properties,
         ServiceRequestsStatDto serviceRequests,
         InterventionsStatDto interventions,
@@ -26,6 +28,14 @@ public record DashboardOverviewSummaryDto(
 
     /** Valeur d'un KPI + variation (%) vs la fenêtre précédente de même durée. */
     public record KpiTrendDto(double value, double growth) {}
+
+    /**
+     * Note moyenne et volume d'avis publics **sur la période**.
+     *
+     * @param average moyenne sur 5, {@code 0} si aucun avis sur la fenêtre
+     * @param count   nombre d'avis publics pris en compte
+     */
+    public record GuestRatingDto(double average, long count) {}
 
     public record PropertiesStatDto(long active, long total, double growth) {}
 

@@ -43,6 +43,18 @@ export const NAV_GROUP_TRANSLATION_KEYS: Record<NavGroup, string> = {
   admin: 'navigation.groups.admin',
 };
 
+/**
+ * Onglet d'un hub, exposé à la sidebar pour le sous-menu dépliable.
+ * Déjà filtré par rôle et permission (`accessibleHubTabs`) : ce qui arrive ici
+ * est navigable par l'utilisateur courant.
+ */
+export interface MenuSubItem {
+  path: string;
+  text: string;
+  /** Préfixes de routes qui rendent CE sous-item actif. */
+  matchPaths: string[];
+}
+
 export interface MenuItem {
   id: string;
   text: string;
@@ -52,6 +64,11 @@ export interface MenuItem {
   permission?: string;
   translationKey?: string;
   group: NavGroup;
+  /**
+   * Onglets accessibles du hub (vide pour une entrée simple). La sidebar en fait
+   * un sous-menu dépliable ; `path` reste la cible directe (premier onglet).
+   */
+  children?: MenuSubItem[];
   /**
    * Préfixes de routes additionnels qui rendent l'item actif (hubs : routes de
    * tous les onglets accessibles + leurs sous-routes détail).
@@ -282,6 +299,13 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
       translationKey: hub.translationKey,
       group: hub.group,
       matchPaths: tabs.flatMap((tab) => tabRoutePrefixes(tab)),
+      // Les onglets accessibles étaient calculés puis jetés : la sidebar en a
+      // besoin pour son sous-menu dépliable.
+      children: tabs.map((tab) => ({
+        path: tab.path,
+        text: t(tab.translationKey, tab.fallbackLabel),
+        matchPaths: tabRoutePrefixes(tab),
+      })),
     };
   }, [user?.permissions, isAdmin, isManager, t]);
 
