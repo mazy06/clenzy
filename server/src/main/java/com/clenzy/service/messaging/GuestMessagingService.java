@@ -146,9 +146,9 @@ public class GuestMessagingService {
         if (missing == null) return;
 
         String source = reservation.getSource() != null ? reservation.getSource() : "";
-        boolean anonymizedIcal = source.equalsIgnoreCase("airbnb")
-                || source.equalsIgnoreCase("booking")
-                || source.toLowerCase().contains("ical");
+        // Reference unique (ChannelSources) : la regle etait recopiee ici et dans
+        // MessagingAutomationStatus, et ne connaissait ni Vrbo ni Expedia.
+        boolean anonymizedIcal = ChannelSources.anonymizesGuestEmail(source);
 
         String hint = anonymizedIcal
                 ? "Réservation importée via iCal (" + source + ") — l'email du voyageur n'est pas exposé. "

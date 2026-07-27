@@ -520,6 +520,7 @@ public class GuestService {
             case "airbnb" -> GuestChannel.AIRBNB;
             case "booking", "booking.com" -> GuestChannel.BOOKING;
             case "vrbo", "abritel" -> GuestChannel.VRBO;
+            case "expedia" -> GuestChannel.EXPEDIA;
             case "ical", "icalendar" -> GuestChannel.ICAL;
             case "manual", "direct" -> GuestChannel.DIRECT;
             default -> GuestChannel.OTHER;

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Bolt, CheckCircle, Close, Settings, Warning, AccessTime } from '../../../icons';
 import { automationRulesApi, isMessagingAction, type AutomationTrigger } from '../../../services/api/automationRulesApi';
+import { anonymizesGuestEmail } from '../../../services/api/reservationsApi';
 
 // Déclencheurs de messagerie « autour de l'arrivée » / « autour du départ » : une
 // règle active de messagerie sur l'un d'eux = envoi automatique côté hub.
@@ -39,9 +40,10 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
   });
 
   const hasEmail = Boolean(guestEmail && guestEmail.trim() && guestEmail.includes('@'));
-  const isAnonymizedIcal = (source || '').toLowerCase() === 'airbnb'
-    || (source || '').toLowerCase() === 'booking'
-    || (source || '').toLowerCase().includes('ical');
+  // Référence unique : la règle était recopiée ici et dans GuestMessagingService,
+  // et ne connaissait ni Vrbo ni Expedia — l'écran promettait alors à tort que
+  // l'envoi automatique fonctionnerait sur ces séjours.
+  const isAnonymizedIcal = anonymizesGuestEmail(source);
 
   // Source de vérité = le hub d'automatisation : une règle active de messagerie
   // sur un déclencheur d'arrivée / de départ = envoi automatique.

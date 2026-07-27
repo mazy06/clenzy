@@ -3,6 +3,7 @@ package com.clenzy.model;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Resolution du canal de vente depuis un nom libre — nom de flux iCal saisi par
@@ -57,5 +58,33 @@ public final class ChannelSources {
             }
         }
         return OTHER;
+    }
+
+    /**
+     * Canaux qui masquent l'adresse du voyageur derriere un relais.
+     *
+     * <p>Propriete DISTINCTE de l'encaissement, meme si les deux ensembles
+     * coincident aujourd'hui : un canal pourrait encaisser sans anonymiser, ou
+     * l'inverse. Les confondre serait refaire l'erreur que ce chantier corrige —
+     * deduire une information d'une autre parce qu'elles se ressemblent.</p>
+     */
+    private static final Set<String> ANONYMIZING = Set.of(
+        "airbnb", "booking", "vrbo", "expedia", "other", "channex");
+
+    /**
+     * Le canal masque-t-il l'email du voyageur ?
+     *
+     * <p>Determine le conseil donne a l'hote quand l'envoi automatique echoue :
+     * « le canal ne l'expose pas, saisis-le » plutot que « tu as oublie de le
+     * renseigner ». Vrbo et Expedia anonymisent aussi — l'interface promettait a
+     * tort que la messagerie automatique fonctionnerait sur ces sejours.</p>
+     */
+    public static boolean anonymizesGuestEmail(String source) {
+        if (source == null) {
+            return false;
+        }
+        final String lower = source.toLowerCase(Locale.ROOT);
+        // Un flux iCal, quel que soit son nom, passe par un relais.
+        return ANONYMIZING.contains(lower) || lower.contains("ical");
     }
 }

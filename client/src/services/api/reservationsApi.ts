@@ -207,6 +207,38 @@ export function isOtaPaidSource(source: string | null | undefined): boolean {
 }
 
 /**
+ * Canaux qui masquent l'adresse du voyageur derrière un relais.
+ *
+ * Propriété **distincte** de l'encaissement, même si les deux ensembles
+ * coïncident aujourd'hui : un canal pourrait encaisser sans anonymiser, ou
+ * l'inverse. Les confondre serait refaire l'erreur que ce chantier corrige.
+ * Miroir de `ChannelSources.anonymizesGuestEmail` côté serveur.
+ */
+const ANONYMIZING_SOURCES = new Set([
+  'airbnb',
+  'booking',
+  'vrbo',
+  'expedia',
+  'other',
+  'channex',
+]);
+
+/**
+ * Le canal masque-t-il l'email du voyageur ?
+ *
+ * Décide du message affiché quand l'envoi automatique ne peut pas fonctionner :
+ * « le canal ne l'expose pas » plutôt que « tu as oublié de le renseigner ».
+ * Vrbo et Expedia anonymisent aussi — l'interface promettait à tort que la
+ * messagerie automatique marcherait sur ces séjours.
+ */
+export function anonymizesGuestEmail(source: string | null | undefined): boolean {
+  if (!source) return false;
+  const key = source.toLowerCase();
+  // Un flux iCal, quel que soit son nom, passe par un relais.
+  return ANONYMIZING_SOURCES.has(key) || key.includes('ical');
+}
+
+/**
  * Le canal a-t-il déjà encaissé ce séjour ?
  *
  * Lit le régime décidé côté serveur, et ne retombe sur la déduction depuis le

@@ -61,4 +61,39 @@ class ChannelSourcesTest {
         assertThat(OtaPaidSources.contains(ChannelSources.fromName("Abritel"))).isTrue();
         assertThat(OtaPaidSources.contains(ChannelSources.fromName("Direct"))).isFalse();
     }
+
+    /**
+     * Vrbo et Expedia anonymisent l'email du voyageur, comme Airbnb et Booking :
+     * sans eux, l'interface annoncait que l'envoi automatique fonctionnerait, et
+     * conseillait a l'hote de saisir des coordonnees que le canal ne donne pas.
+     */
+    @Test
+    void whenChannelHidesTheGuestEmail_thenItIsRecognisedAsAnonymizing() {
+        assertThat(ChannelSources.anonymizesGuestEmail("vrbo")).isTrue();
+        assertThat(ChannelSources.anonymizesGuestEmail("expedia")).isTrue();
+        assertThat(ChannelSources.anonymizesGuestEmail("airbnb")).isTrue();
+        assertThat(ChannelSources.anonymizesGuestEmail("booking")).isTrue();
+        // N'importe quel flux iCal passe par un relais, quel que soit son nom.
+        assertThat(ChannelSources.anonymizesGuestEmail("Mon iCal perso")).isTrue();
+    }
+
+    @Test
+    void whenSaleIsDirect_thenTheGuestEmailIsOurs() {
+        assertThat(ChannelSources.anonymizesGuestEmail("direct")).isFalse();
+        assertThat(ChannelSources.anonymizesGuestEmail(null)).isFalse();
+    }
+
+    /**
+     * L'anonymisation et l'encaissement sont deux proprietes DISTINCTES. Elles
+     * coincident aujourd'hui, mais rien ne l'impose : ce test existe pour que la
+     * coincidence reste une observation, jamais une dependance.
+     */
+    @Test
+    void whenComparingTheTwoChannelProperties_thenNeitherDerivesFromTheOther() {
+        for (String source : new String[] { "airbnb", "booking", "vrbo", "expedia", "direct" }) {
+            assertThat(ChannelSources.anonymizesGuestEmail(source))
+                .as("anonymisation et encaissement coincident encore pour %s", source)
+                .isEqualTo(OtaPaidSources.contains(source));
+        }
+    }
 }
