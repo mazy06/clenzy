@@ -6487,6 +6487,15 @@
     },
     "section": {
       "description": "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « {{screen}} »."
+    },
+    "teardown": {
+      "onboardingChecklist": "Guide de démarrage maître-détail : groupes à gauche, étapes en accordéon à droite. Trois états d'étape (faite, à faire, verrouillée par l'offre), estimation de durée, action « Passer », et deux granularités de progression affichées ensemble.",
+      "showcaseEmpty": "État vide « vitrine » en deux colonnes, pour les écrans vides avant configuration : le titre porte la proposition de valeur, la colonne droite montre un aperçu du produit rempli, et la sortie de secours évite le cul-de-sac quand l'action principale suppose un prérequis absent.",
+      "settingSentence": "Réglage écrit comme une phrase, contrôles en ligne (« Marquer le logement [inconnu] après [5] jours ») — la règle se lit au lieu de se reconstruire depuis une pile de champs.",
+      "optionalSection": "Bloc de section facultative dans un formulaire long : panneau teinté, mention « (optionnel) », champs déployés uniquement sur demande — l'obligatoire garde le poids visuel.",
+      "channelBadges": "Grappe de pastilles de canaux avec état de connexion (pastille de validation, canal non connecté désaturé mais lisible), en variante superposable sur une photo de logement.",
+      "cornerRibbon": "Ruban d'angle diagonal (promo, exclusivité, nouveauté) — signale une offre sur une carte sans consommer de place dans le flux de contenu. Le parent doit être positionné et masquer le débordement.",
+      "onboardingDock": "Dock de démarrage flottant et persistant : le guide suit l'utilisateur d'écran en écran au lieu de vivre sur la seule page d'accueil. Trois états (replié, déplié, terminé), navigation entre groupes par pager, progression globale visible dans tous les états, et rejet possible."
     }
   }
 }

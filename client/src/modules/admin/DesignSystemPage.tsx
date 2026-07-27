@@ -297,6 +297,13 @@ import {
   BPageTabsDemo,
   BDateRangePickerDemo,
   BThemedTooltipDemo,
+  BCornerRibbonDemo,
+  BSettingSentenceDemo,
+  BOptionalSectionDemo,
+  BChannelBadgesDemo,
+  BOnboardingChecklistDemo,
+  BOnboardingDockDemo,
+  BShowcaseEmptyDemo,
 } from './design-system/primitives-demos';
 import {
   BRevenueByChannelCardDemo,
@@ -332,6 +339,38 @@ import {
   BNotificationsSectionDemo,
   BAssistantSectionDemo,
 } from './design-system/screens-demos-3';
+import {
+  BOnboardingChecklistProjectionDemo,
+  BOnboardingDockProjectionDemo,
+  BIntegrationsMarketplaceProjectionDemo,
+  BSettingsSentenceProjectionDemo,
+  BMessagingShowcaseProjectionDemo,
+  BPropertyChannelsProjectionDemo,
+} from './design-system/teardown-projections';
+import {
+  BOnboardingEmptyProjectionDemo,
+  BDashboardEmptyDemo,
+  BPlanningEmptyDemo,
+  BPropertiesEmptyDemo,
+  BGuestsEmptyDemo,
+  BInterventionsEmptyDemo,
+  BPricingEmptyDemo,
+  BReportsEmptyDemo,
+  BBillingEmptyDemo,
+  BDocumentsEmptyDemo,
+  BIntegrationsEmptyDemo,
+  BNotificationsEmptyDemo,
+  BDevicesEmptyDemo,
+  BOwnerPortalEmptyDemo,
+} from './design-system/teardown-empty-states';
+import { BPricingYieldEmptyProjectionDemo } from './design-system/teardown-pricing-yield';
+import {
+  BPlanningStoryDemo,
+  BChannelsStoryDemo,
+  BBillingStoryDemo,
+  BInterventionsStoryDemo,
+  BDevicesStoryDemo,
+} from './design-system/teardown-feature-stories';
 import { BAgentsConstellationSectionDemo } from './design-system/agents-demo';
 import { BIotSectionDemo } from './design-system/iot-demo';
 
@@ -2443,28 +2482,37 @@ const GALLERY_SECTIONS: GallerySectionDef[] = [
   { category: 'primitives', group: 'États & feedback', title: 'PWAInstallBanner', i18nKey: 'designSystem.remaster.description', i18nParams: { file: 'PWAInstallBanner.tsx' }, fallback: "Remaster de components/PWAInstallBanner.tsx (MUI) avec le kit Baitly UI — API équivalente, prêt pour la migration.", variants: single(BPWAInstallBannerDemo) },
   { category: 'primitives', group: 'Overlays', title: 'AiCreditsPaywall', i18nKey: 'designSystem.remaster.description', i18nParams: { file: 'AiCreditsPaywall.tsx' }, fallback: "Remaster de components/AiCreditsPaywall.tsx (MUI) avec le kit Baitly UI — API équivalente, prêt pour la migration.", variants: single(BAiCreditsPaywallDemo) },
   // Sections d'écran (rendu cible de la migration — projections uniquement)
-  { category: 'projections', group: 'Dashboard', title: 'Section — Dashboard', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Dashboard' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Dashboard ».", variants: single(BDashboardSectionDemo) },
-  { category: 'projections', group: 'Interventions', title: 'Section — Interventions', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Interventions' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Interventions ».", variants: single(BInterventionsSectionDemo) },
+  // Vague « teardown » — primitives issues de l'audit concurrentiel
+  // (analyse-concurrentielle/46-teardown-guesty-produit.md §2).
+  { category: 'primitives', group: 'États & feedback', title: 'OnboardingChecklist', i18nKey: 'designSystem.teardown.onboardingChecklist', fallback: "Guide de démarrage maître-détail : groupes à gauche, étapes en accordéon à droite. Trois états d'étape (faite / à faire / verrouillée par l'offre), estimation de durée, action « Passer », et deux granularités de progression affichées ensemble.", variants: single(BOnboardingChecklistDemo) },
+  { category: 'primitives', group: 'États & feedback', title: 'OnboardingDock', i18nKey: 'designSystem.teardown.onboardingDock', fallback: "Dock de démarrage flottant et persistant : le guide suit l'utilisateur d'écran en écran au lieu de vivre sur la seule page d'accueil. Trois états (replié, déplié, terminé), navigation entre groupes par pager, progression globale visible dans tous les états, et rejet possible.", variants: single(BOnboardingDockDemo) },
+  { category: 'primitives', group: 'États & feedback', title: 'ShowcaseEmpty', i18nKey: 'designSystem.teardown.showcaseEmpty', fallback: "État vide « vitrine » en deux colonnes pour les écrans vides avant configuration : le titre porte la proposition de valeur, la colonne droite montre un aperçu du produit rempli, et `fallback` évite le cul-de-sac quand le CTA suppose un prérequis absent.", variants: single(BShowcaseEmptyDemo) },
+  { category: 'primitives', group: 'Formulaires & filtres', title: 'SettingSentence', i18nKey: 'designSystem.teardown.settingSentence', fallback: "Réglage écrit comme une phrase, contrôles en ligne (« Marquer le logement [inconnu] après [5] jours ») — la règle se lit au lieu de se reconstruire depuis une pile de champs.", variants: single(BSettingSentenceDemo) },
+  { category: 'primitives', group: 'Formulaires & filtres', title: 'OptionalSection', i18nKey: 'designSystem.teardown.optionalSection', fallback: "Bloc de section facultative dans un formulaire long : panneau teinté, mention « (optionnel) », champs déployés uniquement sur demande — l'obligatoire garde le poids visuel.", variants: single(BOptionalSectionDemo) },
+  { category: 'primitives', group: 'Données', title: 'ChannelBadges', i18nKey: 'designSystem.teardown.channelBadges', fallback: "Grappe de pastilles de canaux avec état de connexion (pastille de validation, canal non connecté désaturé mais lisible), en variante superposable sur une photo de logement.", variants: single(BChannelBadgesDemo) },
+  { category: 'primitives', group: 'Structure', title: 'CornerRibbon', i18nKey: 'designSystem.teardown.cornerRibbon', fallback: "Ruban d'angle diagonal (promo, exclusivité, nouveauté) — signale une offre sur une carte sans consommer de place dans le flux de contenu. Le parent doit être `relative overflow-hidden`.", variants: single(BCornerRibbonDemo) },
+  { category: 'projections', group: 'Dashboard', title: 'Section — Dashboard', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Dashboard' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Dashboard ».", variants: [{ key: 'default', label: 'Défaut', Demo: BDashboardSectionDemo }, { key: 'empty', label: 'État vide', Demo: BDashboardEmptyDemo }] },
+  { category: 'projections', group: 'Interventions', title: 'Section — Interventions', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Interventions' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Interventions ».", variants: [{ key: 'default', label: 'Défaut', Demo: BInterventionsSectionDemo }, { key: 'empty', label: 'État vide', Demo: BInterventionsEmptyDemo }, { key: 'story', label: "État vide — rotation entre deux séjours", Demo: BInterventionsStoryDemo }] },
   { category: 'projections', group: 'Fiche réservation', title: 'Section — Fiche réservation', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Fiche réservation' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Fiche réservation ».", variants: single(BReservationDetailSectionDemo) },
   // Vague 5 — projections d'écrans supplémentaires
-  { category: 'projections', group: 'Planning', title: 'Section — Planning', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Planning' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Planning ».", variants: single(BPlanningSectionDemo) },
-  { category: 'projections', group: 'Logements', title: 'Section — Logements', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Logements' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Logements ».", variants: single(BPropertiesSectionDemo) },
-  { category: 'projections', group: 'Guests', title: 'Section — Guests', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Guests' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Guests ».", variants: single(BGuestsSectionDemo) },
-  { category: 'projections', group: 'Messagerie', title: 'Section — Messagerie', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Messagerie' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Messagerie ».", variants: single(BMessagingSectionDemo) },
-  { category: 'projections', group: 'Facturation', title: 'Section — Facturation', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Facturation' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Facturation ».", variants: single(BBillingSectionDemo) },
-  { category: 'projections', group: 'Paramètres', title: 'Section — Paramètres', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Paramètres' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Paramètres ».", variants: single(BSettingsSectionDemo) },
+  { category: 'projections', group: 'Planning', title: 'Section — Planning', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Planning' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Planning ».", variants: [{ key: 'default', label: 'Défaut', Demo: BPlanningSectionDemo }, { key: 'empty', label: 'État vide', Demo: BPlanningEmptyDemo }, { key: 'story', label: "État vide — un calendrier, tous les canaux", Demo: BPlanningStoryDemo }] },
+  { category: 'projections', group: 'Logements', title: 'Section — Logements', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Logements' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Logements ».", variants: [{ key: 'default', label: 'Défaut', Demo: BPropertiesSectionDemo }, { key: 'teardown', label: 'Diffusion multi-canal', Demo: BPropertyChannelsProjectionDemo }, { key: 'empty', label: 'État vide', Demo: BPropertiesEmptyDemo }] },
+  { category: 'projections', group: 'Guests', title: 'Section — Guests', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Guests' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Guests ».", variants: [{ key: 'default', label: 'Défaut', Demo: BGuestsSectionDemo }, { key: 'empty', label: 'État vide', Demo: BGuestsEmptyDemo }] },
+  { category: 'projections', group: 'Messagerie', title: 'Section — Messagerie', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Messagerie' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Messagerie ».", variants: [{ key: 'default', label: 'Défaut', Demo: BMessagingSectionDemo }, { key: 'teardown', label: 'État vide vitrine', Demo: BMessagingShowcaseProjectionDemo }] },
+  { category: 'projections', group: 'Facturation', title: 'Section — Facturation', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Facturation' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Facturation ».", variants: [{ key: 'default', label: 'Défaut', Demo: BBillingSectionDemo }, { key: 'empty', label: 'État vide', Demo: BBillingEmptyDemo }, { key: 'story', label: "État vide — conformité des factures", Demo: BBillingStoryDemo }] },
+  { category: 'projections', group: 'Paramètres', title: 'Section — Paramètres', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Paramètres' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Paramètres ».", variants: [{ key: 'default', label: 'Défaut', Demo: BSettingsSectionDemo }, { key: 'teardown', label: 'Réglages en phrase', Demo: BSettingsSentenceProjectionDemo }] },
   // Vague 6 — projections d'écrans
-  { category: 'projections', group: 'Tarification', title: 'Section — Tarification', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Tarification' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Tarification ».", variants: single(BPricingSectionDemo) },
-  { category: 'projections', group: 'Rapports', title: 'Section — Rapports', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Rapports' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Rapports ».", variants: single(BReportsSectionDemo) },
-  { category: 'projections', group: 'Onboarding', title: 'Section — Onboarding', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Onboarding' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Onboarding ».", variants: single(BOnboardingSectionDemo) },
-  { category: 'projections', group: 'Portail propriétaire', title: 'Section — Portail propriétaire', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Portail propriétaire' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Portail propriétaire ».", variants: single(BOwnerPortalSectionDemo) },
+  { category: 'projections', group: 'Tarification', title: 'Section — Tarification', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Tarification' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Tarification ».", variants: [{ key: 'default', label: 'Défaut', Demo: BPricingSectionDemo }, { key: 'empty', label: 'État vide', Demo: BPricingEmptyDemo }, { key: 'yield', label: 'État vide — moteur de rendement', Demo: BPricingYieldEmptyProjectionDemo }] },
+  { category: 'projections', group: 'Rapports', title: 'Section — Rapports', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Rapports' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Rapports ».", variants: [{ key: 'default', label: 'Défaut', Demo: BReportsSectionDemo }, { key: 'empty', label: 'État vide', Demo: BReportsEmptyDemo }] },
+  { category: 'projections', group: 'Onboarding', title: 'Section — Onboarding', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Onboarding' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Onboarding ».", variants: [{ key: 'default', label: 'Défaut', Demo: BOnboardingSectionDemo }, { key: 'teardown', label: 'Guide de démarrage', Demo: BOnboardingChecklistProjectionDemo }, { key: 'dock', label: 'Dock persistant (parcours)', Demo: BOnboardingDockProjectionDemo }, { key: 'empty', label: 'État vide — première arrivée', Demo: BOnboardingEmptyProjectionDemo }] },
+  { category: 'projections', group: 'Portail propriétaire', title: 'Section — Portail propriétaire', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Portail propriétaire' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Portail propriétaire ».", variants: [{ key: 'default', label: 'Défaut', Demo: BOwnerPortalSectionDemo }, { key: 'empty', label: 'État vide', Demo: BOwnerPortalEmptyDemo }] },
   // Vague 7 — projections d'écrans
-  { category: 'projections', group: 'Intégrations', title: 'Section — Intégrations', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Intégrations' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Intégrations ».", variants: single(BIntegrationsSectionDemo) },
-  { category: 'projections', group: 'Documents', title: 'Section — Documents', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Documents' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Documents ».", variants: single(BDocumentsSectionDemo) },
-  { category: 'projections', group: 'Notifications', title: 'Section — Notifications', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Notifications' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Notifications ».", variants: single(BNotificationsSectionDemo) },
+  { category: 'projections', group: 'Intégrations', title: 'Section — Intégrations', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Intégrations' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Intégrations ».", variants: [{ key: 'default', label: 'Défaut', Demo: BIntegrationsSectionDemo }, { key: 'teardown', label: 'Catalogue de partenaires', Demo: BIntegrationsMarketplaceProjectionDemo }, { key: 'empty', label: 'État vide', Demo: BIntegrationsEmptyDemo }, { key: 'story', label: "État vide — connecter un canal", Demo: BChannelsStoryDemo }] },
+  { category: 'projections', group: 'Documents', title: 'Section — Documents', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Documents' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Documents ».", variants: [{ key: 'default', label: 'Défaut', Demo: BDocumentsSectionDemo }, { key: 'empty', label: 'État vide', Demo: BDocumentsEmptyDemo }] },
+  { category: 'projections', group: 'Notifications', title: 'Section — Notifications', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Notifications' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Notifications ».", variants: [{ key: 'default', label: 'Défaut', Demo: BNotificationsSectionDemo }, { key: 'empty', label: 'État vide', Demo: BNotificationsEmptyDemo }] },
   { category: 'projections', group: 'Assistant IA', title: 'Section — Assistant IA', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Assistant IA' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Assistant IA ».", variants: single(BAssistantSectionDemo) },
   { category: 'projections', group: 'Constellation agents', title: 'Section — Constellation d\'agents', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Constellation d\'agents' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Constellation d'agents ».", variants: single(BAgentsConstellationSectionDemo) },
-  { category: 'projections', group: 'Objets connectés', title: 'Section — Objets connectés', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Objets connectés' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Objets connectés ».", variants: single(BIotSectionDemo) },
+  { category: 'projections', group: 'Objets connectés', title: 'Section — Objets connectés', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Objets connectés' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Objets connectés ».", variants: [{ key: 'default', label: 'Défaut', Demo: BIotSectionDemo }, { key: 'empty', label: 'État vide', Demo: BDevicesEmptyDemo }, { key: 'story', label: "État vide — accès sans clé", Demo: BDevicesStoryDemo }] },
 ];
 
 /** Section + sélecteur de variante (Select Baitly UI) quand il y en a plusieurs. */
