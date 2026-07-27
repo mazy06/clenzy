@@ -39,6 +39,14 @@ export const reviewsApi = {
     return apiClient.get<Page<GuestReview>>(`/reviews?propertyId=${propertyId}&size=${size}`);
   },
 
+  /**
+   * Avis complet — le tableau de bord ne transporte qu'un extrait de 140
+   * caractères ; répondre suppose de lire le texte entier et le brouillon IA.
+   */
+  getById(id: number): Promise<GuestReview> {
+    return apiClient.get<GuestReview>(`/reviews/${id}`);
+  },
+
   /** Publie une réponse d'hôte (PUT /api/reviews/{id}/respond). */
   respond(id: number, response: string): Promise<GuestReview> {
     return apiClient.put<GuestReview>(`/reviews/${id}/respond`, { response });
