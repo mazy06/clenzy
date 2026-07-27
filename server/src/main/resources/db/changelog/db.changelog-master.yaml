@@ -3508,3 +3508,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0365__normalize_direct_reservation_source.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0366-add-reservation-payment-collection"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0366__add_reservation_payment_collection.sql
+        relativeToChangelogFile: true

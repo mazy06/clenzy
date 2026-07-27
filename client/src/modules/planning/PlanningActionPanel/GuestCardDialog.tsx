@@ -25,7 +25,7 @@ import {
 import { Money } from '../../../components/Money';
 import type { PlanningEvent } from '../types';
 import type { Reservation } from '../../../services/api';
-import { RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS, isOtaPaidSource } from '../../../services/api/reservationsApi';
+import { RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS, isCollectedByChannel } from '../../../services/api/reservationsApi';
 import { RESERVATION_STATUS_TOKEN_COLORS } from '../constants';
 import type { ReservationStatus, ReservationSource } from '../../../services/api';
 
@@ -67,7 +67,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
     .slice(0, 2)
     .join('');
 
-  const isICalSource = isOtaPaidSource(reservation.source);
+  const isICalSource = isCollectedByChannel(reservation);
   const hasNoPrice = !reservation.totalPrice || reservation.totalPrice === 0;
 
   // ── Editable fields ──────────────────────────────────────────────────────

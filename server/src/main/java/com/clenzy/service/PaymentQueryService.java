@@ -395,15 +395,16 @@ public class PaymentQueryService {
     }
 
     /**
-     * Réservation OTA : déjà réglée sur le canal externe, le PMS n'encaisse rien.
-     * Elle compte donc comme « payée » dans la facturation et les KPI, en
-     * cohérence avec le panneau réservation et la pastille du planning.
+     * Réservation déjà réglée sur le canal externe : le PMS n'encaisse rien, le
+     * séjour compte comme « payé » dans la facturation et les KPI.
      *
-     * <p>La liste vit dans {@link OtaPaidSources} — elle était recopiée ici et
-     * ailleurs, et Channex y avait été oublié.</p>
+     * <p>Le régime est LU sur la réservation ({@code payment_collection}), il
+     * n'est plus déduit du nom du canal. C'est cette déduction, recopiée à cinq
+     * endroits avec des listes divergentes, qui avait laissé les séjours Channex
+     * comptés « reste à payer ».</p>
      */
     private static boolean isOtaPaidReservation(Reservation r) {
-        return OtaPaidSources.contains(r.getSource());
+        return r.isCollectedByChannel();
     }
 
     private PaymentHistoryDto toReservationPaymentDto(Reservation r) {

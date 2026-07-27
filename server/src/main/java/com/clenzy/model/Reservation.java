@@ -189,6 +189,18 @@ public class Reservation {
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
 
+    /**
+     * Qui a encaisse ce sejour. Voir {@link PaymentCollection}.
+     *
+     * <p>Renseigne a la persistance par {@link #derivePaymentCollection()} si le
+     * producteur ne l'a pas pose explicitement. Ce sont les lecteurs — panneau
+     * financier, pastille du planning, facturation — qui consomment ce champ, au
+     * lieu de redeviner le regime depuis le nom du canal chacun de leur cote.</p>
+     */
+    @Column(name = "payment_collection", length = 20)
+    @Enumerated(EnumType.STRING)
+    private PaymentCollection paymentCollection;
+
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
@@ -222,6 +234,28 @@ public class Reservation {
     private List<ReservationServiceItem> serviceItems = new ArrayList<>();
 
     // Constructeurs
+    /**
+     * Derive le regime d'encaissement du nom du canal, UNE seule fois, au moment
+     * ou la reservation est ecrite.
+     *
+     * <p>C'est le point de bascule de tout le decouplage : la deduction depuis la
+     * chaine `source` existe toujours, mais elle ne se produit plus qu'ici, a la
+     * persistance, et son resultat est fige sur la ligne. Les lecteurs n'en
+     * refont plus chacun leur version — c'est cette duplication qui avait laisse
+     * Channex compte « reste a payer ».</p>
+     *
+     * <p>Un producteur qui connait mieux le regime que le nom du canal peut le
+     * poser explicitement : la valeur deja presente n'est jamais ecrasee.</p>
+     */
+    @PrePersist
+    void derivePaymentCollection() {
+        if (paymentCollection == null) {
+            paymentCollection = OtaPaidSources.contains(source)
+                ? PaymentCollection.CHANNEL
+                : PaymentCollection.PMS;
+        }
+    }
+
     public Reservation() {}
 
     public Reservation(Property property, String guestName, LocalDate checkIn, LocalDate checkOut,
@@ -397,6 +431,23 @@ public class Reservation {
 
     public PaymentStatus getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public PaymentCollection getPaymentCollection() { return paymentCollection; }
+    public void setPaymentCollection(PaymentCollection paymentCollection) { this.paymentCollection = paymentCollection; }
+
+    /**
+     * Le canal a-t-il deja encaisse ce sejour ?
+     *
+     * <p>Repli sur la deduction depuis {@code source} tant que le champ est
+     * {@code null} — une ligne ecrite par un producteur qui aurait echappe au
+     * hook, ou lue avant l'application du backfill. Ce repli est le filet de la
+     * migration : il doit disparaitre une fois toutes les lignes renseignees.</p>
+     */
+    public boolean isCollectedByChannel() {
+        return paymentCollection != null
+            ? paymentCollection == PaymentCollection.CHANNEL
+            : OtaPaidSources.contains(source);
+    }
 
     public LocalDateTime getPaidAt() { return paidAt; }
     public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }

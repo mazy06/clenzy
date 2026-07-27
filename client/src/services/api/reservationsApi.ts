@@ -28,6 +28,16 @@ export interface Reservation {
   status: ReservationStatus;
   source: ReservationSource;
   sourceName?: string;
+  /**
+   * Le canal a-t-il déjà encaissé ce séjour ? Décidé et figé à l'écriture côté
+   * serveur (`reservations.payment_collection`) — ne plus le redéduire de
+   * `source`, c'est cette déduction dispersée qui avait laissé les séjours
+   * Channex avec un solde dû sur de l'argent déjà perçu.
+   *
+   * `undefined` sur une réponse antérieure au déploiement du champ : les
+   * appelants retombent alors sur `isOtaPaidSource`.
+   */
+  collectedByChannel?: boolean;
   confirmationCode?: string;
   totalPrice: number;
   notes?: string;
@@ -183,6 +193,21 @@ const OTA_PAID_SOURCES = new Set(['airbnb', 'booking', 'other', 'channex']);
 /** Insensible à la casse : les producteurs n'ont pas tous été rigoureux. */
 export function isOtaPaidSource(source: string | null | undefined): boolean {
   return source != null && OTA_PAID_SOURCES.has(source.toLowerCase());
+}
+
+/**
+ * Le canal a-t-il déjà encaissé ce séjour ?
+ *
+ * Lit le régime décidé côté serveur, et ne retombe sur la déduction depuis le
+ * nom du canal que si le champ est absent — réponse d'un serveur antérieur au
+ * déploiement, ou ligne pas encore rattrapée par le backfill. Ce repli est le
+ * filet de la migration : il doit disparaître, pas s'installer.
+ */
+export function isCollectedByChannel(reservation: {
+  collectedByChannel?: boolean | null;
+  source?: string | null;
+}): boolean {
+  return reservation.collectedByChannel ?? isOtaPaidSource(reservation.source);
 }
 
 export const INTERVENTION_TYPE_COLORS: Record<PlanningInterventionType, string> = {
