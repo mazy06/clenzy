@@ -185,6 +185,23 @@ const PlanningPage: React.FC = () => {
     setActiveStatuses(new Set(PLANNING_STATUS_KEYS));
   }, [clearFilters]);
 
+  // Canaux réellement représentés dans les données chargées. La légende ne
+  // propose que ceux-là : afficher un chip « Expedia » à une organisation qui
+  // n'y vend pas donne un filtre sans effet et allonge la barre pour rien.
+  //
+  // Calculé sur `filteredEvents` — donc AVANT le filtrage par légende, sinon
+  // décocher un canal le ferait disparaître de sa propre légende et il
+  // deviendrait impossible de le réafficher.
+  const presentChannels = useMemo(() => {
+    const present = new Set<PlanningChannelKey>();
+    for (const event of filteredEvents) {
+      const source = event.reservation?.source;
+      const known = PLANNING_CHANNEL_KEYS.find((key) => key === source);
+      if (known) present.add(known);
+    }
+    return present;
+  }, [filteredEvents]);
+
   // Masquage client-side des briques réservation selon les toggles légende.
   // S'applique APRÈS usePlanningFilters (hooks de données inchangés) et AVANT
   // le layout/rendu de la grille. Seul l'affichage est filtré : sélection,
@@ -653,6 +670,7 @@ const PlanningPage: React.FC = () => {
                   showLegendChips={legendInModal}
                   activeChannels={activeChannels}
                   onToggleChannel={toggleChannel}
+                  presentChannels={presentChannels}
                   activeStatuses={activeStatuses}
                   onToggleStatus={toggleStatus}
                 />
@@ -708,6 +726,7 @@ const PlanningPage: React.FC = () => {
             onShowInterventionsChange={setShowInterventions}
             activeChannels={activeChannels}
             onToggleChannel={toggleChannel}
+                  presentChannels={presentChannels}
             activeStatuses={activeStatuses}
             onToggleStatus={toggleStatus}
           />

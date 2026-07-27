@@ -96,10 +96,17 @@ const chipSxFor = (variant: LegendChipVariant, selected: boolean) =>
 export const ChannelLegendChips: React.FC<{
   activeChannels: ReadonlySet<PlanningChannelKey>;
   onToggleChannel: (key: PlanningChannelKey) => void;
+  /**
+   * Canaux effectivement présents dans les données affichées. Seuls ceux-là
+   * reçoivent un chip : un filtre sur un canal où l'organisation ne vend pas
+   * n'a aucun effet et encombre la barre. Absent → toute la légende, ce qui
+   * préserve les appelants qui n'ont pas la donnée sous la main.
+   */
+  presentChannels?: ReadonlySet<PlanningChannelKey>;
   variant?: LegendChipVariant;
-}> = ({ activeChannels, onToggleChannel, variant = 'legend' }) => (
+}> = ({ activeChannels, onToggleChannel, presentChannels, variant = 'legend' }) => (
   <>
-    {CHANNEL_LEGEND.map((ch) => {
+    {CHANNEL_LEGEND.filter((ch) => !presentChannels || presentChannels.has(ch.key)).map((ch) => {
       const selected = activeChannels.has(ch.key);
       return (
         <Tooltip key={ch.key} title={selected ? `Masquer le canal ${ch.label}` : `Afficher le canal ${ch.label}`} arrow>

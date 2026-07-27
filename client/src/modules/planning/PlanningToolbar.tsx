@@ -39,6 +39,8 @@ interface PlanningToolbarProps {
   /** Canaux visibles (rangée Canaux) — tout sélectionné par défaut. */
   activeChannels: ReadonlySet<PlanningChannelKey>;
   onToggleChannel: (key: PlanningChannelKey) => void;
+  /** Canaux presents dans les donnees — la legende ne montre que ceux-la. */
+  presentChannels?: ReadonlySet<PlanningChannelKey>;
   /** Statuts visibles (rangée Statuts) — tout sélectionné par défaut. */
   activeStatuses: ReadonlySet<ReservationStatus>;
   onToggleStatus: (status: ReservationStatus) => void;
@@ -60,6 +62,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   onShowInterventionsChange,
   activeChannels,
   onToggleChannel,
+  presentChannels,
   activeStatuses,
   onToggleStatus,
 }) => {
@@ -234,7 +237,8 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
       {!legendInModal && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           {/* Canaux : LOGO de canal (la pastille des briques), toggle masque/affiche */}
-          <ChannelLegendChips activeChannels={activeChannels} onToggleChannel={onToggleChannel} />
+          <ChannelLegendChips activeChannels={activeChannels} onToggleChannel={onToggleChannel}
+            presentChannels={presentChannels} />
           {/* Statuts : puce colorée = couleur de brique, toggle masque/affiche */}
           <StatusLegendChips activeStatuses={activeStatuses} onToggleStatus={onToggleStatus} />
           {/* Ménage & maintenance sur la grille : même chip .pl-chip que les autres */}

@@ -43,6 +43,8 @@ interface PlanningFilterButtonProps {
   showLegendChips: boolean;
   activeChannels: ReadonlySet<PlanningChannelKey>;
   onToggleChannel: (key: PlanningChannelKey) => void;
+  /** Canaux presents dans les donnees — la legende ne montre que ceux-la. */
+  presentChannels?: ReadonlySet<PlanningChannelKey>;
   activeStatuses: ReadonlySet<ReservationStatus>;
   onToggleStatus: (status: ReservationStatus) => void;
 }
@@ -103,6 +105,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
   showLegendChips,
   activeChannels,
   onToggleChannel,
+  presentChannels,
   activeStatuses,
   onToggleStatus,
 }) => {
@@ -111,14 +114,21 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
 
   // Badge de l'entonnoir : nombre de filtres actifs (toutes catégories).
   // Un canal/statut désélectionné = un filtre actif, où qu'il soit affiché.
+  //
+  // Les canaux sont comptés parmi ceux qui ont un chip VISIBLE : un canal
+  // désélectionné puis disparu des données (changement de plage) laisserait
+  // sinon le badge annoncer un filtre que l'utilisateur ne voit nulle part.
   const activeFilterCount = useMemo(() => {
+    const shownChannels = CHANNEL_LEGEND.filter(
+      (ch) => !presentChannels || presentChannels.has(ch.key),
+    );
     let count =
-      (CHANNEL_LEGEND.length - activeChannels.size)
+      shownChannels.filter((ch) => !activeChannels.has(ch.key)).length
       + (STATUS_OPTIONS.length - activeStatuses.size);
     if (!filters.showInterventions) count++; // masqué = filtre actif
     if (filters.showPrices) count++;          // tarifs affichés = filtre actif
     return count;
-  }, [activeChannels.size, activeStatuses.size, filters.showInterventions, filters.showPrices]);
+  }, [activeChannels, presentChannels, activeStatuses.size, filters.showInterventions, filters.showPrices]);
 
   const isCompactDensity = density === 'compact';
 
@@ -191,6 +201,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
                 <ChannelLegendChips
                   activeChannels={activeChannels}
                   onToggleChannel={onToggleChannel}
+                  presentChannels={presentChannels}
                   variant="toggle"
                 />
               </Box>
