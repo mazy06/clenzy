@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,10 +20,14 @@ import java.util.Map;
  * Calcule les donnees du widget dashboard « Revenus par canal » pour
  * l'organisation courante.
  *
- * <p>Revenu RESERVE (reservations non annulees) regroupe par source, sur le mois
+ * <p>Revenu RESERVE (reservations non annulees) regroupe par canal, sur le mois
  * ou l'annee en cours (comparaison periode precedente). Tout est derive des
  * donnees DB de l'org (Reservation), org-scope. Les reversements proprietaires
  * sont calcules cote client (carte « Gestion &amp; reversements »).</p>
+ *
+ * <p>Le catalogue de canaux est renvoye <b>en entier a chaque appel</b>, canaux
+ * sans revenu compris, et <b>classe par revenu decroissant</b> : la carte se lit
+ * comme un classement, et sa hauteur ne varie plus d'une periode a l'autre.</p>
  *
  * <p>Service strictement read-only, aucun appel HTTP externe.</p>
  */
@@ -33,15 +38,43 @@ public class BillingOverviewService {
     private static final String DEFAULT_CURRENCY = "EUR";
 
     /**
-     * Canaux connus regroupes, dans l'ordre d'affichage. Toute source non
-     * reconnue est repliee sur "other".
+     * Catalogue des canaux, dans l'ordre de depart (ex aequo et canaux a zero).
+     * Toutes ces lignes sont renvoyees a chaque appel, meme sans revenu : une
+     * carte dont les lignes apparaissent et disparaissent d'un mois a l'autre
+     * n'est pas comparable, et un canal a zero est une information en soi.
      */
     private static final Map<String, String> CHANNEL_LABELS = new LinkedHashMap<>();
     static {
         CHANNEL_LABELS.put("airbnb", "Airbnb");
         CHANNEL_LABELS.put("booking", "Booking.com");
+        CHANNEL_LABELS.put("vrbo", "Vrbo");
+        CHANNEL_LABELS.put("expedia", "Expedia");
         CHANNEL_LABELS.put("direct", "Direct");
         CHANNEL_LABELS.put("other", "Autre");
+    }
+
+    /**
+     * Mots-cles reconnus dans {@code Reservation.sourceName} — le nom du feed
+     * iCal saisi par l'hote, ou l'OTA renvoyee par Channex.
+     *
+     * <p>C'est la seule trace fine du canal : {@code Reservation.source} ne
+     * connait que airbnb / booking / direct / other, car
+     * {@code ICalImportService.detectSource} replie vrbo et homeaway sur
+     * "other". Cette taxonomie grossiere est lue par la facturation
+     * ({@code PaymentQueryService.isOtaPaidReservation}, qui traite airbnb,
+     * booking et other comme deja regles sur le canal) : l'elargir ferait
+     * basculer des sejours OTA en « reste a payer ». On resout donc le canal a
+     * l'affichage, sans toucher aux donnees ni a leur signification.</p>
+     */
+    private static final Map<String, String> SOURCE_NAME_KEYWORDS = new LinkedHashMap<>();
+    static {
+        SOURCE_NAME_KEYWORDS.put("airbnb", "airbnb");
+        SOURCE_NAME_KEYWORDS.put("booking", "booking");
+        SOURCE_NAME_KEYWORDS.put("vrbo", "vrbo");
+        SOURCE_NAME_KEYWORDS.put("abritel", "vrbo");
+        SOURCE_NAME_KEYWORDS.put("homeaway", "vrbo");
+        SOURCE_NAME_KEYWORDS.put("expedia", "expedia");
+        SOURCE_NAME_KEYWORDS.put("direct", "direct");
     }
 
     private final ReservationRepository reservationRepository;
@@ -93,45 +126,67 @@ public class BillingOverviewService {
 
     private List<ChannelRevenueDto> buildChannels(List<Reservation> currentMonth,
                                                   List<Reservation> previousMonth) {
-        Map<String, BigDecimal> currentBySource = revenueBySource(currentMonth);
-        Map<String, BigDecimal> previousBySource = revenueBySource(previousMonth);
+        Map<String, BigDecimal> currentByChannel = revenueByChannel(currentMonth);
+        Map<String, BigDecimal> previousByChannel = revenueByChannel(previousMonth);
 
-        BigDecimal currentTotal = currentBySource.values().stream()
+        BigDecimal currentTotal = currentByChannel.values().stream()
             .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal previousTotal = previousBySource.values().stream()
+        BigDecimal previousTotal = previousByChannel.values().stream()
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         List<ChannelRevenueDto> channels = new ArrayList<>();
-        for (Map.Entry<String, BigDecimal> entry : currentBySource.entrySet()) {
-            String source = entry.getKey();
-            BigDecimal amount = scale(entry.getValue());
+        for (Map.Entry<String, String> catalogEntry : CHANNEL_LABELS.entrySet()) {
+            String channel = catalogEntry.getKey();
+            BigDecimal amount = scale(currentByChannel.getOrDefault(channel, BigDecimal.ZERO));
             double pct = percentage(amount, currentTotal);
 
-            Double comparePct = null;
-            BigDecimal prevAmount = previousBySource.get(source);
-            // Pas de comparaison si le mois precedent n'a aucun revenu (N/A).
-            if (prevAmount != null && previousTotal.compareTo(BigDecimal.ZERO) > 0) {
-                comparePct = percentage(prevAmount, previousTotal);
-            }
+            // Pas de comparaison si la periode precedente n'a aucun revenu (N/A).
+            // Sinon, un canal absent de cette periode y pesait bien 0 % : le dire
+            // explicitement fait apparaitre la chute (▼ x pt) au lieu de la masquer.
+            Double comparePct = previousTotal.compareTo(BigDecimal.ZERO) > 0
+                ? percentage(previousByChannel.getOrDefault(channel, BigDecimal.ZERO), previousTotal)
+                : null;
 
             channels.add(new ChannelRevenueDto(
-                source, CHANNEL_LABELS.getOrDefault(source, "Autre"), amount, pct, comparePct));
+                channel, catalogEntry.getValue(), amount, pct, comparePct));
         }
+
+        // Classement par revenu decroissant. `List.sort` est stable : les ex aequo
+        // — au premier rang desquels les canaux a zero — gardent l'ordre du catalogue.
+        channels.sort(Comparator.comparing(ChannelRevenueDto::amount).reversed());
         return channels;
     }
 
     /**
-     * Revenu encaisse par canal connu (airbnb/booking/direct/other). Toute
-     * source inconnue est repliee sur "other". Conserve l'ordre d'affichage.
+     * Revenu agrege par canal du catalogue. Les canaux sans reservation sont
+     * simplement absents de la map — c'est {@link #buildChannels} qui garantit
+     * la ligne a zero.
      */
-    private Map<String, BigDecimal> revenueBySource(List<Reservation> reservations) {
-        Map<String, BigDecimal> bySource = new LinkedHashMap<>();
+    private Map<String, BigDecimal> revenueByChannel(List<Reservation> reservations) {
+        Map<String, BigDecimal> byChannel = new LinkedHashMap<>();
         for (Reservation r : reservations) {
-            String source = normalizeSource(r.getSource());
             BigDecimal price = r.getTotalPrice() != null ? r.getTotalPrice() : BigDecimal.ZERO;
-            bySource.merge(source, price, BigDecimal::add);
+            byChannel.merge(resolveChannel(r), price, BigDecimal::add);
         }
-        return bySource;
+        return byChannel;
+    }
+
+    /**
+     * Canal d'affichage d'une reservation : le nom de source d'abord (seul a
+     * distinguer Vrbo d'Expedia, cf. {@link #SOURCE_NAME_KEYWORDS}), la source
+     * technique en repli. Tout ce qui reste inconnu tombe dans "other".
+     */
+    private String resolveChannel(Reservation reservation) {
+        String sourceName = reservation.getSourceName();
+        if (sourceName != null) {
+            String lower = sourceName.toLowerCase();
+            for (Map.Entry<String, String> keyword : SOURCE_NAME_KEYWORDS.entrySet()) {
+                if (lower.contains(keyword.getKey())) {
+                    return keyword.getValue();
+                }
+            }
+        }
+        return normalizeSource(reservation.getSource());
     }
 
     private String normalizeSource(String rawSource) {
