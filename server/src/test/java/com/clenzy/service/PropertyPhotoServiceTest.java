@@ -30,6 +30,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -218,12 +219,19 @@ class PropertyPhotoServiceTest {
     @DisplayName("uploadPhoto - happy path")
     class UploadHappyPath {
 
+        /**
+         * L'upload ecrit le BYTEA et laisse {@code storageKey} NULL — c'est le job de migration
+         * qui posera la cle org-scopee. Ce test verifiait auparavant le contraire (deux saves,
+         * {@code storageKey = String.valueOf(id)}) : cette cle numerique ne designait aucun objet
+         * et rendait la bascule {@code clenzy.storage.photos=object} inutilisable (NoSuchKey ->
+         * 500 sur toute photo post-bascule). Changeset 0369 pour l'historique.
+         */
         @Test
-        void whenValid_thenSavesAndSetsStorageKey() {
+        void whenValid_thenSavesOnceAndLeavesStorageKeyNull() {
             when(photoRepository.countByPropertyId(PROPERTY_ID)).thenReturn(2);
             when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(buildProperty()));
-            // Simulate JPA save: assigns ID
-            when(photoRepository.save(any(PropertyPhoto.class))).thenAnswer(inv -> {
+            ArgumentCaptor<PropertyPhoto> captor = ArgumentCaptor.forClass(PropertyPhoto.class);
+            when(photoRepository.save(captor.capture())).thenAnswer(inv -> {
                 PropertyPhoto p = inv.getArgument(0);
                 if (p.getId() == null) p.setId(77L);
                 return p;
@@ -233,8 +241,27 @@ class PropertyPhotoServiceTest {
 
             assertThat(result.id()).isEqualTo(77L);
             assertThat(result.caption()).isEqualTo("Beautiful view");
-            // Saved twice: once to get the ID, once to persist storageKey
-            verify(photoRepository, times(2)).save(any(PropertyPhoto.class));
+            // Un seul save : aucun aller-retour pour reecrire une cle de stockage.
+            verify(photoRepository, times(1)).save(any(PropertyPhoto.class));
+            PropertyPhoto saved = captor.getValue();
+            assertThat(saved.getStorageKey()).isNull();
+            assertThat(saved.getData()).isNotEmpty();
+        }
+
+        /** Aucun IO reseau vers le stockage objet dans la transaction d'upload (regle audit #2). */
+        @Test
+        void whenValid_thenNeverCallsStorageService() {
+            when(photoRepository.countByPropertyId(PROPERTY_ID)).thenReturn(0);
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(buildProperty()));
+            when(photoRepository.save(any(PropertyPhoto.class))).thenAnswer(inv -> {
+                PropertyPhoto p = inv.getArgument(0);
+                if (p.getId() == null) p.setId(78L);
+                return p;
+            });
+
+            service.uploadPhoto(PROPERTY_ID, validImageFile(), null);
+
+            verifyNoInteractions(storageService);
         }
 
         @Test

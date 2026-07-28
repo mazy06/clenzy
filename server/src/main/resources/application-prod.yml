@@ -305,6 +305,12 @@ clenzy:
   storage:
     photos: ${STORAGE_PHOTOS:bytea}
     documents: ${STORAGE_DOCUMENTS:disk}
+    # Memes semantiques, pilotables separement : chaque famille de binaires se bascule
+    # independamment (une migration dediee existe pour chacune).
+    #   - intervention-photos : bytea | object
+    #   - binary-assets       : postgres | object   (avatars, fichiers contacts)
+    intervention-photos: ${STORAGE_INTERVENTION_PHOTOS:bytea}
+    binary-assets: ${STORAGE_BINARY_ASSETS:postgres}
     object:
       endpoint: ${STORAGE_OBJECT_ENDPOINT:}
       region: ${STORAGE_OBJECT_REGION:}
