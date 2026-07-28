@@ -15,6 +15,7 @@ import {
   Spinner,
 } from '../ui';
 import { iCalApi } from '../../services/api/iCalApi';
+import { refreshActionQueue } from '../../services/api/actionItemsApi';
 import { useTranslation } from '../../hooks/useTranslation';
 
 /**
@@ -53,9 +54,10 @@ export default function FeedSyncDialog({
   const sync = useMutation({
     mutationFn: () => iCalApi.syncFeed(feedId!),
     onSuccess: async () => {
-      await Promise.all(
-        invalidateKeys.map((key) => queryClient.invalidateQueries({ queryKey: [...key] })),
-      );
+      // La ligne traitée doit disparaître tout de suite : on demande le
+      // recalcul de la file avant d'invalider les vues qui la lisent.
+      await refreshActionQueue(
+        (key) => queryClient.invalidateQueries({ queryKey: key }), invalidateKeys);
     },
   });
 

@@ -41,7 +41,14 @@ import java.util.concurrent.CompletionException;
 public class OutboxRelay {
 
     private static final Logger log = LoggerFactory.getLogger(OutboxRelay.class);
-    private static final int MAX_RETRIES = 5;
+    /**
+     * Nombre de tentatives avant abandon définitif.
+     *
+     * <p>Publique parce que la file « à traiter » signale les messages
+     * définitivement perdus : deux constantes divergeraient, et on afficherait
+     * comme perdus des messages encore à retenter.</p>
+     */
+    public static final int MAX_RETRIES = 5;
     /**
      * Taille max d'un lot par tick. Borne la memoire et la duree de la
      * transaction pendant un backlog (panne Kafka) ; le tick suivant (2 s)

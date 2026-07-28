@@ -34,9 +34,12 @@ function item(
     detail: null,
     subject: null,
     targetId: 1,
+    propertyId: 9001,
     propertyName: null,
     amount: null,
     badge: null,
+    actionType: null,
+    actionItemId: null,
     ...overrides,
   };
 }
@@ -63,6 +66,18 @@ function pack(
  * personne est en jeu.
  */
 export const ACTION_ITEMS_FULL: DashboardActionItems = pack([
+  // Le litige ouvre la file : c'est la seule ligne dont l'inaction coûte la
+  // somme entière, et son échéance s'affiche en fin de ligne à la place du
+  // montant.
+  item('PAYMENT_INCIDENT', 'incident:41', {
+    severity: 'critical',
+    title: 'Litige bancaire à contester',
+    detail: 'Le voyageur a contesté le paiement. Réponse attendue avant l’échéance.',
+    propertyName: 'Riad Zitoun',
+    amount: 640,
+    badge: 'J-3',
+    actionType: 'DISPUTE_OPENED',
+  }),
   item('BALANCE_DUE', 'balance:8801', {
     severity: 'critical',
     title: 'Claire Fontaine',

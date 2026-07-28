@@ -19,6 +19,7 @@ import GuestAvatar from './GuestAvatar';
 import { Money } from './Money';
 import StatusChip from './StatusChip';
 import { reservationsApi } from '../../services/api/reservationsApi';
+import { refreshActionQueue } from '../../services/api/actionItemsApi';
 import { useTranslation } from '../../hooks/useTranslation';
 
 /**
@@ -75,9 +76,10 @@ export default function ReservationActionDialog({
     mutationFn: () => reservationsApi.sendPaymentLink(reservationId!),
     onSuccess: async () => {
       setSent(true);
-      await Promise.all(
-        invalidateKeys.map((key) => queryClient.invalidateQueries({ queryKey: [...key] })),
-      );
+      // La ligne traitée doit disparaître tout de suite : on demande le
+      // recalcul de la file avant d'invalider les vues qui la lisent.
+      await refreshActionQueue(
+        (key) => queryClient.invalidateQueries({ queryKey: key }), invalidateKeys);
     },
   });
 

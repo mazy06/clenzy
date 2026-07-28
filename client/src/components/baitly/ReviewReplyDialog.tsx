@@ -19,6 +19,7 @@ import {
 import GuestAvatar from './GuestAvatar';
 import { cn } from '../../utils/cn';
 import { reviewsApi } from '../../services/api/reviewsApi';
+import { refreshActionQueue } from '../../services/api/actionItemsApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAiKeyStatus } from '../../hooks/useAi';
 
@@ -112,9 +113,10 @@ export default function ReviewReplyDialog({
   const publish = useMutation({
     mutationFn: (response: string) => reviewsApi.respond(reviewId!, response),
     onSuccess: async () => {
-      await Promise.all(
-        invalidateKeys.map((key) => queryClient.invalidateQueries({ queryKey: [...key] })),
-      );
+      // La ligne traitée doit disparaître tout de suite : on demande le
+      // recalcul de la file avant d'invalider les vues qui la lisent.
+      await refreshActionQueue(
+        (key) => queryClient.invalidateQueries({ queryKey: key }), invalidateKeys);
       onClose();
     },
   });

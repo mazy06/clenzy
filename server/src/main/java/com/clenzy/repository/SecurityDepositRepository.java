@@ -14,6 +14,24 @@ import java.util.Optional;
 
 public interface SecurityDepositRepository extends JpaRepository<SecurityDeposit, Long> {
 
+    /**
+     * Cautions encore retenues bien après le départ du voyageur.
+     *
+     * <p>La libération automatique passe deux jours après le départ ; au-delà,
+     * c'est qu'elle échoue en boucle — souvent parce que le hold Stripe a
+     * expiré. La base affirme alors {@code HELD} alors que plus aucun fonds
+     * n'est bloqué : fausse sécurité en cas de dégât, et carte indûment
+     * retenue côté voyageur.</p>
+     */
+    @Query("SELECT d FROM SecurityDeposit d, Reservation r "
+        + "WHERE d.reservationId = r.id AND d.organizationId = :orgId "
+        + "AND d.status = com.clenzy.model.SecurityDepositStatus.HELD "
+        + "AND r.checkOut < :staleBefore "
+        + "ORDER BY r.checkOut")
+    List<SecurityDeposit> findHeldLongAfterCheckout(@Param("orgId") Long orgId,
+                                                    @Param("staleBefore") LocalDate staleBefore);
+
+
     Optional<SecurityDeposit> findByOrganizationIdAndReservationId(Long organizationId, Long reservationId);
 
     Optional<SecurityDeposit> findByIdAndOrganizationId(Long id, Long organizationId);

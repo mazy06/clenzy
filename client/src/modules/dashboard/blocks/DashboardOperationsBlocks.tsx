@@ -2,9 +2,25 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BanknoteIcon,
+  BanknoteXIcon,
+  BookOpenIcon,
   BrushIcon,
   CalendarSyncIcon,
+  CalendarXIcon,
   ChevronRightIcon,
+  ClockAlertIcon,
+  LockIcon,
+  MailWarningIcon,
+  VolumeXIcon,
+  ClipboardListIcon,
+  ZapOffIcon,
+  SendHorizonalIcon,
+  PlugZapIcon,
+  FileWarningIcon,
+  LandmarkIcon,
+  ReceiptTextIcon,
+  MessageCircleIcon,
+  ShieldAlertIcon,
   LogInIcon,
   LogOutIcon,
   StarIcon,
@@ -25,6 +41,9 @@ import GuestAvatar from '../../../components/baitly/GuestAvatar';
 import ReviewReplyDialog from '../../../components/baitly/ReviewReplyDialog';
 import ReservationActionDialog from '../../../components/baitly/ReservationActionDialog';
 import FeedSyncDialog from '../../../components/baitly/FeedSyncDialog';
+import ActionGuidanceDialog from '../../../components/baitly/ActionGuidanceDialog';
+import PaymentIncidentDialog from '../../../components/baitly/PaymentIncidentDialog';
+import RetryDeliveryDialog from '../../../components/baitly/RetryDeliveryDialog';
 import StuckServiceDialog from '../../../components/baitly/StuckServiceDialog';
 import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
 import StatusChip from '../../../components/baitly/StatusChip';
@@ -313,10 +332,64 @@ const GROUP_PREVIEW = 3;
 function actionKinds(t: TranslateFn) {
   return [
     {
+      kind: 'GUEST_DECLARATION_MISSING' as const,
+      icon: <ShieldAlertIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.declarationGroup', 'Déclarations voyageur manquantes'),
+    },
+    {
+      kind: 'PAYMENT_INCIDENT' as const,
+      icon: <LandmarkIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.incidentGroup', 'Incidents de règlement'),
+    },
+    {
+      kind: 'RESERVATION_PENDING' as const,
+      icon: <CalendarXIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.pendingGroup', 'Réservations à confirmer'),
+    },
+    {
+      kind: 'INTERVENTION_OVERDUE' as const,
+      icon: <ClockAlertIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.overdueGroup', 'Interventions en retard'),
+    },
+    {
+      kind: 'CONVERSATION_UNANSWERED' as const,
+      icon: <MessageCircleIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.conversationGroup', 'Messages sans réponse'),
+    },
+    {
       kind: 'BALANCE_DUE' as const,
       icon: <BanknoteIcon />,
       tone: 'text-warning',
       label: t('dashboard.actionItems.balancesGroup', 'Soldes à percevoir'),
+    },
+    {
+      kind: 'BALANCE_ABANDONED' as const,
+      icon: <BanknoteXIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.abandonedGroup', 'Soldes jamais encaissés'),
+    },
+    {
+      kind: 'GUEST_MESSAGE_FAILED' as const,
+      icon: <MailWarningIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.messageFailedGroup', 'Messages non délivrés'),
+    },
+    {
+      kind: 'WELCOME_GUIDE_MISSING' as const,
+      icon: <BookOpenIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.guideGroup', 'Livrets d’accueil à publier'),
+    },
+    {
+      kind: 'DEPOSIT_STUCK' as const,
+      icon: <LockIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.depositGroup', 'Cautions à libérer'),
     },
     {
       kind: 'SERVICE_UNPAID' as const,
@@ -341,6 +414,84 @@ function actionKinds(t: TranslateFn) {
       icon: <StarIcon />,
       tone: 'text-info',
       label: t('dashboard.actionItems.reviewsGroup', 'Avis sans réponse'),
+    },
+    {
+      kind: 'INTERVENTION_UNASSIGNED' as const,
+      icon: <UserSearchIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.interventionUnassignedGroup', 'Interventions sans exécutant'),
+    },
+    {
+      kind: 'INTERVENTION_UNPAID' as const,
+      icon: <WrenchIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.interventionUnpaidGroup', 'Interventions à régler'),
+    },
+    {
+      kind: 'CHECKIN_NOT_STARTED' as const,
+      icon: <LogInIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.checkinGroup', 'Check-in en ligne non commencés'),
+    },
+    {
+      kind: 'NOISE_ALERT_UNACKNOWLEDGED' as const,
+      icon: <VolumeXIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.noiseGroup', 'Alertes de bruit non acquittées'),
+    },
+    {
+      kind: 'ISSUE_OPEN' as const,
+      icon: <ClipboardListIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.issueGroup', 'Signalements à qualifier'),
+    },
+    {
+      kind: 'OWNER_PAYOUT_PENDING' as const,
+      icon: <BanknoteIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.payoutGroup', 'Reversements à approuver'),
+    },
+    {
+      kind: 'PAYOUT_ONBOARDING_INCOMPLETE' as const,
+      icon: <LandmarkIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.onboardingGroup', 'Comptes de paiement non finalisés'),
+    },
+    {
+      kind: 'INVITATION_EXPIRED' as const,
+      icon: <MailWarningIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.invitationGroup', 'Invitations expirées'),
+    },
+    {
+      kind: 'DOCUMENT_DELIVERY_FAILED' as const,
+      icon: <FileWarningIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.documentGroup', 'Documents non délivrés'),
+    },
+    {
+      kind: 'EINVOICE_FAILED' as const,
+      icon: <ReceiptTextIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.einvoiceGroup', 'Factures électroniques rejetées'),
+    },
+    {
+      kind: 'AUTOMATION_FAILED' as const,
+      icon: <ZapOffIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.automationGroup', 'Automatisations en échec'),
+    },
+    {
+      kind: 'OUTBOX_DEAD_LETTER' as const,
+      icon: <SendHorizonalIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.outboxGroup', 'Messages internes perdus'),
+    },
+    {
+      kind: 'INTEGRATION_DISCONNECTED' as const,
+      icon: <PlugZapIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.integrationGroup', 'Intégrations déconnectées'),
     },
   ];
 }
@@ -476,6 +627,8 @@ function actionValue(item: DashboardActionItem): React.ReactNode {
     item.kind === 'BALANCE_DUE'
     || item.kind === 'SERVICE_UNPAID'
     || item.kind === 'SERVICE_UNASSIGNED'
+    || item.kind === 'BALANCE_ABANDONED'
+    || item.kind === 'DEPOSIT_STUCK'
   ) {
     return item.amount == null ? null : (
       <span className="text-sm font-semibold text-foreground tabular-nums">
@@ -491,6 +644,26 @@ function actionValue(item: DashboardActionItem): React.ReactNode {
   }
   return null;
 }
+
+/**
+ * Natures qui n'ont pas de geste sur place : la modale explique et renvoie vers
+ * l'écran qui porte l'action. Les lister ici plutôt que dans une cascade de
+ * conditions garde la sélection lisible à mesure qu'elles se multiplient.
+ */
+const GUIDED_KINDS = new Set<string>([
+  'INTERVENTION_UNASSIGNED',
+  'INTERVENTION_UNPAID',
+  'CHECKIN_NOT_STARTED',
+  'NOISE_ALERT_UNACKNOWLEDGED',
+  'ISSUE_OPEN',
+  'OWNER_PAYOUT_PENDING',
+  'PAYOUT_ONBOARDING_INCOMPLETE',
+  'INVITATION_EXPIRED',
+  'EINVOICE_FAILED',
+  'AUTOMATION_FAILED',
+  'OUTBOX_DEAD_LETTER',
+  'INTEGRATION_DISCONNECTED',
+]);
 
 /**
  * La modale qui traite l'élément cliqué, choisie par sa nature.
@@ -542,14 +715,39 @@ function ActionItemDialog({
         invalidateKeys={invalidateKeys}
       />
 
+      <PaymentIncidentDialog
+        incidentId={kind === 'PAYMENT_INCIDENT' ? (item?.actionItemId ?? null) : null}
+        onClose={onClose}
+        incident={{
+          type: item?.actionType,
+          title: item?.title,
+          detail: item?.detail,
+          amount: item?.amount,
+          badge: item?.badge,
+        }}
+        invalidateKeys={invalidateKeys}
+      />
+
+      <RetryDeliveryDialog
+        item={
+          kind === 'DOCUMENT_DELIVERY_FAILED' || kind === 'GUEST_MESSAGE_FAILED' ? item : null
+        }
+        onClose={onClose}
+        invalidateKeys={invalidateKeys}
+      />
+
+      <ActionGuidanceDialog item={GUIDED_KINDS.has(kind ?? '') ? item : null} onClose={onClose} />
+
       <StuckServiceDialog
         serviceRequestId={kind === 'SERVICE_UNASSIGNED' ? (item?.targetId ?? null) : null}
         onClose={onClose}
         service={{
           title: item?.title,
+          propertyId: item?.propertyId,
           propertyName: item?.propertyName,
           severity: item?.severity,
         }}
+        invalidateKeys={invalidateKeys}
       />
 
       {/* Le règlement passe par le tunnel Stripe embarqué déjà en service

@@ -33,4 +33,16 @@ public interface OwnerPayoutConfigRepository extends JpaRepository<OwnerPayoutCo
     @Query("SELECT c FROM OwnerPayoutConfig c WHERE c.openBankingConsentId = :requisitionId AND c.organizationId = :orgId")
     Optional<OwnerPayoutConfig> findByRequisitionId(@Param("requisitionId") String requisitionId,
                                                       @Param("orgId") Long orgId);
+
+    /**
+     * Comptes raccordés à Stripe dont l'inscription n'a jamais été menée à son
+     * terme : aucun versement ne partira, et rien ne le signale aujourd'hui.
+     */
+    @Query("""
+            SELECT c FROM OwnerPayoutConfig c
+            WHERE c.organizationId = :orgId
+              AND c.stripeConnectedAccountId IS NOT NULL
+              AND c.stripeOnboardingComplete = false
+            """)
+    List<OwnerPayoutConfig> findIncompleteOnboarding(@Param("orgId") Long orgId);
 }

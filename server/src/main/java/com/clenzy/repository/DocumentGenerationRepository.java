@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 public interface DocumentGenerationRepository extends JpaRepository<DocumentGeneration, Long> {
 
@@ -68,4 +69,21 @@ public interface DocumentGenerationRepository extends JpaRepository<DocumentGene
     long countByLockedTrue();
 
     long countByDocumentType(DocumentType type);
+
+    /**
+     * Documents générés que le destinataire n'a jamais reçus.
+     *
+     * <p>Le PDF existe, il est numéroté, il est archivé — et l'envoi a échoué.
+     * Rien ne le signalait : côté client, le document n'est simplement jamais
+     * arrivé, et on ne l'apprend qu'en le réclamant.</p>
+     */
+    @Query("""
+            SELECT d FROM DocumentGeneration d
+            WHERE d.organizationId = :orgId
+              AND d.emailStatus = 'FAILED'
+              AND d.createdAt >= :since
+            ORDER BY d.createdAt DESC
+            """)
+    List<DocumentGeneration> findUndeliveredForOrg(@Param("orgId") Long orgId,
+                                                   @Param("since") LocalDateTime since);
 }

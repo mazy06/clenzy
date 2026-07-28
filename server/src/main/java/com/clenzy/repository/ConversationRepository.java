@@ -11,11 +11,31 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface ConversationRepository extends JpaRepository<Conversation, Long> {
+
+    /**
+     * Conversations ouvertes dont le dernier message vient du voyageur.
+     *
+     * <p>Le seul signal existant est le booléen {@code unread}, effacé dès
+     * qu'on ouvre la conversation : on lit, on remet la réponse à plus tard, et
+     * le voyageur disparaît du système. Le silence pendant un séjour est
+     * pourtant ce qui produit les mauvais avis.</p>
+     */
+    @Query("SELECT c FROM Conversation c WHERE c.organizationId = :orgId "
+        + "AND c.status = com.clenzy.model.ConversationStatus.OPEN "
+        + "AND c.lastMessageAt < :staleBefore "
+        + "AND EXISTS (SELECT 1 FROM ConversationMessage m WHERE m.conversation = c "
+        + "  AND m.direction = com.clenzy.model.MessageDirection.INBOUND "
+        + "  AND m.sentAt = c.lastMessageAt) "
+        + "ORDER BY c.lastMessageAt")
+    List<Conversation> findAwaitingHostReply(@Param("orgId") Long orgId,
+                                             @Param("staleBefore") LocalDateTime staleBefore);
+
 
     // @EntityGraph : charge guest/property/reservation AVEC la conversation, pour que
     // ConversationDto.from() (appelé hors transaction — OSIV désactivé) n'initialise

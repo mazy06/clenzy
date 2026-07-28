@@ -22,6 +22,23 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     /**
      * Requêtes optimisées avec FETCH JOIN et cache
      */
+    /**
+     * Interventions dont la date est passée et le statut encore ouvert.
+     *
+     * <p>Le ménage ou la maintenance n'a pas eu lieu, et rien ne le signale :
+     * {@code NotificationKey.INTERVENTION_OVERDUE} est déclarée, proposée dans
+     * les préférences de l'utilisateur, et n'est émise par aucune ligne de code.
+     * Le compteur « urgent » du tableau de bord ne rattrape rien — il exige
+     * {@code priority = URGENT}.</p>
+     */
+    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property "
+        + "WHERE i.organizationId = :orgId AND i.scheduledDate < :now "
+        + "AND i.status IN (com.clenzy.model.InterventionStatus.PENDING, "
+        + "com.clenzy.model.InterventionStatus.AWAITING_VALIDATION, "
+        + "com.clenzy.model.InterventionStatus.IN_PROGRESS) "
+        + "ORDER BY i.scheduledDate")
+    List<Intervention> findOverdueForOrg(@Param("orgId") Long orgId, @Param("now") LocalDateTime now);
+
     @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser LEFT JOIN FETCH i.requestor WHERE i.property.id = :propertyId AND i.organizationId = :orgId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
@@ -551,4 +568,34 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
             @Param("orgId") Long orgId,
             @Param("openStatuses") List<InterventionStatus> openStatuses,
             @Param("marker") String marker);
+
+    /**
+     * Interventions planifiées que personne n'exécutera.
+     *
+     * <p>Ni personne ni équipe : {@code assignedTechnicianId} seul ne suffit pas
+     * à trancher, l'assignation à une équipe laissant ce champ vide.</p>
+     */
+    @Query("""
+            SELECT i FROM Intervention i
+            WHERE i.organizationId = :orgId
+              AND i.assignedUser IS NULL
+              AND i.teamId IS NULL
+              AND i.status IN (com.clenzy.model.InterventionStatus.PENDING,
+                               com.clenzy.model.InterventionStatus.AWAITING_VALIDATION)
+              AND i.scheduledDate <= :horizon
+            ORDER BY i.scheduledDate ASC
+            """)
+    List<Intervention> findUnassignedForOrg(@Param("orgId") Long orgId,
+                                            @Param("horizon") LocalDateTime horizon);
+
+    /** Interventions à l'arrêt faute de règlement depuis un certain temps. */
+    @Query("""
+            SELECT i FROM Intervention i
+            WHERE i.organizationId = :orgId
+              AND i.status = com.clenzy.model.InterventionStatus.AWAITING_PAYMENT
+              AND i.updatedAt <= :staleBefore
+            ORDER BY i.updatedAt ASC
+            """)
+    List<Intervention> findAwaitingPaymentForOrg(@Param("orgId") Long orgId,
+                                                 @Param("staleBefore") LocalDateTime staleBefore);
 }

@@ -3550,3 +3550,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0371__deduplicate_review_reply_drafts.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0372-create-action-items"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0372__create_action_items.sql
+        relativeToChangelogFile: true

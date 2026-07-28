@@ -22,6 +22,15 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
     Optional<PaymentTransaction> findByIdempotencyKey(String idempotencyKey);
 
     /**
+     * Transaction identifiée par sa référence chez le fournisseur.
+     *
+     * <p>Seule voie pour rattacher à une organisation un événement qui ne porte
+     * que l'identifiant Stripe — litige, session expirée. L'organisation vient
+     * ainsi de NOTRE base, jamais du message reçu.</p>
+     */
+    Optional<PaymentTransaction> findByProviderTxId(String providerTxId);
+
+    /**
      * Passe la transaction en COMPLETED par UPDATE conditionnel (compare-and-set).
      *
      * <p>Audit 2026-07 (P6-05) : la transition etait un check-then-act — SELECT sans verrou,

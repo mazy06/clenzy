@@ -15,6 +15,17 @@ import java.util.Optional;
 
 public interface OwnerPayoutRepository extends JpaRepository<OwnerPayout, Long> {
 
+    /**
+     * Reversement identifié par son transfert Stripe.
+     *
+     * <p>Le champ existait, aucune requête ne le lisait : quand Stripe annonçait
+     * l'échec du virement APRÈS l'avoir accepté, on ne savait pas à quel
+     * reversement le rattacher. Il restait donc affiché « payé » alors que
+     * l'argent n'était jamais arrivé.</p>
+     */
+    Optional<OwnerPayout> findByStripeTransferId(String stripeTransferId);
+
+
     @Query("SELECT p FROM OwnerPayout p WHERE p.ownerId = :ownerId AND p.organizationId = :orgId ORDER BY p.periodStart DESC")
     List<OwnerPayout> findByOwnerId(@Param("ownerId") Long ownerId, @Param("orgId") Long orgId);
 

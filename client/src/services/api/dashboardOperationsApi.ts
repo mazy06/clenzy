@@ -72,11 +72,34 @@ export interface DashboardUpcomingArrival {
  * un solde non encaissé passe avant un avis sans réponse à sévérité égale.
  */
 export type DashboardActionKind =
+  | 'PAYMENT_INCIDENT'
+  | 'GUEST_DECLARATION_MISSING'
+  | 'RESERVATION_PENDING'
+  | 'INTERVENTION_OVERDUE'
+  | 'CONVERSATION_UNANSWERED'
   | 'BALANCE_DUE'
+  | 'BALANCE_ABANDONED'
+  | 'GUEST_MESSAGE_FAILED'
+  | 'WELCOME_GUIDE_MISSING'
+  | 'DEPOSIT_STUCK'
   | 'SERVICE_UNPAID'
   | 'SERVICE_UNASSIGNED'
   | 'FEED_STALE'
-  | 'REVIEW_UNANSWERED';
+  | 'REVIEW_UNANSWERED'
+  | 'INTERVENTION_UNASSIGNED'
+  | 'INTERVENTION_UNPAID'
+  | 'CHECKIN_NOT_STARTED'
+  | 'NOISE_ALERT_UNACKNOWLEDGED'
+  | 'ISSUE_OPEN'
+  | 'OWNER_PAYOUT_PENDING'
+  | 'PAYOUT_ONBOARDING_INCOMPLETE'
+  | 'INVITATION_EXPIRED'
+  | 'DOCUMENT_DELIVERY_FAILED'
+  | 'EINVOICE_FAILED'
+  // Natures techniques : le serveur ne les envoie qu'au staff plateforme.
+  | 'AUTOMATION_FAILED'
+  | 'OUTBOX_DEAD_LETTER'
+  | 'INTEGRATION_DISCONNECTED';
 
 export type DashboardActionSeverity = 'critical' | 'warning' | 'info';
 
@@ -97,6 +120,8 @@ export interface DashboardActionItem {
   subject: string | null;
   /** Identifiant de l'objet visé, pour agir dessus. */
   targetId: number | null;
+  /** Logement concerné — la replanification propose les séjours de ce logement. */
+  propertyId: number | null;
   propertyName: string | null;
   /**
    * Valeur numérique en jeu, interprétée selon la nature : un montant pour
@@ -107,6 +132,18 @@ export interface DashboardActionItem {
   amount: number | null;
   /** Mention courte de fin de ligne (`4★`), quand ce n'est pas un montant. */
   badge: string | null;
+  /**
+   * Sous-nature, quand une même nature recouvre plusieurs situations : un
+   * incident de règlement porte ici `DISPUTE_OPENED`, `TRANSFER_FAILED` ou
+   * `SESSION_EXPIRED`, qui n'appellent pas le même geste.
+   */
+  actionType: string | null;
+  /**
+   * Identifiant de la ligne dans la file, seul moyen de la clôturer. Distinct
+   * de `targetId`, qui désigne l'objet métier visé. `null` pour les fixtures de
+   * galerie, qui ne sont enregistrées nulle part.
+   */
+  actionItemId: number | null;
 }
 
 export interface DashboardActionItems {

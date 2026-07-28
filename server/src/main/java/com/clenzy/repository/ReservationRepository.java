@@ -119,6 +119,58 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
      * platform staff (cross-org) ; le filtre tenant Hibernate s'applique pour
      * les autres rôles.
      */
+    /**
+     * Séjours terminés dont le solde n'a jamais été encaissé.
+     *
+     * <p>Le bloc « soldes à percevoir » ne regarde que les arrivées à venir :
+     * dès que le voyageur est reparti, l'argent sort du radar. Le séjour a été
+     * consommé, la somme est due, et plus aucune surface ne la rappelle.</p>
+     */
+    @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.property "
+        + "WHERE r.organizationId = :orgId AND r.status <> 'cancelled' "
+        + "AND r.checkOut < :today AND r.checkOut >= :from "
+        + "AND r.amountDue IS NOT NULL AND r.amountDue > 0 "
+        + "ORDER BY r.checkOut")
+    List<Reservation> findWithBalanceAfterStay(@Param("orgId") Long orgId,
+                                               @Param("from") LocalDate from,
+                                               @Param("today") LocalDate today);
+
+    /**
+     * Séjours arrivés sans aucune déclaration voyageur — obligation légale.
+     *
+     * <p>Détection par ABSENCE : il n'existe pas d'objet « fiche manquante » à
+     * lister. C'est exactement le cas que l'écran de conformité ne montrait
+     * pas — son encart se masque quand aucune déclaration n'existe, donc
+     * précisément quand il faudrait alerter.</p>
+     *
+     * <p>Concerne la fiche de police française, la DGSN marocaine, Shomoos…
+     * selon la juridiction du logement.</p>
+     */
+    @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.property "
+        + "WHERE r.organizationId = :orgId AND r.status <> 'cancelled' "
+        + "AND r.checkIn <= :today AND r.checkIn >= :from "
+        + "AND NOT EXISTS (SELECT 1 FROM GuestDeclaration d WHERE d.reservation = r) "
+        + "ORDER BY r.checkIn DESC")
+    List<Reservation> findWithoutGuestDeclaration(@Param("orgId") Long orgId,
+                                                  @Param("from") LocalDate from,
+                                                  @Param("today") LocalDate today);
+
+    /**
+     * Réservations restées « pending » dont l'arrivée approche.
+     *
+     * <p>Le statut {@code pending} les exclut de TOUTES les requêtes du produit,
+     * qui filtrent sur {@code confirmed} : ni ménage planifié, ni message de
+     * séjour, ni solde réclamé, ni arrivée au tableau de bord. Le voyageur
+     * arrive dans un logement que personne n'a préparé.</p>
+     */
+    @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.property "
+        + "WHERE r.organizationId = :orgId AND r.status = 'pending' "
+        + "AND r.checkIn <= :horizon AND r.checkIn >= :from "
+        + "ORDER BY r.checkIn")
+    List<Reservation> findPendingWithUpcomingCheckIn(@Param("orgId") Long orgId,
+                                                     @Param("from") LocalDate from,
+                                                     @Param("horizon") LocalDate horizon);
+
     @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
            "WHERE LOWER(r.guestName) LIKE LOWER(CONCAT('%', :q, '%')) " +
            "OR LOWER(r.property.name) LIKE LOWER(CONCAT('%', :q, '%')) " +

@@ -175,6 +175,5 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
         """)
     @QueryHints(@QueryHint(name = "org.hibernate.readOnly", value = "true"))
     java.util.Optional<Property> findBookingEngineProperty(@Param("id") Long id, @Param("orgId") Long orgId);
+
 }
-
-

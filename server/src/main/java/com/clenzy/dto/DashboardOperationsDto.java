@@ -120,6 +120,7 @@ public record DashboardOperationsDto(
      * @param detail    contexte court (voyageur, logement, ancienneté…)
      * @param subject      personne concernée, s'il y en a une — porte l'avatar
      * @param targetId     identifiant de l'objet visé, pour agir dessus
+     * @param propertyId   logement concerné — permet d'agir sans le redemander
      * @param propertyId   logement concerné — l'écran doit pouvoir agir sans le
      *                     redemander au serveur
      * @param amount       montant en jeu quand la nature en porte un, sinon {@code null}
@@ -140,7 +141,36 @@ public record DashboardOperationsDto(
             BigDecimal amount,
             String badge,
             String actionType,
-            String actionParams) {}
+            String actionParams,
+            /**
+             * Devise du montant, quand elle peut différer de celle de
+             * l'organisation — un litige porte la devise de la transaction
+             * contestée. {@code null} = déjà dans la devise d'affichage.
+             */
+            String currency,
+            /**
+             * Identifiant de la ligne dans la file persistée, seul moyen de la
+             * clôturer. Distinct de {@code targetId}, qui désigne l'objet
+             * métier visé (une réservation, un reversement).
+             *
+             * <p>{@code null} tant que la ligne n'est pas enregistrée : une
+             * source produit une action <i>candidate</i>, c'est la lecture qui
+             * lui donne son identité.</p>
+             */
+            Long actionItemId) {
+
+        /**
+         * Forme employée par les sources : une action candidate, pas encore
+         * enregistrée, dont le montant est dans la devise de l'organisation.
+         */
+        public ActionItemDto(String id, ActionItemKind kind, String severity, String title,
+                             String detail, String subject, Long targetId, Long propertyId,
+                             String propertyName, BigDecimal amount, String badge,
+                             String actionType, String actionParams) {
+            this(id, kind, severity, title, detail, subject, targetId, propertyId, propertyName,
+                    amount, badge, actionType, actionParams, null, null);
+        }
+    }
 
     /**
      * Natures d'action, par ordre de priorité d'affichage.
@@ -149,8 +179,26 @@ public record DashboardOperationsDto(
      * non encaissé passe avant un avis sans réponse.</p>
      */
     public enum ActionItemKind {
+        /** Le fournisseur de paiement contredit un règlement enregistré. */
+        PAYMENT_INCIDENT,
+        /** Séjour arrivé sans déclaration voyageur — obligation légale. */
+        GUEST_DECLARATION_MISSING,
+        /** Réservation jamais confirmée dont l'arrivée approche. */
+        RESERVATION_PENDING,
+        /** Intervention dont la date est passée et le statut encore ouvert. */
+        INTERVENTION_OVERDUE,
+        /** Message de voyageur resté sans réponse. */
+        CONVERSATION_UNANSWERED,
         /** Solde de séjour restant dû avant l'arrivée. */
         BALANCE_DUE,
+        /** Séjour terminé dont le solde n'a jamais été encaissé. */
+        BALANCE_ABANDONED,
+        /** Message voyageur dont l'envoi a échoué, sans renvoi réussi. */
+        GUEST_MESSAGE_FAILED,
+        /** Arrivée proche sans livret d'accueil publié. */
+        WELCOME_GUIDE_MISSING,
+        /** Caution encore retenue bien après le départ. */
+        DEPOSIT_STUCK,
         /** Demande de service réalisée et non réglée. */
         SERVICE_UNPAID,
         /** Prestation sans prestataire, que l'assignation automatique n'aboutira plus. */
@@ -159,5 +207,41 @@ public record DashboardOperationsDto(
         FEED_STALE,
         /** Avis publié sans réponse de l'hôte. */
         REVIEW_UNANSWERED,
+
+        // Natures métier ajoutées après l'inventaire des angles morts. Elles se
+        // placent ici, en fin d'énumération, plutôt qu'à leur rang d'urgence :
+        // l'ordre de déclaration sert de départage à sévérité égale, et
+        // réordonner l'existant aurait déplacé des lignes qui vont bien.
+
+        /** Intervention planifiée sans personne ni équipe pour l'exécuter. */
+        INTERVENTION_UNASSIGNED,
+        /** Intervention arrêtée faute de règlement. */
+        INTERVENTION_UNPAID,
+        /** Check-in en ligne jamais commencé alors que l'arrivée est proche. */
+        CHECKIN_NOT_STARTED,
+        /** Alerte de bruit que personne n'a acquittée. */
+        NOISE_ALERT_UNACKNOWLEDGED,
+        /** Signalement ouvert laissé sans suite. */
+        ISSUE_OPEN,
+        /** Reversement propriétaire en attente d'approbation depuis trop longtemps. */
+        OWNER_PAYOUT_PENDING,
+        /** Compte de paiement raccordé mais jamais finalisé : aucun versement possible. */
+        PAYOUT_ONBOARDING_INCOMPLETE,
+        /** Invitation périmée : la personne ne peut plus rejoindre l'organisation. */
+        INVITATION_EXPIRED,
+        /** Document généré dont l'envoi au destinataire a échoué. */
+        DOCUMENT_DELIVERY_FAILED,
+        /** Facture électronique refusée par l'administration fiscale. */
+        EINVOICE_FAILED,
+
+        // Natures techniques : réservées au staff plateforme. Ce sont des pannes
+        // de plomberie interne, qu'un hôte ne pourrait ni comprendre ni éteindre.
+
+        /** Automatisation en échec : l'action promise n'a pas eu lieu. */
+        AUTOMATION_FAILED,
+        /** Message interne définitivement perdu, toutes tentatives épuisées. */
+        OUTBOX_DEAD_LETTER,
+        /** Intégration déconnectée : la synchronisation est muette. */
+        INTEGRATION_DISCONNECTED,
     }
 }

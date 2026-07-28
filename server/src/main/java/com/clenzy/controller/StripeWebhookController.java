@@ -24,6 +24,10 @@ import com.stripe.model.StripeObject;
 import com.stripe.model.Transfer;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
+import com.clenzy.service.dashboard.PaymentEventActionRecorder;
+import com.stripe.model.Dispute;
+import java.math.BigDecimal;
+import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,6 +44,7 @@ public class StripeWebhookController {
 
     private static final Logger logger = LoggerFactory.getLogger(StripeWebhookController.class);
 
+    private final PaymentEventActionRecorder paymentEventActionRecorder;
     private final StripeService stripeService;
     private final InscriptionService inscriptionService;
     private final SubscriptionService subscriptionService;
@@ -69,7 +74,9 @@ public class StripeWebhookController {
                                    StripeGateway stripeGateway,
                                    DirectBookingService directBookingService,
                                    com.clenzy.service.ai.AiCreditGrantService aiCreditGrantService,
-                                   com.clenzy.service.automation.PaymentFailedTriggerService paymentFailedTriggerService) {
+                                   com.clenzy.service.automation.PaymentFailedTriggerService paymentFailedTriggerService,
+                                   PaymentEventActionRecorder paymentEventActionRecorder) {
+        this.paymentEventActionRecorder = paymentEventActionRecorder;
         this.stripeService = stripeService;
         this.inscriptionService = inscriptionService;
         this.subscriptionService = subscriptionService;
@@ -149,6 +156,19 @@ public class StripeWebhookController {
 
                 case "transfer.failed":
                     handleTransferFailed(event);
+                    break;
+
+                case "charge.dispute.created":
+                case "charge.dispute.updated":
+                    handleDisputeOpened(event);
+                    break;
+
+                case "charge.dispute.closed":
+                    handleDisputeClosed(event);
+                    break;
+
+                case "checkout.session.expired":
+                    handleSessionExpired(event);
                     break;
 
                 case "invoice.paid":
@@ -624,5 +644,57 @@ public class StripeWebhookController {
 
         logger.error("Stripe transfer failed: id={}, destination={}, amount={}",
                 transfer.getId(), transfer.getDestination(), transfer.getAmount());
+
+        paymentEventActionRecorder.recordTransferFailed(transfer.getId(), transfer.getCurrency());
+    }
+
+    /**
+     * Litige ouvert par le porteur de carte.
+     *
+     * <p>La fenêtre de réponse va de 7 à 21 jours ; passée sans soumission de
+     * preuve, le litige est perdu par défaut — montant plus frais. L'événement
+     * n'était traité nulle part.</p>
+     */
+    private void handleDisputeOpened(Event event) {
+        final Dispute dispute = (Dispute) event.getDataObjectDeserializer().getObject().orElse(null);
+        if (dispute == null) {
+            logger.warn("Dispute null dans {}", event.getType());
+            return;
+        }
+        final Instant deadline = dispute.getEvidenceDetails() != null
+                && dispute.getEvidenceDetails().getDueBy() != null
+                ? Instant.ofEpochSecond(dispute.getEvidenceDetails().getDueBy())
+                : null;
+
+        paymentEventActionRecorder.recordDisputeOpened(
+                dispute.getCharge(),
+                dispute.getId(),
+                dispute.getAmount() == null ? null : BigDecimal.valueOf(dispute.getAmount(), 2),
+                dispute.getCurrency(),
+                deadline);
+    }
+
+    /** Le fournisseur a tranché : l'incident n'appelle plus de décision. */
+    private void handleDisputeClosed(Event event) {
+        final Dispute dispute = (Dispute) event.getDataObjectDeserializer().getObject().orElse(null);
+        if (dispute == null) return;
+        paymentEventActionRecorder.recordDisputeClosed(dispute.getCharge(), dispute.getId(),
+                dispute.getStatus());
+    }
+
+    /**
+     * Session de paiement expirée.
+     *
+     * <p>Sans cela la transaction reste « en cours » indéfiniment : le montant
+     * est compté comme en cours d'encaissement alors qu'il ne rentrera jamais,
+     * et aucune relance n'est déclenchée.</p>
+     */
+    private void handleSessionExpired(Event event) {
+        final Session session = (Session) event.getDataObjectDeserializer().getObject().orElse(null);
+        if (session == null) return;
+        paymentEventActionRecorder.recordSessionExpired(
+                session.getId(),
+                session.getAmountTotal() == null ? null : BigDecimal.valueOf(session.getAmountTotal(), 2),
+                session.getCurrency());
     }
 }
