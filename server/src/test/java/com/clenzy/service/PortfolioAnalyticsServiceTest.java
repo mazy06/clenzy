@@ -77,6 +77,44 @@ class PortfolioAnalyticsServiceTest {
     }
 
     @Test
+    void whenStayOverflowsTheWindow_thenOnlyNightsInsideItAreCounted() {
+        // Fenêtre de 30 j : du 20 juin au 20 juillet. Le séjour va du 10 juin au
+        // 20 juillet, soit 40 nuits, dont 30 seulement tombent dans la fenêtre.
+        when(propertyRepository.findByOrganizationIdAndStatus(ORG, PropertyStatus.ACTIVE))
+                .thenReturn(List.of(property(1L, "Villa")));
+        when(reservationRepository.findAllByDateRange(any(), eq(TODAY), eq(ORG)))
+                .thenReturn(List.of(reservation(1L,
+                        LocalDate.of(2026, 6, 10), LocalDate.of(2026, 7, 20), "4000", "airbnb")));
+
+        PortfolioAnalyticsDto dto = service.getPortfolio(ORG, 30);
+
+        // Avant correction : 40 nuits sur 30 disponibles, soit 133 % — l'écran
+        // affichait « 35 nuits sur 30 » pour la même raison.
+        assertThat(dto.occupancy().byProperty()).hasSize(1);
+        assertThat(dto.occupancy().byProperty().get(0).occupiedNights()).isEqualTo(30L);
+        assertThat(dto.occupancy().byProperty().get(0).totalNights()).isEqualTo(30L);
+        assertThat(dto.occupancy().byProperty().get(0).rate()).isEqualTo(100.0);
+        assertThat(dto.global().occupancyRate().value()).isEqualTo(100.0);
+    }
+
+    @Test
+    void whenTwoStaysOverlapOnSameProperty_thenTheSharedNightsAreCountedOnce() {
+        // Double-réservation (ou double import iCal) : 10-15 et 12-17 juillet.
+        // Nuits distinctes réellement occupées : du 10 au 17, soit 7.
+        when(propertyRepository.findByOrganizationIdAndStatus(ORG, PropertyStatus.ACTIVE))
+                .thenReturn(List.of(property(1L, "Villa")));
+        when(reservationRepository.findAllByDateRange(any(), eq(TODAY), eq(ORG)))
+                .thenReturn(List.of(
+                        reservation(1L, LocalDate.of(2026, 7, 10), LocalDate.of(2026, 7, 15), "500", "airbnb"),
+                        reservation(1L, LocalDate.of(2026, 7, 12), LocalDate.of(2026, 7, 17), "500", "direct")));
+
+        PortfolioAnalyticsDto dto = service.getPortfolio(ORG, 30);
+
+        // La somme des durées en aurait compté 10 : les nuits du 12 au 15 deux fois.
+        assertThat(dto.occupancy().byProperty().get(0).occupiedNights()).isEqualTo(7L);
+    }
+
+    @Test
     void whenCurrentWindowBookings_thenGlobalKpisComputed() {
         // 1 bien actif, fenêtre 30 j. Réservation 5 nuits (10-15 juil) à 500 dans la fenêtre.
         when(propertyRepository.findByOrganizationIdAndStatus(ORG, PropertyStatus.ACTIVE))
