@@ -122,10 +122,26 @@ public class KbSearchService {
      *
      * <p>Echec embedding ou DB → retourne liste vide. Echec rerank → retourne
      * l'ordre cosine (degradation propre).</p>
+     *
+     * <p>Aucun modele EMBEDDINGS assigne → liste vide immediate, <b>sans toucher au
+     * quota</b> : l'ordre des gardes ci-dessous n'est pas cosmetique.</p>
      */
     public List<KbSearchHit> search(String query, Long organizationId, int topK, String lang) {
         if (query == null || query.isBlank()) return List.of();
         final String safeLang = normalizeLang(lang);
+        // Aucun modele EMBEDDINGS assigne en config DB : la recherche ne peut rien
+        // produire. Ce test passe AVANT tryConsume, et cet ordre EST le correctif —
+        // apres, chaque appel brulait une unite du quota mensuel de l'org pour un
+        // embed voue a echouer, si bien que le quota du mois se serait retrouve deja
+        // entame le jour ou un modele est enfin configure.
+        //
+        // En debug seulement : KbEmbeddingHealthScheduler porte deja l'alerte (toutes
+        // les 30 min), la repeter a chaque recherche noierait le journal.
+        if (!embeddingService.isConfigured()) {
+            log.debug("KbSearchService : aucun modele EMBEDDINGS configure — recherche kb "
+                    + "sautee (quota org non consomme)");
+            return List.of();
+        }
         // Quota mensuel org (X10) : au plafond, degradation propre = recherche
         // vide (le chat continue sans contexte kb), compteur pour le monitoring.
         if (!embeddingOrgQuota.tryConsume(organizationId)) {
@@ -142,7 +158,11 @@ public class KbSearchService {
         try {
             queryVector = embeddingService.embedQueryAsVectorString(query);
         } catch (Exception e) {
-            log.warn("KbSearchService : embed de la query echoue : {}", e.getMessage());
+            // Un modele EST configure (garde ci-dessus) : cet echec est donc un vrai
+            // incident — provider injoignable, cle revoquee, quota amont — et non le
+            // cas nominal « pas encore configure ». Le WARN reste pertinent.
+            log.warn("KbSearchService : embed de la query echoue alors qu'un modele EMBEDDINGS "
+                    + "est configure : {}", e.getMessage());
             return List.of();
         }
 
