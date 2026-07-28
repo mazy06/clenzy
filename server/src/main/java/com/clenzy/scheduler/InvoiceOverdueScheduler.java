@@ -1,9 +1,9 @@
 package com.clenzy.scheduler;
 
 import com.clenzy.model.AutomationTrigger;
-import com.clenzy.model.Invoice;
 import com.clenzy.model.InvoiceStatus;
-import com.clenzy.repository.InvoiceRepository;
+import com.clenzy.service.InvoiceOverduePersistence;
+import com.clenzy.service.InvoiceOverduePersistence.OverdueInvoice;
 import com.clenzy.service.automation.AutomationEngine;
 import com.clenzy.service.automation.AutomationSubject;
 import com.clenzy.service.automation.InvoiceReminderExecutor;
@@ -14,8 +14,6 @@ import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -33,10 +31,15 @@ import java.util.Map;
  *       maximum de 2 relances (idempotence en base : {@code overdue_reminder_count}).</li>
  * </ol>
  *
- * <p>Volontairement non transactionnel : chaque save est court, et les triggers
- * (dont les executeurs envoient des emails) partent hors transaction DB. Un echec
- * sur une facture est logue et n'empeche pas les suivantes (le scheduler repasse
- * chaque jour — statut explicite par facture, pas d'avalement global).</p>
+ * <p>Volontairement non transactionnel : les triggers (dont les executeurs envoient des
+ * emails) partent hors transaction DB. Les acces base passent par
+ * {@link InvoiceOverduePersistence}, dont les methodes ouvrent des transactions courtes
+ * <b>que l'aspect Row-Level Security peut instrumenter</b> — un repository appele
+ * directement depuis ce scheduler echapperait a son pointcut, et le balayage renverrait
+ * zero facture en silence une fois la RLS active (audit RLS, plan REM-T-01).</p>
+ *
+ * <p>Un echec sur une facture est logue et n'empeche pas les suivantes (le scheduler
+ * repasse chaque jour — statut explicite par facture, pas d'avalement global).</p>
  */
 @Component
 public class InvoiceOverdueScheduler {
@@ -46,12 +49,12 @@ public class InvoiceOverdueScheduler {
     private static final List<InvoiceStatus> OVERDUE_CANDIDATE_STATUSES =
         List.of(InvoiceStatus.SENT, InvoiceStatus.ISSUED);
 
-    private final InvoiceRepository invoiceRepository;
+    private final InvoiceOverduePersistence overdueInvoices;
     private final AutomationEngine automationEngine;
 
-    public InvoiceOverdueScheduler(InvoiceRepository invoiceRepository,
+    public InvoiceOverdueScheduler(InvoiceOverduePersistence overdueInvoices,
                                    AutomationEngine automationEngine) {
-        this.invoiceRepository = invoiceRepository;
+        this.overdueInvoices = overdueInvoices;
         this.automationEngine = automationEngine;
     }
 
@@ -59,26 +62,22 @@ public class InvoiceOverdueScheduler {
     @SchedulerLock(name = "invoice-overdue-marking", lockAtMostFor = "PT10M")
     public void checkOverdueInvoices() {
         log.debug("Checking for overdue invoices...");
-        LocalDate today = LocalDate.now();
 
         // Query DB directement pour eviter le full table scan cross-tenant
-        List<Invoice> candidates = invoiceRepository.findOverdueCandidates(
-            OVERDUE_CANDIDATE_STATUSES, today);
+        List<Long> candidateIds = overdueInvoices.findOverdueCandidateIds(
+            OVERDUE_CANDIDATE_STATUSES, LocalDate.now());
 
         int overdueCount = 0;
-        for (Invoice invoice : candidates) {
+        for (Long invoiceId : candidateIds) {
             try {
-                invoice.setStatus(InvoiceStatus.OVERDUE);
-                invoice.setOverdueNotifiedAt(LocalDateTime.now());
-                invoiceRepository.save(invoice);
+                OverdueInvoice marked = overdueInvoices.markOverdue(invoiceId);
                 overdueCount++;
                 log.info("Invoice {} marked as OVERDUE (due date: {})",
-                    invoice.getInvoiceNumber(), invoice.getDueDate());
+                    marked.invoiceNumber(), marked.dueDate());
 
-                fireInvoiceOverdueTrigger(invoice);
+                fireInvoiceOverdueTrigger(marked);
             } catch (Exception e) {
-                log.error("Failed to mark invoice {} as overdue: {}",
-                    invoice.getId(), e.getMessage());
+                log.error("Failed to mark invoice {} as overdue: {}", invoiceId, e.getMessage());
             }
         }
 
@@ -96,38 +95,30 @@ public class InvoiceOverdueScheduler {
     @Scheduled(cron = "0 15 8 * * *")  // Daily at 8:15 AM, apres la passe de marquage
     @SchedulerLock(name = "invoice-overdue-reminders", lockAtMostFor = "PT15M")
     public void fireOverdueReminders() {
-        List<Invoice> overdue = invoiceRepository.findByStatusAndOverdueReminderCountLessThan(
-            InvoiceStatus.OVERDUE, InvoiceReminderExecutor.MAX_REMINDERS);
+        List<OverdueInvoice> overdue =
+            overdueInvoices.findRemindable(InvoiceReminderExecutor.MAX_REMINDERS);
         if (overdue.isEmpty()) {
             return;
         }
 
         int fired = 0;
-        for (Invoice invoice : overdue) {
+        for (OverdueInvoice invoice : overdue) {
             try {
                 fireInvoiceOverdueTrigger(invoice);
                 fired++;
             } catch (Exception e) {
                 log.error("Failed to fire INVOICE_OVERDUE for invoice {}: {}",
-                    invoice.getId(), e.getMessage());
+                    invoice.id(), e.getMessage());
             }
         }
         log.info("Relances factures : trigger INVOICE_OVERDUE tire pour {}/{} facture(s) en retard",
             fired, overdue.size());
     }
 
-    private void fireInvoiceOverdueTrigger(Invoice invoice) {
+    private void fireInvoiceOverdueTrigger(OverdueInvoice invoice) {
         automationEngine.fireTrigger(AutomationTrigger.INVOICE_OVERDUE,
-            invoice.getOrganizationId(),
-            new AutomationSubject(AutomationSubject.TYPE_INVOICE, invoice.getId(),
-                Map.of(AutomationSubject.DATA_DAYS_OVERDUE, daysOverdue(invoice))));
-    }
-
-    /** Jours de retard : depuis le passage OVERDUE, repli sur la date d'echeance. */
-    private static long daysOverdue(Invoice invoice) {
-        LocalDate since = invoice.getOverdueNotifiedAt() != null
-            ? invoice.getOverdueNotifiedAt().toLocalDate()
-            : invoice.getDueDate();
-        return since != null ? Math.max(0, ChronoUnit.DAYS.between(since, LocalDate.now())) : 0;
+            invoice.organizationId(),
+            new AutomationSubject(AutomationSubject.TYPE_INVOICE, invoice.id(),
+                Map.of(AutomationSubject.DATA_DAYS_OVERDUE, invoice.daysOverdue())));
     }
 }
