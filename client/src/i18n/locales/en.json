@@ -881,7 +881,11 @@
       "assignedInterventions": "Assigned Interventions",
       "completedInterventions": "Completed Interventions",
       "workTime": "Work Time",
-      "team": "Team"
+      "team": "Team",
+      "pending": "pending",
+      "next7days": "Next 7 days",
+      "nextPayout": "Next payout",
+      "upcomingInterventions": "Upcoming"
     },
     "recentActivities": "Recent Activities",
     "viewAllActivities": "View all activities",
@@ -918,7 +922,6 @@
     "noUpcomingInterventions": "No upcoming interventions",
     "serviceRequests": "Service Requests",
     "noServiceRequests": "No service requests",
-    "today": "Today",
     "tomorrow": "Tomorrow",
     "interventionStatusDistribution": "Status Distribution",
     "noData": "No data available",
@@ -1046,7 +1049,18 @@
         "occupancyAndClients": "Occupancy & Clients",
         "performanceAndTools": "Performance & Tools",
         "simulator": "Simulator"
-      }
+      },
+      "occupancyShort": "Occupancy",
+      "revenueShort": "Revenue",
+      "guestRating": "Average rating",
+      "adrHint": "average price per night sold",
+      "including": "including",
+      "arrivalsThisWeek": "arrivals this week",
+      "reviewsOnPeriod": "reviews over the period",
+      "vsPreviousPeriod": "vs prev. period",
+      "financialMetrics": "Financial metrics",
+      "operationalMetrics": "Operational activity",
+      "forecastOccupancy": "Forecast occupancy"
     },
     "dateFilter": {
       "week": "7d",
@@ -1455,6 +1469,142 @@
       "allTypes": "All",
       "lockedTitle": "Planning not available with the Essential plan",
       "lockedDescription": "Your current plan does not allow access to the interactive planning or automatic import from Airbnb, Booking, and other platforms. Upgrade to Comfort or Premium to unlock this feature."
+    },
+    "todayLabel": "Today",
+    "actionItems": {
+      "title": "To handle",
+      "empty": "Nothing to handle — everything is up to date.",
+      "balancesGroup": "Balances to collect",
+      "servicesGroup": "Services to pay",
+      "feedsGroup": "Out-of-sync calendars",
+      "reviewsGroup": "Unanswered reviews",
+      "neverSynced": "never synced",
+      "lastSuccess": "last success {{hours}} h ago",
+      "awaitingYou": "Awaiting you",
+      "proposalTitle": "Suggested reply",
+      "proposalTag": "Review reply",
+      "proposalLead": "Drafted by the agent, never published without you. Suggested message:",
+      "insertProposal": "Insert into my reply",
+      "replaceWithProposal": "Replace my reply",
+      "orWriteYourOwn": "or write your own below",
+      "replyFailed": "Publishing failed. Please try again.",
+      "reviewFallback": "Guest review",
+      "noReviewText": "Review without text.",
+      "aiUnconfigured": "No AI model is configured: the agent cannot draft a reply.",
+      "configureAi": "Configure",
+      "unnamedFeed": "Unnamed feed",
+      "askProposal": "Suggest a reply",
+      "askProposalHint": "The Reputation agent can draft a reply from this review. Nothing is published without you.",
+      "proposalFailed": "The agent could not draft a reply. You can retry, or write your own.",
+      "proposalPending": "The agent is drafting a reply…",
+      "retryProposal": "Retry",
+      "unassignedGroup": "Services without a provider",
+      "showMore": "Show {{count}} more",
+      "showLess": "Show less",
+      "seeChannels": "View channels"
+    },
+    "activePropertiesShort": "active properties",
+    "newReservation": "Reservation",
+    "toHandle": "to handle",
+    "layout": {
+      "customize": "Customize",
+      "done": "Done",
+      "reset": "Reset",
+      "dragHandle": "Move",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "more": "More placements",
+      "joinAbove": "Move to the row above",
+      "joinBelow": "Move to the row below",
+      "ownRow": "Move to its own row",
+      "shiftStart": "Move to start of row",
+      "shiftEnd": "Move to end of row",
+      "dropNewRow": "New row"
+    },
+    "occupancyByProperty": {
+      "title": "Occupancy by property",
+      "average": "Portfolio average",
+      "empty": "No property over the period.",
+      "nights": "{{occupied}} of {{total}} nights",
+      "viewBars": "Bar view",
+      "viewRadial": "Radial view"
+    },
+    "revenueByChannel": {
+      "month": "Month",
+      "year": "Year"
+    },
+    "revenueSplit": {
+      "title": "Revenue and payouts",
+      "lastMonths": "last months",
+      "fees": "Commissions",
+      "interventions": "Services",
+      "payouts": "Payouts",
+      "retained": "Retained",
+      "empty": "No revenue recorded over the period."
+    },
+    "today": {
+      "arrivals": "Arrivals today",
+      "departures": "Departures today",
+      "cleanings": "Today’s cleanings",
+      "noArrivals": "No arrival today.",
+      "noDepartures": "No departure today.",
+      "noCleanings": "No cleaning scheduled today.",
+      "depositToRelease": "deposit to release",
+      "releaseDeposit": "Release deposit",
+      "planned": "Scheduled",
+      "inProgress": "In progress"
+    },
+    "upcomingArrivals": {
+      "title": "Upcoming arrivals",
+      "empty": "No arrival over the period.",
+      "guest": "Guest",
+      "property": "Property",
+      "checkIn": "Check-in",
+      "nights": "Nights",
+      "channel": "Channel",
+      "status": "Status",
+      "total": "Total",
+      "balanceDue": "Balance due",
+      "paid": "Paid",
+      "confirmed": "Confirmed",
+      "seePlanning": "Full planning"
+    },
+    "widgets": {
+      "kpis": "Key metrics",
+      "todayOperations": "Today’s operations",
+      "actionItems": "To handle",
+      "upcomingArrivals": "Upcoming arrivals",
+      "revenueSplit": "Monthly revenue",
+      "revenueByChannel": "Revenue by channel",
+      "occupancyByProperty": "Occupancy by property"
+    },
+    "agentCard": {
+      "fallback": "Decision to approve",
+      "apply": "Approve",
+      "dismiss": "Dismiss",
+      "adjust": "Adjust rates",
+      "failed": "The action failed. Please try again.",
+      "openSupervision": "Open in planning"
+    },
+    "feedDialog": {
+      "retry": "Retry sync",
+      "synced": "Sync restarted.",
+      "failed": "Sync failed. The feed may be unreachable."
+    },
+    "reservationDialog": {
+      "fallback": "Stay",
+      "checkOut": "Check-out",
+      "sendLink": "Send payment link",
+      "linkSent": "Payment link sent to the guest.",
+      "linkFailed": "Sending failed. Please try again.",
+      "noEmail": "No e-mail address on this stay: the payment link cannot be sent.",
+      "openList": "View reservations"
+    },
+    "stuckService": {
+      "fallback": "Pending service",
+      "assign": "Assign a provider",
+      "searchExhausted": "No available provider was found. The automatic search has stopped: someone must be assigned.",
+      "overdue": "The requested date has passed and no provider was found. The service did not take place."
     }
   },
   "properties": {

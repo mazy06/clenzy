@@ -67,40 +67,58 @@ export interface DashboardUpcomingArrival {
   amountDue: number | null;
 }
 
-export interface DashboardBalanceDue {
-  reservationId: number;
-  reference: string;
-  guestName: string | null;
-  propertyName: string | null;
-  checkIn: string;
-  amountDue: number;
-}
+/**
+ * Nature d'une action en attente. L'ordre reflète la priorité d'affichage :
+ * un solde non encaissé passe avant un avis sans réponse à sévérité égale.
+ */
+export type DashboardActionKind =
+  | 'BALANCE_DUE'
+  | 'SERVICE_UNPAID'
+  | 'SERVICE_UNASSIGNED'
+  | 'FEED_STALE'
+  | 'REVIEW_UNANSWERED';
 
-export interface DashboardUnansweredReview {
-  reviewId: number;
-  /** Voyageur qui a laissé l'avis — `null` sur les avis importés sans auteur. */
-  guestName: string | null;
-  propertyName: string | null;
-  channelName: string | null;
-  rating: number | null;
-  excerpt: string | null;
-  reviewDate: string | null;
-}
+export type DashboardActionSeverity = 'critical' | 'warning' | 'info';
 
-export interface DashboardStaleFeed {
-  feedId: number;
-  propertyId: number | null;
+/**
+ * Une ligne de la file « à traiter », quelle que soit son origine.
+ *
+ * Le serveur a déjà trié et plafonné : le front rend la liste dans l'ordre reçu,
+ * sans re-arbitrer.
+ */
+export interface DashboardActionItem {
+  /** Identité stable, préfixée par la nature — `hitl:42`, `review:7`. */
+  id: string;
+  kind: DashboardActionKind;
+  severity: DashboardActionSeverity;
+  title: string;
+  detail: string | null;
+  /** Personne concernée, s'il y en a une — porte l'avatar de la ligne. */
+  subject: string | null;
+  /** Identifiant de l'objet visé, pour agir dessus. */
+  targetId: number | null;
   propertyName: string | null;
-  sourceName: string | null;
-  lastSyncStatus: string | null;
-  /** `null` si le flux n'a jamais été synchronisé. */
-  hoursSinceLastSync: number | null;
+  /**
+   * Valeur numérique en jeu, interprétée selon la nature : un montant pour
+   * `BALANCE_DUE` et `SERVICE_UNPAID`, un nombre d'heures pour `FEED_STALE`
+   * (`null` = jamais synchronisé — c'est le serveur qui donne le nombre, le
+   * front qui écrit la phrase, pour rester traduisible).
+   */
+  amount: number | null;
+  /** Mention courte de fin de ligne (`4★`), quand ce n'est pas un montant. */
+  badge: string | null;
 }
 
 export interface DashboardActionItems {
-  balancesDue: DashboardBalanceDue[];
-  unansweredReviews: DashboardUnansweredReview[];
-  staleFeeds: DashboardStaleFeed[];
+  /** Déjà trié et plafonné par nature côté serveur. */
+  items: DashboardActionItem[];
+  /** Nombre réel d'actions en attente, avant plafonnement — alimente le badge. */
+  total: number;
+  /**
+   * Décompte réel par nature, avant plafonnement. Sans lui l'écran ne pourrait
+   * compter que les lignes reçues, et écrirait « Avis (3) » là où douze attendent.
+   */
+  totalsByKind: Partial<Record<DashboardActionKind, number>>;
 }
 
 export const dashboardOperationsApi = {
@@ -114,8 +132,12 @@ export const dashboardOperationsApi = {
     apiClient.get<DashboardActionItems>('/dashboard/action-items'),
 };
 
-/** Total des éléments à traiter — alimente le badge « N à traiter » de l'en-tête. */
+/**
+ * Total des éléments à traiter — alimente le badge « N à traiter » de l'en-tête.
+ *
+ * On compte le total réel du serveur, pas les lignes affichées : le badge dit ce
+ * qui attend, la carte montre ce qui tient à l'écran.
+ */
 export function countActionItems(items: DashboardActionItems | undefined): number {
-  if (!items) return 0;
-  return items.balancesDue.length + items.unansweredReviews.length + items.staleFeeds.length;
+  return items?.total ?? 0;
 }

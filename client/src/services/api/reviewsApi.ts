@@ -47,6 +47,17 @@ export const reviewsApi = {
     return apiClient.get<GuestReview>(`/reviews/${id}`);
   },
 
+  /**
+   * Demande à l'agent Réputation de rédiger un brouillon de réponse
+   * (POST /api/reviews/{id}/draft-reply).
+   *
+   * Rien n'est publié : le serveur n'écrit que `hostResponseDraft`, et c'est
+   * l'hôte qui décide ensuite de l'insérer dans sa réponse.
+   */
+  draftReply(id: number): Promise<GuestReview> {
+    return apiClient.post<GuestReview>(`/reviews/${id}/draft-reply`);
+  },
+
   /** Publie une réponse d'hôte (PUT /api/reviews/{id}/respond). */
   respond(id: number, response: string): Promise<GuestReview> {
     return apiClient.put<GuestReview>(`/reviews/${id}/respond`, { response });

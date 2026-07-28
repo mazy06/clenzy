@@ -893,7 +893,8 @@
       "pendingPayouts": "reversement(s) en attente",
       "noPayoutPending": "Aucun reversement en attente",
       "workTime": "Temps de travail",
-      "team": "Équipe"
+      "team": "Équipe",
+      "pending": "en attente"
     },
     "recentActivities": "Activités récentes",
     "viewAllActivities": "Voir toutes les activités",
@@ -930,7 +931,6 @@
     "noUpcomingInterventions": "Aucune intervention à venir",
     "serviceRequests": "Demandes de service",
     "noServiceRequests": "Aucune demande de service",
-    "today": "Aujourd'hui",
     "tomorrow": "Demain",
     "interventionStatusDistribution": "Répartition des statuts",
     "noData": "Aucune donnée disponible",
@@ -1058,7 +1058,18 @@
         "occupancyAndClients": "Occupation & Clientèle",
         "performanceAndTools": "Performance & Outils",
         "simulator": "Simulateur"
-      }
+      },
+      "occupancyShort": "Occupation",
+      "revenueShort": "Revenus",
+      "guestRating": "Note moyenne",
+      "adrHint": "prix moyen par nuit vendue",
+      "including": "dont",
+      "arrivalsThisWeek": "arrivées cette semaine",
+      "reviewsOnPeriod": "avis sur la période",
+      "vsPreviousPeriod": "vs période préc.",
+      "financialMetrics": "Indicateurs financiers",
+      "operationalMetrics": "Activité opérationnelle",
+      "forecastOccupancy": "Occupation prévisionnelle"
     },
     "dateFilter": {
       "week": "7j",
@@ -1478,7 +1489,143 @@
       "lockedTitle": "Planning non disponible avec le forfait Essentiel",
       "lockedDescription": "Votre forfait actuel ne permet pas l'accès au planning interactif ni à l'import automatique de vos calendriers Airbnb, Booking et autres plateformes. Passez au forfait Confort ou Premium pour débloquer cette fonctionnalité."
     },
-    "noOperationsPermissions": "Vous n'avez pas les permissions nécessaires pour voir les opérations."
+    "noOperationsPermissions": "Vous n'avez pas les permissions nécessaires pour voir les opérations.",
+    "todayLabel": "Aujourd'hui",
+    "actionItems": {
+      "title": "À traiter",
+      "empty": "Rien à traiter — tout est à jour.",
+      "balancesGroup": "Soldes à percevoir",
+      "servicesGroup": "Prestations à régler",
+      "feedsGroup": "Calendriers désynchronisés",
+      "reviewsGroup": "Avis sans réponse",
+      "neverSynced": "jamais synchronisé",
+      "lastSuccess": "dernier succès il y a {{hours}} h",
+      "awaitingYou": "En attente",
+      "proposalTitle": "Réponse proposée",
+      "proposalTag": "Réponse d’avis",
+      "proposalLead": "Rédigée par l’agent, jamais publiée sans vous. Message proposé :",
+      "insertProposal": "Insérer dans ma réponse",
+      "replaceWithProposal": "Remplacer ma réponse",
+      "orWriteYourOwn": "ou écrivez la vôtre ci-dessous",
+      "replyFailed": "La publication a échoué. Réessayez.",
+      "reviewFallback": "Avis voyageur",
+      "noReviewText": "Avis sans texte.",
+      "aiUnconfigured": "Aucun modèle d’IA n’est configuré : l’agent ne peut pas proposer de réponse.",
+      "configureAi": "Configurer",
+      "unnamedFeed": "Flux sans nom",
+      "askProposal": "Proposer une réponse",
+      "askProposalHint": "L’agent Réputation peut rédiger un brouillon à partir de cet avis. Rien n’est publié sans vous.",
+      "proposalFailed": "L’agent n’a pas pu rédiger de proposition. Vous pouvez réessayer ou écrire votre réponse.",
+      "proposalPending": "L’agent rédige une proposition…",
+      "retryProposal": "Réessayer",
+      "unassignedGroup": "Prestations sans prestataire",
+      "showMore": "Voir les {{count}} autres",
+      "showLess": "Réduire",
+      "seeChannels": "Voir les canaux"
+    },
+    "activePropertiesShort": "logements actifs",
+    "newReservation": "Réservation",
+    "toHandle": "à traiter",
+    "layout": {
+      "customize": "Personnaliser",
+      "done": "Terminer",
+      "reset": "Réinitialiser",
+      "dragHandle": "Déplacer",
+      "moveUp": "Monter",
+      "moveDown": "Descendre",
+      "more": "Autres placements",
+      "joinAbove": "Placer sur la ligne du dessus",
+      "joinBelow": "Placer sur la ligne du dessous",
+      "ownRow": "Sortir sur sa propre ligne",
+      "shiftStart": "Déplacer vers le début de la ligne",
+      "shiftEnd": "Déplacer vers la fin de la ligne",
+      "dropNewRow": "Nouvelle ligne"
+    },
+    "occupancyByProperty": {
+      "title": "Occupation par logement",
+      "average": "Moyenne du portefeuille",
+      "empty": "Aucun logement sur la période.",
+      "nights": "{{occupied}} nuits sur {{total}}",
+      "viewBars": "Vue en barres",
+      "viewRadial": "Vue en anneaux"
+    },
+    "revenueByChannel": {
+      "month": "Mois",
+      "year": "Année"
+    },
+    "revenueSplit": {
+      "title": "Revenus et versements",
+      "lastMonths": "derniers mois",
+      "fees": "Commissions",
+      "interventions": "Interventions",
+      "payouts": "Versements",
+      "retained": "Reste",
+      "empty": "Aucun revenu enregistré sur la période."
+    },
+    "today": {
+      "arrivals": "Arrivées aujourd’hui",
+      "departures": "Départs aujourd’hui",
+      "cleanings": "Ménages du jour",
+      "noArrivals": "Aucune arrivée aujourd’hui.",
+      "noDepartures": "Aucun départ aujourd’hui.",
+      "noCleanings": "Aucun ménage planifié aujourd’hui.",
+      "depositToRelease": "caution à libérer",
+      "releaseDeposit": "Libérer la caution",
+      "planned": "Planifié",
+      "inProgress": "En cours"
+    },
+    "upcomingArrivals": {
+      "title": "Prochaines arrivées",
+      "empty": "Aucune arrivée sur la période.",
+      "guest": "Voyageur",
+      "property": "Logement",
+      "checkIn": "Arrivée",
+      "nights": "Nuits",
+      "channel": "Canal",
+      "status": "Statut",
+      "total": "Total",
+      "balanceDue": "Solde dû",
+      "paid": "Payée",
+      "confirmed": "Confirmée",
+      "seePlanning": "Tout le planning"
+    },
+    "widgets": {
+      "kpis": "Indicateurs",
+      "todayOperations": "Opérations du jour",
+      "actionItems": "À traiter",
+      "upcomingArrivals": "Prochaines arrivées",
+      "revenueSplit": "Revenus mensuels",
+      "revenueByChannel": "Revenus par canal",
+      "occupancyByProperty": "Occupation par logement"
+    },
+    "agentCard": {
+      "fallback": "Décision à valider",
+      "apply": "Valider",
+      "dismiss": "Ignorer",
+      "adjust": "Ajuster les tarifs",
+      "failed": "L’action a échoué. Réessayez.",
+      "openSupervision": "Voir dans le planning"
+    },
+    "feedDialog": {
+      "retry": "Relancer la synchronisation",
+      "synced": "Synchronisation relancée.",
+      "failed": "La synchronisation a échoué. Le flux est peut-être inaccessible."
+    },
+    "reservationDialog": {
+      "fallback": "Séjour",
+      "checkOut": "Départ",
+      "sendLink": "Envoyer le lien de paiement",
+      "linkSent": "Lien de paiement envoyé au voyageur.",
+      "linkFailed": "L’envoi a échoué. Réessayez.",
+      "noEmail": "Aucune adresse e-mail sur ce séjour : le lien de paiement ne peut pas être envoyé.",
+      "openList": "Voir les réservations"
+    },
+    "stuckService": {
+      "fallback": "Prestation en attente",
+      "assign": "Assigner un prestataire",
+      "searchExhausted": "Aucun prestataire disponible n’a été trouvé. La recherche automatique s’est arrêtée : il faut assigner quelqu’un.",
+      "overdue": "La date souhaitée est passée et aucun prestataire n’a été trouvé. La prestation n’a pas eu lieu."
+    }
   },
   "properties": {
     "title": "Propriétés",

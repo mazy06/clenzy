@@ -881,7 +881,11 @@
       "assignedInterventions": "التدخلات المعيّنة",
       "completedInterventions": "التدخلات المنجزة",
       "workTime": "وقت العمل",
-      "team": "الفريق"
+      "team": "الفريق",
+      "pending": "قيد الانتظار",
+      "next7days": "الأيام السبعة القادمة",
+      "nextPayout": "التحويل القادم",
+      "upcomingInterventions": "قادمة"
     },
     "recentActivities": "الأنشطة الأخيرة",
     "viewAllActivities": "عرض جميع الأنشطة",
@@ -918,7 +922,6 @@
     "noUpcomingInterventions": "لا توجد تدخلات قادمة",
     "serviceRequests": "طلبات الخدمة",
     "noServiceRequests": "لا توجد طلبات خدمة",
-    "today": "اليوم",
     "tomorrow": "غدًا",
     "interventionStatusDistribution": "توزيع الحالات",
     "noData": "لا توجد بيانات متاحة",
@@ -1046,7 +1049,18 @@
         "occupancyAndClients": "الإشغال والعملاء",
         "performanceAndTools": "الأداء والأدوات",
         "simulator": "المحاكي"
-      }
+      },
+      "occupancyShort": "الإشغال",
+      "revenueShort": "الإيرادات",
+      "guestRating": "متوسط التقييم",
+      "adrHint": "متوسط السعر لكل ليلة مباعة",
+      "including": "منها",
+      "arrivalsThisWeek": "وصول هذا الأسبوع",
+      "reviewsOnPeriod": "تقييمات خلال الفترة",
+      "vsPreviousPeriod": "مقارنة بالفترة السابقة",
+      "financialMetrics": "المؤشرات المالية",
+      "operationalMetrics": "النشاط التشغيلي",
+      "forecastOccupancy": "الإشغال المتوقع"
     },
     "dateFilter": {
       "week": "7 أيام",
@@ -1465,7 +1479,143 @@
       "lockedTitle": "التخطيط غير متاح مع باقة الأساسيات",
       "lockedDescription": "لا تسمح باقتك الحالية بالوصول إلى التخطيط التفاعلي أو الاستيراد التلقائي لتقويمات Airbnb وBooking والمنصات الأخرى. قم بالترقية إلى باقة الراحة أو المميزة لفتح هذه الميزة."
     },
-    "noOperationsPermissions": "ليس لديك الصلاحيات اللازمة لعرض العمليات."
+    "noOperationsPermissions": "ليس لديك الصلاحيات اللازمة لعرض العمليات.",
+    "todayLabel": "اليوم",
+    "actionItems": {
+      "title": "بانتظار الإجراء",
+      "empty": "لا شيء يتطلب إجراءً — كل شيء محدَّث.",
+      "balancesGroup": "أرصدة مستحقة التحصيل",
+      "servicesGroup": "خدمات مستحقة الدفع",
+      "feedsGroup": "تقاويم غير متزامنة",
+      "reviewsGroup": "تقييمات بلا رد",
+      "neverSynced": "لم تتم المزامنة قط",
+      "lastSuccess": "آخر نجاح قبل {{hours}} ساعة",
+      "awaitingYou": "بانتظارك",
+      "proposalTitle": "رد مقترح",
+      "proposalTag": "رد على تقييم",
+      "proposalLead": "صاغها الوكيل، ولن تُنشر دونك. الرسالة المقترحة:",
+      "insertProposal": "إدراج في ردي",
+      "replaceWithProposal": "استبدال ردي",
+      "orWriteYourOwn": "أو اكتب ردك أدناه",
+      "replyFailed": "فشل النشر. حاول مرة أخرى.",
+      "reviewFallback": "تقييم نزيل",
+      "noReviewText": "تقييم بدون نص.",
+      "aiUnconfigured": "لا يوجد نموذج ذكاء اصطناعي مُعدّ: لا يمكن للوكيل اقتراح رد.",
+      "configureAi": "إعداد",
+      "unnamedFeed": "تدفق بلا اسم",
+      "askProposal": "اقتراح رد",
+      "askProposalHint": "يمكن لوكيل السمعة صياغة مسودة من هذا التقييم. لا يُنشر شيء دونك.",
+      "proposalFailed": "تعذّر على الوكيل صياغة رد. يمكنك إعادة المحاولة أو كتابة ردك.",
+      "proposalPending": "يقوم الوكيل بصياغة رد…",
+      "retryProposal": "إعادة المحاولة",
+      "unassignedGroup": "خدمات بلا مزوّد",
+      "showMore": "عرض {{count}} أخرى",
+      "showLess": "عرض أقل",
+      "seeChannels": "عرض القنوات"
+    },
+    "activePropertiesShort": "وحدات نشطة",
+    "newReservation": "حجز",
+    "toHandle": "بانتظار الإجراء",
+    "layout": {
+      "customize": "تخصيص",
+      "done": "تم",
+      "reset": "إعادة تعيين",
+      "dragHandle": "نقل",
+      "moveUp": "تحريك لأعلى",
+      "moveDown": "تحريك لأسفل",
+      "more": "مواضع أخرى",
+      "joinAbove": "نقل إلى الصف الأعلى",
+      "joinBelow": "نقل إلى الصف الأسفل",
+      "ownRow": "نقل إلى صف خاص",
+      "shiftStart": "نقل إلى بداية الصف",
+      "shiftEnd": "نقل إلى نهاية الصف",
+      "dropNewRow": "صف جديد"
+    },
+    "occupancyByProperty": {
+      "title": "الإشغال حسب الوحدة",
+      "average": "متوسط المحفظة",
+      "empty": "لا توجد وحدات خلال الفترة.",
+      "nights": "{{occupied}} ليلة من أصل {{total}}",
+      "viewBars": "عرض شريطي",
+      "viewRadial": "عرض دائري"
+    },
+    "revenueByChannel": {
+      "month": "شهر",
+      "year": "سنة"
+    },
+    "revenueSplit": {
+      "title": "الإيرادات والتحويلات",
+      "lastMonths": "الأشهر الأخيرة",
+      "fees": "العمولات",
+      "interventions": "التدخلات",
+      "payouts": "التحويلات",
+      "retained": "المتبقي",
+      "empty": "لا توجد إيرادات مسجلة خلال الفترة."
+    },
+    "today": {
+      "arrivals": "الوصول اليوم",
+      "departures": "المغادرة اليوم",
+      "cleanings": "تنظيفات اليوم",
+      "noArrivals": "لا توجد وصولات اليوم.",
+      "noDepartures": "لا توجد مغادرات اليوم.",
+      "noCleanings": "لا يوجد تنظيف مجدول اليوم.",
+      "depositToRelease": "وديعة للإفراج",
+      "releaseDeposit": "الإفراج عن الوديعة",
+      "planned": "مجدول",
+      "inProgress": "قيد التنفيذ"
+    },
+    "upcomingArrivals": {
+      "title": "الوصولات القادمة",
+      "empty": "لا توجد وصولات خلال الفترة.",
+      "guest": "النزيل",
+      "property": "الوحدة",
+      "checkIn": "الوصول",
+      "nights": "الليالي",
+      "channel": "القناة",
+      "status": "الحالة",
+      "total": "الإجمالي",
+      "balanceDue": "الرصيد المستحق",
+      "paid": "مدفوع",
+      "confirmed": "مؤكد",
+      "seePlanning": "كامل الجدول"
+    },
+    "widgets": {
+      "kpis": "المؤشرات",
+      "todayOperations": "عمليات اليوم",
+      "actionItems": "بانتظار الإجراء",
+      "upcomingArrivals": "الوصولات القادمة",
+      "revenueSplit": "الإيرادات الشهرية",
+      "revenueByChannel": "الإيرادات حسب القناة",
+      "occupancyByProperty": "الإشغال حسب الوحدة"
+    },
+    "agentCard": {
+      "fallback": "قرار بانتظار الموافقة",
+      "apply": "موافقة",
+      "dismiss": "تجاهل",
+      "adjust": "تعديل الأسعار",
+      "failed": "فشل الإجراء. حاول مرة أخرى.",
+      "openSupervision": "عرض في الجدول"
+    },
+    "feedDialog": {
+      "retry": "إعادة المزامنة",
+      "synced": "تمت إعادة المزامنة.",
+      "failed": "فشلت المزامنة. قد يكون التدفق غير متاح."
+    },
+    "reservationDialog": {
+      "fallback": "إقامة",
+      "checkOut": "المغادرة",
+      "sendLink": "إرسال رابط الدفع",
+      "linkSent": "تم إرسال رابط الدفع إلى النزيل.",
+      "linkFailed": "فشل الإرسال. حاول مرة أخرى.",
+      "noEmail": "لا يوجد بريد إلكتروني لهذه الإقامة: لا يمكن إرسال رابط الدفع.",
+      "openList": "عرض الحجوزات"
+    },
+    "stuckService": {
+      "fallback": "خدمة معلّقة",
+      "assign": "تعيين مزوّد",
+      "searchExhausted": "لم يتم العثور على مزوّد متاح. توقف البحث التلقائي: يجب تعيين شخص.",
+      "overdue": "مضى التاريخ المطلوب ولم يتم العثور على مزوّد. لم تُنفَّذ الخدمة."
+    }
   },
   "properties": {
     "title": "العقارات",

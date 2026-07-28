@@ -364,6 +364,30 @@ utilisateur authentifié — un intervenant compris. Les trois endpoints renvoie
 désormais des listes vides pour les rôles opérationnels, qui ne voient que leurs
 propres interventions.
 
+### Vague 6 — « À traiter » devient une vraie file ✅
+
+Le bloc ne remontait que trois natures (soldes, avis, calendriers) portées par
+trois listes parallèles. Il manquait l'essentiel : les **cartes HITL des agents**,
+qui sont précisément ce qui attend une décision humaine.
+
+- `ActionItemsDto` devient **une file unique** (`items` + `total` +
+  `totalsByKind`), alimentée par cinq sources : cartes HITL
+  (`SupervisionSuggestion` en attente et non expirées), soldes dus, demandes de
+  service impayées (`ServiceRequestRepository.findUnpaidForOrg`, ajouté),
+  calendriers en dérive, avis sans réponse.
+- Tri **serveur** : sévérité, puis ordre de déclaration de `ActionItemKind`.
+- **Plafond par nature** (3) : sans lui, six avis sans réponse enterraient un
+  calendrier muet — exactement ce que montrait l'écran réel.
+- `totalsByKind` porte les décomptes **avant** plafonnement : c'est ce qui permet
+  d'écrire « Avis sans réponse (12) » en n'affichant que trois lignes, et un
+  « +9 » exact sur le lien de rubrique. Sans lui, tout chiffre affiché aurait été
+  celui des lignes reçues, donc faux.
+- Le périmètre de l'hôte s'applique aux cartes HITL comme au reste (chargement
+  des logements par identifiant, filtré sur le propriétaire).
+- L'ancienneté d'un flux part en nombre d'heures, pas en phrase : « 30 h sans
+  succès » fabriqué côté serveur aurait été du français en dur dans une
+  interface qui parle aussi anglais et arabe.
+
 ### Couverture finale
 
 **§1 à §8 de la projection sont rendus**, en Baitly UI, sur la disposition

@@ -65,6 +65,55 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
     List<ServiceRequest> findByProperty(@Param("property") Property property, @Param("orgId") Long orgId);
 
     /**
+     * Demandes de service impayées de toute l'organisation.
+     *
+     * Le bloc « à traiter » du dashboard agrège au niveau organisation : il ne
+     * peut pas boucler logement par logement, d'où l'absence de filtre logement
+     * par rapport à {@code findUnpaidByProperty}.
+     *
+     * <p>Le statut est restreint à {@code AWAITING_PAYMENT}, et non « tout sauf
+     * annulé/refusé » : c'est exactement la condition que
+     * {@code ServiceRequestPaymentPersistence.loadPayable} exige pour ouvrir une session de
+     * paiement. Sans cette restriction, la file proposait de régler des
+     * prestations que le serveur refuse ensuite de facturer, et le clic finissait
+     * sur « Erreur lors de la création de la session de paiement ».</p>
+     */
+    @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property " +
+           "WHERE sr.organizationId = :orgId " +
+           "AND sr.estimatedCost IS NOT NULL AND sr.estimatedCost > 0 " +
+           "AND (sr.paymentStatus IS NULL OR sr.paymentStatus IN (" +
+           "com.clenzy.model.PaymentStatus.PENDING, com.clenzy.model.PaymentStatus.PARTIALLY_PAID, " +
+           "com.clenzy.model.PaymentStatus.FAILED)) " +
+           "AND sr.status = com.clenzy.model.RequestStatus.AWAITING_PAYMENT " +
+           "ORDER BY sr.desiredDate")
+    List<ServiceRequest> findUnpaidForOrg(@Param("orgId") Long orgId);
+
+    /**
+     * Prestations restées sans prestataire après un cycle complet de recherche.
+     *
+     * <p>Une demande naît en {@code PENDING} et n'en sort que si quelqu'un lui
+     * est assigné — automatiquement à la création, ou par le scheduler qui
+     * repasse toutes les 15 minutes. Rester en {@code PENDING} juste après la
+     * création est donc normal ; l'être encore un cycle plus tard ne l'est pas.</p>
+     *
+     * <p>D'où le seul critère retenu : {@code createdAt} antérieur à
+     * {@code staleBefore} (l'appelant passe « maintenant moins un cycle »). Il
+     * couvre d'un coup les trois façons de rester bloqué, sans en oublier une :
+     * les dix tentatives épuisées ({@code autoAssignStatus = 'exhausted'}), la
+     * demande créée déjà assignée que plus personne ne reprend, et celle sans
+     * logement ni date qui boucle sans jamais escalader. Énumérer ces cas un par
+     * un laissait passer la situation la plus courante : la recherche est encore
+     * « en cours » depuis des jours, et rien ne le signale.</p>
+     */
+    @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property " +
+           "WHERE sr.organizationId = :orgId " +
+           "AND sr.status = com.clenzy.model.RequestStatus.PENDING " +
+           "AND sr.createdAt < :staleBefore " +
+           "ORDER BY sr.desiredDate")
+    List<ServiceRequest> findStuckUnassignedForOrg(@Param("orgId") Long orgId,
+                                                   @Param("staleBefore") LocalDateTime staleBefore);
+
+    /**
      * Demandes de service NON RÉGLÉES d'un logement : coût &gt; 0, statut de paiement dû
      * (null / PENDING / PARTIALLY_PAID / FAILED) et non annulée/refusée. Sert à la carte
      * déterministe « demande de service impayée » du Superviseur.

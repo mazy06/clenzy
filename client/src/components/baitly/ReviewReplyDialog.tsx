@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { CheckIcon, StarIcon, TriangleAlertIcon } from 'lucide-react';
+import { BotIcon, CheckIcon, StarIcon, TriangleAlertIcon } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -12,10 +12,12 @@ import {
   DialogHeader,
   DialogTitle,
   Separator,
+  Skeleton,
   Spinner,
   Textarea,
 } from '../ui';
 import GuestAvatar from './GuestAvatar';
+import { cn } from '../../utils/cn';
 import { reviewsApi } from '../../services/api/reviewsApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAiKeyStatus } from '../../hooks/useAi';
@@ -89,6 +91,24 @@ export default function ReviewReplyDialog({
     if (storedDraft && !dismissed) setProposal((current) => current ?? storedDraft);
   }, [storedDraft, dismissed]);
 
+  /**
+   * La proposition à la demande.
+   *
+   * L'agent Réputation rédige en amont pour les avis qu'il traite ; quand il
+   * n'est pas passé, l'hôte n'avait aucun moyen de lui en demander une. Le geste
+   * reste **explicite** : aucun modèle ne tourne à la simple ouverture de la
+   * modale, et ce qui revient est une proposition, pas une réponse publiée.
+   */
+  const askAgent = useMutation({
+    mutationFn: () => reviewsApi.draftReply(reviewId!),
+    onSuccess: (updated) => {
+      setDismissed(false);
+      setProposal(updated.hostResponseDraft?.trim() || null);
+    },
+  });
+
+  React.useEffect(() => askAgent.reset(), [reviewId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const publish = useMutation({
     mutationFn: (response: string) => reviewsApi.respond(reviewId!, response),
     onSuccess: async () => {
@@ -147,6 +167,66 @@ export default function ReviewReplyDialog({
                 un état normal, c'est une configuration manquante. Le dire, sinon
                 l'hôte croit que l'agent l'ignore. On ne l'affiche PAS quand une
                 clé existe : là, l'agent n'est simplement pas encore passé. */}
+            {/* Pas encore de brouillon : c'est la MÊME carte que la proposition,
+                dans son état vide. Un bouton isolé posé dans le flux n'aurait
+                aucun lien visuel avec la carte qui vient le remplacer, alors
+                qu'il s'agit du même objet à deux moments de sa vie. */}
+            {!showProposal && !aiUnconfigured && (
+              <div
+                className={cn(
+                  'rounded-xl border p-4 transition-colors duration-200 motion-reduce:transition-none',
+                  askAgent.isError ? 'border-destructive/50 bg-destructive/5' : 'border-border bg-muted/40',
+                )}
+              >
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge variant="secondary">
+                    {t('supervision.agents.rep.name', 'Agent Réputation')}
+                  </Badge>
+                  <Badge variant="outline">
+                    {t('dashboard.actionItems.proposalTag', 'Réponse d’avis')}
+                  </Badge>
+                </div>
+
+                {askAgent.isPending ? (
+                  /* La forme de ce qui arrive, pas un sablier : on montre trois
+                     lignes de texte à venir là où la réponse s'écrira. */
+                  <div className="mt-3 flex flex-col gap-1.5" aria-live="polite">
+                    <span className="sr-only">
+                      {t('dashboard.actionItems.proposalPending', 'L’agent rédige une proposition…')}
+                    </span>
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-11/12" />
+                    <Skeleton className="h-3 w-2/3" />
+                  </div>
+                ) : (
+                  <>
+                    <p className="mt-2.5 mb-0 text-xs text-muted-foreground">
+                      {askAgent.isError
+                        ? t(
+                            'dashboard.actionItems.proposalFailed',
+                            'L’agent n’a pas pu rédiger de proposition. Vous pouvez réessayer ou écrire votre réponse.',
+                          )
+                        : t(
+                            'dashboard.actionItems.askProposalHint',
+                            'L’agent Réputation peut rédiger un brouillon à partir de cet avis. Rien n’est publié sans vous.',
+                          )}
+                    </p>
+                    <Button
+                      size="sm"
+                      variant={askAgent.isError ? 'outline' : 'secondary'}
+                      className="mt-3"
+                      onClick={() => askAgent.mutate()}
+                    >
+                      <BotIcon />
+                      {askAgent.isError
+                        ? t('dashboard.actionItems.retryProposal', 'Réessayer')
+                        : t('dashboard.actionItems.askProposal', 'Proposer une réponse')}
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+
             {!showProposal && aiUnconfigured && (
               <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning-soft/40 p-2.5">
                 <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0 text-warning" />

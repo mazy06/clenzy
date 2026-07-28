@@ -348,6 +348,14 @@ import {
   BPropertyChannelsProjectionDemo,
 } from './design-system/teardown-projections';
 import {
+  BActionItemsMatrixDemo,
+  BActionItemsFullDemo,
+  BActionItemsSingleKindDemo,
+  BActionItemsTruncatedDemo,
+  BActionItemsEdgeCasesDemo,
+  BActionItemsEmptyDemo,
+} from './design-system/dashboard-action-items-demos';
+import {
   BOnboardingEmptyProjectionDemo,
   BDashboardEmptyDemo,
   BPlanningEmptyDemo,
@@ -2492,6 +2500,7 @@ const GALLERY_SECTIONS: GallerySectionDef[] = [
   { category: 'primitives', group: 'Données', title: 'ChannelBadges', i18nKey: 'designSystem.teardown.channelBadges', fallback: "Grappe de pastilles de canaux avec état de connexion (pastille de validation, canal non connecté désaturé mais lisible), en variante superposable sur une photo de logement.", variants: single(BChannelBadgesDemo) },
   { category: 'primitives', group: 'Structure', title: 'CornerRibbon', i18nKey: 'designSystem.teardown.cornerRibbon', fallback: "Ruban d'angle diagonal (promo, exclusivité, nouveauté) — signale une offre sur une carte sans consommer de place dans le flux de contenu. Le parent doit être `relative overflow-hidden`.", variants: single(BCornerRibbonDemo) },
   { category: 'projections', group: 'Dashboard', title: 'Section — Dashboard', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Dashboard' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Dashboard ».", variants: [{ key: 'default', label: 'Défaut', Demo: BDashboardSectionDemo }, { key: 'empty', label: 'État vide', Demo: BDashboardEmptyDemo }] },
+  { category: 'projections', group: 'Dashboard', title: 'Dashboard — À traiter', i18nKey: 'designSystem.dashboardActionItems.description', fallback: "La carte « À traiter » du dashboard, rendue par le composant réel du produit et alimentée par des jeux de données de galerie. Chaque variante isole un état qu'aucune organisation ne présente au moment où on doit le vérifier.", variants: [{ key: 'matrix', label: 'Tous les états', Demo: BActionItemsMatrixDemo }, { key: 'full', label: 'Toutes natures', Demo: BActionItemsFullDemo }, { key: 'single', label: 'Une seule rubrique', Demo: BActionItemsSingleKindDemo }, { key: 'truncated', label: 'Rubriques tronquées', Demo: BActionItemsTruncatedDemo }, { key: 'edge', label: 'Cas limites', Demo: BActionItemsEdgeCasesDemo }, { key: 'empty', label: 'Vide', Demo: BActionItemsEmptyDemo }] },
   { category: 'projections', group: 'Interventions', title: 'Section — Interventions', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Interventions' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Interventions ».", variants: [{ key: 'default', label: 'Défaut', Demo: BInterventionsSectionDemo }, { key: 'empty', label: 'État vide', Demo: BInterventionsEmptyDemo }, { key: 'story', label: "État vide — rotation entre deux séjours", Demo: BInterventionsStoryDemo }] },
   { category: 'projections', group: 'Fiche réservation', title: 'Section — Fiche réservation', i18nKey: 'designSystem.section.description', i18nParams: { screen: 'Fiche réservation' }, fallback: "Section d'écran composée uniquement de primitives Baitly UI — aperçu du rendu cible de la migration de « Fiche réservation ».", variants: single(BReservationDetailSectionDemo) },
   // Vague 5 — projections d'écrans supplémentaires

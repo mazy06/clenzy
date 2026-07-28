@@ -9,6 +9,8 @@ import {
   LogOutIcon,
   StarIcon,
   TriangleAlertIcon,
+  UserSearchIcon,
+  WrenchIcon,
 } from 'lucide-react';
 import {
   Button,
@@ -21,6 +23,10 @@ import {
 } from '../../../components/ui';
 import GuestAvatar from '../../../components/baitly/GuestAvatar';
 import ReviewReplyDialog from '../../../components/baitly/ReviewReplyDialog';
+import ReservationActionDialog from '../../../components/baitly/ReservationActionDialog';
+import FeedSyncDialog from '../../../components/baitly/FeedSyncDialog';
+import StuckServiceDialog from '../../../components/baitly/StuckServiceDialog';
+import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
 import StatusChip from '../../../components/baitly/StatusChip';
 import { Money } from '../../../components/baitly/Money';
 import { cn } from '../../../utils/cn';
@@ -32,8 +38,8 @@ import {
   useDashboardUpcomingArrivals,
 } from '../../../hooks/useDashboardOperations';
 import type {
-  DashboardStaleFeed,
-  DashboardUnansweredReview,
+  DashboardActionItem,
+  DashboardActionItems,
   DashboardUpcomingArrival,
 } from '../../../services/api/dashboardOperationsApi';
 
@@ -77,15 +83,12 @@ function BlockCard({
   icon,
   title,
   count,
-  titleSuffix,
   children,
   className,
 }: {
   icon?: React.ReactNode;
   title: React.ReactNode;
   count?: number;
-  /** Prolonge le titre sur la MÊME ligne (ex. l'unique rubrique peuplée). */
-  titleSuffix?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -101,7 +104,6 @@ function BlockCard({
         {icon}
         {title}
         {count !== undefined && <span className="tabular-nums">({count})</span>}
-        {titleSuffix}
       </h3>
       {children}
     </section>
@@ -119,6 +121,11 @@ export function TodayOperationsSection() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data, isLoading } = useDashboardToday();
+  // Le séjour s'ouvre sur place : `/reservations/:id` n'existe pas, et quitter
+  // le tableau de bord pour lire deux dates n'aide personne.
+  // ⚠️ Avant tout early return (règles des hooks).
+  const [openedReservation, setOpenedReservation] =
+    React.useState<{ id: number; guestName: string | null; propertyName: string | null } | null>(null);
 
   if (isLoading) return null;
 
@@ -142,7 +149,13 @@ export function TodayOperationsSection() {
               <button
                 key={arrival.reservationId}
                 type="button"
-                onClick={() => navigate(`/reservations/${arrival.reservationId}`)}
+                onClick={() =>
+                  setOpenedReservation({
+                    id: arrival.reservationId,
+                    guestName: arrival.guestName,
+                    propertyName: arrival.propertyName,
+                  })
+                }
                 className="flex cursor-pointer items-center gap-2.5 rounded-md text-start outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 <GuestAvatar name={arrival.guestName ?? '?'} size={30} />
@@ -258,6 +271,16 @@ export function TodayOperationsSection() {
           </div>
         )}
       </BlockCard>
+
+      <ReservationActionDialog
+        reservationId={openedReservation?.id ?? null}
+        onClose={() => setOpenedReservation(null)}
+        preview={{
+          guestName: openedReservation?.guestName,
+          propertyName: openedReservation?.propertyName,
+        }}
+        invalidateKeys={[['dashboard', 'operations', 'today']]}
+      />
     </div>
   );
 }
@@ -273,200 +296,276 @@ function cleaningWindow(start: string | null, end: string | null): string | null
 // ─── §6 — À traiter ─────────────────────────────────────────────────────────
 
 /**
- * Lignes affichées par groupe. Le serveur en renvoie jusqu'à 20 par catégorie
- * (`DashboardOperationsService.MAX_ROWS`), soit 60 lignes possibles dans une
- * tuile de tableau de bord : à ce volume la carte n'est plus une liste de
- * priorités mais un backlog, qu'on ne lit plus. Au-delà, un lien renvoie vers
- * l'écran qui sait vraiment traiter le sujet.
+ * Lignes visibles avant dépliage. La file reste une liste de priorités : au-delà
+ * de trois lignes par rubrique, on ne lit plus, on parcourt.
  */
-const GROUP_LIMIT = 3;
+const GROUP_PREVIEW = 3;
 
+/**
+ * Une nature d'action et sa présentation : icône, teinte, libellé de rubrique.
+ *
+ * L'ordre de ce tableau EST l'ordre d'affichage des rubriques — le même que la
+ * priorité serveur (`ActionItemKind`) : ce qu'on n'a pas encaissé et ce qui peut
+ * provoquer une double réservation passent avant la réputation.
+ *
+ * Les cartes des agents n'y figurent pas : elles vivent dans la constellation.
+ */
+function actionKinds(t: TranslateFn) {
+  return [
+    {
+      kind: 'BALANCE_DUE' as const,
+      icon: <BanknoteIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.balancesGroup', 'Soldes à percevoir'),
+    },
+    {
+      kind: 'SERVICE_UNPAID' as const,
+      icon: <WrenchIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.servicesGroup', 'Prestations à régler'),
+    },
+    {
+      kind: 'SERVICE_UNASSIGNED' as const,
+      icon: <UserSearchIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.unassignedGroup', 'Prestations sans prestataire'),
+    },
+    {
+      kind: 'FEED_STALE' as const,
+      icon: <CalendarSyncIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.feedsGroup', 'Calendriers désynchronisés'),
+    },
+    {
+      kind: 'REVIEW_UNANSWERED' as const,
+      icon: <StarIcon />,
+      tone: 'text-info',
+      label: t('dashboard.actionItems.reviewsGroup', 'Avis sans réponse'),
+    },
+  ];
+}
+
+/**
+ * File unique de tout ce qui attend une décision : cartes des agents, soldes,
+ * prestations impayées, calendriers muets, avis sans réponse.
+ *
+ * <p>Le serveur trie et plafonne par nature ; l'écran ne fait que regrouper pour
+ * dire chaque libellé une fois. Le compteur du titre est le total <b>réel</b>,
+ * pas le nombre de lignes visibles.</p>
+ */
 export function ActionItemsCard() {
+  const { data, isLoading } = useDashboardActionItems();
+  if (isLoading) return null;
+  return <ActionItemsView data={data} />;
+}
+
+/**
+ * Le rendu, séparé de sa source de données.
+ *
+ * Cette séparation n'est pas décorative : la carte a huit états visuels (une
+ * seule rubrique, plusieurs, rubrique tronquée, montant, note, avatar ou non,
+ * flux jamais synchronisé, vide) qu'aucun jeu de données réel ne présente en
+ * même temps. La galerie les met tous à l'écran en passant `data` à la main,
+ * sans réseau ni mode démo dans le produit.
+ */
+export function ActionItemsView({ data }: { data?: DashboardActionItems }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { data, isLoading } = useDashboardActionItems();
   // Répondre est le geste attendu ici : on ouvre l'avis sur place. Quitter le
   // tableau de bord reste possible, mais c'est le rôle du lien « Voir les avis ».
   // ⚠️ Avant tout early return (règles des hooks).
-  const [replyingTo, setReplyingTo] = React.useState<DashboardUnansweredReview | null>(null);
+  const [active, setActive] = React.useState<DashboardActionItem | null>(null);
 
-  if (isLoading) return null;
+  const items = data?.items ?? [];
+  const total = data?.total ?? 0;
 
-  const balances = data?.balancesDue ?? [];
-  const reviews = data?.unansweredReviews ?? [];
-  const feeds = data?.staleFeeds ?? [];
-  const total = balances.length + reviews.length + feeds.length;
-  // Une seule rubrique peuplée : elle remonte sur la ligne du titre de la carte,
-  // et son compteur disparaît — il redirait celui de l'en-tête. Deux lignes
-  // d'en-tête empilées pour dire la même chose gaspillaient de la hauteur.
-  const populatedGroups = [
-    { size: balances.length, icon: <BanknoteIcon />, tone: 'text-warning',
-      label: t('dashboard.actionItems.balancesGroup', 'Soldes à percevoir') },
-    { size: feeds.length, icon: <CalendarSyncIcon />, tone: 'text-destructive',
-      label: t('dashboard.actionItems.feedsGroup', 'Calendriers désynchronisés') },
-    { size: reviews.length, icon: <StarIcon />, tone: 'text-info',
-      label: t('dashboard.actionItems.reviewsGroup', 'Avis sans réponse') },
-  ].filter((group) => group.size > 0);
-  const soleGroup = populatedGroups.length === 1 ? populatedGroups[0] : null;
-  const showGroupCounts = soleGroup == null;
+  const totalsByKind = data?.totalsByKind ?? {};
+  const groups = actionKinds(t)
+    .map((meta) => {
+      const rows = items.filter((item) => item.kind === meta.kind);
+      // Le décompte vient du serveur : `rows` est déjà tronqué.
+      return { ...meta, rows, kindTotal: totalsByKind[meta.kind] ?? rows.length };
+    })
+    .filter((group) => group.rows.length > 0);
 
   return (
     <BlockCard
       icon={<TriangleAlertIcon className="size-3.5 text-warning" />}
       title={t('dashboard.actionItems.title', 'À traiter')}
       count={total}
-      titleSuffix={
-        soleGroup && (
-          <span className="flex items-center gap-1.5 border-s border-border ps-1.5">
-            <span className={cn('inline-flex [&>svg]:size-3.5', soleGroup.tone)}>
-              {soleGroup.icon}
-            </span>
-            {soleGroup.label}
-          </span>
-        )
-      }
     >
-      {total === 0 ? (
+      {groups.length === 0 ? (
         <BlockEmpty>
           {t('dashboard.actionItems.empty', 'Rien à traiter — tout est à jour.')}
         </BlockEmpty>
       ) : (
-        /* Ordre d'urgence, et non ordre d'arrivée : de l'argent qu'on n'a pas
-           encaissé, puis un calendrier muet (risque de double réservation),
-           puis la réputation. Le plafond par groupe rend cet ordre décisif —
-           sans lui, six avis pouvaient enterrer une synchro cassée. */
         <div className="flex flex-col gap-4">
-          <ActionGroup
-            icon={<BanknoteIcon />}
-            tone="text-warning"
-            label={t('dashboard.actionItems.balancesGroup', 'Soldes à percevoir')}
-            total={balances.length}
-            showCount={showGroupCounts}
-            hideHeader={soleGroup != null}
-            seeAllLabel={t('dashboard.actionItems.seeBilling', 'Voir la facturation')}
-            onSeeAll={() => navigate('/billing')}
-          >
-            {balances.slice(0, GROUP_LIMIT).map((item) => (
-              <ActionRow
-                key={`balance-${item.reservationId}`}
-                primary={item.guestName ?? item.reference}
-                secondary={`${item.reference} · ${t('dashboard.actionItems.arrivingOn', 'arrivée')} ${formatArrivalDate(item.checkIn)}`}
-                value={
-                  <span className="text-sm font-semibold text-foreground tabular-nums">
-                    <Money value={item.amountDue} decimals={0} />
-                  </span>
-                }
-                onClick={() => navigate(`/reservations/${item.reservationId}`)}
-              />
-            ))}
-          </ActionGroup>
-
-          <ActionGroup
-            icon={<CalendarSyncIcon />}
-            tone="text-destructive"
-            label={t('dashboard.actionItems.feedsGroup', 'Calendriers désynchronisés')}
-            total={feeds.length}
-            showCount={showGroupCounts}
-            hideHeader={soleGroup != null}
-            seeAllLabel={t('dashboard.actionItems.seeChannels', 'Voir les canaux')}
-            onSeeAll={() => navigate('/channels')}
-          >
-            {feeds.slice(0, GROUP_LIMIT).map((item) => (
-              <ActionRow
-                key={`feed-${item.feedId}`}
-                primary={item.sourceName ?? t('dashboard.actionItems.unnamedFeed', 'Flux sans nom')}
-                secondary={[item.propertyName, feedDelay(item, t)].filter(Boolean).join(' · ')}
-                onClick={() => navigate('/channels')}
-              />
-            ))}
-          </ActionGroup>
-
-          <ActionGroup
-            icon={<StarIcon />}
-            tone="text-info"
-            label={t('dashboard.actionItems.reviewsGroup', 'Avis sans réponse')}
-            total={reviews.length}
-            showCount={showGroupCounts}
-            hideHeader={soleGroup != null}
-            seeAllLabel={t('dashboard.actionItems.seeReviews', 'Voir les avis')}
-            onSeeAll={() => navigate('/channels/reviews')}
-          >
-            {reviews.slice(0, GROUP_LIMIT).map((item) => {
-              const author = item.guestName?.trim() || null;
-              const reviewedOn = formatReviewDate(item.reviewDate);
-              return (
+          {groups.map((group) => (
+            <ActionGroup
+              key={group.kind}
+              icon={group.icon}
+              tone={group.tone}
+              label={group.label}
+              total={group.kindTotal}
+              shown={group.rows.length}
+              moreLabel={(count) =>
+                t('dashboard.actionItems.showMore', {
+                  count,
+                  defaultValue: 'Voir les {{count}} autres',
+                })
+              }
+              lessLabel={t('dashboard.actionItems.showLess', 'Réduire')}
+            >
+              {(expanded) => (group.rows.slice(0, expanded ? undefined : GROUP_PREVIEW)).map((item) => (
                 <ActionRow
-                  key={`review-${item.reviewId}`}
-                  /* On répond à quelqu'un, pas à une ligne de texte : le
-                     voyageur ouvre la ligne, son propos suit. Sans auteur
-                     connu (avis importé anonyme), l'extrait reprend la tête
-                     plutôt que d'afficher un avatar vide. */
-                  leading={author ? <GuestAvatar name={author} size={30} /> : undefined}
-                  primary={
-                    author ? (
-                      <>
-                        <span className="font-medium">{author}</span>
-                        {item.propertyName && ` · ${item.propertyName}`}
-                      </>
-                    ) : (
-                      item.excerpt ? `« ${item.excerpt} »` : (item.propertyName ?? '—')
-                    )
-                  }
-                  secondary={
-                    author
-                      ? item.excerpt && `« ${item.excerpt} »`
-                      : [item.propertyName, reviewedOn].filter(Boolean).join(' · ')
-                  }
-                  value={
-                    item.rating != null && (
-                      <span className="flex shrink-0 flex-col items-end">
-                        <span className="flex items-center gap-0.5 text-sm font-semibold text-foreground tabular-nums">
-                          {item.rating}
-                          <StarIcon className="size-3.5 fill-warning text-warning" />
-                        </span>
-                        {author && reviewedOn && (
-                          <span className="text-2xs text-muted-foreground">{reviewedOn}</span>
-                        )}
-                      </span>
-                    )
-                  }
-                  onClick={() => setReplyingTo(item)}
+                  key={item.id}
+                  /* On agit envers quelqu'un, pas envers une ligne de texte :
+                     quand l'action concerne une personne, elle ouvre la ligne. */
+                  leading={item.subject ? <GuestAvatar name={item.subject} size={30} /> : undefined}
+                  primary={item.title}
+                  secondary={actionSecondary(item, t)}
+                  value={actionValue(item)}
+                  // Toujours une modale, jamais une redirection : on traite
+                  // depuis le tableau de bord, et c'est la modale qui propose
+                  // ensuite d'ouvrir l'écran complet.
+                  onClick={() => setActive(item)}
                 />
-              );
-            })}
-          </ActionGroup>
+              ))}
+            </ActionGroup>
+          ))}
         </div>
       )}
 
-      {/* Publier fait disparaître la ligne : la carte se recharge. */}
-      <ReviewReplyDialog
-        reviewId={replyingTo?.reviewId ?? null}
-        onClose={() => setReplyingTo(null)}
-        preview={{
-          guestName: replyingTo?.guestName,
-          propertyName: replyingTo?.propertyName,
-          rating: replyingTo?.rating,
-        }}
-        invalidateKeys={[['dashboard', 'action-items']]}
-      />
+      {/* Traiter fait disparaître la ligne : la carte se recharge. */}
+      <ActionItemDialog item={active} onClose={() => setActive(null)} />
     </BlockCard>
   );
 }
 
-/** « il y a 30 h » / « jamais synchronisé ». */
-function feedDelay(item: DashboardStaleFeed, t: TranslateFn): string {
-  if (item.hoursSinceLastSync == null) {
-    return t('dashboard.actionItems.neverSynced', 'jamais synchronisé');
+/**
+ * Seconde ligne : le contexte, sans jamais répéter la première.
+ *
+ * Le cas du calendrier est le seul où le serveur envoie un nombre plutôt qu'une
+ * phrase — pour que la phrase reste traduisible.
+ */
+function actionSecondary(item: DashboardActionItem, t: TranslateFn): React.ReactNode {
+  if (item.kind === 'FEED_STALE') {
+    // Interpolé et non concaténé : l'anglais place le complément après le
+    // nombre (« 31 h ago »), le français avant. Coller deux morceaux de phrase
+    // ne se traduit pas.
+    const delay = item.amount == null
+      ? t('dashboard.actionItems.neverSynced', 'jamais synchronisé')
+      : t('dashboard.actionItems.lastSuccess', {
+          hours: item.amount,
+          defaultValue: 'dernier succès il y a {{hours}} h',
+        });
+    return [item.detail, delay].filter(Boolean).join(' · ');
   }
-  return `${t('dashboard.actionItems.lastSuccess', 'dernier succès il y a')} ${item.hoursSinceLastSync} h`;
+  if (item.kind === 'REVIEW_UNANSWERED') {
+    return item.detail ? `« ${item.detail} »` : item.propertyName;
+  }
+  // Le logement complète le contexte quand il n'est pas déjà ce que dit `detail`.
+  return [item.detail, item.detail === item.propertyName ? null : item.propertyName]
+    .filter(Boolean)
+    .join(' · ');
 }
 
-function formatReviewDate(iso: string | null): string | null {
-  if (!iso) return null;
-  return new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'short',
-  });
+/** Fin de ligne : un montant, une mention courte, ou rien. */
+function actionValue(item: DashboardActionItem): React.ReactNode {
+  if (
+    item.kind === 'BALANCE_DUE'
+    || item.kind === 'SERVICE_UNPAID'
+    || item.kind === 'SERVICE_UNASSIGNED'
+  ) {
+    return item.amount == null ? null : (
+      <span className="text-sm font-semibold text-foreground tabular-nums">
+        <Money value={item.amount} decimals={0} />
+      </span>
+    );
+  }
+  // Le badge arrive pr\u00eat \u00e0 afficher (\u00ab 4\u2605 \u00bb) : le front ne le red\u00e9core pas.
+  if (item.badge) {
+    return (
+      <span className="text-sm font-semibold text-warning tabular-nums">{item.badge}</span>
+    );
+  }
+  return null;
+}
+
+/**
+ * La modale qui traite l'élément cliqué, choisie par sa nature.
+ *
+ * Aucune de ces natures ne redirige : on reste sur le tableau de bord et c'est
+ * la modale qui propose, en pied, d'ouvrir l'écran complet. La navigation
+ * directe qu'on avait au départ envoyait d'ailleurs vers `/reservations/:id`,
+ * une route qui n'existe pas.
+ */
+function ActionItemDialog({
+  item,
+  onClose,
+}: {
+  item: DashboardActionItem | null;
+  onClose: () => void;
+}) {
+  const kind = item?.kind;
+  // Les listes rechargent après traitement : la ligne traitée disparaît.
+  const invalidateKeys = [['dashboard', 'action-items']] as const;
+
+  return (
+    <>
+      <ReviewReplyDialog
+        reviewId={kind === 'REVIEW_UNANSWERED' ? (item?.targetId ?? null) : null}
+        onClose={onClose}
+        preview={{ guestName: item?.subject, propertyName: item?.propertyName }}
+        invalidateKeys={invalidateKeys}
+      />
+
+      <ReservationActionDialog
+        reservationId={kind === 'BALANCE_DUE' ? (item?.targetId ?? null) : null}
+        onClose={onClose}
+        preview={{
+          guestName: item?.subject,
+          propertyName: item?.propertyName,
+          amountDue: item?.amount,
+        }}
+        invalidateKeys={invalidateKeys}
+      />
+
+      <FeedSyncDialog
+        feedId={kind === 'FEED_STALE' ? (item?.targetId ?? null) : null}
+        onClose={onClose}
+        feed={{
+          sourceName: item?.title,
+          propertyName: item?.propertyName,
+          hoursSinceLastSync: item?.amount,
+        }}
+        invalidateKeys={invalidateKeys}
+      />
+
+      <StuckServiceDialog
+        serviceRequestId={kind === 'SERVICE_UNASSIGNED' ? (item?.targetId ?? null) : null}
+        onClose={onClose}
+        service={{
+          title: item?.title,
+          propertyName: item?.propertyName,
+          severity: item?.severity,
+        }}
+      />
+
+      {/* Le règlement passe par le tunnel Stripe embarqué déjà en service
+          ailleurs — on ne réécrit pas un formulaire de paiement. */}
+      {kind === 'SERVICE_UNPAID' && item?.targetId != null && (
+        <PaymentCheckoutModal
+          open
+          onClose={onClose}
+          onSuccess={onClose}
+          serviceRequestId={item.targetId}
+          amount={item.amount ?? 0}
+          interventionTitle={item.title}
+        />
+      )}
+    </>
+  );
 }
 
 /**
@@ -477,52 +576,69 @@ function formatReviewDate(iso: string | null): string | null {
  * Ne rend rien si le groupe est vide — un dashboard ne montre pas une rubrique
  * pour dire qu'elle est vide, la carte a déjà son état vide global.
  */
+/**
+ * Rubrique de la file.
+ *
+ * <p>Le reste des lignes se déplie <b>ici</b>, dans la carte : quitter le
+ * tableau de bord pour lire trois avis de plus n'aidait personne, et faisait
+ * perdre le contexte des autres rubriques.</p>
+ *
+ * <p>Le compteur du titre est le décompte réel du serveur ; le bouton, lui,
+ * n'annonce que ce qu'il peut réellement montrer. Quand le serveur a tronqué
+ * au-delà de ce qui a été transmis, le reliquat est dit à part plutôt que promis
+ * par un bouton qui ne le livrerait pas.</p>
+ */
 function ActionGroup({
   icon,
   tone,
   label,
   total,
-  showCount,
-  hideHeader,
-  seeAllLabel,
-  onSeeAll,
+  shown,
+  moreLabel,
+  lessLabel,
   children,
 }: {
   icon: React.ReactNode;
   tone: string;
   label: string;
+  /** Décompte réel de la rubrique, tel que compté par le serveur. */
   total: number;
-  /** Faux quand ce groupe est le seul peuplé : son compte répéterait celui de la carte. */
-  showCount: boolean;
-  /** Vrai quand le libellé est déjà porté par le titre de la carte. */
-  hideHeader: boolean;
-  seeAllLabel: string;
-  onSeeAll: () => void;
-  children: React.ReactNode;
+  /** Nombre de lignes effectivement reçues — le serveur plafonne. */
+  shown: number;
+  moreLabel: (count: number) => string;
+  lessLabel: string;
+  /** Reçoit l'état de dépliage : la rubrique décide de ce qu'elle montre. */
+  children: (expanded: boolean) => React.ReactNode;
 }) {
+  const [expanded, setExpanded] = React.useState(false);
   if (total === 0) return null;
-  const hidden = total - Math.min(total, GROUP_LIMIT);
+
+  const expandable = Math.max(0, shown - GROUP_PREVIEW);
+  const untransmitted = Math.max(0, total - shown);
 
   return (
     <section>
-      {/* En-tête masqué quand cette rubrique est la seule peuplée : elle est alors
-          affichée sur la ligne du titre de la carte (`titleSuffix`). */}
-      {!hideHeader && (
-        <h4 className="m-0 flex items-center gap-1.5 text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
-          <span className={cn('inline-flex [&>svg]:size-3.5', tone)}>{icon}</span>
-          {label}
-          {showCount && <span className="tabular-nums">({total})</span>}
-        </h4>
-      )}
-      <div className={cn('flex flex-col', !hideHeader && 'mt-1')}>{children}</div>
-      {hidden > 0 && (
+      <h4 className="m-0 flex items-center gap-1.5 text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
+        <span className={cn('inline-flex [&>svg]:size-3.5', tone)}>{icon}</span>
+        {label}
+        <span className="tabular-nums">({total})</span>
+      </h4>
+      <div className="mt-1 flex flex-col">{children(expanded)}</div>
+
+      {expandable > 0 && (
         <button
           type="button"
-          onClick={onSeeAll}
+          onClick={() => setExpanded((open) => !open)}
+          aria-expanded={expanded}
           className="mt-1 cursor-pointer rounded-md text-xs font-medium text-primary underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
-          {`+${hidden} · ${seeAllLabel}`}
+          {expanded ? lessLabel : moreLabel(expandable)}
         </button>
+      )}
+      {expanded && untransmitted > 0 && (
+        <p className="m-0 mt-1 text-2xs text-muted-foreground">
+          {`+${untransmitted}`}
+        </p>
       )}
     </section>
   );
@@ -575,6 +691,10 @@ export function UpcomingArrivalsCard({ days = 7 }: { days?: number }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data, isLoading } = useDashboardUpcomingArrivals(days);
+  // Même règle que partout ailleurs sur cet écran : la ligne ouvre le séjour,
+  // elle ne quitte pas le tableau de bord.
+  // ⚠️ Avant tout early return (règles des hooks).
+  const [opened, setOpened] = React.useState<DashboardUpcomingArrival | null>(null);
 
   if (isLoading) return null;
   const rows = data ?? [];
@@ -620,7 +740,7 @@ export function UpcomingArrivalsCard({ days = 7 }: { days?: number }) {
               <TableRow
                 key={row.reservationId}
                 className="cursor-pointer"
-                onClick={() => navigate(`/reservations/${row.reservationId}`)}
+                onClick={() => setOpened(row)}
               >
                 <TableCell>
                   <span className="flex items-center gap-2">
@@ -650,6 +770,17 @@ export function UpcomingArrivalsCard({ days = 7 }: { days?: number }) {
           </TableBody>
         </Table>
       )}
+
+      <ReservationActionDialog
+        reservationId={opened?.reservationId ?? null}
+        onClose={() => setOpened(null)}
+        preview={{
+          guestName: opened?.guestName,
+          propertyName: opened?.propertyName,
+          amountDue: opened?.amountDue,
+        }}
+        invalidateKeys={[['dashboard', 'upcoming-arrivals', days]]}
+      />
     </section>
   );
 }

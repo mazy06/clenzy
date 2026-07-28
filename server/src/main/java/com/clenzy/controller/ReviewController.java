@@ -5,6 +5,7 @@ import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.model.GuestReview;
 import com.clenzy.service.ReviewService;
 import com.clenzy.service.ReviewSyncService;
+import com.clenzy.service.agent.supervision.ReviewReplyDraftService;
 import com.clenzy.tenant.TenantContext;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -22,13 +23,16 @@ public class ReviewController {
 
     private final ReviewService reviewService;
     private final ReviewSyncService syncService;
+    private final ReviewReplyDraftService draftService;
     private final TenantContext tenantContext;
 
     public ReviewController(ReviewService reviewService,
                             ReviewSyncService syncService,
+                            ReviewReplyDraftService draftService,
                             TenantContext tenantContext) {
         this.reviewService = reviewService;
         this.syncService = syncService;
+        this.draftService = draftService;
         this.tenantContext = tenantContext;
     }
 
@@ -80,6 +84,22 @@ public class ReviewController {
         Long orgId = tenantContext.getOrganizationId();
         GuestReview review = reviewService.respondToReview(id, orgId, request.response());
         return ResponseEntity.ok(GuestReviewDto.from(review));
+    }
+
+    /**
+     * Demande à l'agent Réputation de rédiger un brouillon de réponse.
+     *
+     * <p>Le service existait déjà, mais n'était atteignable qu'en exécutant une
+     * carte de supervision : un hôte qui ouvrait un avis non traité par l'agent
+     * n'avait aucun moyen de lui en demander un. Rien n'est publié — seul
+     * {@code host_response_draft} est écrit, et c'est l'hôte qui décide de
+     * l'insérer dans sa réponse.</p>
+     */
+    @PostMapping("/{id}/draft-reply")
+    public ResponseEntity<GuestReviewDto> draftReply(@PathVariable Long id) {
+        Long orgId = tenantContext.getOrganizationId();
+        draftService.generateDraft(orgId, id);
+        return ResponseEntity.ok(GuestReviewDto.from(reviewService.getById(id, orgId)));
     }
 
     @PostMapping("/sync/{propertyId}")

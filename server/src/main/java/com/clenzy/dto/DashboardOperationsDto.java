@@ -3,6 +3,7 @@ package com.clenzy.dto;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Blocs opérationnels de l'écran Dashboard : la journée en cours, les arrivées
@@ -84,49 +85,79 @@ public record DashboardOperationsDto(
             BigDecimal amountDue) {}
 
     /**
-     * Bloc « à traiter » — trois natures d'alerte agrégées en une seule liste
-     * ordonnée, pour que l'écran n'ait pas à fusionner trois appels.
+     * Bloc « à traiter » — **une seule file**, toutes natures confondues.
+     *
+     * <p>Choix de conception : les cartes HITL des agents, les soldes dus, les avis
+     * sans réponse, les calendriers en dérive et les demandes de service impayées
+     * partagent la même forme. Des listes parallèles obligeaient l'écran à les
+     * fusionner et à les ordonner lui-même — et laissaient la catégorie la plus
+     * bavarde noyer les autres.</p>
+     *
+     * @param items        file ordonnée par urgence, déjà plafonnée par nature
+     * @param total        nombre réel d'éléments en attente, avant plafonnement
+     * @param totalsByKind décompte réel par nature — sans lui, l'écran ne pourrait
+     *                     compter que les lignes reçues et afficherait « Avis (3) »
+     *                     là où douze attendent
      */
     public record ActionItemsDto(
-            List<BalanceDueDto> balancesDue,
-            List<UnansweredReviewDto> unansweredReviews,
-            List<StaleFeedDto> staleFeeds) {
-
-        /** Total, tous types confondus — alimente le badge « N à traiter ». */
-        public int total() {
-            return balancesDue.size() + unansweredReviews.size() + staleFeeds.size();
-        }
-    }
-
-    /** Solde de séjour restant dû avant l'arrivée. */
-    public record BalanceDueDto(
-            Long reservationId,
-            String reference,
-            String guestName,
-            String propertyName,
-            LocalDate checkIn,
-            BigDecimal amountDue) {}
-
-    /** Avis publié sans réponse de l'hôte. */
-    public record UnansweredReviewDto(
-            Long reviewId,
-            String guestName,
-            String propertyName,
-            String channelName,
-            Integer rating,
-            String excerpt,
-            LocalDate reviewDate) {}
+            List<ActionItemDto> items,
+            int total,
+            Map<ActionItemKind, Integer> totalsByKind) {}
 
     /**
-     * Flux de calendrier en échec ou muet.
+     * Élément de la file « à traiter ».
      *
-     * @param hoursSinceLastSync {@code null} si le flux n'a jamais été synchronisé
+     * <p>Les champs sont volontairement <b>génériques</b> et non spécifiques à une
+     * nature : {@code subject} porte la personne concernée quelle que soit
+     * l'origine (le voyageur d'un avis comme celui d'un solde) et {@code badge}
+     * la mention courte affichée en fin de ligne quand ce n'est pas un montant.
+     * Un champ par nature aurait fait de ce record un fourre-tout.</p>
+     *
+     * @param id        identifiant stable, préfixé par la nature ({@code hitl:42})
+     * @param kind      nature — voir {@link ActionItemKind}
+     * @param severity  {@code critical} | {@code warning} | {@code info}
+     * @param title     intitulé métier, lisible seul
+     * @param detail    contexte court (voyageur, logement, ancienneté…)
+     * @param subject      personne concernée, s'il y en a une — porte l'avatar
+     * @param targetId     identifiant de l'objet visé, pour agir dessus
+     * @param propertyId   logement concerné — l'écran doit pouvoir agir sans le
+     *                     redemander au serveur
+     * @param amount       montant en jeu quand la nature en porte un, sinon {@code null}
+     * @param badge        mention courte de fin de ligne ({@code 4★}), sinon {@code null}
+     * @param actionType   réservé : nature technique de l'action, {@code null} aujourd'hui
+     * @param actionParams réservé : paramètres de cette action (JSON), {@code null} aujourd'hui
      */
-    public record StaleFeedDto(
-            Long feedId,
+    public record ActionItemDto(
+            String id,
+            ActionItemKind kind,
+            String severity,
+            String title,
+            String detail,
+            String subject,
+            Long targetId,
             Long propertyId,
             String propertyName,
-            String sourceName,
-            String lastSyncStatus,
-            Long hoursSinceLastSync) {}
+            BigDecimal amount,
+            String badge,
+            String actionType,
+            String actionParams) {}
+
+    /**
+     * Natures d'action, par ordre de priorité d'affichage.
+     *
+     * <p>L'ordre de déclaration EST l'ordre de tri à sévérité égale : un solde
+     * non encaissé passe avant un avis sans réponse.</p>
+     */
+    public enum ActionItemKind {
+        /** Solde de séjour restant dû avant l'arrivée. */
+        BALANCE_DUE,
+        /** Demande de service réalisée et non réglée. */
+        SERVICE_UNPAID,
+        /** Prestation sans prestataire, que l'assignation automatique n'aboutira plus. */
+        SERVICE_UNASSIGNED,
+        /** Flux de calendrier en échec ou muet. */
+        FEED_STALE,
+        /** Avis publié sans réponse de l'hôte. */
+        REVIEW_UNANSWERED,
+    }
 }

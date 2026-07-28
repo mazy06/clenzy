@@ -35,6 +35,7 @@ import ChannexMappingDialog from '../settings/components/ChannexMappingDialog';
 import type { DashboardPeriod, DateFilterOption } from './DashboardDateFilter';
 import { useDashboardOverview } from '../../hooks/useDashboardOverview';
 import { useDashboardActionItems } from '../../hooks/useDashboardOperations';
+import { countActionItems } from '../../services/api/dashboardOperationsApi';
 
 // ─── Tab icon mapping ────────────────────────────────────────────────────────
 
@@ -132,11 +133,7 @@ const Dashboard: React.FC = () => {
   // dédoublonne par clé de requête, il n'y a donc aucun appel supplémentaire.
   const { stats: headerStats } = useDashboardOverview({ period, t });
   const { data: headerActionItems } = useDashboardActionItems(activeTabKey === 'overview');
-  const actionItemsCount = headerActionItems
-    ? headerActionItems.balancesDue.length
-      + headerActionItems.unansweredReviews.length
-      + headerActionItems.staleFeeds.length
-    : 0;
+  const actionItemsCount = countActionItems(headerActionItems);
 
   /** « Mercredi 23 juillet · 4 logements actifs » — contexte du jour. */
   const overviewSubtitle = useMemo(() => {
