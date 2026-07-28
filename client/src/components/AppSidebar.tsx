@@ -275,14 +275,17 @@ export default function AppSidebar({
   const navigate = useNavigate();
   const location = useLocation();
   const { user, clearUser } = useAuth();
-  const { t, changeLanguage, currentLanguage } = useTranslation();
+  const { t, changeLanguage, currentLanguage, isArabic } = useTranslation();
   const { currency, setCurrency, rateDate, ratesLoading } = useCurrency();
   const { mode: themeMode, setMode: setThemeMode } = useThemeMode();
   const { accent, setAccent } = useAccent();
   const { isMobile, setOpenMobile } = useSidebar();
   const [prefsOpen, setPrefsOpen] = useState(false);
 
-  const isRtl = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
+  // La langue, pas `document.documentElement.dir` : cette lecture-là se faisait
+  // une fois au rendu et ne rebasculait pas quand l'utilisateur changeait de
+  // langue sans recharger la page.
+  const isRtl = isArabic;
   const tooltipSide = isRtl ? ('left' as const) : ('right' as const);
 
   const grouped = useMemo(() => groupMenuItems(menuItems), [menuItems]);
@@ -333,7 +336,9 @@ export default function AppSidebar({
   );
 
   return (
-    <Sidebar collapsible="icon">
+    // En arabe, la barre passe à droite : elle est le point de départ de la
+    // lecture, et la laisser à gauche coupait le sens de parcours de l'écran.
+    <Sidebar collapsible="icon" side={isRtl ? 'right' : 'left'}>
       {/* ── Logo → tableau de bord ─────────────────────────────────────── */}
       <SidebarHeader>
         <SidebarMenu>

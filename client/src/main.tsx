@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import ReactDOM from 'react-dom/client'
 import { CssBaseline, ThemeProvider } from '@mui/material'
 import { CacheProvider } from '@emotion/react'
+import { DirectionProvider } from './components/ui/direction'
 import createCache from '@emotion/cache'
 import rtlPlugin from 'stylis-plugin-rtl'
 import { prefixer } from 'stylis'
@@ -186,6 +187,13 @@ function AppWithTheme() {
   const emotionCache = isRtl ? rtlCache : ltrCache;
 
   return (
+    // `DirectionProvider` était écrit mais monté nulle part : les primitives
+    // Radix lisent leur direction dans CE contexte, jamais dans
+    // `document.documentElement.dir`. Sans lui, les 38 composants qui en
+    // dépendent (menus, listes déroulantes, onglets, curseurs, infobulles)
+    // se croyaient en LTR en pleine interface arabe — sous-menus ouverts hors
+    // écran, ancrages inversés, flèches du clavier à contresens.
+    <DirectionProvider dir={isRtl ? 'rtl' : 'ltr'}>
     <CacheProvider value={emotionCache}>
       <ThemeProvider theme={currentTheme}>
         <CssBaseline />
@@ -219,6 +227,7 @@ function AppWithTheme() {
         </CurrencyProvider>
       </ThemeProvider>
     </CacheProvider>
+    </DirectionProvider>
   );
 }
 
