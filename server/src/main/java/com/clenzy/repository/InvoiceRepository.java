@@ -75,7 +75,8 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     /**
      * Factures SENT ou ISSUED dont la date d'echeance est depassee.
-     * Utilisee par InvoiceOverdueScheduler (cross-tenant, pas de filtre org).
+     * Utilisee par InvoiceOverduePersistence pour la passe de marquage du
+     * InvoiceOverdueScheduler (cross-tenant, pas de filtre org).
      */
     @Query("SELECT i FROM Invoice i WHERE i.status IN :statuses " +
            "AND i.dueDate IS NOT NULL AND i.dueDate < :today")
@@ -86,7 +87,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     /**
      * Factures OVERDUE avec budget de relance restant (moins de {@code max} relances
-     * envoyees). Utilisee par InvoiceOverdueScheduler pour re-tirer le trigger
+     * envoyees). Utilisee par InvoiceOverduePersistence pour re-tirer le trigger
      * INVOICE_OVERDUE quotidien (cross-tenant, pas de filtre org — F5a).
      */
     List<Invoice> findByStatusAndOverdueReminderCountLessThan(InvoiceStatus status, int maxReminders);

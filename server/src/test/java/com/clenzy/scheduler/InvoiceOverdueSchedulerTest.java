@@ -1,13 +1,12 @@
 package com.clenzy.scheduler;
 
 import com.clenzy.model.AutomationTrigger;
-import com.clenzy.model.Invoice;
 import com.clenzy.model.InvoiceStatus;
-import com.clenzy.repository.InvoiceRepository;
+import com.clenzy.service.InvoiceOverduePersistence;
+import com.clenzy.service.InvoiceOverduePersistence.OverdueInvoice;
 import com.clenzy.service.automation.AutomationEngine;
 import com.clenzy.service.automation.AutomationSubject;
 import com.clenzy.service.automation.InvoiceReminderExecutor;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -16,7 +15,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,43 +22,43 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * Scheduler factures en retard (fiche 08, F5a) : marquage OVERDUE + trigger
  * INVOICE_OVERDUE, passe de relance quotidienne avec daysOverdue.
+ *
+ * <p>Les accès base vivent dans {@link InvoiceOverduePersistence} (transactions courtes
+ * instrumentables par l'aspect RLS) et sont testés dans
+ * {@code InvoiceOverduePersistenceTest} — ici, la persistance est mockée.</p>
  */
 @ExtendWith(MockitoExtension.class)
 class InvoiceOverdueSchedulerTest {
 
-    @Mock private InvoiceRepository invoiceRepository;
+    @Mock private InvoiceOverduePersistence overdueInvoices;
     @Mock private AutomationEngine automationEngine;
 
     @InjectMocks
     private InvoiceOverdueScheduler scheduler;
 
-    private Invoice invoice;
+    private static final LocalDate DUE_DATE = LocalDate.now().minusDays(1);
 
-    @BeforeEach
-    void setUp() {
-        invoice = new Invoice();
-        invoice.setId(200L);
-        invoice.setOrganizationId(1L);
-        invoice.setInvoiceNumber("FAC-2026-0042");
-        invoice.setStatus(InvoiceStatus.SENT);
-        invoice.setDueDate(LocalDate.now().minusDays(1));
+    private OverdueInvoice overdue(Long id, Long orgId, long daysOverdue) {
+        return new OverdueInvoice(id, orgId, "FAC-2026-00" + id, DUE_DATE, daysOverdue);
     }
 
     @Test
     void whenInvoicePastDue_thenMarksOverdueAndFiresTrigger() {
-        when(invoiceRepository.findOverdueCandidates(anyList(), any(LocalDate.class)))
-            .thenReturn(List.of(invoice));
+        when(overdueInvoices.findOverdueCandidateIds(anyList(), any(LocalDate.class)))
+            .thenReturn(List.of(200L));
+        when(overdueInvoices.markOverdue(200L)).thenReturn(overdue(200L, 1L, 0L));
 
         scheduler.checkOverdueInvoices();
 
-        assertThat(invoice.getStatus()).isEqualTo(InvoiceStatus.OVERDUE);
-        assertThat(invoice.getOverdueNotifiedAt()).isNotNull();
-        verify(invoiceRepository).save(invoice);
+        verify(overdueInvoices).markOverdue(200L);
 
         ArgumentCaptor<AutomationSubject> captor = ArgumentCaptor.forClass(AutomationSubject.class);
         verify(automationEngine).fireTrigger(eq(AutomationTrigger.INVOICE_OVERDUE), eq(1L), captor.capture());
@@ -72,7 +70,7 @@ class InvoiceOverdueSchedulerTest {
 
     @Test
     void whenNoCandidates_thenNothingFired() {
-        when(invoiceRepository.findOverdueCandidates(anyList(), any(LocalDate.class)))
+        when(overdueInvoices.findOverdueCandidateIds(anyList(), any(LocalDate.class)))
             .thenReturn(List.of());
 
         scheduler.checkOverdueInvoices();
@@ -81,12 +79,22 @@ class InvoiceOverdueSchedulerTest {
     }
 
     @Test
+    void markingPass_whenOneInvoiceFails_thenOthersStillMarked() {
+        when(overdueInvoices.findOverdueCandidateIds(anyList(), any(LocalDate.class)))
+            .thenReturn(List.of(300L, 200L));
+        when(overdueInvoices.markOverdue(300L))
+            .thenThrow(new IllegalStateException("Facture introuvable : 300"));
+        when(overdueInvoices.markOverdue(200L)).thenReturn(overdue(200L, 1L, 0L));
+
+        scheduler.checkOverdueInvoices();
+
+        verify(automationEngine).fireTrigger(eq(AutomationTrigger.INVOICE_OVERDUE), eq(1L), any());
+    }
+
+    @Test
     void reminderPass_firesTriggerWithDaysOverdue_forInvoicesWithBudgetLeft() {
-        invoice.setStatus(InvoiceStatus.OVERDUE);
-        invoice.setOverdueNotifiedAt(LocalDateTime.now().minusDays(4));
-        when(invoiceRepository.findByStatusAndOverdueReminderCountLessThan(
-                InvoiceStatus.OVERDUE, InvoiceReminderExecutor.MAX_REMINDERS))
-            .thenReturn(List.of(invoice));
+        when(overdueInvoices.findRemindable(InvoiceReminderExecutor.MAX_REMINDERS))
+            .thenReturn(List.of(overdue(200L, 1L, 4L)));
 
         scheduler.fireOverdueReminders();
 
@@ -97,17 +105,8 @@ class InvoiceOverdueSchedulerTest {
 
     @Test
     void reminderPass_whenOneInvoiceFails_thenOthersStillFired() {
-        Invoice failing = new Invoice();
-        failing.setId(300L);
-        failing.setOrganizationId(2L);
-        failing.setStatus(InvoiceStatus.OVERDUE);
-        failing.setOverdueNotifiedAt(LocalDateTime.now().minusDays(3));
-
-        invoice.setStatus(InvoiceStatus.OVERDUE);
-        invoice.setOverdueNotifiedAt(LocalDateTime.now().minusDays(3));
-
-        when(invoiceRepository.findByStatusAndOverdueReminderCountLessThan(any(), anyInt()))
-            .thenReturn(List.of(failing, invoice));
+        when(overdueInvoices.findRemindable(anyInt()))
+            .thenReturn(List.of(overdue(300L, 2L, 3L), overdue(200L, 1L, 3L)));
         doThrow(new RuntimeException("moteur KO"))
             .when(automationEngine).fireTrigger(any(), eq(2L), any());
 
@@ -115,5 +114,28 @@ class InvoiceOverdueSchedulerTest {
 
         // La facture de l'org 1 est quand meme presentee au moteur.
         verify(automationEngine).fireTrigger(eq(AutomationTrigger.INVOICE_OVERDUE), eq(1L), any());
+    }
+
+    @Test
+    void reminderPass_whenNothingRemindable_thenEngineUntouched() {
+        when(overdueInvoices.findRemindable(anyInt())).thenReturn(List.of());
+
+        scheduler.fireOverdueReminders();
+
+        verifyNoInteractions(automationEngine);
+    }
+
+    @Test
+    void markingPass_scansOnlySentAndIssuedInvoices() {
+        when(overdueInvoices.findOverdueCandidateIds(anyList(), any(LocalDate.class)))
+            .thenReturn(List.of());
+
+        scheduler.checkOverdueInvoices();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<InvoiceStatus>> captor = ArgumentCaptor.forClass(List.class);
+        verify(overdueInvoices).findOverdueCandidateIds(captor.capture(), any(LocalDate.class));
+        assertThat(captor.getValue())
+            .containsExactlyInAnyOrder(InvoiceStatus.SENT, InvoiceStatus.ISSUED);
     }
 }

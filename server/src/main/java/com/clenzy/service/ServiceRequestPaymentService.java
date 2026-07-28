@@ -4,20 +4,14 @@ import com.clenzy.dto.PaymentOrchestrationRequest;
 import com.clenzy.dto.PaymentOrchestrationResult;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.PaymentStatus;
-import com.clenzy.model.RequestStatus;
-import com.clenzy.model.ServiceRequest;
 import com.clenzy.payment.StripeGateway;
-import com.clenzy.repository.ServiceRequestRepository;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
 
-import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,7 +26,10 @@ import java.util.Map;
  * {@code confirmServiceRequestPayment}, et non plus via le dispatch Stripe-direct.</p>
  *
  * <p>PAS de {@code @Transactional} au niveau classe : appel HTTP externe (provider).
- * Le marquage PROCESSING s'exécute dans une transaction courte dédiée.</p>
+ * Tous les accès base passent par {@link ServiceRequestPaymentPersistence}, dont les
+ * méthodes ouvrent des transactions courtes <b>et scopées tenant</b> — un
+ * {@code TransactionTemplate} ou un repository appelé directement échapperait à
+ * l'aspect qui pose les GUC de Row-Level Security (audit RLS, plan REM-T-01).</p>
  */
 @Service
 public class ServiceRequestPaymentService {
@@ -42,29 +39,22 @@ public class ServiceRequestPaymentService {
     /** {@code sourceType} de la {@code PaymentTransaction} d'un paiement de demande de service. */
     public static final String SOURCE_TYPE = "SERVICE_REQUEST";
 
-    private final ServiceRequestRepository serviceRequestRepository;
+    private final ServiceRequestPaymentPersistence persistence;
     private final StripeService stripeService;
     private final StripeGateway stripeGateway;
     private final PaymentOrchestrationService orchestrationService;
-    private final com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
-    /** Marquage PROCESSING atomique HORS de l'appel provider. */
-    private final TransactionTemplate transactionTemplate;
 
     @Value("${stripe.currency}")
     private String currency;
 
-    public ServiceRequestPaymentService(ServiceRequestRepository serviceRequestRepository,
+    public ServiceRequestPaymentService(ServiceRequestPaymentPersistence persistence,
                                         StripeService stripeService,
                                         StripeGateway stripeGateway,
-                                        PaymentOrchestrationService orchestrationService,
-                                        com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard,
-                                        PlatformTransactionManager transactionManager) {
-        this.serviceRequestRepository = serviceRequestRepository;
+                                        PaymentOrchestrationService orchestrationService) {
+        this.persistence = persistence;
         this.stripeService = stripeService;
         this.stripeGateway = stripeGateway;
         this.orchestrationService = orchestrationService;
-        this.organizationAccessGuard = organizationAccessGuard;
-        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     /**
@@ -88,20 +78,20 @@ public class ServiceRequestPaymentService {
     }
 
     private PaymentOrchestrationResult initiate(Long serviceRequestId, String customerEmail, boolean embedded) {
-        ServiceRequest sr = loadPayableServiceRequest(serviceRequestId);
-        // Z3-SEC-01 : montant TOUJOURS serveur (estimatedCost de l'entité).
-        BigDecimal amount = sr.getEstimatedCost();
+        // Chargement + validations (statut, montant serveur) en transaction courte scopée.
+        ServiceRequestPaymentPersistence.PayableServiceRequest payable =
+            persistence.loadPayable(serviceRequestId);
 
         Map<String, String> metadata = new HashMap<>();
         metadata.put("type", "service_request");
         metadata.put("service_request_id", serviceRequestId.toString());
 
         PaymentOrchestrationRequest request = new PaymentOrchestrationRequest(
-            amount,
+            payable.amount(),
             currency,
             SOURCE_TYPE,
             serviceRequestId,
-            "Demande de service: " + sr.getTitle(),
+            "Demande de service: " + payable.title(),
             customerEmail,
             null,                                 // preferredProvider
             null,                                 // successUrl : défauts provider (hosted)
@@ -113,44 +103,18 @@ public class ServiceRequestPaymentService {
             false);
 
         PaymentOrchestrationResult result = orchestrationService.initiatePayment(
-            sr.getOrganizationId(), null, request);
+            payable.organizationId(), null, request);
         if (!result.isSuccess()) {
             String err = result.paymentResult() != null ? result.paymentResult().errorMessage() : "erreur inconnue";
             throw new IllegalStateException("Echec de creation du paiement de la demande de service: " + err);
         }
 
         // Marquage PROCESSING + réf de session provider (transaction courte dédiée, hors appel provider).
-        final String providerTxId = result.paymentResult().providerTxId();
-        transactionTemplate.executeWithoutResult(status -> {
-            ServiceRequest fresh = serviceRequestRepository.findById(serviceRequestId).orElse(null);
-            if (fresh != null) {
-                fresh.setStripeSessionId(providerTxId);
-                fresh.setPaymentStatus(PaymentStatus.PROCESSING);
-                serviceRequestRepository.save(fresh);
-            }
-        });
+        persistence.markProcessing(serviceRequestId, result.paymentResult().providerTxId());
         log.info("Session de paiement {} (demande de service {}) créée via orchestrateur: tx={}, provider={}",
             embedded ? "embarquée" : "hébergée", serviceRequestId,
             result.transaction() != null ? result.transaction().getTransactionRef() : "?", result.providerUsed());
         return result;
-    }
-
-    private ServiceRequest loadPayableServiceRequest(Long serviceRequestId) {
-        ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
-            .orElseThrow(() -> new NotFoundException("Demande de service non trouvee: " + serviceRequestId));
-        // findById contourne le filtre org (audit 2026-07 F1-08) : garde d'ownership fail-closed.
-        organizationAccessGuard.requireSameOrganization(
-            sr.getOrganizationId(), "Demande hors de votre organisation");
-        if (sr.getStatus() != RequestStatus.AWAITING_PAYMENT) {
-            throw new IllegalStateException(
-                "La demande de service doit etre en statut AWAITING_PAYMENT pour proceder au paiement. "
-                + "Statut actuel: " + sr.getStatus());
-        }
-        BigDecimal amount = sr.getEstimatedCost();
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Montant invalide pour la demande de service: " + amount);
-        }
-        return sr;
     }
 
     /**
@@ -163,21 +127,18 @@ public class ServiceRequestPaymentService {
      * @throws NotFoundException si la demande de service n'existe pas
      */
     public Map<String, String> checkPaymentStatus(Long id) throws StripeException {
-        ServiceRequest sr = serviceRequestRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Demande de service non trouvee: " + id));
-        // findById contourne le filtre org (audit 2026-07 F1-08) : garde d'ownership fail-closed.
-        organizationAccessGuard.requireSameOrganization(
-                sr.getOrganizationId(), "Demande hors de votre organisation");
+        ServiceRequestPaymentPersistence.ServiceRequestPaymentState state =
+                persistence.loadPaymentState(id);
 
         // Already paid?
-        if (sr.getPaymentStatus() == PaymentStatus.PAID) {
+        if (state.paymentStatus() == PaymentStatus.PAID) {
             return Map.of(
                     "paymentStatus", "PAID",
                     "message", "Paiement deja confirme"
             );
         }
 
-        String sessionId = sr.getStripeSessionId();
+        String sessionId = state.stripeSessionId();
         if (sessionId == null || sessionId.isBlank()) {
             return Map.of(
                     "paymentStatus", "NO_SESSION",
