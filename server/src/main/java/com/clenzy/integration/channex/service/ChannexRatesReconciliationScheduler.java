@@ -15,6 +15,7 @@ import com.clenzy.service.PriceEngine;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
@@ -47,7 +48,12 @@ import java.util.Optional;
  *
  * <p>Frequence : 1 heure par defaut. Override via
  * {@code clenzy.channex.reconciliation.interval-minutes}.</p>
+ *
+ * <p><b>Desactivable</b> : ce bean est absent du contexte quand
+ * {@code clenzy.channex.enabled=false} (defaut {@code true} — comportement
+ * historique preserve en dev/CI).</p>
  */
+@ConditionalOnProperty(name = "clenzy.channex.enabled", havingValue = "true", matchIfMissing = true)
 @Service
 public class ChannexRatesReconciliationScheduler {
 

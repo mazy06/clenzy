@@ -1,6 +1,7 @@
 package com.clenzy.scheduler;
 
 import com.clenzy.service.marketdata.MarketDataIngestionService;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +38,7 @@ public class MarketDataIngestionScheduler {
     }
 
     @Scheduled(cron = "${clenzy.rms.market-data.cron:0 45 5 * * *}")
+    @SchedulerLock(name = "market-data-ingestion", lockAtMostFor = "PT30M")
     public void runDaily() {
         if (!enabled) {
             return;

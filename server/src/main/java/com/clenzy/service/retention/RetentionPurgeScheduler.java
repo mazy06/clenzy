@@ -1,5 +1,6 @@
 package com.clenzy.service.retention;
 
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -42,6 +43,7 @@ public class RetentionPurgeScheduler {
      * vrai (les deux flags false par defaut) — le scheduler est alors totalement inerte.
      */
     @Scheduled(cron = "0 30 3 * * *")
+    @SchedulerLock(name = "retention-purge-daily", lockAtMostFor = "PT30M")
     public void runDaily() {
         if (!properties.enabled() || !properties.schedulerEnabled()) {
             log.debug("RetentionPurgeScheduler : inactif (enabled={}, schedulerEnabled={}) : skip.",

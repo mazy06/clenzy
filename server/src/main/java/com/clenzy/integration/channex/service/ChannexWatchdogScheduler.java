@@ -9,6 +9,7 @@ import com.clenzy.service.NotificationService;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
@@ -40,7 +41,12 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * <p><b>Frequence</b> : par defaut toutes les 15 min. Override via la propriete
  * {@code clenzy.channex.watchdog.interval-minutes} (en minutes).</p>
+ *
+ * <p><b>Desactivable</b> : ce bean est absent du contexte quand
+ * {@code clenzy.channex.enabled=false} (defaut {@code true} — comportement
+ * historique preserve en dev/CI).</p>
  */
+@ConditionalOnProperty(name = "clenzy.channex.enabled", havingValue = "true", matchIfMissing = true)
 @Service
 public class ChannexWatchdogScheduler {
 

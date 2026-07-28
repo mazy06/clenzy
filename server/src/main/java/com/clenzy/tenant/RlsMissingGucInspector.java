@@ -21,15 +21,27 @@ import java.util.Locale;
  * renverront <b>zéro ligne</b>. Des écrans vides, des exports incomplets, et rien dans les
  * logs. {@code RlsBootIT} a démontré ce comportement en conditions réelles.
  *
- * <p><b>Ce que fait cet inspecteur.</b> Il signale ces requêtes <i>pendant que la RLS est
- * encore inactive</i> — donc sans le moindre risque. Chaque avertissement désigne un
+ * <p><b>Ce que fait cet inspecteur.</b> Il signale ces requêtes <i>pendant que les politiques
+ * sont encore dormantes</i> — donc sans le moindre risque. Chaque avertissement désigne un
  * chemin à traiter avant l'activation. Le silence prolongé de ce journal est la condition
  * d'activation : il transforme un pari en constat.
  *
+ * <p><b>Après l'activation, il change de rôle plutôt que de devenir inutile.</b> Une requête
+ * non scopée ne lèvera toujours aucune exception : le seul symptôme reste un écran vide, qui
+ * n'atteint jamais les journaux. Cet inspecteur devient alors le seul détecteur des
+ * régressions introduites plus tard — un {@code TransactionTemplate}, un flux de fond, un
+ * repository appelé hors du pointcut. Voir {@link com.clenzy.config.RlsAuditConfig} pour la
+ * distinction entre l'aspect qui <i>pose</i> les GUC et le contexte Liquibase qui
+ * <i>applique</i> les politiques — les confondre conduit à couper l'instrumentation en
+ * croyant l'inventaire terminé.
+ *
  * <p><b>Coût.</b> Inerte tant que {@code clenzy.security.rls.audit-missing-guc} vaut
- * {@code false} (défaut) : la méthode retourne immédiatement. Activé, il fait une recherche
- * de sous-chaîne sur cinq noms de table par requête. La pile d'appel — seule opération
- * réellement coûteuse — n'est capturée qu'au premier signalement de chaque chemin.
+ * {@code false} (défaut) : la méthode retourne immédiatement. Activé, le chemin normal —
+ * requête correctement scopée — sort dès {@link RlsGuc#estGucPosee()}, avant tout traitement
+ * de chaîne. Seules les requêtes <i>sans</i> contexte tenant paient la recherche de
+ * sous-chaîne sur cinq noms de table, et la pile d'appel — seule opération réellement
+ * coûteuse — n'est capturée qu'au premier signalement de chaque chemin. Le coût est donc
+ * proportionnel au problème mesuré : quasi nul quand tout est scopé.
  */
 public class RlsMissingGucInspector implements StatementInspector {
 

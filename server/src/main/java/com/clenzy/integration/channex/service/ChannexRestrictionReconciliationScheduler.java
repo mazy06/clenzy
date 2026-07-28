@@ -15,6 +15,7 @@ import com.clenzy.service.NotificationService;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Service;
@@ -33,7 +34,12 @@ import java.util.Optional;
  *
  * <p>Best-effort : un échec sur un mapping n'arrête pas les autres. Skip si l'API Channex n'est
  * pas configurée. Fréquence : 3 h par défaut (les restrictions changent moins souvent que les prix).</p>
+ *
+ * <p><b>Desactivable</b> : ce bean est absent du contexte quand
+ * {@code clenzy.channex.enabled=false} (defaut {@code true} — comportement
+ * historique preserve en dev/CI).</p>
  */
+@ConditionalOnProperty(name = "clenzy.channex.enabled", havingValue = "true", matchIfMissing = true)
 @Service
 public class ChannexRestrictionReconciliationScheduler {
 

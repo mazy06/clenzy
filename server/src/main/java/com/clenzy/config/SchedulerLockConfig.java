@@ -4,6 +4,7 @@ import javax.sql.DataSource;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import net.javacrumbs.shedlock.core.LockProvider;
@@ -24,9 +25,22 @@ import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
  * <p>Seuls les jobs a effets externes portent {@code @SchedulerLock} — les jobs
  * read-only / metriques locales et l'OutboxRelay (at-least-once par design,
  * idempotent cote consumers) restent volontairement sans verrou.</p>
+ *
+ * <h2>Ordre de l'aspect (important quand le job est aussi {@code @Transactional})</h2>
+ * <p>Par defaut, l'advisor ShedLock porte {@code LOWEST_PRECEDENCE} — le meme ordre que
+ * l'advisor transactionnel de Spring. Leur imbrication est alors <b>indeterminee</b>, et si
+ * la transaction s'ouvre en premier, le verrou est pose <b>a l'interieur</b> de celle-ci :
+ * il n'est visible des autres instances qu'au commit, et disparait en cas de rollback. Sur un
+ * job long, deux instances peuvent donc acquerir le meme verrou — exactement ce que ShedLock
+ * doit empecher.</p>
+ *
+ * <p>{@code HIGHEST_PRECEDENCE} force le verrou a envelopper la transaction : il est acquis
+ * avant le {@code BEGIN} et relache apres le {@code COMMIT}. Six jobs combinent aujourd'hui
+ * les deux annotations, dont {@code EscrowReleaseScheduler} (liberation de sequestre) et
+ * {@code DataRetentionService} (purge RGPD).</p>
  */
 @Configuration
-@EnableSchedulerLock(defaultLockAtMostFor = "PT10M")
+@EnableSchedulerLock(defaultLockAtMostFor = "PT10M", order = Ordered.HIGHEST_PRECEDENCE)
 public class SchedulerLockConfig {
 
     @Bean

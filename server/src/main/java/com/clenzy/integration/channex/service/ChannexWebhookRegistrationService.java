@@ -44,9 +44,20 @@ public class ChannexWebhookRegistrationService {
      * Verification au demarrage : best-effort, une erreur (Channex down, clé
      * invalide) ne doit jamais empecher le boot — l'endpoint admin permet de
      * re-tenter, et le webhook existant continue de fonctionner.
+     *
+     * <p>Sautee quand {@code clenzy.channex.enabled=false} : une fois les
+     * schedulers retires du contexte, c'est le dernier appel sortant automatique
+     * — inutile de le laisser echouer au boot tant que l'acces au hub n'est pas
+     * ouvert. L'endpoint admin {@code POST /api/integrations/channex/webhooks/ensure}
+     * reste appelable a la main.</p>
      */
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
+        if (!props.isEnabled()) {
+            log.info("ChannexWebhookRegistration: integration desactivee "
+                + "(clenzy.channex.enabled=false), skip auto-registration");
+            return;
+        }
         if (!isFullyConfigured()) {
             log.info("ChannexWebhookRegistration: config incomplete (api-key/callback-url), skip auto-registration");
             return;

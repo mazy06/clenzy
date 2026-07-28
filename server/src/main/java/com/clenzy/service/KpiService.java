@@ -19,6 +19,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -243,6 +244,7 @@ public class KpiService {
      * Capture horaire planifiee (HH:05, decale de la reconciliation a HH:00).
      */
     @Scheduled(cron = "0 5 * * * *")
+    @SchedulerLock(name = "kpi-hourly-snapshot", lockAtMostFor = "PT10M")
     public void captureScheduledSnapshot() {
         try {
             captureAndPersistSnapshot("SCHEDULED");

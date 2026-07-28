@@ -32,6 +32,9 @@ class KbSearchServiceTest {
         when(rerankService.getOverFetchFactor()).thenReturn(1);
         // Defaut : quota accorde (comportement historique)
         when(embeddingOrgQuota.tryConsume(any())).thenReturn(true);
+        // Defaut : un modele EMBEDDINGS est assigne. Sans ce stub, le mock renverrait
+        // false et TOUTES les recherches sortiraient par la garde de disponibilite.
+        when(embeddingService.isConfigured()).thenReturn(true);
         service = new KbSearchService(embeddingService, chunkRepository, rerankService,
                 embeddingOrgQuota, new io.micrometer.core.instrument.simple.SimpleMeterRegistry(),
                 mock(org.springframework.transaction.PlatformTransactionManager.class), 10);
@@ -42,7 +45,26 @@ class KbSearchServiceTest {
         when(embeddingOrgQuota.tryConsume(1L)).thenReturn(false);
 
         assertTrue(service.search("une question", 1L, 5).isEmpty());
-        verifyNoInteractions(embeddingService);
+        // La garde de disponibilite consulte embeddingService avant le quota : on
+        // verifie donc l'absence d'EMBED, pas l'absence totale d'interaction.
+        verify(embeddingService, never()).embedQueryAsVectorString(anyString());
+        verifyNoInteractions(chunkRepository);
+    }
+
+    /**
+     * Le quota mensuel est une ressource facturee : le consommer pour un embed qui
+     * ne peut pas aboutir entamerait le mois en cours de chaque org, et la facture
+     * ne se verrait qu'au moment ou un modele est enfin configure. L'ordre des
+     * gardes dans {@code search()} est donc porteur de sens, pas cosmetique.
+     */
+    @Test
+    void noEmbeddingModel_returnsEmptyWithoutConsumingQuota() {
+        when(embeddingService.isConfigured()).thenReturn(false);
+
+        assertTrue(service.search("une question", 1L, 5).isEmpty());
+
+        verifyNoInteractions(embeddingOrgQuota);
+        verify(embeddingService, never()).embedQueryAsVectorString(anyString());
         verifyNoInteractions(chunkRepository);
     }
 

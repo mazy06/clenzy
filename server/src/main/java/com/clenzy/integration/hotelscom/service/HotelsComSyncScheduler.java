@@ -120,6 +120,7 @@ public class HotelsComSyncScheduler {
      * Toutes les heures, verifie que les credentials sont toujours valides.
      */
     @Scheduled(fixedRate = 3600000) // 1 heure
+    @SchedulerLock(name = "hotelscom-connection-health", lockAtMostFor = "PT10M")
     public void checkConnectionHealth() {
         log.debug("Verification de sante des connexions Hotels.com...");
 

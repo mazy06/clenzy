@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.model.*;
 import com.clenzy.repository.*;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -53,6 +54,7 @@ public class DataRetentionService {
      */
     @Scheduled(cron = "0 0 3 * * *")
     @Transactional
+    @SchedulerLock(name = "data-retention-policies", lockAtMostFor = "PT30M")
     public void executeRetentionPolicies() {
         log.info("Demarrage du job de retention des donnees RGPD");
 

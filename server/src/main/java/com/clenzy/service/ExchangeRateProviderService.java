@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.ExchangeRateDto;
 import com.clenzy.model.ExchangeRate;
 import com.clenzy.repository.ExchangeRateRepository;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
@@ -234,6 +235,7 @@ public class ExchangeRateProviderService {
     @Scheduled(cron = "0 0 7 * * *")
     @Transactional
     @CacheEvict(value = "exchange-rates", allEntries = true)
+    @SchedulerLock(name = "exchange-rate-daily-fetch", lockAtMostFor = "PT10M")
     public void fetchDailyRates() {
         log.info("Fetching daily exchange rates...");
         fetchRates(LocalDate.now());

@@ -57,6 +57,13 @@ public class ChannexAriBatcher {
     private final ChannexSyncService syncService;
     private final Clock clock;
     private final long retrySeconds;
+    /**
+     * Interrupteur global de l'integration ({@code clenzy.channex.enabled}). Lu
+     * ici depuis l'{@code Environment} plutot que via {@code @ConditionalOnProperty}
+     * sur la classe : ce bean est injecte par {@link ChannexCalendarUpdateListener},
+     * il doit rester present meme integration coupee — seul le flush devient inerte.
+     */
+    private final boolean channexEnabled;
 
     /** Plages en attente, cle = clenzyPropertyId. */
     private final ConcurrentHashMap<Long, PendingRange> pending = new ConcurrentHashMap<>();
@@ -67,6 +74,7 @@ public class ChannexAriBatcher {
         this.syncService = syncService;
         this.clock = clock;
         this.retrySeconds = env.getProperty("clenzy.channex.ari-retry-seconds", Long.class, 60L);
+        this.channexEnabled = env.getProperty("clenzy.channex.enabled", Boolean.class, true);
     }
 
     /**
@@ -96,11 +104,16 @@ public class ChannexAriBatcher {
      * Flush periodique : pousse chaque propriete due (nextAttemptAt atteint).
      * La cadence ({@code clenzy.channex.ari-flush-seconds}, defaut 30 s) EST la
      * fenetre de batching demandee par la doc Channex.
+     *
+     * <p>Inerte quand {@code clenzy.channex.enabled=false} : la file reste vide
+     * en pratique (le listener ne l'alimente que pour les proprietes ayant un
+     * mapping actif, inexistantes sans acces au hub), le garde-fou couvre le cas
+     * ou des mappings resteraient en base apres une desactivation.</p>
      */
     @Scheduled(fixedDelayString = "#{${clenzy.channex.ari-flush-seconds:30} * 1000}",
                initialDelayString = "#{${clenzy.channex.ari-flush-seconds:30} * 1000}")
     public void flush() {
-        if (pending.isEmpty()) return;
+        if (!channexEnabled || pending.isEmpty()) return;
         Instant now = clock.instant();
 
         List<Map.Entry<Long, PendingRange>> due = new ArrayList<>();
