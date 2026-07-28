@@ -1,4 +1,5 @@
 import apiClient from '../apiClient';
+import { extractApiList } from '../../types';
 import type { PaginatedResponse } from '../apiClient';
 import type { InterventionDetailsData } from '../../modules/interventions/interventionUtils';
 
@@ -80,15 +81,22 @@ export interface InterventionListParams {
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 export const interventionsApi = {
-  getAll(params?: InterventionListParams) {
-    return apiClient.get<Intervention[]>('/interventions', { params });
+  /**
+   * Toutes les interventions, filtrables.
+   *
+   * L'endpoint renvoie une PAGE Spring : la liste est dépliée ici pour que le
+   * type annoncé dise la vérité. Il promettait un tableau alors qu'il rendait un
+   * objet — le commentaire de `getPage` ci-dessous l'avouait, en renvoyant la
+   * responsabilité aux appelants. Pour obtenir le total serveur, c'est `getPage`.
+   */
+  async getAll(params?: InterventionListParams): Promise<Intervention[]> {
+    return extractApiList<Intervention>(await apiClient.get<unknown>('/interventions', { params }));
   },
 
   /**
    * Liste paginée SERVEUR (Spring Data Page brute, avec totalElements).
-   * Contrairement à getAll (shape historique consommée via extractApiList,
-   * conservée pour compatibilité), cette méthode expose la page complète pour
-   * piloter la pagination UI par le total serveur. Les filtres
+   * Contrairement à getAll, qui ne rend que la liste, cette méthode expose la
+   * page complète pour piloter la pagination UI par le total serveur. Les filtres
    * type/status/priority/propertyId/startDate/endDate sont appliqués en SQL
    * par le backend (GET /api/interventions).
    */

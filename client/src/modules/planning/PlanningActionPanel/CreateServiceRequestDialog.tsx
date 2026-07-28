@@ -325,7 +325,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
     const load = async () => {
       try {
         const data = await usersApi.getAll();
-        const list = ((data as unknown as { content?: User[] }).content || data) as unknown as User[];
+        const list = data;
         setUsers(list);
       } catch {
         // silent
@@ -358,7 +358,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
     const load = async () => {
       try {
         const data = await teamsApi.getAll();
-        const list = ((data as unknown as { content?: Team[] }).content || data) as unknown as Team[];
+        const list = data;
         setTeams(list);
       } catch {
         // silent

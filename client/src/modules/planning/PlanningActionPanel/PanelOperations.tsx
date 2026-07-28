@@ -259,7 +259,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
     queryFn: async () => {
       const result = await serviceRequestsApi.getAll({ reservationId: currentReservationId });
       // API returns paginated or array — handle both
-      const list = (result as unknown as { content?: ServiceRequest[] }).content ?? result;
+      const list = result;
       return list as ServiceRequest[];
     },
     enabled: isReservation && !!currentReservationId,

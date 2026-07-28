@@ -1,4 +1,5 @@
 import apiClient from '../apiClient';
+import { extractApiList } from '../../types';
 
 export interface ServiceRequest {
   id: number;
@@ -44,11 +45,34 @@ export interface ServiceRequestFormData {
   userId: number;
   assignedToId?: number;
   assignedToType?: 'user' | 'team';
+  /** Séjour auquel rattacher la prestation. Absent = prestation hors séjour. */
+  reservationId?: number;
+  estimatedCost?: number;
+}
+
+/** Un prestataire proposable pour un créneau. */
+export interface AssignableTeam {
+  teamId: number;
+  name: string;
+  /** `DEFAULT` = équipe attitrée au logement, `ZONE` = couvre la zone. */
+  origin: 'DEFAULT' | 'ZONE';
+  available: boolean;
+  /** Interventions qui se chevauchent — ce qui explique l'indisponibilité. */
+  conflicts: number;
 }
 
 export const serviceRequestsApi = {
-  getAll(params?: { propertyId?: number; reservationId?: number; userId?: number; status?: string; serviceType?: string }) {
-    return apiClient.get<ServiceRequest[]>('/service-requests', { params });
+  /**
+   * Demandes de service, filtrables.
+   *
+   * L'endpoint renvoie une PAGE Spring : la liste est dépliée ici pour que le
+   * type annoncé dise la vérité. Il promettait un tableau alors qu'il rendait un
+   * objet, et rien ne pouvait le contredire — le type est affirmé à la main sur
+   * `apiClient.get<T>`. Un appelant qui s'y fiait plantait sur
+   * « .filter is not a function ».
+   */
+  async getAll(params?: { propertyId?: number; reservationId?: number; userId?: number; status?: string; serviceType?: string }): Promise<ServiceRequest[]> {
+    return extractApiList<ServiceRequest>(await apiClient.get<unknown>('/service-requests', { params }));
   },
   getById(id: number) {
     return apiClient.get<ServiceRequest>(`/service-requests/${id}`);
@@ -61,6 +85,43 @@ export const serviceRequestsApi = {
   },
   delete(id: number) {
     return apiClient.delete(`/service-requests/${id}`);
+  },
+  /**
+   * Clôturer une demande qui n'aura pas lieu (→ CANCELLED).
+   *
+   * Ce n'est pas une suppression : la demande reste consultable avec son
+   * historique. `delete` est réservé au staff plateforme.
+   */
+  cancel(id: number, reason?: string) {
+    return apiClient.post<ServiceRequest>(`/service-requests/${id}/cancel`, { reason: reason ?? null });
+  },
+  /**
+   * Prestataires proposables pour une date donnée.
+   *
+   * Même parcours que l'auto-assignation (équipe attitrée du logement, puis
+   * zones de couverture), mais la liste complète : les équipes occupées sont
+   * rendues aussi, marquées indisponibles — déplacer l'heure peut les libérer.
+   */
+  assignableTeams(id: number, date: string) {
+    return apiClient.get<AssignableTeam[]>(`/service-requests/${id}/assignable-teams`, {
+      params: { date },
+    });
+  },
+
+  /**
+   * Replanifier : clôture la demande et en crée une neuve.
+   *
+   * `reservationId` absent ou `null` = prestation hors séjour, c'est un choix.
+   * `assignedToId` absent = on laisse la recherche automatique chercher.
+   */
+  reschedule(id: number, body: {
+    desiredDate: string;
+    assignedToId?: number | null;
+    assignedToType?: 'user' | 'team' | null;
+    reservationId?: number | null;
+    reason?: string | null;
+  }) {
+    return apiClient.post<ServiceRequest>(`/service-requests/${id}/reschedule`, body);
   },
   /** Refuser une assignation (ASSIGNED → PENDING, re-assignation tentée) */
   refuse(id: number) {

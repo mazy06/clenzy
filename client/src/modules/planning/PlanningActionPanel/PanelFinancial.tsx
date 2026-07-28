@@ -307,7 +307,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     queryKey: ['planning', 'service-requests', reservation?.id],
     queryFn: async () => {
       const result = await serviceRequestsApi.getAll({ reservationId: reservation!.id });
-      const list = (result as unknown as { content?: ServiceRequest[] }).content ?? result;
+      const list = result;
       return list as ServiceRequest[];
     },
     enabled: !!reservation?.id,

@@ -25,7 +25,6 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { useHighlightParam, useHighlightTarget } from '../../../hooks/useHighlight';
 import { usersApi } from '../../../services/api/usersApi';
-import { extractApiList } from '../../../types';
 import {
   housekeeperPayoutsApi,
   type HousekeeperPayoutRecord,
@@ -89,11 +88,9 @@ export const HousekeeperPayoutsTab: React.FC = () => {
   });
 
   // Résolution nom prestataire (userId → « Prénom Nom ») — même pattern que la vue Dépenses.
-  // /users renvoie une forme paginée : normaliser via extractApiList (pattern projet,
-    // cf. usePropertyForm/UsersList) — apiClient.get<User[]> ment sur le type réel.
   const { data: users = [] } = useQuery({
     queryKey: ['users-all'],
-    queryFn: async () => extractApiList<{ id: number; firstName: string; lastName: string }>(await usersApi.getAll()),
+    queryFn: () => usersApi.getAll(),
     staleTime: 120_000,
   });
   const nameByUserId = useMemo(() => {

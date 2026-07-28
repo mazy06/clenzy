@@ -317,7 +317,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     const loadUsers = async () => {
       try {
         const data = await usersApi.getAll();
-        const usersList = ((data as unknown as { content?: User[] }).content || data) as unknown as User[];
+        const usersList = data;
         setUsers(usersList);
       } catch (err) {
         // Silently fail — les HOST sont déjà gérés
@@ -332,7 +332,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     const loadTeams = async () => {
       try {
         const data = await teamsApi.getAll();
-        const teamsList = ((data as unknown as { content?: Team[] }).content || data) as unknown as Team[];
+        const teamsList = data;
         setTeams(teamsList);
       } catch (err) {
       }

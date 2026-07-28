@@ -28,7 +28,6 @@ import CalendarEventDialog from './CalendarEventDialog';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { interventionsApi, Intervention } from '../../services/api/interventionsApi';
-import { extractApiList } from '../../types';
 import type { ApiError } from '../../services/apiClient';
 import {
   INTERVENTION_STATUS_OPTIONS,
@@ -113,7 +112,7 @@ export default function CalendarPage() {
       setLoading(true);
       setError(null);
       const data = await interventionsApi.getAll();
-      setInterventions(extractApiList<Intervention>(data));
+      setInterventions(data);
     } catch (err: unknown) {
       setInterventions([]);
       const status = typeof err === 'object' && err !== null && 'status' in err ? (err as ApiError).status : undefined;

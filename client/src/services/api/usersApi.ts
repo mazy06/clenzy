@@ -1,4 +1,5 @@
 import apiClient from '../apiClient';
+import { extractApiList } from '../../types';
 import { API_CONFIG } from '../../config/api';
 
 export interface User {
@@ -57,8 +58,17 @@ export interface LockoutStatus {
 }
 
 export const usersApi = {
-  getAll(params?: { role?: string }) {
-    return apiClient.get<User[]>('/users', { params });
+  /**
+   * Tous les utilisateurs de l'organisation.
+   *
+   * L'endpoint renvoie une PAGE Spring : la liste est dépliée ici pour que le
+   * type annoncé dise la vérité. Il promettait un tableau alors qu'il rendait un
+   * objet, et rien ne pouvait le contredire — le type est affirmé à la main sur
+   * `apiClient.get<T>`. Un appelant qui s'y fiait plantait sur
+   * « .filter is not a function ».
+   */
+  async getAll(params?: { role?: string }): Promise<User[]> {
+    return extractApiList<User>(await apiClient.get<unknown>('/users', { params }));
   },
   getById(id: number) {
     return apiClient.get<User>(`/users/${id}`);
