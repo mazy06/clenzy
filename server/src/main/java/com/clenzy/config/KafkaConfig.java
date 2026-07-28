@@ -382,6 +382,7 @@ public class KafkaConfig {
             TOPIC_DOCUMENT_GENERATE,
             TOPIC_NOTIFICATIONS,
             TOPIC_PAYMENT_EVENTS,
+            TOPIC_REVIEWS_SYNC,
             "booking.reservations",
             "booking.calendar.sync",
             "agoda.reservations",

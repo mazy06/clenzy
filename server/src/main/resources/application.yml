@@ -185,6 +185,16 @@ resilience4j:
 
 # ─── AI Module ────────────────────────────────────────────────────────────────
 clenzy:
+  # Constellation d'agents — balayage autonome des logements.
+  # Le déclenchement nominal est événementiel (arrivée d'un avis, d'une
+  # réservation… → marquage « dirty » → scan du seul logement concerné) ; ce
+  # balayage périodique est le filet qui rattrape ce qui a précédé l'activation
+  # ou raté son événement. Chaque cycle reste borné par le budget de scans de
+  # l'organisation (Paramètres › IA) et par le plafond de crédits premium.
+  supervision:
+    autonomous:
+      enabled: ${SUPERVISION_AUTONOMOUS_ENABLED:true}
+      interval-ms: ${SUPERVISION_AUTONOMOUS_INTERVAL_MS:3600000}
   # Channel manager Channex (staging par defaut — prod: app.channex.io via env).
   # api-key : header user-api-key ; webhook-secret : valeur du X-Channex-Token
   # attendue sur /api/webhooks/channex ; webhook-callback-url : URL publique de

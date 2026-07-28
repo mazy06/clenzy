@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.CreateReviewRequest;
 import com.clenzy.dto.ReviewStatsDto;
 import com.clenzy.integration.channel.ChannelName;
+import com.clenzy.config.KafkaConfig;
 import com.clenzy.model.GuestReview;
 import com.clenzy.model.SentimentLabel;
 import com.clenzy.repository.GuestReviewRepository;
@@ -23,11 +24,41 @@ public class ReviewService {
 
     private final GuestReviewRepository reviewRepository;
     private final SentimentAnalysisService sentimentService;
+    private final OutboxPublisher outboxPublisher;
 
     public ReviewService(GuestReviewRepository reviewRepository,
-                         SentimentAnalysisService sentimentService) {
+                         SentimentAnalysisService sentimentService,
+                         OutboxPublisher outboxPublisher) {
         this.reviewRepository = reviewRepository;
         this.sentimentService = sentimentService;
+        this.outboxPublisher = outboxPublisher;
+    }
+
+    /**
+     * Signale l'arrivée d'un avis à la constellation d'agents.
+     *
+     * <p>Écrit dans l'outbox, donc <b>dans la transaction qui enregistre l'avis</b> :
+     * un avis persisté sans événement, ou l'inverse, ne peut pas exister. Le relais
+     * publie ensuite sur Kafka, et le consommateur fait naître la carte « avis sans
+     * réponse ». Sans ce signal, les cartes n'apparaissaient qu'au balayage horaire,
+     * ou sur un scan lancé à la main.</p>
+     *
+     * <p>Un avis déjà répondu ne déclenche rien : il n'appelle aucune action.</p>
+     */
+    private void announceReview(GuestReview review) {
+        if (review.getPropertyId() == null || review.getOrganizationId() == null
+                || review.getHostResponse() != null) {
+            return;
+        }
+        outboxPublisher.publish(
+                "review",
+                String.valueOf(review.getId()),
+                "REVIEW_RECEIVED",
+                KafkaConfig.TOPIC_REVIEWS_SYNC,
+                String.valueOf(review.getPropertyId()),
+                String.format("{\"reviewId\":%d,\"propertyId\":%d}",
+                        review.getId(), review.getPropertyId()),
+                review.getOrganizationId());
     }
 
     public Page<GuestReview> getByProperty(Long propertyId, Long orgId, Pageable pageable) {
@@ -62,7 +93,9 @@ public class ReviewService {
 
         analyzeSentiment(review);
 
-        return reviewRepository.save(review);
+        GuestReview saved = reviewRepository.save(review);
+        announceReview(saved);
+        return saved;
     }
 
     @Transactional
@@ -77,12 +110,17 @@ public class ReviewService {
                 e.setGuestName(review.getGuestName());
                 e.setSyncedAt(Instant.now());
                 analyzeSentiment(e);
+                // Mise à jour d'un avis déjà connu : rien de neuf à traiter tant
+                // qu'il n'a pas reçu de réponse — la dédup par titre couvrirait
+                // de toute façon un second signal.
                 return reviewRepository.save(e);
             }
         }
         review.setSyncedAt(Instant.now());
         analyzeSentiment(review);
-        return reviewRepository.save(review);
+        GuestReview saved = reviewRepository.save(review);
+        announceReview(saved);
+        return saved;
     }
 
     @Transactional
