@@ -29,8 +29,10 @@ public interface EInvoiceSubmissionRepository extends JpaRepository<EInvoiceSubm
     @Query("""
             SELECT s FROM EInvoiceSubmission s
             WHERE s.organizationId = :orgId
-              AND s.status = com.clenzy.model.EInvoiceStatus.FAILED
+              AND s.status = :failed
             ORDER BY s.updatedAt DESC
             """)
-    List<EInvoiceSubmission> findFailedForOrg(@Param("orgId") Long orgId);
+    List<EInvoiceSubmission> findFailedForOrg(
+            @Param("orgId") Long orgId,
+            @Param("failed") com.clenzy.fiscal.einvoicing.EInvoiceStatus failed);
 }

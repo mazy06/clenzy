@@ -26,9 +26,10 @@ public interface MinutConnectionRepository extends JpaRepository<MinutConnection
     @Query("""
             SELECT c FROM MinutConnection c
             WHERE c.organizationId = :orgId
-              AND (c.status <> com.clenzy.integration.minut.model.MinutConnection$MinutConnectionStatus.ACTIVE
+              AND (c.status <> :active
                    OR (c.tokenExpiresAt IS NOT NULL AND c.tokenExpiresAt < :now))
             """)
     List<MinutConnection> findBrokenForOrg(@Param("orgId") Long orgId,
+                                           @Param("active") MinutConnection.MinutConnectionStatus active,
                                            @Param("now") LocalDateTime now);
 }

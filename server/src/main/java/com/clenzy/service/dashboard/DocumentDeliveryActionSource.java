@@ -2,6 +2,7 @@ package com.clenzy.service.dashboard;
 
 import com.clenzy.dto.DashboardOperationsDto.ActionItemDto;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemKind;
+import com.clenzy.fiscal.einvoicing.EInvoiceStatus;
 import com.clenzy.repository.DocumentGenerationRepository;
 import com.clenzy.repository.EInvoiceSubmissionRepository;
 import org.springframework.stereotype.Component;
@@ -77,7 +78,8 @@ public class DocumentDeliveryActionSource implements ActionItemSource {
                         null))
                 .forEach(items::add);
 
-        eInvoiceSubmissionRepository.findFailedForOrg(ctx.organizationId()).stream()
+        eInvoiceSubmissionRepository.findFailedForOrg(
+                        ctx.organizationId(), EInvoiceStatus.FAILED).stream()
                 .map(submission -> new ActionItemDto(
                         "einvoice:" + submission.getId(),
                         ActionItemKind.EINVOICE_FAILED,

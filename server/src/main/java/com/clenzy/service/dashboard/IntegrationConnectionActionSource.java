@@ -2,7 +2,9 @@ package com.clenzy.service.dashboard;
 
 import com.clenzy.dto.DashboardOperationsDto.ActionItemDto;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemKind;
+import com.clenzy.integration.airbnb.model.AirbnbConnection;
 import com.clenzy.integration.airbnb.repository.AirbnbConnectionRepository;
+import com.clenzy.integration.minut.model.MinutConnection;
 import com.clenzy.integration.minut.repository.MinutConnectionRepository;
 import org.springframework.stereotype.Component;
 
@@ -48,12 +50,14 @@ public class IntegrationConnectionActionSource implements ActionItemSource {
     public List<ActionItemDto> collect(ActionItemContext ctx) {
         final List<ActionItemDto> items = new ArrayList<>();
 
-        airbnbConnectionRepository.findBrokenForOrg(ctx.organizationId(), ctx.nowDateTime()).stream()
+        airbnbConnectionRepository.findBrokenForOrg(ctx.organizationId(),
+                        AirbnbConnection.AirbnbConnectionStatus.ACTIVE, ctx.nowDateTime()).stream()
                 .map(connection -> item("airbnb", connection.getId(), "Airbnb",
                         connection.getStatus() == null ? null : connection.getStatus().name()))
                 .forEach(items::add);
 
-        minutConnectionRepository.findBrokenForOrg(ctx.organizationId(), ctx.nowDateTime()).stream()
+        minutConnectionRepository.findBrokenForOrg(ctx.organizationId(),
+                        MinutConnection.MinutConnectionStatus.ACTIVE, ctx.nowDateTime()).stream()
                 .map(connection -> item("minut", connection.getId(), "Minut",
                         connection.getStatus() == null ? null : connection.getStatus().name()))
                 .forEach(items::add);

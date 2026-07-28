@@ -42,7 +42,9 @@ public class IssueActionSource implements ActionItemSource {
     @Override
     public List<ActionItemDto> collect(ActionItemContext ctx) {
         return issueRepository.findOpenStaleForOrg(
-                        ctx.organizationId(), ctx.nowDateTime().minusDays(STALE_DAYS))
+                        ctx.organizationId(),
+                        Issue.IssueStatus.OPEN,
+                        ctx.nowDateTime().minusDays(STALE_DAYS))
                 .stream()
                 .map(issue -> new ActionItemDto(
                         "issue:" + issue.getId(),

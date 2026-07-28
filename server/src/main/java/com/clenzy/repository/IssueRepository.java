@@ -48,10 +48,11 @@ public interface IssueRepository extends JpaRepository<Issue, Long> {
     @Query("""
             SELECT i FROM Issue i
             WHERE i.organizationId = :orgId
-              AND i.status = com.clenzy.model.Issue$IssueStatus.OPEN
+              AND i.status = :open
               AND i.createdAt <= :staleBefore
             ORDER BY i.createdAt ASC
             """)
     List<Issue> findOpenStaleForOrg(@Param("orgId") Long orgId,
+                                    @Param("open") Issue.IssueStatus open,
                                     @Param("staleBefore") LocalDateTime staleBefore);
 }

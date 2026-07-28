@@ -34,9 +34,10 @@ public interface AirbnbConnectionRepository extends JpaRepository<AirbnbConnecti
     @Query("""
             SELECT c FROM AirbnbConnection c
             WHERE c.organizationId = :orgId
-              AND (c.status <> com.clenzy.integration.airbnb.model.AirbnbConnection$AirbnbConnectionStatus.ACTIVE
+              AND (c.status <> :active
                    OR (c.tokenExpiresAt IS NOT NULL AND c.tokenExpiresAt < :now))
             """)
     List<AirbnbConnection> findBrokenForOrg(@Param("orgId") Long orgId,
+                                            @Param("active") AirbnbConnection.AirbnbConnectionStatus active,
                                             @Param("now") LocalDateTime now);
 }
