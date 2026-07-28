@@ -10,6 +10,7 @@ import java.time.Duration;
  * <pre>
  * clenzy:
  *   channex:
+ *     enabled: true
  *     base-url: https://staging.channex.io/api/v1
  *     api-key: ${CHANNEX_API_KEY:}
  *     webhook-secret: ${CHANNEX_WEBHOOK_SECRET:}
@@ -23,6 +24,27 @@ import java.time.Duration;
  */
 @ConfigurationProperties(prefix = "clenzy.channex")
 public class ChannexProperties {
+
+    /**
+     * Interrupteur global de l'integration. DEFAUT {@code true} : comportement
+     * historique inchange en dev/CI.
+     *
+     * <p>A {@code false}, aucun scheduler Channex n'est instancie (chacun porte
+     * un {@code @ConditionalOnProperty} sur cette cle) et les deux declencheurs
+     * periodiques portes par des beans partages — {@code ChannexAriBatcher#flush}
+     * et {@code ChannexSyncService#retryFailedMappings} — sont inertes.</p>
+     *
+     * <p>Raison d'etre : tant que le contrat de partenariat n'est pas signe, la
+     * cle API n'ouvre aucun acces et chaque passe de scheduler echoue en boucle
+     * ({@code Channex auth failed: unauthorized}), soit ~270 appels/jour de
+     * bruit en production.</p>
+     *
+     * <p>Ce flag ne desactive PAS les services : le webhook entrant, les
+     * endpoints admin et les syncs a la demande restent cables (leurs beans sont
+     * injectes ailleurs) — ils echoueront simplement tant que l'acces au hub
+     * n'est pas ouvert.</p>
+     */
+    private boolean enabled = true;
 
     private String baseUrl = "https://staging.channex.io/api/v1";
     private String apiKey = "";
@@ -67,6 +89,9 @@ public class ChannexProperties {
      * renvoie les task IDs attendus. Ne JAMAIS activer en prod.
      */
     private boolean allowPushWithoutActiveOta = false;
+
+    public boolean isEnabled() { return enabled; }
+    public void setEnabled(boolean enabled) { this.enabled = enabled; }
 
     public String getBaseUrl() { return baseUrl; }
     public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }

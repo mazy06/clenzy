@@ -192,6 +192,13 @@ clenzy:
   # public-media-base-url : base https publique pour servir les photos internes
   # a Channex (vide = photos internes non poussees).
   channex:
+    # Interrupteur global. false = aucun scheduler Channex dans le contexte
+    # (booking feed, watchdog, reconciliations prix/restrictions, rate parity)
+    # + flush ARI et retry des mappings inertes. Les webhooks entrants et les
+    # endpoints admin restent cables. A mettre a false tant que le contrat de
+    # partenariat n'est pas signe : sans acces au hub, chaque passe echoue en
+    # boucle sur "Channex auth failed: unauthorized".
+    enabled: ${CHANNEX_ENABLED:true}
     base-url: ${CHANNEX_BASE_URL:https://staging.channex.io/api/v1}
     api-key: ${CHANNEX_API_KEY:}
     webhook-secret: ${CHANNEX_WEBHOOK_SECRET:}

@@ -201,6 +201,14 @@ clenzy:
       expected-audience: ${CLENZY_JWT_EXPECTED_AUDIENCE:clenzy-api}
   # Channex — Channel Manager middleware (100+ OTAs)
   channex:
+    # Interrupteur global — cf. application.yml. DEFAUT false EN PROD (le defaut
+    # true du fichier de base ne vaut que pour dev/CI) : tant que le contrat de
+    # partenariat n'est pas signe, la cle API n'ouvre aucun acces et les
+    # schedulers echouent en boucle (~270 appels/jour en "Channex auth failed:
+    # unauthorized"). Reactivation par CHANNEX_ENABLED=true, geste explicite.
+    # Doit rester coherent avec le defaut de docker-compose.prod.yml, qui pose
+    # toujours la variable et gagne donc sur ce defaut-ci.
+    enabled: ${CHANNEX_ENABLED:false}
     base-url: ${CHANNEX_BASE_URL:https://app.channex.io/api/v1}
     api-key: ${CHANNEX_API_KEY:}
     webhook-secret: ${CHANNEX_WEBHOOK_SECRET:}

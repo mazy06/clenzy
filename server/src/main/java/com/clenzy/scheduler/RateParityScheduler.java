@@ -20,6 +20,7 @@ import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import com.clenzy.tenant.TenantScopedExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.stereotype.Component;
@@ -48,7 +49,12 @@ import java.util.stream.Collectors;
  *
  * <p>Un echec (Channex ou autre) sur un bien est journalise et n'empeche pas
  * les biens suivants ; le log final porte le compte des echecs.</p>
+ *
+ * <p><b>Desactivable</b> : ce bean est absent du contexte quand
+ * {@code clenzy.channex.enabled=false} (defaut {@code true} — comportement
+ * historique preserve en dev/CI).</p>
  */
+@ConditionalOnProperty(name = "clenzy.channex.enabled", havingValue = "true", matchIfMissing = true)
 @Component
 public class RateParityScheduler {
 

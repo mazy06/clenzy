@@ -613,10 +613,17 @@ public class ChannexSyncService {
      * boucle tiendrait une connexion DB pendant tout ce temps. Chaque
      * updateMappingStatus commit dans sa propre transaction courte, mapping
      * par mapping.</p>
+     *
+     * <p>Inerte quand {@code clenzy.channex.enabled=false}. Le garde-fou est ici
+     * et non sur la classe : ce service est injecte par le batcher ARI, les
+     * controllers admin et les syncs a la demande — seul le declencheur
+     * periodique doit disparaitre, pas le bean.</p>
      */
     @Scheduled(fixedDelay = 60 * 60 * 1000L, initialDelay = 5 * 60 * 1000L)
     @SchedulerLock(name = "channex-retry-failed-mappings", lockAtMostFor = "PT30M")
     public void retryFailedMappings() {
+        if (!channexProperties.isEnabled()) return;
+
         List<ChannexPropertyMapping> failed = mappingRepository.findAllInError();
         if (failed.isEmpty()) return;
 
