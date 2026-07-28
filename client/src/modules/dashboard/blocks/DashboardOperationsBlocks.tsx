@@ -550,7 +550,17 @@ export function ActionItemsView({ data }: { data?: DashboardActionItems }) {
           {t('dashboard.actionItems.empty', 'Rien à traiter — tout est à jour.')}
         </BlockEmpty>
       ) : (
-        <div className="flex flex-col gap-4">
+        // Hauteur bornée : avec vingt-deux actions la carte poussait tout le
+        // reste du tableau de bord hors de l'écran, et son propre en-tête
+        // disparaissait avant qu'on ait fini de lire.
+        //
+        // `max-h` et non `h` : une organisation qui n'a que deux actions ne doit
+        // pas se voir servir un cadre aux trois quarts vide.
+        //
+        // `pe-2 -me-2` place l'ascenseur dans la gouttière de la carte plutôt
+        // que par-dessus les chevrons : le contenu garde exactement la même
+        // largeur qu'avant, seul le rail vient s'y ajouter.
+        <div className="-me-2 flex max-h-[28rem] flex-col gap-4 overflow-y-auto pe-2">
           {groups.map((group) => (
             <ActionGroup
               key={group.kind}
