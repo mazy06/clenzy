@@ -20,6 +20,7 @@ import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe
 import { Money } from './Money';
 import { paymentsApi } from '../services/api/paymentsApi';
 import { serviceRequestsApi } from '../services/api/serviceRequestsApi';
+import { getErrorMessage } from '../utils/getErrorMessage';
 
 // Ne PAS appeler loadStripe('') si la clef n'est pas configuree : ça log un
 // `IntegrationError: empty string` sur les pages publiques (accept-invitation,
@@ -80,11 +81,10 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
         }
       } catch (err: unknown) {
         if (!cancelled) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : 'Erreur lors de la creation de la session de paiement'
-          );
+          // Le serveur explique pourquoi il refuse (statut, montant, provider) :
+          // afficher « Erreur lors de la création de la session » à la place
+          // laissait l'utilisateur sans aucune piste.
+          setError(getErrorMessage(err, 'Erreur lors de la création de la session de paiement'));
         }
       } finally {
         if (!cancelled) setLoading(false);
