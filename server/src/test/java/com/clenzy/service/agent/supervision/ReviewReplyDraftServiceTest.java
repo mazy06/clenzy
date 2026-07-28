@@ -92,6 +92,48 @@ class ReviewReplyDraftServiceTest {
     }
 
     @Test
+    void whenLlmStreams_thenTheDraftIsNotWrittenTwice() {
+        // Un fournisseur en streaming émet ses fragments PUIS un `Done` qui porte
+        // leur concaténation. Les additionner écrivait la réponse en double,
+        // recollée sans séparateur — « …prochain séjour !Merci beaucoup… » —
+        // et l'hôte n'avait plus qu'à réécrire le brouillon à la main.
+        when(reviewRepository.findById(REVIEW)).thenReturn(Optional.of(review(ORG)));
+        doAnswer(invocation -> {
+            Consumer<ChatEvent> consumer = invocation.getArgument(1);
+            consumer.accept(new ChatEvent.TextDelta("Merci Sophie, "));
+            consumer.accept(new ChatEvent.TextDelta("à très bientôt."));
+            consumer.accept(new ChatEvent.Done(10, 20, "m", "stop", "Merci Sophie, à très bientôt."));
+            return null;
+        }).when(chatProvider).streamChat(any(ChatRequest.class), any());
+
+        service.generateDraft(ORG, REVIEW);
+
+        ArgumentCaptor<GuestReview> saved = ArgumentCaptor.forClass(GuestReview.class);
+        verify(reviewRepository).save(saved.capture());
+        assertThat(saved.getValue().getHostResponseDraft()).isEqualTo("Merci Sophie, à très bientôt.");
+    }
+
+    @Test
+    void whenLlmOnlyStreamsDeltas_thenTheyStillFormTheDraft() {
+        // Certains fournisseurs ne renvoient pas de texte dans `Done` : les
+        // fragments restent alors la seule source.
+        when(reviewRepository.findById(REVIEW)).thenReturn(Optional.of(review(ORG)));
+        doAnswer(invocation -> {
+            Consumer<ChatEvent> consumer = invocation.getArgument(1);
+            consumer.accept(new ChatEvent.TextDelta("Merci Sophie, "));
+            consumer.accept(new ChatEvent.TextDelta("à très bientôt."));
+            consumer.accept(new ChatEvent.Done(10, 20, "m", "stop", ""));
+            return null;
+        }).when(chatProvider).streamChat(any(ChatRequest.class), any());
+
+        service.generateDraft(ORG, REVIEW);
+
+        ArgumentCaptor<GuestReview> saved = ArgumentCaptor.forClass(GuestReview.class);
+        verify(reviewRepository).save(saved.capture());
+        assertThat(saved.getValue().getHostResponseDraft()).isEqualTo("Merci Sophie, à très bientôt.");
+    }
+
+    @Test
     void whenLlmAnswers_thenDraftIsStoredWithItsTimestamp() {
         when(reviewRepository.findById(REVIEW)).thenReturn(Optional.of(review(ORG)));
         givenLlmAnswers("  Merci pour votre retour, Sophie.  ");

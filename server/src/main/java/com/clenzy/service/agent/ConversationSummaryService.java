@@ -150,12 +150,16 @@ public class ConversationSummaryService {
                 null,
                 target.provider(),
                 target.baseUrl());
-        StringBuilder text = new StringBuilder();
+        StringBuilder deltas = new StringBuilder();
+        StringBuilder complete = new StringBuilder();
+        // `Done.fullText()` est DÉJÀ la concaténation de tous les `TextDelta`
+        // (cf. son javadoc) : accumuler les deux produisait un résumé écrit en
+        // double. On garde les deux flux à part et on tranche à la fin.
         Consumer<ChatEvent> handler = event -> {
             if (event instanceof ChatEvent.Done done) {
-                text.append(done.fullText());
+                complete.append(done.fullText() == null ? "" : done.fullText());
             } else if (event instanceof ChatEvent.TextDelta td) {
-                text.append(td.delta());
+                deltas.append(td.delta());
             }
         };
         if (apiKey != null) {
@@ -163,6 +167,6 @@ public class ConversationSummaryService {
         } else {
             chatProvider.streamChat(request, handler);
         }
-        return text.toString();
+        return complete.length() > 0 ? complete.toString() : deltas.toString();
     }
 }

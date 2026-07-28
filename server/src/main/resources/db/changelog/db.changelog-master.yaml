@@ -3543,3 +3543,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0370__purge_media_assets_without_binary.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0371-deduplicate-review-reply-drafts"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0371__deduplicate_review_reply_drafts.sql
+        relativeToChangelogFile: true
