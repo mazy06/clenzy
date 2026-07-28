@@ -3529,3 +3529,17 @@ databaseChangeLog:
       sqlFile:
         path: changes/0368__require_reservation_payment_collection.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0369-reset-numeric-property-photo-storage-keys"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0369__reset_numeric_property_photo_storage_keys.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0370-purge-media-assets-without-binary"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0370__purge_media_assets_without_binary.sql
+        relativeToChangelogFile: true

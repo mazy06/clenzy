@@ -100,11 +100,16 @@ public class PropertyPhotoService {
         photo.setCaption(caption);
         photo.setSource(PropertyPhoto.PhotoSource.MANUAL);
 
+        // storageKey reste NULL a l'upload : les octets vivent dans le BYTEA (colonne data).
+        // C'est le job de migration (PhotoStorageMigrationService) qui ecrit la cle org-scopee
+        // "org/{orgId}/photos/{uuid}" une fois l'objet pousse sur le stockage objet.
+        //
+        // Contrat identique aux photos d'intervention (InterventionPhotoBinaryStore) : l'upload
+        // n'appelle JAMAIS le stockage objet, donc aucun IO reseau dans la transaction d'upload
+        // (regle audit #2). Ecrire ici une cle numerique (l'ancien String.valueOf(id)) rendait la
+        // bascule clenzy.storage.photos=object inutilisable : ObjectStoragePhotoService.retrieve
+        // aurait cherche un objet nomme "1234" -> NoSuchKey -> 500 sur toute photo post-bascule.
         final PropertyPhoto saved = photoRepository.save(photo);
-
-        // Set storageKey to the persisted ID (for the storage abstraction contract)
-        saved.setStorageKey(String.valueOf(saved.getId()));
-        photoRepository.save(saved);
 
         log.info("Uploaded photo id={} for property={} (size={})", saved.getId(), propertyId, file.getSize());
         return toDto(saved);
