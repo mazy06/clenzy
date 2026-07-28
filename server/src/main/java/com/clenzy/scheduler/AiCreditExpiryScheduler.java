@@ -1,6 +1,7 @@
 package com.clenzy.scheduler;
 
 import com.clenzy.service.ai.AiCreditGrantService;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -24,6 +25,7 @@ public class AiCreditExpiryScheduler {
 
     /** Tous les jours a 04h10 (creux, apres les jobs de nuit existants). */
     @Scheduled(cron = "0 10 4 * * *")
+    @SchedulerLock(name = "ai-credit-expiry", lockAtMostFor = "PT15M")
     public void expireOverdueGrants() {
         try {
             int expired = grantService.expireOverdueGrants();

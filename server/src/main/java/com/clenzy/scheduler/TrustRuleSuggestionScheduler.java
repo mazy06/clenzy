@@ -1,6 +1,7 @@
 package com.clenzy.scheduler;
 
 import com.clenzy.service.agent.AgentTrustRuleService;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -24,6 +25,7 @@ public class TrustRuleSuggestionScheduler {
 
     /** Tous les jours a 05h05 (apres les jobs de nuit et l'expiration des pauses). */
     @Scheduled(cron = "0 5 5 * * *")
+    @SchedulerLock(name = "trust-rule-suggestions", lockAtMostFor = "PT15M")
     public void evaluateTrustRuleSuggestions() {
         try {
             int created = trustRuleService.evaluateSuggestions();

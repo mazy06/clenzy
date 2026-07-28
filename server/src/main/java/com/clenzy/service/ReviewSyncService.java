@@ -6,6 +6,7 @@ import com.clenzy.integration.channel.ChannelConnectorRegistry;
 import com.clenzy.model.GuestReview;
 import com.clenzy.model.Property;
 import com.clenzy.repository.PropertyRepository;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -77,6 +78,7 @@ public class ReviewSyncService {
      * Cron: 0 15 0,6,12,18 * * * (a 00:15, 06:15, 12:15, 18:15)
      */
     @Scheduled(cron = "0 15 0,6,12,18 * * *")
+    @SchedulerLock(name = "review-sync", lockAtMostFor = "PT30M")
     public void scheduledReviewSync() {
         List<ChannelConnector> connectors = connectorRegistry.getConnectorsWithCapability(ChannelCapability.REVIEWS);
         if (connectors.isEmpty()) {

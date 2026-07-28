@@ -100,6 +100,7 @@ public class AgodaSyncScheduler {
      * Toutes les heures, verifie que les API keys sont toujours valides.
      */
     @Scheduled(fixedRate = 3600000) // 1 heure
+    @SchedulerLock(name = "agoda-connection-health", lockAtMostFor = "PT10M")
     public void checkConnectionHealth() {
         log.debug("Verification de sante des connexions Agoda...");
 

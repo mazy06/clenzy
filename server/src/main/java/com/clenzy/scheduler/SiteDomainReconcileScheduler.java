@@ -1,6 +1,7 @@
 package com.clenzy.scheduler;
 
 import com.clenzy.booking.service.SiteAdminService;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -24,6 +25,7 @@ public class SiteDomainReconcileScheduler {
 
     /** Toutes les 5 minutes. */
     @Scheduled(fixedDelayString = "300000", initialDelayString = "120000")
+    @SchedulerLock(name = "site-domain-reconcile", lockAtMostFor = "PT5M")
     public void reconcile() {
         try {
             siteAdminService.reconcileCustomDomains();

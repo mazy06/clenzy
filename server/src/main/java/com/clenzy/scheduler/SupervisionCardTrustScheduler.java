@@ -1,6 +1,7 @@
 package com.clenzy.scheduler;
 
 import com.clenzy.service.agent.supervision.SupervisionCardTrustService;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -26,6 +27,7 @@ public class SupervisionCardTrustScheduler {
 
     /** Tous les jours à 05h15 (après l'évaluation des Règles de Confiance outils, 05h05). */
     @Scheduled(cron = "0 15 5 * * *")
+    @SchedulerLock(name = "supervision-card-trust", lockAtMostFor = "PT15M")
     public void evaluateCardTrustSuggestions() {
         try {
             int suggested = cardTrustService.evaluateSuggestions();
