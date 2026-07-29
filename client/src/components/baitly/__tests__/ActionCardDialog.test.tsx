@@ -133,6 +133,34 @@ describe('table des cartes', () => {
   });
 });
 
+describe('rejeu douteux', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('avertit et change le libellé quand l’envoi a peut-être eu lieu', () => {
+    renderCard(item({
+      kind: 'AUTOMATION_FAILED',
+      title: 'Message de bienvenue',
+      actionType: 'MAY_HAVE_SENT',
+    }));
+
+    expect(screen.getByText(/une seconde fois/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /malgré le risque/ })).toBeInTheDocument();
+  });
+
+  it('n’avertit pas quand rien n’est parti', () => {
+    // Une confirmation systématique s'apprend à cliquer sans lire : elle ne
+    // doit apparaître que là où le doute existe réellement.
+    renderCard(item({
+      kind: 'AUTOMATION_FAILED',
+      title: 'Message de bienvenue',
+      actionType: 'SAFE_REPLAY',
+    }));
+
+    expect(screen.queryByText(/une seconde fois/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Rejouer cette règle/ })).toBeInTheDocument();
+  });
+});
+
 describe('couverture des natures', () => {
   it('chaque nature ouvre quelque chose au clic', () => {
     // Quatre natures n'ouvraient rien : on cliquait, et il ne se passait

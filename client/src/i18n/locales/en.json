@@ -1769,7 +1769,9 @@
       "seeMessaging": "Open messaging",
       "guideWhat": "No welcome guide published for this property, and an arrival is close.",
       "guideConsequence": "The guest will receive a dead link, and the access code cannot be delivered to them.",
-      "seeGuestExperience": "Open guest experience"
+      "seeGuestExperience": "Open guest experience",
+      "mayHaveSent": "A send attempt already went out without its outcome being confirmed. Replaying may deliver the message to the guest a second time.",
+      "replayAnyway": "Replay despite the risk"
     }
   },
   "properties": {

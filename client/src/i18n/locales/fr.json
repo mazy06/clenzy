@@ -1789,7 +1789,9 @@
       "seeMessaging": "Ouvrir la messagerie",
       "guideWhat": "Aucun livret d’accueil publié pour ce logement, alors qu’une arrivée approche.",
       "guideConsequence": "Le voyageur recevra un lien mort, et le code d’accès ne pourra pas lui être délivré.",
-      "seeGuestExperience": "Ouvrir l’expérience voyageur"
+      "seeGuestExperience": "Ouvrir l’expérience voyageur",
+      "mayHaveSent": "Une tentative d’envoi est déjà partie sans que son issue ait pu être confirmée. Rejouer peut faire recevoir le message une seconde fois au voyageur.",
+      "replayAnyway": "Rejouer malgré le risque"
     }
   },
   "properties": {

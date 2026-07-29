@@ -52,6 +52,7 @@ class ActionItemActionServiceTest {
     private OutboxEventRepository outboxEventRepository;
     private ReservationService reservationService;
     private AutomationEvaluationService automationEvaluationService;
+    private org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
     private ActionItemActionService service;
     private Jwt jwt;
 
@@ -64,6 +65,12 @@ class ActionItemActionServiceTest {
         outboxEventRepository = mock(OutboxEventRepository.class);
         reservationService = mock(ReservationService.class);
         automationEvaluationService = mock(AutomationEvaluationService.class);
+        // Le verrou anti double-clic laisse passer le premier appel.
+        redisTemplate = mock(org.springframework.data.redis.core.StringRedisTemplate.class);
+        final var valueOps = mock(org.springframework.data.redis.core.ValueOperations.class);
+        when(redisTemplate.opsForValue()).thenReturn(valueOps);
+        when(valueOps.setIfAbsent(any(), any(), any(java.time.Duration.class))).thenReturn(true);
+
         jwt = mock(Jwt.class);
         when(jwt.getSubject()).thenReturn("kc-user");
 
@@ -79,6 +86,7 @@ class ActionItemActionServiceTest {
                 securityDepositPaymentService,
                 mock(OrganizationInvitationService.class),
                 mock(IssueService.class),
+                redisTemplate,
                 reservationService,
                 automationEvaluationService);
     }

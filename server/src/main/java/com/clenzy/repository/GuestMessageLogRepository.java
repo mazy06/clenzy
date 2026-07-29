@@ -108,4 +108,28 @@ public interface GuestMessageLogRepository extends JpaRepository<GuestMessageLog
     long countFailedByOrganizationSince(
         @Param("orgId") Long orgId,
         @Param("since") LocalDateTime since);
+
+    /**
+     * Vrai si une tentative d'envoi est déjà partie — ou peut l'être — pour ce
+     * séjour et ce modèle, depuis un instant donné.
+     *
+     * <p>{@code PENDING} compte : la trace est ouverte <b>avant</b> l'appel au
+     * fournisseur, donc une ligne restée dans cet état signifie « parti, issue
+     * inconnue ». C'est précisément le cas où un rejeu produirait un doublon,
+     * et le seul qu'on ne peut pas trancher automatiquement.</p>
+     */
+    @Query("""
+            SELECT COUNT(l) > 0 FROM GuestMessageLog l
+            WHERE l.organizationId = :orgId
+              AND l.reservationId = :reservationId
+              AND l.templateId = :templateId
+              AND l.createdAt >= :since
+              AND l.status IN (com.clenzy.model.MessageStatus.PENDING,
+                               com.clenzy.model.MessageStatus.SENT,
+                               com.clenzy.model.MessageStatus.DELIVERED)
+            """)
+    boolean existsAttemptSince(@Param("orgId") Long orgId,
+                               @Param("reservationId") Long reservationId,
+                               @Param("templateId") Long templateId,
+                               @Param("since") LocalDateTime since);
 }

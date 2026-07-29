@@ -23,8 +23,11 @@ import com.clenzy.service.DocumentGenerationPipeline.GenerationCommand;
 import com.clenzy.service.messaging.GuestMessagingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+
+import java.time.Duration;
 
 /**
  * Les gestes qu'on peut faire depuis la carte d'une action, sans quitter le
@@ -64,6 +67,9 @@ public class ActionItemActionService {
 
     private static final Logger log = LoggerFactory.getLogger(ActionItemActionService.class);
 
+    /** Duree du verrou anti double-clic : le temps qu'un geste aboutisse. */
+    private static final Duration GESTURE_LOCK = Duration.ofSeconds(20);
+
     private final ActionItemRepository actionItemRepository;
     private final DocumentGenerationRepository documentGenerationRepository;
     private final GuestMessageLogRepository guestMessageLogRepository;
@@ -75,6 +81,7 @@ public class ActionItemActionService {
     private final SecurityDepositPaymentService securityDepositPaymentService;
     private final OrganizationInvitationService invitationService;
     private final IssueService issueService;
+    private final StringRedisTemplate redisTemplate;
     private final ReservationService reservationService;
     private final AutomationEvaluationService automationEvaluationService;
 
@@ -89,8 +96,10 @@ public class ActionItemActionService {
                                   SecurityDepositPaymentService securityDepositPaymentService,
                                   OrganizationInvitationService invitationService,
                                   IssueService issueService,
+                                  StringRedisTemplate redisTemplate,
                                   ReservationService reservationService,
                                   AutomationEvaluationService automationEvaluationService) {
+        this.redisTemplate = redisTemplate;
         this.reservationService = reservationService;
         this.automationEvaluationService = automationEvaluationService;
         this.outboxEventRepository = outboxEventRepository;
@@ -117,6 +126,14 @@ public class ActionItemActionService {
      * @throws IllegalStateException si le geste ne s'applique pas à cette nature
      */
     public void act(Long actionItemId, Long orgId, String action, Jwt jwt) {
+        // Un second clic, ou une re-soumission du navigateur, rejouerait le
+        // geste. La plupart sont anodins a repeter — acquitter deux fois une
+        // alerte ne change rien — mais renvoyer une invitation en cree une
+        // NOUVELLE a chaque appel, et confirmer deux fois retraverse le moteur
+        // de reservation. Le verrou couvre donc tous les gestes indistinctement.
+        if (!claim(actionItemId, action)) {
+            throw new IllegalStateException("Ce geste vient d'etre lance : laissez-lui le temps d'aboutir");
+        }
         final ActionItem item = load(actionItemId, orgId);
         final ActionItemKind kind = ActionItemKind.valueOf(item.getKind());
         final Long target = item.getTargetId();
@@ -151,6 +168,22 @@ public class ActionItemActionService {
                     .run(() -> automationEvaluationService.replayExecution(target, orgId));
             default -> throw new IllegalStateException("Geste inconnu : " + action);
         }
+    }
+
+    /**
+     * Reserve ce geste pour quelques secondes.
+     *
+     * <p>Les fournisseurs de messagerie n'offrent aucune cle d'idempotence —
+     * l'email part par SMTP, qui n'en a pas la notion, et l'API WhatsApp de Meta
+     * n'en expose pas. Ce verrou ne protege donc pas d'un doublon venu du
+     * reseau, mais il elimine celui qui vient de chez nous : le double-clic.</p>
+     *
+     * <p>Court a dessein : il empeche la repetition immediate, pas une seconde
+     * decision prise en connaissance de cause dix secondes plus tard.</p>
+     */
+    private boolean claim(Long actionItemId, String action) {
+        return Boolean.TRUE.equals(redisTemplate.opsForValue()
+                .setIfAbsent("action-item:act:" + actionItemId + ":" + action, "1", GESTURE_LOCK));
     }
 
     /**

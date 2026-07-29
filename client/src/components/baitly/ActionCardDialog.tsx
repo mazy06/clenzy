@@ -82,6 +82,9 @@ export default function ActionCardDialog({
   if (!card) return null;
 
   const gesture = card.gesture;
+  // Le serveur a déjà tranché : cette exécution a-t-elle laissé une trace de
+  // tentative ? Lui seul peut le savoir, et il le dit avant le clic.
+  const mayHaveSent = item?.actionType === 'MAY_HAVE_SENT';
   // Une action deduite des donnees peut n'avoir aucune ligne persistee derriere
   // elle (fixtures de galerie) : le geste serait alors sans cible.
   const canAct = gesture != null && item?.actionItemId != null;
@@ -156,6 +159,21 @@ export default function ActionCardDialog({
           </Alert>
         )}
 
+        {/* La confirmation n'apparaît QUE dans le cas douteux. Une confirmation
+            systématique s'apprend à cliquer sans lire, et ne protégerait plus
+            rien le jour où elle compte vraiment. */}
+        {mayHaveSent && !act.isSuccess && (
+          <Alert variant="destructive">
+            <TriangleAlertIcon />
+            <AlertDescription>
+              {t(
+                'dashboard.actionCard.mayHaveSent',
+                'Une tentative d’envoi est déjà partie sans que son issue ait pu être confirmée. Rejouer peut faire recevoir le message une seconde fois au voyageur.',
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {act.isError && (
           <Alert variant="destructive">
             <TriangleAlertIcon />
@@ -192,12 +210,14 @@ export default function ActionCardDialog({
 
           {gesture && (
             <Button
-              variant={gesture.destructive ? 'destructive' : 'default'}
+              variant={mayHaveSent || gesture.destructive ? 'destructive' : 'default'}
               onClick={() => act.mutate(gesture.action)}
               disabled={!canAct || act.isPending || act.isSuccess}
             >
               {act.isPending ? <Spinner /> : <CheckIcon />}
-              {t(gesture.labelKey, gesture.label)}
+              {mayHaveSent
+                ? t('dashboard.actionCard.replayAnyway', 'Rejouer malgré le risque')
+                : t(gesture.labelKey, gesture.label)}
             </Button>
           )}
         </DialogFooter>
