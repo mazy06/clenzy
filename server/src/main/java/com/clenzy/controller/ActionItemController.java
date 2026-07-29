@@ -1,7 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.service.dashboard.ActionItemReconciler;
-import com.clenzy.service.dashboard.ActionItemRetryService;
+import com.clenzy.service.dashboard.ActionItemActionService;
 import com.clenzy.service.dashboard.ActionItemWriter;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,14 +33,14 @@ public class ActionItemController {
 
     private final ActionItemWriter actionItemWriter;
     private final ActionItemReconciler reconciler;
-    private final ActionItemRetryService retryService;
+    private final ActionItemActionService actionService;
     private final TenantContext tenantContext;
 
     public ActionItemController(ActionItemWriter actionItemWriter,
                                 ActionItemReconciler reconciler,
-                                ActionItemRetryService retryService,
+                                ActionItemActionService actionService,
                                 TenantContext tenantContext) {
-        this.retryService = retryService;
+        this.actionService = actionService;
         this.actionItemWriter = actionItemWriter;
         this.reconciler = reconciler;
         this.tenantContext = tenantContext;
@@ -70,9 +71,29 @@ public class ActionItemController {
      * attendu est de réessayer, et il se fait ici plutôt que sur un écran qu'il
      * faudrait d'abord savoir ouvrir.</p>
      */
+    /**
+     * Exécute le geste nommé sur cette action — acquitter, approuver, libérer,
+     * renvoyer, convertir, écarter, rejouer.
+     *
+     * <p>Un seul point d'entrée plutôt qu'un par geste : le service sait quel
+     * métier porte l'action, et l'appartenance à l'organisation s'y vérifie une
+     * fois. Dix endpoints auraient signifié dix vérifications à ne pas
+     * oublier.</p>
+     */
+    @PostMapping("/{id}/act")
+    public ResponseEntity<Void> act(@PathVariable Long id,
+                                    @RequestBody ActionRequest request,
+                                    @AuthenticationPrincipal Jwt jwt) {
+        actionService.act(id, tenantContext.getRequiredOrganizationId(), request.action(), jwt);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Nom du geste demandé. */
+    public record ActionRequest(@jakarta.validation.constraints.NotBlank String action) {}
+
     @PostMapping("/{id}/retry")
     public ResponseEntity<Void> retry(@PathVariable Long id) {
-        retryService.retry(id, tenantContext.getRequiredOrganizationId());
+        actionService.retry(id, tenantContext.getRequiredOrganizationId());
         return ResponseEntity.noContent().build();
     }
 

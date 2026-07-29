@@ -27,6 +27,17 @@ export const actionItemsApi = {
    * voyageur en échec. Le canal d'origine est conservé.
    */
   retry: (id: number): Promise<void> => apiClient.post<void>(`/action-items/${id}/retry`),
+
+  /**
+   * Exécute le geste nommé sur cette action — acquitter, approuver, confirmer,
+   * publier, rejouer.
+   *
+   * <p>Un seul point d'entrée plutôt qu'un par geste : c'est le serveur qui
+   * sait quel service porte réellement l'action, et c'est là que
+   * l'appartenance à l'organisation se vérifie, une fois.</p>
+   */
+  act: (id: number, action: string): Promise<void> =>
+    apiClient.post<void>(`/action-items/${id}/act`, { action }),
 };
 
 /**

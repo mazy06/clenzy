@@ -41,7 +41,8 @@ import GuestAvatar from '../../../components/baitly/GuestAvatar';
 import ReviewReplyDialog from '../../../components/baitly/ReviewReplyDialog';
 import ReservationActionDialog from '../../../components/baitly/ReservationActionDialog';
 import FeedSyncDialog from '../../../components/baitly/FeedSyncDialog';
-import ActionGuidanceDialog from '../../../components/baitly/ActionGuidanceDialog';
+import ActionCardDialog from '../../../components/baitly/ActionCardDialog';
+import { ACTION_CARDS } from '../../../components/baitly/actionCards';
 import PaymentIncidentDialog from '../../../components/baitly/PaymentIncidentDialog';
 import RetryDeliveryDialog from '../../../components/baitly/RetryDeliveryDialog';
 import StuckServiceDialog from '../../../components/baitly/StuckServiceDialog';
@@ -656,26 +657,6 @@ function actionValue(item: DashboardActionItem): React.ReactNode {
 }
 
 /**
- * Natures qui n'ont pas de geste sur place : la modale explique et renvoie vers
- * l'écran qui porte l'action. Les lister ici plutôt que dans une cascade de
- * conditions garde la sélection lisible à mesure qu'elles se multiplient.
- */
-const GUIDED_KINDS = new Set<string>([
-  'INTERVENTION_UNASSIGNED',
-  'INTERVENTION_UNPAID',
-  'CHECKIN_NOT_STARTED',
-  'NOISE_ALERT_UNACKNOWLEDGED',
-  'ISSUE_OPEN',
-  'OWNER_PAYOUT_PENDING',
-  'PAYOUT_ONBOARDING_INCOMPLETE',
-  'INVITATION_EXPIRED',
-  'EINVOICE_FAILED',
-  'AUTOMATION_FAILED',
-  'OUTBOX_DEAD_LETTER',
-  'INTEGRATION_DISCONNECTED',
-]);
-
-/**
  * La modale qui traite l'élément cliqué, choisie par sa nature.
  *
  * Aucune de ces natures ne redirige : on reste sur le tableau de bord et c'est
@@ -746,7 +727,11 @@ function ActionItemDialog({
         invalidateKeys={invalidateKeys}
       />
 
-      <ActionGuidanceDialog item={GUIDED_KINDS.has(kind ?? '') ? item : null} onClose={onClose} />
+      <ActionCardDialog
+        item={kind && ACTION_CARDS[kind] ? item : null}
+        onClose={onClose}
+        invalidateKeys={invalidateKeys}
+      />
 
       <StuckServiceDialog
         serviceRequestId={kind === 'SERVICE_UNASSIGNED' ? (item?.targetId ?? null) : null}
