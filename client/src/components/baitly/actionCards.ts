@@ -32,23 +32,39 @@ export interface ActionCard {
   what: string;
   consequenceKey: string;
   consequence: string;
-  /** Le geste fait sur place, quand il existe. */
-  gesture?: {
-    /** Nom transmis au serveur, qui sait quel service le porte. */
-    action: string;
-    /** Le geste vise une cible que l'utilisateur choisit dans la carte. */
-    needsAssignee?: boolean;
-    labelKey: string;
-    label: string;
-    doneKey: string;
-    done: string;
-    destructive?: boolean;
-  };
+  /**
+   * Les gestes faits sur place. Plusieurs quand la situation admet plusieurs
+   * issues légitimes — une intervention en retard peut avoir eu lieu, être
+   * reportée, ou ne plus avoir lieu du tout.
+   */
+  gestures?: Gesture[];
   /** L'écran qui porte le sujet, quand il y a lieu d'y aller. */
   route?: string;
   linkKey?: string;
   link?: string;
 }
+
+export interface Gesture {
+  /** Nom transmis au serveur, qui sait quel service le porte. */
+  action: string;
+  /** Le geste vise une équipe que l'utilisateur choisit dans la carte. */
+  needsAssignee?: boolean;
+  /** Le geste vise une date que l'utilisateur choisit dans la carte. */
+  needsDate?: boolean;
+  labelKey: string;
+  label: string;
+  doneKey: string;
+  done: string;
+  destructive?: boolean;
+  /**
+   * Ce que le geste déclenche au-delà du changement d'état, quand ce n'est pas
+   * évident. Affiché avant le clic : terminer une intervention paie le
+   * prestataire, et personne ne le devine depuis un bouton « Terminer ».
+   */
+  warnKey?: string;
+  warn?: string;
+}
+
 
 export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
   NOISE_ALERT_UNACKNOWLEDGED: {
@@ -56,13 +72,13 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
     what: 'Un dépassement sonore a été mesuré dans le logement.',
     consequenceKey: 'dashboard.actionCard.noiseConsequence',
     consequence: 'Non traitée, c’est ce qui précède une plainte de voisinage — puis une amende dans certaines villes.',
-    gesture: {
+    gestures: [{
       action: 'acknowledge',
       labelKey: 'dashboard.actionCard.acknowledge',
       label: 'Acquitter l’alerte',
       doneKey: 'dashboard.actionCard.acknowledged',
       done: 'Alerte acquittée.',
-    },
+    }],
     route: '/properties?tab=connected-objects',
     linkKey: 'dashboard.guidance.seeDevices',
     link: 'Voir les objets connectés',
@@ -73,13 +89,13 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
     what: 'Un reversement est préparé mais personne ne l’a approuvé.',
     consequenceKey: 'dashboard.actionCard.payoutConsequence',
     consequence: 'Le propriétaire attend son virement, et rien ne partira tant que la décision manque.',
-    gesture: {
+    gestures: [{
       action: 'approve',
       labelKey: 'dashboard.actionCard.approve',
       label: 'Approuver le reversement',
       doneKey: 'dashboard.actionCard.approved',
       done: 'Reversement approuvé — il partira au prochain versement.',
-    },
+    }],
     route: '/billing?tab=payouts',
     linkKey: 'dashboard.guidance.seePayouts',
     link: 'Voir les reversements',
@@ -90,13 +106,13 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
     what: 'La caution est encore retenue plusieurs jours après le départ.',
     consequenceKey: 'dashboard.actionCard.depositConsequence',
     consequence: 'L’argent du voyageur reste bloqué sur sa carte : c’est une réclamation qui arrive, puis un avis.',
-    gesture: {
+    gestures: [{
       action: 'release',
       labelKey: 'dashboard.actionCard.release',
       label: 'Libérer la caution',
       doneKey: 'dashboard.actionCard.released',
       done: 'Caution libérée auprès du fournisseur de paiement.',
-    },
+    }],
   },
 
   INVITATION_EXPIRED: {
@@ -104,13 +120,13 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
     what: 'Le lien d’invitation a expiré sans être utilisé.',
     consequenceKey: 'dashboard.actionCard.invitationConsequence',
     consequence: 'La personne ne peut plus rejoindre l’organisation, et rien ne l’en avertit de son côté.',
-    gesture: {
+    gestures: [{
       action: 'resendInvitation',
       labelKey: 'dashboard.actionCard.resendInvitation',
       label: 'Renvoyer l’invitation',
       doneKey: 'dashboard.actionCard.invitationResent',
       done: 'Nouvelle invitation envoyée, avec un nouveau délai.',
-    },
+    }],
     route: '/directory',
     linkKey: 'dashboard.guidance.seeDirectory',
     link: 'Voir l’annuaire',
@@ -121,13 +137,13 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
     what: 'Un signalement du terrain attend une décision.',
     consequenceKey: 'dashboard.actionCard.issueConsequence',
     consequence: 'Tant qu’il reste ouvert, le dégât constaté n’est ni réparé ni écarté — il est simplement oublié.',
-    gesture: {
+    gestures: [{
       action: 'convert',
       labelKey: 'dashboard.actionCard.convert',
       label: 'Convertir en prestation',
       doneKey: 'dashboard.actionCard.converted',
       done: 'Prestation créée à partir du signalement.',
-    },
+    }],
     route: '/interventions',
     linkKey: 'dashboard.guidance.seeInterventions',
     link: 'Voir les interventions',
@@ -138,13 +154,13 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
     what: 'Un message interne a épuisé toutes ses tentatives.',
     consequenceKey: 'dashboard.actionCard.outboxConsequence',
     consequence: 'Ses conséquences apparaissent ailleurs — un calendrier jamais prévenu, donc une double réservation possible.',
-    gesture: {
+    gestures: [{
       action: 'replay',
       labelKey: 'dashboard.actionCard.replay',
       label: 'Remettre en file',
       doneKey: 'dashboard.actionCard.replayed',
       done: 'Message remis en file — il repartira dans quelques secondes.',
-    },
+    }],
     route: '/admin/monitoring',
     linkKey: 'dashboard.guidance.seeMonitoring',
     link: 'Voir la supervision',
@@ -155,6 +171,38 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
     what: 'La date de cette intervention est passée et elle n’est toujours pas terminée.',
     consequenceKey: 'dashboard.actionCard.interventionOverdueConsequence',
     consequence: 'Le logement n’est peut-être pas prêt pour la prochaine arrivée, et personne n’a signalé pourquoi.',
+    // Trois issues légitimes : le travail a eu lieu sans être saisi, il est
+    // reporté, ou il n'aura pas lieu. Aucune n'est plus probable que les autres.
+    gestures: [
+      {
+        action: 'complete',
+        labelKey: 'dashboard.actionCard.complete',
+        label: 'Marquer terminée',
+        doneKey: 'dashboard.actionCard.completed',
+        done: 'Intervention terminée.',
+        // Personne ne devine cela depuis un bouton « Terminer ».
+        warnKey: 'dashboard.actionCard.completeWarn',
+        warn: 'Terminer déclenche le paiement du prestataire, sous réserve de la preuve photo.',
+      },
+      {
+        action: 'rescheduleIntervention',
+        needsDate: true,
+        labelKey: 'dashboard.actionCard.reschedule',
+        label: 'Replanifier',
+        doneKey: 'dashboard.actionCard.rescheduled',
+        done: 'Intervention replanifiée.',
+      },
+      {
+        action: 'cancelIntervention',
+        destructive: true,
+        labelKey: 'dashboard.actionCard.cancelIntervention',
+        label: 'Annuler',
+        doneKey: 'dashboard.actionCard.cancelled',
+        done: 'Intervention annulée.',
+        warnKey: 'dashboard.actionCard.cancelWarn',
+        warn: 'Réservé à l’équipe plateforme, et sans retour possible.',
+      },
+    ],
     route: '/interventions',
     linkKey: 'dashboard.guidance.seeInterventions',
     link: 'Voir les interventions',
@@ -195,13 +243,13 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
     what: 'Cette réservation n’a jamais été confirmée et l’arrivée approche.',
     consequenceKey: 'dashboard.actionCard.reservationConsequence',
     consequence: 'En attente, elle est exclue de tout le reste : ni ménage, ni message de séjour, ni solde réclamé.',
-    gesture: {
+    gestures: [{
       action: 'confirm',
       labelKey: 'dashboard.actionCard.confirm',
       label: 'Confirmer la réservation',
       doneKey: 'dashboard.actionCard.confirmed',
       done: 'Réservation confirmée et jours réservés au calendrier.',
-    },
+    }],
     route: '/reservations',
     linkKey: 'dashboard.guidance.seeReservations',
     link: 'Voir les réservations',
@@ -212,14 +260,14 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
     what: 'Aucune personne ni équipe n’est rattachée à cette intervention.',
     consequenceKey: 'dashboard.actionCard.interventionUnassignedConsequence',
     consequence: 'Le jour venu, personne ne se présentera — et on l’apprendra par le voyageur.',
-    gesture: {
+    gestures: [{
       action: 'assign',
       needsAssignee: true,
       labelKey: 'dashboard.actionCard.assign',
       label: 'Assigner l’équipe',
       doneKey: 'dashboard.actionCard.assigned',
       done: 'Intervention assignée.',
-    },
+    }],
     route: '/interventions',
     linkKey: 'dashboard.guidance.seeInterventions',
     link: 'Voir les interventions',
@@ -270,13 +318,13 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
     what: 'Une automatisation a échoué : l’action promise n’a pas eu lieu.',
     consequenceKey: 'dashboard.actionCard.automationConsequence',
     consequence: 'Le produit affiche la règle comme active, et le voyageur n’a rien reçu.',
-    gesture: {
+    gestures: [{
       action: 'replayAutomation',
       labelKey: 'dashboard.actionCard.replayAutomation',
       label: 'Rejouer cette règle',
       doneKey: 'dashboard.actionCard.automationReplayed',
       done: 'Règle rejouée — vérifiez qu’elle a abouti cette fois.',
-    },
+    }],
     route: '/automation-rules',
     linkKey: 'dashboard.guidance.seeAutomations',
     link: 'Voir les automatisations',

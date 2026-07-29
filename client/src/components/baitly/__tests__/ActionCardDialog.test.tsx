@@ -73,7 +73,8 @@ describe('ActionCardDialog', () => {
 
     // Le troisieme argument porte la cible des gestes qui en ont une ; les
     // autres l'envoient a vide.
-    await waitFor(() => expect(actionItemsApi.act).toHaveBeenCalledWith(41, 'acknowledge', null));
+    await waitFor(() =>
+      expect(actionItemsApi.act).toHaveBeenCalledWith(41, 'acknowledge', null, null));
   });
 
   it('ne propose aucun geste là où il n’en existe pas', () => {
@@ -118,10 +119,11 @@ describe('table des cartes', () => {
     // Un geste sans message de succès laisserait l'utilisateur sans preuve que
     // quelque chose s'est produit.
     for (const [kind, card] of Object.entries(ACTION_CARDS)) {
-      if (!card?.gesture) continue;
-      expect(card.gesture.action, `${kind}: action`).toBeTruthy();
-      expect(card.gesture.label, `${kind}: libellé`).toBeTruthy();
-      expect(card.gesture.done, `${kind}: message de succès`).toBeTruthy();
+      for (const gesture of card?.gestures ?? []) {
+        expect(gesture.action, `${kind}: action`).toBeTruthy();
+        expect(gesture.label, `${kind}: libellé`).toBeTruthy();
+        expect(gesture.done, `${kind}: message de succès`).toBeTruthy();
+      }
     }
   });
 
@@ -211,5 +213,34 @@ describe('couverture des natures', () => {
     );
 
     expect(orphans).toEqual([]);
+  });
+});
+
+describe('gestes multiples', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('propose les trois issues d’une intervention en retard', () => {
+    // Le travail a eu lieu sans etre saisi, il est reporte, ou il n'aura pas
+    // lieu : aucune n'est plus probable que les autres.
+    renderCard(item({ kind: 'INTERVENTION_OVERDUE', title: 'Ménage de départ' }));
+
+    expect(screen.getByRole('button', { name: /Marquer terminée/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Replanifier/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Annuler/ })).toBeInTheDocument();
+  });
+
+  it('annonce que terminer paie le prestataire', () => {
+    // Aucun bouton « Terminer » ne laisse deviner qu'il declenche un paiement.
+    renderCard(item({ kind: 'INTERVENTION_OVERDUE', title: 'Ménage de départ' }));
+
+    expect(screen.getByText(/paiement du prestataire/)).toBeInTheDocument();
+  });
+
+  it('la replanification attend une date', () => {
+    renderCard(item({ kind: 'INTERVENTION_OVERDUE', title: 'Ménage de départ' }));
+
+    expect(screen.getByRole('button', { name: /Replanifier/ })).toBeDisabled();
+    // Terminer n'attend rien, lui.
+    expect(screen.getByRole('button', { name: /Marquer terminée/ })).toBeEnabled();
   });
 });

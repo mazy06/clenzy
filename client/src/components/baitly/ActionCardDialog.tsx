@@ -13,6 +13,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Input,
   Item,
   ItemContent,
   ItemDescription,
@@ -27,7 +28,7 @@ import {
   type AssignableTeam,
 } from '../../services/api/actionItemsApi';
 import type { DashboardActionItem } from '../../services/api/dashboardOperationsApi';
-import { ACTION_CARDS } from './actionCards';
+import { ACTION_CARDS, type Gesture } from './actionCards';
 import { useTranslation } from '../../hooks/useTranslation';
 
 /**
@@ -72,12 +73,18 @@ export default function ActionCardDialog({
 
   const card = item ? ACTION_CARDS[item.kind] : undefined;
 
-  // L'équipe choisie, quand le geste vise une cible.
+  // L'équipe et la date choisies, quand un geste les demande.
   const [assignee, setAssignee] = React.useState<number | null>(null);
+  const [scheduledAt, setScheduledAt] = React.useState('');
+  // Le geste en cours : plusieurs peuvent coexister sur une même carte, et le
+  // message de succès dépend de celui qu'on a lancé.
+  const [running, setRunning] = React.useState<Gesture | null>(null);
 
   const act = useMutation({
-    mutationFn: (action: string) =>
-      actionItemsApi.act(item!.actionItemId!, action, assignee),
+    mutationFn: (gesture: Gesture) => {
+      setRunning(gesture);
+      return actionItemsApi.act(item!.actionItemId!, gesture.action, assignee, scheduledAt || null);
+    },
     onSuccess: () =>
       refreshActionQueue(
         (key) => queryClient.invalidateQueries({ queryKey: key }), invalidateKeys),
@@ -88,9 +95,11 @@ export default function ActionCardDialog({
   React.useEffect(() => {
     act.reset();
     setAssignee(null);
+    setScheduledAt('');
+    setRunning(null);
   }, [item?.actionItemId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const needsAssignee = card?.gesture?.needsAssignee === true;
+  const needsAssignee = card?.gestures?.some((g) => g.needsAssignee) === true;
   // Les suggestions ne se chargent que si la carte en a besoin : une requête
   // par ouverture de carte, sinon, pour rien.
   const teams = useQuery({
@@ -101,15 +110,18 @@ export default function ActionCardDialog({
 
   if (!card) return null;
 
-  const gesture = card.gesture;
+  const gestures = card.gestures ?? [];
+  const needsDate = gestures.some((g) => g.needsDate);
   // Le serveur a déjà tranché : cette exécution a-t-elle laissé une trace de
   // tentative ? Lui seul peut le savoir, et il le dit avant le clic.
   const mayHaveSent = item?.actionType === 'MAY_HAVE_SENT';
   // Une action deduite des donnees peut n'avoir aucune ligne persistee derriere
   // elle (fixtures de galerie) : le geste serait alors sans cible.
-  const canAct = gesture != null
-    && item?.actionItemId != null
-    && (!needsAssignee || assignee != null);
+  /** Un geste ne part que si ce qu'il vise est renseigné. */
+  const canRun = (gesture: Gesture) =>
+    item?.actionItemId != null
+    && (!gesture.needsAssignee || assignee != null)
+    && (!gesture.needsDate || scheduledAt !== '');
 
   return (
     <Dialog open={item != null} onOpenChange={(next) => !next && !act.isPending && onClose()}>
@@ -222,11 +234,24 @@ export default function ActionCardDialog({
           </div>
         )}
 
+        {needsDate && !act.isSuccess && (
+          <div className="space-y-1.5">
+            <p className="text-sm font-medium text-foreground">
+              {t('dashboard.actionCard.newDate', 'Nouvelle date')}
+            </p>
+            <Input
+              type="datetime-local"
+              value={scheduledAt}
+              onChange={(event) => setScheduledAt(event.target.value)}
+            />
+          </div>
+        )}
+
         {act.isSuccess && (
           <Alert>
             <CheckIcon />
             <AlertDescription>
-              {gesture ? t(gesture.doneKey, gesture.done) : null}
+              {running ? t(running.doneKey, running.done) : null}
             </AlertDescription>
           </Alert>
         )}
@@ -246,6 +271,18 @@ export default function ActionCardDialog({
           </Alert>
         )}
 
+        {/* Ce qu'un geste declenche au-dela du changement d'etat. Terminer une
+            intervention paie le prestataire, et aucun bouton ne le dit. */}
+        {!act.isSuccess && gestures.filter((g) => g.warn).map((gesture) => (
+          <p key={gesture.action} className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">
+              {t(gesture.labelKey, gesture.label)}
+            </span>
+            {' — '}
+            {t(gesture.warnKey!, gesture.warn!)}
+          </p>
+        ))}
+
         {act.isError && (
           <Alert variant="destructive">
             <TriangleAlertIcon />
@@ -256,7 +293,7 @@ export default function ActionCardDialog({
         )}
 
         {/* Dire pourquoi il n'y a rien a cocher evite de chercher le bouton. */}
-        {!gesture && (
+        {gestures.length === 0 && (
           <p className="text-sm text-muted-foreground">
             {t(
               'dashboard.actionCard.elsewhere',
@@ -280,18 +317,26 @@ export default function ActionCardDialog({
             </Button>
           )}
 
-          {gesture && (
-            <Button
-              variant={mayHaveSent || gesture.destructive ? 'destructive' : 'default'}
-              onClick={() => act.mutate(gesture.action)}
-              disabled={!canAct || act.isPending || act.isSuccess}
-            >
-              {act.isPending ? <Spinner /> : <CheckIcon />}
-              {mayHaveSent
-                ? t('dashboard.actionCard.replayAnyway', 'Rejouer malgré le risque')
-                : t(gesture.labelKey, gesture.label)}
-            </Button>
-          )}
+          {/* Les gestes vont du plus attendu au plus definitif ; l'ordre de la
+              table fait foi, et le destructif se distingue par sa teinte. */}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {gestures.map((gesture) => (
+              <Button
+                key={gesture.action}
+                variant={
+                  mayHaveSent || gesture.destructive ? 'destructive' : 'default'
+                }
+                onClick={() => act.mutate(gesture)}
+                disabled={!canRun(gesture) || act.isPending || act.isSuccess}
+                title={gesture.warn ? t(gesture.warnKey!, gesture.warn) : undefined}
+              >
+                {act.isPending && running?.action === gesture.action ? <Spinner /> : <CheckIcon />}
+                {mayHaveSent
+                  ? t('dashboard.actionCard.replayAnyway', 'Rejouer malgré le risque')
+                  : t(gesture.labelKey, gesture.label)}
+              </Button>
+            ))}
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

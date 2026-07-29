@@ -1781,7 +1781,16 @@
       "teamBusy": "Already taken on that slot",
       "teamZone": "Covers the area",
       "teamDefault": "Property's own team",
-      "needsTeamType": "This job needs a team of type “{{type}}”. Your organisation has none."
+      "needsTeamType": "This job needs a team of type “{{type}}”. Your organisation has none.",
+      "complete": "Mark as done",
+      "completed": "Job completed.",
+      "completeWarn": "Completing triggers the provider's payment, subject to photo proof.",
+      "reschedule": "Reschedule",
+      "rescheduled": "Job rescheduled.",
+      "cancelIntervention": "Cancel",
+      "cancelled": "Job cancelled.",
+      "cancelWarn": "Platform team only, and there is no way back.",
+      "newDate": "New date"
     }
   },
   "properties": {

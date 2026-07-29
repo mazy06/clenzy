@@ -1801,7 +1801,16 @@
       "teamBusy": "Déjà prise sur ce créneau",
       "teamZone": "Couvre la zone",
       "teamDefault": "Équipe du logement",
-      "needsTeamType": "Cette intervention demande une équipe de type « {{type}} ». Votre organisation n’en a aucune."
+      "needsTeamType": "Cette intervention demande une équipe de type « {{type}} ». Votre organisation n’en a aucune.",
+      "complete": "Marquer terminée",
+      "completed": "Intervention terminée.",
+      "completeWarn": "Terminer déclenche le paiement du prestataire, sous réserve de la preuve photo.",
+      "reschedule": "Replanifier",
+      "rescheduled": "Intervention replanifiée.",
+      "cancelIntervention": "Annuler",
+      "cancelled": "Intervention annulée.",
+      "cancelWarn": "Réservé à l’équipe plateforme, et sans retour possible.",
+      "newDate": "Nouvelle date"
     }
   },
   "properties": {

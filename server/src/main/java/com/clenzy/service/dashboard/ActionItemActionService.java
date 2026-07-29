@@ -4,8 +4,10 @@ import com.clenzy.dto.DashboardOperationsDto.ActionItemKind;
 import com.clenzy.dto.IssueDtos.DismissIssueRequest;
 import com.clenzy.model.ActionItem;
 import com.clenzy.model.Intervention;
+import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.OutboxEvent;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.service.InterventionLifecycleService;
 import com.clenzy.service.InterventionService;
 import com.clenzy.service.PropertyTeamService;
 import com.clenzy.util.InterventionTypeMatcher;
@@ -34,6 +36,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -94,6 +97,7 @@ public class ActionItemActionService {
     private final InterventionRepository interventionRepository;
     private final InterventionService interventionService;
     private final PropertyTeamService propertyTeamService;
+    private final InterventionLifecycleService interventionLifecycleService;
 
     public ActionItemActionService(ActionItemRepository actionItemRepository,
                                   DocumentGenerationRepository documentGenerationRepository,
@@ -111,7 +115,9 @@ public class ActionItemActionService {
                                   AutomationEvaluationService automationEvaluationService,
                                   InterventionRepository interventionRepository,
                                   InterventionService interventionService,
-                                  PropertyTeamService propertyTeamService) {
+                                  PropertyTeamService propertyTeamService,
+                                  InterventionLifecycleService interventionLifecycleService) {
+        this.interventionLifecycleService = interventionLifecycleService;
         this.interventionRepository = interventionRepository;
         this.interventionService = interventionService;
         this.propertyTeamService = propertyTeamService;
@@ -150,6 +156,12 @@ public class ActionItemActionService {
      * aujourd'hui l'assignation d'une intervention.
      */
     public void act(Long actionItemId, Long orgId, String action, Long assigneeTeamId, Jwt jwt) {
+        act(actionItemId, orgId, action, assigneeTeamId, null, jwt);
+    }
+
+    /** Variante des gestes qui portent une date — la replanification. */
+    public void act(Long actionItemId, Long orgId, String action,
+                    Long assigneeTeamId, LocalDateTime scheduledAt, Jwt jwt) {
         // Un second clic, ou une re-soumission du navigateur, rejouerait le
         // geste. La plupart sont anodins a repeter — acquitter deux fois une
         // alerte ne change rien — mais renvoyer une invitation en cree une
@@ -192,6 +204,16 @@ public class ActionItemActionService {
                     .run(() -> automationEvaluationService.replayExecution(target, orgId));
             case "assign" -> requireKind(kind, ActionItemKind.INTERVENTION_UNASSIGNED, action)
                     .run(() -> assignIntervention(target, assigneeTeamId, jwt));
+            // Terminer DECLENCHE le paiement du prestataire (garde par la preuve
+            // photo) : la carte l'annonce, ce n'est pas un simple changement de
+            // statut.
+            case "complete" -> requireKind(kind, ActionItemKind.INTERVENTION_OVERDUE, action)
+                    .run(() -> completeIntervention(target, jwt));
+            case "cancelIntervention" -> requireKind(kind, ActionItemKind.INTERVENTION_OVERDUE, action)
+                    .run(() -> interventionLifecycleService.updateStatus(target, "CANCELLED", jwt));
+            case "rescheduleIntervention" ->
+                    requireKind(kind, ActionItemKind.INTERVENTION_OVERDUE, action)
+                    .run(() -> interventionLifecycleService.reschedule(target, scheduledAt, jwt));
             default -> throw new IllegalStateException("Geste inconnu : " + action);
         }
     }
@@ -262,6 +284,25 @@ public class ActionItemActionService {
                         intervention.getType(),
                         orgId),
                 InterventionTypeMatcher.requiredTeamType(intervention.getType()));
+    }
+
+    /**
+     * Termine l'intervention, en franchissant l'étape intermédiaire si besoin.
+     *
+     * <p>Seul {@code IN_PROGRESS} peut passer à {@code COMPLETED} : une
+     * intervention en retard restée {@code PENDING} — le cas le plus courant —
+     * serait refusée. Or le sens réel du geste est « le travail a eu lieu »,
+     * donc elle a bien commencé avant de finir. On franchit donc les deux
+     * marches plutôt que de renvoyer une transition invalide à quelqu'un qui
+     * constate un fait.</p>
+     */
+    private void completeIntervention(Long interventionId, Jwt jwt) {
+        final Intervention intervention = interventionRepository.findById(interventionId)
+                .orElseThrow(() -> new IllegalArgumentException("Intervention introuvable"));
+        if (intervention.getStatus() != InterventionStatus.IN_PROGRESS) {
+            interventionLifecycleService.startIntervention(interventionId, jwt);
+        }
+        interventionLifecycleService.completeIntervention(interventionId, jwt);
     }
 
     /** Confie l'intervention à l'équipe choisie. */

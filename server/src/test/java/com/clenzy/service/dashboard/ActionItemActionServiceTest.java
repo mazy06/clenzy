@@ -55,6 +55,7 @@ class ActionItemActionServiceTest {
     private com.clenzy.repository.InterventionRepository interventionRepository;
     private com.clenzy.service.InterventionService interventionService;
     private com.clenzy.service.PropertyTeamService propertyTeamService;
+    private com.clenzy.service.InterventionLifecycleService interventionLifecycleService;
     private org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
     private ActionItemActionService service;
     private Jwt jwt;
@@ -71,6 +72,7 @@ class ActionItemActionServiceTest {
         interventionRepository = mock(com.clenzy.repository.InterventionRepository.class);
         interventionService = mock(com.clenzy.service.InterventionService.class);
         propertyTeamService = mock(com.clenzy.service.PropertyTeamService.class);
+        interventionLifecycleService = mock(com.clenzy.service.InterventionLifecycleService.class);
         // Le verrou anti double-clic laisse passer le premier appel.
         redisTemplate = mock(org.springframework.data.redis.core.StringRedisTemplate.class);
         final var valueOps = mock(org.springframework.data.redis.core.ValueOperations.class);
@@ -97,7 +99,8 @@ class ActionItemActionServiceTest {
                 automationEvaluationService,
                 interventionRepository,
                 interventionService,
-                propertyTeamService);
+                propertyTeamService,
+                interventionLifecycleService);
     }
 
     private void queueHolds(ActionItemKind kind, Long targetId, Long orgId) {
@@ -202,6 +205,28 @@ class ActionItemActionServiceTest {
         service.act(41L, ORG, "assign", 3L, jwt);
 
         verify(interventionService).assign(55L, null, 3L, jwt);
+    }
+
+    @Test
+    void whenCancellingAnIntervention_thenItGoesThroughTheLifecycleGuards() {
+        // `updateStatus` refuse l'annulation aux roles non plateforme : le geste
+        // ne doit pas court-circuiter cette regle en ecrivant le statut lui-meme.
+        queueHolds(ActionItemKind.INTERVENTION_OVERDUE, 73L, ORG);
+
+        service.act(41L, ORG, "cancelIntervention", jwt);
+
+        verify(interventionLifecycleService).updateStatus(73L, "CANCELLED", jwt);
+    }
+
+    @Test
+    void whenReschedulingWithoutADate_thenTheServiceRefuses() {
+        queueHolds(ActionItemKind.INTERVENTION_OVERDUE, 73L, ORG);
+
+        service.act(41L, ORG, "rescheduleIntervention", null, null, jwt);
+
+        // La date nulle est refusee par le service de cycle de vie, pas ici :
+        // c'est lui qui porte la regle, et il la porte pour tous ses appelants.
+        verify(interventionLifecycleService).reschedule(73L, null, jwt);
     }
 
     @Test

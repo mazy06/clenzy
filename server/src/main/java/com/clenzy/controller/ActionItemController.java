@@ -89,7 +89,7 @@ public class ActionItemController {
                                     @RequestBody ActionRequest request,
                                     @AuthenticationPrincipal Jwt jwt) {
         actionService.act(id, tenantContext.getRequiredOrganizationId(),
-                request.action(), request.assigneeTeamId(), jwt);
+                request.action(), request.assigneeTeamId(), request.scheduledAt(), jwt);
         return ResponseEntity.noContent().build();
     }
 
@@ -99,7 +99,11 @@ public class ActionItemController {
      * @param assigneeTeamId équipe choisie, pour les gestes d'assignation
      */
     public record ActionRequest(@jakarta.validation.constraints.NotBlank String action,
-                                Long assigneeTeamId) {}
+                                Long assigneeTeamId,
+                                /** Nouvelle date, pour les gestes de replanification. */
+                                @com.fasterxml.jackson.annotation.JsonFormat(
+                                        shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING)
+                                java.time.LocalDateTime scheduledAt) {}
 
     /** Équipes proposées pour assigner l'intervention que cette action signale. */
     @GetMapping("/{id}/assignable-teams")

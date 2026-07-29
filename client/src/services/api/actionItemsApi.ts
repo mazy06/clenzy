@@ -60,8 +60,14 @@ export const actionItemsApi = {
    * sait quel service porte réellement l'action, et c'est là que
    * l'appartenance à l'organisation se vérifie, une fois.</p>
    */
-  act: (id: number, action: string, assigneeTeamId?: number | null): Promise<void> =>
-    apiClient.post<void>(`/action-items/${id}/act`, { action, assigneeTeamId }),
+  act: (
+    id: number,
+    action: string,
+    assigneeTeamId?: number | null,
+    /** Nouvelle date, pour les gestes de replanification (`yyyy-MM-ddTHH:mm`). */
+    scheduledAt?: string | null,
+  ): Promise<void> =>
+    apiClient.post<void>(`/action-items/${id}/act`, { action, assigneeTeamId, scheduledAt }),
 
   /**
    * Équipes proposées pour assigner l'intervention que cette action signale.
