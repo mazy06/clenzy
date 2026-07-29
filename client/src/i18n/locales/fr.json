@@ -1774,7 +1774,12 @@
       "onboardingConsequence": "Tout paraît configuré, et pourtant aucun versement ne partira jamais.",
       "einvoiceConsequence": "L’obligation légale n’est pas remplie, et le client a pourtant sa facture entre les mains.",
       "automationConsequence": "Le produit affiche la règle comme active, et le voyageur n’a rien reçu.",
-      "integrationConsequence": "Tant qu’elle est muette, les disponibilités ne remontent plus — c’est la première cause de double réservation."
+      "integrationConsequence": "Tant qu’elle est muette, les disponibilités ne remontent plus — c’est la première cause de double réservation.",
+      "confirm": "Confirmer la réservation",
+      "confirmed": "Réservation confirmée et jours réservés au calendrier.",
+      "replayAutomation": "Rejouer cette règle",
+      "automationReplayed": "Règle rejouée — vérifiez qu’elle a abouti cette fois.",
+      "conflict": "Ces dates sont déjà prises : confirmer créerait une double réservation."
     }
   },
   "properties": {

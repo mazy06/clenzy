@@ -11,6 +11,8 @@ import com.clenzy.service.DocumentGenerationPipeline;
 import com.clenzy.service.IssueService;
 import com.clenzy.service.NoiseAlertService;
 import com.clenzy.service.OrganizationInvitationService;
+import com.clenzy.service.ReservationService;
+import com.clenzy.service.messaging.AutomationEvaluationService;
 import com.clenzy.service.SecurityDepositPaymentService;
 import com.clenzy.service.messaging.GuestMessagingService;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +50,8 @@ class ActionItemActionServiceTest {
     private SecurityDepositPaymentService securityDepositPaymentService;
     private AccountingService accountingService;
     private OutboxEventRepository outboxEventRepository;
+    private ReservationService reservationService;
+    private AutomationEvaluationService automationEvaluationService;
     private ActionItemActionService service;
     private Jwt jwt;
 
@@ -58,6 +62,8 @@ class ActionItemActionServiceTest {
         securityDepositPaymentService = mock(SecurityDepositPaymentService.class);
         accountingService = mock(AccountingService.class);
         outboxEventRepository = mock(OutboxEventRepository.class);
+        reservationService = mock(ReservationService.class);
+        automationEvaluationService = mock(AutomationEvaluationService.class);
         jwt = mock(Jwt.class);
         when(jwt.getSubject()).thenReturn("kc-user");
 
@@ -72,7 +78,9 @@ class ActionItemActionServiceTest {
                 accountingService,
                 securityDepositPaymentService,
                 mock(OrganizationInvitationService.class),
-                mock(IssueService.class));
+                mock(IssueService.class),
+                reservationService,
+                automationEvaluationService);
     }
 
     private void queueHolds(ActionItemKind kind, Long targetId, Long orgId) {
@@ -123,6 +131,39 @@ class ActionItemActionServiceTest {
                 .isInstanceOf(IllegalStateException.class);
 
         verifyNoInteractions(noiseAlertService, accountingService, securityDepositPaymentService);
+    }
+
+    @Test
+    void whenConfirmingABooking_thenItGoesThroughTheCalendarAwarePath() {
+        // Le geste ne pose PAS le statut lui-meme : il delegue au service qui
+        // reserve les jours et refuse un conflit. Un raccourci ici produirait la
+        // surreservation que tout le reste du systeme s'emploie a eviter.
+        queueHolds(ActionItemKind.RESERVATION_PENDING, 88L, ORG);
+
+        service.act(41L, ORG, "confirm", jwt);
+
+        verify(reservationService).confirm(88L, "kc-user");
+    }
+
+    @Test
+    void whenReplayingAnAutomation_thenOnlyTheFailedExecutionIsReplayed() {
+        // `fireTrigger` reevaluerait toutes les regles du declencheur et
+        // renverrait les messages de celles qui avaient abouti.
+        queueHolds(ActionItemKind.AUTOMATION_FAILED, 5L, ORG);
+
+        service.act(41L, ORG, "replayAutomation", jwt);
+
+        verify(automationEvaluationService).replayExecution(5L, ORG);
+    }
+
+    @Test
+    void whenConfirmIsAimedAtAnythingElse_thenTheBookingEngineIsNeverTouched() {
+        queueHolds(ActionItemKind.NOISE_ALERT_UNACKNOWLEDGED, 7L, ORG);
+
+        assertThatThrownBy(() -> service.act(41L, ORG, "confirm", jwt))
+                .isInstanceOf(IllegalStateException.class);
+
+        verifyNoInteractions(reservationService);
     }
 
     @Test

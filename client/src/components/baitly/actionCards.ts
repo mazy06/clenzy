@@ -13,19 +13,18 @@ import type { DashboardActionKind } from '../../services/api/dashboardOperations
  * une liste de reproches.</p>
  *
  * <p>Un {@link ActionCard#gesture} n'existe que là où le geste est réellement
- * faisable en un clic. Trois natures s'en passent délibérément :</p>
+ * faisable en un clic.</p>
  *
- * <ul>
- *   <li><b>Confirmer une réservation</b> traverse le contrôle de conflits de
- *       calendrier — un simple changement de statut ouvrirait la porte à la
- *       surréservation.</li>
- *   <li><b>Rejouer une automatisation</b> réévalue <i>toutes</i> les règles du
- *       déclencheur, pas seulement celle qui a échoué : on renverrait des
- *       messages déjà partis.</li>
- *   <li><b>Reconnecter une intégration</b> ou <b>terminer une vérification
- *       bancaire</b> passe par un parcours externe qu'aucun bouton ne
- *       remplace.</li>
- * </ul>
+ * <p>Deux gestes méritent d'être signalés parce qu'ils ne sont pas de simples
+ * changements d'état : <b>confirmer une réservation</b> réserve les jours au
+ * calendrier et échoue si les dates sont déjà prises ; <b>rejouer une
+ * automatisation</b> ne réexécute que la règle en échec, et refait donc
+ * réellement partir ce qui devait partir — un message déjà envoyé par ailleurs
+ * arriverait une seconde fois. C'est pourquoi la décision reste humaine.</p>
+ *
+ * <p>Restent sans geste sur place <b>reconnecter une intégration</b> et
+ * <b>terminer une vérification bancaire</b> : l'un comme l'autre passent par un
+ * parcours externe qu'aucun bouton ne remplace.</p>
  */
 
 export interface ActionCard {
@@ -149,13 +148,18 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
     link: 'Voir la supervision',
   },
 
-  // ─── Sans geste sur place, et c'est délibéré ──────────────────────────────
-
   RESERVATION_PENDING: {
     whatKey: 'dashboard.actionCard.reservationWhat',
     what: 'Cette réservation n’a jamais été confirmée et l’arrivée approche.',
     consequenceKey: 'dashboard.actionCard.reservationConsequence',
     consequence: 'En attente, elle est exclue de tout le reste : ni ménage, ni message de séjour, ni solde réclamé.',
+    gesture: {
+      action: 'confirm',
+      labelKey: 'dashboard.actionCard.confirm',
+      label: 'Confirmer la réservation',
+      doneKey: 'dashboard.actionCard.confirmed',
+      done: 'Réservation confirmée et jours réservés au calendrier.',
+    },
     route: '/reservations',
     linkKey: 'dashboard.guidance.seeReservations',
     link: 'Voir les réservations',
@@ -216,6 +220,13 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
     what: 'Une automatisation a échoué : l’action promise n’a pas eu lieu.',
     consequenceKey: 'dashboard.actionCard.automationConsequence',
     consequence: 'Le produit affiche la règle comme active, et le voyageur n’a rien reçu.',
+    gesture: {
+      action: 'replayAutomation',
+      labelKey: 'dashboard.actionCard.replayAutomation',
+      label: 'Rejouer cette règle',
+      doneKey: 'dashboard.actionCard.automationReplayed',
+      done: 'Règle rejouée — vérifiez qu’elle a abouti cette fois.',
+    },
     route: '/automation-rules',
     linkKey: 'dashboard.guidance.seeAutomations',
     link: 'Voir les automatisations',

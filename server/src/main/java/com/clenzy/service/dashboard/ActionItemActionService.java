@@ -8,6 +8,8 @@ import com.clenzy.repository.OutboxEventRepository;
 import com.clenzy.service.AccountingService;
 import com.clenzy.service.IssueService;
 import com.clenzy.service.NoiseAlertService;
+import com.clenzy.service.ReservationService;
+import com.clenzy.service.messaging.AutomationEvaluationService;
 import com.clenzy.service.OrganizationInvitationService;
 import com.clenzy.service.SecurityDepositPaymentService;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -37,12 +39,19 @@ import org.springframework.stereotype.Service;
  * fois pour toutes que l'action appartient bien à l'organisation du demandeur.
  * Dix endpoints auraient signifié dix vérifications à ne pas oublier.</p>
  *
- * <p><b>Ce qui n'est pas ici est délibéré.</b> Confirmer une réservation
- * traverse le contrôle de conflits de calendrier — un simple changement de
- * statut ouvrirait la porte à la surréservation. Rejouer une automatisation
- * réévalue <i>toutes</i> les règles du déclencheur, pas seulement celle qui a
- * échoué, et renverrait des messages déjà partis. Ces deux gestes renvoient
- * donc vers leur écran plutôt que d'agir à moitié.</p>
+ * <p><b>Deux gestes ne sont pas de simples changements d'état</b>, et passent
+ * par un chemin écrit pour eux :</p>
+ *
+ * <ul>
+ *   <li><b>Confirmer une réservation</b> réserve les jours au calendrier et
+ *       échoue si les dates sont déjà prises. Poser le statut à la main aurait
+ *       produit exactement la surréservation que tout le reste du système
+ *       s'emploie à éviter.</li>
+ *   <li><b>Rejouer une automatisation</b> ne réexécute que la règle qui a
+ *       échoué. Le point d'entrée habituel réévalue toutes les règles du
+ *       déclencheur, et renverrait les messages de celles qui avaient
+ *       abouti.</li>
+ * </ul>
  *
  * <p><b>Aucun envoi n'est fait dans une transaction ouverte par ce service.</b>
  * Un envoi est un appel réseau : le tenir dans une transaction la garde ouverte
@@ -66,6 +75,8 @@ public class ActionItemActionService {
     private final SecurityDepositPaymentService securityDepositPaymentService;
     private final OrganizationInvitationService invitationService;
     private final IssueService issueService;
+    private final ReservationService reservationService;
+    private final AutomationEvaluationService automationEvaluationService;
 
     public ActionItemActionService(ActionItemRepository actionItemRepository,
                                   DocumentGenerationRepository documentGenerationRepository,
@@ -77,7 +88,11 @@ public class ActionItemActionService {
                                   AccountingService accountingService,
                                   SecurityDepositPaymentService securityDepositPaymentService,
                                   OrganizationInvitationService invitationService,
-                                  IssueService issueService) {
+                                  IssueService issueService,
+                                  ReservationService reservationService,
+                                  AutomationEvaluationService automationEvaluationService) {
+        this.reservationService = reservationService;
+        this.automationEvaluationService = automationEvaluationService;
         this.outboxEventRepository = outboxEventRepository;
         this.noiseAlertService = noiseAlertService;
         this.accountingService = accountingService;
@@ -125,6 +140,15 @@ public class ActionItemActionService {
                     .run(() -> issueService.dismiss(target, new DismissIssueRequest(null)));
             case "replay" -> requireKind(kind, ActionItemKind.OUTBOX_DEAD_LETTER, action)
                     .run(() -> replayOutbox(target, orgId));
+            // Confirmer passe par le controle de conflits de calendrier : un
+            // simple changement de statut aurait produit la surreservation que
+            // tout le reste du systeme s'emploie a eviter.
+            case "confirm" -> requireKind(kind, ActionItemKind.RESERVATION_PENDING, action)
+                    .run(() -> reservationService.confirm(target, jwt.getSubject()));
+            // Rejeu CIBLE : `fireTrigger` reevaluerait toutes les regles du
+            // declencheur et renverrait les messages de celles qui avaient abouti.
+            case "replayAutomation" -> requireKind(kind, ActionItemKind.AUTOMATION_FAILED, action)
+                    .run(() -> automationEvaluationService.replayExecution(target, orgId));
             default -> throw new IllegalStateException("Geste inconnu : " + action);
         }
     }

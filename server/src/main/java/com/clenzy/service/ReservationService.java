@@ -368,6 +368,57 @@ public class ReservationService {
     }
 
     /**
+     * Confirme une réservation restée en attente.
+     *
+     * <p>Passer par {@link #update} pour un seul changement de statut était
+     * disproportionné : cette méthode remappe l'entièreté du DTO, relie le
+     * voyageur, décale l'intervention liée et régénère les codes de serrure.
+     * Mais poser {@code status = "confirmed"} à la main aurait été pire —
+     * <b>seules les réservations confirmées bloquent le calendrier</b>, et une
+     * confirmation sans réservation des jours produit exactement la
+     * surréservation que tout le reste du système s'emploie à éviter.</p>
+     *
+     * <p>Ce chemin réutilise donc {@link #syncCalendarOnUpdate}, qui contient
+     * déjà la transition {@code pending → confirmed} : durée minimale de séjour
+     * vérifiée, jours réservés, et {@link CalendarConflictException} levée si
+     * les dates sont déjà prises. La transaction annule alors le changement de
+     * statut : on ne confirme pas une réservation qu'on ne peut pas honorer.</p>
+     *
+     * @return la réservation confirmée
+     * @throws CalendarConflictException si les dates sont déjà occupées (HTTP 409)
+     */
+    // La classe est en lecture seule par défaut : sans cette annotation, le
+    // changement de statut ne serait jamais écrit. C'est aussi elle qui rend le
+    // conflit de calendrier annulable — le statut revient en arrière avec la
+    // transaction.
+    @Transactional
+    public Reservation confirm(Long id, String actorId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        Reservation existing = reservationRepository.findByIdFetchAll(id)
+                .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
+        // findById contourne le filtre Hibernate : le controle est explicite.
+        if (!orgId.equals(existing.getOrganizationId())) {
+            throw new RuntimeException("Acces refuse : reservation hors de votre organisation");
+        }
+
+        String oldStatus = existing.getStatus();
+        if ("confirmed".equalsIgnoreCase(oldStatus)) return existing;
+        if ("cancelled".equalsIgnoreCase(oldStatus)) {
+            // Une annulation se rouvre depuis l'ecran de la reservation, avec ses
+            // consequences propres — pas d'un clic sur une file d'actions.
+            throw new IllegalStateException("Une reservation annulee ne se confirme pas d'ici");
+        }
+
+        existing.setStatus("confirmed");
+        syncCalendarOnUpdate(existing, oldStatus, existing.getProperty().getId(),
+                existing.getCheckIn(), existing.getCheckOut(), orgId, actorId);
+
+        Reservation saved = reservationRepository.save(existing);
+        log.info("Reservation #{} confirmee par {}", id, actorId);
+        return saved;
+    }
+
+    /**
      * Met a jour une reservation (PUT /reservations/{id}) de maniere atomique.
      *
      * Orchestration complete dans UNE seule transaction :

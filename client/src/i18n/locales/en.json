@@ -1754,7 +1754,12 @@
       "onboardingConsequence": "Everything looks configured, and yet no payout will ever go out.",
       "einvoiceConsequence": "The legal obligation is unmet, while the client already holds the invoice.",
       "automationConsequence": "The product shows the rule as active, and the guest received nothing.",
-      "integrationConsequence": "While it is silent, availability no longer flows back — the leading cause of double bookings."
+      "integrationConsequence": "While it is silent, availability no longer flows back — the leading cause of double bookings.",
+      "confirm": "Confirm booking",
+      "confirmed": "Booking confirmed and dates blocked on the calendar.",
+      "replayAutomation": "Replay this rule",
+      "automationReplayed": "Rule replayed — check that it went through this time.",
+      "conflict": "These dates are already taken: confirming would create a double booking."
     }
   },
   "properties": {
