@@ -1790,7 +1790,10 @@
       "cancelIntervention": "Cancel",
       "cancelled": "Job cancelled.",
       "cancelWarn": "Platform team only, and there is no way back.",
-      "newDate": "New date"
+      "timeLabel": "Time",
+      "proofPhotos": "End-of-job photos",
+      "proofPhoto": "Photo {{index}}",
+      "noProof": "No end-of-job photo: the provider's payment will stay blocked even after the job is marked done."
     },
     "payoutRecap": {
       "beneficiary": "Beneficiary",

@@ -5,6 +5,7 @@ import com.clenzy.dto.IssueDtos.DismissIssueRequest;
 import com.clenzy.model.ActionItem;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionStatus;
+import com.clenzy.dto.InterventionProofDto;
 import com.clenzy.dto.PayoutRecapDto;
 import com.clenzy.model.OutboxEvent;
 import com.clenzy.model.OwnerPayout;
@@ -17,7 +18,9 @@ import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.service.InterventionLifecycleService;
+import com.clenzy.service.InterventionPhotoService;
 import com.clenzy.service.InterventionService;
+import com.clenzy.service.payout.HousekeeperPayoutService;
 import com.clenzy.service.PropertyTeamService;
 import com.clenzy.util.InterventionTypeMatcher;
 import com.clenzy.repository.OutboxEventRepository;
@@ -112,6 +115,8 @@ public class ActionItemActionService {
     private final OwnerPayoutConfigRepository ownerPayoutConfigRepository;
     private final ProviderExpenseRepository providerExpenseRepository;
     private final ReservationRepository reservationRepository;
+    private final InterventionPhotoService interventionPhotoService;
+    private final HousekeeperPayoutService housekeeperPayoutService;
 
     public ActionItemActionService(ActionItemRepository actionItemRepository,
                                   DocumentGenerationRepository documentGenerationRepository,
@@ -135,7 +140,11 @@ public class ActionItemActionService {
                                   UserRepository userRepository,
                                   OwnerPayoutConfigRepository ownerPayoutConfigRepository,
                                   ProviderExpenseRepository providerExpenseRepository,
-                                  ReservationRepository reservationRepository) {
+                                  ReservationRepository reservationRepository,
+                                  InterventionPhotoService interventionPhotoService,
+                                  HousekeeperPayoutService housekeeperPayoutService) {
+        this.interventionPhotoService = interventionPhotoService;
+        this.housekeeperPayoutService = housekeeperPayoutService;
         this.ownerPayoutRepository = ownerPayoutRepository;
         this.userRepository = userRepository;
         this.ownerPayoutConfigRepository = ownerPayoutConfigRepository;
@@ -438,6 +447,29 @@ public class ActionItemActionService {
                 .filter(part -> part != null && !part.isBlank())
                 .reduce((a, b) -> a + " " + b)
                 .orElse(user.getEmail());
+    }
+
+    /**
+     * Les photos de fin de mission de l'intervention que cette action signale.
+     *
+     * <p>Elles conditionnent le paiement du prestataire. Les montrer avant le
+     * geste transforme « Terminer déclenche le paiement » en quelque chose de
+     * vérifiable : on voit ce qu'on atteste, ou l'on constate qu'il n'y a rien
+     * à attester.</p>
+     */
+    @Transactional(readOnly = true)
+    public InterventionProofDto interventionProof(Long actionItemId, Long orgId) {
+        final ActionItem item = load(actionItemId, orgId);
+        if (!ActionItemKind.INTERVENTION_OVERDUE.name().equals(item.getKind())) {
+            throw new IllegalStateException("Cette action ne porte pas d'intervention");
+        }
+        final Intervention intervention = interventionRepository.findById(item.getTargetId())
+                .filter(i -> orgId.equals(i.getOrganizationId()))
+                .orElseThrow(() -> new IllegalArgumentException("Intervention introuvable"));
+
+        return new InterventionProofDto(
+                interventionPhotoService.convertPhotosToBase64UrlsByType(intervention, "after"),
+                housekeeperPayoutService.isProofComplete(intervention));
     }
 
     /** Confie l'intervention à l'équipe choisie. */

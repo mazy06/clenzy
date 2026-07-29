@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PathVariable;
+import com.clenzy.dto.InterventionProofDto;
 import com.clenzy.dto.PayoutRecapDto;
 import com.clenzy.service.PropertyTeamService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -114,6 +115,15 @@ public class ActionItemController {
     @GetMapping("/{id}/payout-recap")
     public PayoutRecapDto payoutRecap(@PathVariable Long id) {
         return actionService.payoutRecap(id, tenantContext.getRequiredOrganizationId());
+    }
+
+    /**
+     * Photos de fin de mission de l'intervention — la preuve dont dépend le
+     * paiement du prestataire.
+     */
+    @GetMapping("/{id}/intervention-proof")
+    public InterventionProofDto interventionProof(@PathVariable Long id) {
+        return actionService.interventionProof(id, tenantContext.getRequiredOrganizationId());
     }
 
     /** Équipes proposées pour assigner l'intervention que cette action signale. */

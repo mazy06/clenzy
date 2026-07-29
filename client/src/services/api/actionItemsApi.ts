@@ -64,6 +64,14 @@ export interface PayoutRecap {
   deductions: IncludedExpense[];
 }
 
+/** Les photos de fin de mission d'une intervention. */
+export interface InterventionProof {
+  /** Tableau JSON de données en base64, format de l'écran des interventions. */
+  photos: string | null;
+  /** Faux si aucune photo de fin : le paiement du prestataire restera bloqué. */
+  proofComplete: boolean;
+}
+
 export interface AssignableTeams {
   teams: AssignableTeam[];
   /** `CLEANING`, `MAINTENANCE`, `OTHER` — `null` si le type n'est pas reconnu. */
@@ -127,6 +135,10 @@ export const actionItemsApi = {
    */
   payoutRecap: (id: number): Promise<PayoutRecap> =>
     apiClient.get<PayoutRecap>(`/action-items/${id}/payout-recap`),
+
+  /** Photos de fin de mission — la preuve dont dépend le paiement du prestataire. */
+  interventionProof: (id: number): Promise<InterventionProof> =>
+    apiClient.get<InterventionProof>(`/action-items/${id}/intervention-proof`),
 
   assignableTeams: (id: number): Promise<AssignableTeams> =>
     apiClient.get<AssignableTeams>(`/action-items/${id}/assignable-teams`),

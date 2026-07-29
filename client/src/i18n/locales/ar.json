@@ -1800,7 +1800,10 @@
       "cancelIntervention": "إلغاء",
       "cancelled": "أُلغي التدخل.",
       "cancelWarn": "مخصّص لفريق المنصة، ولا رجعة فيه.",
-      "newDate": "تاريخ جديد"
+      "timeLabel": "الوقت",
+      "proofPhotos": "صور نهاية المهمة",
+      "proofPhoto": "صورة {{index}}",
+      "noProof": "لا توجد صورة لنهاية المهمة: سيبقى دفع المزوّد معلّقًا حتى بعد وضع علامة الإنجاز."
     },
     "payoutRecap": {
       "beneficiary": "المستفيد",

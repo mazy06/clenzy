@@ -23,6 +23,7 @@ vi.mock('../../../services/api/actionItemsApi', () => ({
     act: vi.fn(),
     assignableTeams: vi.fn().mockResolvedValue({ teams: [], requiredTeamType: null }),
     payoutRecap: vi.fn(),
+    interventionProof: vi.fn().mockResolvedValue({ photos: null, proofComplete: false }),
   },
   refreshActionQueue: vi.fn().mockResolvedValue(undefined),
 }));
@@ -238,11 +239,18 @@ describe('gestes multiples', () => {
     expect(screen.getByRole('button', { name: /Annuler/ })).toBeInTheDocument();
   });
 
-  it('annonce que terminer paie le prestataire', () => {
+  it('rattache l’avertissement de paiement au geste « terminer »', () => {
     // Aucun bouton « Terminer » ne laisse deviner qu'il declenche un paiement.
-    renderCard(item({ kind: 'INTERVENTION_OVERDUE', title: 'Ménage de départ' }));
+    // L'avertissement est desormais une infobulle sur SON bouton, et non un
+    // paragraphe en bas de carte ou il se detachait de ce qu'il qualifie.
+    //
+    // Ce qui est verifie ici, c'est le rattachement — la logique qui nous
+    // appartient. L'ouverture au survol releve de Radix, que jsdom simule mal :
+    // la tester reviendrait a tester la bibliotheque, avec un test fragile.
+    const complete = ACTION_CARDS.INTERVENTION_OVERDUE?.gestures
+      ?.find((gesture) => gesture.action === 'complete');
 
-    expect(screen.getByText(/paiement du prestataire/)).toBeInTheDocument();
+    expect(complete?.warn).toMatch(/paiement du prestataire/);
   });
 
   it('la replanification attend une date', () => {
@@ -251,6 +259,30 @@ describe('gestes multiples', () => {
     expect(screen.getByRole('button', { name: /Replanifier/ })).toBeDisabled();
     // Terminer n'attend rien, lui.
     expect(screen.getByRole('button', { name: /Marquer terminée/ })).toBeEnabled();
+  });
+
+  it('montre les photos de fin de mission quand elles existent', async () => {
+    // Elles conditionnent le paiement : les voir rend verifiable ce que
+    // l'avertissement annonce.
+    vi.mocked(actionItemsApi.interventionProof).mockResolvedValue({
+      photos: JSON.stringify(['data:image/png;base64,AAA', 'data:image/png;base64,BBB']),
+      proofComplete: true,
+    });
+    renderCard(item({ kind: 'INTERVENTION_OVERDUE', title: 'Ménage de départ' }));
+
+    expect(await screen.findByText('Photo 1')).toBeInTheDocument();
+    expect(screen.getByText('Photo 2')).toBeInTheDocument();
+  });
+
+  it('avertit quand aucune preuve n’existe', async () => {
+    // Terminer sans preuve laisse le paiement bloque : le dire evite de croire
+    // le prestataire paye.
+    vi.mocked(actionItemsApi.interventionProof).mockResolvedValue({
+      photos: null, proofComplete: false,
+    });
+    renderCard(item({ kind: 'INTERVENTION_OVERDUE', title: 'Ménage de départ' }));
+
+    expect(await screen.findByText(/restera bloqué/)).toBeInTheDocument();
   });
 });
 

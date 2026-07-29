@@ -1,12 +1,26 @@
 import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { CheckIcon, ExternalLinkIcon, TriangleAlertIcon } from 'lucide-react';
+import { CheckIcon, ClockIcon, ExternalLinkIcon, TriangleAlertIcon } from 'lucide-react';
 import {
   Alert,
   AlertDescription,
+  Attachment,
+  AttachmentContent,
+  AttachmentGroup,
+  AttachmentMedia,
+  AttachmentTitle,
   Badge,
   Button,
+  Calendar,
+  Card,
+  CardContent,
+  CardFooter,
+  Field,
+  FieldLabel,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -20,6 +34,9 @@ import {
   ItemGroup,
   ItemTitle,
   Spinner,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from '../ui';
 import { Money } from '../Money';
 import {
@@ -30,6 +47,7 @@ import {
 import type { DashboardActionItem } from '../../services/api/dashboardOperationsApi';
 import { ACTION_CARDS, type Gesture } from './actionCards';
 import PayoutRecap from './PayoutRecap';
+import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
 
 /**
@@ -68,7 +86,7 @@ export default function ActionCardDialog({
   onClose,
   invalidateKeys = [],
 }: ActionCardDialogProps) {
-  const { t } = useTranslation();
+  const { t, isArabic } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -76,7 +94,20 @@ export default function ActionCardDialog({
 
   // L'équipe et la date choisies, quand un geste les demande.
   const [assignee, setAssignee] = React.useState<number | null>(null);
-  const [scheduledAt, setScheduledAt] = React.useState('');
+  // Minuit local, jamais `new Date()` : l'heure courante rendrait aujourd'hui
+  // partiellement indisponible au calendrier.
+  const startOfToday = React.useMemo(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }, []);
+
+  const [day, setDay] = React.useState<Date | undefined>(undefined);
+  const [time, setTime] = React.useState('10:00');
+  // Construit a la main, jamais via `toISOString()` : celui-ci convertit en UTC
+  // et decale la date d'un jour selon le fuseau.
+  const scheduledAt = day
+    ? `${day.getFullYear()}-${pad(day.getMonth() + 1)}-${pad(day.getDate())}T${time}`
+    : '';
   // Le geste en cours : plusieurs peuvent coexister sur une même carte, et le
   // message de succès dépend de celui qu'on a lancé.
   const [running, setRunning] = React.useState<Gesture | null>(null);
@@ -96,7 +127,8 @@ export default function ActionCardDialog({
   React.useEffect(() => {
     act.reset();
     setAssignee(null);
-    setScheduledAt('');
+    setDay(undefined);
+    setTime('10:00');
     setRunning(null);
   }, [item?.actionItemId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -104,6 +136,15 @@ export default function ActionCardDialog({
   // Un reversement se lit avant de s'approuver : le bouton portait un montant
   // et rien d'autre.
   const isPayout = item?.kind === 'OWNER_PAYOUT_PENDING';
+  // La preuve photo conditionne le paiement du prestataire : la montrer rend
+  // verifiable ce que l'avertissement annonce.
+  const isIntervention = item?.kind === 'INTERVENTION_OVERDUE';
+  const proof = useQuery({
+    queryKey: ['action-items', item?.actionItemId, 'intervention-proof'],
+    queryFn: () => actionItemsApi.interventionProof(item!.actionItemId!),
+    enabled: isIntervention && item?.actionItemId != null,
+  });
+  const proofPhotos = React.useMemo(() => parsePhotos(proof.data?.photos), [proof.data]);
   const payout = useQuery({
     queryKey: ['action-items', item?.actionItemId, 'payout-recap'],
     queryFn: () => actionItemsApi.payoutRecap(item!.actionItemId!),
@@ -137,7 +178,7 @@ export default function ActionCardDialog({
 
   return (
     <Dialog open={item != null} onOpenChange={(next) => !next && !act.isPending && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className={cn(gestures.length > 1 ? "max-w-2xl" : "max-w-md")}>
         <DialogHeader>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={item?.severity === 'critical' ? 'destructive' : 'secondary'}>
@@ -246,6 +287,43 @@ export default function ActionCardDialog({
           </div>
         )}
 
+        {isIntervention && proofPhotos.length > 0 && !act.isSuccess && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">
+              {t('dashboard.actionCard.proofPhotos', 'Photos de fin de mission')}
+            </p>
+            <AttachmentGroup>
+              {proofPhotos.map((photo, index) => (
+                <Attachment key={index} orientation="vertical">
+                  <AttachmentMedia variant="image">
+                    <img src={photo} alt="" />
+                  </AttachmentMedia>
+                  <AttachmentContent>
+                    <AttachmentTitle>
+                      {t('dashboard.actionCard.proofPhoto', {
+                        index: index + 1,
+                        defaultValue: 'Photo {{index}}',
+                      })}
+                    </AttachmentTitle>
+                  </AttachmentContent>
+                </Attachment>
+              ))}
+            </AttachmentGroup>
+          </div>
+        )}
+
+        {isIntervention && proof.isSuccess && proofPhotos.length === 0 && !act.isSuccess && (
+          <Alert variant="destructive">
+            <TriangleAlertIcon />
+            <AlertDescription>
+              {t(
+                'dashboard.actionCard.noProof',
+                'Aucune photo de fin de mission : le paiement du prestataire restera bloqué même après avoir terminé l’intervention.',
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {isPayout && !act.isSuccess && (
           <PayoutRecap
             recap={payout.data}
@@ -255,16 +333,41 @@ export default function ActionCardDialog({
         )}
 
         {needsDate && !act.isSuccess && (
-          <div className="space-y-1.5">
-            <p className="text-sm font-medium text-foreground">
-              {t('dashboard.actionCard.newDate', 'Nouvelle date')}
-            </p>
-            <Input
-              type="datetime-local"
-              value={scheduledAt}
-              onChange={(event) => setScheduledAt(event.target.value)}
-            />
-          </div>
+          // Meme presentation que la replanification des prestations : deux
+          // mois, parce qu'une intervention manquee se reporte souvent au-dela
+          // du mois courant, et l'heure en pied de carte.
+          <Card size="sm" className="mx-auto w-fit">
+            <CardContent>
+              <Calendar
+                mode="single"
+                numberOfMonths={2}
+                calendarSystem={isArabic ? 'hijri' : 'gregorian'}
+                selected={day}
+                onSelect={setDay}
+                disabled={{ before: startOfToday }}
+                className="p-0"
+              />
+            </CardContent>
+            <CardFooter className="border-t bg-card">
+              <Field>
+                <FieldLabel htmlFor="action-time">
+                  {t('dashboard.actionCard.timeLabel', 'Heure')}
+                </FieldLabel>
+                <InputGroup>
+                  <InputGroupInput
+                    id="action-time"
+                    type="time"
+                    value={time}
+                    onChange={(event) => setTime(event.target.value)}
+                    className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden"
+                  />
+                  <InputGroupAddon>
+                    <ClockIcon className="text-muted-foreground" />
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
+            </CardFooter>
+          </Card>
         )}
 
         {act.isSuccess && (
@@ -290,18 +393,6 @@ export default function ActionCardDialog({
             </AlertDescription>
           </Alert>
         )}
-
-        {/* Ce qu'un geste declenche au-dela du changement d'etat. Terminer une
-            intervention paie le prestataire, et aucun bouton ne le dit. */}
-        {!act.isSuccess && gestures.filter((g) => g.warn).map((gesture) => (
-          <p key={gesture.action} className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">
-              {t(gesture.labelKey, gesture.label)}
-            </span>
-            {' — '}
-            {t(gesture.warnKey!, gesture.warn!)}
-          </p>
-        ))}
 
         {act.isError && (
           <Alert variant="destructive">
@@ -340,22 +431,39 @@ export default function ActionCardDialog({
           {/* Les gestes vont du plus attendu au plus definitif ; l'ordre de la
               table fait foi, et le destructif se distingue par sa teinte. */}
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {gestures.map((gesture) => (
-              <Button
-                key={gesture.action}
-                variant={
-                  mayHaveSent || gesture.destructive ? 'destructive' : 'default'
-                }
-                onClick={() => act.mutate(gesture)}
-                disabled={!canRun(gesture) || act.isPending || act.isSuccess}
-                title={gesture.warn ? t(gesture.warnKey!, gesture.warn) : undefined}
-              >
-                {act.isPending && running?.action === gesture.action ? <Spinner /> : <CheckIcon />}
-                {mayHaveSent
-                  ? t('dashboard.actionCard.replayAnyway', 'Rejouer malgré le risque')
-                  : t(gesture.labelKey, gesture.label)}
-              </Button>
-            ))}
+            {gestures.map((gesture) => {
+              const button = (
+                <Button
+                  variant={mayHaveSent || gesture.destructive ? 'destructive' : 'default'}
+                  onClick={() => act.mutate(gesture)}
+                  disabled={!canRun(gesture) || act.isPending || act.isSuccess}
+                >
+                  {act.isPending && running?.action === gesture.action
+                    ? <Spinner /> : <CheckIcon />}
+                  {mayHaveSent
+                    ? t('dashboard.actionCard.replayAnyway', 'Rejouer malgré le risque')
+                    : t(gesture.labelKey, gesture.label)}
+                </Button>
+              );
+
+              // Ce qu'un geste declenche au-dela du changement d'etat se lit au
+              // survol du bouton concerne, et non en bas de carte : la
+              // consequence appartient au geste, pas a la page.
+              return gesture.warn ? (
+                <Tooltip key={gesture.action}>
+                  <TooltipTrigger asChild>
+                    {/* Un bouton desactive n'emet pas d'evenement de survol :
+                        l'enveloppe porte le declencheur a sa place. */}
+                    <span className="inline-flex">{button}</span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    {t(gesture.warnKey!, gesture.warn!)}
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <React.Fragment key={gesture.action}>{button}</React.Fragment>
+              );
+            })}
           </div>
         </DialogFooter>
       </DialogContent>
@@ -396,4 +504,26 @@ function teamTypeLabel(type: string, t: (key: string, fallback: string) => strin
   if (type === 'CLEANING') return t('teamType.cleaning', 'Ménage');
   if (type === 'MAINTENANCE') return t('teamType.maintenance', 'Maintenance');
   return t('teamType.other', 'Autre');
+}
+
+/** Deux chiffres, pour composer une date locale sans passer par UTC. */
+function pad(value: number): string {
+  return String(value).padStart(2, '0');
+}
+
+/**
+ * Les photos servies par le serveur, en base64.
+ *
+ * <p>Le format vient de l'écran des interventions : un tableau JSON de données
+ * en base64. Une chaîne illisible ne doit pas faire tomber la carte — l'absence
+ * de preuve est une information, un plantage n'en est pas une.</p>
+ */
+function parsePhotos(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((p): p is string => typeof p === 'string') : [];
+  } catch {
+    return [];
+  }
 }

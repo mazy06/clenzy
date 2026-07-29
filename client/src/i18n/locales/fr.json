@@ -1810,7 +1810,10 @@
       "cancelIntervention": "Annuler",
       "cancelled": "Intervention annulée.",
       "cancelWarn": "Réservé à l’équipe plateforme, et sans retour possible.",
-      "newDate": "Nouvelle date"
+      "timeLabel": "Heure",
+      "proofPhotos": "Photos de fin de mission",
+      "proofPhoto": "Photo {{index}}",
+      "noProof": "Aucune photo de fin de mission : le paiement du prestataire restera bloqué même après avoir terminé l’intervention."
     },
     "payoutRecap": {
       "beneficiary": "Bénéficiaire",
