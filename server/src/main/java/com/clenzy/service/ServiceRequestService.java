@@ -33,6 +33,7 @@ import com.clenzy.config.KafkaConfig;
 import com.clenzy.service.pricing.CleaningPricingEngine;
 import com.clenzy.service.pricing.CleaningPricingEngine.ResolvedCleaningPrice;
 import com.clenzy.tenant.TenantContext;
+import com.clenzy.util.InterventionTypeMatcher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -289,18 +290,25 @@ public class ServiceRequestService {
      * qu'on veut lui laisser.</p>
      */
     @Transactional(readOnly = true)
-    public List<PropertyTeamService.AssignableTeam> findAssignableTeams(Long serviceRequestId,
-                                                                        LocalDateTime date) {
+    public PropertyTeamService.AssignableTeams findAssignableTeams(Long serviceRequestId,
+                                                                   LocalDateTime date) {
         ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
                 .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
         requireOwnedServiceRequest(sr);
+        final String serviceType = sr.getServiceType() == null ? null : sr.getServiceType().name();
+        // Le type requis accompagne TOUJOURS la reponse : c'est quand la liste
+        // est vide qu'il compte le plus, et c'est precisement la que l'ecran
+        // n'avait rien a dire.
+        final String requiredTeamType = InterventionTypeMatcher.requiredTeamType(serviceType);
+
         if (sr.getProperty() == null || date == null) {
-            return List.of();
+            return new PropertyTeamService.AssignableTeams(List.of(), requiredTeamType);
         }
-        return propertyTeamService.findAssignableTeams(
-                sr.getProperty().getId(), date, sr.getEstimatedDurationHours(),
-                sr.getServiceType() == null ? null : sr.getServiceType().name(),
-                sr.getOrganizationId());
+        return new PropertyTeamService.AssignableTeams(
+                propertyTeamService.findAssignableTeams(
+                        sr.getProperty().getId(), date, sr.getEstimatedDurationHours(),
+                        serviceType, sr.getOrganizationId()),
+                requiredTeamType);
     }
 
     /**

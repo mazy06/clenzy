@@ -18,7 +18,7 @@ import type { DashboardActionItem } from '../../../services/api/dashboardOperati
  */
 
 vi.mock('../../../services/api/actionItemsApi', () => ({
-  actionItemsApi: { act: vi.fn(), assignableTeams: vi.fn().mockResolvedValue([]) },
+  actionItemsApi: { act: vi.fn(), assignableTeams: vi.fn().mockResolvedValue({ teams: [], requiredTeamType: null }) },
   refreshActionQueue: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -139,9 +139,7 @@ describe('assignation', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('le geste attend qu’une équipe soit choisie', async () => {
-    vi.mocked(actionItemsApi.assignableTeams).mockResolvedValue([
-      { teamId: 3, name: 'Équipe Marrakech', origin: 'ZONE', available: true, conflicts: 0 },
-    ]);
+    vi.mocked(actionItemsApi.assignableTeams).mockResolvedValue({ teams: [{ teamId: 3, name: 'Équipe Marrakech', origin: 'ZONE', available: true, conflicts: 0 }], requiredTeamType: null });
     renderCard(item({ kind: 'INTERVENTION_UNASSIGNED', title: 'Ménage de départ' }));
 
     // Sans cible, le bouton enverrait une assignation vide.
@@ -152,11 +150,22 @@ describe('assignation', () => {
     expect(screen.getByRole('button', { name: /Assigner/ })).toBeEnabled();
   });
 
+  it('nomme le type d’équipe manquant plutôt que de constater le vide', async () => {
+    // « Aucune équipe » laissait devant un mur : on ne savait pas s'il manquait
+    // une équipe, une couverture de zone, ou une disponibilité. Le type requis
+    // transforme le constat en action — créer l'équipe qui convient.
+    vi.mocked(actionItemsApi.assignableTeams).mockResolvedValue({
+      teams: [],
+      requiredTeamType: 'MAINTENANCE',
+    });
+    renderCard(item({ kind: 'INTERVENTION_UNASSIGNED', title: 'Installation climatisation' }));
+
+    expect(await screen.findByText(/Maintenance/)).toBeInTheDocument();
+  });
+
   it('dit qu’une équipe est occupée plutôt que de la masquer', async () => {
     // La masquer ferait croire qu'il n'existe personne, ce qui est faux.
-    vi.mocked(actionItemsApi.assignableTeams).mockResolvedValue([
-      { teamId: 4, name: 'Équipe Gueliz', origin: 'ZONE', available: false, conflicts: 2 },
-    ]);
+    vi.mocked(actionItemsApi.assignableTeams).mockResolvedValue({ teams: [{ teamId: 4, name: 'Équipe Gueliz', origin: 'ZONE', available: false, conflicts: 2 }], requiredTeamType: null });
     renderCard(item({ kind: 'INTERVENTION_UNASSIGNED', title: 'Ménage de départ' }));
 
     expect(await screen.findByText('Équipe Gueliz')).toBeInTheDocument();

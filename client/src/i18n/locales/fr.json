@@ -1667,7 +1667,8 @@
       "allBusy": "Aucune équipe n’est libre sur ce créneau. Choisissez une autre date, ou assignez quand même : la prestation devra être confirmée avec l’équipe.",
       "stayPending": "Le séjour sera déduit de la date choisie.",
       "stayMatched": "Rattachée au séjour de {{guest}}",
-      "stayNone": "Aucun séjour ce jour-là : la prestation ne sera rattachée à aucune réservation."
+      "stayNone": "Aucun séjour ce jour-là : la prestation ne sera rattachée à aucune réservation.",
+      "needsTeamType": "Cette prestation demande une équipe de type « {{type}} ». Votre organisation n’en a aucune."
     },
     "incidentDialog": {
       "title": "Incident de règlement",
@@ -1799,7 +1800,8 @@
       "noTeam": "Aucune équipe ne couvre ce logement. Il faut en rattacher une avant de pouvoir assigner.",
       "teamBusy": "Déjà prise sur ce créneau",
       "teamZone": "Couvre la zone",
-      "teamDefault": "Équipe du logement"
+      "teamDefault": "Équipe du logement",
+      "needsTeamType": "Cette intervention demande une équipe de type « {{type}} ». Votre organisation n’en a aucune."
     }
   },
   "properties": {
@@ -6827,5 +6829,10 @@
       "cornerRibbon": "Ruban d'angle diagonal (promo, exclusivité, nouveauté) — signale une offre sur une carte sans consommer de place dans le flux de contenu. Le parent doit être positionné et masquer le débordement.",
       "onboardingDock": "Dock de démarrage flottant et persistant : le guide suit l'utilisateur d'écran en écran au lieu de vivre sur la seule page d'accueil. Trois états (replié, déplié, terminé), navigation entre groupes par pager, progression globale visible dans tous les états, et rejet possible."
     }
+  },
+  "teamType": {
+    "cleaning": "Ménage",
+    "maintenance": "Maintenance",
+    "other": "Autre"
   }
 }

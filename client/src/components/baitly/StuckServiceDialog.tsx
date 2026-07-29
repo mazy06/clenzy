@@ -121,7 +121,7 @@ export default function StuckServiceDialog({
   // faisait tomber tout le bloc « À traiter » sur `teams.filter is not a function`.
   // Les prestataires proposés dépendent du créneau : la requête suit la date.
   const {
-    data: suggestions = [],
+    data: assignable,
     isFetching: suggestionsLoading,
     error: suggestionsError,
   } = useQuery({
@@ -129,6 +129,11 @@ export default function StuckServiceDialog({
     queryFn: () => serviceRequestsApi.assignableTeams(serviceRequestId!, desiredDate),
     enabled: open && planning && desiredDate !== '',
   });
+  const suggestions = assignable?.teams ?? [];
+  // Quand aucune équipe ne convient, c'est le TYPE requis qui manque à l'écran :
+  // sans lui on ne distingue pas un manque d'équipe d'un manque de disponibilité.
+  const requiredTeamType = assignable?.requiredTeamType ?? null;
+
   const { data: reservations = [] } = useQuery({
     queryKey: ['reservations', 'by-property', service?.propertyId],
     queryFn: async () => extractApiList<Reservation>(
@@ -339,10 +344,17 @@ export default function StuckServiceDialog({
                   ))}
                   {suggestions.length === 0 && (
                     <p className="m-0 text-sm text-muted-foreground">
-                      {t(
-                        'dashboard.stuckService.noneAvailable',
-                        'Aucune équipe compatible avec ce type de prestation dans votre organisation.',
-                      )}
+                      {requiredTeamType
+                        ? t('dashboard.stuckService.needsTeamType', {
+                            type: teamTypeLabel(requiredTeamType, t),
+                            defaultValue:
+                              'Cette prestation demande une équipe de type « {{type}} ». '
+                              + 'Votre organisation n’en a aucune.',
+                          })
+                        : t(
+                            'dashboard.stuckService.noneAvailable',
+                            'Aucune équipe compatible avec ce type de prestation dans votre organisation.',
+                          )}
                     </p>
                   )}
                 </div>
@@ -448,4 +460,16 @@ function SuggestionRow({
       {hint && <span className="shrink-0 text-xs text-muted-foreground">{hint}</span>}
     </button>
   );
+}
+
+/**
+ * Nom lisible d'un type d'équipe.
+ *
+ * <p>Le serveur renvoie la clé technique ; l'afficher telle quelle
+ * (« MAINTENANCE ») donnerait un message d'erreur, pas une explication.</p>
+ */
+function teamTypeLabel(type: string, t: (key: string, fallback: string) => string): string {
+  if (type === 'CLEANING') return t('teamType.cleaning', 'Ménage');
+  if (type === 'MAINTENANCE') return t('teamType.maintenance', 'Maintenance');
+  return t('teamType.other', 'Autre');
 }

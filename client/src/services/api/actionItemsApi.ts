@@ -12,6 +12,19 @@ export interface AssignableTeam {
 }
 
 /**
+ * Les équipes proposables, et le type qu'il aurait fallu quand il n'y en a
+ * aucune.
+ *
+ * <p>Une liste vide seule laisse devant un mur : on ne sait pas si l'on manque
+ * d'équipe, de couverture de zone ou de disponibilité.</p>
+ */
+export interface AssignableTeams {
+  teams: AssignableTeam[];
+  /** `CLEANING`, `MAINTENANCE`, `OTHER` — `null` si le type n'est pas reconnu. */
+  requiredTeamType: string | null;
+}
+
+/**
  * Clôture d'une action de la file « à traiter ».
  *
  * <p>La liste arrive avec le tableau de bord : seule la clôture a besoin d'un
@@ -56,8 +69,8 @@ export const actionItemsApi = {
    * <p>Celles qui couvrent la zone sont proposées même occupées : une liste
    * vide ferait croire qu'il n'existe personne, ce qui est faux et bloque.</p>
    */
-  assignableTeams: (id: number): Promise<AssignableTeam[]> =>
-    apiClient.get<AssignableTeam[]>(`/action-items/${id}/assignable-teams`),
+  assignableTeams: (id: number): Promise<AssignableTeams> =>
+    apiClient.get<AssignableTeams>(`/action-items/${id}/assignable-teams`),
 };
 
 /**

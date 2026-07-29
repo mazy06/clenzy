@@ -183,16 +183,26 @@ export default function ActionCardDialog({
                 {t('dashboard.actionCard.teamsFailed', 'Les équipes n’ont pas pu être chargées.')}
               </p>
             )}
-            {teams.data?.length === 0 && (
+            {teams.data?.teams.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                {t(
-                  'dashboard.actionCard.noTeam',
-                  'Aucune équipe ne couvre ce logement. Il faut en rattacher une avant de pouvoir assigner.',
-                )}
+                {/* Le TYPE requis est ce qui transforme le constat en action :
+                    sans lui, on ne sait pas s'il manque une équipe, une
+                    couverture de zone, ou une disponibilité. */}
+                {teams.data?.requiredTeamType
+                  ? t('dashboard.actionCard.needsTeamType', {
+                      type: teamTypeLabel(teams.data.requiredTeamType, t),
+                      defaultValue:
+                        'Cette intervention demande une équipe de type « {{type}} ». '
+                        + 'Votre organisation n’en a aucune.',
+                    })
+                  : t(
+                      'dashboard.actionCard.noTeam',
+                      'Aucune équipe ne couvre ce logement. Il faut en rattacher une avant de pouvoir assigner.',
+                    )}
               </p>
             )}
             <ItemGroup>
-              {teams.data?.map((team) => (
+              {teams.data?.teams.map((team) => (
                 <Item
                   key={team.teamId}
                   size="sm"
@@ -314,4 +324,11 @@ function teamAvailability(
   return team.origin === 'ZONE'
     ? t('dashboard.actionCard.teamZone', 'Couvre la zone')
     : t('dashboard.actionCard.teamDefault', 'Équipe du logement');
+}
+
+/** Nom lisible d'un type d'équipe — la clé technique n'explique rien. */
+function teamTypeLabel(type: string, t: (key: string, fallback: string) => string): string {
+  if (type === 'CLEANING') return t('teamType.cleaning', 'Ménage');
+  if (type === 'MAINTENANCE') return t('teamType.maintenance', 'Maintenance');
+  return t('teamType.other', 'Autre');
 }

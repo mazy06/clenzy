@@ -8,6 +8,7 @@ import com.clenzy.model.OutboxEvent;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.service.InterventionService;
 import com.clenzy.service.PropertyTeamService;
+import com.clenzy.util.InterventionTypeMatcher;
 import com.clenzy.repository.OutboxEventRepository;
 import com.clenzy.service.AccountingService;
 import com.clenzy.service.IssueService;
@@ -242,7 +243,7 @@ public class ActionItemActionService {
      * bloque.</p>
      */
     @Transactional(readOnly = true)
-    public List<PropertyTeamService.AssignableTeam> assignableTeams(Long actionItemId, Long orgId) {
+    public PropertyTeamService.AssignableTeams assignableTeams(Long actionItemId, Long orgId) {
         final ActionItem item = load(actionItemId, orgId);
         if (!ActionItemKind.INTERVENTION_UNASSIGNED.name().equals(item.getKind())) {
             throw new IllegalStateException("Cette action ne se resout pas par une assignation");
@@ -251,12 +252,16 @@ public class ActionItemActionService {
                 .filter(i -> orgId.equals(i.getOrganizationId()))
                 .orElseThrow(() -> new IllegalArgumentException("Intervention introuvable"));
 
-        return propertyTeamService.findAssignableTeams(
-                intervention.getProperty() == null ? null : intervention.getProperty().getId(),
-                intervention.getScheduledDate(),
-                intervention.getEstimatedDurationHours(),
-                intervention.getType(),
-                orgId);
+        // Le type requis accompagne toujours la reponse : c'est quand la liste
+        // est vide qu'il compte, et c'est la que l'ecran n'avait rien a dire.
+        return new PropertyTeamService.AssignableTeams(
+                propertyTeamService.findAssignableTeams(
+                        intervention.getProperty() == null ? null : intervention.getProperty().getId(),
+                        intervention.getScheduledDate(),
+                        intervention.getEstimatedDurationHours(),
+                        intervention.getType(),
+                        orgId),
+                InterventionTypeMatcher.requiredTeamType(intervention.getType()));
     }
 
     /** Confie l'intervention à l'équipe choisie. */

@@ -30,7 +30,7 @@ vi.mock('../../../services/api/serviceRequestsApi', () => ({
   serviceRequestsApi: {
     cancel: vi.fn(),
     reschedule: vi.fn(),
-    assignableTeams: vi.fn().mockResolvedValue([]),
+    assignableTeams: vi.fn().mockResolvedValue({ teams: [], requiredTeamType: null }),
   },
 }));
 
@@ -109,10 +109,10 @@ describe('<StuckServiceDialog>', () => {
   it('explique quand des équipes couvrent le logement mais qu’aucune n’est libre', async () => {
     // Une liste de « Occupée » sans explication laisse croire que le logement
     // n'est pas couvert, alors que c'est l'heure choisie qui bloque.
-    vi.mocked(serviceRequestsApi.assignableTeams).mockResolvedValue([
+    vi.mocked(serviceRequestsApi.assignableTeams).mockResolvedValue({ teams: [
       { teamId: 1, name: 'Équipe Marrakech', origin: 'ZONE', available: false, conflicts: 2 },
       { teamId: 2, name: 'Équipe Gueliz', origin: 'DEFAULT', available: false, conflicts: 1 },
-    ]);
+    ], requiredTeamType: null });
 
     renderDialog();
     fireEvent.click(screen.getByRole('button', { name: /Replanifier/ }));

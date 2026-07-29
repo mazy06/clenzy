@@ -1647,7 +1647,8 @@
       "allBusy": "No team is free at this time. Pick another date, or assign anyway: the service will need to be confirmed with the team.",
       "stayPending": "The stay will follow from the date you pick.",
       "stayMatched": "Linked to {{guest}}’s stay",
-      "stayNone": "No stay that day: the service will not be linked to any reservation."
+      "stayNone": "No stay that day: the service will not be linked to any reservation.",
+      "needsTeamType": "This job needs a team of type “{{type}}”. Your organisation has none."
     },
     "incidentDialog": {
       "title": "Payment incident",
@@ -1779,7 +1780,8 @@
       "noTeam": "No team covers this property. One must be attached before you can assign.",
       "teamBusy": "Already taken on that slot",
       "teamZone": "Covers the area",
-      "teamDefault": "Property's own team"
+      "teamDefault": "Property's own team",
+      "needsTeamType": "This job needs a team of type “{{type}}”. Your organisation has none."
     }
   },
   "properties": {
@@ -6803,5 +6805,10 @@
       "cornerRibbon": "Diagonal corner ribbon (promo, exclusive, new) — flags an offer on a card without taking space in the content flow. The parent must be positioned and clip overflow.",
       "onboardingDock": "Floating, persistent getting-started dock: the guide follows the user from screen to screen instead of living only on the home page. Three states (collapsed, expanded, completed), group navigation via a pager, global progress visible in every state, and always dismissible."
     }
+  },
+  "teamType": {
+    "cleaning": "Cleaning",
+    "maintenance": "Maintenance",
+    "other": "Other"
   }
 }

@@ -109,8 +109,10 @@ public class ServiceRequestController {
                description = "Meme parcours que l'auto-assignation (equipe attitree, puis zones de "
                            + "couverture), mais rend TOUS les candidats. Les equipes occupees sur le "
                            + "creneau sont conservees et marquees indisponibles : deplacer la date "
-                           + "d'une heure peut les liberer.")
-    public ResponseEntity<List<PropertyTeamService.AssignableTeam>> assignableTeams(
+                           + "d'une heure peut les liberer. La reponse porte aussi le TYPE d'equipe "
+                           + "requis : quand la liste est vide, c'est la seule information qui "
+                           + "transforme le constat en action.")
+    public ResponseEntity<PropertyTeamService.AssignableTeams> assignableTeams(
             @PathVariable Long id,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime date) {
         return ResponseEntity.ok(service.findAssignableTeams(id, date));

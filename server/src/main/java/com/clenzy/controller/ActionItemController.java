@@ -103,7 +103,7 @@ public class ActionItemController {
 
     /** Équipes proposées pour assigner l'intervention que cette action signale. */
     @GetMapping("/{id}/assignable-teams")
-    public List<PropertyTeamService.AssignableTeam> assignableTeams(@PathVariable Long id) {
+    public PropertyTeamService.AssignableTeams assignableTeams(@PathVariable Long id) {
         return actionService.assignableTeams(id, tenantContext.getRequiredOrganizationId());
     }
 

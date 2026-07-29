@@ -292,6 +292,20 @@ public class PropertyTeamService {
     public record AssignableTeam(Long teamId, String name, String origin,
                                  boolean available, long conflicts) {}
 
+    /**
+     * Les équipes proposables, et — quand il n'y en a aucune — le type d'équipe
+     * qu'il aurait fallu.
+     *
+     * <p>Une liste vide seule laisse devant un mur : on ne sait pas si l'on
+     * manque d'équipe, de couverture de zone, ou de disponibilité. Nommer le
+     * type attendu transforme le constat en action.</p>
+     *
+     * @param requiredTeamType {@code CLEANING}, {@code MAINTENANCE},
+     *                         {@code OTHER} — {@code null} si le type de
+     *                         prestation n'est pas reconnu
+     */
+    public record AssignableTeams(List<AssignableTeam> teams, String requiredTeamType) {}
+
     // ── Helpers auto-assignation ──────────────────────────────────────────────
 
     /**

@@ -61,6 +61,17 @@ export interface AssignableTeam {
   conflicts: number;
 }
 
+/**
+ * Les équipes proposables, et le type qu'il aurait fallu quand il n'y en a
+ * aucune. Sans lui, l'écran ne pouvait dire que « aucune équipe », sans
+ * distinguer un manque d'équipe d'un manque de disponibilité.
+ */
+export interface AssignableTeams {
+  teams: AssignableTeam[];
+  /** `CLEANING`, `MAINTENANCE`, `OTHER` — `null` si le type n'est pas reconnu. */
+  requiredTeamType: string | null;
+}
+
 export const serviceRequestsApi = {
   /**
    * Demandes de service, filtrables.
@@ -101,9 +112,13 @@ export const serviceRequestsApi = {
    * Même parcours que l'auto-assignation (équipe attitrée du logement, puis
    * zones de couverture), mais la liste complète : les équipes occupées sont
    * rendues aussi, marquées indisponibles — déplacer l'heure peut les libérer.
+   *
+   * La réponse porte aussi le TYPE d'équipe requis. C'est quand la liste est
+   * vide qu'il compte : sans lui, l'écran ne pouvait dire que « aucune équipe »,
+   * sans distinguer un manque d'équipe d'un manque de disponibilité.
    */
   assignableTeams(id: number, date: string) {
-    return apiClient.get<AssignableTeam[]>(`/service-requests/${id}/assignable-teams`, {
+    return apiClient.get<AssignableTeams>(`/service-requests/${id}/assignable-teams`, {
       params: { date },
     });
   },
