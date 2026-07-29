@@ -1782,8 +1782,8 @@
       "conflict": "Ces dates sont déjà prises : confirmer créerait une double réservation.",
       "interventionOverdueWhat": "La date de cette intervention est passée et elle n’est toujours pas terminée.",
       "interventionOverdueConsequence": "Le logement n’est peut-être pas prêt pour la prochaine arrivée, et personne n’a signalé pourquoi.",
-      "declarationWhat": "Le séjour a eu lieu sans que la déclaration voyageur soit déposée.",
-      "declarationConsequence": "C’est une obligation légale non remplie, et elle ne se rattrape plus passé un certain délai.",
+      "declarationWhat": "Le séjour a eu lieu sans que la fiche voyageur (fiche de police, DGSN selon le pays du logement) soit remplie.",
+      "declarationConsequence": "Seul le voyageur peut la remplir, depuis son livret d’accueil : une fois le séjour passé, plus personne ne peut la déposer à sa place.",
       "conversationWhat": "Le dernier message de cette conversation vient du voyageur.",
       "conversationConsequence": "Un silence pendant un séjour se paie en avis, et c’est le reproche le plus fréquent dans les mauvaises notes.",
       "seeMessaging": "Ouvrir la messagerie",
@@ -1791,7 +1791,15 @@
       "guideConsequence": "Le voyageur recevra un lien mort, et le code d’accès ne pourra pas lui être délivré.",
       "seeGuestExperience": "Ouvrir l’expérience voyageur",
       "mayHaveSent": "Une tentative d’envoi est déjà partie sans que son issue ait pu être confirmée. Rejouer peut faire recevoir le message une seconde fois au voyageur.",
-      "replayAnyway": "Rejouer malgré le risque"
+      "replayAnyway": "Rejouer malgré le risque",
+      "assign": "Assigner l’équipe",
+      "assigned": "Intervention assignée.",
+      "chooseTeam": "À qui confier cette intervention ?",
+      "teamsFailed": "Les équipes n’ont pas pu être chargées.",
+      "noTeam": "Aucune équipe ne couvre ce logement. Il faut en rattacher une avant de pouvoir assigner.",
+      "teamBusy": "Déjà prise sur ce créneau",
+      "teamZone": "Couvre la zone",
+      "teamDefault": "Équipe du logement"
     }
   },
   "properties": {

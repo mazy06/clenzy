@@ -1762,8 +1762,8 @@
       "conflict": "These dates are already taken: confirming would create a double booking.",
       "interventionOverdueWhat": "This job's date has passed and it is still not finished.",
       "interventionOverdueConsequence": "The property may not be ready for the next arrival, and nobody said why.",
-      "declarationWhat": "The stay happened without the guest declaration being filed.",
-      "declarationConsequence": "A legal obligation is unmet, and past a certain delay it can no longer be made good.",
+      "declarationWhat": "The stay happened without the guest form (police form, DGSN depending on the property's country) being filled in.",
+      "declarationConsequence": "Only the guest can fill it, from their welcome guide: once the stay is over, nobody can file it on their behalf.",
       "conversationWhat": "The last message in this conversation came from the guest.",
       "conversationConsequence": "Silence during a stay is paid for in reviews — it is the most frequent complaint in bad ratings.",
       "seeMessaging": "Open messaging",
@@ -1771,7 +1771,15 @@
       "guideConsequence": "The guest will receive a dead link, and the access code cannot be delivered to them.",
       "seeGuestExperience": "Open guest experience",
       "mayHaveSent": "A send attempt already went out without its outcome being confirmed. Replaying may deliver the message to the guest a second time.",
-      "replayAnyway": "Replay despite the risk"
+      "replayAnyway": "Replay despite the risk",
+      "assign": "Assign the team",
+      "assigned": "Job assigned.",
+      "chooseTeam": "Who should take this job?",
+      "teamsFailed": "Teams could not be loaded.",
+      "noTeam": "No team covers this property. One must be attached before you can assign.",
+      "teamBusy": "Already taken on that slot",
+      "teamZone": "Covers the area",
+      "teamDefault": "Property's own team"
     }
   },
   "properties": {

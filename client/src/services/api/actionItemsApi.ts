@@ -1,5 +1,16 @@
 import apiClient from '../apiClient';
 
+/** Équipe candidate pour une assignation, telle que le serveur la classe. */
+export interface AssignableTeam {
+  teamId: number;
+  name: string;
+  /** `DEFAULT` (équipe du logement), `ZONE` (couvre la zone), `OTHER`. */
+  origin: string;
+  available: boolean;
+  /** Interventions déjà posées sur le créneau. */
+  conflicts: number;
+}
+
 /**
  * Clôture d'une action de la file « à traiter ».
  *
@@ -36,8 +47,17 @@ export const actionItemsApi = {
    * sait quel service porte réellement l'action, et c'est là que
    * l'appartenance à l'organisation se vérifie, une fois.</p>
    */
-  act: (id: number, action: string): Promise<void> =>
-    apiClient.post<void>(`/action-items/${id}/act`, { action }),
+  act: (id: number, action: string, assigneeTeamId?: number | null): Promise<void> =>
+    apiClient.post<void>(`/action-items/${id}/act`, { action, assigneeTeamId }),
+
+  /**
+   * Équipes proposées pour assigner l'intervention que cette action signale.
+   *
+   * <p>Celles qui couvrent la zone sont proposées même occupées : une liste
+   * vide ferait croire qu'il n'existe personne, ce qui est faux et bloque.</p>
+   */
+  assignableTeams: (id: number): Promise<AssignableTeam[]> =>
+    apiClient.get<AssignableTeam[]>(`/action-items/${id}/assignable-teams`),
 };
 
 /**

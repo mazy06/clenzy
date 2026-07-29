@@ -3,7 +3,11 @@ package com.clenzy.service.dashboard;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemKind;
 import com.clenzy.dto.IssueDtos.DismissIssueRequest;
 import com.clenzy.model.ActionItem;
+import com.clenzy.model.Intervention;
 import com.clenzy.model.OutboxEvent;
+import com.clenzy.repository.InterventionRepository;
+import com.clenzy.service.InterventionService;
+import com.clenzy.service.PropertyTeamService;
 import com.clenzy.repository.OutboxEventRepository;
 import com.clenzy.service.AccountingService;
 import com.clenzy.service.IssueService;
@@ -26,8 +30,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Les gestes qu'on peut faire depuis la carte d'une action, sans quitter le
@@ -84,6 +90,9 @@ public class ActionItemActionService {
     private final StringRedisTemplate redisTemplate;
     private final ReservationService reservationService;
     private final AutomationEvaluationService automationEvaluationService;
+    private final InterventionRepository interventionRepository;
+    private final InterventionService interventionService;
+    private final PropertyTeamService propertyTeamService;
 
     public ActionItemActionService(ActionItemRepository actionItemRepository,
                                   DocumentGenerationRepository documentGenerationRepository,
@@ -98,7 +107,13 @@ public class ActionItemActionService {
                                   IssueService issueService,
                                   StringRedisTemplate redisTemplate,
                                   ReservationService reservationService,
-                                  AutomationEvaluationService automationEvaluationService) {
+                                  AutomationEvaluationService automationEvaluationService,
+                                  InterventionRepository interventionRepository,
+                                  InterventionService interventionService,
+                                  PropertyTeamService propertyTeamService) {
+        this.interventionRepository = interventionRepository;
+        this.interventionService = interventionService;
+        this.propertyTeamService = propertyTeamService;
         this.redisTemplate = redisTemplate;
         this.reservationService = reservationService;
         this.automationEvaluationService = automationEvaluationService;
@@ -126,6 +141,14 @@ public class ActionItemActionService {
      * @throws IllegalStateException si le geste ne s'applique pas à cette nature
      */
     public void act(Long actionItemId, Long orgId, String action, Jwt jwt) {
+        act(actionItemId, orgId, action, null, jwt);
+    }
+
+    /**
+     * Variante des gestes qui visent une cible choisie par l'utilisateur —
+     * aujourd'hui l'assignation d'une intervention.
+     */
+    public void act(Long actionItemId, Long orgId, String action, Long assigneeTeamId, Jwt jwt) {
         // Un second clic, ou une re-soumission du navigateur, rejouerait le
         // geste. La plupart sont anodins a repeter — acquitter deux fois une
         // alerte ne change rien — mais renvoyer une invitation en cree une
@@ -166,6 +189,8 @@ public class ActionItemActionService {
             // declencheur et renverrait les messages de celles qui avaient abouti.
             case "replayAutomation" -> requireKind(kind, ActionItemKind.AUTOMATION_FAILED, action)
                     .run(() -> automationEvaluationService.replayExecution(target, orgId));
+            case "assign" -> requireKind(kind, ActionItemKind.INTERVENTION_UNASSIGNED, action)
+                    .run(() -> assignIntervention(target, assigneeTeamId, jwt));
             default -> throw new IllegalStateException("Geste inconnu : " + action);
         }
     }
@@ -205,6 +230,41 @@ public class ActionItemActionService {
     @FunctionalInterface
     private interface Runner {
         void run(Runnable action);
+    }
+
+    /**
+     * Équipes qui peuvent prendre cette intervention à sa date.
+     *
+     * <p>La suggestion vient du même mécanisme que les prestations : il ne
+     * dépend que d'un logement et d'une date, pas du type d'objet. Les équipes
+     * couvrant la zone sont proposées même quand elles sont occupées — une
+     * liste vide ferait croire qu'il n'existe personne, ce qui est faux et
+     * bloque.</p>
+     */
+    @Transactional(readOnly = true)
+    public List<PropertyTeamService.AssignableTeam> assignableTeams(Long actionItemId, Long orgId) {
+        final ActionItem item = load(actionItemId, orgId);
+        if (!ActionItemKind.INTERVENTION_UNASSIGNED.name().equals(item.getKind())) {
+            throw new IllegalStateException("Cette action ne se resout pas par une assignation");
+        }
+        final Intervention intervention = interventionRepository.findById(item.getTargetId())
+                .filter(i -> orgId.equals(i.getOrganizationId()))
+                .orElseThrow(() -> new IllegalArgumentException("Intervention introuvable"));
+
+        return propertyTeamService.findAssignableTeams(
+                intervention.getProperty() == null ? null : intervention.getProperty().getId(),
+                intervention.getScheduledDate(),
+                intervention.getEstimatedDurationHours(),
+                intervention.getType(),
+                orgId);
+    }
+
+    /** Confie l'intervention à l'équipe choisie. */
+    private void assignIntervention(Long interventionId, Long teamId, Jwt jwt) {
+        if (teamId == null) {
+            throw new IllegalStateException("Aucune equipe choisie pour l'assignation");
+        }
+        interventionService.assign(interventionId, null, teamId, jwt);
     }
 
     /**

@@ -9,10 +9,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PathVariable;
+import com.clenzy.service.PropertyTeamService;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * Clôture manuelle d'une action de la file.
@@ -84,12 +88,24 @@ public class ActionItemController {
     public ResponseEntity<Void> act(@PathVariable Long id,
                                     @RequestBody ActionRequest request,
                                     @AuthenticationPrincipal Jwt jwt) {
-        actionService.act(id, tenantContext.getRequiredOrganizationId(), request.action(), jwt);
+        actionService.act(id, tenantContext.getRequiredOrganizationId(),
+                request.action(), request.assigneeTeamId(), jwt);
         return ResponseEntity.noContent().build();
     }
 
-    /** Nom du geste demandé. */
-    public record ActionRequest(@jakarta.validation.constraints.NotBlank String action) {}
+    /**
+     * Nom du geste demandé, et sa cible quand il en a une.
+     *
+     * @param assigneeTeamId équipe choisie, pour les gestes d'assignation
+     */
+    public record ActionRequest(@jakarta.validation.constraints.NotBlank String action,
+                                Long assigneeTeamId) {}
+
+    /** Équipes proposées pour assigner l'intervention que cette action signale. */
+    @GetMapping("/{id}/assignable-teams")
+    public List<PropertyTeamService.AssignableTeam> assignableTeams(@PathVariable Long id) {
+        return actionService.assignableTeams(id, tenantContext.getRequiredOrganizationId());
+    }
 
     @PostMapping("/{id}/retry")
     public ResponseEntity<Void> retry(@PathVariable Long id) {

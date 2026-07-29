@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { CheckIcon, ExternalLinkIcon, TriangleAlertIcon } from 'lucide-react';
 import {
@@ -21,7 +21,11 @@ import {
   Spinner,
 } from '../ui';
 import { Money } from '../Money';
-import { actionItemsApi, refreshActionQueue } from '../../services/api/actionItemsApi';
+import {
+  actionItemsApi,
+  refreshActionQueue,
+  type AssignableTeam,
+} from '../../services/api/actionItemsApi';
 import type { DashboardActionItem } from '../../services/api/dashboardOperationsApi';
 import { ACTION_CARDS } from './actionCards';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -68,8 +72,12 @@ export default function ActionCardDialog({
 
   const card = item ? ACTION_CARDS[item.kind] : undefined;
 
+  // L'équipe choisie, quand le geste vise une cible.
+  const [assignee, setAssignee] = React.useState<number | null>(null);
+
   const act = useMutation({
-    mutationFn: (action: string) => actionItemsApi.act(item!.actionItemId!, action),
+    mutationFn: (action: string) =>
+      actionItemsApi.act(item!.actionItemId!, action, assignee),
     onSuccess: () =>
       refreshActionQueue(
         (key) => queryClient.invalidateQueries({ queryKey: key }), invalidateKeys),
@@ -77,7 +85,19 @@ export default function ActionCardDialog({
 
   // Sans remise a zero, le resultat de la carte precedente s'afficherait sur la
   // suivante — un succes vert sur une action a laquelle on n'a pas touche.
-  React.useEffect(() => act.reset(), [item?.actionItemId]); // eslint-disable-line react-hooks/exhaustive-deps
+  React.useEffect(() => {
+    act.reset();
+    setAssignee(null);
+  }, [item?.actionItemId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const needsAssignee = card?.gesture?.needsAssignee === true;
+  // Les suggestions ne se chargent que si la carte en a besoin : une requête
+  // par ouverture de carte, sinon, pour rien.
+  const teams = useQuery({
+    queryKey: ['action-items', item?.actionItemId, 'assignable-teams'],
+    queryFn: () => actionItemsApi.assignableTeams(item!.actionItemId!),
+    enabled: needsAssignee && item?.actionItemId != null,
+  });
 
   if (!card) return null;
 
@@ -87,7 +107,9 @@ export default function ActionCardDialog({
   const mayHaveSent = item?.actionType === 'MAY_HAVE_SENT';
   // Une action deduite des donnees peut n'avoir aucune ligne persistee derriere
   // elle (fixtures de galerie) : le geste serait alors sans cible.
-  const canAct = gesture != null && item?.actionItemId != null;
+  const canAct = gesture != null
+    && item?.actionItemId != null
+    && (!needsAssignee || assignee != null);
 
   return (
     <Dialog open={item != null} onOpenChange={(next) => !next && !act.isPending && onClose()}>
@@ -148,6 +170,46 @@ export default function ActionCardDialog({
               </Item>
             )}
           </ItemGroup>
+        )}
+
+        {needsAssignee && !act.isSuccess && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">
+              {t('dashboard.actionCard.chooseTeam', 'À qui confier cette intervention ?')}
+            </p>
+            {teams.isLoading && <Spinner />}
+            {teams.isError && (
+              <p className="text-sm text-destructive">
+                {t('dashboard.actionCard.teamsFailed', 'Les équipes n’ont pas pu être chargées.')}
+              </p>
+            )}
+            {teams.data?.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  'dashboard.actionCard.noTeam',
+                  'Aucune équipe ne couvre ce logement. Il faut en rattacher une avant de pouvoir assigner.',
+                )}
+              </p>
+            )}
+            <ItemGroup>
+              {teams.data?.map((team) => (
+                <Item
+                  key={team.teamId}
+                  size="sm"
+                  variant={assignee === team.teamId ? 'outline' : 'muted'}
+                  asChild
+                >
+                  <button type="button" className="w-full cursor-pointer text-start"
+                          onClick={() => setAssignee(team.teamId)}>
+                    <ItemContent>
+                      <ItemTitle>{team.name}</ItemTitle>
+                      <ItemDescription>{teamAvailability(team, t)}</ItemDescription>
+                    </ItemContent>
+                  </button>
+                </Item>
+              ))}
+            </ItemGroup>
+          </div>
         )}
 
         {act.isSuccess && (
@@ -234,4 +296,22 @@ function severityLabel(
   if (severity === 'critical') return t('dashboard.actionCard.critical', 'Critique');
   if (severity === 'info') return t('dashboard.actionCard.info', 'Pour information');
   return t('dashboard.actionCard.warning', 'À surveiller');
+}
+
+/**
+ * Ce qu'il faut savoir d'une équipe avant de lui confier l'intervention.
+ *
+ * <p>Une équipe occupée reste proposée, en le disant : la masquer ferait croire
+ * qu'il n'existe personne, ce qui est faux et bloque l'utilisateur.</p>
+ */
+function teamAvailability(
+  team: AssignableTeam,
+  t: (key: string, fallback: string) => string,
+): string {
+  if (!team.available) {
+    return t('dashboard.actionCard.teamBusy', 'Déjà prise sur ce créneau');
+  }
+  return team.origin === 'ZONE'
+    ? t('dashboard.actionCard.teamZone', 'Couvre la zone')
+    : t('dashboard.actionCard.teamDefault', 'Équipe du logement');
 }

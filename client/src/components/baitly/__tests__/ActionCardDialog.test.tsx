@@ -18,7 +18,7 @@ import type { DashboardActionItem } from '../../../services/api/dashboardOperati
  */
 
 vi.mock('../../../services/api/actionItemsApi', () => ({
-  actionItemsApi: { act: vi.fn() },
+  actionItemsApi: { act: vi.fn(), assignableTeams: vi.fn().mockResolvedValue([]) },
   refreshActionQueue: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -71,7 +71,9 @@ describe('ActionCardDialog', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Acquitter/ }));
 
-    await waitFor(() => expect(actionItemsApi.act).toHaveBeenCalledWith(41, 'acknowledge'));
+    // Le troisieme argument porte la cible des gestes qui en ont une ; les
+    // autres l'envoient a vide.
+    await waitFor(() => expect(actionItemsApi.act).toHaveBeenCalledWith(41, 'acknowledge', null));
   });
 
   it('ne propose aucun geste là où il n’en existe pas', () => {
@@ -130,6 +132,35 @@ describe('table des cartes', () => {
       // Le constat et la conséquence disent deux choses différentes.
       expect(card?.consequence, `${kind}: doublon`).not.toEqual(card?.what);
     }
+  });
+});
+
+describe('assignation', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('le geste attend qu’une équipe soit choisie', async () => {
+    vi.mocked(actionItemsApi.assignableTeams).mockResolvedValue([
+      { teamId: 3, name: 'Équipe Marrakech', origin: 'ZONE', available: true, conflicts: 0 },
+    ]);
+    renderCard(item({ kind: 'INTERVENTION_UNASSIGNED', title: 'Ménage de départ' }));
+
+    // Sans cible, le bouton enverrait une assignation vide.
+    expect(screen.getByRole('button', { name: /Assigner/ })).toBeDisabled();
+
+    fireEvent.click(await screen.findByText('Équipe Marrakech'));
+
+    expect(screen.getByRole('button', { name: /Assigner/ })).toBeEnabled();
+  });
+
+  it('dit qu’une équipe est occupée plutôt que de la masquer', async () => {
+    // La masquer ferait croire qu'il n'existe personne, ce qui est faux.
+    vi.mocked(actionItemsApi.assignableTeams).mockResolvedValue([
+      { teamId: 4, name: 'Équipe Gueliz', origin: 'ZONE', available: false, conflicts: 2 },
+    ]);
+    renderCard(item({ kind: 'INTERVENTION_UNASSIGNED', title: 'Ménage de départ' }));
+
+    expect(await screen.findByText('Équipe Gueliz')).toBeInTheDocument();
+    expect(screen.getByText(/Déjà prise/)).toBeInTheDocument();
   });
 });
 

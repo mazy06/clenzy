@@ -52,6 +52,9 @@ class ActionItemActionServiceTest {
     private OutboxEventRepository outboxEventRepository;
     private ReservationService reservationService;
     private AutomationEvaluationService automationEvaluationService;
+    private com.clenzy.repository.InterventionRepository interventionRepository;
+    private com.clenzy.service.InterventionService interventionService;
+    private com.clenzy.service.PropertyTeamService propertyTeamService;
     private org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
     private ActionItemActionService service;
     private Jwt jwt;
@@ -65,6 +68,9 @@ class ActionItemActionServiceTest {
         outboxEventRepository = mock(OutboxEventRepository.class);
         reservationService = mock(ReservationService.class);
         automationEvaluationService = mock(AutomationEvaluationService.class);
+        interventionRepository = mock(com.clenzy.repository.InterventionRepository.class);
+        interventionService = mock(com.clenzy.service.InterventionService.class);
+        propertyTeamService = mock(com.clenzy.service.PropertyTeamService.class);
         // Le verrou anti double-clic laisse passer le premier appel.
         redisTemplate = mock(org.springframework.data.redis.core.StringRedisTemplate.class);
         final var valueOps = mock(org.springframework.data.redis.core.ValueOperations.class);
@@ -88,7 +94,10 @@ class ActionItemActionServiceTest {
                 mock(IssueService.class),
                 redisTemplate,
                 reservationService,
-                automationEvaluationService);
+                automationEvaluationService,
+                interventionRepository,
+                interventionService,
+                propertyTeamService);
     }
 
     private void queueHolds(ActionItemKind kind, Long targetId, Long orgId) {
@@ -172,6 +181,27 @@ class ActionItemActionServiceTest {
                 .isInstanceOf(IllegalStateException.class);
 
         verifyNoInteractions(reservationService);
+    }
+
+    @Test
+    void whenAssigningWithoutChoosingATeam_thenNothingIsAssigned() {
+        // Le bouton est cense etre desactive tant qu'aucune equipe n'est
+        // choisie ; le serveur ne s'en remet pas a l'ecran pour autant.
+        queueHolds(ActionItemKind.INTERVENTION_UNASSIGNED, 55L, ORG);
+
+        assertThatThrownBy(() -> service.act(41L, ORG, "assign", null, jwt))
+                .isInstanceOf(IllegalStateException.class);
+
+        verifyNoInteractions(interventionService);
+    }
+
+    @Test
+    void whenAssigningATeam_thenItReachesTheInterventionService() {
+        queueHolds(ActionItemKind.INTERVENTION_UNASSIGNED, 55L, ORG);
+
+        service.act(41L, ORG, "assign", 3L, jwt);
+
+        verify(interventionService).assign(55L, null, 3L, jwt);
     }
 
     @Test

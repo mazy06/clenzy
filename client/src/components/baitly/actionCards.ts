@@ -36,6 +36,8 @@ export interface ActionCard {
   gesture?: {
     /** Nom transmis au serveur, qui sait quel service le porte. */
     action: string;
+    /** Le geste vise une cible que l'utilisateur choisit dans la carte. */
+    needsAssignee?: boolean;
     labelKey: string;
     label: string;
     doneKey: string;
@@ -160,12 +162,12 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
 
   GUEST_DECLARATION_MISSING: {
     whatKey: 'dashboard.actionCard.declarationWhat',
-    what: 'Le séjour a eu lieu sans que la déclaration voyageur soit déposée.',
+    what: 'Le séjour a eu lieu sans que la fiche voyageur (fiche de police, DGSN selon le pays du logement) soit remplie.',
     consequenceKey: 'dashboard.actionCard.declarationConsequence',
-    consequence: 'C’est une obligation légale non remplie, et elle ne se rattrape plus passé un certain délai.',
-    route: '/reservations',
-    linkKey: 'dashboard.guidance.seeReservations',
-    link: 'Voir les réservations',
+    consequence: 'Seul le voyageur peut la remplir, depuis son livret d’accueil : une fois le séjour passé, plus personne ne peut la déposer à sa place.',
+    route: '/booking-engine',
+    linkKey: 'dashboard.actionCard.seeGuestExperience',
+    link: 'Ouvrir l’expérience voyageur',
   },
 
   CONVERSATION_UNANSWERED: {
@@ -210,6 +212,14 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
     what: 'Aucune personne ni équipe n’est rattachée à cette intervention.',
     consequenceKey: 'dashboard.actionCard.interventionUnassignedConsequence',
     consequence: 'Le jour venu, personne ne se présentera — et on l’apprendra par le voyageur.',
+    gesture: {
+      action: 'assign',
+      needsAssignee: true,
+      labelKey: 'dashboard.actionCard.assign',
+      label: 'Assigner l’équipe',
+      doneKey: 'dashboard.actionCard.assigned',
+      done: 'Intervention assignée.',
+    },
     route: '/interventions',
     linkKey: 'dashboard.guidance.seeInterventions',
     link: 'Voir les interventions',
