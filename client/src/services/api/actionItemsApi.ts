@@ -18,6 +18,52 @@ export interface AssignableTeam {
  * <p>Une liste vide seule laisse devant un mur : on ne sait pas si l'on manque
  * d'équipe, de couverture de zone ou de disponibilité.</p>
  */
+/** Un séjour dont le revenu compose le reversement. */
+export interface CoveredStay {
+  reservationId: number;
+  guestName: string | null;
+  propertyName: string | null;
+  checkIn: string;
+  checkOut: string;
+  totalPrice: number | null;
+}
+
+/** Une dépense déduite du reversement. */
+export interface IncludedExpense {
+  expenseId: number;
+  description: string | null;
+  category: string | null;
+  expenseDate: string | null;
+  amount: number | null;
+}
+
+/**
+ * Ce qu'il faut savoir avant d'approuver un reversement.
+ *
+ * <p>Le compte de destination arrive **masqué** : un IBAN est chiffré en base,
+ * et l'afficher en entier sur un tableau de bord n'apporte rien qu'un risque.</p>
+ */
+export interface PayoutRecap {
+  payoutId: number;
+  beneficiaryName: string | null;
+  beneficiaryEmail: string | null;
+  periodStart: string;
+  periodEnd: string;
+  grossRevenue: number | null;
+  /** Taux en pourcentage lisible (20.00, pas 0.20). */
+  commissionRate: number | null;
+  commissionAmount: number | null;
+  expenses: number | null;
+  netAmount: number | null;
+  currency: string | null;
+  payoutMethod: string | null;
+  destination: string | null;
+  /** Faux si aucun virement ne peut partir — compte absent ou non vérifié. */
+  destinationReady: boolean;
+  stays: CoveredStay[];
+  deductions: IncludedExpense[];
+}
+
 export interface AssignableTeams {
   teams: AssignableTeam[];
   /** `CLEANING`, `MAINTENANCE`, `OTHER` — `null` si le type n'est pas reconnu. */
@@ -75,6 +121,13 @@ export const actionItemsApi = {
    * <p>Celles qui couvrent la zone sont proposées même occupées : une liste
    * vide ferait croire qu'il n'existe personne, ce qui est faux et bloque.</p>
    */
+  /**
+   * Ce qu'il faut savoir avant d'approuver un reversement : bénéficiaire,
+   * période, détail du calcul, moyen de versement et séjours couverts.
+   */
+  payoutRecap: (id: number): Promise<PayoutRecap> =>
+    apiClient.get<PayoutRecap>(`/action-items/${id}/payout-recap`),
+
   assignableTeams: (id: number): Promise<AssignableTeams> =>
     apiClient.get<AssignableTeams>(`/action-items/${id}/assignable-teams`),
 };

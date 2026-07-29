@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PathVariable;
+import com.clenzy.dto.PayoutRecapDto;
 import com.clenzy.service.PropertyTeamService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -104,6 +105,16 @@ public class ActionItemController {
                                 @com.fasterxml.jackson.annotation.JsonFormat(
                                         shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING)
                                 java.time.LocalDateTime scheduledAt) {}
+
+    /**
+     * Ce qu'il faut savoir avant d'approuver le reversement que cette action
+     * signale : bénéficiaire, période, détail du calcul, moyen de versement et
+     * séjours couverts.
+     */
+    @GetMapping("/{id}/payout-recap")
+    public PayoutRecapDto payoutRecap(@PathVariable Long id) {
+        return actionService.payoutRecap(id, tenantContext.getRequiredOrganizationId());
+    }
 
     /** Équipes proposées pour assigner l'intervention que cette action signale. */
     @GetMapping("/{id}/assignable-teams")

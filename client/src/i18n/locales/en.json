@@ -1791,6 +1791,21 @@
       "cancelled": "Job cancelled.",
       "cancelWarn": "Platform team only, and there is no way back.",
       "newDate": "New date"
+    },
+    "payoutRecap": {
+      "beneficiary": "Beneficiary",
+      "unknownBeneficiary": "Unknown owner",
+      "period": "Period",
+      "gross": "Stay revenue",
+      "commission": "Commission {{rate}} %",
+      "expenses": "Deducted expenses",
+      "net": "Net to pay out",
+      "destination": "Paid via",
+      "noDestination": "No payout method configured",
+      "notReady": "No usable destination account: approving will not send the transfer.",
+      "stays": "{{count}} stay(s) covered",
+      "deductions": "{{count}} expense(s) deducted",
+      "failed": "The details could not be loaded. Better not to approve without seeing them."
     }
   },
   "properties": {
@@ -6819,5 +6834,10 @@
     "cleaning": "Cleaning",
     "maintenance": "Maintenance",
     "other": "Other"
+  },
+  "payoutMethod": {
+    "stripe": "Stripe Connect",
+    "manual": "Manual transfer",
+    "wise": "Wise"
   }
 }

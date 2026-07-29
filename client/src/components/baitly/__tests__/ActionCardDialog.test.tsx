@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
+import { CurrencyProvider } from '../../../hooks/useCurrency';
 import ActionCardDialog from '../ActionCardDialog';
 import { ACTION_CARDS, DEDICATED_ACTION_KINDS } from '../actionCards';
 import { actionItemsApi } from '../../../services/api/actionItemsApi';
@@ -18,7 +19,11 @@ import type { DashboardActionItem } from '../../../services/api/dashboardOperati
  */
 
 vi.mock('../../../services/api/actionItemsApi', () => ({
-  actionItemsApi: { act: vi.fn(), assignableTeams: vi.fn().mockResolvedValue({ teams: [], requiredTeamType: null }) },
+  actionItemsApi: {
+    act: vi.fn(),
+    assignableTeams: vi.fn().mockResolvedValue({ teams: [], requiredTeamType: null }),
+    payoutRecap: vi.fn(),
+  },
   refreshActionQueue: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -46,7 +51,11 @@ function renderCard(value: DashboardActionItem | null, onClose = vi.fn()) {
   render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
-        <ActionCardDialog item={value} onClose={onClose} />
+        {/* Les montants passent par `useCurrency`, qui exige son fournisseur —
+            present a la racine de l'application. */}
+        <CurrencyProvider>
+          <ActionCardDialog item={value} onClose={onClose} />
+        </CurrencyProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -242,5 +251,46 @@ describe('gestes multiples', () => {
     expect(screen.getByRole('button', { name: /Replanifier/ })).toBeDisabled();
     // Terminer n'attend rien, lui.
     expect(screen.getByRole('button', { name: /Marquer terminée/ })).toBeEnabled();
+  });
+});
+
+describe('reversement', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const recap = {
+    payoutId: 9, beneficiaryName: 'Claire Fontaine', beneficiaryEmail: 'claire@test.com',
+    periodStart: '2026-05-01', periodEnd: '2026-07-01',
+    grossRevenue: 6200, commissionRate: 20, commissionAmount: 1240,
+    expenses: 0, netAmount: 4960, currency: 'EUR',
+    payoutMethod: 'STRIPE_CONNECT', destination: 'Compte Stripe ••••1234',
+    destinationReady: true, stays: [], deductions: [],
+  };
+
+  it('montre à qui, combien et par quel moyen avant d’approuver', async () => {
+    vi.mocked(actionItemsApi.payoutRecap).mockResolvedValue(recap);
+    renderCard(item({ kind: 'OWNER_PAYOUT_PENDING', title: 'Reversement à approuver' }));
+
+    expect(await screen.findByText('Claire Fontaine')).toBeInTheDocument();
+    expect(screen.getByText(/Commission 20/)).toBeInTheDocument();
+    expect(screen.getByText(/Compte Stripe/)).toBeInTheDocument();
+  });
+
+  it('n’approuve pas tant que le détail n’est pas chargé', async () => {
+    // Approuver a l'aveugle est exactement ce qu'on corrige.
+    vi.mocked(actionItemsApi.payoutRecap).mockReturnValue(new Promise(() => {}));
+    renderCard(item({ kind: 'OWNER_PAYOUT_PENDING', title: 'Reversement à approuver' }));
+
+    expect(screen.getByRole('button', { name: /Approuver/ })).toBeDisabled();
+  });
+
+  it('avertit quand le virement ne pourra pas partir', async () => {
+    // Approuver un versement sans destination cree une attente sans issue : le
+    // proprietaire croit son virement lance.
+    vi.mocked(actionItemsApi.payoutRecap).mockResolvedValue({
+      ...recap, destinationReady: false, destination: null, payoutMethod: null,
+    });
+    renderCard(item({ kind: 'OWNER_PAYOUT_PENDING', title: 'Reversement à approuver' }));
+
+    expect(await screen.findByText(/ne fera pas partir le virement/)).toBeInTheDocument();
   });
 });

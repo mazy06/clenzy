@@ -1801,6 +1801,21 @@
       "cancelled": "أُلغي التدخل.",
       "cancelWarn": "مخصّص لفريق المنصة، ولا رجعة فيه.",
       "newDate": "تاريخ جديد"
+    },
+    "payoutRecap": {
+      "beneficiary": "المستفيد",
+      "unknownBeneficiary": "مالك غير معروف",
+      "period": "الفترة",
+      "gross": "إيرادات الإقامات",
+      "commission": "عمولة {{rate}} %",
+      "expenses": "مصاريف مخصومة",
+      "net": "الصافي المستحق",
+      "destination": "يُدفع عبر",
+      "noDestination": "لا توجد وسيلة دفع مهيّأة",
+      "notReady": "لا يوجد حساب وجهة قابل للاستخدام: الاعتماد لن يُرسل التحويل.",
+      "stays": "{{count}} إقامة مشمولة",
+      "deductions": "{{count}} مصروف مخصوم",
+      "failed": "تعذّر تحميل التفاصيل. من الأفضل عدم الاعتماد دون الاطّلاع عليها."
     }
   },
   "properties": {
@@ -6544,5 +6559,10 @@
     "cleaning": "تنظيف",
     "maintenance": "صيانة",
     "other": "أخرى"
+  },
+  "payoutMethod": {
+    "stripe": "Stripe Connect",
+    "manual": "تحويل يدوي",
+    "wise": "Wise"
   }
 }

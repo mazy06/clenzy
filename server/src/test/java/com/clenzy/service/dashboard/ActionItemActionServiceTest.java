@@ -100,7 +100,12 @@ class ActionItemActionServiceTest {
                 interventionRepository,
                 interventionService,
                 propertyTeamService,
-                interventionLifecycleService);
+                interventionLifecycleService,
+                mock(com.clenzy.repository.OwnerPayoutRepository.class),
+                mock(com.clenzy.repository.UserRepository.class),
+                mock(com.clenzy.repository.OwnerPayoutConfigRepository.class),
+                mock(com.clenzy.repository.ProviderExpenseRepository.class),
+                mock(com.clenzy.repository.ReservationRepository.class));
     }
 
     private void queueHolds(ActionItemKind kind, Long targetId, Long orgId) {

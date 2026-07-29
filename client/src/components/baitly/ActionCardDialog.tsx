@@ -29,6 +29,7 @@ import {
 } from '../../services/api/actionItemsApi';
 import type { DashboardActionItem } from '../../services/api/dashboardOperationsApi';
 import { ACTION_CARDS, type Gesture } from './actionCards';
+import PayoutRecap from './PayoutRecap';
 import { useTranslation } from '../../hooks/useTranslation';
 
 /**
@@ -100,6 +101,14 @@ export default function ActionCardDialog({
   }, [item?.actionItemId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const needsAssignee = card?.gestures?.some((g) => g.needsAssignee) === true;
+  // Un reversement se lit avant de s'approuver : le bouton portait un montant
+  // et rien d'autre.
+  const isPayout = item?.kind === 'OWNER_PAYOUT_PENDING';
+  const payout = useQuery({
+    queryKey: ['action-items', item?.actionItemId, 'payout-recap'],
+    queryFn: () => actionItemsApi.payoutRecap(item!.actionItemId!),
+    enabled: isPayout && item?.actionItemId != null,
+  });
   // Les suggestions ne se chargent que si la carte en a besoin : une requête
   // par ouverture de carte, sinon, pour rien.
   const teams = useQuery({
@@ -121,7 +130,10 @@ export default function ActionCardDialog({
   const canRun = (gesture: Gesture) =>
     item?.actionItemId != null
     && (!gesture.needsAssignee || assignee != null)
-    && (!gesture.needsDate || scheduledAt !== '');
+    && (!gesture.needsDate || scheduledAt !== '')
+    // Approuver avant d'avoir pu lire le detail serait exactement ce qu'on
+    // corrige : une signature a l'aveugle.
+    && (!isPayout || payout.isSuccess);
 
   return (
     <Dialog open={item != null} onOpenChange={(next) => !next && !act.isPending && onClose()}>
@@ -147,7 +159,7 @@ export default function ActionCardDialog({
           </p>
         </div>
 
-        {(item?.propertyName || item?.amount != null || item?.subject) && (
+        {!isPayout && (item?.propertyName || item?.amount != null || item?.subject) && (
           <ItemGroup>
             {item?.subject && (
               <Item size="sm" variant="muted">
@@ -232,6 +244,14 @@ export default function ActionCardDialog({
               ))}
             </ItemGroup>
           </div>
+        )}
+
+        {isPayout && !act.isSuccess && (
+          <PayoutRecap
+            recap={payout.data}
+            isLoading={payout.isLoading}
+            isError={payout.isError}
+          />
         )}
 
         {needsDate && !act.isSuccess && (

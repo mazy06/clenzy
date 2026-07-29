@@ -1811,6 +1811,21 @@
       "cancelled": "Intervention annulée.",
       "cancelWarn": "Réservé à l’équipe plateforme, et sans retour possible.",
       "newDate": "Nouvelle date"
+    },
+    "payoutRecap": {
+      "beneficiary": "Bénéficiaire",
+      "unknownBeneficiary": "Propriétaire inconnu",
+      "period": "Période",
+      "gross": "Revenu des séjours",
+      "commission": "Commission {{rate}} %",
+      "expenses": "Dépenses déduites",
+      "net": "Net à verser",
+      "destination": "Versé par",
+      "noDestination": "Aucun moyen de versement configuré",
+      "notReady": "Aucun compte de destination utilisable : approuver ne fera pas partir le virement.",
+      "stays": "{{count}} séjour(s) couvert(s)",
+      "deductions": "{{count}} dépense(s) déduite(s)",
+      "failed": "Le détail n’a pas pu être chargé. Mieux vaut ne pas approuver sans l’avoir vu."
     }
   },
   "properties": {
@@ -6843,5 +6858,10 @@
     "cleaning": "Ménage",
     "maintenance": "Maintenance",
     "other": "Autre"
+  },
+  "payoutMethod": {
+    "stripe": "Stripe Connect",
+    "manual": "Virement manuel",
+    "wise": "Wise"
   }
 }
