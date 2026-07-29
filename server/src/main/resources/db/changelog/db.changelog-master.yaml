@@ -3556,6 +3556,8 @@ databaseChangeLog:
       author: clenzy-team
       sqlFile:
         path: changes/0372__create_action_items.sql
+        relativeToChangelogFile: true
+
   - changeSet:
       id: "0373-online-checkin-identity-fields"
       author: clenzy-team
