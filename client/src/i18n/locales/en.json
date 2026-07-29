@@ -1759,7 +1759,17 @@
       "confirmed": "Booking confirmed and dates blocked on the calendar.",
       "replayAutomation": "Replay this rule",
       "automationReplayed": "Rule replayed — check that it went through this time.",
-      "conflict": "These dates are already taken: confirming would create a double booking."
+      "conflict": "These dates are already taken: confirming would create a double booking.",
+      "interventionOverdueWhat": "This job's date has passed and it is still not finished.",
+      "interventionOverdueConsequence": "The property may not be ready for the next arrival, and nobody said why.",
+      "declarationWhat": "The stay happened without the guest declaration being filed.",
+      "declarationConsequence": "A legal obligation is unmet, and past a certain delay it can no longer be made good.",
+      "conversationWhat": "The last message in this conversation came from the guest.",
+      "conversationConsequence": "Silence during a stay is paid for in reviews — it is the most frequent complaint in bad ratings.",
+      "seeMessaging": "Open messaging",
+      "guideWhat": "No welcome guide published for this property, and an arrival is close.",
+      "guideConsequence": "The guest will receive a dead link, and the access code cannot be delivered to them.",
+      "seeGuestExperience": "Open guest experience"
     }
   },
   "properties": {

@@ -71,35 +71,45 @@ export interface DashboardUpcomingArrival {
  * Nature d'une action en attente. L'ordre reflète la priorité d'affichage :
  * un solde non encaissé passe avant un avis sans réponse à sévérité égale.
  */
-export type DashboardActionKind =
-  | 'PAYMENT_INCIDENT'
-  | 'GUEST_DECLARATION_MISSING'
-  | 'RESERVATION_PENDING'
-  | 'INTERVENTION_OVERDUE'
-  | 'CONVERSATION_UNANSWERED'
-  | 'BALANCE_DUE'
-  | 'BALANCE_ABANDONED'
-  | 'GUEST_MESSAGE_FAILED'
-  | 'WELCOME_GUIDE_MISSING'
-  | 'DEPOSIT_STUCK'
-  | 'SERVICE_UNPAID'
-  | 'SERVICE_UNASSIGNED'
-  | 'FEED_STALE'
-  | 'REVIEW_UNANSWERED'
-  | 'INTERVENTION_UNASSIGNED'
-  | 'INTERVENTION_UNPAID'
-  | 'CHECKIN_NOT_STARTED'
-  | 'NOISE_ALERT_UNACKNOWLEDGED'
-  | 'ISSUE_OPEN'
-  | 'OWNER_PAYOUT_PENDING'
-  | 'PAYOUT_ONBOARDING_INCOMPLETE'
-  | 'INVITATION_EXPIRED'
-  | 'DOCUMENT_DELIVERY_FAILED'
-  | 'EINVOICE_FAILED'
-  // Natures techniques : le serveur ne les envoie qu'au staff plateforme.
-  | 'AUTOMATION_FAILED'
-  | 'OUTBOX_DEAD_LETTER'
-  | 'INTEGRATION_DISCONNECTED';
+/**
+ * Natures d'action, en une liste que le code peut parcourir.
+ *
+ * <p>Le type en découle plutôt que l'inverse : une nature ajoutée au type
+ * seul serait invisible aux vérifications d'exhaustivité, et pourrait donc
+ * arriver à l'écran sans qu'aucune modale ne s'ouvre — c'est exactement ce
+ * qui est arrivé à quatre d'entre elles.</p>
+ */
+export const ACTION_KINDS = [
+  'PAYMENT_INCIDENT',
+  'GUEST_DECLARATION_MISSING',
+  'RESERVATION_PENDING',
+  'INTERVENTION_OVERDUE',
+  'CONVERSATION_UNANSWERED',
+  'BALANCE_DUE',
+  'BALANCE_ABANDONED',
+  'GUEST_MESSAGE_FAILED',
+  'WELCOME_GUIDE_MISSING',
+  'DEPOSIT_STUCK',
+  'SERVICE_UNPAID',
+  'SERVICE_UNASSIGNED',
+  'FEED_STALE',
+  'REVIEW_UNANSWERED',
+  'INTERVENTION_UNASSIGNED',
+  'INTERVENTION_UNPAID',
+  'CHECKIN_NOT_STARTED',
+  'NOISE_ALERT_UNACKNOWLEDGED',
+  'ISSUE_OPEN',
+  'OWNER_PAYOUT_PENDING',
+  'PAYOUT_ONBOARDING_INCOMPLETE',
+  'INVITATION_EXPIRED',
+  'DOCUMENT_DELIVERY_FAILED',
+  'EINVOICE_FAILED',
+  'AUTOMATION_FAILED',
+  'OUTBOX_DEAD_LETTER',
+  'INTEGRATION_DISCONNECTED',
+] as const;
+
+export type DashboardActionKind = (typeof ACTION_KINDS)[number];
 
 export type DashboardActionSeverity = 'critical' | 'warning' | 'info';
 

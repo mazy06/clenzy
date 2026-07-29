@@ -148,6 +148,46 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
     link: 'Voir la supervision',
   },
 
+  INTERVENTION_OVERDUE: {
+    whatKey: 'dashboard.actionCard.interventionOverdueWhat',
+    what: 'La date de cette intervention est passée et elle n’est toujours pas terminée.',
+    consequenceKey: 'dashboard.actionCard.interventionOverdueConsequence',
+    consequence: 'Le logement n’est peut-être pas prêt pour la prochaine arrivée, et personne n’a signalé pourquoi.',
+    route: '/interventions',
+    linkKey: 'dashboard.guidance.seeInterventions',
+    link: 'Voir les interventions',
+  },
+
+  GUEST_DECLARATION_MISSING: {
+    whatKey: 'dashboard.actionCard.declarationWhat',
+    what: 'Le séjour a eu lieu sans que la déclaration voyageur soit déposée.',
+    consequenceKey: 'dashboard.actionCard.declarationConsequence',
+    consequence: 'C’est une obligation légale non remplie, et elle ne se rattrape plus passé un certain délai.',
+    route: '/reservations',
+    linkKey: 'dashboard.guidance.seeReservations',
+    link: 'Voir les réservations',
+  },
+
+  CONVERSATION_UNANSWERED: {
+    whatKey: 'dashboard.actionCard.conversationWhat',
+    what: 'Le dernier message de cette conversation vient du voyageur.',
+    consequenceKey: 'dashboard.actionCard.conversationConsequence',
+    consequence: 'Un silence pendant un séjour se paie en avis, et c’est le reproche le plus fréquent dans les mauvaises notes.',
+    route: '/contact',
+    linkKey: 'dashboard.actionCard.seeMessaging',
+    link: 'Ouvrir la messagerie',
+  },
+
+  WELCOME_GUIDE_MISSING: {
+    whatKey: 'dashboard.actionCard.guideWhat',
+    what: 'Aucun livret d’accueil publié pour ce logement, alors qu’une arrivée approche.',
+    consequenceKey: 'dashboard.actionCard.guideConsequence',
+    consequence: 'Le voyageur recevra un lien mort, et le code d’accès ne pourra pas lui être délivré.',
+    route: '/booking-engine',
+    linkKey: 'dashboard.actionCard.seeGuestExperience',
+    link: 'Ouvrir l’expérience voyageur',
+  },
+
   RESERVATION_PENDING: {
     whatKey: 'dashboard.actionCard.reservationWhat',
     what: 'Cette réservation n’a jamais été confirmée et l’arrivée approche.',
@@ -242,3 +282,24 @@ export const ACTION_CARDS: Partial<Record<DashboardActionKind, ActionCard>> = {
     link: 'Voir les canaux',
   },
 };
+
+/**
+ * Natures qui ouvrent une modale dédiée, écrite pour elles.
+ *
+ * <p>Déclarées ici pour qu'une vérification puisse s'assurer que <b>chaque</b>
+ * nature ouvre quelque chose. Quatre d'entre elles ne le faisaient pas : on
+ * cliquait, et rien ne se passait. L'aiguillage étant une suite de conditions
+ * écrites à la main, rien ne le signalait.</p>
+ */
+export const DEDICATED_ACTION_KINDS: ReadonlySet<DashboardActionKind> = new Set([
+  'PAYMENT_INCIDENT',
+  'REVIEW_UNANSWERED',
+  'BALANCE_DUE',
+  'BALANCE_ABANDONED',
+  'SERVICE_UNPAID',
+  'SERVICE_UNASSIGNED',
+  'FEED_STALE',
+  'DEPOSIT_STUCK',
+  'DOCUMENT_DELIVERY_FAILED',
+  'GUEST_MESSAGE_FAILED',
+]);

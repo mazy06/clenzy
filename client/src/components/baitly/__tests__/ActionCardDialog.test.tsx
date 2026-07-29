@@ -3,8 +3,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import ActionCardDialog from '../ActionCardDialog';
-import { ACTION_CARDS } from '../actionCards';
+import { ACTION_CARDS, DEDICATED_ACTION_KINDS } from '../actionCards';
 import { actionItemsApi } from '../../../services/api/actionItemsApi';
+import { ACTION_KINDS } from '../../../services/api/dashboardOperationsApi';
 import type { DashboardActionItem } from '../../../services/api/dashboardOperationsApi';
 
 /**
@@ -129,5 +130,18 @@ describe('table des cartes', () => {
       // Le constat et la conséquence disent deux choses différentes.
       expect(card?.consequence, `${kind}: doublon`).not.toEqual(card?.what);
     }
+  });
+});
+
+describe('couverture des natures', () => {
+  it('chaque nature ouvre quelque chose au clic', () => {
+    // Quatre natures n'ouvraient rien : on cliquait, et il ne se passait
+    // rien. L'aiguillage étant une suite de conditions écrites à la main,
+    // rien ne le signalait — ce test est ce qui le signale désormais.
+    const orphans = ACTION_KINDS.filter(
+      (kind) => !ACTION_CARDS[kind] && !DEDICATED_ACTION_KINDS.has(kind),
+    );
+
+    expect(orphans).toEqual([]);
   });
 });

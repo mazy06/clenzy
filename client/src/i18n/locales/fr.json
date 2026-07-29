@@ -1779,7 +1779,17 @@
       "confirmed": "Réservation confirmée et jours réservés au calendrier.",
       "replayAutomation": "Rejouer cette règle",
       "automationReplayed": "Règle rejouée — vérifiez qu’elle a abouti cette fois.",
-      "conflict": "Ces dates sont déjà prises : confirmer créerait une double réservation."
+      "conflict": "Ces dates sont déjà prises : confirmer créerait une double réservation.",
+      "interventionOverdueWhat": "La date de cette intervention est passée et elle n’est toujours pas terminée.",
+      "interventionOverdueConsequence": "Le logement n’est peut-être pas prêt pour la prochaine arrivée, et personne n’a signalé pourquoi.",
+      "declarationWhat": "Le séjour a eu lieu sans que la déclaration voyageur soit déposée.",
+      "declarationConsequence": "C’est une obligation légale non remplie, et elle ne se rattrape plus passé un certain délai.",
+      "conversationWhat": "Le dernier message de cette conversation vient du voyageur.",
+      "conversationConsequence": "Un silence pendant un séjour se paie en avis, et c’est le reproche le plus fréquent dans les mauvaises notes.",
+      "seeMessaging": "Ouvrir la messagerie",
+      "guideWhat": "Aucun livret d’accueil publié pour ce logement, alors qu’une arrivée approche.",
+      "guideConsequence": "Le voyageur recevra un lien mort, et le code d’accès ne pourra pas lui être délivré.",
+      "seeGuestExperience": "Ouvrir l’expérience voyageur"
     }
   },
   "properties": {
