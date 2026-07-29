@@ -1,5 +1,6 @@
 package com.clenzy.service;
 
+import com.clenzy.dto.OnlineCheckInSubmission;
 import com.clenzy.config.CheckInConfig;
 import com.clenzy.model.*;
 import com.clenzy.repository.OnlineCheckInRepository;
@@ -7,7 +8,6 @@ import com.clenzy.repository.ReservationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -20,6 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class OnlineCheckInServiceTest {
@@ -139,9 +142,10 @@ class OnlineCheckInServiceTest {
         when(checkInRepository.findByToken(token)).thenReturn(Optional.of(checkIn));
         when(checkInRepository.save(any())).thenReturn(checkIn);
 
-        OnlineCheckIn result = service.completeCheckIn(token,
+        OnlineCheckIn result = service.completeCheckIn(token, new OnlineCheckInSubmission(
             "Jean", "Dupont", "jean@test.com", "+33612345678",
-            "ABC123", "PASSPORT", "15:00", "Late arrival", 2, null);
+            "ABC123", "PASSPORT", "15:00", "Late arrival", 2, null,
+            null, null, null, null, null, null));
 
         assertThat(result.getStatus()).isEqualTo(OnlineCheckInStatus.COMPLETED);
         assertThat(result.getFirstName()).isEqualTo("Jean");
@@ -156,8 +160,9 @@ class OnlineCheckInServiceTest {
 
         when(checkInRepository.findByToken(token)).thenReturn(Optional.of(checkIn));
 
-        assertThatThrownBy(() -> service.completeCheckIn(token,
-            "Jean", "Dupont", null, null, null, null, null, null, null, null))
+        assertThatThrownBy(() -> service.completeCheckIn(token, new OnlineCheckInSubmission(
+            "Jean", "Dupont", null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null)))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("deja complete");
     }

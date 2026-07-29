@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.config.CheckInConfig;
+import com.clenzy.dto.OnlineCheckInSubmission;
 import com.clenzy.model.*;
 import com.clenzy.repository.OnlineCheckInRepository;
 import com.clenzy.repository.ReservationRepository;
@@ -87,12 +88,20 @@ public class OnlineCheckInService {
         return checkIn;
     }
 
+    /**
+     * Enregistre la saisie du voyageur et clôt son check-in.
+     *
+     * <p>La saisie porte désormais aussi les champs d'identité — naissance,
+     * nationalité, résidence — qui vivaient dans un second formulaire.</p>
+     *
+     * <p>Ce service enregistre la saisie ; c'est
+     * {@code CheckInSubmissionService} qui en tire la fiche voyageur. La
+     * séparation n'est pas cosmétique : {@code GuestDeclarationService} lit
+     * déjà le check-in pour retrouver la pièce d'identité, et l'appeler d'ici
+     * fermerait un cycle de dépendances que Spring refuse de construire.</p>
+     */
     @Transactional
-    public OnlineCheckIn completeCheckIn(UUID token, String firstName, String lastName,
-                                           String email, String phone,
-                                           String idDocumentNumber, String idDocumentType,
-                                           String estimatedArrivalTime, String specialRequests,
-                                           Integer numberOfGuests, String additionalGuests) {
+    public OnlineCheckIn completeCheckIn(UUID token, OnlineCheckInSubmission submission) {
         OnlineCheckIn checkIn = checkInRepository.findByToken(token)
             .orElseThrow(() -> new IllegalArgumentException("Check-in introuvable"));
 
@@ -100,23 +109,29 @@ public class OnlineCheckInService {
             throw new IllegalStateException("Ce check-in est deja complete");
         }
 
-        checkIn.setFirstName(firstName);
-        checkIn.setLastName(lastName);
-        checkIn.setEmail(email);
-        checkIn.setPhone(phone);
-        checkIn.setIdDocumentNumber(idDocumentNumber);
-        checkIn.setIdDocumentType(idDocumentType);
-        checkIn.setEstimatedArrivalTime(estimatedArrivalTime);
-        checkIn.setSpecialRequests(specialRequests);
-        checkIn.setNumberOfGuests(numberOfGuests);
-        checkIn.setAdditionalGuests(additionalGuests);
+        checkIn.setFirstName(submission.firstName());
+        checkIn.setLastName(submission.lastName());
+        checkIn.setEmail(submission.email());
+        checkIn.setPhone(submission.phone());
+        checkIn.setIdDocumentNumber(submission.idDocumentNumber());
+        checkIn.setIdDocumentType(submission.idDocumentType());
+        checkIn.setEstimatedArrivalTime(submission.estimatedArrivalTime());
+        checkIn.setSpecialRequests(submission.specialRequests());
+        checkIn.setNumberOfGuests(submission.numberOfGuests());
+        checkIn.setAdditionalGuests(submission.additionalGuests());
+        checkIn.setMaidenName(submission.maidenName());
+        checkIn.setBirthDate(submission.birthDate());
+        checkIn.setBirthPlace(submission.birthPlace());
+        checkIn.setNationality(submission.nationality());
+        checkIn.setResidenceAddress(submission.residenceAddress());
+        checkIn.setResidenceCountry(submission.residenceCountry());
         checkIn.setStatus(OnlineCheckInStatus.COMPLETED);
         checkIn.setCompletedAt(LocalDateTime.now());
 
         checkIn = checkInRepository.save(checkIn);
 
         notifyOwner(checkIn, NotificationKey.ONLINE_CHECKIN_COMPLETED,
-            "Check-in en ligne complete par " + firstName + " " + lastName);
+            "Check-in en ligne complete par " + submission.firstName() + " " + submission.lastName());
 
         return checkIn;
     }

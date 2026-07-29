@@ -141,7 +141,7 @@ class ActionItemSourcesTest {
         stay.setGuestName("Sofia M.");
         stay.setProperty(property(300L, "Riad Zitoun"));
         stay.setCheckIn(NOW_LOCAL.toLocalDate().minusDays(2));
-        when(reservationRepository.findWithoutGuestDeclaration(eq(ORG), any(), any()))
+        when(reservationRepository.findWithoutGuestDeclaration(eq(ORG), any(), any(), any()))
                 .thenReturn(List.of(stay));
 
         assertThat(reservations().collect(CTX))

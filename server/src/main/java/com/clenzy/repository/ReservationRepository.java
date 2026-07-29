@@ -1,6 +1,7 @@
 package com.clenzy.repository;
 
 import com.clenzy.model.PaymentStatus;
+import com.clenzy.model.RegulatoryConfig.RegulatoryType;
 import com.clenzy.model.Reservation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -143,17 +144,29 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
      * pas — son encart se masque quand aucune déclaration n'existe, donc
      * précisément quand il faudrait alerter.</p>
      *
-     * <p>Concerne la fiche de police française, la DGSN marocaine, Shomoos…
-     * selon la juridiction du logement.</p>
+     * <p><b>Uniquement les logements où la formalité est activée</b> — fiche de
+     * police française, DGSN marocaine, Shomoos… La déclaration n'est pas due
+     * partout : sans ce filtre, on reprochait une obligation inexistante, ce qui
+     * apprend à ignorer la file.</p>
+     *
+     * <p><b>Fenêtre : tant que c'est réparable.</b> De l'approche de l'arrivée
+     * jusqu'au départ, période où le voyageur répond encore et où une relance a
+     * un effet. Après son départ, plus personne ne peut déposer la fiche à sa
+     * place : la signaler alors n'est plus une action, c'est un reproche.</p>
      */
     @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.property "
         + "WHERE r.organizationId = :orgId AND r.status <> 'cancelled' "
-        + "AND r.checkIn <= :today AND r.checkIn >= :from "
+        + "AND r.checkIn <= :until AND r.checkOut >= :today "
+        + "AND EXISTS (SELECT 1 FROM RegulatoryConfig c "
+        + "            WHERE c.propertyId = r.property.id AND c.organizationId = r.organizationId "
+        + "              AND c.regulatoryType = :policeForm "
+        + "              AND c.isEnabled = true) "
         + "AND NOT EXISTS (SELECT 1 FROM GuestDeclaration d WHERE d.reservation = r) "
-        + "ORDER BY r.checkIn DESC")
+        + "ORDER BY r.checkIn ASC")
     List<Reservation> findWithoutGuestDeclaration(@Param("orgId") Long orgId,
-                                                  @Param("from") LocalDate from,
-                                                  @Param("today") LocalDate today);
+                                                  @Param("policeForm") RegulatoryType policeForm,
+                                                  @Param("today") LocalDate today,
+                                                  @Param("until") LocalDate until);
 
     /**
      * Réservations restées « pending » dont l'arrivée approche.

@@ -2,6 +2,7 @@ package com.clenzy.service.dashboard;
 
 import com.clenzy.dto.DashboardOperationsDto.ActionItemDto;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemKind;
+import com.clenzy.model.RegulatoryConfig;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.WelcomeGuideRepository;
@@ -27,8 +28,13 @@ public class ReservationActionSource implements ActionItemSource {
     /** En deçà, le ménage ne se planifie plus et le solde ne se réclame plus. */
     private static final int URGENT_DAYS = 3;
 
-    /** Une déclaration plus vieille que ça ne se rattrape plus. */
-    private static final int DECLARATION_LOOKBACK_DAYS = 30;
+    /**
+     * Horizon d'alerte sur la fiche voyageur, avant l'arrivée.
+     *
+     * <p>Le même que le check-in en ligne : c'est là que le voyageur est le plus
+     * réceptif, et que la relance a encore un effet.</p>
+     */
+    private static final int DECLARATION_HORIZON_DAYS = 2;
 
     /** Un solde d'un séjour terminé depuis plus longtemps est une perte, pas une créance. */
     private static final int ABANDONED_LOOKBACK_DAYS = 90;
@@ -64,16 +70,18 @@ public class ReservationActionSource implements ActionItemSource {
     }
 
     /**
-     * Séjours arrivés sans déclaration voyageur — obligation légale non remplie.
+     * Séjours dont la fiche voyageur manque, alors qu'elle est due.
      *
-     * <p>Rétrospectif sur trente jours : au-delà, la déclaration ne se rattrape
-     * plus et la carte deviendrait un reproche permanent.</p>
+     * <p>Signalé <b>tant que c'est réparable</b> : de l'approche de l'arrivée
+     * jusqu'au départ. Après, plus personne ne peut déposer la fiche à la place
+     * du voyageur — la signaler ne serait plus une action mais un reproche.</p>
      */
     private List<ActionItemDto> missingDeclarations(ActionItemContext ctx) {
         return reservationRepository.findWithoutGuestDeclaration(
                         ctx.organizationId(),
-                        ctx.today().minusDays(DECLARATION_LOOKBACK_DAYS),
-                        ctx.today())
+                        RegulatoryConfig.RegulatoryType.POLICE_FORM,
+                        ctx.today(),
+                        ctx.today().plusDays(DECLARATION_HORIZON_DAYS))
                 .stream()
                 .filter(r -> ctx.covers(r.getProperty()))
                 .map(r -> item(r, ActionItemKind.GUEST_DECLARATION_MISSING, "critical", null))
