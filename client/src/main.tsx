@@ -201,18 +201,11 @@ function AppWithTheme() {
           <GeoDetectionInitializer>
             <NotificationProvider>
               <ThemeSafetyWrapper>
-                {/* Opt-in aux future flags React Router v7 :
-                    - v7_startTransition : wrap les state updates dans
-                      React.startTransition (concurrent rendering).
-                    - v7_relativeSplatPath : nouvelle resolution des routes
-                      relatives dans les splat routes.
-                    Supprime 2 warnings console + prepare la migration v7. */}
-                <BrowserRouter
-                  future={{
-                    v7_startTransition: true,
-                    v7_relativeSplatPath: true,
-                  }}
-                >
+                {/* React Router v7 : v7_startTransition et v7_relativeSplatPath
+                    etaient deja actives via `future` sous v6 ; ce sont desormais
+                    les comportements par defaut et la prop n'existe plus. Le
+                    comportement du routeur est donc inchange par la montee. */}
+                <BrowserRouter>
                   <AuthProvider>
                     <App />
                     {/* AppUpdateBanner : banniere "Nouvelle version disponible"
