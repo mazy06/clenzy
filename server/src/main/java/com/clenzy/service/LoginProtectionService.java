@@ -41,6 +41,7 @@ public class LoginProtectionService {
 
     private static final String REDIS_ATTEMPTS_PREFIX = "login:attempts:";
     private static final String REDIS_LOCKED_PREFIX = "login:locked:";
+    private static final String REDIS_RATELIMIT_PREFIX = "auth:rl:";
     private static final String TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
     private final StringRedisTemplate redisTemplate;
@@ -182,6 +183,55 @@ public class LoginProtectionService {
         } catch (Exception e) {
             log.error("Erreur lors de la validation Turnstile: {}", e.getMessage());
             return false;
+        }
+    }
+
+    // ─── Rate-limit generique (Redis) ──────────────────────────
+
+    /**
+     * Incremente le compteur de {@code key} sur une fenetre glissante et
+     * indique si la requete passe sous la limite.
+     *
+     * <p>Adosse a Redis (INCR + EXPIRE), donc <b>partage par toutes les
+     * instances</b> : contrairement a un compteur en memoire, il ne peut ni
+     * etre contourne en visant une autre instance, ni etre remis a zero en
+     * saturant un cache local. Meme motif que
+     * {@code BookingPublicRateLimiter} et {@code RateLimitInterceptor}.</p>
+     *
+     * <p><b>Fail-open</b> si Redis est indisponible : un incident
+     * d'infrastructure ne doit pas empecher les utilisateurs legitimes de
+     * recuperer leur compte. Le rate-limit Nginx reste actif en amont.</p>
+     *
+     * @param key          identifiant du seau (prefixe par l'appelant, ex. {@code pwd-reset:ip:1.2.3.4})
+     * @param maxPerWindow nombre d'appels autorises sur la fenetre
+     * @param window       duree de la fenetre
+     * @return {@code true} si la requete est autorisee
+     */
+    public boolean tryAcquire(String key, int maxPerWindow, Duration window) {
+        final String redisKey = REDIS_RATELIMIT_PREFIX + key;
+        try {
+            Long current = redisTemplate.opsForValue().increment(redisKey);
+            if (current == null) {
+                return true;
+            }
+            if (current == 1L) {
+                redisTemplate.expire(redisKey, window);
+            } else {
+                // Filet : si l'EXPIRE initial s'est perdu (crash entre INCR et
+                // EXPIRE), la cle serait persistante et bloquerait pour toujours.
+                Long ttl = redisTemplate.getExpire(redisKey);
+                if (ttl != null && ttl < 0) {
+                    redisTemplate.expire(redisKey, window);
+                }
+            }
+            boolean allowed = current <= maxPerWindow;
+            if (!allowed) {
+                log.warn("Rate-limit auth atteint pour {} ({}/{})", key, current, maxPerWindow);
+            }
+            return allowed;
+        } catch (Exception e) {
+            log.warn("Rate-limit auth indisponible (Redis) pour {} : {}", key, e.getMessage());
+            return true;
         }
     }
 

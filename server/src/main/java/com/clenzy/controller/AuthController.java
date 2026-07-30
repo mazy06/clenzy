@@ -15,10 +15,12 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import com.clenzy.model.User;
 import com.clenzy.service.KeycloakService;
@@ -32,6 +34,7 @@ import com.clenzy.service.LoginProtectionService.LoginStatus;
 import com.clenzy.service.OrganizationInvitationService;
 import com.clenzy.model.UserRole;
 import com.clenzy.service.OrganizationService;
+import com.clenzy.util.ClientIpResolver;
 import com.clenzy.dto.RolePermissionsDto;
 
 @RestController
@@ -68,15 +71,27 @@ public class AuthController {
     /** TTL du throttle de re-verification des invitations pending dans /me. */
     private static final long PENDING_INVITATION_CHECK_TTL_MS = 2 * 60 * 1000L;
 
-    /** Throttle par email des demandes de reset de mot de passe (anti-spam SMTP). */
-    private static final long FORGOT_PASSWORD_THROTTLE_MS = 60 * 1000L;
+    /**
+     * Reset de mot de passe : 1 demande / minute / email.
+     *
+     * <p>Empeche de harceler la boite d'un utilisateur donne.</p>
+     */
+    private static final int FORGOT_PASSWORD_MAX_PER_EMAIL = 1;
+    private static final Duration FORGOT_PASSWORD_EMAIL_WINDOW = Duration.ofMinutes(1);
 
     /**
-     * Derniere demande de reset par email (throttle per-instance, meme logique
-     * que pendingInvitationCheckAt : un doublon sur une autre instance envoie
-     * juste un second email — sans enjeu de coherence).
+     * Reset de mot de passe : 10 demandes / heure / IP.
+     *
+     * <p>C'est la limite qui compte vraiment : sans elle, la limite par email
+     * se contourne en faisant tourner les adresses, et l'endpoint devient un
+     * relais de mail-bombing vers tous les comptes connus.</p>
      */
-    private final Map<String, Long> forgotPasswordRequestAt = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final int FORGOT_PASSWORD_MAX_PER_IP = 10;
+    private static final Duration FORGOT_PASSWORD_IP_WINDOW = Duration.ofHours(1);
+
+    /** Changement de mot de passe par un utilisateur connecte : 1 demande / minute. */
+    private static final int PASSWORD_RESET_MAX_PER_USER = 1;
+    private static final Duration PASSWORD_RESET_USER_WINDOW = Duration.ofMinutes(1);
 
     /**
      * Dernier scan invitations par email (throttle per-instance : un scan raté
@@ -256,7 +271,8 @@ public class AuthController {
     @PostMapping("/auth/forgot-password")
     @PreAuthorize("permitAll()")
     @Operation(summary = "Envoie l'email Keycloak de reinitialisation de mot de passe (flow reset-credentials)")
-    public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody Map<String, String> body) {
+    public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody Map<String, String> body,
+                                                              HttpServletRequest request) {
         String email = body.get("email");
         if (email == null || email.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -269,7 +285,9 @@ public class AuthController {
         Map<String, String> genericResponse = Map.of(
                 "message", "Si un compte existe avec cet email, un lien de reinitialisation a ete envoye.");
 
-        if (!allowForgotPasswordRequest(email)) {
+        if (!allowForgotPasswordRequest(email, request)) {
+            // Reponse generique meme sous throttle : un 429 distinguerait les
+            // emails connus des inconnus et rouvrirait l'enumeration de comptes.
             log.debug("Forgot password throttle pour email={}", PiiMasker.maskEmail(email));
             return ResponseEntity.ok(genericResponse);
         }
@@ -294,6 +312,14 @@ public class AuthController {
         if (jwt == null) {
             return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
         }
+        // Ici l'appelant est authentifie : on peut lui dire franchement qu'il
+        // est limite, sans risque d'enumeration.
+        if (!loginProtectionService.tryAcquire("pwd-reset:user:" + jwt.getSubject(),
+                PASSWORD_RESET_MAX_PER_USER, PASSWORD_RESET_USER_WINDOW)) {
+            return ResponseEntity.status(429).body(Map.of(
+                    "error", "too_many_requests",
+                    "error_description", "Un email vient deja de vous etre envoye. Reessayez dans une minute."));
+        }
         try {
             keycloakService.sendPasswordResetEmailByKeycloakId(jwt.getSubject());
             log.info("Email de changement de mot de passe envoye pour keycloakId={}", jwt.getSubject());
@@ -307,20 +333,28 @@ public class AuthController {
         }
     }
 
-    private boolean allowForgotPasswordRequest(String email) {
-        final long now = System.currentTimeMillis();
-        // Purge opportuniste pour borner la taille de la map
-        if (forgotPasswordRequestAt.size() > 10_000) {
-            forgotPasswordRequestAt.clear();
-        }
-        final Long previous = forgotPasswordRequestAt.putIfAbsent(email, now);
-        if (previous == null) {
-            return true;
-        }
-        if (now - previous >= FORGOT_PASSWORD_THROTTLE_MS) {
-            return forgotPasswordRequestAt.replace(email, previous, now);
-        }
-        return false;
+    /**
+     * Double limite sur la demande anonyme de reset : par IP puis par email.
+     *
+     * <p>L'IP est verifiee <b>en premier</b> et consommee meme si la limite par
+     * email rejette ensuite : chaque tentative doit couter du budget IP, sinon
+     * marteler un seul email offrirait un contournement gratuit.</p>
+     *
+     * <p>Les deux compteurs vivent dans Redis via {@link LoginProtectionService},
+     * donc partages entre instances et non reinitialisables par l'appelant.</p>
+     */
+    private boolean allowForgotPasswordRequest(String email, HttpServletRequest request) {
+        final String ip = ClientIpResolver.resolve(
+                request.getRemoteAddr(),
+                request.getHeader("X-Forwarded-For"),
+                request.getHeader("X-Real-IP"));
+
+        final boolean ipAllowed = loginProtectionService.tryAcquire(
+                "pwd-reset:ip:" + ip, FORGOT_PASSWORD_MAX_PER_IP, FORGOT_PASSWORD_IP_WINDOW);
+        final boolean emailAllowed = loginProtectionService.tryAcquire(
+                "pwd-reset:email:" + email, FORGOT_PASSWORD_MAX_PER_EMAIL, FORGOT_PASSWORD_EMAIL_WINDOW);
+
+        return ipAllowed && emailAllowed;
     }
 
     @GetMapping("/me")
