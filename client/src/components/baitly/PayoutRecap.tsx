@@ -1,6 +1,19 @@
 import * as React from 'react';
 import { TriangleAlertIcon } from 'lucide-react';
-import { Alert, AlertDescription, Item, ItemContent, ItemDescription, ItemGroup, ItemTitle, Separator, Spinner } from '../ui';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+  Alert,
+  AlertDescription,
+  Item,  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
+  Separator,
+  Spinner,
+} from '../ui';
 import { Money } from '../Money';
 import type { PayoutRecap as PayoutRecapData } from '../../services/api/actionItemsApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -13,9 +26,11 @@ import { useTranslation } from '../../hooks/useTranslation';
  * par quel canal ils partiront, ce n'est pas une décision — c'est une signature
  * à l'aveugle.</p>
  *
- * <p>Trois blocs, dans l'ordre où l'on se pose les questions : <b>à qui</b>,
- * <b>combien et pourquoi</b>, <b>par quel moyen</b>. Les séjours et les
- * déductions viennent ensuite, pour qui veut vérifier le détail.</p>
+ * <p>Le calcul reste toujours visible à droite — c'est lui qu'on approuve. À
+ * gauche, un accordéon : les faits (à qui, quand, par quel moyen), les séjours
+ * couverts, les dépenses déduites. Ils se partagent le même espace, et n'en
+ * ouvrir qu'un à la fois garde une hauteur constante : déplier neuf séjours
+ * allongeait la carte de trois cents pixels.</p>
  */
 
 export interface PayoutRecapProps {
@@ -48,31 +63,112 @@ export default function PayoutRecap({ recap, isLoading, isError }: PayoutRecapPr
     // besoin d'un axe unique, sinon on ne les compare plus d'un coup d'oeil.
     <div className="space-y-3">
       <div className="grid gap-4 md:grid-cols-2 md:items-start">
-      <ItemGroup>
-        <Item size="sm" variant="muted">
-          <ItemContent>
-            <ItemDescription>
-              {t('dashboard.payoutRecap.beneficiary', 'Bénéficiaire')}
-            </ItemDescription>
-            <ItemTitle>
-              {recap.beneficiaryName
-                ?? t('dashboard.payoutRecap.unknownBeneficiary', 'Propriétaire inconnu')}
-            </ItemTitle>
-            {recap.beneficiaryEmail && (
-              <ItemDescription>{recap.beneficiaryEmail}</ItemDescription>
-            )}
-          </ItemContent>
-        </Item>
+      {/* Accordéon plutôt que blocs empilés : les faits, les séjours et les
+          déductions se partagent le MÊME espace. Déplier les neuf séjours
+          allongeait la carte de trois cents pixels ; ils prennent désormais la
+          place que les faits libèrent, et la hauteur ne bouge plus. */}
+      <Accordion type="single" collapsible defaultValue="facts" className="w-full">
+        <AccordionItem value="facts">
+          <AccordionTrigger>
+            {t('dashboard.payoutRecap.factsSection', 'Bénéficiaire et versement')}
+          </AccordionTrigger>
+          <AccordionContent>
+            <ItemGroup>
+              <Item size="sm" variant="muted">
+                <ItemContent>
+                  <ItemDescription>
+                    {t('dashboard.payoutRecap.beneficiary', 'Bénéficiaire')}
+                  </ItemDescription>
+                  <ItemTitle>
+                    {recap.beneficiaryName
+                      ?? t('dashboard.payoutRecap.unknownBeneficiary', 'Propriétaire inconnu')}
+                  </ItemTitle>
+                  {recap.beneficiaryEmail && (
+                    <ItemDescription>{recap.beneficiaryEmail}</ItemDescription>
+                  )}
+                </ItemContent>
+              </Item>
 
-        <Item size="sm" variant="muted">
-          <ItemContent>
-            <ItemDescription>{t('dashboard.payoutRecap.period', 'Période')}</ItemDescription>
-            <ItemTitle className="tabular-nums">
-              {recap.periodStart} → {recap.periodEnd}
-            </ItemTitle>
-          </ItemContent>
-        </Item>
-      </ItemGroup>
+              <Item size="sm" variant="muted">
+                <ItemContent>
+                  <ItemDescription>
+                    {t('dashboard.payoutRecap.period', 'Période')}
+                  </ItemDescription>
+                  <ItemTitle className="tabular-nums">
+                    {recap.periodStart} → {recap.periodEnd}
+                  </ItemTitle>
+                </ItemContent>
+              </Item>
+
+              <Item size="sm" variant="muted">
+                <ItemContent>
+                  <ItemDescription>
+                    {t('dashboard.payoutRecap.destination', 'Versé par')}
+                  </ItemDescription>
+                  <ItemTitle>
+                    {[payoutMethodLabel(recap.payoutMethod, t), recap.destination]
+                      .filter(Boolean)
+                      .join(' · ')
+                      || t('dashboard.payoutRecap.noDestination', 'Aucun moyen de versement configuré')}
+                  </ItemTitle>
+                </ItemContent>
+              </Item>
+            </ItemGroup>
+          </AccordionContent>
+        </AccordionItem>
+
+        {recap.stays.length > 0 && (
+          <AccordionItem value="stays">
+            <AccordionTrigger>
+              {t('dashboard.payoutRecap.stays', {
+                count: recap.stays.length,
+                defaultValue: '{{count}} séjour(s) couvert(s)',
+              })}
+            </AccordionTrigger>
+            <AccordionContent>
+              {/* Borné malgré tout : cinquante séjours ne doivent pas rouvrir
+                  le problème que l'accordéon vient de fermer. */}
+              <ul className="m-0 max-h-56 list-none space-y-1 overflow-y-auto p-0 pe-1 text-sm">
+                {recap.stays.map((stay) => (
+                  <li key={stay.reservationId} className="flex justify-between gap-3">
+                    <span className="min-w-0 truncate text-muted-foreground">
+                      {[stay.guestName, stay.propertyName].filter(Boolean).join(' · ')}
+                    </span>
+                    <span className="shrink-0 tabular-nums">
+                      <Money value={stay.totalPrice} from={currency} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
+        {recap.deductions.length > 0 && (
+          <AccordionItem value="deductions">
+            <AccordionTrigger>
+              {t('dashboard.payoutRecap.deductions', {
+                count: recap.deductions.length,
+                defaultValue: '{{count}} dépense(s) déduite(s)',
+              })}
+            </AccordionTrigger>
+            <AccordionContent>
+              <ul className="m-0 max-h-56 list-none space-y-1 overflow-y-auto p-0 pe-1 text-sm">
+                {recap.deductions.map((expense) => (
+                  <li key={expense.expenseId} className="flex justify-between gap-3">
+                    <span className="min-w-0 truncate text-muted-foreground">
+                      {expense.description ?? expense.category}
+                    </span>
+                    <span className="shrink-0 tabular-nums">
+                      <Money value={expense.amount} from={currency} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+        )}
+      </Accordion>
 
       {/* Le calcul, ligne à ligne : c'est ce qui rend le net vérifiable. */}
       <div className="space-y-1 text-sm">
@@ -115,22 +211,6 @@ export default function PayoutRecap({ recap, isLoading, isError }: PayoutRecapPr
         />
       </div>
 
-      <ItemGroup>
-        <Item size="sm" variant="muted">
-          <ItemContent>
-            <ItemDescription>
-              {t('dashboard.payoutRecap.destination', 'Versé par')}
-            </ItemDescription>
-            <ItemTitle>
-              {[payoutMethodLabel(recap.payoutMethod, t), recap.destination]
-                .filter(Boolean)
-                .join(' · ')
-                || t('dashboard.payoutRecap.noDestination', 'Aucun moyen de versement configuré')}
-            </ItemTitle>
-          </ItemContent>
-        </Item>
-      </ItemGroup>
-
       </div>
 
       {/* Approuver un versement qui ne peut pas partir cree une attente sans
@@ -147,53 +227,6 @@ export default function PayoutRecap({ recap, isLoading, isError }: PayoutRecapPr
         </Alert>
       )}
 
-      {recap.stays.length > 0 && (
-        <details className="text-sm">
-          <summary className="cursor-pointer text-muted-foreground">
-            {t('dashboard.payoutRecap.stays', {
-              count: recap.stays.length,
-              defaultValue: '{{count}} séjour(s) couvert(s)',
-            })}
-          </summary>
-          {/* Hauteur bornee : neuf sejours doublaient la hauteur de la carte,
-              et la liste garde sa colonne, donc l'alignement de ses montants. */}
-          <ul className="m-0 mt-2 max-h-48 list-none space-y-1 overflow-y-auto p-0 pe-1">
-            {recap.stays.map((stay) => (
-              <li key={stay.reservationId} className="flex justify-between gap-3">
-                <span className="min-w-0 truncate text-muted-foreground">
-                  {[stay.guestName, stay.propertyName].filter(Boolean).join(' · ')}
-                </span>
-                <span className="shrink-0 tabular-nums">
-                  <Money value={stay.totalPrice} from={currency} />
-                </span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
-
-      {recap.deductions.length > 0 && (
-        <details className="text-sm">
-          <summary className="cursor-pointer text-muted-foreground">
-            {t('dashboard.payoutRecap.deductions', {
-              count: recap.deductions.length,
-              defaultValue: '{{count}} dépense(s) déduite(s)',
-            })}
-          </summary>
-          <ul className="m-0 mt-2 max-h-48 list-none space-y-1 overflow-y-auto p-0 pe-1">
-            {recap.deductions.map((expense) => (
-              <li key={expense.expenseId} className="flex justify-between gap-3">
-                <span className="min-w-0 truncate text-muted-foreground">
-                  {expense.description ?? expense.category}
-                </span>
-                <span className="shrink-0 tabular-nums">
-                  <Money value={expense.amount} from={currency} />
-                </span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
     </div>
   );
 }

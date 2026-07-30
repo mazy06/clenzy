@@ -1829,7 +1829,8 @@
       "notReady": "Aucun compte de destination utilisable : approuver ne fera pas partir le virement.",
       "stays": "{{count}} séjour(s) couvert(s)",
       "deductions": "{{count}} dépense(s) déduite(s)",
-      "failed": "Le détail n’a pas pu être chargé. Mieux vaut ne pas approuver sans l’avoir vu."
+      "failed": "Le détail n’a pas pu être chargé. Mieux vaut ne pas approuver sans l’avoir vu.",
+      "factsSection": "Bénéficiaire et versement"
     }
   },
   "properties": {

@@ -1809,7 +1809,8 @@
       "notReady": "No usable destination account: approving will not send the transfer.",
       "stays": "{{count}} stay(s) covered",
       "deductions": "{{count}} expense(s) deducted",
-      "failed": "The details could not be loaded. Better not to approve without seeing them."
+      "failed": "The details could not be loaded. Better not to approve without seeing them.",
+      "factsSection": "Beneficiary and payout method"
     }
   },
   "properties": {

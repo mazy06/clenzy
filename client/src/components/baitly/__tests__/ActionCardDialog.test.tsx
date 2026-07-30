@@ -307,6 +307,24 @@ describe('reversement', () => {
     expect(screen.getByText(/Compte Stripe/)).toBeInTheDocument();
   });
 
+  it('le calcul reste visible quand on déplie les séjours', async () => {
+    // C'est le calcul qu'on approuve : il ne doit jamais disparaitre. Seuls les
+    // faits cedent leur place aux sejours, d'ou une hauteur constante.
+    vi.mocked(actionItemsApi.payoutRecap).mockResolvedValue({
+      ...recap,
+      stays: [{
+        reservationId: 1, guestName: 'Sofia', propertyName: 'Riad Zitoun',
+        checkIn: '2026-05-02', checkOut: '2026-05-06', totalPrice: 580,
+      }],
+    });
+    renderCard(item({ kind: 'OWNER_PAYOUT_PENDING', title: 'Reversement à approuver' }));
+
+    fireEvent.click(await screen.findByRole('button', { name: /séjour/ }));
+
+    expect(await screen.findByText(/Riad Zitoun/)).toBeInTheDocument();
+    expect(screen.getByText(/Net à verser/)).toBeInTheDocument();
+  });
+
   it('n’approuve pas tant que le détail n’est pas chargé', async () => {
     // Approuver a l'aveugle est exactement ce qu'on corrige.
     vi.mocked(actionItemsApi.payoutRecap).mockReturnValue(new Promise(() => {}));
