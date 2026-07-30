@@ -85,7 +85,9 @@ public class GetPropertyPnlTool implements ToolHandler {
                             + "commission canal moins coûts d'intervention (ménage/maintenance) = profit net et "
                             + "marge %. Classe les logements et signale les déficitaires. Utiliser pour 'quels "
                             + "logements sont rentables', 'rentabilité par bien', 'marge nette par logement', "
-                            + "'quel bien me coûte de l'argent'.",
+                            + "'quel bien me coûte de l'argent'. Quand commissionEstimated est vrai, la "
+                            + "commission canal vient d'un taux par défaut et non des frais OTA réels : le "
+                            + "dire, la marge est une estimation.",
                     schema
             );
         } catch (JsonProcessingException e) {

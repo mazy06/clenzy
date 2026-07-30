@@ -34,6 +34,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
@@ -394,6 +395,9 @@ class ChannexImportServiceTest {
 
         verify(channexClient).deactivateChannel("chan-1");
         verify(channexClient).deleteChannel("chan-1");
+        // Le channel n'existe plus sur le hub : la ligne locale non plus
+        verify(connectService).disableLocalOtaChannel(42L, "chan-1");
+        verify(connectService).forgetLocalOtaChannel(42L, "chan-1");
     }
 
     @Test
@@ -407,6 +411,9 @@ class ChannexImportServiceTest {
 
         verify(channexClient).deactivateChannel("chan-1");
         verify(channexClient).deleteChannel("chan-1");
+        // Rien n'a ete desactive cote hub : on ne le pretend pas en base
+        verify(connectService, never()).disableLocalOtaChannel(anyLong(), anyString());
+        verify(connectService).forgetLocalOtaChannel(42L, "chan-1");
     }
 
     @Test
@@ -420,6 +427,21 @@ class ChannexImportServiceTest {
             .hasMessageContaining("delete down");
 
         verify(channexClient).deactivateChannel("chan-1");
+        verify(channexClient).deleteChannel("chan-1");
+        // Le channel survit sur le hub : la ligne est conservee (desactivee),
+        // c'est elle qui permettra de rejouer la deconnexion.
+        verify(connectService).disableLocalOtaChannel(42L, "chan-1");
+        verify(connectService, never()).forgetLocalOtaChannel(anyLong(), anyString());
+    }
+
+    @Test
+    @DisplayName("disconnectOtaChannel: nettoyage local KO -> le succes Channex n'est pas masque")
+    void disconnectOtaChannel_localCleanupFailureIsSwallowed() {
+        org.mockito.Mockito.doThrow(new RuntimeException("DB down"))
+            .when(connectService).forgetLocalOtaChannel(42L, "chan-1");
+
+        service.disconnectOtaChannel(42L, "chan-1");
+
         verify(channexClient).deleteChannel("chan-1");
     }
 

@@ -17,6 +17,9 @@ import java.util.List;
  * <p>Ne contient que les champs critiques pour la creation d'une Reservation
  * Clenzy. Le reste (notes, taxes detaillees, currency conversion) est ignore
  * via {@link JsonIgnoreProperties}.</p>
+ *
+ * <p>Channex serialise les montants en chaines ({@code "289.50"}) ; Jackson les
+ * convertit en {@link BigDecimal} sans perte, contrairement a un double.</p>
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ChannexBookingDto(
@@ -31,6 +34,13 @@ public record ChannexBookingDto(
     @JsonProperty("departure_date") LocalDate departureDate,
     @JsonProperty("amount") BigDecimal amount,
     @JsonProperty("currency") String currency,
+    /**
+     * Commission reellement prelevee par l'OTA sur ce sejour. Channex ne la
+     * renseigne que pour Booking.com et Airbnb — null sur Expedia, Trip.com,
+     * MakeMyTrip… Alimente {@code Reservation.otaFeeAmount} : sans elle la
+     * commission canal reste une ESTIMATION au taux par defaut.
+     */
+    @JsonProperty("ota_commission") BigDecimal otaCommission,
     @JsonProperty("customer") ChannexCustomer customer,
     @JsonProperty("rooms") List<ChannexBookingRoom> rooms
 ) {

@@ -89,7 +89,9 @@ public class Reservation {
 
     /**
      * Frais perçus par l'OTA sur cette réservation (ex. host fee Airbnb).
-     * Renseigné si connu (saisie ou futur webhook API canal) ; sinon null.
+     * Alimenté par l'import Channex ({@code ota_commission}), que Channex ne renseigne
+     * que pour Booking.com et Airbnb ; null pour les autres canaux et pour les séjours
+     * importés avant cette bascule.
      * Sert de base au calcul de commission NET_OF_OTA_FEE ; à null on retombe sur le brut.
      */
     @Column(name = "ota_fee_amount", precision = 10, scale = 2)

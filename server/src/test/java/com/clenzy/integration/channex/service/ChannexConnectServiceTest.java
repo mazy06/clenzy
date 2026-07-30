@@ -299,13 +299,13 @@ class ChannexConnectServiceTest {
         ChannexBookingDto b1 = new ChannexBookingDto(
             "booking-1", null, null, "HM1", "airbnb", "chx-prop-1", "new",
             java.time.LocalDate.of(2026, 8, 1), java.time.LocalDate.of(2026, 8, 5),
-            java.math.BigDecimal.valueOf(450), "EUR",
+            java.math.BigDecimal.valueOf(450), "EUR", null,
             null, List.of()
         );
         ChannexBookingDto b2 = new ChannexBookingDto(
             "booking-2", null, null, "HM2", "booking_com", "chx-prop-1", "new",
             java.time.LocalDate.of(2026, 9, 1), java.time.LocalDate.of(2026, 9, 7),
-            java.math.BigDecimal.valueOf(800), "EUR",
+            java.math.BigDecimal.valueOf(800), "EUR", null,
             null, List.of()
         );
         when(channexClient.listBookings(eq("chx-prop-1"), any(), any()))

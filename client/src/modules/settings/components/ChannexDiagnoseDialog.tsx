@@ -53,6 +53,7 @@ import type {
   ChannexSyncStatus,
   ChannexSyncSnapshot,
 } from '../../../services/api/channexApi';
+import type { ApiError } from '../../../services/apiClient';
 import ChannexSyncLogsList from './ChannexSyncLogsList';
 
 interface ChannexDiagnoseDialogProps {
@@ -136,10 +137,15 @@ function SyncSnapshotPanel({ snapshot }: { snapshot: ChannexSyncSnapshot }) {
           <Typography variant="caption" color="text.secondary" sx={{ minWidth: 110, fontWeight: 500 }}>
             OTAs actifs
           </Typography>
-          <Typography variant="body2">
-            {snapshot.activeOtaCount > 0
-              ? `${snapshot.activeOtaCount} OTA${snapshot.activeOtaCount > 1 ? 's' : ''} actif${snapshot.activeOtaCount > 1 ? 's' : ''}`
-              : 'aucun'}
+          <Typography
+            variant="body2"
+            color={snapshot.otaCountKnown ? undefined : 'text.secondary'}
+          >
+            {!snapshot.otaCountKnown
+              ? 'inconnu — hub injoignable'
+              : snapshot.activeOtaCount > 0
+                ? `${snapshot.activeOtaCount} OTA${snapshot.activeOtaCount > 1 ? 's' : ''} actif${snapshot.activeOtaCount > 1 ? 's' : ''}`
+                : 'aucun'}
           </Typography>
         </Box>
         {snapshot.lastSyncError && snapshot.status === 'ERROR' && (
@@ -251,7 +257,11 @@ export default function ChannexDiagnoseDialog({
       const res = await channexApi.diagnose(propertyId);
       setReport(res);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Diagnostic impossible.');
+      // apiClient rejette un objet ApiError nu, pas une instance d'Error :
+      // tester `instanceof Error` masquerait le message serveur derriere un
+      // libelle generique pour toute reponse HTTP en erreur.
+      const message = (err as Partial<ApiError> | null)?.message;
+      setError(message || 'Diagnostic impossible.');
     } finally {
       setLoading(false);
     }
