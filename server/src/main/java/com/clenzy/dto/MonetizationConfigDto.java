@@ -8,6 +8,4 @@ import java.math.BigDecimal;
  */
 public record MonetizationConfigDto(
         BigDecimal upsellPlatformFeePct,
-        BigDecimal activityPlatformCommissionPct,
-        BigDecimal upsellOrgCommissionPct,
-        BigDecimal activityOrgCommissionPct) {}
+        BigDecimal upsellOrgCommissionPct) {}

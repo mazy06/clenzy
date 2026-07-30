@@ -32,7 +32,6 @@ public record ManagementContractDto(
     String terminationReason,
     Instant createdAt,
     BigDecimal upsellCommissionRate,
-    BigDecimal activityCommissionRate,
     PaymentModel paymentModel,
     CommissionBase commissionBase,
     /** Qui supporte les frais prélevés par l'OTA : AGENCY (défaut) ou OWNER. */
@@ -53,7 +52,7 @@ public record ManagementContractDto(
             c.getCleaningFeeIncluded(), c.getMaintenanceIncluded(),
             c.getNotes(), c.getSignedAt(), c.getTerminatedAt(),
             c.getTerminationReason(), c.getCreatedAt(),
-            c.getUpsellCommissionRate(), c.getActivityCommissionRate(),
+            c.getUpsellCommissionRate(),
             c.getPaymentModel(), c.getCommissionBase(), c.getOtaFeeBorneBy(),
             signatureStatus
         );

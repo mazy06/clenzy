@@ -94,10 +94,6 @@ public class ManagementContract {
     @Column(name = "upsell_commission_rate", precision = 5, scale = 4)
     private BigDecimal upsellCommissionRate;
 
-    /** Part conciergerie sur les activités/marketplace (fraction, après commission plateforme). null = défaut org. */
-    @Column(name = "activity_commission_rate", precision = 5, scale = 4)
-    private BigDecimal activityCommissionRate;
-
     /** Modèle de flux des paiements / répartition. Défaut DIRECT (comportement Stripe historique). */
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_model", nullable = false, length = 30)
@@ -183,8 +179,6 @@ public class ManagementContract {
     public void setCommissionRate(BigDecimal commissionRate) { this.commissionRate = commissionRate; }
     public BigDecimal getUpsellCommissionRate() { return upsellCommissionRate; }
     public void setUpsellCommissionRate(BigDecimal upsellCommissionRate) { this.upsellCommissionRate = upsellCommissionRate; }
-    public BigDecimal getActivityCommissionRate() { return activityCommissionRate; }
-    public void setActivityCommissionRate(BigDecimal activityCommissionRate) { this.activityCommissionRate = activityCommissionRate; }
     public PaymentModel getPaymentModel() { return paymentModel; }
     public void setPaymentModel(PaymentModel paymentModel) { this.paymentModel = paymentModel; }
     public CommissionBase getCommissionBase() { return commissionBase; }

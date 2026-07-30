@@ -13,6 +13,7 @@ import com.clenzy.repository.OwnerPayoutRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.AccountingQueryService;
 import com.clenzy.service.AccountingService;
+import com.clenzy.service.ChannelCommissionOverviewService;
 import com.clenzy.service.OwnerStatementService;
 import com.clenzy.service.PayoutExecutionService;
 import com.clenzy.tenant.TenantContext;
@@ -50,6 +51,7 @@ class AccountingControllerTest {
     @Mock private TenantContext tenantContext;
     @Mock private OwnerStatementService ownerStatementService;
     @Mock private OrganizationRepository organizationRepository;
+    @Mock private ChannelCommissionOverviewService channelCommissionOverviewService;
 
     private AccountingController controller;
     private Jwt jwt;
@@ -62,7 +64,7 @@ class AccountingControllerTest {
                 payoutRepository, userRepository, organizationRepository);
         controller = new AccountingController(
                 accountingService, payoutExecutionService, accountingQueryService,
-                tenantContext, ownerStatementService);
+                tenantContext, ownerStatementService, channelCommissionOverviewService);
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", "kc-user-1")

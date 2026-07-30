@@ -92,7 +92,8 @@ public class ActivityService {
 
     @Transactional
     public ActivityConfigDto upsertConfig(Long orgId, ActivityProvider provider,
-                                           String apiKey, String affiliateId, boolean enabled) {
+                                           String apiKey, String affiliateId, boolean enabled,
+                                           java.math.BigDecimal platformCommissionPct) {
         ActivityAffiliateConfig config = configRepository.findByOrganizationIdAndProvider(orgId, provider)
             .orElseGet(() -> {
                 ActivityAffiliateConfig created = new ActivityAffiliateConfig();
@@ -106,6 +107,15 @@ public class ActivityService {
         }
         config.setAffiliateId(affiliateId);
         config.setEnabled(enabled);
+        config.setPlatformCommissionPct(clampPct(platformCommissionPct));
         return ActivityConfigDto.from(configRepository.save(config));
+    }
+
+    /** Borne 0..100 ; null reste null (= aucune part retenue). */
+    private static java.math.BigDecimal clampPct(java.math.BigDecimal v) {
+        if (v == null) return null;
+        if (v.compareTo(java.math.BigDecimal.ZERO) < 0) return java.math.BigDecimal.ZERO;
+        java.math.BigDecimal hundred = java.math.BigDecimal.valueOf(100);
+        return v.compareTo(hundred) > 0 ? hundred : v;
     }
 }

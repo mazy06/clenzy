@@ -7,5 +7,7 @@ package com.clenzy.dto;
 public record UpsertActivityConfigRequest(
     String apiKey,
     String affiliateId,
-    boolean enabled
+    boolean enabled,
+    /** Part Baitly (%) sur la commission de ce programme. null = rien retenu. */
+    java.math.BigDecimal platformCommissionPct
 ) {}

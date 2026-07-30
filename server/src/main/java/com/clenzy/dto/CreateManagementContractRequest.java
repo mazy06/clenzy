@@ -23,7 +23,6 @@ public record CreateManagementContractRequest(
     Boolean maintenanceIncluded,
     String notes,
     BigDecimal upsellCommissionRate,
-    BigDecimal activityCommissionRate,
     /** Modèle de flux/répartition (null = DIRECT par défaut côté service). */
     PaymentModel paymentModel,
     /** Base de commission brut/net OTA (null = GROSS par défaut côté service). */

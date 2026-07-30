@@ -1,12 +1,14 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.ChannelCommissionDto;
+import com.clenzy.dto.ChannelCommissionOverviewDto;
 import com.clenzy.dto.OwnerPayoutDto;
 import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.model.OwnerPayout;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
 import com.clenzy.service.AccountingQueryService;
 import com.clenzy.service.AccountingService;
+import com.clenzy.service.ChannelCommissionOverviewService;
 import com.clenzy.service.OwnerStatementService;
 import com.clenzy.service.PayoutExecutionService;
 import com.clenzy.tenant.TenantContext;
@@ -31,17 +33,20 @@ public class AccountingController {
     private final AccountingQueryService accountingQueryService;
     private final TenantContext tenantContext;
     private final OwnerStatementService ownerStatementService;
+    private final ChannelCommissionOverviewService overviewService;
 
     public AccountingController(AccountingService accountingService,
                                 PayoutExecutionService payoutExecutionService,
                                 AccountingQueryService accountingQueryService,
                                 TenantContext tenantContext,
-                                OwnerStatementService ownerStatementService) {
+                                OwnerStatementService ownerStatementService,
+                                ChannelCommissionOverviewService overviewService) {
         this.accountingService = accountingService;
         this.payoutExecutionService = payoutExecutionService;
         this.accountingQueryService = accountingQueryService;
         this.tenantContext = tenantContext;
         this.ownerStatementService = ownerStatementService;
+        this.overviewService = overviewService;
     }
 
     @GetMapping("/payouts")
@@ -187,6 +192,16 @@ public class AccountingController {
         return accountingService.getChannelCommissions(orgId).stream()
             .map(ChannelCommissionDto::from)
             .toList();
+    }
+
+    /**
+     * Vue d'ensemble par canal : taux de reference applique en repli et taux
+     * reellement facture sur douze mois. Distinct de {@link #getCommissions()},
+     * qui ne renvoie que les surcharges enregistrees par l'organisation.
+     */
+    @GetMapping("/commissions/overview")
+    public List<ChannelCommissionOverviewDto> getCommissionOverview() {
+        return overviewService.getOverview(tenantContext.getOrganizationId());
     }
 
     @PutMapping("/commissions/{channel}")

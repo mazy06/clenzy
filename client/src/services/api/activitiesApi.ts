@@ -8,12 +8,15 @@ export interface ActivityConfig {
   affiliateId: string | null;
   enabled: boolean;
   hasKey: boolean;
+  /** Part Baitly (%) retenue sur la commission de ce programme. null = rien retenu. */
+  platformCommissionPct: number | null;
 }
 
 export interface UpsertActivityConfigRequest {
   apiKey?: string | null;
   affiliateId?: string | null;
   enabled: boolean;
+  platformCommissionPct?: number | null;
 }
 
 /** Activité normalisée affichée sur le livret guest. */

@@ -7,6 +7,7 @@ import type { PayoutStatus, ChannelCommission } from '../services/api/accounting
 export const accountingKeys = {
   payouts: ['accounting-payouts'] as const,
   commissions: ['accounting-commissions'] as const,
+  commissionOverview: ['accounting-commission-overview'] as const,
 };
 
 // ─── Hooks ──────────────────────────────────────────────────────────────────
@@ -48,6 +49,15 @@ export function useCommissions() {
   });
 }
 
+/** Taux de reference + taux reellement constate, par canal. */
+export function useCommissionOverview() {
+  return useQuery({
+    queryKey: accountingKeys.commissionOverview,
+    queryFn: () => accountingApi.getCommissionOverview(),
+    staleTime: 120_000,
+  });
+}
+
 export function useSaveCommission() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -55,6 +65,8 @@ export function useSaveCommission() {
       accountingApi.saveCommission(channel, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: accountingKeys.commissions });
+      // Le taux du booking engine alimente aussi la colonne « appliqué » de la vue.
+      queryClient.invalidateQueries({ queryKey: accountingKeys.commissionOverview });
     },
   });
 }

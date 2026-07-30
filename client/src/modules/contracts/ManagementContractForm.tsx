@@ -125,7 +125,6 @@ export const EMPTY_FORM: CreateManagementContractRequest = {
   cleaningFeeIncluded: true,
   maintenanceIncluded: true,
   upsellCommissionRate: null,
-  activityCommissionRate: null,
   paymentModel: 'DIRECT',
   commissionBase: 'GROSS',
   otaFeeBorneBy: 'AGENCY',
@@ -386,15 +385,6 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
               label="Upsells" type="number"
               value={form.upsellCommissionRate != null ? Math.round(form.upsellCommissionRate * 100) : ''}
               onChange={e => setForm(prev => ({ ...prev, upsellCommissionRate: e.target.value ? Number(e.target.value) / 100 : null }))}
-              size="small" fullWidth
-              placeholder="Défaut org"
-              InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-              inputProps={{ min: 0, max: 100, step: 1, style: { fontVariantNumeric: 'tabular-nums' } }}
-            />
-            <TextField
-              label="Marketplace" type="number"
-              value={form.activityCommissionRate != null ? Math.round(form.activityCommissionRate * 100) : ''}
-              onChange={e => setForm(prev => ({ ...prev, activityCommissionRate: e.target.value ? Number(e.target.value) / 100 : null }))}
               size="small" fullWidth
               placeholder="Défaut org"
               InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}

@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -38,6 +39,14 @@ public class ActivityAffiliateConfig {
     @Column(nullable = false)
     private boolean enabled = false;
 
+    /**
+     * Part Baitly (%) retenue sur la commission d'affiliation versee par ce
+     * programme. {@code null} = rien retenu : l'integralite revient a l'hote.
+     * Un taux par programme, chacun se negociant separement.
+     */
+    @Column(name = "platform_commission_pct", precision = 5, scale = 2)
+    private BigDecimal platformCommissionPct;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -58,6 +67,8 @@ public class ActivityAffiliateConfig {
     public void setAffiliateId(String affiliateId) { this.affiliateId = affiliateId; }
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    public BigDecimal getPlatformCommissionPct() { return platformCommissionPct; }
+    public void setPlatformCommissionPct(BigDecimal v) { this.platformCommissionPct = v; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

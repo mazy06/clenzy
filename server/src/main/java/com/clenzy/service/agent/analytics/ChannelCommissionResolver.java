@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Source unique de vérité pour la commission canal et la normalisation de source
@@ -52,6 +53,17 @@ public class ChannelCommissionResolver {
     /** Taux par défaut pour un canal déjà normalisé (0 si inconnu). */
     public double rateFor(String channel) {
         return DEFAULT_RATES.getOrDefault(channel, 0.0);
+    }
+
+    /**
+     * Canaux pour lesquels un taux de référence existe.
+     *
+     * <p>Exposé pour que l'écran de paramétrage énumère les mêmes canaux que
+     * ceux réellement utilisés par le calcul, plutôt qu'une liste recopiée qui
+     * dériverait au premier taux ajouté ici.</p>
+     */
+    public Set<String> knownChannels() {
+        return DEFAULT_RATES.keySet();
     }
 
     /** Commission : {@code otaFeeAmount} réel si présent, sinon {@code gross} × taux par défaut. */

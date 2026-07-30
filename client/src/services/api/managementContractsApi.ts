@@ -35,7 +35,6 @@ export interface ManagementContract {
   /** Part conciergerie sur les upsells (fraction) ; null = défaut org. */
   upsellCommissionRate: number | null;
   /** Part conciergerie sur les activités/marketplace (fraction) ; null = défaut org. */
-  activityCommissionRate: number | null;
   /** Modèle de flux/répartition (taxonomie OTA). */
   paymentModel: PaymentModel;
   /** Base de calcul de la commission. */
@@ -64,7 +63,6 @@ export interface CreateManagementContractRequest {
   endDate?: string | null;
   commissionRate: number;
   upsellCommissionRate?: number | null;
-  activityCommissionRate?: number | null;
   paymentModel?: PaymentModel;
   commissionBase?: CommissionBase;
   otaFeeBorneBy?: OtaFeeBearer;

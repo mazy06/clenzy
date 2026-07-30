@@ -1,5 +1,6 @@
 import React from 'react';
-import { Avatar, Box, Paper, Typography } from '@mui/material';
+import { Avatar, Box, Paper, Tooltip, Typography } from '@mui/material';
+import { Info } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export type SettingsSectionAccent = 'primary' | 'accent' | 'info' | 'warm' | 'danger' | 'neutral';
@@ -19,6 +20,15 @@ interface SettingsSectionProps {
   icon: LucideIcon;
   accent?: SettingsSectionAccent;
   description?: string;
+  /**
+   * Explication longue, repliee derriere une icone a cote du titre.
+   *
+   * <p>A preferer a `description` des que le texte depasse une ligne : en clair,
+   * il pousse le contenu utile vers le bas a chaque affichage, alors qu'on ne le
+   * lit qu'une fois. Les deux props peuvent coexister — `description` pour le
+   * rappel court, `help` pour le detail.</p>
+   */
+  help?: string;
   action?: React.ReactNode;
   children: React.ReactNode;
   /**
@@ -40,6 +50,7 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
   icon: Icon,
   accent = 'primary',
   description,
+  help,
   action,
   children,
   avatar,
@@ -114,17 +125,54 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
             </Box>
           )}
           <Box sx={{ minWidth: 0 }}>
-            <Typography
-              fontWeight={600}
-              sx={{
-                fontSize: '0.9rem',
-                lineHeight: 1.25,
-                color: 'text.primary',
-                letterSpacing: '-0.005em',
-              }}
-            >
-              {title}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, minWidth: 0 }}>
+              <Typography
+                fontWeight={600}
+                sx={{
+                  fontSize: '0.9rem',
+                  lineHeight: 1.25,
+                  color: 'text.primary',
+                  letterSpacing: '-0.005em',
+                }}
+              >
+                {title}
+              </Typography>
+              {help && (
+                <Tooltip
+                  title={help}
+                  placement="top"
+                  componentsProps={{
+                    tooltip: { sx: { maxWidth: 320, fontSize: '0.72rem', lineHeight: 1.45 } },
+                  }}
+                >
+                  {/* tabIndex : le tooltip s'ouvre aussi au clavier, sinon
+                      l'explication est inaccessible sans souris. */}
+                  <Box
+                    component="span"
+                    tabIndex={0}
+                    role="note"
+                    aria-label={help}
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      flexShrink: 0,
+                      color: 'text.disabled',
+                      cursor: 'help',
+                      borderRadius: '4px',
+                      transition: 'color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+                      '&:hover': { color: 'text.secondary' },
+                      '&:focus-visible': {
+                        outline: '2px solid var(--accent)',
+                        outlineOffset: 2,
+                        color: 'text.secondary',
+                      },
+                    }}
+                  >
+                    <Info size={13} strokeWidth={2} />
+                  </Box>
+                </Tooltip>
+              )}
+            </Box>
             {description && (
               <Typography
                 sx={{

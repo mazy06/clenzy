@@ -113,7 +113,6 @@ public class ManagementContractService {
         contract.setEndDate(request.endDate());
         contract.setCommissionRate(request.commissionRate());
         contract.setUpsellCommissionRate(request.upsellCommissionRate());
-        contract.setActivityCommissionRate(request.activityCommissionRate());
         contract.setPaymentModel(request.paymentModel() != null ? request.paymentModel() : ManagementContract.PaymentModel.DIRECT);
         contract.setCommissionBase(request.commissionBase() != null ? request.commissionBase() : ManagementContract.CommissionBase.GROSS);
         contract.setOtaFeeBorneBy(request.otaFeeBorneBy() != null ? request.otaFeeBorneBy() : ManagementContract.OtaFeeBearer.AGENCY);
@@ -262,7 +261,6 @@ public class ManagementContractService {
         contract.setEndDate(request.endDate());
         contract.setCommissionRate(request.commissionRate());
         contract.setUpsellCommissionRate(request.upsellCommissionRate());
-        contract.setActivityCommissionRate(request.activityCommissionRate());
         if (request.paymentModel() != null) contract.setPaymentModel(request.paymentModel());
         if (request.commissionBase() != null) contract.setCommissionBase(request.commissionBase());
         if (request.otaFeeBorneBy() != null) contract.setOtaFeeBorneBy(request.otaFeeBorneBy());

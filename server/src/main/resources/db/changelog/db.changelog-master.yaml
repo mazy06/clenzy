@@ -3571,3 +3571,24 @@ databaseChangeLog:
       sqlFile:
         path: changes/0374__ota_fee_bearer_and_payout_ota_fees.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0375-drop-activity-commission-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0375__drop_activity_commission_config.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0376-add-affiliate-platform-commission"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0376__add_affiliate_platform_commission.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0377-drop-contract-activity-commission-rate"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0377__drop_contract_activity_commission_rate.sql
+        relativeToChangelogFile: true

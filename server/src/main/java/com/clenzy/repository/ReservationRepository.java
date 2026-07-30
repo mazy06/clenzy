@@ -534,4 +534,40 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     List<Reservation> findActiveByICalFeedId(
             @Param("feedId") Long feedId,
             @Param("orgId") Long orgId);
+
+    /**
+     * Agregat des frais OTA par source brute, pour comparer le taux de commission
+     * reellement facture au taux de reference utilise en repli.
+     *
+     * <p>Groupe sur la source BRUTE et non normalisee : la normalisation
+     * ({@code airbnb_api}, {@code Airbnb} → {@code airbnb}) vit dans
+     * {@code ChannelCommissionResolver} et n'a pas d'equivalent SQL fiable. Le
+     * nombre de valeurs distinctes est faible, le regroupement final se fait en
+     * Java avec la meme regle que le calcul de commission.</p>
+     *
+     * <p>{@code realFeeGross} n'additionne que le brut des sejours qui portent
+     * une commission reelle : diviser {@code realFeeTotal} par le brut de TOUS
+     * les sejours sous-estimerait le taux observe des qu'un seul sejour du canal
+     * n'a pas remonte sa commission.</p>
+     */
+    @Query("SELECT LOWER(r.source) AS source, "
+         + "COUNT(r) AS stayCount, "
+         + "COUNT(r.otaFeeAmount) AS realFeeCount, "
+         + "COALESCE(SUM(r.otaFeeAmount), 0) AS realFeeTotal, "
+         + "COALESCE(SUM(CASE WHEN r.otaFeeAmount IS NOT NULL THEN r.totalPrice ELSE 0 END), 0) AS realFeeGross "
+         + "FROM Reservation r "
+         + "WHERE r.organizationId = :orgId AND r.status <> 'cancelled' "
+         + "AND r.checkIn >= :from "
+         + "GROUP BY LOWER(r.source)")
+    List<ChannelFeeAggregate> aggregateOtaFeesBySource(@Param("orgId") Long orgId,
+                                                       @Param("from") LocalDate from);
+
+    /** Projection de {@link #aggregateOtaFeesBySource}. */
+    interface ChannelFeeAggregate {
+        String getSource();
+        long getStayCount();
+        long getRealFeeCount();
+        BigDecimal getRealFeeTotal();
+        BigDecimal getRealFeeGross();
+    }
 }

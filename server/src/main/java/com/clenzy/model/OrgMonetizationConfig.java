@@ -11,10 +11,15 @@ import java.time.LocalDateTime;
  * Taux de monétisation par organisation, sur deux niveaux d'accès :
  *
  * <ul>
- *   <li><b>Commission plateforme</b> (ce que Clenzy prélève) — réglable UNIQUEMENT par
- *       le staff plateforme : {@code upsellPlatformFeePct}, {@code activityPlatformCommissionPct}.</li>
+ *   <li><b>Commission plateforme</b> (ce que Baitly prélève) — réglable UNIQUEMENT par
+ *       le staff plateforme : {@code upsellPlatformFeePct}.</li>
  *   <li><b>Commission de l'org</b> (part conciergerie sur le reste après plateforme) —
- *       réglable par l'org/host : {@code upsellOrgCommissionPct}, {@code activityOrgCommissionPct}.</li>
+ *       réglable par l'org/host : {@code upsellOrgCommissionPct}.</li>
+ * </ul>
+ *
+ * <p>Les taux d'activités ont été retirés (changeset 0375) : les activités
+ * passent par affiliation, aucun montant ne transite par Baitly, il n'y avait
+ * donc rien à répartir.
  * </ul>
  *
  * <p>Valeurs nullables = défaut global. Une ligne par org. L'hôte (propriétaire) reçoit
@@ -38,18 +43,10 @@ public class OrgMonetizationConfig {
     @Column(name = "upsell_platform_fee_pct", precision = 5, scale = 2)
     private BigDecimal upsellPlatformFeePct;
 
-    /** Commission plateforme (%) sur les activités. Null = défaut global. */
-    @Column(name = "activity_platform_commission_pct", precision = 5, scale = 2)
-    private BigDecimal activityPlatformCommissionPct;
-
     // ─── Commission org / conciergerie (org-editable) ────────────────────────
     /** Part org/conciergerie (%) sur le reste des upsells après plateforme. Null = 0. */
     @Column(name = "upsell_org_commission_pct", precision = 5, scale = 2)
     private BigDecimal upsellOrgCommissionPct;
-
-    /** Part org/conciergerie (%) sur le reste des commissions d'activités après plateforme. Null = 0. */
-    @Column(name = "activity_org_commission_pct", precision = 5, scale = 2)
-    private BigDecimal activityOrgCommissionPct;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -65,12 +62,8 @@ public class OrgMonetizationConfig {
     public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
     public BigDecimal getUpsellPlatformFeePct() { return upsellPlatformFeePct; }
     public void setUpsellPlatformFeePct(BigDecimal v) { this.upsellPlatformFeePct = v; }
-    public BigDecimal getActivityPlatformCommissionPct() { return activityPlatformCommissionPct; }
-    public void setActivityPlatformCommissionPct(BigDecimal v) { this.activityPlatformCommissionPct = v; }
     public BigDecimal getUpsellOrgCommissionPct() { return upsellOrgCommissionPct; }
     public void setUpsellOrgCommissionPct(BigDecimal v) { this.upsellOrgCommissionPct = v; }
-    public BigDecimal getActivityOrgCommissionPct() { return activityOrgCommissionPct; }
-    public void setActivityOrgCommissionPct(BigDecimal v) { this.activityOrgCommissionPct = v; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }
