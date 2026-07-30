@@ -5,6 +5,7 @@ import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.GuestRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.service.agent.analytics.ChannelCommissionResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -38,7 +39,10 @@ class ReservationMapperTest {
 
     @BeforeEach
     void setUp() {
-        mapper = new ReservationMapper(propertyRepository, guestRepository);
+        // Resolver reel, pas un mock : c'est lui qui porte la regle « frais reel
+        // sinon estimation », et la mocker reviendrait a tester le mock.
+        mapper = new ReservationMapper(propertyRepository, guestRepository,
+            new ChannelCommissionResolver());
     }
 
     private Reservation createReservation() {
@@ -419,5 +423,57 @@ class ReservationMapperTest {
             assertThat(dto.paymentLinkSentAt()).isEqualTo(when.toString());
             assertThat(dto.paymentLinkEmail()).isEqualTo("p@x.com");
         }
+    }
+
+    @Test
+    void toDto_exposesTheRealFee_whenTheChannelReportedIt() {
+        Reservation r = createReservation();
+        r.setSource("airbnb");
+        r.setTotalPrice(new BigDecimal("1000.00"));
+        r.setOtaFeeAmount(new BigDecimal("44.87"));
+
+        ReservationDto dto = mapper.toDto(r);
+
+        assertThat(dto.otaFeeAmount()).isEqualTo(44.87);
+        assertThat(dto.otaFeeEstimated()).isFalse();
+    }
+
+    @Test
+    void toDto_fallsBackToAnEstimate_andSaysSo() {
+        Reservation r = createReservation();
+        r.setSource("airbnb");
+        r.setTotalPrice(new BigDecimal("1000.00"));
+        r.setOtaFeeAmount(null);
+
+        ReservationDto dto = mapper.toDto(r);
+
+        // 15,5 % : le taux par defaut Airbnb du resolver.
+        assertThat(dto.otaFeeAmount()).isEqualTo(155.0);
+        assertThat(dto.otaFeeEstimated()).isTrue();
+    }
+
+    @Test
+    void toDto_exposesNoFee_onADirectSale() {
+        Reservation r = createReservation();
+        r.setSource("direct");
+        r.setTotalPrice(new BigDecimal("1000.00"));
+        r.setOtaFeeAmount(null);
+
+        ReservationDto dto = mapper.toDto(r);
+
+        assertThat(dto.otaFeeAmount()).isNull();
+        assertThat(dto.otaFeeEstimated()).isFalse();
+    }
+
+    @Test
+    void toDto_exposesNoFee_withoutAPriceToEstimateFrom() {
+        Reservation r = createReservation();
+        r.setSource("airbnb");
+        r.setTotalPrice(null);
+        r.setOtaFeeAmount(null);
+
+        ReservationDto dto = mapper.toDto(r);
+
+        assertThat(dto.otaFeeAmount()).isNull();
     }
 }

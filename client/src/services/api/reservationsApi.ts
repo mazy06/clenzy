@@ -53,6 +53,19 @@ export interface Reservation {
   // Payment status (from Stripe)
   paymentStatus?: string;      // PAID, PENDING, PROCESSING, FAILED, etc.
   paidAt?: string;             // ISO datetime string
+  /**
+   * Commission prélevée par le canal sur ce séjour. Absente sur une vente
+   * directe, ou faute de prix pour l'estimer. Sortie seule : jamais renvoyée
+   * au serveur.
+   */
+  otaFeeAmount?: number | null;
+  /**
+   * `true` quand le montant ci-dessus est estimé au taux par défaut du canal,
+   * `false` quand le canal l'a réellement remonté (Channex le fournit pour
+   * Booking.com et Airbnb). L'écran doit le dire : sans cette distinction, une
+   * estimation se lit comme un relevé.
+   */
+  otaFeeEstimated?: boolean;
 }
 
 export interface ReservationFilters {
