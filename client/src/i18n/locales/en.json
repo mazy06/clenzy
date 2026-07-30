@@ -3527,7 +3527,16 @@
       "source": "Source",
       "status": "Status",
       "affiliationProjection": "Projection on €100 of affiliate commission received by Baitly, which keeps its share and pays you the balance. An empty rate means nothing is withheld.",
-      "baitlyRate": "Baitly share"
+      "baitlyRate": "Baitly share",
+      "importTitle": "Import a report",
+      "importTooltip": "Import a conversions report",
+      "importHint": "Export your conversions from the programme dashboard, then drop the file here. A booking reference column and a commission amount column are enough; the separator and number format are detected automatically.",
+      "importAction": "Import",
+      "importFailed": "The import failed.",
+      "importEmpty": "No usable commission in this file: rows without a reference or an amount are skipped.",
+      "importDone": "{{count}} commission(s) recorded.",
+      "importGross": "Commission received",
+      "importIdempotent": "References already imported are returned without being credited a second time."
     }
   },
   "contracts": {

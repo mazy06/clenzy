@@ -41,7 +41,30 @@ export interface ActivityCommissionSummary {
   currency: string;
 }
 
+/** Une commission d'affiliation enregistree par l'import. */
+export interface ImportedAffiliateEarning {
+  provider: string;
+  externalBookingId: string | null;
+  grossCommission: number;
+  hostShare: number;
+  platformShare: number;
+  currency: string;
+}
+
 export const activitiesApi = {
+  /**
+   * Importe un export de conversions telecharge depuis le tableau de bord du
+   * programme. Idempotent par reference : reimporter un fichier qui chevauche
+   * le precedent ne credite personne deux fois.
+   */
+  importEarningsCsv: (provider: ActivityProvider, file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiClient.post<ImportedAffiliateEarning[]>(
+      `/activities/commissions/import/csv?provider=${provider}`,
+      form,
+    );
+  },
   listConfigs: () => apiClient.get<ActivityConfig[]>('/activities/configs'),
   upsertConfig: (provider: ActivityProvider, data: UpsertActivityConfigRequest) =>
     apiClient.put<ActivityConfig>(`/activities/configs/${provider}`, data),

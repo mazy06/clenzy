@@ -3549,7 +3549,16 @@
       "source": "Source",
       "status": "Statut",
       "affiliationProjection": "Projection sur 100 € de commission d'affiliation perçue par Baitly, qui en retient sa part et vous reverse le solde. Un taux vide signifie qu'aucune part n'est retenue.",
-      "baitlyRate": "Part Baitly"
+      "baitlyRate": "Part Baitly",
+      "importTitle": "Importer un rapport",
+      "importTooltip": "Importer un rapport de conversions",
+      "importHint": "Exportez vos conversions depuis le tableau de bord du programme, puis déposez le fichier ici. Les colonnes de référence de réservation et de montant de commission suffisent ; le séparateur et le format des montants sont détectés automatiquement.",
+      "importAction": "Importer",
+      "importFailed": "L'import a échoué.",
+      "importEmpty": "Aucune commission exploitable dans ce fichier : les lignes sans référence ni montant sont ignorées.",
+      "importDone": "{{count}} commission(s) enregistrée(s).",
+      "importGross": "Commission perçue",
+      "importIdempotent": "Les références déjà importées sont renvoyées sans être créditées une seconde fois."
     }
   },
   "contracts": {

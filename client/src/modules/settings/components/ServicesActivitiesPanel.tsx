@@ -17,8 +17,9 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { Save } from "../../../icons";
+import { Save, Upload } from "../../../icons";
 import SplitBarEditor from "./SplitBarEditor";
+import AffiliateImportDialog from "./AffiliateImportDialog";
 import type { SplitBarSegment } from "./SplitBarEditor";
 import { activitiesApi } from "../../../services/api/activitiesApi";
 import type {
@@ -119,6 +120,7 @@ export default function ServicesActivitiesPanel({
   const [configs, setConfigs] = useState<ActivityConfig[]>([]);
   const [rates, setRates] = useState<Record<string, string>>({});
   const [savingProvider, setSavingProvider] = useState<string | null>(null);
+  const [importProvider, setImportProvider] = useState<ActivityProvider | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -373,6 +375,39 @@ export default function ServicesActivitiesPanel({
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
+                      <Box sx={{ display: "inline-flex", gap: 0.5 }}>
+                      <Tooltip
+                        title={t(
+                          "settings.services.importTooltip",
+                          "Importer un rapport de conversions",
+                        )}
+                      >
+                        <IconButton
+                          size="small"
+                          onClick={() => setImportProvider(provider as ActivityProvider)}
+                          aria-label={`${t("settings.services.importTitle", "Importer un rapport")} — ${PROVIDER_LABELS[provider]}`}
+                          sx={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: "7px",
+                            color: "text.secondary",
+                            border: "1px solid",
+                            borderColor: "divider",
+                            transition:
+                              "border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)",
+                            "&:hover": {
+                              color: "var(--accent)",
+                              borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
+                            },
+                            "&:focus-visible": {
+                              outline: "2px solid var(--accent)",
+                              outlineOffset: 2,
+                            },
+                          }}
+                        >
+                          <Upload size={13} strokeWidth={1.75} />
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip title={t("common.save", "Enregistrer")}>
                         <span>
                           <IconButton
@@ -407,6 +442,7 @@ export default function ServicesActivitiesPanel({
                           </IconButton>
                         </span>
                       </Tooltip>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 );
@@ -429,6 +465,12 @@ export default function ServicesActivitiesPanel({
           )}
         </Typography>
       </Box>
+
+      <AffiliateImportDialog
+        open={importProvider !== null}
+        provider={importProvider}
+        onClose={() => setImportProvider(null)}
+      />
     </>
   );
 }
