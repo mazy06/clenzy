@@ -128,4 +128,78 @@ class ManagementCommissionCalculatorTest {
             contract("0.20", ManagementContract.CommissionBase.GROSS)).amount())
             .isEqualByComparingTo("0.00");
     }
+
+    /**
+     * Sur un séjour OTA, la conciergerie n'encaisse jamais le brut : la plateforme retient
+     * à la source. Reverser le brut moins la commission lui fait donc absorber ces frais
+     * en silence. {@code OtaFeeBearer} rend le choix explicite, et {@code AGENCY} — le
+     * défaut — préserve le comportement historique.
+     */
+    @Test
+    @DisplayName("frais OTA a la charge de l'agence : rien n'est deduit du proprietaire")
+    void agencyBearsTheOtaFeeByDefault() {
+        ManagementContract c = contract("0.20", ManagementContract.CommissionBase.NET_OF_OTA_FEE);
+
+        assertThat(c.getOtaFeeBorneBy()).isEqualTo(ManagementContract.OtaFeeBearer.AGENCY);
+        assertThat(calculator.of(reservation("289.50", "44.87"), c).otaFeeBorneByOwner())
+            .isEqualByComparingTo("0");
+    }
+
+    @Test
+    @DisplayName("frais OTA a la charge du proprietaire : imputes a son reversement")
+    void ownerBearsTheOtaFeeWhenTheContractSaysSo() {
+        ManagementContract c = contract("0.20", ManagementContract.CommissionBase.NET_OF_OTA_FEE);
+        c.setOtaFeeBorneBy(ManagementContract.OtaFeeBearer.OWNER);
+
+        ManagementCommissionCalculator.Commission commission =
+            calculator.of(reservation("289.50", "44.87"), c);
+
+        assertThat(commission.otaFeeBorneByOwner()).isEqualByComparingTo("44.87");
+        // 289,50 - 44,87 - 48,93 = 195,70 : la conciergerie encaisse 244,63 de l'OTA et
+        // garde exactement sa commission, ni plus ni moins.
+        assertThat(commission.amount()).isEqualByComparingTo("48.93");
+    }
+
+    /** On n'impute au propriétaire aucun frais qui ne soit écrit dans un contrat. */
+    @Test
+    @DisplayName("pas de contrat : aucun frais OTA impute")
+    void noContractImputesNoOtaFee() {
+        assertThat(calculator.of(reservation("289.50", "44.87"), null).otaFeeBorneByOwner())
+            .isEqualByComparingTo("0");
+    }
+
+    /**
+     * L'égalité « virement retenu = somme des factures » ne tient que si le contrat se
+     * résout par LOGEMENT. Les factures sont émises avec le contrat de chaque bien : un
+     * propriétaire multi-logements verrait sinon ses séjours facturés sous un contrat et
+     * retenus sous un autre.
+     */
+    @Test
+    @DisplayName("un lot multi-contrats calcule chaque sejour sous le sien")
+    void aBatchResolvesTheContractPerStay() {
+        ManagementContract surNet = contract("0.20", ManagementContract.CommissionBase.NET_OF_OTA_FEE);
+        ManagementContract surBrut = contract("0.20", ManagementContract.CommissionBase.GROSS);
+
+        Reservation a = reservation("289.50", "44.87");
+        Reservation b = reservation("289.50", "44.87");
+
+        ManagementCommissionCalculator.Commission commission =
+            calculator.ofAll(List.of(a, b), r -> r == a ? surNet : surBrut);
+
+        // 48,93 + 57,90 : le contrat du premier sejour ne contamine pas le second.
+        assertThat(commission.amount()).isEqualByComparingTo("106.83");
+    }
+
+    @Test
+    @DisplayName("un lot totalise les frais OTA imputes au proprietaire")
+    void aBatchTotalsTheOwnerBorneOtaFees() {
+        ManagementContract c = contract("0.20", ManagementContract.CommissionBase.NET_OF_OTA_FEE);
+        c.setOtaFeeBorneBy(ManagementContract.OtaFeeBearer.OWNER);
+
+        ManagementCommissionCalculator.Commission commission = calculator.ofAll(
+            List.of(reservation("289.50", "44.87"), reservation("133.33", null)), c);
+
+        // Le second sejour n'a pas de frais OTA connus : rien a imputer.
+        assertThat(commission.otaFeeBorneByOwner()).isEqualByComparingTo("44.87");
+    }
 }

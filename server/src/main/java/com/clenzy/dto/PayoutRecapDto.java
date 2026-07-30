@@ -29,6 +29,11 @@ public record PayoutRecapDto(
         LocalDate periodEnd,
 
         BigDecimal grossRevenue,
+        /**
+         * Frais prélevés par l'OTA et déduits, quand le contrat les met à la charge du
+         * propriétaire. Zéro quand la conciergerie les absorbe — l'écran masque alors la ligne.
+         */
+        BigDecimal otaFees,
         /** Taux appliqué, en pourcentage lisible (20.00 et non 0.20). */
         BigDecimal commissionRate,
         BigDecimal commissionAmount,

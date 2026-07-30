@@ -501,6 +501,18 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                   {fmtCurrency(statement.totalCommissions)}
                 </Typography>
               </Grid>
+              {/* Frais OTA : affiches seulement quand le proprietaire les supporte.
+                  A la charge de la conciergerie, ils ne sortent pas de son releve. */}
+              {statement.totalOtaFees > 0 && (
+                <Grid item xs={6} sm={3}>
+                  <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                    {t('ownerPortal.totalOtaFees', 'Frais OTA')}
+                  </Typography>
+                  <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#ef5350' }}>
+                    {fmtCurrency(statement.totalOtaFees)}
+                  </Typography>
+                </Grid>
+              )}
               <Grid item xs={6} sm={3}>
                 <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
                   {t('ownerPortal.totalExpenses', 'Depenses')}
@@ -531,6 +543,9 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                     <TableCell sx={HEAD_CELL_SX}>{t('ownerPortal.col.property', 'Propriete')}</TableCell>
                     <TableCell sx={HEAD_CELL_SX}>{t('ownerPortal.col.type', 'Type')}</TableCell>
                     <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.amount', 'Montant')}</TableCell>
+                    {statement.totalOtaFees > 0 && (
+                      <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.otaFee', 'Frais OTA')}</TableCell>
+                    )}
                     <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.commission', 'Commission')}</TableCell>
                     <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.net', 'Net')}</TableCell>
                   </TableRow>
@@ -549,6 +564,9 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                         />
                       </TableCell>
                       <TableCell sx={CELL_SX} align="right">{fmtCurrency(line.amount)}</TableCell>
+                      {statement.totalOtaFees > 0 && (
+                        <TableCell sx={CELL_SX} align="right">{fmtCurrency(line.otaFee)}</TableCell>
+                      )}
                       <TableCell sx={CELL_SX} align="right">{fmtCurrency(line.commission)}</TableCell>
                       <TableCell sx={{ ...CELL_SX, fontWeight: 700 }} align="right">{fmtCurrency(line.net)}</TableCell>
                     </TableRow>

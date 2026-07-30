@@ -29,6 +29,9 @@ import java.util.*;
  * propriétaire une retenue sans rapport avec son contrat ni avec ce qui lui était
  * effectivement prélevé. Sans contrat actif, la commission affichée est nulle : c'est
  * aussi ce que le virement retient.</p>
+ *
+ * <p>Le propriétaire doit pouvoir poser son relevé, sa facture et son virement côte à
+ * côte sans y trouver trois chiffres.</p>
  */
 @Service
 @Transactional(readOnly = true)
@@ -75,6 +78,7 @@ public class OwnerPortalService {
         // Somme des commissions par logement, et non taux × chiffre d'affaires global :
         // chaque logement a son contrat, donc son taux et sa base.
         BigDecimal totalCommissions = BigDecimal.ZERO;
+        BigDecimal totalNet = BigDecimal.ZERO;
         int activeReservations = 0;
         double totalRating = 0;
         int ratingCount = 0;
@@ -86,15 +90,21 @@ public class OwnerPortalService {
                 .filter(r -> r.getProperty().getId().equals(property.getId()))
                 .toList();
 
+            // Un seul contrat par logement : resolu une fois, applique a chaque sejour.
+            ManagementContract contract = managementContractService
+                .getActiveContract(property.getId(), orgId).orElse(null);
+
+            ManagementCommissionCalculator.Commission commission =
+                commissionCalculator.ofAll(propReservations, contract);
+
             BigDecimal propRevenue = propReservations.stream()
                 .map(Reservation::getTotalPrice)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            ManagementContract contract = managementContractService
-                .getActiveContract(property.getId(), orgId).orElse(null);
-            BigDecimal propCommission = commissionCalculator
-                .ofAll(propReservations, contract).amount();
+            BigDecimal propCommission = commission.amount();
+            BigDecimal propNet = propRevenue
+                .subtract(commission.otaFeeBorneByOwner())
+                .subtract(propCommission);
 
             // Active reservations (current)
             activeReservations += (int) propReservations.stream()
@@ -117,6 +127,7 @@ public class OwnerPortalService {
 
             totalRevenue = totalRevenue.add(propRevenue);
             totalCommissions = totalCommissions.add(propCommission);
+            totalNet = totalNet.add(propNet);
             if (avgRating != null) {
                 totalRating += avgRating;
                 ratingCount++;
@@ -132,8 +143,7 @@ public class OwnerPortalService {
 
             propertySummaries.add(new OwnerPropertySummaryDto(
                 property.getId(), property.getName(), propReservations.size(),
-                propRevenue, propCommission,
-                propRevenue.subtract(propCommission),
+                propRevenue, propCommission, propNet,
                 Math.round(occupancy * 10.0) / 10.0,
                 avgRating
             ));
@@ -143,49 +153,69 @@ public class OwnerPortalService {
 
         return new OwnerDashboardDto(
             ownerId, properties.size(), activeReservations,
-            totalRevenue, totalCommissions, totalRevenue.subtract(totalCommissions),
+            totalRevenue, totalCommissions, totalNet,
             Math.round(averageRating * 10.0) / 10.0,
             Math.round(averageRating * 10.0) / 10.0,
             revenueByMonth, propertySummaries
         );
     }
 
+    /**
+     * Le relevé d'une période, séjour par séjour.
+     *
+     * <p>Même calcul que le virement de la même période : le propriétaire doit pouvoir
+     * poser les deux côte à côte sans y trouver deux chiffres.</p>
+     */
     public OwnerStatementDto getStatement(Long ownerId, Long orgId, LocalDate from, LocalDate to, String ownerName) {
         List<Reservation> reservations = reservationRepository.findByOwnerIdAndDateRange(ownerId, from, to, orgId);
 
-        BigDecimal totalRevenue = BigDecimal.ZERO;
-        BigDecimal totalCommissions = BigDecimal.ZERO;
-        List<StatementLineDto> lines = new ArrayList<>();
         // Les séjours d'un relevé se répartissent sur quelques logements : on résout le
         // contrat une fois par logement plutôt qu'une fois par séjour.
         Map<Long, Optional<ManagementContract>> contractsByProperty = new HashMap<>();
 
+        BigDecimal totalRevenue = BigDecimal.ZERO;
+        BigDecimal totalCommissions = BigDecimal.ZERO;
+        BigDecimal totalOtaFees = BigDecimal.ZERO;
+        BigDecimal totalNet = BigDecimal.ZERO;
+        List<StatementLineDto> lines = new ArrayList<>();
+
         for (Reservation r : reservations) {
+            ManagementCommissionCalculator.Commission commission =
+                commissionCalculator.of(r, resolveContract(r, orgId, contractsByProperty));
+
             BigDecimal amount = r.getTotalPrice() != null ? r.getTotalPrice() : BigDecimal.ZERO;
-            ManagementContract contract = contractsByProperty.computeIfAbsent(
-                r.getProperty().getId(),
-                propertyId -> managementContractService.getActiveContract(propertyId, orgId)
-            ).orElse(null);
-            BigDecimal commission = commissionCalculator.of(r, contract).amount();
-            BigDecimal net = amount.subtract(commission);
+            BigDecimal otaFee = commission.otaFeeBorneByOwner();
+            BigDecimal net = amount.subtract(otaFee).subtract(commission.amount());
 
             totalRevenue = totalRevenue.add(amount);
-            totalCommissions = totalCommissions.add(commission);
+            totalCommissions = totalCommissions.add(commission.amount());
+            totalOtaFees = totalOtaFees.add(otaFee);
+            totalNet = totalNet.add(net);
 
             lines.add(new StatementLineDto(
                 r.getCheckIn(),
                 "Reservation " + r.getGuestName() + " (" + r.getCheckIn() + " - " + r.getCheckOut() + ")",
                 r.getProperty().getName(),
                 "RESERVATION",
-                amount, commission, net
+                amount, otaFee, commission.amount(), net
             ));
         }
 
         return new OwnerStatementDto(
             ownerId, ownerName, from, to,
-            totalRevenue, totalCommissions, BigDecimal.ZERO,
-            totalRevenue.subtract(totalCommissions),
+            totalRevenue, totalCommissions, totalOtaFees, BigDecimal.ZERO,
+            totalNet,
             lines
         );
+    }
+
+    /** Le contrat actif du logement d'une réservation, résolu une fois par logement. */
+    private ManagementContract resolveContract(Reservation reservation, Long orgId,
+                                               Map<Long, Optional<ManagementContract>> cache) {
+        if (reservation.getProperty() == null || reservation.getProperty().getId() == null) {
+            return null;
+        }
+        return cache.computeIfAbsent(reservation.getProperty().getId(),
+            id -> managementContractService.getActiveContract(id, orgId)).orElse(null);
     }
 }

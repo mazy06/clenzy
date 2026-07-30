@@ -371,6 +371,7 @@ public class ActionItemActionService {
                 payout.getPeriodStart(),
                 payout.getPeriodEnd(),
                 payout.getGrossRevenue(),
+                payout.getOtaFees(),
                 // Le taux est stocké en fraction ; l'écran parle en pourcentage.
                 payout.getCommissionRate() == null ? null
                         : payout.getCommissionRate().multiply(java.math.BigDecimal.valueOf(100)),

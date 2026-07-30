@@ -305,7 +305,9 @@ public class InvoiceGeneratorService {
 
         // Assiette et taux : même calcul que le virement propriétaire et le portail
         // (cf. ManagementCommissionCalculator), pour que la facture émise et la
-        // commission retenue ne puissent pas diverger.
+        // commission retenue ne puissent pas diverger. Cette facture affirme d'ailleurs
+        // ce qui sera retenu sur le virement en CONCIERGE_COLLECTS : elle est émise PAID,
+        // mention « retenue reversement ».
         ManagementCommissionCalculator.Commission commission =
             commissionCalculator.of(reservation, contract);
         BigDecimal rate = commission.rate();

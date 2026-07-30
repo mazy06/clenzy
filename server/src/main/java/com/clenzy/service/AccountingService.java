@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
@@ -81,15 +80,24 @@ public class AccountingService {
     /**
      * Génère le virement d'un propriétaire sur la période.
      *
-     * <p>La commission vient de {@link ManagementCommissionCalculator}, partagé avec
-     * la facture de commission et le portail propriétaire : elle est calculée séjour
-     * par séjour, et honore {@code CommissionBase.NET_OF_OTA_FEE} — sans quoi le
-     * virement retiendrait sur le brut ce que la facture calcule sur le net des frais
-     * OTA. Pas de contrat = pas de commission (et non 20 % par défaut).</p>
+     * <p>La commission vient de {@link ManagementCommissionCalculator}, partagé avec la
+     * facture de commission et le portail propriétaire : elle est calculée séjour par
+     * séjour, et honore {@code CommissionBase.NET_OF_OTA_FEE} — sans quoi le virement
+     * retiendrait sur le brut ce que la facture calcule sur le net des frais OTA. C'est
+     * la facture qui fait foi : en {@code CONCIERGE_COLLECTS} elle est émise PAID avec la
+     * mention « retenue reversement », elle affirme donc le montant prélevé ici.</p>
      *
-     * <p>Limite assumée : {@link OwnerPayout} ne stocke qu'UN taux, donc un
-     * propriétaire dont les logements relèvent de contrats différents voit le premier
-     * contrat trouvé appliqué à toute la période (cf. {@code resolveContract}).</p>
+     * <p><b>Le contrat se résout par LOGEMENT.</b> Un propriétaire peut détenir plusieurs
+     * biens sous des taux ou des assiettes différents, et ses factures sont émises avec
+     * le contrat de chacun : appliquer celui du premier séjour à toute la période
+     * romprait l'égalité « retenue = somme des factures » que ce calcul existe pour
+     * garantir.</p>
+     *
+     * <p>{@link OwnerPayout} ne porte qu'UNE colonne de taux : celle-ci n'est donc
+     * qu'indicative quand les contrats divergent (cf. {@code resolveCommissionRate}),
+     * seul {@code commissionAmount} fait foi.</p>
+     *
+     * <p>Pas de contrat actif = pas de commission, et aucun frais OTA imputé.</p>
      */
     @Transactional
     public OwnerPayout generatePayout(Long ownerId, Long orgId, LocalDate from, LocalDate to) {
@@ -101,16 +109,20 @@ public class AccountingService {
 
         List<Reservation> reservations = reservationRepository.findByOwnerIdAndDateRange(ownerId, from, to, orgId);
 
+        // Un contrat par logement, resolu une seule fois : un proprietaire a souvent
+        // plusieurs sejours sur le meme bien.
+        Map<Long, Optional<ManagementContract>> contractsByProperty = new HashMap<>();
+
         BigDecimal grossRevenue = reservations.stream()
             .map(Reservation::getTotalPrice)
             .filter(Objects::nonNull)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        ManagementContract contract = resolveContract(ownerId, orgId, reservations).orElse(null);
-        ManagementCommissionCalculator.Commission commission =
-            commissionCalculator.ofAll(reservations, contract);
-        BigDecimal commissionRate = commission.rate();
+        ManagementCommissionCalculator.Commission commission = commissionCalculator.ofAll(
+            reservations, r -> resolveContract(r, orgId, contractsByProperty));
         BigDecimal commissionAmount = commission.amount();
+        BigDecimal otaFees = commission.otaFeeBorneByOwner();
+        BigDecimal commissionRate = resolveCommissionRate(ownerId, orgId, reservations, contractsByProperty);
 
         // Aggregate APPROVED provider expenses for the owner's properties in this period
         List<ProviderExpense> approvedExpenses = providerExpenseRepository
@@ -120,7 +132,10 @@ public class AccountingService {
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal netAmount = grossRevenue.subtract(commissionAmount).subtract(totalExpenses);
+        BigDecimal netAmount = grossRevenue
+            .subtract(otaFees)
+            .subtract(commissionAmount)
+            .subtract(totalExpenses);
 
         OwnerPayout payout = new OwnerPayout();
         payout.setOrganizationId(orgId);
@@ -130,6 +145,7 @@ public class AccountingService {
         payout.setGrossRevenue(grossRevenue);
         payout.setCommissionRate(commissionRate);
         payout.setCommissionAmount(commissionAmount);
+        payout.setOtaFees(otaFees);
         payout.setExpenses(totalExpenses);
         payout.setNetAmount(netAmount);
         payout.setStatus(PayoutStatus.PENDING);
@@ -145,9 +161,9 @@ public class AccountingService {
             providerExpenseRepository.saveAll(approvedExpenses);
         }
 
-        log.info("Generated payout for owner {} period {}-{}: gross={} commission={}% expenses={} net={}",
-            ownerId, from, to, grossRevenue, commissionRate.multiply(BigDecimal.valueOf(100)),
-            totalExpenses, netAmount);
+        log.info("Reversement genere pour le proprietaire {} periode {}-{}: brut={} commission={} ({}%) fraisOTA={} depenses={} net={}",
+            ownerId, from, to, grossRevenue, commissionAmount,
+            commissionRate.multiply(BigDecimal.valueOf(100)), otaFees, totalExpenses, netAmount);
         return savedPayout;
     }
 
@@ -297,33 +313,53 @@ public class AccountingService {
         });
     }
 
+    /** Le contrat actif du logement d'une reservation, resolu une fois par logement. */
+    private ManagementContract resolveContract(Reservation reservation, Long orgId,
+                                               Map<Long, Optional<ManagementContract>> cache) {
+        if (reservation.getProperty() == null || reservation.getProperty().getId() == null) {
+            return null;
+        }
+        Long propertyId = reservation.getProperty().getId();
+        return cache.computeIfAbsent(propertyId,
+            id -> managementContractService.getActiveContract(id, orgId)).orElse(null);
+    }
+
     /**
-     * Contrat de gestion applicable au lot de séjours d'un propriétaire : le premier
-     * trouvé en parcourant les logements concernés.
+     * Le taux <b>affiché</b> sur le virement.
      *
-     * <p>Ce « premier trouvé » n'est pas un raffinement en attente : {@link OwnerPayout}
-     * ne porte qu'une colonne de taux, donc un virement ne peut de toute façon pas
-     * représenter deux contrats. Un propriétaire multi-contrats doit être payé par
-     * plusieurs virements, pas par un taux moyen.</p>
+     * <p>Ce taux ne sert plus à calculer quoi que ce soit — le montant vient de
+     * {@link ManagementCommissionCalculator}, appliqué séjour par séjour avec le contrat
+     * de chaque logement. {@link OwnerPayout} ne porte qu'un scalaire ; quand les
+     * logements d'un propriétaire relèvent de contrats à taux différents, aucun scalaire
+     * n'est juste. On retient alors le premier et on le signale, plutôt que d'inventer un
+     * taux moyen qui ne figurerait sur aucun contrat.</p>
+     *
+     * <p>Pas de contrat = pas de commission.</p>
      */
-    private Optional<ManagementContract> resolveContract(Long ownerId, Long orgId,
-                                                          List<Reservation> reservations) {
+    private BigDecimal resolveCommissionRate(Long ownerId, Long orgId, List<Reservation> reservations,
+                                             Map<Long, Optional<ManagementContract>> cache) {
+        BigDecimal firstRate = null;
         for (Reservation reservation : reservations) {
-            if (reservation.getProperty() != null) {
-                Long propertyId = reservation.getProperty().getId();
-                Optional<ManagementContract> contractOpt =
-                    managementContractService.getActiveContract(propertyId, orgId);
-                if (contractOpt.isPresent() && contractOpt.get().getCommissionRate() != null) {
-                    log.debug("Using ManagementContract {} (rate {}, base {}) for property {} owner {}",
-                        contractOpt.get().getId(), contractOpt.get().getCommissionRate(),
-                        contractOpt.get().getCommissionBase(), propertyId, ownerId);
-                    return contractOpt;
-                }
+            ManagementContract contract = resolveContract(reservation, orgId, cache);
+            if (contract == null || contract.getCommissionRate() == null) {
+                continue;
+            }
+            BigDecimal contractRate = contract.getCommissionRate();
+            if (firstRate == null) {
+                firstRate = contractRate;
+            } else if (firstRate.compareTo(contractRate) != 0) {
+                log.warn("Proprietaire {} (org {}) : taux de commission divergents sur la periode "
+                        + "({} vs {}). Le reversement affiche {} ; les montants restent calcules "
+                        + "contrat par contrat.",
+                    ownerId, orgId, firstRate, contractRate, firstRate);
+                return firstRate;
             }
         }
 
-        // Pas de contrat = pas de commission
-        log.debug("No ManagementContract found for owner {}, commission rate = 0", ownerId);
-        return Optional.empty();
+        if (firstRate == null) {
+            log.debug("Aucun contrat de gestion actif pour le proprietaire {}, taux de commission = 0", ownerId);
+            return BigDecimal.ZERO;
+        }
+        return firstRate;
     }
 }

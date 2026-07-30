@@ -76,6 +76,17 @@ export default function PayoutRecap({ recap, isLoading, isError }: PayoutRecapPr
           value={recap.grossRevenue}
           currency={currency}
         />
+        {/* Frais OTA : ligne affichée seulement quand le propriétaire les supporte.
+            À la charge de la conciergerie, ils ne sortent pas de son reversement — les
+            montrer laisserait croire à une retenue qui n'a pas lieu. */}
+        {!!recap.otaFees && recap.otaFees > 0 && (
+          <Line
+            label={t('dashboard.payoutRecap.otaFees', 'Frais OTA retenus à la source')}
+            value={recap.otaFees}
+            currency={currency}
+            negative
+          />
+        )}
         <Line
           label={t('dashboard.payoutRecap.commission', 'Commission {{rate}} %', {
             rate: recap.commissionRate ?? 0,

@@ -549,4 +549,171 @@ class AccountingServiceTest {
             verify(notificationService, never()).sendByOrgId(any(), any(), any(), any(), any(), any());
         }
     }
+
+    /**
+     * Le reversement retient exactement ce que la facture de commission annonce.
+     *
+     * <p>Les deux divergeaient : la facture honorait {@code CommissionBase}, le reversement
+     * calculait {@code brut x taux} sur l'agregat. Tant que {@code otaFeeAmount} restait NULL
+     * les chiffres coincidaient par accident ; l'import Channex le renseigne desormais.</p>
+     *
+     * <p>Les montants attendus ici sont les memes litteraux que dans
+     * {@code InvoiceGeneratorServiceTest.GenerateCommissionFromReservation} — un chiffre
+     * change d'un cote fait rougir l'autre.</p>
+     */
+    @org.junit.jupiter.api.Nested
+    @org.junit.jupiter.api.DisplayName("generatePayout - assiette et frais OTA")
+    class GeneratePayoutOtaFees {
+
+        private final LocalDate from = LocalDate.of(2026, 5, 1);
+        private final LocalDate to = LocalDate.of(2026, 5, 31);
+
+        /** Le sejour Airbnb de reference : 289,50 EUR brut, 44,87 EUR de host fee. */
+        private Reservation airbnbStay(Long propertyId) {
+            Property property = new Property();
+            property.setId(propertyId);
+            Reservation r = new Reservation();
+            r.setId(700L);
+            r.setProperty(property);
+            r.setTotalPrice(new BigDecimal("289.50"));
+            r.setOtaFeeAmount(new BigDecimal("44.87"));
+            return r;
+        }
+
+        private com.clenzy.model.ManagementContract contract(
+                com.clenzy.model.ManagementContract.CommissionBase base,
+                com.clenzy.model.ManagementContract.OtaFeeBearer bearer) {
+            com.clenzy.model.ManagementContract c = new com.clenzy.model.ManagementContract();
+            c.setCommissionRate(new BigDecimal("0.20"));
+            c.setCommissionBase(base);
+            c.setOtaFeeBorneBy(bearer);
+            return c;
+        }
+
+        private void stubPeriod(List<Reservation> reservations) {
+            when(payoutRepository.findByOwnerAndPeriod(OWNER_ID, from, to, ORG_ID))
+                .thenReturn(Optional.empty());
+            when(reservationRepository.findByOwnerIdAndDateRange(OWNER_ID, from, to, ORG_ID))
+                .thenReturn(reservations);
+            when(providerExpenseRepository.findApprovedByPropertyOwnerAndPeriod(any(), any(), any(), any()))
+                .thenReturn(List.of());
+            when(payoutRepository.save(any(OwnerPayout.class))).thenAnswer(inv -> {
+                OwnerPayout p = inv.getArgument(0);
+                p.setId(1L);
+                return p;
+            });
+        }
+
+        @org.junit.jupiter.api.Test
+        void surContratNetOfOtaFee_laRetenueEgaleLaFacture() {
+            stubPeriod(List.of(airbnbStay(400L)));
+            when(managementContractService.getActiveContract(400L, ORG_ID))
+                .thenReturn(Optional.of(contract(
+                    com.clenzy.model.ManagementContract.CommissionBase.NET_OF_OTA_FEE,
+                    com.clenzy.model.ManagementContract.OtaFeeBearer.AGENCY)));
+
+            OwnerPayout result = service.generatePayout(OWNER_ID, ORG_ID, from, to);
+
+            // 244,63 x 20 % = 48,93 — le montant exact de la facture, et non 57,90.
+            assertEquals(0, new BigDecimal("48.93").compareTo(result.getCommissionAmount()));
+            assertEquals(0, new BigDecimal("289.50").compareTo(result.getGrossRevenue()));
+            // Frais OTA a la charge de l'agence : rien n'est deduit du proprietaire.
+            assertEquals(0, BigDecimal.ZERO.compareTo(result.getOtaFees()));
+            assertEquals(0, new BigDecimal("240.57").compareTo(result.getNetAmount()));
+        }
+
+        @org.junit.jupiter.api.Test
+        void surContratGross_laCommissionPorteToujoursSurLeBrut() {
+            stubPeriod(List.of(airbnbStay(401L)));
+            when(managementContractService.getActiveContract(401L, ORG_ID))
+                .thenReturn(Optional.of(contract(
+                    com.clenzy.model.ManagementContract.CommissionBase.GROSS,
+                    com.clenzy.model.ManagementContract.OtaFeeBearer.AGENCY)));
+
+            OwnerPayout result = service.generatePayout(OWNER_ID, ORG_ID, from, to);
+
+            assertEquals(0, new BigDecimal("57.90").compareTo(result.getCommissionAmount()));
+            assertEquals(0, new BigDecimal("231.60").compareTo(result.getNetAmount()));
+        }
+
+        @org.junit.jupiter.api.Test
+        void quandLeProprietairePorteLesFraisOta_ilsSontDeduitsDuNet() {
+            stubPeriod(List.of(airbnbStay(402L)));
+            when(managementContractService.getActiveContract(402L, ORG_ID))
+                .thenReturn(Optional.of(contract(
+                    com.clenzy.model.ManagementContract.CommissionBase.NET_OF_OTA_FEE,
+                    com.clenzy.model.ManagementContract.OtaFeeBearer.OWNER)));
+
+            OwnerPayout result = service.generatePayout(OWNER_ID, ORG_ID, from, to);
+
+            assertEquals(0, new BigDecimal("44.87").compareTo(result.getOtaFees()));
+            // 289,50 - 44,87 - 48,93 = 195,70. La conciergerie a encaisse 244,63 de
+            // l'OTA et garde exactement sa commission.
+            assertEquals(0, new BigDecimal("195.70").compareTo(result.getNetAmount()));
+            // Le brut reste le brut : l'ecran d'approbation le confronte aux sejours.
+            assertEquals(0, new BigDecimal("289.50").compareTo(result.getGrossRevenue()));
+        }
+
+        @org.junit.jupiter.api.Test
+        void deuxLogementsSousDesContratsDifferents_sontCalculesChacunSelonLeSien() {
+            Reservation surNet = airbnbStay(500L);
+            Reservation surBrut = airbnbStay(501L);
+            surBrut.setId(701L);
+            stubPeriod(List.of(surNet, surBrut));
+
+            when(managementContractService.getActiveContract(500L, ORG_ID))
+                .thenReturn(Optional.of(contract(
+                    com.clenzy.model.ManagementContract.CommissionBase.NET_OF_OTA_FEE,
+                    com.clenzy.model.ManagementContract.OtaFeeBearer.AGENCY)));
+            when(managementContractService.getActiveContract(501L, ORG_ID))
+                .thenReturn(Optional.of(contract(
+                    com.clenzy.model.ManagementContract.CommissionBase.GROSS,
+                    com.clenzy.model.ManagementContract.OtaFeeBearer.AGENCY)));
+
+            OwnerPayout result = service.generatePayout(OWNER_ID, ORG_ID, from, to);
+
+            // 48,93 + 57,90 — le contrat du PREMIER sejour ne s'applique pas au second.
+            assertEquals(0, new BigDecimal("106.83").compareTo(result.getCommissionAmount()));
+        }
+
+        @org.junit.jupiter.api.Test
+        void sansContrat_aucuneCommissionEtAucunFraisImpute() {
+            stubPeriod(List.of(airbnbStay(600L)));
+            when(managementContractService.getActiveContract(600L, ORG_ID))
+                .thenReturn(Optional.empty());
+
+            OwnerPayout result = service.generatePayout(OWNER_ID, ORG_ID, from, to);
+
+            assertEquals(0, BigDecimal.ZERO.compareTo(result.getCommissionAmount()));
+            assertEquals(0, BigDecimal.ZERO.compareTo(result.getOtaFees()));
+            assertEquals(0, new BigDecimal("289.50").compareTo(result.getNetAmount()));
+        }
+
+        @org.junit.jupiter.api.Test
+        void larrondiTombeParSejour_pasSurLagregat() {
+            // 3 sejours a 100,01 EUR : 3 x 15,50 = 46,50 (par sejour), la ou un calcul
+            // sur l'agregat donnerait 300,03 x 15,5 % = 46,50465 -> 46,50. Ici on verifie
+            // surtout que chaque ligne est arrondie comme sa facture le sera.
+            List<Reservation> sejours = new java.util.ArrayList<>();
+            for (int i = 0; i < 3; i++) {
+                Property p = new Property();
+                p.setId(800L);
+                Reservation r = new Reservation();
+                r.setProperty(p);
+                r.setTotalPrice(new BigDecimal("100.01"));
+                sejours.add(r);
+            }
+            stubPeriod(sejours);
+
+            com.clenzy.model.ManagementContract c = new com.clenzy.model.ManagementContract();
+            c.setCommissionRate(new BigDecimal("0.1550"));
+            c.setCommissionBase(com.clenzy.model.ManagementContract.CommissionBase.GROSS);
+            when(managementContractService.getActiveContract(800L, ORG_ID))
+                .thenReturn(Optional.of(c));
+
+            OwnerPayout result = service.generatePayout(OWNER_ID, ORG_ID, from, to);
+
+            assertEquals(0, new BigDecimal("46.50").compareTo(result.getCommissionAmount()));
+        }
+    }
 }

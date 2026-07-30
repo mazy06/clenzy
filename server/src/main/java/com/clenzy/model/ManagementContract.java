@@ -39,6 +39,24 @@ public class ManagementContract {
         GROSS, NET_OF_OTA_FEE
     }
 
+    /**
+     * Qui supporte les frais preleves par l'OTA (host fee Airbnb, commission Booking.com).
+     *
+     * <p>Sur un sejour OTA, la conciergerie n'encaisse jamais le brut : l'OTA retient sa
+     * commission a la source. Un reversement calcule sur le brut fait donc porter ces frais
+     * a la conciergerie, en silence. Ce champ rend le choix explicite.</p>
+     *
+     * <p>AGENCY : le proprietaire est reverse sur le brut, la conciergerie absorbe les frais
+     * OTA sur sa propre commission. C'est le comportement historique, et le defaut — un
+     * contrat deja signe ne change pas de camp parce qu'on a ajoute une colonne.</p>
+     *
+     * <p>OWNER : les frais OTA sont deduits avant reversement. La conciergerie encaisse
+     * exactement sa commission, ni plus ni moins.</p>
+     */
+    public enum OtaFeeBearer {
+        AGENCY, OWNER
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -89,6 +107,11 @@ public class ManagementContract {
     @Enumerated(EnumType.STRING)
     @Column(name = "commission_base", nullable = false, length = 20)
     private CommissionBase commissionBase = CommissionBase.GROSS;
+
+    /** Qui supporte les frais preleves par l'OTA. Defaut AGENCY (comportement historique). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ota_fee_borne_by", nullable = false, length = 20)
+    private OtaFeeBearer otaFeeBorneBy = OtaFeeBearer.AGENCY;
 
     @Column(name = "minimum_stay_nights")
     private Integer minimumStayNights;
@@ -166,6 +189,9 @@ public class ManagementContract {
     public void setPaymentModel(PaymentModel paymentModel) { this.paymentModel = paymentModel; }
     public CommissionBase getCommissionBase() { return commissionBase; }
     public void setCommissionBase(CommissionBase commissionBase) { this.commissionBase = commissionBase; }
+
+    public OtaFeeBearer getOtaFeeBorneBy() { return otaFeeBorneBy; }
+    public void setOtaFeeBorneBy(OtaFeeBearer otaFeeBorneBy) { this.otaFeeBorneBy = otaFeeBorneBy; }
     public Integer getMinimumStayNights() { return minimumStayNights; }
     public void setMinimumStayNights(Integer minimumStayNights) { this.minimumStayNights = minimumStayNights; }
     public Boolean getAutoRenew() { return autoRenew; }

@@ -39,6 +39,16 @@ class OwnerPortalServiceTest {
     @InjectMocks
     private OwnerPortalService service;
 
+    /** Un contrat de gestion, tel qu'il gouverne desormais les chiffres du portail. */
+    private static ManagementContract contract(String rate, ManagementContract.CommissionBase base,
+                                               ManagementContract.OtaFeeBearer bearer) {
+        ManagementContract c = new ManagementContract();
+        c.setCommissionRate(new BigDecimal(rate));
+        c.setCommissionBase(base);
+        c.setOtaFeeBorneBy(bearer);
+        return c;
+    }
+
     private static final Long OWNER_ID = 10L;
     private static final Long ORG_ID = 1L;
 
@@ -78,12 +88,10 @@ class OwnerPortalServiceTest {
         reservation2.setOrganizationId(ORG_ID);
     }
 
-    /** Contrat de gestion au taux voulu, sur le brut. */
+    /** Contrat de gestion au taux voulu, sur le brut, frais OTA a la charge de l'agence. */
     private static ManagementContract contractAt(String rate) {
-        ManagementContract c = new ManagementContract();
-        c.setCommissionRate(new BigDecimal(rate));
-        c.setCommissionBase(ManagementContract.CommissionBase.GROSS);
-        return c;
+        return contract(rate, ManagementContract.CommissionBase.GROSS,
+            ManagementContract.OtaFeeBearer.AGENCY);
     }
 
     @Test
@@ -140,6 +148,40 @@ class OwnerPortalServiceTest {
     }
 
     @Test
+    void getDashboard_honorsEachPropertyContractRate() {
+        when(propertyRepository.findByOwnerId(OWNER_ID)).thenReturn(List.of(property1, property2));
+        when(reservationRepository.findByOwnerIdAndDateRange(eq(OWNER_ID), any(), any(), eq(ORG_ID)))
+            .thenReturn(List.of(reservation1, reservation2));
+        when(reviewRepository.averageRatingByPropertyId(anyLong(), eq(ORG_ID))).thenReturn(null);
+        // Deux biens, deux taux : le portail appliquait 20 % en dur aux deux.
+        when(managementContractService.getActiveContract(100L, ORG_ID))
+            .thenReturn(Optional.of(contractAt("0.15")));
+        when(managementContractService.getActiveContract(200L, ORG_ID))
+            .thenReturn(Optional.of(contractAt("0.25")));
+
+        OwnerDashboardDto result = service.getDashboard(OWNER_ID, ORG_ID);
+
+        // 500 x 15 % = 75 ; 800 x 25 % = 200
+        assertEquals(0, new BigDecimal("275.00").compareTo(result.totalCommissions()));
+        assertEquals(0, new BigDecimal("1025.00").compareTo(result.netRevenue()));
+    }
+
+    @Test
+    void getDashboard_noContract_showsNoCommission() {
+        when(propertyRepository.findByOwnerId(OWNER_ID)).thenReturn(List.of(property1));
+        when(reservationRepository.findByOwnerIdAndDateRange(eq(OWNER_ID), any(), any(), eq(ORG_ID)))
+            .thenReturn(List.of(reservation1));
+        when(reviewRepository.averageRatingByPropertyId(eq(100L), eq(ORG_ID))).thenReturn(null);
+        when(managementContractService.getActiveContract(100L, ORG_ID)).thenReturn(Optional.empty());
+
+        OwnerDashboardDto result = service.getDashboard(OWNER_ID, ORG_ID);
+
+        // Meme regle que le reversement : pas de contrat = pas de commission.
+        assertEquals(0, BigDecimal.ZERO.compareTo(result.totalCommissions()));
+        assertEquals(0, new BigDecimal("500.00").compareTo(result.netRevenue()));
+    }
+
+    @Test
     void getDashboard_countsActiveReservations() {
         when(propertyRepository.findByOwnerId(OWNER_ID)).thenReturn(List.of(property1));
         when(reservationRepository.findByOwnerIdAndDateRange(eq(OWNER_ID), any(), any(), eq(ORG_ID)))
@@ -172,6 +214,55 @@ class OwnerPortalServiceTest {
         // 20% commission on 1300 = 260
         assertEquals(0, new BigDecimal("260.00").compareTo(result.totalCommissions()));
         assertEquals(0, new BigDecimal("1040.00").compareTo(result.netAmount()));
+    }
+
+    @Test
+    void getStatement_netOfOtaFeeContract_matchesTheCommissionInvoice() {
+        LocalDate from = LocalDate.now().minusMonths(1);
+        LocalDate to = LocalDate.now().plusMonths(1);
+
+        // Le sejour Airbnb de reference : 289,50 EUR brut, 44,87 EUR de host fee.
+        reservation1.setTotalPrice(new BigDecimal("289.50"));
+        reservation1.setOtaFeeAmount(new BigDecimal("44.87"));
+
+        when(reservationRepository.findByOwnerIdAndDateRange(OWNER_ID, from, to, ORG_ID))
+            .thenReturn(List.of(reservation1));
+        when(managementContractService.getActiveContract(100L, ORG_ID))
+            .thenReturn(Optional.of(contract("0.20",
+                ManagementContract.CommissionBase.NET_OF_OTA_FEE,
+                ManagementContract.OtaFeeBearer.AGENCY)));
+
+        OwnerStatementDto result = service.getStatement(OWNER_ID, ORG_ID, from, to, "Test Owner");
+
+        // Le meme 48,93 que la facture et que le reversement : le proprietaire peut
+        // poser les trois documents cote a cote.
+        assertEquals(0, new BigDecimal("48.93").compareTo(result.totalCommissions()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(result.totalOtaFees()));
+        assertEquals(0, new BigDecimal("240.57").compareTo(result.netAmount()));
+    }
+
+    @Test
+    void getStatement_whenOwnerBearsOtaFees_theyAppearOnTheLine() {
+        LocalDate from = LocalDate.now().minusMonths(1);
+        LocalDate to = LocalDate.now().plusMonths(1);
+
+        reservation1.setTotalPrice(new BigDecimal("289.50"));
+        reservation1.setOtaFeeAmount(new BigDecimal("44.87"));
+
+        when(reservationRepository.findByOwnerIdAndDateRange(OWNER_ID, from, to, ORG_ID))
+            .thenReturn(List.of(reservation1));
+        when(managementContractService.getActiveContract(100L, ORG_ID))
+            .thenReturn(Optional.of(contract("0.20",
+                ManagementContract.CommissionBase.NET_OF_OTA_FEE,
+                ManagementContract.OtaFeeBearer.OWNER)));
+
+        OwnerStatementDto result = service.getStatement(OWNER_ID, ORG_ID, from, to, "Test Owner");
+
+        assertEquals(0, new BigDecimal("44.87").compareTo(result.totalOtaFees()));
+        assertEquals(0, new BigDecimal("44.87").compareTo(result.lines().get(0).otaFee()));
+        // 289,50 - 44,87 - 48,93
+        assertEquals(0, new BigDecimal("195.70").compareTo(result.lines().get(0).net()));
+        assertEquals(0, new BigDecimal("195.70").compareTo(result.netAmount()));
     }
 
     @Test

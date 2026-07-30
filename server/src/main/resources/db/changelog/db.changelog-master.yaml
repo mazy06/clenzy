@@ -3564,3 +3564,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0373__online_checkin_identity_fields.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0374-ota-fee-bearer-and-payout-ota-fees"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0374__ota_fee_bearer_and_payout_ota_fees.sql
+        relativeToChangelogFile: true

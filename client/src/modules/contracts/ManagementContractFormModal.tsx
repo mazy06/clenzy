@@ -74,6 +74,7 @@ const ManagementContractFormModal: React.FC<ManagementContractFormModalProps> = 
         activityCommissionRate: contract.activityCommissionRate,
         paymentModel: contract.paymentModel,
         commissionBase: contract.commissionBase,
+        otaFeeBorneBy: contract.otaFeeBorneBy,
         notes: contract.notes ?? '',
       });
     } else {

@@ -29,6 +29,8 @@ export interface StatementLine {
   propertyName: string;
   type: string;
   amount: number;
+  /** Frais prélevés par l'OTA sur ce séjour, s'ils sont à la charge du propriétaire. */
+  otaFee: number;
   commission: number;
   net: number;
 }
@@ -40,6 +42,8 @@ export interface OwnerStatement {
   periodEnd: string;
   totalRevenue: number;
   totalCommissions: number;
+  /** Frais OTA déduits, quand le contrat les met à la charge du propriétaire. Zéro sinon. */
+  totalOtaFees: number;
   totalExpenses: number;
   netAmount: number;
   lines: StatementLine[];

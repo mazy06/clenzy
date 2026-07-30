@@ -1820,6 +1820,7 @@
       "unknownBeneficiary": "Propriétaire inconnu",
       "period": "Période",
       "gross": "Revenu des séjours",
+      "otaFees": "Frais OTA retenus à la source",
       "commission": "Commission {{rate}} %",
       "expenses": "Dépenses déduites",
       "net": "Net à verser",

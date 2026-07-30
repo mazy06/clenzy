@@ -10,6 +10,7 @@ import type {
   ContractType,
   PaymentModel,
   CommissionBase,
+  OtaFeeBearer,
 } from '../../services/api/managementContractsApi';
 import type { SplitRatios } from '../../types/payment';
 
@@ -41,6 +42,11 @@ export const PAYMENT_MODEL_HELP: Record<PaymentModel, string> = {
 export const COMMISSION_BASE_LABELS: Record<CommissionBase, string> = {
   GROSS:          'Montant brut (loyer encaissé)',
   NET_OF_OTA_FEE: 'Net des frais OTA (après commission plateforme)',
+};
+
+export const OTA_FEE_BEARER_LABELS: Record<OtaFeeBearer, string> = {
+  AGENCY: 'La conciergerie (déduits de sa commission)',
+  OWNER:  'Le propriétaire (déduits de son reversement)',
 };
 
 /**
@@ -122,6 +128,7 @@ export const EMPTY_FORM: CreateManagementContractRequest = {
   activityCommissionRate: null,
   paymentModel: 'DIRECT',
   commissionBase: 'GROSS',
+  otaFeeBorneBy: 'AGENCY',
   notes: '',
 };
 
@@ -341,6 +348,16 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
               size="small" fullWidth
             >
               {(Object.entries(COMMISSION_BASE_LABELS) as [CommissionBase, string][]).map(([key, label]) => (
+                <MenuItem key={key} value={key}>{label}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select label="Frais OTA à la charge de" value={form.otaFeeBorneBy ?? 'AGENCY'}
+              onChange={e => setForm(prev => ({ ...prev, otaFeeBorneBy: e.target.value as OtaFeeBearer }))}
+              size="small" fullWidth
+              helperText="Sur un séjour OTA, la plateforme retient sa commission avant de verser."
+            >
+              {(Object.entries(OTA_FEE_BEARER_LABELS) as [OtaFeeBearer, string][]).map(([key, label]) => (
                 <MenuItem key={key} value={key}>{label}</MenuItem>
               ))}
             </TextField>

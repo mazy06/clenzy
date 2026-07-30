@@ -42,6 +42,18 @@ public class OwnerPayout {
     @Column(name = "commission_amount", precision = 10, scale = 2, nullable = false)
     private BigDecimal commissionAmount = BigDecimal.ZERO;
 
+    /**
+     * Frais preleves par l'OTA et deduits du reversement, quand le contrat les met a la
+     * charge du proprietaire ({@code OtaFeeBearer.OWNER}). Zero sinon.
+     *
+     * <p>Ligne a part et non brut diminue : le recapitulatif d'approbation reconstitue le
+     * calcul poste par poste, et {@code net = brut - fraisOTA - commission - depenses} doit
+     * tomber juste a l'ecran. Un brut deja ampute ferait mentir la ligne « revenu des
+     * sejours » face aux sejours qu'elle detaille.</p>
+     */
+    @Column(name = "ota_fees", precision = 10, scale = 2, nullable = false)
+    private BigDecimal otaFees = BigDecimal.ZERO;
+
     @Column(name = "commission_rate", precision = 5, scale = 4, nullable = false)
     private BigDecimal commissionRate;
 
@@ -124,6 +136,9 @@ public class OwnerPayout {
     public void setGrossRevenue(BigDecimal grossRevenue) { this.grossRevenue = grossRevenue; }
     public BigDecimal getCommissionAmount() { return commissionAmount; }
     public void setCommissionAmount(BigDecimal commissionAmount) { this.commissionAmount = commissionAmount; }
+
+    public BigDecimal getOtaFees() { return otaFees; }
+    public void setOtaFees(BigDecimal otaFees) { this.otaFees = otaFees; }
     public BigDecimal getCommissionRate() { return commissionRate; }
     public void setCommissionRate(BigDecimal commissionRate) { this.commissionRate = commissionRate; }
     public BigDecimal getExpenses() { return expenses; }

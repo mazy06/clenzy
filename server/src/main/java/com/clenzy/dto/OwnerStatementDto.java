@@ -11,6 +11,8 @@ public record OwnerStatementDto(
     LocalDate periodEnd,
     BigDecimal totalRevenue,
     BigDecimal totalCommissions,
+    /** Frais OTA deduits, quand le contrat les met a la charge du proprietaire. Zero sinon. */
+    BigDecimal totalOtaFees,
     BigDecimal totalExpenses,
     BigDecimal netAmount,
     List<StatementLineDto> lines
@@ -21,6 +23,8 @@ public record OwnerStatementDto(
         String propertyName,
         String type,
         BigDecimal amount,
+        /** Frais preleves par l'OTA sur ce sejour, s'ils sont a la charge du proprietaire. */
+        BigDecimal otaFee,
         BigDecimal commission,
         BigDecimal net
     ) {}

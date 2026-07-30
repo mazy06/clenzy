@@ -50,6 +50,11 @@ export interface PayoutRecap {
   periodStart: string;
   periodEnd: string;
   grossRevenue: number | null;
+  /**
+   * Frais prélevés par l'OTA et déduits, quand le contrat les met à la charge du
+   * propriétaire. Zéro quand la conciergerie les absorbe — la ligne est alors masquée.
+   */
+  otaFees: number | null;
   /** Taux en pourcentage lisible (20.00, pas 0.20). */
   commissionRate: number | null;
   commissionAmount: number | null;

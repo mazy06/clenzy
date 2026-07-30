@@ -2,6 +2,7 @@ package com.clenzy.dto;
 
 import com.clenzy.model.ManagementContract;
 import com.clenzy.model.ManagementContract.CommissionBase;
+import com.clenzy.model.ManagementContract.OtaFeeBearer;
 import com.clenzy.model.ManagementContract.ContractStatus;
 import com.clenzy.model.ManagementContract.ContractType;
 import com.clenzy.model.ManagementContract.PaymentModel;
@@ -34,6 +35,8 @@ public record ManagementContractDto(
     BigDecimal activityCommissionRate,
     PaymentModel paymentModel,
     CommissionBase commissionBase,
+    /** Qui supporte les frais prélevés par l'OTA : AGENCY (défaut) ou OWNER. */
+    OtaFeeBearer otaFeeBorneBy,
     /** Statut de la demande de signature électronique : PENDING | SIGNED | EXPIRED | CANCELLED | null. */
     String signatureStatus
 ) {
@@ -51,7 +54,7 @@ public record ManagementContractDto(
             c.getNotes(), c.getSignedAt(), c.getTerminatedAt(),
             c.getTerminationReason(), c.getCreatedAt(),
             c.getUpsellCommissionRate(), c.getActivityCommissionRate(),
-            c.getPaymentModel(), c.getCommissionBase(),
+            c.getPaymentModel(), c.getCommissionBase(), c.getOtaFeeBorneBy(),
             signatureStatus
         );
     }

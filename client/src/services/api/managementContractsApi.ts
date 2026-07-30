@@ -12,6 +12,15 @@ export type ContractType = 'FULL_MANAGEMENT' | 'BOOKING_ONLY' | 'MAINTENANCE_ONL
 export type PaymentModel = 'DIRECT' | 'OWNER_COLLECTS' | 'CONCIERGE_COLLECTS' | 'OTA_COHOST_SPLIT';
 /** Base de calcul de la commission : brut, ou net des frais OTA. */
 export type CommissionBase = 'GROSS' | 'NET_OF_OTA_FEE';
+/**
+ * Qui supporte les frais prélevés par l'OTA à la source.
+ *
+ * Sur un séjour OTA la conciergerie n'encaisse jamais le brut : la plateforme retient
+ * sa commission avant de verser. `AGENCY` (défaut, comportement historique) reverse le
+ * brut au propriétaire, la conciergerie absorbe ces frais sur sa propre commission.
+ * `OWNER` les déduit du reversement.
+ */
+export type OtaFeeBearer = 'AGENCY' | 'OWNER';
 
 export interface ManagementContract {
   id: number;
@@ -31,6 +40,8 @@ export interface ManagementContract {
   paymentModel: PaymentModel;
   /** Base de calcul de la commission. */
   commissionBase: CommissionBase;
+  /** Qui supporte les frais prélevés par l'OTA. */
+  otaFeeBorneBy: OtaFeeBearer;
   minimumStayNights: number | null;
   autoRenew: boolean;
   noticePeriodDays: number;
@@ -56,6 +67,7 @@ export interface CreateManagementContractRequest {
   activityCommissionRate?: number | null;
   paymentModel?: PaymentModel;
   commissionBase?: CommissionBase;
+  otaFeeBorneBy?: OtaFeeBearer;
   minimumStayNights?: number | null;
   autoRenew?: boolean;
   noticePeriodDays?: number;
