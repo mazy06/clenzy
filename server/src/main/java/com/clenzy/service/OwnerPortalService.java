@@ -4,37 +4,52 @@ import com.clenzy.dto.OwnerDashboardDto;
 import com.clenzy.dto.OwnerPropertySummaryDto;
 import com.clenzy.dto.OwnerStatementDto;
 import com.clenzy.dto.OwnerStatementDto.StatementLineDto;
+import com.clenzy.model.ManagementContract;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.GuestReviewRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.commission.ManagementCommissionCalculator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+/**
+ * Portail propriétaire : tableau de bord et relevé.
+ *
+ * <p>La commission affichée vient du {@link ManagementContract} du logement via
+ * {@link ManagementCommissionCalculator} — le même calcul que la facture de commission
+ * et que le virement. Elle valait auparavant 20 % en dur, ce qui promettait au
+ * propriétaire une retenue sans rapport avec son contrat ni avec ce qui lui était
+ * effectivement prélevé. Sans contrat actif, la commission affichée est nulle : c'est
+ * aussi ce que le virement retient.</p>
+ */
 @Service
 @Transactional(readOnly = true)
 public class OwnerPortalService {
 
-    private static final BigDecimal DEFAULT_COMMISSION_RATE = new BigDecimal("0.20"); // 20%
-
     private final PropertyRepository propertyRepository;
     private final ReservationRepository reservationRepository;
     private final GuestReviewRepository reviewRepository;
+    private final ManagementContractService managementContractService;
+    private final ManagementCommissionCalculator commissionCalculator;
 
     public OwnerPortalService(PropertyRepository propertyRepository,
                               ReservationRepository reservationRepository,
-                              GuestReviewRepository reviewRepository) {
+                              GuestReviewRepository reviewRepository,
+                              ManagementContractService managementContractService,
+                              ManagementCommissionCalculator commissionCalculator) {
         this.propertyRepository = propertyRepository;
         this.reservationRepository = reservationRepository;
         this.reviewRepository = reviewRepository;
+        this.managementContractService = managementContractService;
+        this.commissionCalculator = commissionCalculator;
     }
 
     public OwnerDashboardDto getDashboard(Long ownerId, Long orgId) {
@@ -57,6 +72,9 @@ public class OwnerPortalService {
             ownerId, yearStart, yearEnd, orgId);
 
         BigDecimal totalRevenue = BigDecimal.ZERO;
+        // Somme des commissions par logement, et non taux × chiffre d'affaires global :
+        // chaque logement a son contrat, donc son taux et sa base.
+        BigDecimal totalCommissions = BigDecimal.ZERO;
         int activeReservations = 0;
         double totalRating = 0;
         int ratingCount = 0;
@@ -73,8 +91,10 @@ public class OwnerPortalService {
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            BigDecimal propCommission = propRevenue.multiply(DEFAULT_COMMISSION_RATE)
-                .setScale(2, RoundingMode.HALF_UP);
+            ManagementContract contract = managementContractService
+                .getActiveContract(property.getId(), orgId).orElse(null);
+            BigDecimal propCommission = commissionCalculator
+                .ofAll(propReservations, contract).amount();
 
             // Active reservations (current)
             activeReservations += (int) propReservations.stream()
@@ -96,6 +116,7 @@ public class OwnerPortalService {
             Double avgRating = reviewRepository.averageRatingByPropertyId(property.getId(), orgId);
 
             totalRevenue = totalRevenue.add(propRevenue);
+            totalCommissions = totalCommissions.add(propCommission);
             if (avgRating != null) {
                 totalRating += avgRating;
                 ratingCount++;
@@ -118,8 +139,6 @@ public class OwnerPortalService {
             ));
         }
 
-        BigDecimal totalCommissions = totalRevenue.multiply(DEFAULT_COMMISSION_RATE)
-            .setScale(2, RoundingMode.HALF_UP);
         double averageRating = ratingCount > 0 ? totalRating / ratingCount : 0;
 
         return new OwnerDashboardDto(
@@ -137,10 +156,17 @@ public class OwnerPortalService {
         BigDecimal totalRevenue = BigDecimal.ZERO;
         BigDecimal totalCommissions = BigDecimal.ZERO;
         List<StatementLineDto> lines = new ArrayList<>();
+        // Les séjours d'un relevé se répartissent sur quelques logements : on résout le
+        // contrat une fois par logement plutôt qu'une fois par séjour.
+        Map<Long, Optional<ManagementContract>> contractsByProperty = new HashMap<>();
 
         for (Reservation r : reservations) {
             BigDecimal amount = r.getTotalPrice() != null ? r.getTotalPrice() : BigDecimal.ZERO;
-            BigDecimal commission = amount.multiply(DEFAULT_COMMISSION_RATE).setScale(2, RoundingMode.HALF_UP);
+            ManagementContract contract = contractsByProperty.computeIfAbsent(
+                r.getProperty().getId(),
+                propertyId -> managementContractService.getActiveContract(propertyId, orgId)
+            ).orElse(null);
+            BigDecimal commission = commissionCalculator.of(r, contract).amount();
             BigDecimal net = amount.subtract(commission);
 
             totalRevenue = totalRevenue.add(amount);

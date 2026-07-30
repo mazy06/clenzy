@@ -8,6 +8,7 @@ import com.clenzy.repository.FiscalProfileRepository;
 import com.clenzy.repository.InvoiceRepository;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.commission.ManagementCommissionCalculator;
 import com.clenzy.tenant.TenantContext;
 import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
@@ -49,6 +50,7 @@ public class InvoiceGeneratorService {
     private final InvoiceNumberingService numberingService;
     private final TenantContext tenantContext;
     private final EntityManager entityManager;
+    private final ManagementCommissionCalculator commissionCalculator;
 
     public InvoiceGeneratorService(InvoiceRepository invoiceRepository,
                                     ReservationRepository reservationRepository,
@@ -58,7 +60,8 @@ public class InvoiceGeneratorService {
                                     TouristTaxService touristTaxService,
                                     InvoiceNumberingService numberingService,
                                     TenantContext tenantContext,
-                                    EntityManager entityManager) {
+                                    EntityManager entityManager,
+                                    ManagementCommissionCalculator commissionCalculator) {
         this.invoiceRepository = invoiceRepository;
         this.reservationRepository = reservationRepository;
         this.interventionRepository = interventionRepository;
@@ -68,6 +71,7 @@ public class InvoiceGeneratorService {
         this.numberingService = numberingService;
         this.tenantContext = tenantContext;
         this.entityManager = entityManager;
+        this.commissionCalculator = commissionCalculator;
     }
 
     /**
@@ -281,8 +285,9 @@ public class InvoiceGeneratorService {
      * Genere une facture DRAFT de commission de gestion (conciergerie → propriétaire).
      *
      * <p>Vendeur = profil fiscal de l'organisation (la conciergerie) ; acheteur = propriétaire
-     * du logement. La base de commission est le montant brut de la réservation, ou le net des
-     * frais OTA si {@code commissionBase = NET_OF_OTA_FEE} et que les frais OTA sont connus.
+     * du logement. L'assiette et le taux viennent de {@link ManagementCommissionCalculator},
+     * partagé avec le virement propriétaire et le portail : cette facture est le document
+     * opposable, elle ne peut pas porter sur une autre assiette que la retenue effective.
      * La commission est exprimée HT, la TVA standard est ajoutée par le moteur fiscal.</p>
      */
     @Transactional
@@ -298,15 +303,13 @@ public class InvoiceGeneratorService {
             ? reservation.getCurrency()
             : (fiscalProfile.getDefaultCurrency() != null ? fiscalProfile.getDefaultCurrency() : "EUR");
 
-        // Base de commission : brut, ou net des frais OTA si connus (sinon repli sur le brut).
-        BigDecimal base = reservation.getTotalPrice() != null ? reservation.getTotalPrice() : BigDecimal.ZERO;
-        if (contract.getCommissionBase() == ManagementContract.CommissionBase.NET_OF_OTA_FEE
-                && reservation.getOtaFeeAmount() != null) {
-            base = base.subtract(reservation.getOtaFeeAmount()).max(BigDecimal.ZERO);
-        }
-
-        BigDecimal rate = contract.getCommissionRate() != null ? contract.getCommissionRate() : BigDecimal.ZERO;
-        BigDecimal commissionHt = base.multiply(rate).setScale(2, RoundingMode.HALF_UP);
+        // Assiette et taux : même calcul que le virement propriétaire et le portail
+        // (cf. ManagementCommissionCalculator), pour que la facture émise et la
+        // commission retenue ne puissent pas diverger.
+        ManagementCommissionCalculator.Commission commission =
+            commissionCalculator.of(reservation, contract);
+        BigDecimal rate = commission.rate();
+        BigDecimal commissionHt = commission.amount();
 
         Invoice invoice = new Invoice();
         invoice.setOrganizationId(orgId);
@@ -360,7 +363,7 @@ public class InvoiceGeneratorService {
         invoice = invoiceRepository.save(invoice);
 
         log.info("Facture commission DRAFT id={} pour reservation {} (base={} commissionHT={} totalTTC={})",
-            invoice.getId(), reservation.getId(), base, commissionHt, invoice.getTotalTtc());
+            invoice.getId(), reservation.getId(), commission.base(), commissionHt, invoice.getTotalTtc());
         return invoice;
     }
 

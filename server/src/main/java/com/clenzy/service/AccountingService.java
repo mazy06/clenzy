@@ -10,6 +10,7 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ProviderExpenseRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.commission.ManagementCommissionCalculator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,7 @@ public class AccountingService {
     private final ManagementContractService managementContractService;
     private final NotificationService notificationService;
     private final UserRepository userRepository;
+    private final ManagementCommissionCalculator commissionCalculator;
 
     public AccountingService(OwnerPayoutRepository payoutRepository,
                              ChannelCommissionRepository commissionRepository,
@@ -44,7 +46,8 @@ public class AccountingService {
                              ProviderExpenseRepository providerExpenseRepository,
                              ManagementContractService managementContractService,
                              NotificationService notificationService,
-                             UserRepository userRepository) {
+                             UserRepository userRepository,
+                             ManagementCommissionCalculator commissionCalculator) {
         this.payoutRepository = payoutRepository;
         this.commissionRepository = commissionRepository;
         this.reservationRepository = reservationRepository;
@@ -53,6 +56,7 @@ public class AccountingService {
         this.managementContractService = managementContractService;
         this.notificationService = notificationService;
         this.userRepository = userRepository;
+        this.commissionCalculator = commissionCalculator;
     }
 
     // ── Owner Payouts ──────────────────────────────────────────────────────
@@ -75,12 +79,17 @@ public class AccountingService {
     }
 
     /**
-     * Generate a payout for an owner, using the ManagementContract commission rate
-     * when available. Falls back to DEFAULT_COMMISSION_RATE (20%) if no contract exists.
+     * Génère le virement d'un propriétaire sur la période.
      *
-     * Commission resolution priority:
-     *   1. ManagementContract.commissionRate (per property — set by SUPER_ADMIN)
-     *   2. DEFAULT_COMMISSION_RATE (20% — hardcoded fallback)
+     * <p>La commission vient de {@link ManagementCommissionCalculator}, partagé avec
+     * la facture de commission et le portail propriétaire : elle est calculée séjour
+     * par séjour, et honore {@code CommissionBase.NET_OF_OTA_FEE} — sans quoi le
+     * virement retiendrait sur le brut ce que la facture calcule sur le net des frais
+     * OTA. Pas de contrat = pas de commission (et non 20 % par défaut).</p>
+     *
+     * <p>Limite assumée : {@link OwnerPayout} ne stocke qu'UN taux, donc un
+     * propriétaire dont les logements relèvent de contrats différents voit le premier
+     * contrat trouvé appliqué à toute la période (cf. {@code resolveContract}).</p>
      */
     @Transactional
     public OwnerPayout generatePayout(Long ownerId, Long orgId, LocalDate from, LocalDate to) {
@@ -97,9 +106,11 @@ public class AccountingService {
             .filter(Objects::nonNull)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Resolve commission rate from ManagementContract
-        BigDecimal commissionRate = resolveCommissionRate(ownerId, orgId, reservations);
-        BigDecimal commissionAmount = grossRevenue.multiply(commissionRate).setScale(2, RoundingMode.HALF_UP);
+        ManagementContract contract = resolveContract(ownerId, orgId, reservations).orElse(null);
+        ManagementCommissionCalculator.Commission commission =
+            commissionCalculator.ofAll(reservations, contract);
+        BigDecimal commissionRate = commission.rate();
+        BigDecimal commissionAmount = commission.amount();
 
         // Aggregate APPROVED provider expenses for the owner's properties in this period
         List<ProviderExpense> approvedExpenses = providerExpenseRepository
@@ -287,28 +298,32 @@ public class AccountingService {
     }
 
     /**
-     * Resolves commission rate for a set of reservations belonging to an owner.
-     * Uses the first reservation's property to find the ManagementContract.
-     * If multiple properties have different rates, uses the first match.
+     * Contrat de gestion applicable au lot de séjours d'un propriétaire : le premier
+     * trouvé en parcourant les logements concernés.
+     *
+     * <p>Ce « premier trouvé » n'est pas un raffinement en attente : {@link OwnerPayout}
+     * ne porte qu'une colonne de taux, donc un virement ne peut de toute façon pas
+     * représenter deux contrats. Un propriétaire multi-contrats doit être payé par
+     * plusieurs virements, pas par un taux moyen.</p>
      */
-    private BigDecimal resolveCommissionRate(Long ownerId, Long orgId, List<Reservation> reservations) {
-        // Try to find a ManagementContract commission rate from the reservations' properties
+    private Optional<ManagementContract> resolveContract(Long ownerId, Long orgId,
+                                                          List<Reservation> reservations) {
         for (Reservation reservation : reservations) {
             if (reservation.getProperty() != null) {
                 Long propertyId = reservation.getProperty().getId();
                 Optional<ManagementContract> contractOpt =
                     managementContractService.getActiveContract(propertyId, orgId);
                 if (contractOpt.isPresent() && contractOpt.get().getCommissionRate() != null) {
-                    BigDecimal contractRate = contractOpt.get().getCommissionRate();
-                    log.debug("Using ManagementContract commission rate {} for property {} owner {}",
-                        contractRate, propertyId, ownerId);
-                    return contractRate;
+                    log.debug("Using ManagementContract {} (rate {}, base {}) for property {} owner {}",
+                        contractOpt.get().getId(), contractOpt.get().getCommissionRate(),
+                        contractOpt.get().getCommissionBase(), propertyId, ownerId);
+                    return contractOpt;
                 }
             }
         }
 
         // Pas de contrat = pas de commission
         log.debug("No ManagementContract found for owner {}, commission rate = 0", ownerId);
-        return BigDecimal.ZERO;
+        return Optional.empty();
     }
 }

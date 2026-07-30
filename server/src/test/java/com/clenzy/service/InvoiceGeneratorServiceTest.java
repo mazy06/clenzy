@@ -9,6 +9,7 @@ import com.clenzy.model.*;
 import com.clenzy.repository.FiscalProfileRepository;
 import com.clenzy.repository.InvoiceRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.commission.ManagementCommissionCalculator;
 import com.clenzy.tenant.TenantContext;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
@@ -72,7 +73,7 @@ class InvoiceGeneratorServiceTest {
         service = new InvoiceGeneratorService(
             invoiceRepository, reservationRepository, interventionRepository,
             fiscalProfileRepository, fiscalEngine, touristTaxService, numberingService,
-            tenantContext, entityManager);
+            tenantContext, entityManager, new ManagementCommissionCalculator());
     }
 
     /**

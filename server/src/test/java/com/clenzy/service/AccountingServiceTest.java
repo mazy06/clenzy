@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.model.ChannelCommission;
+import com.clenzy.model.ManagementContract;
 import com.clenzy.model.OwnerPayout;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
 import com.clenzy.model.Reservation;
@@ -11,11 +12,14 @@ import com.clenzy.repository.OwnerPayoutRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ProviderExpenseRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.commission.ManagementCommissionCalculator;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -38,6 +42,8 @@ class AccountingServiceTest {
     @Mock private ManagementContractService managementContractService;
     @Mock private NotificationService notificationService;
     @Mock private com.clenzy.repository.UserRepository userRepository;
+    /** Calculateur réel : c'est l'assiette du virement qu'on veut vérifier, pas un stub. */
+    @Spy private ManagementCommissionCalculator commissionCalculator = new ManagementCommissionCalculator();
 
     @InjectMocks
     private AccountingService service;
@@ -89,6 +95,55 @@ class AccountingServiceTest {
         // 800 - 0 = 800
         assertEquals(0, new BigDecimal("800.00").compareTo(result.getNetAmount()));
         assertEquals(PayoutStatus.PENDING, result.getStatus());
+    }
+
+    /**
+     * Le virement retient ce que la facture facture. Sur un contrat au net des frais
+     * OTA, il retenait jusqu'ici {@code taux × brut} — soit 117,90 € ici — pendant que
+     * la facture de commission calculait sur l'assiette nette. L'ecart etait invisible
+     * tant qu'{@code ota_fee_amount} restait NULL ; l'import Channex l'a rendu reel.
+     */
+    @Test
+    @DisplayName("generatePayout: un contrat NET_OF_OTA_FEE retient sur l'assiette nette")
+    void generatePayout_netOfOtaFeeContract_retainsOnTheNetBase() {
+        LocalDate from = LocalDate.of(2026, 7, 1);
+        LocalDate to = LocalDate.of(2026, 7, 31);
+
+        Property property = new Property();
+        property.setId(100L);
+
+        // Sejour Airbnb : frais OTA reels connus (host fee remonte par Channex).
+        Reservation withFee = new Reservation();
+        withFee.setProperty(property);
+        withFee.setTotalPrice(new BigDecimal("289.50"));
+        withFee.setOtaFeeAmount(new BigDecimal("44.87"));
+
+        // Sejour sans frais OTA connus : repli sur le brut, dans le meme virement.
+        Reservation withoutFee = new Reservation();
+        withoutFee.setProperty(property);
+        withoutFee.setTotalPrice(new BigDecimal("300.00"));
+
+        ManagementContract contract = new ManagementContract();
+        contract.setCommissionRate(new BigDecimal("0.20"));
+        contract.setCommissionBase(ManagementContract.CommissionBase.NET_OF_OTA_FEE);
+
+        when(payoutRepository.findByOwnerAndPeriod(OWNER_ID, from, to, ORG_ID))
+            .thenReturn(Optional.empty());
+        when(reservationRepository.findByOwnerIdAndDateRange(OWNER_ID, from, to, ORG_ID))
+            .thenReturn(List.of(withFee, withoutFee));
+        when(managementContractService.getActiveContract(100L, ORG_ID))
+            .thenReturn(Optional.of(contract));
+        when(providerExpenseRepository.findApprovedByPropertyOwnerAndPeriod(
+            eq(OWNER_ID), eq(from), eq(to), eq(ORG_ID))).thenReturn(List.of());
+        when(payoutRepository.save(any(OwnerPayout.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        OwnerPayout result = service.generatePayout(OWNER_ID, ORG_ID, from, to);
+
+        // 244,63 × 20 % = 48,93 (assiette nette) + 300,00 × 20 % = 60,00 (repli brut)
+        assertEquals(0, new BigDecimal("108.93").compareTo(result.getCommissionAmount()));
+        assertEquals(0, new BigDecimal("589.50").compareTo(result.getGrossRevenue()));
+        assertEquals(0, new BigDecimal("480.57").compareTo(result.getNetAmount()));
+        assertEquals(0, new BigDecimal("0.20").compareTo(result.getCommissionRate()));
     }
 
     @Test
