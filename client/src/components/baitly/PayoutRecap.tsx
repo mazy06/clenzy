@@ -42,7 +42,12 @@ export default function PayoutRecap({ recap, isLoading, isError }: PayoutRecapPr
   const currency = recap.currency ?? undefined;
 
   return (
+    // Deux colonnes : les faits a gauche, le calcul a droite. Trois faits courts
+    // occupaient trois lignes pleines, et le calcul restait sous la ligne de
+    // flottaison. Le calcul n'est PAS coupe : des montants alignes a droite ont
+    // besoin d'un axe unique, sinon on ne les compare plus d'un coup d'oeil.
     <div className="space-y-3">
+      <div className="grid gap-4 md:grid-cols-2 md:items-start">
       <ItemGroup>
         <Item size="sm" variant="muted">
           <ItemContent>
@@ -126,6 +131,8 @@ export default function PayoutRecap({ recap, isLoading, isError }: PayoutRecapPr
         </Item>
       </ItemGroup>
 
+      </div>
+
       {/* Approuver un versement qui ne peut pas partir cree une attente sans
           issue : le proprietaire croit son virement lance. */}
       {!recap.destinationReady && (
@@ -148,7 +155,9 @@ export default function PayoutRecap({ recap, isLoading, isError }: PayoutRecapPr
               defaultValue: '{{count}} séjour(s) couvert(s)',
             })}
           </summary>
-          <ul className="m-0 mt-2 list-none space-y-1 p-0">
+          {/* Hauteur bornee : neuf sejours doublaient la hauteur de la carte,
+              et la liste garde sa colonne, donc l'alignement de ses montants. */}
+          <ul className="m-0 mt-2 max-h-48 list-none space-y-1 overflow-y-auto p-0 pe-1">
             {recap.stays.map((stay) => (
               <li key={stay.reservationId} className="flex justify-between gap-3">
                 <span className="min-w-0 truncate text-muted-foreground">
@@ -171,7 +180,7 @@ export default function PayoutRecap({ recap, isLoading, isError }: PayoutRecapPr
               defaultValue: '{{count}} dépense(s) déduite(s)',
             })}
           </summary>
-          <ul className="m-0 mt-2 list-none space-y-1 p-0">
+          <ul className="m-0 mt-2 max-h-48 list-none space-y-1 overflow-y-auto p-0 pe-1">
             {recap.deductions.map((expense) => (
               <li key={expense.expenseId} className="flex justify-between gap-3">
                 <span className="min-w-0 truncate text-muted-foreground">

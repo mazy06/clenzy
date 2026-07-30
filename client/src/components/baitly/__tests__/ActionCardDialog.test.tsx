@@ -326,3 +326,23 @@ describe('reversement', () => {
     expect(await screen.findByText(/ne fera pas partir le virement/)).toBeInTheDocument();
   });
 });
+
+describe('mise en page', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('reste étroite quand la carte n’a rien de large à montrer', () => {
+    // Deux lignes etalees sur toute la largeur se lisent plus mal que trop
+    // haut : la carte ne s'elargit que si elle en a l'usage.
+    renderCard(item({ kind: 'NOISE_ALERT_UNACKNOWLEDGED' }));
+
+    expect(screen.getByRole('dialog').className).toMatch(/max-w-md/);
+  });
+
+  it('s’élargit quand elle porte une saisie', () => {
+    // Le calendrier deux mois impose la largeur ; le contexte se range a cote
+    // plutot que de laisser l'espace vide.
+    renderCard(item({ kind: 'INTERVENTION_OVERDUE', title: 'Ménage de départ' }));
+
+    expect(screen.getByRole('dialog').className).toMatch(/max-w-4xl/);
+  });
+});

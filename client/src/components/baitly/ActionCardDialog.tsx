@@ -168,6 +168,13 @@ export default function ActionCardDialog({
   // Une action deduite des donnees peut n'avoir aucune ligne persistee derriere
   // elle (fixtures de galerie) : le geste serait alors sans cible.
   /** Un geste ne part que si ce qu'il vise est renseigné. */
+  // Ce qui force la largeur : une saisie a cote de laquelle le contexte tient,
+  // ou un recapitulatif qui se lit en deux colonnes.
+  const wide = needsDate || needsAssignee || isPayout;
+  // La grille exterieure ne sert qu'aux saisies : le contexte a gauche, ce que
+  // le geste demande a droite. Le recapitulatif porte sa propre repartition.
+  const split = needsDate || needsAssignee;
+
   const canRun = (gesture: Gesture) =>
     item?.actionItemId != null
     && (!gesture.needsAssignee || assignee != null)
@@ -178,7 +185,10 @@ export default function ActionCardDialog({
 
   return (
     <Dialog open={item != null} onOpenChange={(next) => !next && !act.isPending && onClose()}>
-      <DialogContent className={cn(gestures.length > 1 ? "max-w-2xl" : "max-w-md")}>
+      {/* Deux colonnes seulement quand la carte porte un element large — un
+          calendrier, un selecteur, un recapitulatif. Sinon elle reste etroite :
+          deux lignes etalees sur 900 px se lisent plus mal que trop haut. */}
+      <DialogContent className={cn(wide ? 'max-w-4xl' : 'max-w-md')}>
         <DialogHeader>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={item?.severity === 'critical' ? 'destructive' : 'secondary'}>
@@ -199,6 +209,9 @@ export default function ActionCardDialog({
             {t(card.consequenceKey, card.consequence)}
           </p>
         </div>
+
+        <div className={cn(split && 'grid gap-4 md:grid-cols-2 md:items-start')}>
+          <div className="space-y-3">
 
         {!isPayout && (item?.propertyName || item?.amount != null || item?.subject) && (
           <ItemGroup>
@@ -324,6 +337,10 @@ export default function ActionCardDialog({
           </Alert>
         )}
 
+          </div>
+
+          <div className="space-y-3">
+
         {isPayout && !act.isSuccess && (
           <PayoutRecap
             recap={payout.data}
@@ -369,6 +386,9 @@ export default function ActionCardDialog({
             </CardFooter>
           </Card>
         )}
+
+          </div>
+        </div>
 
         {act.isSuccess && (
           <Alert>
