@@ -3,24 +3,36 @@ package com.clenzy.service.dashboard;
 import com.clenzy.dto.DashboardOperationsDto.ActionItemKind;
 import com.clenzy.model.ActionItem;
 import com.clenzy.repository.ActionItemRepository;
-import com.clenzy.repository.DocumentGenerationRepository;
-import com.clenzy.repository.GuestMessageLogRepository;
 import com.clenzy.repository.OutboxEventRepository;
 import com.clenzy.service.AccountingService;
-import com.clenzy.service.DocumentGenerationPipeline;
-import com.clenzy.service.IssueService;
+import com.clenzy.service.InterventionLifecycleService;
+import com.clenzy.service.InterventionService;
 import com.clenzy.service.NoiseAlertService;
-import com.clenzy.service.OrganizationInvitationService;
 import com.clenzy.service.ReservationService;
-import com.clenzy.service.messaging.AutomationEvaluationService;
 import com.clenzy.service.SecurityDepositPaymentService;
-import com.clenzy.service.messaging.GuestMessagingService;
+import com.clenzy.service.dashboard.gesture.AcknowledgeNoiseAlertHandler;
+import com.clenzy.service.dashboard.gesture.ActionGestureHandler;
+import com.clenzy.service.dashboard.gesture.ApprovePayoutHandler;
+import com.clenzy.service.dashboard.gesture.AssignInterventionHandler;
+import com.clenzy.service.dashboard.gesture.CancelInterventionHandler;
+import com.clenzy.service.dashboard.gesture.ConfirmReservationHandler;
+import com.clenzy.service.dashboard.gesture.GestureContext;
+import com.clenzy.service.dashboard.gesture.ReleaseDepositHandler;
+import com.clenzy.service.dashboard.gesture.ReplayAutomationHandler;
+import com.clenzy.service.dashboard.gesture.ReplayOutboxHandler;
+import com.clenzy.service.dashboard.gesture.RescheduleInterventionHandler;
+import com.clenzy.service.messaging.AutomationEvaluationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,6 +52,10 @@ import static org.mockito.Mockito.when;
  * vers un service auquel il n'était pas destiné — « libérer la caution » envoyé
  * sur une invitation appellerait le service des cautions avec un identifiant
  * étranger.</p>
+ *
+ * <p>Les handlers testés sont les vrais, montés sur des services simulés : ce
+ * qui compte est que le couple (geste, nature) mène au bon service, et un
+ * handler factice ne le prouverait pas.</p>
  */
 class ActionItemActionServiceTest {
 
@@ -52,11 +68,8 @@ class ActionItemActionServiceTest {
     private OutboxEventRepository outboxEventRepository;
     private ReservationService reservationService;
     private AutomationEvaluationService automationEvaluationService;
-    private com.clenzy.repository.InterventionRepository interventionRepository;
-    private com.clenzy.service.InterventionService interventionService;
-    private com.clenzy.service.PropertyTeamService propertyTeamService;
-    private com.clenzy.service.InterventionLifecycleService interventionLifecycleService;
-    private org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
+    private InterventionService interventionService;
+    private InterventionLifecycleService interventionLifecycleService;
     private ActionItemActionService service;
     private Jwt jwt;
 
@@ -69,45 +82,31 @@ class ActionItemActionServiceTest {
         outboxEventRepository = mock(OutboxEventRepository.class);
         reservationService = mock(ReservationService.class);
         automationEvaluationService = mock(AutomationEvaluationService.class);
-        interventionRepository = mock(com.clenzy.repository.InterventionRepository.class);
-        interventionService = mock(com.clenzy.service.InterventionService.class);
-        propertyTeamService = mock(com.clenzy.service.PropertyTeamService.class);
-        interventionLifecycleService = mock(com.clenzy.service.InterventionLifecycleService.class);
+        interventionService = mock(InterventionService.class);
+        interventionLifecycleService = mock(InterventionLifecycleService.class);
+
         // Le verrou anti double-clic laisse passer le premier appel.
-        redisTemplate = mock(org.springframework.data.redis.core.StringRedisTemplate.class);
-        final var valueOps = mock(org.springframework.data.redis.core.ValueOperations.class);
+        final StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        final ValueOperations<String, String> valueOps = mock(ValueOperations.class);
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
-        when(valueOps.setIfAbsent(any(), any(), any(java.time.Duration.class))).thenReturn(true);
+        when(valueOps.setIfAbsent(any(), any(), any(Duration.class))).thenReturn(true);
 
         jwt = mock(Jwt.class);
         when(jwt.getSubject()).thenReturn("kc-user");
 
         service = new ActionItemActionService(
-                actionItemRepository,
-                mock(DocumentGenerationRepository.class),
-                mock(GuestMessageLogRepository.class),
-                mock(DocumentGenerationPipeline.class),
-                mock(GuestMessagingService.class),
-                outboxEventRepository,
-                noiseAlertService,
-                accountingService,
-                securityDepositPaymentService,
-                mock(OrganizationInvitationService.class),
-                mock(IssueService.class),
+                new ActionItemLoader(actionItemRepository),
                 redisTemplate,
-                reservationService,
-                automationEvaluationService,
-                interventionRepository,
-                interventionService,
-                propertyTeamService,
-                interventionLifecycleService,
-                mock(com.clenzy.repository.OwnerPayoutRepository.class),
-                mock(com.clenzy.repository.UserRepository.class),
-                mock(com.clenzy.repository.OwnerPayoutConfigRepository.class),
-                mock(com.clenzy.repository.ProviderExpenseRepository.class),
-                mock(com.clenzy.repository.ReservationRepository.class),
-                mock(com.clenzy.service.InterventionPhotoService.class),
-                mock(com.clenzy.service.payout.HousekeeperPayoutService.class));
+                List.of(
+                        new AcknowledgeNoiseAlertHandler(noiseAlertService),
+                        new ApprovePayoutHandler(accountingService),
+                        new ReleaseDepositHandler(securityDepositPaymentService),
+                        new ConfirmReservationHandler(reservationService),
+                        new ReplayAutomationHandler(automationEvaluationService),
+                        new ReplayOutboxHandler(outboxEventRepository),
+                        new AssignInterventionHandler(interventionService),
+                        new CancelInterventionHandler(interventionLifecycleService),
+                        new RescheduleInterventionHandler(interventionLifecycleService)));
     }
 
     private void queueHolds(ActionItemKind kind, Long targetId, Long orgId) {
@@ -158,6 +157,28 @@ class ActionItemActionServiceTest {
                 .isInstanceOf(IllegalStateException.class);
 
         verifyNoInteractions(noiseAlertService, accountingService, securityDepositPaymentService);
+    }
+
+    @Test
+    void whenTwoHandlersClaimTheSameGesture_thenTheApplicationRefusesToStart() {
+        // Un doublon ferait partir le geste vers l'un ou l'autre selon l'ordre
+        // d'injection de Spring — c'est-a-dire au hasard. Mieux vaut ne pas
+        // demarrer que d'approuver un reversement par le mauvais chemin un jour
+        // sur deux.
+        final ActionGestureHandler impostor = new ActionGestureHandler() {
+            @Override public String action() { return "acknowledge"; }
+            @Override public Set<ActionItemKind> kinds() {
+                return Set.of(ActionItemKind.NOISE_ALERT_UNACKNOWLEDGED);
+            }
+            @Override public void handle(GestureContext context) { }
+        };
+
+        assertThatThrownBy(() -> new ActionItemActionService(
+                new ActionItemLoader(actionItemRepository),
+                mock(StringRedisTemplate.class),
+                List.of(new AcknowledgeNoiseAlertHandler(noiseAlertService), impostor)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("acknowledge");
     }
 
     @Test

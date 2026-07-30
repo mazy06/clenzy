@@ -3,6 +3,8 @@ package com.clenzy.controller;
 import com.clenzy.service.dashboard.ActionItemReconciler;
 import com.clenzy.service.dashboard.ActionItemActionService;
 import com.clenzy.service.dashboard.ActionItemWriter;
+import com.clenzy.service.dashboard.InterventionActionContextService;
+import com.clenzy.service.dashboard.PayoutRecapService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -40,13 +42,19 @@ public class ActionItemController {
     private final ActionItemWriter actionItemWriter;
     private final ActionItemReconciler reconciler;
     private final ActionItemActionService actionService;
+    private final PayoutRecapService payoutRecapService;
+    private final InterventionActionContextService interventionContextService;
     private final TenantContext tenantContext;
 
     public ActionItemController(ActionItemWriter actionItemWriter,
                                 ActionItemReconciler reconciler,
                                 ActionItemActionService actionService,
+                                PayoutRecapService payoutRecapService,
+                                InterventionActionContextService interventionContextService,
                                 TenantContext tenantContext) {
         this.actionService = actionService;
+        this.payoutRecapService = payoutRecapService;
+        this.interventionContextService = interventionContextService;
         this.actionItemWriter = actionItemWriter;
         this.reconciler = reconciler;
         this.tenantContext = tenantContext;
@@ -114,7 +122,7 @@ public class ActionItemController {
      */
     @GetMapping("/{id}/payout-recap")
     public PayoutRecapDto payoutRecap(@PathVariable Long id) {
-        return actionService.payoutRecap(id, tenantContext.getRequiredOrganizationId());
+        return payoutRecapService.recap(id, tenantContext.getRequiredOrganizationId());
     }
 
     /**
@@ -123,13 +131,13 @@ public class ActionItemController {
      */
     @GetMapping("/{id}/intervention-proof")
     public InterventionProofDto interventionProof(@PathVariable Long id) {
-        return actionService.interventionProof(id, tenantContext.getRequiredOrganizationId());
+        return interventionContextService.interventionProof(id, tenantContext.getRequiredOrganizationId());
     }
 
     /** Équipes proposées pour assigner l'intervention que cette action signale. */
     @GetMapping("/{id}/assignable-teams")
     public PropertyTeamService.AssignableTeams assignableTeams(@PathVariable Long id) {
-        return actionService.assignableTeams(id, tenantContext.getRequiredOrganizationId());
+        return interventionContextService.assignableTeams(id, tenantContext.getRequiredOrganizationId());
     }
 
     @PostMapping("/{id}/retry")
