@@ -1,0 +1,42 @@
+# Site marketing Baitly (baitly.ma / baitly.fr) — app Vite distincte du PMS.
+#
+# Meme depot et memes node_modules que le PMS, mais un autre point d'entree :
+# `npm run build:site` compile `client/site` via vite.site.config.ts et sort
+# dans `dist-site`. Un Dockerfile separe plutot qu'un ARG sur celui du PMS :
+# les deux images n'embarquent pas les memes variables de build, et le site
+# n'a besoin d'aucune (ni API, ni Keycloak, ni Stripe).
+
+FROM node:20-alpine AS build
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+
+# Meme resilience reseau que le Dockerfile du PMS : les ECONNRESET sur le
+# registre npm sont frequents en CI, et --ignore-scripts + install.js explicite
+# contourne le bug ETXTBSY d'esbuild sur Alpine.
+RUN npm config set fetch-retries 5 \
+    && npm config set fetch-retry-mintimeout 20000 \
+    && npm config set fetch-retry-maxtimeout 120000 \
+    && npm config set fetch-timeout 600000; \
+    (for i in 1 2 3; do \
+       echo "=== Tentative $i/3: npm ci ===" && npm ci --ignore-scripts && exit 0 || \
+       { echo "=== Tentative $i echouee, attente 10s ===" && sleep 10; }; \
+     done; exit 1) && \
+    node node_modules/esbuild/install.js && \
+    npm cache clean --force
+
+COPY . .
+
+# Le site est bien plus leger que le PMS, mais il embarque les projections
+# partagees : on garde la marge de heap plutot que de decouvrir la limite
+# le jour ou une page en importe une de plus.
+ENV NODE_OPTIONS=--max-old-space-size=4096
+RUN npm run build:site
+
+FROM nginx:alpine
+# dist-site, et non dist : c'est l'outDir declare par vite.site.config.ts.
+COPY --from=build /app/dist-site /usr/share/nginx/html
+# Meme politique de cache que le PMS (assets hashes immutables, SPA fallback).
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

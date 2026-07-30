@@ -3578,6 +3578,8 @@ databaseChangeLog:
       sqlFile:
         path: changes/0375__drop_activity_commission_config.sql
         relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
 
   - changeSet:
       id: "0376-add-affiliate-platform-commission"
@@ -3592,3 +3594,5 @@ databaseChangeLog:
       sqlFile:
         path: changes/0377__drop_contract_activity_commission_rate.sql
         relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
