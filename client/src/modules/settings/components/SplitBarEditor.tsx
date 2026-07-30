@@ -323,6 +323,22 @@ export default function SplitBarEditor({
             )}
           </Box>
         ))}
+
+        {/* Une part amont a ete prelevee : les trois valeurs ci-dessus portent
+            sur ce qu'il reste, pas sur ce que paie le voyageur. Sans ce rappel
+            elles s'additionnent a plus de 100 % a la lecture, alors que les
+            largeurs de la barre, elles, sont bien a l'echelle du total. */}
+        {upstream && upstreamPct > 0 && (
+          <Typography
+            sx={{
+              fontSize: '0.72rem',
+              color: 'text.disabled',
+              fontStyle: 'italic',
+            }}
+          >
+            (% du net)
+          </Typography>
+        )}
       </Box>
     </Box>
   );
