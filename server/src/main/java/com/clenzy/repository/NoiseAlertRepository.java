@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.List;
 
 public interface NoiseAlertRepository extends JpaRepository<NoiseAlert, Long> {
 
@@ -89,4 +90,8 @@ public interface NoiseAlertRepository extends JpaRepository<NoiseAlert, Long> {
     boolean existsGuestNotifiedSince(
         @Param("propertyId") Long propertyId,
         @Param("since") LocalDateTime since);
+
+    /** Alertes de bruit qu'aucune personne n'a acquittées passé un délai. */
+    List<NoiseAlert> findByOrganizationIdAndAcknowledgedFalseAndCreatedAtBeforeOrderByCreatedAtAsc(
+            Long organizationId, LocalDateTime createdBefore);
 }

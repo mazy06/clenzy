@@ -40,8 +40,10 @@
   @apply text-muted-foreground text-sm text-balance md:text-pretty [&_p:not(:last-child)]:mb-4;
 }
 
+/* Ancrage au bord de fin : en RTL l'action doit passer à gauche, comme le
+   reste de l'alerte. */
 .cn-alert-action {
-  @apply absolute top-2 right-2;
+  @apply absolute top-2 end-2;
 }
 
 /* MARK: Alert Dialog */
@@ -322,7 +324,7 @@
 }
 
 .cn-combobox-item-indicator {
-  @apply pointer-events-none absolute right-2 flex size-4 items-center justify-center;
+  @apply pointer-events-none absolute end-2 flex size-4 items-center justify-center;
 }
 
 .cn-combobox-empty {
@@ -440,7 +442,7 @@
 }
 
 .cn-context-menu-item-indicator {
-  @apply absolute right-2;
+  @apply absolute end-2;
 }
 
 .cn-context-menu-label {
@@ -476,8 +478,10 @@
   @apply bg-popover text-popover-foreground data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 ring-foreground/10 grid max-w-[calc(100%-2rem)] gap-4 rounded-xl p-4 text-sm ring-1 duration-100 sm:max-w-sm;
 }
 
+/* `end-2`, pas `right-2` : en arabe le titre s'aligne à droite et la croix
+   venait le chevaucher. La propriété logique la place à gauche en RTL. */
 .cn-dialog-close {
-  @apply absolute top-2 right-2;
+  @apply absolute top-2 end-2;
 }
 
 .cn-dialog-header {
@@ -563,7 +567,7 @@
 }
 
 .cn-dropdown-menu-item-indicator {
-  @apply absolute right-2 flex items-center justify-center;
+  @apply absolute end-2 flex items-center justify-center;
 }
 
 .cn-dropdown-menu-label {
@@ -1045,7 +1049,7 @@
 }
 
 .cn-select-item-indicator {
-  @apply pointer-events-none absolute right-2 flex size-4 items-center justify-center;
+  @apply pointer-events-none absolute end-2 flex size-4 items-center justify-center;
 }
 
 .cn-select-group {
@@ -1095,7 +1099,7 @@
 }
 
 .cn-sheet-close {
-  @apply absolute top-3 right-3;
+  @apply absolute top-3 end-3;
 }
 
 .cn-sheet-header {
@@ -1168,7 +1172,7 @@
 }
 
 .cn-sidebar-group-action {
-  @apply text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground absolute top-3.5 right-3 w-5 rounded-md p-0 focus-visible:ring-2 [&>svg]:size-4;
+  @apply text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground absolute top-3.5 end-3 w-5 rounded-md p-0 focus-visible:ring-2 [&>svg]:size-4;
 }
 
 .cn-sidebar-menu-button {
@@ -1200,11 +1204,11 @@
 }
 
 .cn-sidebar-menu-action {
-  @apply text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer-hover/menu-button:text-sidebar-accent-foreground absolute top-1.5 right-1 aspect-square w-5 rounded-md p-0 peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-2.5 peer-data-[size=sm]/menu-button:top-1 focus-visible:ring-2 [&>svg]:size-4;
+  @apply text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer-hover/menu-button:text-sidebar-accent-foreground absolute top-1.5 end-1 aspect-square w-5 rounded-md p-0 peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-2.5 peer-data-[size=sm]/menu-button:top-1 focus-visible:ring-2 [&>svg]:size-4;
 }
 
 .cn-sidebar-menu-badge {
-  @apply text-sidebar-foreground peer-hover/menu-button:text-sidebar-accent-foreground peer-data-active/menu-button:text-sidebar-accent-foreground pointer-events-none absolute right-1 flex h-5 min-w-5 rounded-md px-1 text-xs font-medium peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-2.5 peer-data-[size=sm]/menu-button:top-1;
+  @apply text-sidebar-foreground peer-hover/menu-button:text-sidebar-accent-foreground peer-data-active/menu-button:text-sidebar-accent-foreground pointer-events-none absolute end-1 flex h-5 min-w-5 rounded-md px-1 text-xs font-medium peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-2.5 peer-data-[size=sm]/menu-button:top-1;
 }
 
 .cn-sidebar-menu-skeleton {
@@ -1570,7 +1574,7 @@
 }
 
 .cn-attachment-actions {
-  @apply group-data-[orientation=vertical]/attachment:absolute group-data-[orientation=vertical]/attachment:top-3 group-data-[orientation=vertical]/attachment:right-3 relative z-20 group-data-[orientation=vertical]/attachment:gap-1;
+  @apply group-data-[orientation=vertical]/attachment:absolute group-data-[orientation=vertical]/attachment:top-3 group-data-[orientation=vertical]/attachment:end-3 relative z-20 group-data-[orientation=vertical]/attachment:gap-1;
 }
 
 .cn-attachment-group {

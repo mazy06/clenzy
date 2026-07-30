@@ -33,6 +33,7 @@ class ReviewServiceTest {
 
     @Mock private GuestReviewRepository reviewRepository;
     @Mock private SentimentAnalysisService sentimentService;
+    @Mock private OutboxPublisher outboxPublisher;
 
     @InjectMocks
     private ReviewService service;
@@ -79,6 +80,55 @@ class ReviewServiceTest {
         assertEquals(SentimentLabel.POSITIVE, result.getSentimentLabel());
         assertEquals(0.8, result.getSentimentScore());
         assertEquals(List.of(ReviewTag.COMFORT), result.getTags());
+    }
+
+    @Test
+    void whenReviewArrives_thenTheConstellationIsNotified() {
+        // L'événement naît DANS la transaction qui enregistre l'avis (outbox) :
+        // c'est lui qui fait apparaître la carte « avis sans réponse » tout de
+        // suite, au lieu d'attendre le balayage horaire.
+        var request = new CreateReviewRequest(PROPERTY_ID, null, ChannelName.AIRBNB,
+            "Jane", 5, "Amazing stay!", LocalDate.now(), "en");
+        when(sentimentService.analyze(any(), any()))
+            .thenReturn(new SentimentResult(0.8, SentimentLabel.POSITIVE, List.of(ReviewTag.COMFORT)));
+        when(reviewRepository.save(any(GuestReview.class)))
+            .thenAnswer(inv -> {
+                GuestReview r = inv.getArgument(0);
+                r.setId(42L);
+                return r;
+            });
+
+        service.addReview(request, ORG_ID);
+
+        ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+        verify(outboxPublisher).publish(eq("review"), eq("42"), eq("REVIEW_RECEIVED"),
+                eq("reviews.sync"), eq(String.valueOf(PROPERTY_ID)), payload.capture(), eq(ORG_ID));
+        // Le message ne porte que des identifiants : le consommateur relit l'avis
+        // en base, l'émetteur ne choisit ni l'organisation ni le contenu.
+        assertEquals("{\"reviewId\":42,\"propertyId\":100}", payload.getValue());
+    }
+
+    @Test
+    void whenReviewIsAlreadyAnswered_thenNothingIsAnnounced() {
+        // Un avis importé avec sa réponse n'appelle aucune action : inutile de
+        // réveiller la constellation pour lui.
+        GuestReview answered = new GuestReview();
+        answered.setOrganizationId(ORG_ID);
+        answered.setPropertyId(PROPERTY_ID);
+        answered.setExternalReviewId("ext-77");
+        answered.setHostResponse("Merci !");
+        when(reviewRepository.findByExternalReviewIdAndOrganizationId("ext-77", ORG_ID))
+            .thenReturn(Optional.empty());
+        when(reviewRepository.save(any(GuestReview.class)))
+            .thenAnswer(inv -> {
+                GuestReview r = inv.getArgument(0);
+                r.setId(77L);
+                return r;
+            });
+
+        service.addOrUpdateFromSync(answered);
+
+        verifyNoInteractions(outboxPublisher);
     }
 
     @Test

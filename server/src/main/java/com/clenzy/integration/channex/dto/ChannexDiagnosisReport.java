@@ -29,13 +29,23 @@ public record ChannexDiagnosisReport(
     String summary
 ) {
 
-    /** Snapshot brut de l'etat de sync pour affichage. */
+    /**
+     * Snapshot brut de l'etat de sync pour affichage.
+     *
+     * <p>{@code otaCountKnown} distingue "0 OTA actif" de "impossible de le
+     * savoir" (hub injoignable). Sans cette distinction, un simple incident
+     * reseau se lit comme un mapping orphelin et fait recommander une
+     * deconnexion complete a tort — quand {@code otaCountKnown} est
+     * {@code false}, {@code activeOtaCount} et {@code hasActiveOta} n'ont
+     * aucune valeur informative.</p>
+     */
     public record SyncSnapshot(
         ChannexSyncStatus status,
         Instant lastSyncAt,
         String lastSyncError,
         int activeOtaCount,
-        boolean hasActiveOta
+        boolean hasActiveOta,
+        boolean otaCountKnown
     ) {}
 
     /**

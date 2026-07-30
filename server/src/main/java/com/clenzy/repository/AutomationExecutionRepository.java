@@ -9,6 +9,8 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 @Repository
 public interface AutomationExecutionRepository extends JpaRepository<AutomationExecution, Long> {
@@ -26,4 +28,15 @@ public interface AutomationExecutionRepository extends JpaRepository<AutomationE
 
     Page<AutomationExecution> findByAutomationRuleIdAndOrganizationIdOrderByCreatedAtDesc(
         Long ruleId, Long organizationId, Pageable pageable);
+
+    /** Automatisations en échec : l'action promise n'a pas eu lieu. */
+    @Query("""
+            SELECT e FROM AutomationExecution e
+            WHERE e.organizationId = :orgId
+              AND e.status = com.clenzy.model.AutomationExecutionStatus.FAILED
+              AND e.createdAt >= :since
+            ORDER BY e.createdAt DESC
+            """)
+    List<AutomationExecution> findFailedForOrg(@Param("orgId") Long orgId,
+                                               @Param("since") LocalDateTime since);
 }

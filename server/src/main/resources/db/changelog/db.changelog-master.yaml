@@ -3543,3 +3543,56 @@ databaseChangeLog:
       sqlFile:
         path: changes/0370__purge_media_assets_without_binary.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0371-deduplicate-review-reply-drafts"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0371__deduplicate_review_reply_drafts.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0372-create-action-items"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0372__create_action_items.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0373-online-checkin-identity-fields"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0373__online_checkin_identity_fields.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0374-ota-fee-bearer-and-payout-ota-fees"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0374__ota_fee_bearer_and_payout_ota_fees.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0375-drop-activity-commission-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0375__drop_activity_commission_config.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  - changeSet:
+      id: "0376-add-affiliate-platform-commission"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0376__add_affiliate_platform_commission.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0377-drop-contract-activity-commission-rate"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0377__drop_contract_activity_commission_rate.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false

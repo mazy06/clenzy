@@ -18,8 +18,6 @@ import {
   IconButton,
   Switch,
   Divider,
-  Tabs,
-  Tab,
   useTheme,
   alpha,
 } from '@mui/material';
@@ -51,6 +49,7 @@ import KnowledgeBaseAdmin from './KnowledgeBaseAdmin';
 import AgentSupervisionSection from './AgentSupervisionSection';
 import AiAutonomySection from './AiAutonomySection';
 import ConciergePlatformSection from './ConciergePlatformSection';
+import PageTabs from '../../components/PageTabs';
 
 // ─── Provider Brand Config ──────────────────────────────────────────────────
 
@@ -707,42 +706,20 @@ export default function AiSettingsSection() {
   return (
     <Box>
       {/* ── Tabs internes ── */}
-      <Tabs
+      <PageTabs
+        options={[
+          { value: 'connection' as SubTab, label: t('settings.ai.tabs.connection', 'Connexion') },
+          { value: 'models' as SubTab, label: t('settings.ai.tabs.models', 'Modèles & features') },
+          { value: 'consumption' as SubTab, label: t('settings.ai.tabs.consumption', 'Consommation') },
+          { value: 'supervision' as SubTab, label: t('settings.ai.tabs.supervision', 'Superviseur') },
+          { value: 'briefings' as SubTab, label: t('settings.ai.tabs.briefings', 'Briefings') },
+          { value: 'kb' as SubTab, label: t('settings.ai.tabs.kb', 'Documentation') },
+        ]}
         value={activeTab}
-        onChange={(_, v) => setActiveTab(v as SubTab)}
-        variant="scrollable"
-        scrollButtons="auto"
-        allowScrollButtonsMobile
-        sx={{
-          mb: 3,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          minHeight: 40,
-          '& .MuiTab-root': {
-            textTransform: 'none',
-            fontWeight: 500,
-            fontSize: '0.875rem',
-            minHeight: 40,
-            px: 2,
-            py: 1,
-            color: 'text.secondary',
-            '&.Mui-selected': {
-              fontWeight: 600,
-              color: 'text.primary',
-            },
-          },
-          '& .MuiTabs-indicator': {
-            height: 2,
-          },
-        }}
-      >
-        <Tab value="connection" label={t('settings.ai.tabs.connection', 'Connexion')} />
-        <Tab value="models" label={t('settings.ai.tabs.models', 'Modèles & features')} />
-        <Tab value="consumption" label={t('settings.ai.tabs.consumption', 'Consommation')} />
-        <Tab value="supervision" label={t('settings.ai.tabs.supervision', 'Superviseur')} />
-        <Tab value="briefings" label={t('settings.ai.tabs.briefings', 'Briefings')} />
-        <Tab value="kb" label={t('settings.ai.tabs.kb', 'Documentation')} />
-      </Tabs>
+        onChange={setActiveTab}
+        mb={3}
+        trail={false}
+      />
 
       {activeTab === 'connection' && (
         <Grid container spacing={2.5}>

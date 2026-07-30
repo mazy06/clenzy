@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   Box, Paper, Typography, Button, Chip, CircularProgress, Alert,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Tabs, Tab, TextField, FormControl, InputLabel, Select, MenuItem,
+  TextField, FormControl, InputLabel, Select, MenuItem,
   Card, CardContent, Grid,
   Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
@@ -25,6 +25,7 @@ import { ownerPortalApi } from '../../services/api/ownerPortalApi';
 import type { OwnerDashboard, OwnerStatement } from '../../services/api/ownerPortalApi';
 import { useQuery } from '@tanstack/react-query';
 import { Money } from '../../components/Money';
+import PageTabs from '../../components/PageTabs';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -39,8 +40,6 @@ const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={curr
 
 const CELL_SX = { fontSize: '0.8125rem', py: 1.25 } as const;
 const HEAD_CELL_SX = { fontSize: '0.75rem', fontWeight: 700, py: 1, color: 'text.secondary' } as const;
-const TAB_SX = { textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, minHeight: 40 } as const;
-
 const KPI_CARD_SX = {
   ...CARD_SX,
   textAlign: 'center',
@@ -115,14 +114,15 @@ const OwnerPortalPage: React.FC = () => {
       </Paper>
 
       <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
-        <Tabs
+        <PageTabs
+          options={[
+            { label: t('ownerPortal.tabs.dashboard', 'Dashboard') },
+            { label: t('ownerPortal.tabs.statement', 'Releve') },
+          ]}
           value={activeTab}
-          onChange={(_, v) => setActiveTab(v)}
-          sx={{ borderBottom: 1, borderColor: 'divider', minHeight: 40 }}
-        >
-          <Tab label={t('ownerPortal.tabs.dashboard', 'Dashboard')} sx={TAB_SX} />
-          <Tab label={t('ownerPortal.tabs.statement', 'Releve')} sx={TAB_SX} />
-        </Tabs>
+          onChange={setActiveTab}
+          mb={0}
+        />
       </Paper>
 
       {!ownerId ? (
@@ -501,6 +501,18 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                   {fmtCurrency(statement.totalCommissions)}
                 </Typography>
               </Grid>
+              {/* Frais OTA : affiches seulement quand le proprietaire les supporte.
+                  A la charge de la conciergerie, ils ne sortent pas de son releve. */}
+              {statement.totalOtaFees > 0 && (
+                <Grid item xs={6} sm={3}>
+                  <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                    {t('ownerPortal.totalOtaFees', 'Frais OTA')}
+                  </Typography>
+                  <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#ef5350' }}>
+                    {fmtCurrency(statement.totalOtaFees)}
+                  </Typography>
+                </Grid>
+              )}
               <Grid item xs={6} sm={3}>
                 <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
                   {t('ownerPortal.totalExpenses', 'Depenses')}
@@ -531,6 +543,9 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                     <TableCell sx={HEAD_CELL_SX}>{t('ownerPortal.col.property', 'Propriete')}</TableCell>
                     <TableCell sx={HEAD_CELL_SX}>{t('ownerPortal.col.type', 'Type')}</TableCell>
                     <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.amount', 'Montant')}</TableCell>
+                    {statement.totalOtaFees > 0 && (
+                      <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.otaFee', 'Frais OTA')}</TableCell>
+                    )}
                     <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.commission', 'Commission')}</TableCell>
                     <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.net', 'Net')}</TableCell>
                   </TableRow>
@@ -549,6 +564,9 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                         />
                       </TableCell>
                       <TableCell sx={CELL_SX} align="right">{fmtCurrency(line.amount)}</TableCell>
+                      {statement.totalOtaFees > 0 && (
+                        <TableCell sx={CELL_SX} align="right">{fmtCurrency(line.otaFee)}</TableCell>
+                      )}
                       <TableCell sx={CELL_SX} align="right">{fmtCurrency(line.commission)}</TableCell>
                       <TableCell sx={{ ...CELL_SX, fontWeight: 700 }} align="right">{fmtCurrency(line.net)}</TableCell>
                     </TableRow>

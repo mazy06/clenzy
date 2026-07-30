@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.Filter;
 
 import java.time.Instant;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -38,6 +40,10 @@ public class ChannexOtaChannel {
      * {@code vrbo}, {@code expedia}, {@code agoda}, {@code hometogo}, {@code tripcom}.
      * La liste exhaustive evolue avec le catalogue Channex
      * (cf. <a href="https://docs.channex.io/api-reference/channels">docs.channex.io</a>).
+     *
+     * <p>Toujours derive du nom Channex via {@link #slugFor(String)} : c'est lui
+     * qui garantit qu'un meme OTA tombe sur une seule valeur, donc sur une seule
+     * ligne au sens de la contrainte UNIQUE (property_mapping_id, ota_type).</p>
      */
     @Column(name = "ota_type", nullable = false, length = 40)
     private String otaType;
@@ -76,6 +82,68 @@ public class ChannexOtaChannel {
     @PreUpdate
     void onUpdate() {
         this.updatedAt = Instant.now();
+    }
+
+    // ─── Slug OTA ───────────────────────────────────────────────────────────
+
+    /**
+     * Alias connus : Channex n'orthographie pas un OTA de la meme facon selon
+     * l'endpoint ("Airbnb" a la creation, "AirBNB" en lecture), et le nom du
+     * channel n'est pas un slug ("ExpediaQuickConnect"). Sans cette table, le
+     * meme OTA produirait deux {@code ota_type} differents, donc deux lignes
+     * la ou la contrainte UNIQUE en attend une.
+     *
+     * <p>Cle = nom Channex reduit a ses caracteres alphanumeriques, en minuscules.</p>
+     */
+    private static final Map<String, String> KNOWN_OTA_SLUGS = Map.ofEntries(
+        Map.entry("airbnb", "airbnb"),
+        Map.entry("bookingcom", "booking_com"),
+        Map.entry("booking", "booking_com"),
+        Map.entry("vrbocom", "vrbo"),
+        Map.entry("vrbo", "vrbo"),
+        Map.entry("homeaway", "vrbo"),
+        Map.entry("expediaquickconnect", "expedia"),
+        Map.entry("expedia", "expedia"),
+        Map.entry("agoda", "agoda"),
+        Map.entry("tripadvisor", "tripadvisor"),
+        Map.entry("hometogo", "hometogo"),
+        Map.entry("tripcom", "tripcom"),
+        Map.entry("hotelscom", "hotelscom"),
+        Map.entry("almosafer", "almosafer")
+    );
+
+    /** Longueur de la colonne {@code ota_type} — on tronque plutot que de faire echouer l'INSERT. */
+    private static final int OTA_TYPE_MAX_LENGTH = 40;
+
+    /**
+     * Convertit un nom de channel Channex ("Airbnb", "BookingCom",
+     * "ExpediaQuickConnect") en slug stockable dans {@code ota_type}.
+     *
+     * <p>Les OTAs connus passent par {@link #KNOWN_OTA_SLUGS} ; les autres sont
+     * derives mecaniquement en snake_case ("SomeNewOta" -&gt; {@code some_new_ota}),
+     * pour qu'un OTA ajoute au catalogue Channex soit enregistre malgre tout.</p>
+     *
+     * @param channexChannelName nom Channex du channel (peut etre null/blank)
+     * @return slug non vide, jamais null ({@code unknown} en dernier recours)
+     */
+    public static String slugFor(String channexChannelName) {
+        if (channexChannelName == null || channexChannelName.isBlank()) {
+            return "unknown";
+        }
+        String compact = channexChannelName.replaceAll("[^A-Za-z0-9]", "").toLowerCase(Locale.ROOT);
+        String known = KNOWN_OTA_SLUGS.get(compact);
+        if (known != null) {
+            return known;
+        }
+        String slug = channexChannelName.trim()
+            .replaceAll("([a-z0-9])([A-Z])", "$1_$2")
+            .toLowerCase(Locale.ROOT)
+            .replaceAll("[^a-z0-9]+", "_")
+            .replaceAll("^_+|_+$", "");
+        if (slug.isEmpty()) {
+            return "unknown";
+        }
+        return slug.length() > OTA_TYPE_MAX_LENGTH ? slug.substring(0, OTA_TYPE_MAX_LENGTH) : slug;
     }
 
     // ─── Getters / Setters ──────────────────────────────────────────────────

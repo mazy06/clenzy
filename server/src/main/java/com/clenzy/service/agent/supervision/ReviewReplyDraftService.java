@@ -134,12 +134,17 @@ public class ReviewReplyDraftService {
         final ChatRequest request = new ChatRequest(
                 SYSTEM_PROMPT, List.of(ChatMessage.user(userPrompt)), List.of(),
                 model, 0.5, MAX_TOKENS, null, target.provider(), target.baseUrl());
-        final StringBuilder text = new StringBuilder();
+        final StringBuilder deltas = new StringBuilder();
+        final StringBuilder complete = new StringBuilder();
+        // `Done.fullText()` est DÉJÀ la concaténation de tous les `TextDelta`
+        // (cf. son javadoc) : accumuler les deux écrivait le texte en double,
+        // recollé sans séparateur. On garde les deux flux à part et on tranche
+        // à la fin, `fullText` faisant foi quand il est présent.
         final Consumer<ChatEvent> handler = event -> {
             if (event instanceof ChatEvent.Done done) {
-                text.append(done.fullText());
+                complete.append(done.fullText() == null ? "" : done.fullText());
             } else if (event instanceof ChatEvent.TextDelta td) {
-                text.append(td.delta());
+                deltas.append(td.delta());
             }
         };
         if (target.apiKey() != null) {
@@ -147,6 +152,6 @@ public class ReviewReplyDraftService {
         } else {
             chatProvider.streamChat(request, handler);
         }
-        return text.toString();
+        return complete.length() > 0 ? complete.toString() : deltas.toString();
     }
 }

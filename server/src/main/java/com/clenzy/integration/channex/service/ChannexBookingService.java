@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -223,6 +224,11 @@ public class ChannexBookingService {
         if (booking.adults() != null) reservation.setAdultsCount(booking.adults());
         if (booking.taxableChildren() != null) reservation.setChildrenCount(booking.taxableChildren());
         if (booking.amount() != null) reservation.setTotalPrice(booking.amount());
+        // Ecrasement inconditionnel : une revision Channex est un instantane complet,
+        // pas un patch. Garder l'ancienne commission alors que le montant vient de
+        // changer afficherait un chiffre perime comme s'il etait reel ; a null on
+        // retombe sur l'estimation, qui elle est signalee comme telle.
+        reservation.setOtaFeeAmount(resolveOtaFee(booking));
 
         reservationRepository.save(reservation);
 
@@ -361,6 +367,7 @@ public class ChannexBookingService {
         r.setTotalPrice(booking.amount());
         r.setCurrency(booking.currency() != null ? booking.currency().toUpperCase() : property.getDefaultCurrency());
         r.setRoomRevenue(booking.amount());
+        r.setOtaFeeAmount(resolveOtaFee(booking));
         r.setExternalUid(externalUid);
         // OTA reservation code (visible au guest) — utile pour le support
         r.setConfirmationCode(booking.otaReservationCode() != null
@@ -369,6 +376,29 @@ public class ChannexBookingService {
         r.setPaymentStatus(PaymentStatus.PAID);
         r.setPaidAt(LocalDateTime.now());
         return r;
+    }
+
+    /**
+     * Commission REELLE prelevee par l'OTA ({@code ota_commission} du payload Channex).
+     *
+     * <p>Channex ne la renseigne que pour Booking.com et Airbnb ; ailleurs elle est
+     * null et la commission canal reste une estimation au taux par defaut, signalee
+     * comme telle par {@code ChannelCommissionResolver.isEstimated}.</p>
+     *
+     * <p>Une valeur negative est refusee : elle gonflerait le net proprietaire et
+     * ferait passer une anomalie de flux pour un chiffre reel.</p>
+     */
+    private static BigDecimal resolveOtaFee(ChannexBookingDto booking) {
+        BigDecimal fee = booking.otaCommission();
+        if (fee == null) {
+            return null;
+        }
+        if (fee.signum() < 0) {
+            log.warn("ChannexBooking: ota_commission negative ({}) sur {} — ignoree, "
+                + "la commission repasse en estimation", fee, booking.stableBookingId());
+            return null;
+        }
+        return fee;
     }
 
     /**

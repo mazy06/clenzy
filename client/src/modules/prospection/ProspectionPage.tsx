@@ -3,8 +3,6 @@ import { createPortal } from 'react-dom';
 import {
   Box,
   Typography,
-  TextField,
-  InputAdornment,
   Chip,
   Table,
   TableBody,
@@ -26,7 +24,6 @@ import {
   SelectChangeEvent,
 } from '@mui/material';
 import {
-  Search,
   ExpandMore,
   ExpandLess,
   Business,
@@ -48,6 +45,7 @@ import type { ProspectDto } from '../../services/api/prospectsApi';
 import ProspectImportModal from './ProspectImportModal';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import { useScreenSearch } from '../../components/ScreenChrome';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -96,6 +94,8 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
   const isDark = theme.palette.mode === 'dark';
 
   const [search, setSearch] = useState('');
+  // Recherche de l'écran → champ UNIQUE du PageHeader (cf. ScreenChrome).
+  useScreenSearch(search, setSearch, 'Rechercher un prospect…');
   const [statusFilter, setStatusFilter] = useState<ProspectStatus | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
@@ -219,21 +219,6 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
       {/* ── Filters bar ── */}
       <Paper sx={{ p: 2, mb: 2 }}>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-          <TextField
-            size="small"
-            placeholder="Rechercher un prospect..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={18} strokeWidth={1.75} /></Box>
-                </InputAdornment>
-              ),
-            }}
-            sx={{ flex: 1, minWidth: 200, '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
-          />
-
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel sx={{ fontSize: '0.8125rem' }}>
               <Box component="span" sx={{ display: 'inline-flex', mr: 0.5, verticalAlign: 'middle' }}><FilterList size={14} strokeWidth={1.75} /></Box>

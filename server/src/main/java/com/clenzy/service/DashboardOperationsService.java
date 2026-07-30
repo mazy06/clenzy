@@ -1,26 +1,17 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.DashboardOperationsDto;
-import com.clenzy.dto.DashboardOperationsDto.ActionItemsDto;
 import com.clenzy.dto.DashboardOperationsDto.ArrivalDto;
-import com.clenzy.dto.DashboardOperationsDto.BalanceDueDto;
 import com.clenzy.dto.DashboardOperationsDto.CleaningDto;
 import com.clenzy.dto.DashboardOperationsDto.DepartureDto;
-import com.clenzy.dto.DashboardOperationsDto.StaleFeedDto;
-import com.clenzy.dto.DashboardOperationsDto.UnansweredReviewDto;
 import com.clenzy.dto.DashboardOperationsDto.UpcomingArrivalDto;
-import com.clenzy.model.GuestReview;
-import com.clenzy.model.ICalFeed;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.SecurityDeposit;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
-import com.clenzy.repository.GuestReviewRepository;
-import com.clenzy.repository.ICalFeedRepository;
 import com.clenzy.repository.InterventionRepository;
-import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.SecurityDepositRepository;
 import com.clenzy.repository.UserRepository;
@@ -42,8 +33,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Blocs opérationnels du Dashboard : journée en cours, arrivées à venir,
- * éléments à traiter.
+ * Blocs opérationnels du Dashboard : journée en cours et arrivées à venir.
+ *
+ * <p>La file « à traiter » <b>n'est plus ici</b> : elle est devenue une table
+ * persistée, alimentée hors du chemin de l'utilisateur, et lue par
+ * {@code ActionItemQueryService}. Elle occupait cinq cents lignes et huit
+ * repositories dans cette classe, et chaque nouvelle nature aggravait le
+ * coût d'affichage du tableau de bord.</p>
  *
  * <p>Même discipline que {@code DashboardOverviewSummaryService} : org-scope
  * strict issu du contexte tenant, scoping par rôle (HOST → ses logements,
@@ -58,13 +54,11 @@ import java.util.stream.Collectors;
 public class DashboardOperationsService {
 
     /** Au-delà, la liste n'est plus lisible à l'écran — et le reste vit dans son module. */
-    private static final int MAX_ROWS = 20;
+    private static final int MAX_ROWS = 40;
 
-    /** Un flux muet depuis plus d'une journée est considéré en dérive. */
-    private static final int FEED_STALE_HOURS = 24;
+    /** Longueur de l'extrait de notes affiché sur une arrivée. */
+    private static final int NOTES_EXCERPT_LENGTH = 140;
 
-    /** Longueur de l'extrait d'avis affiché dans « à traiter ». */
-    private static final int REVIEW_EXCERPT_LENGTH = 140;
 
     private static final Set<UserRole> OPERATIONAL_ROLES = EnumSet.of(
             UserRole.TECHNICIAN, UserRole.HOUSEKEEPER, UserRole.LAUNDRY, UserRole.EXTERIOR_TECH);
@@ -72,26 +66,17 @@ public class DashboardOperationsService {
     private final ReservationRepository reservationRepository;
     private final InterventionRepository interventionRepository;
     private final SecurityDepositRepository securityDepositRepository;
-    private final GuestReviewRepository guestReviewRepository;
-    private final ICalFeedRepository iCalFeedRepository;
-    private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final Clock clock;
 
     public DashboardOperationsService(ReservationRepository reservationRepository,
                                       InterventionRepository interventionRepository,
                                       SecurityDepositRepository securityDepositRepository,
-                                      GuestReviewRepository guestReviewRepository,
-                                      ICalFeedRepository iCalFeedRepository,
-                                      PropertyRepository propertyRepository,
                                       UserRepository userRepository,
                                       Clock clock) {
         this.reservationRepository = reservationRepository;
         this.interventionRepository = interventionRepository;
         this.securityDepositRepository = securityDepositRepository;
-        this.guestReviewRepository = guestReviewRepository;
-        this.iCalFeedRepository = iCalFeedRepository;
-        this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.clock = clock;
     }
@@ -133,7 +118,7 @@ public class DashboardOperationsService {
                         checkInTimeOf(r),
                         r.getSource(),
                         r.getSourceName(),
-                        truncate(r.getNotes(), REVIEW_EXCERPT_LENGTH),
+                        truncate(r.getNotes(), NOTES_EXCERPT_LENGTH),
                         r.getGuestCount() == null ? 0 : r.getGuestCount()))
                 .toList();
     }
@@ -237,96 +222,6 @@ public class DashboardOperationsService {
         if (reservation.getCheckIn() == null || reservation.getCheckOut() == null) return 0;
         final long nights = ChronoUnit.DAYS.between(reservation.getCheckIn(), reservation.getCheckOut());
         return nights > 0 ? (int) nights : 0;
-    }
-
-    // ─── À traiter ──────────────────────────────────────────────────────────
-
-    /**
-     * Trois natures d'alerte, agrégées côté serveur pour que l'écran n'ait pas à
-     * fusionner trois appels — et pour que le badge « N à traiter » de l'en-tête
-     * compte exactement ce que la liste affiche.
-     */
-    public ActionItemsDto getActionItems(Long orgId, UserRole role, String keycloakId) {
-        // Soldes dus, avis et santé des canaux relèvent de la gestion, pas du terrain.
-        if (OPERATIONAL_ROLES.contains(role)) {
-            return new ActionItemsDto(List.of(), List.of(), List.of());
-        }
-        final LocalDate today = LocalDate.now(clock);
-        final String ownerKc = role == UserRole.HOST ? keycloakId : null;
-
-        return new ActionItemsDto(
-                balancesDue(orgId, today, ownerKc),
-                unansweredReviews(orgId, ownerKc),
-                staleFeeds(orgId));
-    }
-
-    /** Séjours à venir dont il reste un solde à percevoir avant l'arrivée. */
-    private List<BalanceDueDto> balancesDue(Long orgId, LocalDate today, String ownerKc) {
-        final List<Reservation> upcoming = scopeToOwner(
-                reservationRepository.findConfirmedByCheckInRange(today, today.plusDays(30), orgId),
-                ownerKc);
-
-        return upcoming.stream()
-                .filter(r -> r.getAmountDue() != null && r.getAmountDue().signum() > 0)
-                .sorted(Comparator.comparing(Reservation::getCheckIn))
-                .limit(MAX_ROWS)
-                .map(r -> new BalanceDueDto(
-                        r.getId(),
-                        "RES-" + r.getId(),
-                        r.getGuestName(),
-                        propertyName(r.getProperty()),
-                        r.getCheckIn(),
-                        r.getAmountDue()))
-                .toList();
-    }
-
-    private List<UnansweredReviewDto> unansweredReviews(Long orgId, String ownerKc) {
-        final List<GuestReview> reviews = guestReviewRepository.findPublicWithoutHostResponse(orgId);
-        if (reviews.isEmpty()) return List.of();
-
-        // GuestReview ne porte qu'un propertyId : un seul aller-retour pour les noms.
-        final Set<Long> propertyIds = reviews.stream()
-                .map(GuestReview::getPropertyId)
-                .filter(java.util.Objects::nonNull)
-                .collect(Collectors.toSet());
-        final Map<Long, Property> byId = propertyIds.isEmpty()
-                ? Map.of()
-                : propertyRepository.findAllById(propertyIds).stream()
-                        .filter(p -> ownerKc == null || isOwnedBy(p, ownerKc))
-                        .collect(Collectors.toMap(Property::getId, Function.identity(), (a, b) -> a));
-
-        return reviews.stream()
-                .filter(r -> r.getPropertyId() != null && byId.containsKey(r.getPropertyId()))
-                .limit(MAX_ROWS)
-                .map(r -> new UnansweredReviewDto(
-                        r.getId(),
-                        r.getGuestName(),
-                        propertyName(byId.get(r.getPropertyId())),
-                        r.getChannelName() == null ? null : r.getChannelName().name(),
-                        r.getRating(),
-                        truncate(r.getReviewText(), REVIEW_EXCERPT_LENGTH),
-                        r.getReviewDate()))
-                .toList();
-    }
-
-    private List<StaleFeedDto> staleFeeds(Long orgId) {
-        final LocalDateTime staleBefore = LocalDateTime.now(clock).minusHours(FEED_STALE_HOURS);
-        final LocalDateTime now = LocalDateTime.now(clock);
-
-        return iCalFeedRepository.findStaleOrFailing(orgId, staleBefore).stream()
-                .limit(MAX_ROWS)
-                .map(f -> new StaleFeedDto(
-                        f.getId(),
-                        propertyId(f.getProperty()),
-                        propertyName(f.getProperty()),
-                        f.getSourceName(),
-                        f.getLastSyncStatus(),
-                        hoursSince(f.getLastSyncAt(), now)))
-                .toList();
-    }
-
-    private Long hoursSince(LocalDateTime lastSyncAt, LocalDateTime now) {
-        return lastSyncAt == null ? null : ChronoUnit.HOURS.between(lastSyncAt, now);
     }
 
     // ─── Utilitaires ────────────────────────────────────────────────────────

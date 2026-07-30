@@ -34,7 +34,7 @@ class ChannelCommissionResolverTest {
 
     @Test
     void whenChannelIsKnown_thenItsDefaultRateApplies() {
-        assertThat(resolver.rateFor("airbnb")).isEqualTo(0.03);
+        assertThat(resolver.rateFor("airbnb")).isEqualTo(0.155);
         assertThat(resolver.rateFor("booking")).isEqualTo(0.15);
         assertThat(resolver.rateFor("vrbo")).isEqualTo(0.08);
         assertThat(resolver.rateFor("expedia")).isEqualTo(0.15);
@@ -60,6 +60,34 @@ class ChannelCommissionResolverTest {
 
         assertThat(beforeWiden).isEqualByComparingTo("0");
         assertThat(afterWiden).isEqualByComparingTo("80.00");
+    }
+
+    /**
+     * L'autre changement de chiffres : Airbnb passe du split fee (3 % a la charge de
+     * l'hote, le voyageur payant le reste) au host-only fee, que l'hote paie seul.
+     * Airbnb y a bascule d'office les hotes connectes a un PMS — tous les hotes Baitly
+     * le sont. Les 3 % ne decrivaient plus rien : la marge Airbnb affichee etait
+     * surestimee de 12,5 points de brut.
+     */
+    @Test
+    void whenAirbnbChargesTheHostOnlyFee_thenTheRateIsNoLongerTheSplitFee() {
+        BigDecimal gross = new BigDecimal("1000");
+
+        assertThat(resolver.commissionOf(reservation("airbnb", null), gross))
+            .isEqualByComparingTo("155.00");
+    }
+
+    /**
+     * Depuis que l'import Channex renseigne {@code ota_commission} (Booking.com et
+     * Airbnb), la commission Airbnb cesse d'etre une supposition : le montant reel
+     * prime, et l'interface ne doit plus la presenter comme estimee.
+     */
+    @Test
+    void whenChannexReportsTheRealAirbnbFee_thenNothingIsEstimatedAnymore() {
+        Reservation r = reservation("airbnb", new BigDecimal("148.32"));
+
+        assertThat(resolver.commissionOf(r, new BigDecimal("1000"))).isEqualByComparingTo("148.32");
+        assertThat(resolver.isEstimated(r)).isFalse();
     }
 
     /** Un montant reel prime toujours sur l'estimation, et n'est pas signale estime. */

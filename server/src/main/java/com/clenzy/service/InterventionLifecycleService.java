@@ -191,6 +191,50 @@ public class InterventionLifecycleService {
     }
 
     /**
+     * Replanifie une intervention à une nouvelle date.
+     *
+     * <p>Le seul chemin existant passait par {@code update} et son DTO complet :
+     * pour déplacer une date, on remappait tout l'objet, au risque d'écraser
+     * des champs absents du formulaire appelant. Cette méthode ne touche qu'à
+     * la date et à sa fenêtre horaire.</p>
+     *
+     * <p>Le statut n'est pas modifié : une intervention en retard qu'on
+     * replanifie reste à faire, elle est simplement attendue plus tard.</p>
+     */
+    @Transactional
+    public InterventionResponse reschedule(Long id, LocalDateTime newDate, Jwt jwt) {
+        Intervention intervention = interventionRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
+
+        accessPolicy.assertCanAccess(intervention, jwt);
+
+        if (newDate == null) {
+            throw new IllegalArgumentException("Aucune date de replanification fournie");
+        }
+        if (intervention.getStatus() == InterventionStatus.COMPLETED
+                || intervention.getStatus() == InterventionStatus.CANCELLED) {
+            throw new IllegalStateException(
+                    "Une intervention " + intervention.getStatus().name() + " ne se replanifie pas");
+        }
+
+        // La fenetre horaire suit la date, en conservant sa duree : la deplacer
+        // sans elle laisserait un creneau incoherent avec la nouvelle date.
+        final LocalDateTime oldStart = intervention.getStartTime();
+        final LocalDateTime oldEnd = intervention.getEndTime();
+        intervention.setScheduledDate(newDate);
+        if (oldStart != null) {
+            final long minutes = oldEnd == null ? 0
+                    : java.time.Duration.between(oldStart, oldEnd).toMinutes();
+            intervention.setStartTime(newDate);
+            intervention.setEndTime(minutes > 0 ? newDate.plusMinutes(minutes) : null);
+        }
+
+        intervention = interventionRepository.save(intervention);
+        log.info("Intervention {} replanifiee au {}", id, newDate);
+        return interventionMapper.convertToResponse(intervention);
+    }
+
+    /**
      * Rouvrir une intervention terminee pour permettre des modifications.
      * Accessible aux TECHNICIAN, HOUSEKEEPER, SUPERVISOR, MANAGER et ADMIN.
      */

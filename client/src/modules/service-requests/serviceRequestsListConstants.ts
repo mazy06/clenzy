@@ -3,21 +3,6 @@
 
 import { STATUS_TONES, type StatusTone } from '../../components/StatusChip';
 
-export const PAGINATION_SX = {
-  position: 'sticky',
-  bottom: 0,
-  bgcolor: 'var(--card)',
-  borderTop: '1px solid var(--line)',
-  mt: 2,
-  borderRadius: '9px',
-  '& .MuiTablePagination-displayedRows, & .MuiTablePagination-selectLabel': {
-    fontSize: '11.5px',
-    fontWeight: 600,
-    color: 'var(--muted)',
-    fontVariantNumeric: 'tabular-nums',
-  },
-} as const;
-
 export const LIST_PAPER_SX = {
   border: '1px solid var(--line)',
   boxShadow: 'none',

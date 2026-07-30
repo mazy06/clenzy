@@ -113,6 +113,8 @@ class ChannexBookingServiceTest {
             id, null, null, "OTA-CODE-" + id, "Airbnb", "channex-prop-1",
             status, arrival, departure,
             new BigDecimal("289.50"), "EUR",
+            // host fee Airbnb reellement preleve (15,5 % de 289,50), tel que Channex le renvoie
+            new BigDecimal("44.87"),
             customer, List.of(room));
     }
 
@@ -160,6 +162,11 @@ class ChannexBookingServiceTest {
         assertThat(saved.getConfirmationCode()).isEqualTo("OTA-CODE-book-1");
         // 2+1+0 = 3 guests
         assertThat(saved.getGuestCount()).isEqualTo(3);
+        // Le host fee reellement preleve par Airbnb, que Channex expose dans
+        // ota_commission. Tant qu'il etait jete, la commission canal etait une
+        // estimation au taux par defaut et un contrat NET_OF_OTA_FEE facturait
+        // sur le brut sans le dire.
+        assertThat(saved.getOtaFeeAmount()).isEqualByComparingTo("44.87");
 
         // calendar book appele
         verify(calendarEngine).book(eq(100L), eq(LocalDate.of(2026, 6, 1)),
@@ -177,7 +184,7 @@ class ChannexBookingServiceTest {
         var booking = new ChannexBookingDto(
             "abcd1234efgh", null, null, null, "Booking.com", "channex-prop-1",
             "new", LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 3),
-            new BigDecimal("100"), null, customer, List.of());
+            new BigDecimal("100"), null, null, customer, List.of());
 
         when(mappingRepository.findByChannexPropertyIdAnyOrg("channex-prop-1"))
             .thenReturn(Optional.of(mapping));
@@ -326,7 +333,7 @@ class ChannexBookingServiceTest {
         void idNull() {
             var dto = new ChannexBookingDto(null, null, null, null, null, "channex-prop-1", "new",
                 LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 3),
-                BigDecimal.ONE, "EUR", null, List.of());
+                BigDecimal.ONE, "EUR", null, null, List.of());
             assertThatThrownBy(() -> service.handleNewBooking(dto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("manque id");
@@ -337,7 +344,7 @@ class ChannexBookingServiceTest {
         void propertyIdNull() {
             var dto = new ChannexBookingDto("book-1", null, null, null, null, null, "new",
                 LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 3),
-                BigDecimal.ONE, "EUR", null, List.of());
+                BigDecimal.ONE, "EUR", null, null, List.of());
             assertThatThrownBy(() -> service.handleNewBooking(dto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("propertyId");
@@ -347,7 +354,7 @@ class ChannexBookingServiceTest {
         @DisplayName("arrival/departure null → IllegalArgumentException")
         void datesNull() {
             var dto = new ChannexBookingDto("book-1", null, null, null, null, "channex-prop-1", "new",
-                null, null, BigDecimal.ONE, "EUR", null, List.of());
+                null, null, BigDecimal.ONE, "EUR", null, null, List.of());
             assertThatThrownBy(() -> service.handleNewBooking(dto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("dates");
@@ -358,7 +365,7 @@ class ChannexBookingServiceTest {
         void datesEqual() {
             var dto = new ChannexBookingDto("book-1", null, null, null, null, "channex-prop-1", "new",
                 LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 1),
-                BigDecimal.ONE, "EUR", null, List.of());
+                BigDecimal.ONE, "EUR", null, null, List.of());
             assertThatThrownBy(() -> service.handleNewBooking(dto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("strictement avant");
@@ -369,7 +376,7 @@ class ChannexBookingServiceTest {
         void datesInverted() {
             var dto = new ChannexBookingDto("book-1", null, null, null, null, "channex-prop-1", "new",
                 LocalDate.of(2026, 6, 5), LocalDate.of(2026, 6, 1),
-                BigDecimal.ONE, "EUR", null, List.of());
+                BigDecimal.ONE, "EUR", null, null, List.of());
             assertThatThrownBy(() -> service.handleNewBooking(dto))
                 .isInstanceOf(IllegalArgumentException.class);
         }
@@ -434,6 +441,80 @@ class ChannexBookingServiceTest {
         verify(calendarEngine, never()).cancel(any(), any(), any());
         verify(calendarEngine, never()).book(any(), any(), any(), any(), any(), any(), any());
         verify(reservationRepository).save(any());
+    }
+
+    @Nested
+    @DisplayName("commission OTA reelle (ota_commission)")
+    class OtaCommission {
+
+        /** Booking Airbnb minimal avec la commission voulue. */
+        private ChannexBookingDto withCommission(BigDecimal commission) {
+            return new ChannexBookingDto(
+                "book-fee", null, null, "OTA-CODE", "Airbnb", "channex-prop-1",
+                "modified", LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 5),
+                new BigDecimal("289.50"), "EUR", commission, null, List.of());
+        }
+
+        private Reservation existingWithFee(BigDecimal fee) {
+            Reservation existing = new Reservation();
+            existing.setId(501L);
+            existing.setOrganizationId(42L);
+            existing.setCheckIn(LocalDate.of(2026, 6, 1));
+            existing.setCheckOut(LocalDate.of(2026, 6, 5));
+            existing.setOtaFeeAmount(fee);
+            when(mappingRepository.findByChannexPropertyIdAnyOrg("channex-prop-1"))
+                .thenReturn(Optional.of(mapping));
+            when(reservationRepository.findByExternalUidAndPropertyId(any(), eq(100L)))
+                .thenReturn(Optional.of(existing));
+            when(reservationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            return existing;
+        }
+
+        /**
+         * Une revision Channex est un instantane complet, pas un patch : si elle ne
+         * porte plus de commission, garder l'ancienne afficherait un montant adosse a
+         * un total qui n'existe plus, et le presenterait comme reel. Mieux vaut
+         * retomber sur l'estimation, qui elle est signalee comme telle.
+         */
+        @Test
+        @DisplayName("revision sans ota_commission → l'ancien montant ne survit pas")
+        void staleFeeDoesNotSurviveARevision() {
+            existingWithFee(new BigDecimal("44.87"));
+
+            service.handleModification(withCommission(null));
+
+            ArgumentCaptor<Reservation> cap = ArgumentCaptor.forClass(Reservation.class);
+            verify(reservationRepository).save(cap.capture());
+            assertThat(cap.getValue().getOtaFeeAmount()).isNull();
+        }
+
+        /**
+         * Une commission negative gonflerait le net proprietaire : on la refuse au
+         * lieu de faire passer une anomalie de flux pour un chiffre reel.
+         */
+        @Test
+        @DisplayName("ota_commission negative → ignoree, retour a l'estimation")
+        void negativeCommissionIsRefused() {
+            existingWithFee(null);
+
+            service.handleModification(withCommission(new BigDecimal("-10.00")));
+
+            ArgumentCaptor<Reservation> cap = ArgumentCaptor.forClass(Reservation.class);
+            verify(reservationRepository).save(cap.capture());
+            assertThat(cap.getValue().getOtaFeeAmount()).isNull();
+        }
+
+        @Test
+        @DisplayName("revision avec ota_commission → le montant reel est repris")
+        void realCommissionIsApplied() {
+            existingWithFee(new BigDecimal("44.87"));
+
+            service.handleModification(withCommission(new BigDecimal("52.15")));
+
+            ArgumentCaptor<Reservation> cap = ArgumentCaptor.forClass(Reservation.class);
+            verify(reservationRepository).save(cap.capture());
+            assertThat(cap.getValue().getOtaFeeAmount()).isEqualByComparingTo("52.15");
+        }
     }
 
     @Test
@@ -525,12 +606,12 @@ class ChannexBookingServiceTest {
         assertThat(service.handleCancellation(
             new ChannexBookingDto(null, null, null, null, null, "channex-prop-1", "cancelled",
                 LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 5),
-                BigDecimal.ONE, "EUR", null, List.of()))).isEmpty();
+                BigDecimal.ONE, "EUR", null, null, List.of()))).isEmpty();
         // propertyId null
         assertThat(service.handleCancellation(
             new ChannexBookingDto("book-1", null, null, null, null, null, "cancelled",
                 LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 5),
-                BigDecimal.ONE, "EUR", null, List.of()))).isEmpty();
+                BigDecimal.ONE, "EUR", null, null, List.of()))).isEmpty();
 
         verify(reservationRepository, never()).save(any());
     }
@@ -628,7 +709,7 @@ class ChannexBookingServiceTest {
         var customer = new ChannexBookingDto.ChannexCustomer("X", "Y", null, null, null, null);
         var booking = new ChannexBookingDto("b1", null, null, null, "Booking.com", "channex-prop-1",
             "new", LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 3),
-            BigDecimal.ONE, "EUR", customer, List.of());
+            BigDecimal.ONE, "EUR", null, customer, List.of());
 
         when(mappingRepository.findByChannexPropertyIdAnyOrg("channex-prop-1"))
             .thenReturn(Optional.of(mapping));
@@ -655,7 +736,7 @@ class ChannexBookingServiceTest {
         var customer = new ChannexBookingDto.ChannexCustomer("X", "Y", null, null, null, null);
         var booking = new ChannexBookingDto("b1", null, null, null, "Vrbo", "channex-prop-1",
             "new", LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 3),
-            BigDecimal.ONE, "EUR", customer, List.of());
+            BigDecimal.ONE, "EUR", null, customer, List.of());
 
         when(mappingRepository.findByChannexPropertyIdAnyOrg("channex-prop-1"))
             .thenReturn(Optional.of(mapping));
@@ -682,7 +763,7 @@ class ChannexBookingServiceTest {
         var customer = new ChannexBookingDto.ChannexCustomer("X", "Y", null, null, null, null);
         var booking = new ChannexBookingDto("b1", null, null, null, "Expedia", "channex-prop-1",
             "new", LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 3),
-            BigDecimal.ONE, "EUR", customer, List.of());
+            BigDecimal.ONE, "EUR", null, customer, List.of());
 
         when(mappingRepository.findByChannexPropertyIdAnyOrg("channex-prop-1"))
             .thenReturn(Optional.of(mapping));
@@ -709,7 +790,7 @@ class ChannexBookingServiceTest {
         var customer = new ChannexBookingDto.ChannexCustomer("X", "Y", null, null, null, null);
         var booking = new ChannexBookingDto("b1", null, null, null, null, "channex-prop-1",
             "new", LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 3),
-            BigDecimal.ONE, "EUR", customer, List.of());
+            BigDecimal.ONE, "EUR", null, customer, List.of());
 
         when(mappingRepository.findByChannexPropertyIdAnyOrg("channex-prop-1"))
             .thenReturn(Optional.of(mapping));

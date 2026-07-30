@@ -45,6 +45,7 @@ import ConfirmationModal from '../../components/ConfirmationModal';
 import { upsellApi, type UpsellOffer, type UpsellOrder } from '../../services/api/upsellApi';
 import { activitiesApi } from '../../services/api/activitiesApi';
 import { monetizationConfigApi } from '../../services/api/monetizationConfigApi';
+import { useScreenSearch } from '../../components/ScreenChrome';
 
 const TYPE_FALLBACK: Record<string, string> = {
   EARLY_CHECKIN: 'Arrivée anticipée',
@@ -202,6 +203,8 @@ const UpsellsAdmin: React.FC = () => {
   // ── Vue catalogue ↔ détail + filtres ──────────────────────────────────────
   const [selected, setSelected] = useState<Selected | null>(null);
   const [search, setSearch] = useState('');
+  // Recherche de l'écran → champ UNIQUE du PageHeader (cf. ScreenChrome).
+  useScreenSearch(search, setSearch, t('upsells.search.placeholder', 'Rechercher un service…'));
   const [canalFilter, setCanalFilter] = useState<CanalFilter>('all');
   const [catFilter, setCatFilter] = useState<string | null>(null);
   const [canalAnchor, setCanalAnchor] = useState<HTMLElement | null>(null);
@@ -236,12 +239,10 @@ const UpsellsAdmin: React.FC = () => {
     queryFn: () => monetizationConfigApi.get(),
   });
   const [orgUpsellPct, setOrgUpsellPct] = useState('');
-  const [orgActivityPct, setOrgActivityPct] = useState('');
   const [savingOrg, setSavingOrg] = useState(false);
   useEffect(() => {
     if (monetConfig) {
       setOrgUpsellPct(String(monetConfig.upsellOrgCommissionPct ?? 0));
-      setOrgActivityPct(String(monetConfig.activityOrgCommissionPct ?? 0));
     }
   }, [monetConfig]);
   const saveOrgCommission = async () => {
@@ -249,7 +250,6 @@ const UpsellsAdmin: React.FC = () => {
     try {
       await monetizationConfigApi.updateOrg({
         upsellOrgCommissionPct: parseFloat(orgUpsellPct) || 0,
-        activityOrgCommissionPct: parseFloat(orgActivityPct) || 0,
       });
       await refetchMonet();
       notify(t('upsells.orgCommission.saved', 'Commission enregistrée'));
@@ -519,22 +519,6 @@ const UpsellsAdmin: React.FC = () => {
         <Button variant="outlined" size="small" sx={catFilter ? headerFilterActiveSx : headerFilterSx} onClick={(e) => setCatAnchor(e.currentTarget)}>
           <Tag size={15} strokeWidth={2} /> {catFilter ? typeLabel(catFilter) : t('upsells.filters.category', 'Catégorie')}
         </Button>
-        <TextField
-          size="small"
-          placeholder={t('upsells.search.placeholder', 'Rechercher un service…')}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
-                  <Search size={'1.05rem'} strokeWidth={2} />
-                </Box>
-              </InputAdornment>
-            ),
-          }}
-          sx={{ width: { xs: 150, sm: 230 }, '& .MuiOutlinedInput-root': { borderRadius: '10px', fontSize: '0.8125rem', height: 34 } }}
-        />
       </>
     ),
   );
@@ -780,7 +764,7 @@ const UpsellsAdmin: React.FC = () => {
               {t('upsells.orgCommission.note', 'Votre part sur le reste après la commission plateforme. Le propriétaire reçoit le solde.')}
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-              {t('upsells.orgCommission.platformInfo', 'Commission plateforme (fixée par la plateforme)')} : {monetConfig.upsellPlatformFeePct}% · {monetConfig.activityPlatformCommissionPct}%
+              {t('upsells.orgCommission.platformInfo', 'Commission plateforme (fixée par la plateforme)')} : {monetConfig.upsellPlatformFeePct}%
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
               <TextField
@@ -790,15 +774,6 @@ const UpsellsAdmin: React.FC = () => {
                 label={t('upsells.orgCommission.upsell', 'Ma part (upsells)')}
                 value={orgUpsellPct}
                 onChange={(e) => setOrgUpsellPct(e.target.value)}
-                InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment>, inputProps: { min: 0, max: 100, step: 0.5 } }}
-              />
-              <TextField
-                type="number"
-                size="small"
-                fullWidth
-                label={t('upsells.orgCommission.activity', 'Ma part (activités)')}
-                value={orgActivityPct}
-                onChange={(e) => setOrgActivityPct(e.target.value)}
                 InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment>, inputProps: { min: 0, max: 100, step: 0.5 } }}
               />
             </Stack>

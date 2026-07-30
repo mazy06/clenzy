@@ -1,4 +1,5 @@
 import apiClient from '../apiClient';
+import { extractApiList } from '../../types';
 
 export interface TeamMember {
   id: number;
@@ -49,8 +50,17 @@ export interface TeamFormData {
 }
 
 export const teamsApi = {
-  getAll() {
-    return apiClient.get<Team[]>('/teams');
+  /**
+   * Toutes les equipes de l'organisation.
+   *
+   * L'endpoint renvoie une PAGE Spring : la liste est dépliée ici pour que le
+   * type annoncé dise la vérité. Il promettait un tableau alors qu'il rendait un
+   * objet, et rien ne pouvait le contredire — le type est affirmé à la main sur
+   * `apiClient.get<T>`. Un appelant qui s'y fiait plantait sur
+   * « .filter is not a function ».
+   */
+  async getAll(): Promise<Team[]> {
+    return extractApiList<Team>(await apiClient.get<unknown>('/teams'));
   },
   getById(id: number) {
     return apiClient.get<Team>(`/teams/${id}`);

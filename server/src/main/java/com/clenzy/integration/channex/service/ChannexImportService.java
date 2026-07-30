@@ -1358,6 +1358,11 @@ public class ChannexImportService {
      *
      * <p>Si l'etape 1 reussit mais 2 echoue, le channel reste juste desactive
      * (etat fonctionnel pour le user : Airbnb est libere). On log un warning.</p>
+     *
+     * <p>Le registre local {@code channex_ota_channels} suit le meme rythme :
+     * {@code enabled=false} des la desactivation, suppression de la ligne une
+     * fois le channel efface du hub. Tant que le DELETE echoue, la ligne est
+     * conservee — c'est elle qui permet de rejouer la deconnexion.</p>
      */
     public void disconnectOtaChannel(Long orgId, String channelId) {
         log.info("ChannexImport: disconnect OTA channel {} demande par org {} (2-step: deactivate + delete)",
@@ -1365,6 +1370,10 @@ public class ChannexImportService {
         // Etape 1 : desactiver (toujours requis, meme si deja inactif → no-op cote Channex)
         try {
             channexClient.deactivateChannel(channelId);
+            // Le hub a rendu la main a l'OTA : le refleter en base tout de suite,
+            // sans attendre le DELETE qui peut echouer.
+            runQuietly("disable local ota_channel " + channelId,
+                () -> connectService.disableLocalOtaChannel(orgId, channelId));
         } catch (Exception e) {
             log.warn("ChannexImport: deactivate channel {} KO : {} — on tente DELETE quand meme",
                 channelId, e.getMessage());
@@ -1379,6 +1388,21 @@ public class ChannexImportService {
             // Re-throw pour informer l'UI que le delete a echoue (le channel reste neanmoins
             // inactif → Airbnb a repris la main, ce qui etait le but principal)
             throw e;
+        }
+        runQuietly("forget local ota_channel " + channelId,
+            () -> connectService.forgetLocalOtaChannel(orgId, channelId));
+    }
+
+    /**
+     * Execute un nettoyage local sans laisser son echec masquer le resultat de
+     * l'operation Channex : le channel est deja desactive/supprime cote hub,
+     * l'UI doit voir ce succes meme si la ligne locale resiste.
+     */
+    private void runQuietly(String what, Runnable action) {
+        try {
+            action.run();
+        } catch (Exception e) {
+            log.warn("ChannexImport: {} KO : {} — etat local desynchronise du hub", what, e.getMessage());
         }
     }
 

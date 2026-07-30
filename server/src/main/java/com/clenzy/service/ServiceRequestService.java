@@ -33,6 +33,7 @@ import com.clenzy.config.KafkaConfig;
 import com.clenzy.service.pricing.CleaningPricingEngine;
 import com.clenzy.service.pricing.CleaningPricingEngine.ResolvedCleaningPrice;
 import com.clenzy.tenant.TenantContext;
+import com.clenzy.util.InterventionTypeMatcher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -277,6 +278,141 @@ public class ServiceRequestService {
                     "Demande non réassignable (statut " + sr.getStatus() + ")");
         }
         return attemptAutoAssignByOrgId(sr, organizationId);
+    }
+
+    /**
+     * Prestataires proposables pour replanifier cette prestation à une date donnée.
+     *
+     * <p>Le logement, le type de service et la durée viennent de la demande
+     * elle-même : l'opérateur choisit une date, le reste est déjà connu. Les
+     * équipes occupées sur le créneau sont rendues aussi, marquées
+     * indisponibles — déplacer l'heure peut les libérer, et c'est l'arbitrage
+     * qu'on veut lui laisser.</p>
+     */
+    @Transactional(readOnly = true)
+    public PropertyTeamService.AssignableTeams findAssignableTeams(Long serviceRequestId,
+                                                                   LocalDateTime date) {
+        ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
+                .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
+        requireOwnedServiceRequest(sr);
+        final String serviceType = sr.getServiceType() == null ? null : sr.getServiceType().name();
+        // Le type requis accompagne TOUJOURS la reponse : c'est quand la liste
+        // est vide qu'il compte le plus, et c'est precisement la que l'ecran
+        // n'avait rien a dire.
+        final String requiredTeamType = InterventionTypeMatcher.requiredTeamType(serviceType);
+
+        if (sr.getProperty() == null || date == null) {
+            return new PropertyTeamService.AssignableTeams(List.of(), requiredTeamType);
+        }
+        return new PropertyTeamService.AssignableTeams(
+                propertyTeamService.findAssignableTeams(
+                        sr.getProperty().getId(), date, sr.getEstimatedDurationHours(),
+                        serviceType, sr.getOrganizationId()),
+                requiredTeamType);
+    }
+
+    /**
+     * Clôture définitive d'une prestation qui n'aura pas lieu.
+     *
+     * <p>Une demande peut rester en attente indéfiniment : l'assignation
+     * automatique abandonne après dix tentatives et rien ne la reprend. Sa date
+     * passe, le séjour concerné se termine, et elle encombre la file des actions
+     * pour toujours. Il fallait pouvoir dire « celle-ci n'aura pas lieu ».</p>
+     *
+     * <p>C'est une <b>annulation</b>, pas une suppression : la demande reste en
+     * base avec son historique et son coût. Seul {@code DELETE} efface, et il est
+     * réservé au staff plateforme.</p>
+     */
+    public ServiceRequestDto cancel(Long serviceRequestId, String reason) {
+        ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
+                .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
+        requireOwnedServiceRequest(sr);
+
+        if (!sr.getStatus().canTransitionTo(RequestStatus.CANCELLED)) {
+            throw new IllegalStateException(
+                    "Une demande " + sr.getStatus() + " ne peut plus etre annulee.");
+        }
+
+        sr.setStatus(RequestStatus.CANCELLED);
+        // La recherche d'équipe s'arrête avec elle : sans ce reset, le scheduler
+        // continuerait de la compter dans ses tentatives.
+        sr.setAutoAssignStatus(null);
+        if (reason != null && !reason.isBlank()) {
+            final String note = "Cloturee : " + reason.strip();
+            sr.setSpecialInstructions(sr.getSpecialInstructions() == null
+                    ? note
+                    : sr.getSpecialInstructions() + "\n" + note);
+        }
+        sr = serviceRequestRepository.save(sr);
+
+        logAssignmentEvent(sr, "CANCEL", null, null,
+                reason == null || reason.isBlank() ? "Cloturee manuellement" : reason.strip());
+        log.info("SR {} cloturee manuellement", sr.getId());
+
+        return serviceRequestMapper.toDto(sr);
+    }
+
+    /**
+     * Replanifie une prestation : clôture l'ancienne et en crée une neuve.
+     *
+     * <p>Un seul geste, une seule transaction. Recréer la demande depuis l'écran
+     * obligerait à recomposer le logement, le type de service, la durée et le
+     * demandeur — donc à dupliquer des règles qui vivent ici, et à laisser une
+     * fenêtre où l'ancienne serait close sans que la nouvelle existe.</p>
+     *
+     * <p>Le rattachement à un séjour est un <b>choix</b> : une prestation peut
+     * suivre une réservation précise, ou n'en concerner aucune (remise en état,
+     * travaux hors location). {@code reservationId} nul exprime le second cas.</p>
+     *
+     * @param assignedToId   prestataire retenu, ou {@code null} pour laisser
+     *                       l'assignation automatique chercher
+     */
+    public ServiceRequestDto reschedule(Long serviceRequestId, LocalDateTime desiredDate,
+                                        Long assignedToId, String assignedToType,
+                                        Long reservationId, String reason) {
+        if (desiredDate == null) {
+            throw new IllegalArgumentException("Une date d'intervention est requise.");
+        }
+        ServiceRequest previous = serviceRequestRepository.findById(serviceRequestId)
+                .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
+        requireOwnedServiceRequest(previous);
+
+        ServiceRequest next = new ServiceRequest();
+        next.setOrganizationId(previous.getOrganizationId());
+        next.setTitle(previous.getTitle());
+        next.setDescription(previous.getDescription());
+        next.setServiceType(previous.getServiceType());
+        next.setPriority(previous.getPriority());
+        next.setEstimatedDurationHours(previous.getEstimatedDurationHours());
+        next.setEstimatedCost(previous.getEstimatedCost());
+        next.setProperty(previous.getProperty());
+        next.setUser(previous.getUser());
+        next.setDesiredDate(desiredDate);
+        // Absent = prestation hors séjour, c'est un cas légitime et non un oubli.
+        next.setReservationId(reservationId);
+        next.setStatus(RequestStatus.PENDING);
+
+        if (assignedToId != null && assignedToType != null) {
+            next.setAssignedToId(assignedToId);
+            next.setAssignedToType(assignedToType);
+        }
+        next = serviceRequestRepository.save(next);
+
+        // Le prestataire choisi vaut assignation : la demande part directement en
+        // attente de paiement, sans repasser par la recherche automatique.
+        if (assignedToId != null && assignedToType != null) {
+            manualAssign(next.getId(), assignedToId, assignedToType);
+            next = serviceRequestRepository.findById(next.getId()).orElse(next);
+        } else {
+            attemptAutoAssign(next);
+        }
+
+        cancel(previous.getId(), reason == null || reason.isBlank()
+                ? "Replanifiee : demande #" + next.getId()
+                : reason.strip());
+
+        log.info("SR {} replanifiee en SR {}", previous.getId(), next.getId());
+        return serviceRequestMapper.toDto(next);
     }
 
     /**

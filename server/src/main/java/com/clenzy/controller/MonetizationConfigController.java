@@ -39,7 +39,7 @@ public class MonetizationConfigController {
     public ResponseEntity<MonetizationConfigDto> updatePlatform(@RequestBody MonetizationConfigDto request) {
         return ResponseEntity.ok(service.updatePlatform(
             tenantContext.getRequiredOrganizationId(),
-            request.upsellPlatformFeePct(), request.activityPlatformCommissionPct()));
+            request.upsellPlatformFeePct()));
     }
 
     /** Commission org/conciergerie — éditable par l'org/host. */
@@ -48,6 +48,6 @@ public class MonetizationConfigController {
     public ResponseEntity<MonetizationConfigDto> updateOrg(@RequestBody MonetizationConfigDto request) {
         return ResponseEntity.ok(service.updateOrg(
             tenantContext.getRequiredOrganizationId(),
-            request.upsellOrgCommissionPct(), request.activityOrgCommissionPct()));
+            request.upsellOrgCommissionPct()));
     }
 }

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Box, Tabs, Tab, Button, Chip, Alert } from '@mui/material';
+import { Box, Button, Chip, Alert } from '@mui/material';
 import { Settings, History, Save, VolumeUp, Wifi, WifiOff, TrendingUp, ArrowUpward } from '../../../icons';
 import NoiseMonitorChart from '../../dashboard/NoiseMonitorChart';
 import NoiseAlertConfigPanel, {
@@ -13,6 +13,7 @@ import StatTile from '../../../components/StatTile';
 import { useNoiseDeviceDetail } from '../useNoiseDeviceDetail';
 import { NOISE_THRESHOLDS } from '../../../hooks/noiseMonitoring';
 import type { ConnectedDevice } from '../types';
+import PageTabs from '../../../components/PageTabs';
 
 const NEUTRAL = '#9CA3AF';
 
@@ -98,14 +99,17 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
       {/* 3. Configuration | Historique */}
       <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs
+          <PageTabs
+            options={[
+              { label: 'Configuration', icon: <Settings /> },
+              { label: 'Historique', icon: <History /> },
+            ]}
             value={subTab}
-            onChange={(_, v) => setSubTab(v)}
-            sx={{ minHeight: 36, '& .MuiTab-root': { minHeight: 36, textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, py: 0.5 } }}
-          >
-            <Tab icon={<Settings size={16} strokeWidth={1.75} />} iconPosition="start" label="Configuration" />
-            <Tab icon={<History size={16} strokeWidth={1.75} />} iconPosition="start" label="Historique" />
-          </Tabs>
+            onChange={setSubTab}
+            size="compact"
+            mb={0}
+            trail={false}
+          />
 
           {subTab === 0 && propertyId != null && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: 0.5 }}>

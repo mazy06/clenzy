@@ -1,10 +1,11 @@
 import * as React from "react"
 import {
-  DayPicker,
+  DayPicker as GregorianDayPicker,
   getDefaultClassNames,
   type DayButton,
   type Locale,
 } from "react-day-picker"
+import { DayPicker as HijriDayPicker } from "react-day-picker/hijri"
 
 import { cn } from '../../utils/cn'
 import { Button, buttonVariants } from './button'
@@ -13,6 +14,12 @@ import { IconPlaceholder } from './icon-placeholder'
 /**
  * Baitly UI — Calendar (copie de apps/v4/registry/bases/radix/ui — la source de la doc /docs/components/radix).
  * Adaptations locales : imports, propriétés logiques RTL, shim IconPlaceholder.
+ *
+ * S'y ajoute `calendarSystem` : le calendrier hégirien (Umm al-Qura) partage
+ * toute l'habillage de celui-ci et ne diffère que par son moteur de dates. La
+ * démo de galerie le recopiait intégralement pour changer un seul import — le
+ * commentaire de son propre code recommandait d'ailleurs de modifier ce
+ * composant-ci plutôt que de le dupliquer.
  */
 
 function Calendar({
@@ -22,13 +29,26 @@ function Calendar({
   captionLayout = "label",
   buttonVariant = "ghost",
   locale,
+  calendarSystem = "gregorian",
   formatters,
   components,
   ...props
-}: React.ComponentProps<typeof DayPicker> & {
+}: React.ComponentProps<typeof GregorianDayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
+  /**
+   * Système calendaire. `hijri` rend le calendrier Umm al-Qura, en RTL et
+   * chiffres arabes par défaut — pas une simple traduction du grégorien.
+   */
+  calendarSystem?: "gregorian" | "hijri"
 }) {
   const defaultClassNames = getDefaultClassNames()
+  // Les deux moteurs acceptent le même habillage ; ils ne divergent que sur le
+  // type de `locale` — le hijri en exige une complète (date-fns) là où le
+  // grégorien tolère un partiel. Il a un défaut `ar-SA`, donc l'unifier sur la
+  // signature grégorienne ne perd rien.
+  const DayPicker = (calendarSystem === "hijri"
+    ? HijriDayPicker
+    : GregorianDayPicker) as typeof GregorianDayPicker
 
   return (
     <DayPicker
@@ -156,7 +176,7 @@ function Calendar({
                 hugeicons="ArrowLeftIcon"
                 phosphor="CaretLeftIcon"
                 remixicon="RiArrowLeftSLine"
-                className={cn("cn-rtl-flip size-4", className)}
+                className={cn("size-4", className)}
                 {...props}
               />
             )
@@ -170,7 +190,7 @@ function Calendar({
                 hugeicons="ArrowRightIcon"
                 phosphor="CaretRightIcon"
                 remixicon="RiArrowRightSLine"
-                className={cn("cn-rtl-flip size-4", className)}
+                className={cn("size-4", className)}
                 {...props}
               />
             )

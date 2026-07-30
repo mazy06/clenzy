@@ -8,7 +8,6 @@ import {
   MenuItem,
   Typography,
   IconButton,
-  Badge,
   Popover,
   Chip,
 } from '@mui/material';
@@ -20,7 +19,21 @@ import {
   FilterList as FilterListIcon,
   Close as CloseIcon,
 } from '../icons';
-import HeaderSearchField from './HeaderSearchField';
+import { Button, ToggleGroup, ToggleGroupItem } from './ui';
+import NavCountBadge from './NavCountBadge';
+import { useScreenSearch } from './ScreenChrome';
+
+const VIEW_ICON: Record<'grid' | 'list' | 'map', React.ReactNode> = {
+  grid: <GridView size={16} strokeWidth={1.75} />,
+  list: <ViewList size={16} strokeWidth={1.75} />,
+  map: <MapIcon size={16} strokeWidth={1.75} />,
+};
+
+const VIEW_LABEL: Record<'grid' | 'list' | 'map', string> = {
+  grid: 'Vue grille',
+  list: 'Vue liste',
+  map: 'Vue carte',
+};
 
 export interface FilterOption {
   value: string;
@@ -141,32 +154,6 @@ const renderFilter = (filterKey: string, filter: FilterConfig) => {
   );
 };
 
-// Segmented (bascule de vue) — pattern .s-seg (PlanningToolbar) : conteneur
-// --field r10 p3, bouton actif fond --card + texte accent + ombre 0 1px 3px
-const VIEW_TOGGLE_GROUP_SX = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '2px',
-  backgroundColor: 'var(--field)',
-  border: '1px solid var(--field-line)',
-  borderRadius: '10px',
-  p: '3px',
-} as const;
-
-const viewToggleButtonSx = (active: boolean) => ({
-  p: 0.5,
-  borderRadius: '7px',
-  color: active ? 'var(--accent)' : 'var(--muted)',
-  backgroundColor: active ? 'var(--card)' : 'transparent',
-  boxShadow: active ? '0 1px 3px color-mix(in srgb, var(--ink) 10%, transparent)' : 'none',
-  transition: 'background-color 140ms, color 140ms',
-  '&:hover': {
-    backgroundColor: active ? 'var(--card)' : 'transparent',
-    color: active ? 'var(--accent)' : 'var(--body)',
-  },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-});
-
 export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
   searchTerm,
   onSearchChange,
@@ -179,6 +166,10 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
 }) => {
   const [filterAnchor, setFilterAnchor] = useState<HTMLElement | null>(null);
   const filterOpen = Boolean(filterAnchor);
+
+  // La recherche de l'écran est déléguée au champ UNIQUE du PageHeader : la
+  // barre ne dessine plus de champ, elle publie juste son état (cf. ScreenChrome).
+  useScreenSearch(searchTerm, onSearchChange, searchPlaceholder);
 
   const getCounterText = () => {
     const { count, singular, plural, label } = counter;
@@ -216,13 +207,6 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
 
   const content = (
     <>
-      {/* Recherche repliée : loupe → modale top-centrée (cf. HeaderSearchField). */}
-      <HeaderSearchField
-        value={searchTerm}
-        onChange={onSearchChange}
-        placeholder={searchPlaceholder}
-      />
-
       {/* Active filter chips (inline) */}
       {activeFilters.length > 0 && (
         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', overflow: 'auto', '&::-webkit-scrollbar': { display: 'none' } }}>
@@ -254,64 +238,41 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
           {getCounterText()}
         </Typography>
 
-        {viewToggle ? (() => {
-          const shownModes = viewToggle.modes ?? ['grid', 'list', 'map'];
-          const modeIcons: Record<'grid' | 'list' | 'map', React.ReactNode> = {
-            grid: <GridView size={16} strokeWidth={viewToggle.mode === 'grid' ? 2 : 1.75} />,
-            list: <ViewList size={16} strokeWidth={viewToggle.mode === 'list' ? 2 : 1.75} />,
-            map: <MapIcon size={16} strokeWidth={viewToggle.mode === 'map' ? 2 : 1.75} />,
-          };
-          return (
-            <Box sx={VIEW_TOGGLE_GROUP_SX}>
-              {shownModes.map((mode) => (
-                <IconButton
-                  key={mode}
-                  size="small"
-                  onClick={() => viewToggle.onChange(mode)}
-                  aria-pressed={viewToggle.mode === mode}
-                  sx={viewToggleButtonSx(viewToggle.mode === mode)}
-                >
-                  {modeIcons[mode]}
-                </IconButton>
-              ))}
-            </Box>
-          );
-        })() : null}
-
-        {/* Filter button with badge */}
-        <IconButton
-          size="small"
-          onClick={(e) => setFilterAnchor(e.currentTarget)}
-          aria-label="Filtres"
-          sx={{
-            p: 0.5,
-            borderRadius: '9px',
-            color: filterOpen || activeFilterCount > 0 ? 'var(--accent)' : 'var(--muted)',
-            bgcolor: filterOpen || activeFilterCount > 0 ? 'var(--accent-soft)' : 'transparent',
-            border: '1px solid',
-            borderColor: filterOpen || activeFilterCount > 0 ? 'var(--accent)' : 'var(--line-2)',
-            '&:hover': {
-              bgcolor: filterOpen || activeFilterCount > 0 ? 'var(--accent-soft)' : 'var(--hover)',
-              color: filterOpen || activeFilterCount > 0 ? 'var(--accent)' : 'var(--ink)',
-            },
-          }}
-        >
-          <Badge
-            badgeContent={activeFilterCount}
-            sx={{
-              '& .MuiBadge-badge': {
-                fontSize: '10.5px',
-                fontWeight: 700,
-                height: 16,
-                minWidth: 16,
-                bgcolor: 'var(--accent)',
-                color: 'var(--on-accent)',
-              },
+        {/* Bascule de vue — ToggleGroup du kit Baitly (même rendu que la galerie). */}
+        {viewToggle ? (
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            value={viewToggle.mode}
+            onValueChange={(next) => {
+              if (next) viewToggle.onChange(next as ViewToggleConfig['mode']);
             }}
           >
-            <FilterListIcon size={16} strokeWidth={1.75} />
-          </Badge>
-        </IconButton>
+            {(viewToggle.modes ?? ['grid', 'list', 'map']).map((mode) => (
+              <ToggleGroupItem key={mode} value={mode} aria-label={VIEW_LABEL[mode]}>
+                {VIEW_ICON[mode]}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        ) : null}
+
+        {/* Bouton filtres — Button du kit + pastille de compteur partagée. */}
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Filtres"
+          aria-expanded={filterOpen}
+          onClick={(event) => setFilterAnchor(event.currentTarget)}
+          className="relative"
+        >
+          <FilterListIcon size={16} strokeWidth={1.75} />
+          <NavCountBadge
+            count={activeFilterCount}
+            tone="primary"
+            className="absolute -top-1.5 -end-1.5 h-4 min-w-4 px-1 text-[10px] ring-2 ring-background"
+          />
+        </Button>
 
         {/* Filter popover */}
         <Popover

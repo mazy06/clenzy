@@ -4,6 +4,7 @@ import com.clenzy.integration.channex.client.ChannexClient;
 import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.dto.ChannexChannelDto;
 import com.clenzy.integration.channex.dto.ChannexOtaChannelResponse;
+import com.clenzy.integration.channex.model.ChannexOtaChannel;
 import com.clenzy.integration.channex.model.ChannexPropertyMapping;
 import com.clenzy.integration.channex.repository.ChannexOtaChannelRepository;
 import com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -26,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -185,6 +188,7 @@ class ChannexConnectServiceExtraTest {
         when(channexClient.fetchPropertyGroupId("ch-100")).thenReturn("group-xyz");
         ChannexChannelDto created = new ChannexChannelDto("chan-1", "Airbnb - Studio Marais", "Airbnb", false);
         when(channexClient.createChannel(any())).thenReturn(created);
+        when(otaChannelRepository.findByMappingAndOta(m.getId(), "airbnb")).thenReturn(Optional.empty());
         when(channexClient.createChannelEmbedUrl(eq("ch-100"), eq("chan-1"), anyString(), anyString()))
             .thenReturn("https://embed.channex.io/oauth");
 
@@ -192,6 +196,94 @@ class ChannexConnectServiceExtraTest {
 
         assertThat(result.channelId()).isEqualTo("chan-1");
         assertThat(result.channelTitle()).isEqualTo("Airbnb - Studio Marais");
+        assertThat(result.embedUrl()).isEqualTo("https://embed.channex.io/oauth");
+    }
+
+    /**
+     * Le trou historique : le channel etait cree sur le hub sans jamais laisser
+     * de trace en base, ce qui privait RateParityService et le repli de
+     * fullDisconnect de toute donnee.
+     */
+    @Test
+    @DisplayName("createOtaChannel: succes -> persiste la ligne channex_ota_channels")
+    void createOtaChannel_persistsLocalRow() {
+        ChannexPropertyMapping m = mapping(100L, 42L, "ch-100");
+        when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(m));
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property(100L, 42L, "Studio Marais")));
+        when(channexClient.fetchPropertyGroupId("ch-100")).thenReturn("group-xyz");
+        when(channexClient.createChannel(any()))
+            .thenReturn(new ChannexChannelDto("chan-1", "BookingCom - Studio", "BookingCom", false));
+        when(otaChannelRepository.findByMappingAndOta(m.getId(), "booking_com")).thenReturn(Optional.empty());
+        when(channexClient.createChannelEmbedUrl(any(), any(), any(), any()))
+            .thenReturn("https://embed.channex.io/oauth");
+
+        service.createOtaChannel(100L, 42L, "BookingCom", "admin@x.fr", "fr");
+
+        ArgumentCaptor<ChannexOtaChannel> saved = ArgumentCaptor.forClass(ChannexOtaChannel.class);
+        verify(otaChannelRepository).save(saved.capture());
+        ChannexOtaChannel row = saved.getValue();
+        assertThat(row.getPropertyMappingId()).isEqualTo(m.getId());
+        assertThat(row.getOrganizationId()).isEqualTo(42L);
+        assertThat(row.getOtaType()).isEqualTo("booking_com");
+        assertThat(row.getChannexChannelId()).isEqualTo("chan-1");
+        assertThat(row.isEnabled()).isTrue();
+    }
+
+    @Test
+    @DisplayName("createOtaChannel: meme OTA deja enregistre -> met a jour la ligne (contrainte UNIQUE)")
+    void createOtaChannel_reusesExistingRow() {
+        ChannexPropertyMapping m = mapping(100L, 42L, "ch-100");
+        ChannexOtaChannel existing = new ChannexOtaChannel();
+        existing.setId(UUID.randomUUID());
+        existing.setPropertyMappingId(m.getId());
+        existing.setOrganizationId(42L);
+        existing.setOtaType("airbnb");
+        existing.setChannexChannelId("chan-ancien");
+        existing.setEnabled(false);
+        existing.setErrorCount(3);
+        existing.setLastErrorMessage("boom");
+
+        when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(m));
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property(100L, 42L, "Studio")));
+        when(channexClient.fetchPropertyGroupId("ch-100")).thenReturn("g1");
+        when(channexClient.createChannel(any()))
+            .thenReturn(new ChannexChannelDto("chan-neuf", "Airbnb - Studio", "AirBNB", false));
+        when(otaChannelRepository.findByMappingAndOta(m.getId(), "airbnb")).thenReturn(Optional.of(existing));
+        when(channexClient.createChannelEmbedUrl(any(), any(), any(), any()))
+            .thenReturn("https://embed.channex.io/x");
+
+        service.createOtaChannel(100L, 42L, "Airbnb", "admin@x.fr", "fr");
+
+        ArgumentCaptor<ChannexOtaChannel> saved = ArgumentCaptor.forClass(ChannexOtaChannel.class);
+        verify(otaChannelRepository).save(saved.capture());
+        // Meme entite : pas de seconde ligne pour (mapping, airbnb)
+        assertThat(saved.getValue()).isSameAs(existing);
+        assertThat(existing.getChannexChannelId()).isEqualTo("chan-neuf");
+        assertThat(existing.isEnabled()).isTrue();
+        assertThat(existing.getErrorCount()).isZero();
+        assertThat(existing.getLastErrorMessage()).isNull();
+    }
+
+    /**
+     * Le channel existe deja cote hub quand on persiste : echouer ici ferait
+     * re-cliquer l'utilisateur, donc creer un second channel chez Channex.
+     */
+    @Test
+    @DisplayName("createOtaChannel: persistance KO -> l'embedUrl est quand meme rendue")
+    void createOtaChannel_persistenceFailureDoesNotBreakResponse() {
+        ChannexPropertyMapping m = mapping(100L, 42L, "ch-100");
+        when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(m));
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property(100L, 42L, "Studio")));
+        when(channexClient.fetchPropertyGroupId("ch-100")).thenReturn("g1");
+        when(channexClient.createChannel(any()))
+            .thenReturn(new ChannexChannelDto("chan-1", "Airbnb - Studio", "Airbnb", false));
+        when(otaChannelRepository.findByMappingAndOta(m.getId(), "airbnb"))
+            .thenThrow(new RuntimeException("DB down"));
+        when(channexClient.createChannelEmbedUrl(any(), any(), any(), any()))
+            .thenReturn("https://embed.channex.io/oauth");
+
+        ChannexOtaChannelResponse result = service.createOtaChannel(100L, 42L, "Airbnb", "admin@x.fr", "fr");
+
         assertThat(result.embedUrl()).isEqualTo("https://embed.channex.io/oauth");
     }
 
@@ -205,6 +297,7 @@ class ChannexConnectServiceExtraTest {
         when(channexClient.fetchPropertyGroupId("ch-100")).thenReturn(null);
         ChannexChannelDto created = new ChannexChannelDto("chan-2", "Airbnb - Propriete #100", "Airbnb", false);
         when(channexClient.createChannel(any())).thenReturn(created);
+        when(otaChannelRepository.findByMappingAndOta(m.getId(), "airbnb")).thenReturn(Optional.empty());
         when(channexClient.createChannelEmbedUrl(any(), any(), any(), any()))
             .thenReturn("https://embed.channex.io/x");
 
@@ -222,11 +315,50 @@ class ChannexConnectServiceExtraTest {
         when(channexClient.fetchPropertyGroupId("ch-100")).thenReturn("g1");
         ChannexChannelDto created = new ChannexChannelDto("chan-3", "Airbnb - Propriete #100", "Airbnb", false);
         when(channexClient.createChannel(any())).thenReturn(created);
+        when(otaChannelRepository.findByMappingAndOta(m.getId(), "airbnb")).thenReturn(Optional.empty());
         when(channexClient.createChannelEmbedUrl(any(), any(), any(), any()))
             .thenReturn("https://embed.channex.io/x");
 
         ChannexOtaChannelResponse result = service.createOtaChannel(100L, 42L, "Airbnb", "admin@x.fr", "fr");
         assertThat(result).isNotNull();
+    }
+
+    // ─── disableLocalOtaChannel / forgetLocalOtaChannel ─────────────────────
+
+    @Test
+    @DisplayName("disableLocalOtaChannel: passe les lignes de l'org a enabled=false")
+    void disableLocalOtaChannel_disablesRows() {
+        ChannexOtaChannel row = new ChannexOtaChannel();
+        row.setChannexChannelId("chan-1");
+        row.setEnabled(true);
+        when(otaChannelRepository.findByOrgAndChannelId(42L, "chan-1")).thenReturn(List.of(row));
+
+        service.disableLocalOtaChannel(42L, "chan-1");
+
+        assertThat(row.isEnabled()).isFalse();
+        verify(otaChannelRepository).save(row);
+    }
+
+    @Test
+    @DisplayName("forgetLocalOtaChannel: supprime les lignes du channel")
+    void forgetLocalOtaChannel_deletesRows() {
+        ChannexOtaChannel row = new ChannexOtaChannel();
+        row.setChannexChannelId("chan-1");
+        when(otaChannelRepository.findByOrgAndChannelId(42L, "chan-1")).thenReturn(List.of(row));
+
+        service.forgetLocalOtaChannel(42L, "chan-1");
+
+        verify(otaChannelRepository).delete(row);
+    }
+
+    @Test
+    @DisplayName("forgetLocalOtaChannel: rien de connu localement -> aucun delete")
+    void forgetLocalOtaChannel_noRows() {
+        when(otaChannelRepository.findByOrgAndChannelId(42L, "chan-inconnu")).thenReturn(List.of());
+
+        service.forgetLocalOtaChannel(42L, "chan-inconnu");
+
+        verify(otaChannelRepository, never()).delete(any());
     }
 
     // ─── updatePriceSourceOfTruth ───────────────────────────────────────────

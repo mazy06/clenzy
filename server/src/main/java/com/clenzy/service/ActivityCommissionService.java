@@ -3,8 +3,9 @@ package com.clenzy.service;
 import com.clenzy.dto.ActivityCommissionDto;
 import com.clenzy.dto.ActivityCommissionSummaryDto;
 import com.clenzy.model.*;
+import com.clenzy.repository.ActivityAffiliateConfigRepository;
 import com.clenzy.repository.ActivityCommissionRepository;
-import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.PropertyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -15,10 +16,17 @@ import java.math.RoundingMode;
 import java.util.List;
 
 /**
- * Commissions d'activités affiliées : Clenzy = affilié officiel, répartit chaque
- * commission part hôte / part plateforme ({@link ActivityCommissionConfig}, défaut
- * 70/30). {@link #record} est appelé par le reporting fournisseur (Viator…) quand
- * il sera branché ; la part hôte est créditée au ledger interne → versée par le payout.
+ * Commissions d'affiliation des activités : Baitly est l'affilié officiel,
+ * encaisse la commission versée par le programme, en retient sa part et
+ * reverse le solde à l'hôte via le ledger interne (→ payout).
+ *
+ * <p><b>La conciergerie ne touche rien sur les activités</b> — contrairement aux
+ * upsells. La commission se partage entre Baitly et le propriétaire seulement.</p>
+ *
+ * <p>La part Baitly se négocie programme par programme :
+ * {@code ActivityAffiliateConfig.platformCommissionPct}. Absente = rien retenu,
+ * l'intégralité revient à l'hôte : un défaut appliquerait un taux que personne
+ * n'a décidé.</p>
  */
 @Service
 public class ActivityCommissionService {
@@ -27,60 +35,115 @@ public class ActivityCommissionService {
     private static final BigDecimal HUNDRED = new BigDecimal("100");
 
     private final ActivityCommissionRepository commissionRepository;
-    private final MonetizationConfigService monetizationConfigService;
-    private final ReservationRepository reservationRepository;
+    private final ActivityAffiliateConfigRepository affiliateConfigRepository;
+    private final PropertyRepository propertyRepository;
     private final WalletService walletService;
     private final LedgerService ledgerService;
-    private final ManagementContractService managementContractService;
 
     public ActivityCommissionService(ActivityCommissionRepository commissionRepository,
-                                     MonetizationConfigService monetizationConfigService,
-                                     ReservationRepository reservationRepository,
+                                     ActivityAffiliateConfigRepository affiliateConfigRepository,
+                                     PropertyRepository propertyRepository,
                                      WalletService walletService,
-                                     LedgerService ledgerService,
-                                     ManagementContractService managementContractService) {
+                                     LedgerService ledgerService) {
         this.commissionRepository = commissionRepository;
-        this.monetizationConfigService = monetizationConfigService;
-        this.reservationRepository = reservationRepository;
+        this.affiliateConfigRepository = affiliateConfigRepository;
+        this.propertyRepository = propertyRepository;
         this.walletService = walletService;
         this.ledgerService = ledgerService;
-        this.managementContractService = managementContractService;
     }
 
     /**
-     * Enregistre une commission attribuée + sa répartition. Crédite la part hôte au
-     * ledger (plateforme → wallet OWNER) si la réservation/propriétaire est résoluble.
+     * Enregistre une commission d'affiliation perçue et crédite la part hôte.
+     *
+     * <p><b>Idempotent</b> sur {@code (org, provider, externalBookingId)} : les
+     * rapports d'affiliation se rejouent — re-téléchargement, périodes qui se
+     * chevauchent — et un doublon créditerait l'hôte deux fois. Le
+     * ré-enregistrement retourne la ligne existante sans nouvel effet.</p>
+     *
+     * @param grossCommission commission versée par le programme, telle que reportée
+     * @param propertyId      logement rattaché, pour retrouver le propriétaire à créditer
      */
     @Transactional
-    public ActivityCommissionDto record(Long orgId, Long reservationId, Long guideId,
-                                        ActivityProvider provider, String externalBookingId,
-                                        BigDecimal grossCommission, String currency) {
-        BigDecimal gross = grossCommission != null ? grossCommission : BigDecimal.ZERO;
-        // 1) Commission plateforme. 2) Sur le reste, commission org/conciergerie. 3) Solde = hôte.
-        BigDecimal platformPct = monetizationConfigService.getEffectiveActivityPlatformCommissionPct(orgId);
-        BigDecimal platformShare = gross.multiply(platformPct).divide(HUNDRED, 2, RoundingMode.HALF_UP);
-        BigDecimal remainder = gross.subtract(platformShare);
-        // Part conciergerie : taux du contrat de gestion du logement s'il existe, sinon défaut org.
-        BigDecimal orgPct = resolveActivityConciergePct(orgId, reservationId);
-        BigDecimal orgShare = remainder.multiply(orgPct).divide(HUNDRED, 2, RoundingMode.HALF_UP);
-        BigDecimal hostShare = remainder.subtract(orgShare);
-        String cur = (currency != null && !currency.isBlank()) ? currency.toUpperCase() : "EUR";
+    public ActivityCommissionDto recordAffiliateEarning(Long orgId,
+                                                        ActivityProvider provider,
+                                                        String externalBookingId,
+                                                        BigDecimal grossCommission,
+                                                        String currency,
+                                                        Long propertyId) {
+        if (grossCommission == null || grossCommission.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException(
+                "Commission d'affiliation nulle ou negative pour " + provider + "/" + externalBookingId);
+        }
+        var existing = commissionRepository
+            .findByOrganizationIdAndProviderAndExternalBookingId(orgId, provider, externalBookingId);
+        if (existing.isPresent()) {
+            log.debug("Commission affiliation deja enregistree provider={} ref={} — ignoree",
+                provider, externalBookingId);
+            return ActivityCommissionDto.from(existing.get());
+        }
+
+        BigDecimal platformPct = affiliateConfigRepository
+            .findByOrganizationIdAndProvider(orgId, provider)
+            .map(ActivityAffiliateConfig::getPlatformCommissionPct)
+            .orElse(null);
+        BigDecimal platformShare = platformPct == null
+            ? BigDecimal.ZERO
+            : grossCommission.multiply(platformPct).divide(HUNDRED, 2, RoundingMode.HALF_UP);
+        BigDecimal hostShare = grossCommission.subtract(platformShare);
 
         ActivityCommission commission = new ActivityCommission();
         commission.setOrganizationId(orgId);
-        commission.setReservationId(reservationId);
-        commission.setGuideId(guideId);
         commission.setProvider(provider);
         commission.setExternalBookingId(externalBookingId);
-        commission.setGrossCommission(gross);
-        commission.setHostShare(hostShare);
+        commission.setGrossCommission(grossCommission);
         commission.setPlatformShare(platformShare);
-        commission.setCurrency(cur);
-        commission.setStatus(ActivityCommissionStatus.PENDING);
-        commission = commissionRepository.save(commission);
+        commission.setHostShare(hostShare);
+        commission.setCurrency(currency != null ? currency : "EUR");
+        commission.setStatus(ActivityCommissionStatus.PAID);
+        commissionRepository.save(commission);
 
-        creditShares(orgId, reservationId, hostShare, orgShare, cur, commission.getId());
+        creditHostShare(commission, propertyId);
+        log.info("Commission affiliation provider={} ref={} brut={} {} → hote={} baitly={}",
+            provider, externalBookingId, grossCommission, commission.getCurrency(),
+            hostShare, platformShare);
         return ActivityCommissionDto.from(commission);
+    }
+
+    /**
+     * Crédite la part hôte (wallet plateforme → wallet OWNER).
+     *
+     * <p>Sans propriétaire résoluble, la commission reste enregistrée mais non
+     * créditée : perdre la ligne serait pire, elle est la trace de ce que le
+     * programme a versé. Le warn signale la reprise à faire.</p>
+     */
+    private void creditHostShare(ActivityCommission commission, Long propertyId) {
+        if (commission.getHostShare().compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        Long ownerId = ownerIdForProperty(propertyId);
+        if (ownerId == null) {
+            log.warn("Commission affiliation id={} : proprietaire introuvable (property={}), "
+                + "part hote non creditee au ledger", commission.getId(), propertyId);
+            return;
+        }
+        String currency = commission.getCurrency();
+        Long orgId = commission.getOrganizationId();
+        Wallet platformWallet = walletService.getOrCreatePlatformWallet(orgId, currency);
+        Wallet ownerWallet = walletService.getOrCreateWallet(orgId, WalletType.OWNER, ownerId, currency);
+        ledgerService.recordTransfer(platformWallet, ownerWallet, commission.getHostShare(),
+            LedgerReferenceType.COMMISSION,
+            "ACTIVITY-" + commission.getId(),
+            "Part hote commission " + commission.getProvider()
+                + " (reservation " + commission.getExternalBookingId() + ")");
+    }
+
+    private Long ownerIdForProperty(Long propertyId) {
+        if (propertyId == null) {
+            return null;
+        }
+        return propertyRepository.findById(propertyId)
+            .map(p -> p.getOwner() != null ? p.getOwner().getId() : null)
+            .orElse(null);
     }
 
     @Transactional(readOnly = true)
@@ -103,68 +166,5 @@ public class ActivityCommissionService {
             if (c.getCurrency() != null) currency = c.getCurrency();
         }
         return new ActivityCommissionSummaryDto(gross, host, platform, all.size(), currency);
-    }
-
-    /** Part conciergerie (%) sur les activités : taux du contrat de gestion du logement, sinon défaut org. */
-    private BigDecimal resolveActivityConciergePct(Long orgId, Long reservationId) {
-        Long propertyId = propertyIdForReservation(reservationId);
-        if (propertyId != null) {
-            try {
-                var c = managementContractService.getActiveContract(propertyId, orgId);
-                if (c != null && c.isPresent() && c.get().getActivityCommissionRate() != null) {
-                    return c.get().getActivityCommissionRate().multiply(HUNDRED); // fraction (0.30) → pourcentage (30)
-                }
-            } catch (Exception ignored) {
-                // Résolution contrat best-effort → repli sur le défaut org ci-dessous.
-            }
-        }
-        return monetizationConfigService.getEffectiveActivityOrgCommissionPct(orgId);
-    }
-
-    /** Logement de la réservation. Défensif : null si non résoluble → défaut org. */
-    private Long propertyIdForReservation(Long reservationId) {
-        try {
-            if (reservationId == null) {
-                return null;
-            }
-            return reservationRepository.findById(reservationId)
-                .map(Reservation::getProperty)
-                .map(Property::getId)
-                .orElse(null);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private void creditShares(Long orgId, Long reservationId, BigDecimal hostShare, BigDecimal orgShare,
-                              String currency, Long commissionId) {
-        try {
-            Wallet platformWallet = walletService.getOrCreatePlatformWallet(orgId, currency);
-            String ref = "ACT-COMM-" + commissionId;
-
-            if (orgShare != null && orgShare.compareTo(BigDecimal.ZERO) > 0) {
-                Wallet conciergeWallet = walletService.getOrCreateWallet(orgId, WalletType.CONCIERGE, null, currency);
-                ledgerService.recordTransfer(platformWallet, conciergeWallet, orgShare,
-                    LedgerReferenceType.COMMISSION, ref,
-                    "Part conciergerie commission activité (#" + commissionId + ")");
-            }
-
-            if (reservationId == null || hostShare == null || hostShare.compareTo(BigDecimal.ZERO) <= 0) {
-                return;
-            }
-            Long ownerId = reservationRepository.findById(reservationId)
-                .map(Reservation::getProperty)
-                .map(p -> p.getOwner() != null ? p.getOwner().getId() : null)
-                .orElse(null);
-            if (ownerId == null) {
-                return;
-            }
-            Wallet ownerWallet = walletService.getOrCreateWallet(orgId, WalletType.OWNER, ownerId, currency);
-            ledgerService.recordTransfer(platformWallet, ownerWallet, hostShare,
-                LedgerReferenceType.COMMISSION, ref,
-                "Part hôte commission activité (#" + commissionId + ")");
-        } catch (Exception e) {
-            log.error("Echec crédit ledger commission activité #{}: {}", commissionId, e.getMessage());
-        }
     }
 }

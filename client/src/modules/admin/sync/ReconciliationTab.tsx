@@ -16,7 +16,6 @@ import {
   Typography,
   Grid,
   TextField,
-  TablePagination,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -35,6 +34,7 @@ import { syncAdminApi, ReconciliationRun, ReconciliationStats } from '../../../s
 import FilterChipRow from '../../../components/FilterChipRow';
 import StatTile from '../../../components/StatTile';
 import { useSyncAdminHeader } from '../SyncAdminPage';
+import PagePagination from '../../../components/PagePagination';
 
 type ReconciliationStatus = 'SUCCESS' | 'FAILED' | 'DIVERGENCE' | 'RUNNING';
 
@@ -160,12 +160,12 @@ const ReconciliationTab: React.FC = () => {
     return () => setHeaderActions(null);
   }, [setHeaderActions]);
 
-  const handleChangePage = (_event: unknown, newPage: number) => {
+  const handleChangePage = (newPage: number) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+  const handleChangeRowsPerPage = (rows: number) => {
+    setRowsPerPage(rows);
     setPage(0);
   };
 
@@ -325,14 +325,13 @@ const ReconciliationTab: React.FC = () => {
               </TableBody>
             </Table>
           </TableContainer>
-          <TablePagination
-            component="div"
+          <PagePagination
             count={totalElements}
             page={page}
             onPageChange={handleChangePage}
             rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
             rowsPerPageOptions={[10, 20, 50]}
+            onRowsPerPageChange={handleChangeRowsPerPage}
           />
         </>
       )}

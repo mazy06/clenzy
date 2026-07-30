@@ -255,4 +255,80 @@ class LoginProtectionServiceTest {
         assertFalse(status.isLocked());
         assertFalse(status.captchaRequired());
     }
+
+    // ─── tryAcquire (rate-limit Redis) ──────────────────────────────────────
+
+    private static final String RL_KEY = "auth:rl:pwd-reset:ip:10.0.0.1";
+
+    @Test
+    void tryAcquire_firstCall_allowedAndSetsTtl() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment(RL_KEY)).thenReturn(1L);
+
+        assertTrue(service.tryAcquire("pwd-reset:ip:10.0.0.1", 3, Duration.ofMinutes(1)));
+        verify(redisTemplate).expire(RL_KEY, Duration.ofMinutes(1));
+    }
+
+    @Test
+    void tryAcquire_underLimit_allowed() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment(RL_KEY)).thenReturn(3L);
+        when(redisTemplate.getExpire(RL_KEY)).thenReturn(42L);
+
+        assertTrue(service.tryAcquire("pwd-reset:ip:10.0.0.1", 3, Duration.ofMinutes(1)));
+    }
+
+    @Test
+    void tryAcquire_overLimit_denied() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment(RL_KEY)).thenReturn(4L);
+        when(redisTemplate.getExpire(RL_KEY)).thenReturn(42L);
+
+        assertFalse(service.tryAcquire("pwd-reset:ip:10.0.0.1", 3, Duration.ofMinutes(1)));
+    }
+
+    /**
+     * Sans TTL, la cle serait persistante et bloquerait l'IP pour toujours :
+     * le compteur doit se re-armer si l'EXPIRE initial s'est perdu.
+     */
+    @Test
+    void tryAcquire_keyWithoutTtl_reappliesExpiry() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment(RL_KEY)).thenReturn(2L);
+        when(redisTemplate.getExpire(RL_KEY)).thenReturn(-1L);
+
+        assertTrue(service.tryAcquire("pwd-reset:ip:10.0.0.1", 3, Duration.ofMinutes(1)));
+        verify(redisTemplate).expire(RL_KEY, Duration.ofMinutes(1));
+    }
+
+    /**
+     * Fail-open : une panne Redis ne doit pas empecher un utilisateur legitime
+     * de recuperer son compte (le rate-limit Nginx reste en amont).
+     */
+    @Test
+    void tryAcquire_redisDown_failsOpen() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment(RL_KEY)).thenThrow(new RuntimeException("redis down"));
+
+        assertTrue(service.tryAcquire("pwd-reset:ip:10.0.0.1", 3, Duration.ofMinutes(1)));
+    }
+
+    @Test
+    void tryAcquire_nullIncrement_failsOpen() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment(RL_KEY)).thenReturn(null);
+
+        assertTrue(service.tryAcquire("pwd-reset:ip:10.0.0.1", 3, Duration.ofMinutes(1)));
+    }
+
+    /** Les seaux sont independants : deux cles distinctes ne se partagent pas un quota. */
+    @Test
+    void tryAcquire_distinctKeys_independentBuckets() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment("auth:rl:a")).thenReturn(1L);
+        when(valueOperations.increment("auth:rl:b")).thenReturn(1L);
+
+        assertTrue(service.tryAcquire("a", 1, Duration.ofMinutes(1)));
+        assertTrue(service.tryAcquire("b", 1, Duration.ofMinutes(1)));
+    }
 }

@@ -307,7 +307,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     queryKey: ['planning', 'service-requests', reservation?.id],
     queryFn: async () => {
       const result = await serviceRequestsApi.getAll({ reservationId: reservation!.id });
-      const list = (result as unknown as { content?: ServiceRequest[] }).content ?? result;
+      const list = result;
       return list as ServiceRequest[];
     },
     enabled: !!reservation?.id,
@@ -487,6 +487,9 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
 
   // ── Computed values — Reservation ──────────────────────────────────────
   const totalPrice = reservation?.totalPrice || 0;
+  // Reel quand le canal l'a remonte, estime au taux du canal sinon ; le serveur
+  // tranche et le signale via otaFeeEstimated.
+  const otaFee = reservation?.otaFeeAmount ?? null;
   const totalExtraFees = extraFees.reduce((sum, f) => sum + f.amount, 0);
   const grandTotal = totalPrice + totalExtraFees;
   const totalPaid = payments.filter((p) => p.status === 'PAID').reduce((sum, p) => sum + p.amount, 0);
@@ -783,6 +786,22 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         >
           {/* Summary */}
           <FinRow label="Montant reservation" value={isICalImport && !hasTotalPrice ? 'Non communique' : fmtCurrency(totalPrice)} bold />
+
+          {/* Commission du canal. Affichee sous le montant brut parce qu'elle
+              s'y retranche : c'est l'ecart entre ce que paie le voyageur et ce
+              qui revient. Le libelle dit si le canal l'a remontee ou si elle
+              est estimee — sans quoi une estimation se lirait comme un releve. */}
+          {otaFee != null && otaFee > 0 && (
+            <FinRow
+              label={
+                reservation?.otaFeeEstimated
+                  ? `Commission ${otaChannelLabel} (estimee)`
+                  : `Commission ${otaChannelLabel}`
+              }
+              value={<>-{fmtCurrency(otaFee)}</>}
+              color="var(--err)"
+            />
+          )}
 
           {extraFees.length > 0 && (
             <>

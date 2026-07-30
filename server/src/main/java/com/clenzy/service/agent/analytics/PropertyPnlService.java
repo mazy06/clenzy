@@ -30,6 +30,12 @@ import java.util.Map;
  * <p>Commission = valeur réelle ({@code otaFeeAmount}) si connue, sinon taux par
  * défaut par canal (cf. {@link ChannelAttributionService}). Coût d'intervention =
  * coût réel sinon estimé.</p>
+ *
+ * <p>{@code commissionEstimated} dit lequel des deux : les frais OTA réels ne
+ * viennent que de Booking.com et Airbnb via Channex, tout le reste est déduit d'un
+ * taux par défaut. Sans ce drapeau, une marge supposée était présentée comme un fait
+ * — ce qui compte d'autant plus depuis que le taux Airbnb par défaut est passé du
+ * split fee (3 %) au host-only fee (15,5 %).</p>
  */
 @Service
 public class PropertyPnlService {
@@ -52,16 +58,23 @@ public class PropertyPnlService {
         this.clock = clock;
     }
 
+    /**
+     * @param commissionEstimated au moins un séjour du logement n'a pas de frais OTA
+     *                            réels et sa commission est déduite du taux par défaut
+     *                            du canal — donc le profit net l'est aussi
+     */
     public record PropertyPnl(
             Long propertyId, String propertyName,
             BigDecimal revenue, BigDecimal commission, BigDecimal interventionCost,
             BigDecimal netProfit, double marginPct,
-            int reservations, int interventions) {}
+            int reservations, int interventions,
+            boolean commissionEstimated) {}
 
     public record PnlResult(
             int months, String currency,
             BigDecimal totalRevenue, BigDecimal totalCommission, BigDecimal totalCost, BigDecimal totalNet,
-            List<PropertyPnl> properties, int deficitCount, String recommendation) {}
+            List<PropertyPnl> properties, int deficitCount, String recommendation,
+            boolean commissionEstimated) {}
 
     @Transactional(readOnly = true)
     public PnlResult compute(int months) {
@@ -81,6 +94,7 @@ public class PropertyPnlService {
             BigDecimal gross = nz(r.getTotalPrice());
             acc.revenue = acc.revenue.add(gross);
             acc.commission = acc.commission.add(commissionResolver.commissionOf(r, gross));
+            acc.commissionEstimated |= commissionResolver.isEstimated(r);
             acc.reservations++;
             if (currency == null && r.getCurrency() != null) {
                 currency = r.getCurrency();
@@ -101,6 +115,7 @@ public class PropertyPnlService {
         BigDecimal totalRev = BigDecimal.ZERO, totalComm = BigDecimal.ZERO, totalCost = BigDecimal.ZERO;
         List<PropertyPnl> properties = new ArrayList<>();
         int deficit = 0;
+        boolean anyEstimated = false;
         for (Acc a : byProperty.values()) {
             BigDecimal net = a.revenue.subtract(a.commission).subtract(a.interventionCost);
             if (net.signum() < 0) {
@@ -109,16 +124,18 @@ public class PropertyPnlService {
             totalRev = totalRev.add(a.revenue);
             totalComm = totalComm.add(a.commission);
             totalCost = totalCost.add(a.interventionCost);
+            anyEstimated |= a.commissionEstimated;
             properties.add(new PropertyPnl(a.propertyId, a.propertyName,
                     scale(a.revenue), scale(a.commission), scale(a.interventionCost),
-                    scale(net), marginPct(net, a.revenue), a.reservations, a.interventions));
+                    scale(net), marginPct(net, a.revenue), a.reservations, a.interventions,
+                    a.commissionEstimated));
         }
         properties.sort(Comparator.comparing(PropertyPnl::netProfit).reversed());
 
         BigDecimal totalNet = totalRev.subtract(totalComm).subtract(totalCost);
         return new PnlResult(m, currency != null ? currency : "EUR",
                 scale(totalRev), scale(totalComm), scale(totalCost), scale(totalNet),
-                properties, deficit, recommend(properties, deficit));
+                properties, deficit, recommend(properties, deficit), anyEstimated);
     }
 
     private static String recommend(List<PropertyPnl> properties, int deficit) {
@@ -165,5 +182,6 @@ public class PropertyPnlService {
         BigDecimal interventionCost = BigDecimal.ZERO;
         int reservations;
         int interventions;
+        boolean commissionEstimated;
     }
 }

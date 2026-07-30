@@ -10,6 +10,7 @@ import type {
   ContractType,
   PaymentModel,
   CommissionBase,
+  OtaFeeBearer,
 } from '../../services/api/managementContractsApi';
 import type { SplitRatios } from '../../types/payment';
 
@@ -41,6 +42,11 @@ export const PAYMENT_MODEL_HELP: Record<PaymentModel, string> = {
 export const COMMISSION_BASE_LABELS: Record<CommissionBase, string> = {
   GROSS:          'Montant brut (loyer encaissé)',
   NET_OF_OTA_FEE: 'Net des frais OTA (après commission plateforme)',
+};
+
+export const OTA_FEE_BEARER_LABELS: Record<OtaFeeBearer, string> = {
+  AGENCY: 'La conciergerie (déduits de sa commission)',
+  OWNER:  'Le propriétaire (déduits de son reversement)',
 };
 
 /**
@@ -119,9 +125,9 @@ export const EMPTY_FORM: CreateManagementContractRequest = {
   cleaningFeeIncluded: true,
   maintenanceIncluded: true,
   upsellCommissionRate: null,
-  activityCommissionRate: null,
   paymentModel: 'DIRECT',
   commissionBase: 'GROSS',
+  otaFeeBorneBy: 'AGENCY',
   notes: '',
 };
 
@@ -345,6 +351,16 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
               ))}
             </TextField>
             <TextField
+              select label="Frais OTA à la charge de" value={form.otaFeeBorneBy ?? 'AGENCY'}
+              onChange={e => setForm(prev => ({ ...prev, otaFeeBorneBy: e.target.value as OtaFeeBearer }))}
+              size="small" fullWidth
+              helperText="Sur un séjour OTA, la plateforme retient sa commission avant de verser."
+            >
+              {(Object.entries(OTA_FEE_BEARER_LABELS) as [OtaFeeBearer, string][]).map(([key, label]) => (
+                <MenuItem key={key} value={key}>{label}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
               label="Commission" type="number"
               value={form.commissionRate > 0 ? Math.round(form.commissionRate * 100) : ''}
               onChange={e => setForm(prev => ({ ...prev, commissionRate: e.target.value ? Number(e.target.value) / 100 : 0 }))}
@@ -369,15 +385,6 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
               label="Upsells" type="number"
               value={form.upsellCommissionRate != null ? Math.round(form.upsellCommissionRate * 100) : ''}
               onChange={e => setForm(prev => ({ ...prev, upsellCommissionRate: e.target.value ? Number(e.target.value) / 100 : null }))}
-              size="small" fullWidth
-              placeholder="Défaut org"
-              InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-              inputProps={{ min: 0, max: 100, step: 1, style: { fontVariantNumeric: 'tabular-nums' } }}
-            />
-            <TextField
-              label="Marketplace" type="number"
-              value={form.activityCommissionRate != null ? Math.round(form.activityCommissionRate * 100) : ''}
-              onChange={e => setForm(prev => ({ ...prev, activityCommissionRate: e.target.value ? Number(e.target.value) / 100 : null }))}
               size="small" fullWidth
               placeholder="Défaut org"
               InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}

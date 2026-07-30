@@ -71,9 +71,9 @@ const ManagementContractFormModal: React.FC<ManagementContractFormModalProps> = 
         cleaningFeeIncluded: contract.cleaningFeeIncluded,
         maintenanceIncluded: contract.maintenanceIncluded,
         upsellCommissionRate: contract.upsellCommissionRate,
-        activityCommissionRate: contract.activityCommissionRate,
-        paymentModel: contract.paymentModel,
+          paymentModel: contract.paymentModel,
         commissionBase: contract.commissionBase,
+        otaFeeBorneBy: contract.otaFeeBorneBy,
         notes: contract.notes ?? '',
       });
     } else {

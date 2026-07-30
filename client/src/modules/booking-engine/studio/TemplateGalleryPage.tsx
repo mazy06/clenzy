@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Pagination } from '@mui/material';
+import { Box } from '@mui/material';
 import { LayoutGrid, Plus } from 'lucide-react';
 import PageHeader from '../../../components/PageHeader';
 import { bookingEngineApi } from '../../../services/api/bookingEngineApi';
 import { GALLERY_TEMPLATES } from './grapes/import/galleryTemplates';
 import { buildConfigPayload } from './StudioHome';
 import './studioHome.css';
+import PagePagination from '../../../components/PagePagination';
 
 /**
  * Galerie COMPLÈTE des templates (écran « Voir tous les templates »). 4 colonnes, paginée pour tenir
@@ -129,7 +130,7 @@ export default function TemplateGalleryPage() {
 
       {pageCount > 1 && (
         <Box sx={{ display: 'flex', justifyContent: 'center', pt: 2, flexShrink: 0 }}>
-          <Pagination count={pageCount} page={page} onChange={(_, p) => setPage(p)} color="primary" shape="rounded" />
+          <PagePagination totalPages={pageCount} page={page - 1} onPageChange={(p) => setPage(p + 1)} />
         </Box>
       )}
     </Box>

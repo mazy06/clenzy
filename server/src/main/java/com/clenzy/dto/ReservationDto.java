@@ -40,7 +40,18 @@ public record ReservationDto(
     // Ventilation adultes/enfants (0314) — input + output. NULL = ventilation
     // inconnue (le calcul de taxe de sejour retombe sur guestCount).
     Integer adultsCount,
-    Integer childrenCount
+    Integer childrenCount,
+    /**
+     * Commission prelevee par le canal sur ce sejour, en sortie uniquement.
+     * {@code null} pour une vente directe.
+     */
+    Double otaFeeAmount,
+    /**
+     * {@code true} quand le montant ci-dessus est une estimation au taux par
+     * defaut du canal, {@code false} quand le canal l'a reellement remonte.
+     * Sans cette distinction, une estimation se lirait comme un releve.
+     */
+    Boolean otaFeeEstimated
 ) {
 
     /**
@@ -64,6 +75,7 @@ public record ReservationDto(
              checkIn, checkOut, checkInTime, checkOutTime, status, source, sourceName,
              null, totalPrice, confirmationCode, notes, cleaningFee, touristTaxAmount,
              createCleaning, paymentLinkSentAt, paymentLinkEmail, hiddenFromPlanning,
-             paymentStatus, paidAt, interventionId, adultsCount, childrenCount);
+             paymentStatus, paidAt, interventionId, adultsCount, childrenCount,
+             null, null);
     }
 }

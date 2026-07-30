@@ -9,6 +9,7 @@ import com.clenzy.model.*;
 import com.clenzy.repository.FiscalProfileRepository;
 import com.clenzy.repository.InvoiceRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.commission.ManagementCommissionCalculator;
 import com.clenzy.tenant.TenantContext;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
@@ -72,7 +73,7 @@ class InvoiceGeneratorServiceTest {
         service = new InvoiceGeneratorService(
             invoiceRepository, reservationRepository, interventionRepository,
             fiscalProfileRepository, fiscalEngine, touristTaxService, numberingService,
-            tenantContext, entityManager);
+            tenantContext, entityManager, new ManagementCommissionCalculator());
     }
 
     /**
@@ -1665,6 +1666,131 @@ class InvoiceGeneratorServiceTest {
 
             // Assert
             assertThat(result).isSameAs(active);
+        }
+    }
+
+    /**
+     * La facture de commission de gestion (conciergerie → propriétaire).
+     *
+     * <p>Elle fait foi : en {@code CONCIERGE_COLLECTS} elle est émise PAID avec la mention
+     * « retenue reversement », elle affirme donc le montant prélevé sur le virement. Les
+     * montants attendus ici sont les mêmes littéraux que dans {@code AccountingServiceTest} —
+     * c'est ce qui garantit que la facture et le reversement ne redivergent pas.</p>
+     */
+    @Nested
+    class GenerateCommissionFromReservation {
+
+        /** Le séjour Airbnb de référence : 289,50 EUR brut, 44,87 EUR de host fee. */
+        private Reservation airbnbStay() {
+            Reservation res = new Reservation();
+            res.setId(700L);
+            res.setGuestName("Ada Lovelace");
+            res.setCheckIn(LocalDate.of(2026, 5, 10));
+            res.setCheckOut(LocalDate.of(2026, 5, 14));
+            res.setTotalPrice(new BigDecimal("289.50"));
+            res.setOtaFeeAmount(new BigDecimal("44.87"));
+
+            Property property = new Property();
+            property.setId(300L);
+            User owner = new User();
+            owner.setFirstName("Grace");
+            owner.setLastName("Hopper");
+            property.setOwner(owner);
+            res.setProperty(property);
+            return res;
+        }
+
+        private ManagementContract contract(ManagementContract.CommissionBase base) {
+            ManagementContract c = new ManagementContract();
+            c.setCommissionRate(new BigDecimal("0.20"));
+            c.setCommissionBase(base);
+            return c;
+        }
+
+        /** Le moteur fiscal ne sert qu'à habiller la commission ; le HT est déjà calculé. */
+        private void stubFiscalProfileAndTax() {
+            when(fiscalProfileRepository.findByOrganizationId(1L))
+                .thenReturn(Optional.of(createTestFiscalProfile()));
+            when(fiscalEngine.calculateTax(eq("FR"), any(), any()))
+                .thenAnswer(inv -> {
+                    BigDecimal ht = ((com.clenzy.fiscal.TaxableItem) inv.getArgument(1)).amount();
+                    BigDecimal tax = ht.multiply(new BigDecimal("0.20"))
+                        .setScale(2, java.math.RoundingMode.HALF_UP);
+                    return new TaxResult(ht, tax, ht.add(tax),
+                        new BigDecimal("0.2000"), "TVA 20%", "STANDARD");
+                });
+            when(invoiceRepository.save(any(Invoice.class)))
+                .thenAnswer(inv -> { Invoice i = inv.getArgument(0); i.setId(900L); return i; });
+        }
+
+        @Test
+        void surContratGross_laCommissionPorteSurLeBrut() {
+            stubFiscalProfileAndTax();
+
+            Invoice result = service.generateCommissionFromReservation(
+                airbnbStay(), contract(ManagementContract.CommissionBase.GROSS), 1L);
+
+            assertThat(result.getTotalHt()).isEqualByComparingTo("57.90");
+        }
+
+        @Test
+        void surContratNetOfOtaFee_lesFraisOtaSortentDeLassiette() {
+            stubFiscalProfileAndTax();
+
+            Invoice result = service.generateCommissionFromReservation(
+                airbnbStay(), contract(ManagementContract.CommissionBase.NET_OF_OTA_FEE), 1L);
+
+            // 289,50 - 44,87 = 244,63 ; x 20 % = 48,93 — et non 57,90.
+            assertThat(result.getTotalHt()).isEqualByComparingTo("48.93");
+        }
+
+        @Test
+        void sansFraisOtaConnus_leNetRetombeSurLeBrut() {
+            stubFiscalProfileAndTax();
+            Reservation sansFrais = airbnbStay();
+            sansFrais.setOtaFeeAmount(null);
+
+            Invoice result = service.generateCommissionFromReservation(
+                sansFrais, contract(ManagementContract.CommissionBase.NET_OF_OTA_FEE), 1L);
+
+            assertThat(result.getTotalHt()).isEqualByComparingTo("57.90");
+        }
+
+        @Test
+        void laFactureEstEmiseAuProprietaireParLaConciergerie() {
+            stubFiscalProfileAndTax();
+
+            Invoice result = service.generateCommissionFromReservation(
+                airbnbStay(), contract(ManagementContract.CommissionBase.NET_OF_OTA_FEE), 1L);
+
+            assertThat(result.getSellerName()).isEqualTo("SARL Test");
+            assertThat(result.getBuyerName()).contains("Hopper");
+            assertThat(result.getInvoiceType()).isEqualTo(InvoiceType.COMMISSION);
+            assertThat(result.getStatus()).isEqualTo(InvoiceStatus.DRAFT);
+            assertThat(result.getReservationId()).isEqualTo(700L);
+            assertThat(result.getLines()).hasSize(1);
+        }
+
+        @Test
+        void commissionNulle_neCreeAucuneFactureOrpheline() {
+            when(fiscalProfileRepository.findByOrganizationId(1L))
+                .thenReturn(Optional.of(createTestFiscalProfile()));
+            ManagementContract sansTaux = contract(ManagementContract.CommissionBase.GROSS);
+            sansTaux.setCommissionRate(BigDecimal.ZERO);
+
+            Invoice result = service.generateCommissionFromReservation(airbnbStay(), sansTaux, 1L);
+
+            assertThat(result.getTotalTtc()).isEqualByComparingTo("0.00");
+            verify(invoiceRepository, never()).save(any(Invoice.class));
+        }
+
+        @Test
+        void sansProfilFiscal_refuseDeFacturer() {
+            when(fiscalProfileRepository.findByOrganizationId(1L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.generateCommissionFromReservation(
+                    airbnbStay(), contract(ManagementContract.CommissionBase.GROSS), 1L))
+                .isInstanceOf(IllegalStateException.class);
         }
     }
 }

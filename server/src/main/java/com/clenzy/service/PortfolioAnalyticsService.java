@@ -140,6 +140,14 @@ public class PortfolioAnalyticsService {
             }
         }
 
+        // L'occupation ne se déduit PAS de `curNights` : cette somme porte la durée
+        // entière des séjours, y compris leurs nuits hors fenêtre, et compte deux
+        // fois celles que deux séjours se disputent. Elle reste juste pour l'ADR
+        // (revenu total rapporté aux nuits vendues) et la durée moyenne, pas pour
+        // un taux d'occupation.
+        final long curOccupied = occupiedNightsAcross(activeProps, reservations, cutoff, days);
+        final long prevOccupied = occupiedNightsAcross(activeProps, reservations, prevCutoff, days);
+
         final long activeInterventions =
                 interventionRepository.countByStatus(InterventionStatus.PENDING, orgId)
                         + interventionRepository.countByStatus(InterventionStatus.IN_PROGRESS, orgId);
@@ -150,7 +158,7 @@ public class PortfolioAnalyticsService {
         return new GlobalKpis(
                 trend(round2(revPan(curRevenue, totalNightsAvailable)), round2(revPan(prevRevenue, totalNightsAvailable))),
                 trend(round2(adr(curRevenue, curNights)), round2(adr(prevRevenue, prevNights))),
-                trend(round1(occupancyPct(curNights, totalNightsAvailable)), round1(occupancyPct(prevNights, totalNightsAvailable))),
+                trend(round1(occupancyPct(curOccupied, totalNightsAvailable)), round1(occupancyPct(prevOccupied, totalNightsAvailable))),
                 trend(Math.round(curRevenue), Math.round(prevRevenue)),
                 trend(round1(marginPct(curRevenue, curCosts)), round1(marginPct(prevRevenue, prevCosts))),
                 trend(round1(roiPct(curRevenue, curCosts)), round1(roiPct(prevRevenue, prevCosts))),
@@ -225,24 +233,34 @@ public class PortfolioAnalyticsService {
         final List<Reservation> current = reservations.stream()
                 .filter(r -> !r.getCheckOut().isBefore(cutoff) && !r.getCheckIn().isAfter(today))
                 .toList();
-        final long totalOccupied = current.stream().mapToLong(PortfolioAnalyticsService::nights).sum();
 
         final List<PropertyOccupancy> byProperty = activeProps.stream().map(p -> {
-            final long occupied = current.stream()
+            final long occupied = occupiedNights(current.stream()
                     .filter(r -> r.getProperty() != null && p.getId().equals(r.getProperty().getId()))
-                    .mapToLong(PortfolioAnalyticsService::nights).sum();
+                    .toList(), cutoff, days);
             return new PropertyOccupancy(p.getId(), p.getName(),
                     round1(days > 0 ? (occupied * 100.0) / days : 0.0), occupied, days);
         }).sorted(Comparator.comparingDouble(PropertyOccupancy::rate).reversed()).toList();
 
+        // Le total découle des logements : il ne peut donc pas, lui non plus,
+        // dépasser la disponibilité.
+        final long totalOccupied = byProperty.stream().mapToLong(PropertyOccupancy::occupiedNights).sum();
+
         final List<String> months = lastMonths(today, 6);
         final Map<String, Long> occByMonth = new LinkedHashMap<>();
         months.forEach(m -> occByMonth.put(m, 0L));
-        for (Reservation r : reservations) {
-            final String label = MONTH_LABEL.format(r.getCheckIn());
-            if (occByMonth.containsKey(label)) {
-                occByMonth.merge(label, nights(r), Long::sum);
-            }
+        // Un séjour appartient aux mois qu'il traverse, pas au mois de son
+        // arrivée : autrement, quarante nuits commencées le 28 juin étaient
+        // toutes portées par juin.
+        final YearMonth firstMonth = YearMonth.from(today).minusMonths(months.size() - 1L);
+        for (int i = 0; i < months.size(); i++) {
+            final YearMonth ym = firstMonth.plusMonths(i);
+            final long occupied = activeProps.stream()
+                    .mapToLong(p -> occupiedNights(reservations.stream()
+                            .filter(r -> r.getProperty() != null && p.getId().equals(r.getProperty().getId()))
+                            .toList(), ym.atDay(1), ym.lengthOfMonth()))
+                    .sum();
+            occByMonth.put(months.get(i), occupied);
         }
         final long monthAvailable = (long) activeProps.size() * MONTH_DAYS;
         final List<MonthlyOccupancy> byMonth = months.stream().map(m -> {
@@ -257,8 +275,13 @@ public class PortfolioAnalyticsService {
         final List<DayOccupancy> heatmap = new ArrayList<>(HEATMAP_DAYS);
         for (int i = HEATMAP_DAYS - 1; i >= 0; i--) {
             final LocalDate d = today.minusDays(i);
+            // Des logements occupés, pas des réservations : deux séjours qui se
+            // chevauchent sur un même logement ne l'occupent qu'une fois.
             final long dayOccupied = current.stream()
                     .filter(r -> !r.getCheckIn().isAfter(d) && r.getCheckOut().isAfter(d))
+                    .filter(r -> r.getProperty() != null)
+                    .map(r -> r.getProperty().getId())
+                    .distinct()
                     .count();
             heatmap.add(new DayOccupancy(d.toString(),
                     activeProps.isEmpty() ? 0.0 : (double) dayOccupied / activeProps.size()));
@@ -272,6 +295,50 @@ public class PortfolioAnalyticsService {
 
     private static long nights(Reservation r) {
         return Math.max(0L, ChronoUnit.DAYS.between(r.getCheckIn(), r.getCheckOut()));
+    }
+
+    /**
+     * Nuits réellement occupées d'un logement dans la fenêtre {@code [from, from+days)}.
+     *
+     * <p>On <b>marque</b> les nuits, on ne les additionne pas. Sommer les durées
+     * de séjour produisait deux erreurs que l'écran affichait telles quelles :</p>
+     * <ul>
+     *   <li>un séjour à cheval sur la fenêtre apportait ses nuits d'avant et
+     *       d'après, d'où le « 35 nuits sur 30 » et un taux de 117 % ;</li>
+     *   <li>deux séjours qui se chevauchent (double-réservation, import iCal en
+     *       double) comptaient la même nuit deux fois.</li>
+     * </ul>
+     *
+     * <p>Le résultat est borné par construction : il ne peut pas dépasser
+     * {@code days}. Le plafonnement d'affichage côté client devient inutile.</p>
+     */
+    /** Somme, sur tous les logements actifs, des nuits occupées dans la fenêtre. */
+    private static long occupiedNightsAcross(List<Property> activeProps, List<Reservation> reservations,
+                                             LocalDate from, int days) {
+        return activeProps.stream()
+                .mapToLong(p -> occupiedNights(reservations.stream()
+                        .filter(r -> r.getProperty() != null && p.getId().equals(r.getProperty().getId()))
+                        .toList(), from, days))
+                .sum();
+    }
+
+    private static long occupiedNights(List<Reservation> reservations, LocalDate from, int days) {
+        if (days <= 0) return 0L;
+        final boolean[] occupied = new boolean[days];
+        for (Reservation r : reservations) {
+            if (r.getCheckIn() == null || r.getCheckOut() == null) continue;
+            final long start = Math.max(0L, ChronoUnit.DAYS.between(from, r.getCheckIn()));
+            // Le départ est exclusif : une nuit du jour J suppose d'y dormir.
+            final long end = Math.min(days, ChronoUnit.DAYS.between(from, r.getCheckOut()));
+            for (long i = start; i < end; i++) {
+                occupied[(int) i] = true;
+            }
+        }
+        long count = 0L;
+        for (boolean night : occupied) {
+            if (night) count++;
+        }
+        return count;
     }
 
     private static double price(Reservation r) {

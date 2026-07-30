@@ -58,6 +58,8 @@ public enum NotificationKey {
     // (PAYOUT_FAILED existe déjà — section payouts owners — et est réutilisé par le payout pro.)
     PAYMENT_CONFIRMED(NotificationType.SUCCESS, NotificationCategory.PAYMENT, true),
     PAYMENT_FAILED(NotificationType.ERROR, NotificationCategory.PAYMENT, true),
+    /** Le fournisseur contredit apres coup un reglement enregistre (litige, virement echoue, session expiree). */
+    PAYMENT_INCIDENT_OPENED(NotificationType.ERROR, NotificationCategory.PAYMENT, true),
     PAYMENT_GROUPED_SESSION_CREATED(NotificationType.INFO, NotificationCategory.PAYMENT, true),
     PAYMENT_GROUPED_CONFIRMED(NotificationType.SUCCESS, NotificationCategory.PAYMENT, true),
     PAYMENT_GROUPED_FAILED(NotificationType.ERROR, NotificationCategory.PAYMENT, true),

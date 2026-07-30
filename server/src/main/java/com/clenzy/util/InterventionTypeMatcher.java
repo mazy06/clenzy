@@ -56,4 +56,25 @@ public final class InterventionTypeMatcher {
 
         return compatibleTypes.contains(upperServiceType);
     }
+
+    /**
+     * Le type d'équipe capable de prendre cette prestation.
+     *
+     * <p>Lecture inverse de la table : {@link #isCompatible} répond « oui ou
+     * non », ce qui suffit pour filtrer mais laisse l'utilisateur devant une
+     * liste vide sans savoir ce qui manque. Nommer le type attendu transforme
+     * un constat en action — créer l'équipe qui convient.</p>
+     *
+     * @return le type d'équipe requis, ou {@code null} si le type de prestation
+     *         est inconnu de la table
+     */
+    public static String requiredTeamType(String serviceType) {
+        if (serviceType == null) return null;
+        final String upper = serviceType.toUpperCase();
+        return TYPE_MAP.entrySet().stream()
+            .filter(entry -> entry.getValue().contains(upper))
+            .map(Map.Entry::getKey)
+            .findFirst()
+            .orElse(null);
+    }
 }

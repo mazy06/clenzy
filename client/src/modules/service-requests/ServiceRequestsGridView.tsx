@@ -1,9 +1,10 @@
 import React from 'react';
-import { Grid, TablePagination } from '@mui/material';
+import { Grid } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import ServiceRequestCard from '../../components/ServiceRequestCard';
 import type { ServiceRequest } from './serviceRequestsUtils';
-import { ITEMS_PER_PAGE, PAGINATION_SX } from './serviceRequestsListConstants';
+import { ITEMS_PER_PAGE } from './serviceRequestsListConstants';
+import PagePagination from '../../components/PagePagination';
 
 interface ServiceRequestsGridViewProps {
   serviceRequests: ServiceRequest[];
@@ -41,15 +42,11 @@ const ServiceRequestsGridView: React.FC<ServiceRequestsGridViewProps> = ({
       ))}
     </Grid>
     {totalCount > ITEMS_PER_PAGE && (
-      <TablePagination
-        component="div"
+      <PagePagination
         count={totalCount}
         page={page}
-        onPageChange={(_, p) => onPageChange(p)}
+        onPageChange={(p) => onPageChange(p)}
         rowsPerPage={ITEMS_PER_PAGE}
-        rowsPerPageOptions={[ITEMS_PER_PAGE]}
-        labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-        sx={PAGINATION_SX}
       />
     )}
   </>

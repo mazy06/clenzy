@@ -57,6 +57,42 @@ public class OnlineCheckIn {
     @Column(name = "id_document_file_path", length = 1000)
     private String idDocumentFilePath;
 
+    // ── Identité, pour la fiche voyageur ────────────────────────────────────
+    //
+    // Collectés jusqu'ici dans un second formulaire, depuis le livret d'accueil :
+    // un voyageur pouvait compléter intégralement son check-in sans que la fiche
+    // existe.
+    //
+    // CHIFFRÉS comme les autres données personnelles de cette entité — date et
+    // lieu de naissance, adresse de résidence sont parmi les plus sensibles
+    // qu'on manipule. D'où la longueur 500 : c'est celle du chiffré, pas du
+    // clair.
+
+    @Convert(converter = EncryptedFieldConverter.class)
+    @Column(name = "maiden_name", length = 500)
+    private String maidenName;
+
+    /** Date de naissance ISO {@code yyyy-MM-dd}. */
+    @Convert(converter = EncryptedFieldConverter.class)
+    @Column(name = "birth_date", length = 500)
+    private String birthDate;
+
+    @Convert(converter = EncryptedFieldConverter.class)
+    @Column(name = "birth_place", length = 500)
+    private String birthPlace;
+
+    @Convert(converter = EncryptedFieldConverter.class)
+    @Column(length = 500)
+    private String nationality;
+
+    @Convert(converter = EncryptedFieldConverter.class)
+    @Column(name = "residence_address", length = 500)
+    private String residenceAddress;
+
+    @Convert(converter = EncryptedFieldConverter.class)
+    @Column(name = "residence_country", length = 500)
+    private String residenceCountry;
+
     @Column(name = "estimated_arrival_time", length = 10)
     private String estimatedArrivalTime;
 
@@ -110,6 +146,24 @@ public class OnlineCheckIn {
     public void setIdDocumentNumber(String idDocumentNumber) { this.idDocumentNumber = idDocumentNumber; }
     public String getIdDocumentType() { return idDocumentType; }
     public void setIdDocumentType(String idDocumentType) { this.idDocumentType = idDocumentType; }
+    public String getMaidenName() { return maidenName; }
+    public void setMaidenName(String maidenName) { this.maidenName = maidenName; }
+
+    public String getBirthDate() { return birthDate; }
+    public void setBirthDate(String birthDate) { this.birthDate = birthDate; }
+
+    public String getBirthPlace() { return birthPlace; }
+    public void setBirthPlace(String birthPlace) { this.birthPlace = birthPlace; }
+
+    public String getNationality() { return nationality; }
+    public void setNationality(String nationality) { this.nationality = nationality; }
+
+    public String getResidenceAddress() { return residenceAddress; }
+    public void setResidenceAddress(String residenceAddress) { this.residenceAddress = residenceAddress; }
+
+    public String getResidenceCountry() { return residenceCountry; }
+    public void setResidenceCountry(String residenceCountry) { this.residenceCountry = residenceCountry; }
+
     public String getIdDocumentFilePath() { return idDocumentFilePath; }
     public void setIdDocumentFilePath(String idDocumentFilePath) { this.idDocumentFilePath = idDocumentFilePath; }
     public String getEstimatedArrivalTime() { return estimatedArrivalTime; }

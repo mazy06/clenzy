@@ -106,6 +106,26 @@ export interface ChannelCommission {
   organizationId?: number;
 }
 
+/**
+ * Vue d'ensemble de la commission d'un canal : ce que Baitly applique en repli,
+ * et ce que le canal a reellement facture sur les 12 derniers mois.
+ */
+export interface ChannelCommissionOverview {
+  /** Canal normalise : airbnb, booking, vrbo, expedia, direct. */
+  channel: string;
+  label: string;
+  /** Taux applique en l'absence de commission reelle, en %. */
+  referenceRate: number;
+  /** Taux reellement constate sur la periode, en %, ou null si aucune commission remontee. */
+  observedRate: number | null;
+  /** Sejours non annules du canal sur la periode. */
+  stayCount: number;
+  /** Parmi eux, ceux dont la commission reelle est connue. */
+  realFeeCount: number;
+  /** Seul le booking engine est parametrable : les taux OTA sont fixes par la plateforme. */
+  editable: boolean;
+}
+
 export interface PendingPayoutCount {
   pendingCount: number;
   totalPendingAmount: number;
@@ -187,6 +207,10 @@ export const accountingApi = {
 
   async getCommissions(): Promise<ChannelCommission[]> {
     return apiClient.get<ChannelCommission[]>('/accounting/commissions');
+  },
+
+  async getCommissionOverview(): Promise<ChannelCommissionOverview[]> {
+    return apiClient.get<ChannelCommissionOverview[]>('/accounting/commissions/overview');
   },
 
   async saveCommission(channel: string, data: ChannelCommission): Promise<ChannelCommission> {

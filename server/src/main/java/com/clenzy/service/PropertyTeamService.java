@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -189,6 +190,121 @@ public class PropertyTeamService {
             propertyId, searchOrgIds);
         return Optional.empty();
     }
+
+    /**
+     * Prestataires proposables pour un logement à une date donnée.
+     *
+     * <p>Même parcours que l'auto-assignation — équipe attitrée au logement,
+     * puis zones de couverture, en cascade sur les organisations — mais on
+     * rapporte <b>tous</b> les candidats au lieu de s'arrêter au premier.
+     * L'auto-assignation choisit ; un opérateur qui replanifie, lui, veut voir
+     * parmi quoi il choisit, et pourquoi tel prestataire est proposé.</p>
+     *
+     * <p>Les équipes occupées sur le créneau sont <b>conservées</b> et marquées
+     * indisponibles : les masquer laisserait croire qu'elles n'existent pas,
+     * alors que déplacer la date d'une heure les rend disponibles. C'est
+     * précisément l'arbitrage qu'on veut permettre.</p>
+     */
+    @Transactional(readOnly = true)
+    public List<AssignableTeam> findAssignableTeams(Long propertyId, LocalDateTime scheduledDate,
+                                                    Integer estimatedDurationHours, String serviceType,
+                                                    Long orgId) {
+        final int duration = (estimatedDurationHours != null && estimatedDurationHours > 0)
+                ? estimatedDurationHours : DEFAULT_DURATION_HOURS;
+        final LocalDateTime rangeStart = scheduledDate;
+        final LocalDateTime rangeEnd = scheduledDate.plusHours(duration);
+
+        final Property property = propertyRepository.findById(propertyId).orElse(null);
+        final Set<Long> seen = new HashSet<>();
+        final List<AssignableTeam> found = new ArrayList<>();
+
+        for (Long searchOrgId : buildSearchOrgIds(orgId)) {
+            propertyTeamRepository.findByPropertyId(propertyId, searchOrgId)
+                    .map(PropertyTeam::getTeamId)
+                    .ifPresent(teamId -> collect(teamId, "DEFAULT", serviceType, rangeStart, rangeEnd, seen, found));
+
+            if (property != null) {
+                for (Long teamId : geographicCandidates(property, searchOrgId)) {
+                    collect(teamId, "ZONE", serviceType, rangeStart, rangeEnd, seen, found);
+                }
+            }
+        }
+
+        // Puis le reste des équipes de l'organisation, hors zone de couverture.
+        // Une prestation dont l'assignation automatique a échoué dix fois n'a,
+        // par construction, aucune équipe couvrante : s'en tenir aux suggestions
+        // laisserait l'opérateur devant une liste vide, sans recours.
+        for (Team team : teamRepository.findAllForOrg(orgId)) {
+            collect(team.getId(), "OTHER", serviceType, rangeStart, rangeEnd, seen, found);
+        }
+
+        // Disponibles d'abord ; à disponibilité égale, l'équipe attitrée, puis
+        // celles de la zone, puis les autres.
+        final List<String> priority = List.of("DEFAULT", "ZONE", "OTHER");
+        found.sort(Comparator.comparing(AssignableTeam::available).reversed()
+                .thenComparing(team -> priority.indexOf(team.origin())));
+        return found;
+    }
+
+    /** Ajoute l'équipe aux candidats si son type convient et qu'on ne l'a pas déjà vue. */
+    private void collect(Long teamId, String origin, String serviceType,
+                         LocalDateTime rangeStart, LocalDateTime rangeEnd,
+                         Set<Long> seen, List<AssignableTeam> found) {
+        if (teamId == null || !seen.add(teamId)) return;
+        final Team team = teamRepository.findById(teamId).orElse(null);
+        if (team == null) return;
+        if (!InterventionTypeMatcher.isCompatible(team.getInterventionType(), serviceType)) return;
+
+        final long conflicts = interventionRepository.countActiveByTeamIdAndDateRangeAnyOrg(
+                teamId, ACTIVE_STATUSES, rangeStart, rangeEnd);
+        found.add(new AssignableTeam(teamId, team.getName(), origin, conflicts == 0, conflicts));
+    }
+
+    /** Équipes dont une zone de couverture contient le logement. */
+    private List<Long> geographicCandidates(Property property, Long searchOrgId) {
+        String countryCode = property.getCountryCode();
+        if (countryCode == null || countryCode.isBlank()) countryCode = "FR";
+        countryCode = countryCode.toUpperCase();
+
+        if ("FR".equals(countryCode)) {
+            final String department = property.getDepartment();
+            if (department == null || department.isBlank()) return List.of();
+            final String arrondissement = property.getArrondissement();
+            return (arrondissement != null && !arrondissement.isEmpty())
+                    ? teamCoverageZoneRepository.findTeamIdsByDepartmentAndArrondissement(
+                            department, arrondissement, searchOrgId)
+                    : teamCoverageZoneRepository.findTeamIdsByDepartment(department, searchOrgId);
+        }
+        final String city = property.getCity();
+        if (city == null || city.isBlank()) return List.of();
+        return teamCoverageZoneRepository.findTeamIdsByCountryAndCity(countryCode, city, searchOrgId);
+    }
+
+    /**
+     * Un prestataire proposable.
+     *
+     * @param origin    {@code DEFAULT} = équipe attitrée au logement,
+     *                  {@code ZONE} = couvre la zone géographique,
+     *                  {@code OTHER} = même organisation, hors zone
+     * @param available libre sur le créneau demandé
+     * @param conflicts nombre d'interventions qui se chevauchent, pour l'expliquer
+     */
+    public record AssignableTeam(Long teamId, String name, String origin,
+                                 boolean available, long conflicts) {}
+
+    /**
+     * Les équipes proposables, et — quand il n'y en a aucune — le type d'équipe
+     * qu'il aurait fallu.
+     *
+     * <p>Une liste vide seule laisse devant un mur : on ne sait pas si l'on
+     * manque d'équipe, de couverture de zone, ou de disponibilité. Nommer le
+     * type attendu transforme le constat en action.</p>
+     *
+     * @param requiredTeamType {@code CLEANING}, {@code MAINTENANCE},
+     *                         {@code OTHER} — {@code null} si le type de
+     *                         prestation n'est pas reconnu
+     */
+    public record AssignableTeams(List<AssignableTeam> teams, String requiredTeamType) {}
 
     // ── Helpers auto-assignation ──────────────────────────────────────────────
 

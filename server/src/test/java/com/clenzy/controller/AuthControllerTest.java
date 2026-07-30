@@ -15,10 +15,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.client.RestTemplate;
 
 import java.lang.reflect.Field;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 
@@ -320,19 +322,36 @@ class AuthControllerTest {
     @Nested
     @DisplayName("forgotPassword")
     class ForgotPassword {
+
+        /** Requete anonyme type, IP directe (pas de proxy). */
+        private MockHttpServletRequest request(String remoteAddr) {
+            MockHttpServletRequest req = new MockHttpServletRequest();
+            req.setRemoteAddr(remoteAddr);
+            return req;
+        }
+
+        /** Les deux seaux (IP + email) laissent passer. */
+        private void allowAllBuckets() {
+            when(loginProtectionService.tryAcquire(anyString(), anyInt(), any())).thenReturn(true);
+        }
+
         @Test
         void whenMissingEmail_thenBadRequest() {
-            ResponseEntity<Map<String, String>> response = controller.forgotPassword(Map.of());
+            ResponseEntity<Map<String, String>> response =
+                    controller.forgotPassword(Map.of(), request("10.0.0.1"));
             assertThat(response.getStatusCode().value()).isEqualTo(400);
             verifyNoInteractions(keycloakService);
+            // Pas d'email = pas de consommation de quota
+            verifyNoInteractions(loginProtectionService);
         }
 
         @Test
         void whenValidEmail_thenSendsResetEmailAndReturnsGenericMessage() {
+            allowAllBuckets();
             when(keycloakService.sendPasswordResetEmail("test@example.com")).thenReturn(true);
 
             ResponseEntity<Map<String, String>> response =
-                    controller.forgotPassword(Map.of("email", "Test@Example.com"));
+                    controller.forgotPassword(Map.of("email", "Test@Example.com"), request("10.0.0.1"));
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody().get("message")).contains("Si un compte existe");
@@ -341,10 +360,11 @@ class AuthControllerTest {
 
         @Test
         void whenUnknownEmail_thenStillReturnsGenericMessage() {
+            allowAllBuckets();
             when(keycloakService.sendPasswordResetEmail("unknown@example.com")).thenReturn(false);
 
             ResponseEntity<Map<String, String>> response =
-                    controller.forgotPassword(Map.of("email", "unknown@example.com"));
+                    controller.forgotPassword(Map.of("email", "unknown@example.com"), request("10.0.0.1"));
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody().get("message")).contains("Si un compte existe");
@@ -352,25 +372,81 @@ class AuthControllerTest {
 
         @Test
         void whenKeycloakFails_thenStillReturnsGenericMessage() {
+            allowAllBuckets();
             when(keycloakService.sendPasswordResetEmail("test@example.com"))
                     .thenThrow(new RuntimeException("keycloak down"));
 
             ResponseEntity<Map<String, String>> response =
-                    controller.forgotPassword(Map.of("email", "test@example.com"));
+                    controller.forgotPassword(Map.of("email", "test@example.com"), request("10.0.0.1"));
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
         }
 
         @Test
-        void whenRepeatedWithinThrottleWindow_thenSendsOnlyOnce() {
-            when(keycloakService.sendPasswordResetEmail("test@example.com")).thenReturn(true);
+        @DisplayName("le quota est demande a Redis, pas a un compteur local")
+        void whenCalled_thenConsumesBothRedisBuckets() {
+            allowAllBuckets();
+            when(keycloakService.sendPasswordResetEmail(anyString())).thenReturn(true);
 
-            controller.forgotPassword(Map.of("email", "test@example.com"));
-            ResponseEntity<Map<String, String>> second =
-                    controller.forgotPassword(Map.of("email", "test@example.com"));
+            controller.forgotPassword(Map.of("email", "test@example.com"), request("10.0.0.1"));
 
-            assertThat(second.getStatusCode().value()).isEqualTo(200);
-            verify(keycloakService, times(1)).sendPasswordResetEmail("test@example.com");
+            verify(loginProtectionService).tryAcquire(eq("pwd-reset:ip:10.0.0.1"), eq(10), eq(Duration.ofHours(1)));
+            verify(loginProtectionService).tryAcquire(eq("pwd-reset:email:test@example.com"), eq(1), eq(Duration.ofMinutes(1)));
+        }
+
+        @Test
+        @DisplayName("limite par email atteinte -> aucun email, reponse generique")
+        void whenEmailBucketExhausted_thenNoEmailSent() {
+            when(loginProtectionService.tryAcquire(startsWith("pwd-reset:ip:"), anyInt(), any())).thenReturn(true);
+            when(loginProtectionService.tryAcquire(startsWith("pwd-reset:email:"), anyInt(), any())).thenReturn(false);
+
+            ResponseEntity<Map<String, String>> response =
+                    controller.forgotPassword(Map.of("email", "test@example.com"), request("10.0.0.1"));
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody().get("message")).contains("Si un compte existe");
+            verifyNoInteractions(keycloakService);
+        }
+
+        @Test
+        @DisplayName("limite par IP atteinte -> bloque meme sur un email jamais vu (anti mail-bombing)")
+        void whenIpBucketExhausted_thenBlockedEvenForFreshEmail() {
+            when(loginProtectionService.tryAcquire(startsWith("pwd-reset:ip:"), anyInt(), any())).thenReturn(false);
+            when(loginProtectionService.tryAcquire(startsWith("pwd-reset:email:"), anyInt(), any())).thenReturn(true);
+
+            ResponseEntity<Map<String, String>> response =
+                    controller.forgotPassword(Map.of("email", "jamais-vu@example.com"), request("10.0.0.1"));
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            verifyNoInteractions(keycloakService);
+        }
+
+        @Test
+        @DisplayName("le budget IP est consomme meme quand l'email rejette")
+        void whenEmailBucketRejects_thenIpBudgetStillConsumed() {
+            when(loginProtectionService.tryAcquire(startsWith("pwd-reset:ip:"), anyInt(), any())).thenReturn(true);
+            when(loginProtectionService.tryAcquire(startsWith("pwd-reset:email:"), anyInt(), any())).thenReturn(false);
+
+            controller.forgotPassword(Map.of("email", "test@example.com"), request("10.0.0.1"));
+
+            // Sinon marteler un seul email serait un contournement gratuit de la limite IP
+            verify(loginProtectionService).tryAcquire(eq("pwd-reset:ip:10.0.0.1"), anyInt(), any());
+        }
+
+        @Test
+        @DisplayName("X-Forwarded-For d'un pair non fiable est ignore pour la cle IP")
+        void whenSpoofedForwardedFor_thenKeyedOnRealPeer() {
+            allowAllBuckets();
+            when(keycloakService.sendPasswordResetEmail(anyString())).thenReturn(true);
+
+            MockHttpServletRequest req = request("203.0.113.9");
+            req.addHeader("X-Forwarded-For", "1.2.3.4");
+
+            controller.forgotPassword(Map.of("email", "test@example.com"), req);
+
+            // Le pair direct n'est pas un proxy de confiance : XFF n'est pas honore,
+            // sinon la limite par IP se contournerait en changeant l'en-tete.
+            verify(loginProtectionService).tryAcquire(eq("pwd-reset:ip:203.0.113.9"), anyInt(), any());
         }
     }
 
@@ -386,13 +462,29 @@ class AuthControllerTest {
 
         @Test
         void whenAuthenticated_thenSendsResetEmail() {
+            when(loginProtectionService.tryAcquire(anyString(), anyInt(), any())).thenReturn(true);
+
             ResponseEntity<Map<String, String>> response = controller.sendPasswordResetEmailForCurrentUser(createJwt());
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             verify(keycloakService).sendPasswordResetEmailByKeycloakId("user-123");
+            verify(loginProtectionService).tryAcquire(eq("pwd-reset:user:user-123"), eq(1), eq(Duration.ofMinutes(1)));
+        }
+
+        @Test
+        @DisplayName("limite atteinte -> 429 explicite (utilisateur connu, pas d'enjeu d'enumeration)")
+        void whenThrottled_thenReturns429() {
+            when(loginProtectionService.tryAcquire(anyString(), anyInt(), any())).thenReturn(false);
+
+            ResponseEntity<Map<String, String>> response = controller.sendPasswordResetEmailForCurrentUser(createJwt());
+
+            assertThat(response.getStatusCode().value()).isEqualTo(429);
+            assertThat(response.getBody().get("error")).isEqualTo("too_many_requests");
+            verifyNoInteractions(keycloakService);
         }
 
         @Test
         void whenKeycloakFails_thenReturns500() {
+            when(loginProtectionService.tryAcquire(anyString(), anyInt(), any())).thenReturn(true);
             doThrow(new RuntimeException("keycloak down"))
                     .when(keycloakService).sendPasswordResetEmailByKeycloakId("user-123");
 

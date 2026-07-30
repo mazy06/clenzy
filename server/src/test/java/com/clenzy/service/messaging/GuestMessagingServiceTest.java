@@ -28,6 +28,7 @@ class GuestMessagingServiceTest {
     @Mock private WhatsAppChannel whatsAppChannel;
     @Mock private TemplateInterpolationService interpolationService;
     @Mock private GuestMessageLogRepository messageLogRepository;
+    @Mock private GuestMessageAttemptLog attemptLog;
     @Mock private CheckInInstructionsRepository instructionsRepository;
     @Mock private MessageTemplateRepository templateRepository;
     @Mock private ReservationRepository reservationRepository;
@@ -42,6 +43,7 @@ class GuestMessagingServiceTest {
     void setUp() {
         List<MessageChannel> channels = List.of(emailChannel, whatsAppChannel);
         service = new GuestMessagingService(channels, interpolationService, messageLogRepository,
+                attemptLog,
             instructionsRepository, templateRepository, reservationRepository, notificationService,
             accessCodeResolverService, mapboxStaticImageService, welcomeGuideService);
 
@@ -80,13 +82,15 @@ class GuestMessagingServiceTest {
 
         GuestMessageLog logEntry = new GuestMessageLog();
         logEntry.setId(1L);
-        when(messageLogRepository.save(any())).thenReturn(logEntry);
+        when(attemptLog.begin(any(), any(), any(), any(), any(), any(), any())).thenReturn(logEntry);
 
         GuestMessageLog result = service.sendForReservation(reservation, template, 1L);
 
         assertThat(result).isNotNull();
         verify(emailChannel).send(any());
-        verify(messageLogRepository).save(any());
+        // La trace est ouverte AVANT l'appel au fournisseur : c'est elle qui rend
+        // « parti, issue inconnue » distinguable de « rien n'est parti ».
+        verify(attemptLog).begin(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -118,7 +122,7 @@ class GuestMessagingServiceTest {
 
         GuestMessageLog logEntry = new GuestMessageLog();
         logEntry.setId(2L);
-        when(messageLogRepository.save(any())).thenReturn(logEntry);
+        when(attemptLog.begin(any(), any(), any(), any(), any(), any(), any())).thenReturn(logEntry);
 
         GuestMessageLog result = service.sendForReservationViaChannel(
             reservation, template, 1L, MessageChannelType.WHATSAPP, java.util.Map.of());
@@ -158,7 +162,7 @@ class GuestMessagingServiceTest {
 
         GuestMessageLog logEntry = new GuestMessageLog();
         logEntry.setId(3L);
-        when(messageLogRepository.save(any())).thenReturn(logEntry);
+        when(attemptLog.begin(any(), any(), any(), any(), any(), any(), any())).thenReturn(logEntry);
 
         service.sendForReservationViaChannel(reservation, template, 1L,
             MessageChannelType.WHATSAPP, java.util.Map.of());
@@ -212,7 +216,7 @@ class GuestMessagingServiceTest {
 
         GuestMessageLog logEntry = new GuestMessageLog();
         logEntry.setId(10L);
-        when(messageLogRepository.save(any())).thenReturn(logEntry);
+        when(attemptLog.begin(any(), any(), any(), any(), any(), any(), any())).thenReturn(logEntry);
 
         GuestMessageLog result = service.sendForReservation(reservation, template, 1L);
 
@@ -263,7 +267,7 @@ class GuestMessagingServiceTest {
 
         GuestMessageLog logEntry = new GuestMessageLog();
         logEntry.setId(12L);
-        when(messageLogRepository.save(any())).thenReturn(logEntry);
+        when(attemptLog.begin(any(), any(), any(), any(), any(), any(), any())).thenReturn(logEntry);
 
         service.sendForReservation(reservation, template, 1L);
 
@@ -309,7 +313,7 @@ class GuestMessagingServiceTest {
 
         GuestMessageLog logEntry = new GuestMessageLog();
         logEntry.setId(11L);
-        when(messageLogRepository.save(any())).thenReturn(logEntry);
+        when(attemptLog.begin(any(), any(), any(), any(), any(), any(), any())).thenReturn(logEntry);
 
         // Ne doit PAS lever d'exception — degradation gracieuse
         GuestMessageLog result = service.sendForReservation(reservation, template, 1L);
@@ -469,7 +473,7 @@ class GuestMessagingServiceTest {
 
             GuestMessageLog le = new GuestMessageLog();
             le.setId(1L);
-            when(messageLogRepository.save(any())).thenReturn(le);
+            when(attemptLog.begin(any(), any(), any(), any(), any(), any(), any())).thenReturn(le);
 
             var result = service.sendMessage(100L, 5L, 1L);
 
@@ -515,6 +519,7 @@ class GuestMessagingServiceTest {
             GuestMessageLog log = new GuestMessageLog();
             log.setId(99L);
             log.setStatus(MessageStatus.FAILED);
+            // Sortie anticipee : le journal est ecrit sans jamais atteindre le fournisseur.
             when(messageLogRepository.save(any())).thenReturn(log);
 
             var result = service.sendForReservationViaChannel(
@@ -554,6 +559,7 @@ class GuestMessagingServiceTest {
 
             GuestMessageLog log = new GuestMessageLog();
             log.setId(99L);
+            // Sortie anticipee : le journal est ecrit sans jamais atteindre le fournisseur.
             when(messageLogRepository.save(any())).thenReturn(log);
 
             var result = service.sendForReservationViaChannel(
@@ -597,7 +603,7 @@ class GuestMessagingServiceTest {
             GuestMessageLog log = new GuestMessageLog();
             log.setId(1L);
             log.setStatus(MessageStatus.FAILED);
-            when(messageLogRepository.save(any())).thenReturn(log);
+            when(attemptLog.begin(any(), any(), any(), any(), any(), any(), any())).thenReturn(log);
 
             service.sendForReservationViaChannel(r, template, 1L, MessageChannelType.EMAIL, Map.of());
 
@@ -638,6 +644,7 @@ class GuestMessagingServiceTest {
             GuestMessageLog log = new GuestMessageLog();
             log.setId(1L);
             log.setStatus(MessageStatus.FAILED);
+            // Sortie anticipee : le journal est ecrit sans jamais atteindre le fournisseur.
             when(messageLogRepository.save(any())).thenReturn(log);
 
             GuestMessageLog result = service.sendForReservationViaChannel(
@@ -683,7 +690,7 @@ class GuestMessagingServiceTest {
 
             GuestMessageLog le = new GuestMessageLog();
             le.setId(1L);
-            when(messageLogRepository.save(any())).thenReturn(le);
+            when(attemptLog.begin(any(), any(), any(), any(), any(), any(), any())).thenReturn(le);
 
             var result = service.sendForReservation(r, template, 1L);
             assertThat(result).isNotNull();

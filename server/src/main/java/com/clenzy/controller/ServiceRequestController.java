@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.ServiceRequestDto;
 import com.clenzy.service.ServiceRequestPaymentService;
 import com.clenzy.service.ServiceRequestService;
+import com.clenzy.service.PropertyTeamService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -92,6 +93,51 @@ public class ServiceRequestController {
         ServiceRequestDto result = service.refuse(id);
         return ResponseEntity.ok(result);
     }
+
+    @PostMapping("/{id}/cancel")
+    @Operation(summary = "Cloturer une demande de service",
+               description = "Marque la demande CANCELLED : elle n'aura pas lieu. La demande est "
+                           + "conservee avec son historique, contrairement a la suppression.")
+    public ResponseEntity<ServiceRequestDto> cancel(@PathVariable Long id,
+                                                    @RequestBody(required = false) Map<String, String> body) {
+        String reason = body == null ? null : body.get("reason");
+        return ResponseEntity.ok(service.cancel(id, reason));
+    }
+
+    @GetMapping("/{id}/assignable-teams")
+    @Operation(summary = "Prestataires proposables pour une date",
+               description = "Meme parcours que l'auto-assignation (equipe attitree, puis zones de "
+                           + "couverture), mais rend TOUS les candidats. Les equipes occupees sur le "
+                           + "creneau sont conservees et marquees indisponibles : deplacer la date "
+                           + "d'une heure peut les liberer. La reponse porte aussi le TYPE d'equipe "
+                           + "requis : quand la liste est vide, c'est la seule information qui "
+                           + "transforme le constat en action.")
+    public ResponseEntity<PropertyTeamService.AssignableTeams> assignableTeams(
+            @PathVariable Long id,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime date) {
+        return ResponseEntity.ok(service.findAssignableTeams(id, date));
+    }
+
+    @PostMapping("/{id}/reschedule")
+    @Operation(summary = "Replanifier une prestation",
+               description = "Cloture la demande et en cree une neuve : nouvelle date, prestataire "
+                           + "au choix, rattachee a un sejour precis ou a aucun.")
+    public ResponseEntity<ServiceRequestDto> reschedule(@PathVariable Long id,
+                                                        @RequestBody RescheduleServiceRequest body) {
+        return ResponseEntity.ok(service.reschedule(id, body.desiredDate(), body.assignedToId(),
+                body.assignedToType(), body.reservationId(), body.reason()));
+    }
+
+    /**
+     * @param reservationId sejour rattache, {@code null} = prestation hors sejour
+     * @param assignedToId  prestataire retenu, {@code null} = laisser la recherche automatique
+     */
+    public record RescheduleServiceRequest(
+            LocalDateTime desiredDate,
+            Long assignedToId,
+            String assignedToType,
+            Long reservationId,
+            String reason) {}
 
     @PostMapping("/{id}/assign")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")

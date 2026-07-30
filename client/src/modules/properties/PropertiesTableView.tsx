@@ -1,8 +1,7 @@
 import React from 'react';
 import {
   Box, Paper, Typography, Chip, Tooltip, IconButton,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination,
-} from '@mui/material';
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, Edit, BroomFill, Power, Delete, Business } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -23,6 +22,7 @@ import {
   getCleaningFrequencyLabel,
   getCleaningFrequencyHex,
 } from '../../utils/statusUtils';
+import PagePagination from '../../components/PagePagination';
 
 interface PropertiesTableViewProps {
   properties: PropertyListItem[];
@@ -329,17 +329,13 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
           </TableBody>
         </Table>
       </TableContainer>
-      <TablePagination
-        component="div"
+      <PagePagination
         count={totalCount}
         page={page}
-        onPageChange={(_, p) => onPageChange(p)}
+        onPageChange={(p) => onPageChange(p)}
         rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={(e) => onRowsPerPageChange(parseInt(e.target.value, 10))}
         rowsPerPageOptions={LIST_ROWS_PER_PAGE_OPTIONS}
-        labelRowsPerPage="Lignes par page"
-        labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-        sx={{ flexShrink: 0, borderTop: '1px solid var(--line)', '& .MuiTablePagination-displayedRows': { fontVariantNumeric: 'tabular-nums' } }}
+        onRowsPerPageChange={(rows) => onRowsPerPageChange(rows)}
       />
     </Paper>
   );

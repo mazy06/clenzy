@@ -14,7 +14,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
   IconButton,
   Tooltip,
   Dialog,
@@ -42,6 +41,7 @@ import {
 import type { OwnerPayoutConfig, PayoutMethod } from '../../services/api/accountingApi';
 import SettingsSection from './components/SettingsSection';
 import PayoutMethodEditDialog from './components/PayoutMethodEditDialog';
+import PagePagination from '../../components/PagePagination';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -499,19 +499,11 @@ export default function OwnerPayoutSettings() {
                 })}
               </TableBody>
             </Table>
-            <TablePagination
-              component="div"
+            <PagePagination
               count={configs.length}
               page={page}
-              onPageChange={(_e, newPage) => setPage(newPage)}
+              onPageChange={(newPage) => setPage(newPage)}
               rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={(e) => {
-                setRowsPerPage(parseInt(e.target.value, 10));
-                setPage(0);
-              }}
-              rowsPerPageOptions={[rowsPerPage]}
-              labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-              sx={{ borderTop: '1px solid', borderColor: 'divider', mt: 1 }}
             />
           </TableContainer>
         )}

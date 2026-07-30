@@ -1,27 +1,28 @@
-import React, { useMemo } from 'react';
-import { Box, Typography, Button, Tooltip, useTheme, useMediaQuery } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '../icons';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useIconSize } from '../hooks/useResponsiveSize';
-import { useAuth } from '../hooks/useAuth';
-import { getScreenIdentity, type HubAccess } from '../config/navigationHubs';
-import HubScreenSwitcher from './HubScreenSwitcher';
+import React from 'react';
+import { useTheme, useMediaQuery } from '@mui/material';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeftIcon } from 'lucide-react';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from './ui';
+import { screenIconFor, sizedIcon } from '../config/navigationIcons';
+import PageBreadcrumb from './PageBreadcrumb';
+import GlobalSearchField from './GlobalSearchField';
 import PageHeaderActions from './PageHeaderActions';
+import { cn } from '../utils/cn';
 
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
   /**
    * Icone optionnelle affichee dans une pastille arrondie a gauche du titre.
-   * Langage Signature : fond soft (var(--accent-soft)), icone var(--accent).
+   * Par defaut : l'icone de l'ecran courant (cf. config/navigationIcons).
    */
   iconBadge?: React.ReactNode;
-  /** Couleur du badge icone. Default : primary. */
+  /** Couleur du badge icone. Default : primaire Baitly. */
   iconBadgeColor?: string;
   /**
    * Element optionnel rendu inline a droite du titre (meme ligne que le h1).
-   * Typiquement une Chip de statut decrivant l'entite (Actif/Inactif, Brouillon, etc.).
-   * Sert a separer ce que l'entite EST (titre + adornment) de ce qu'on peut FAIRE (actions).
+   * Typiquement une puce de statut decrivant l'entite (Actif/Inactif, Brouillon).
+   * Separe ce que l'entite EST (titre + adornment) de ce qu'on peut FAIRE (actions).
    */
   titleAdornment?: React.ReactNode;
   backPath?: string;
@@ -29,25 +30,30 @@ interface PageHeaderProps {
   /** Callback invoked when the back button is clicked. Takes priority over backPath. */
   onBack?: () => void;
   actions?: React.ReactNode;
-  /** Slot for search / filter elements rendered inline with actions on the title row */
+  /** Slot pour les filtres, rendu avec les actions sur la ligne du titre. */
   filters?: React.ReactNode;
   showBackButton?: boolean;
   showBackButtonWithActions?: boolean;
+  className?: string;
 }
 
 /**
- * Header de page standardise pour le PMS.
+ * Header de page standardise du PMS Baitly (kit Baitly UI).
  *
  * Structure :
- *   [iconBadge] Titre h5 (responsive)        [filters] [actions] [backButton]
- *               Sous-titre body2 (responsive)
+ *   Hub ▾ › Écran › Fiche › Onglet            <- fil d'Ariane (PageBreadcrumb)
+ *   [icône] Titre  [puce]      [recherche unique] [filtres] [actions] [retour]
+ *           Sous-titre
  *
- * Le titre/sous-titre heritent automatiquement de la typography responsive
- * du theme (3 paliers : sm/md/xl). L'icone badge passe par useIconSize('badge')
- * pour rester coherente avec les autres badges du PMS.
+ * Trois invariants produits :
+ *   - le TITRE est toujours affiche (il n'est plus remplace par le switcher
+ *     segmente : la navigation entre ecrans freres passe par le menu du
+ *     premier segment du fil d'Ariane) ;
+ *   - la PASTILLE d'icone est deduite de la route quand la page n'en fournit
+ *     pas, pour que chaque ecran ait son marqueur visuel ;
+ *   - la RECHERCHE est unique et toujours visible (cf. GlobalSearchField).
  *
- * Mode compact (md-) : les boutons textuels avec icone deviennent icon-only
- * + tooltip pour gagner de la place sur les laptops.
+ * Mode compact (md-) : les actions se replient dans un menu ⋯ (PageHeaderActions).
  */
 export default function PageHeader({
   title,
@@ -62,34 +68,19 @@ export default function PageHeader({
   filters,
   showBackButton = true,
   showBackButtonWithActions = false,
+  className,
 }: PageHeaderProps) {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { user, isAdmin, isManager } = useAuth();
+  const { pathname } = useLocation();
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down('md'));
-  const badgeIconSize = useIconSize('badge');
-
-  // Mode « identité » (Direction A) : sur tout écran-MENU (hub multi-écrans OU
-  // écran autonome), le bloc titre est remplacé par la signature pastille +
-  // pilule(s). Les pages de détail (/properties/123…) gardent le titre classique.
-  const screenIdentity = useMemo(() => {
-    const access: HubAccess = {
-      permissions: user?.permissions ?? [],
-      isAdmin: isAdmin(),
-      isManager: isManager(),
-    };
-    return getScreenIdentity(location.pathname, access);
-  }, [location.pathname, user?.permissions, isAdmin, isManager]);
 
   const handleBack = () => {
     if (onBack) {
       onBack();
       return;
     }
-    if (!backPath) {
-      return;
-    }
+    if (!backPath) return;
     // Retour contextuel : si on vient d'une autre page de l'app, on revient sur
     // l'entree d'historique precedente (qui porte deja l'onglet actif via ?tab=N
     // et la position de scroll) plutot que sur un chemin parent fige qui reset
@@ -98,129 +89,75 @@ export default function PageHeader({
     // l'app, donc navigate(-1) est sur. Sinon (acces direct, refresh, nouvel
     // onglet) on retombe sur le chemin parent.
     const historyIdx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
-    if (historyIdx > 0) {
-      navigate(-1);
-    } else {
-      navigate(backPath);
-    }
+    if (historyIdx > 0) navigate(-1);
+    else navigate(backPath);
   };
 
-  // Rendu partage du bouton « Retour » (utilise par showBackButton et
-  // showBackButtonWithActions — meme comportement exact qu'avant factorisation).
-  // Retour = icon-only à toute taille (libellé en tooltip), cohérent avec la
-  // règle « actions du header en icônes seules ».
-  const backButton = (
-    <Tooltip title={backLabel} arrow>
-      <Button
-        variant="outlined"
-        size="small"
-        onClick={handleBack}
-        aria-label={backLabel}
-        sx={{
-          height: 32,
-          minWidth: 32,
-          px: 0.75,
-          borderRadius: '9px',
-          color: 'var(--body)',
-          borderColor: 'var(--line-2)',
-          '&:hover': {
-            borderColor: 'var(--line-2)',
-            bgcolor: 'var(--faint)',
-          },
-        }}
-      >
-        <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} />
-      </Button>
-    </Tooltip>
-  );
+  const icon = iconBadge ?? screenIconFor(pathname);
+  const showBack = (showBackButton || showBackButtonWithActions) && (onBack || backPath);
 
   return (
-    <Box mb={1.5}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" gap={1} flexWrap="wrap">
-        {screenIdentity ? (
-          /* Mode identité : pastille + pilule(s) tiennent lieu de titre (Direction A).
-             Plus de sous-titre/description (choix produit : header dense). */
-          <Box sx={{ minWidth: 0, flex: 1, mr: 1 }}>
-            <HubScreenSwitcher identity={screenIdentity} />
-          </Box>
-        ) : (
-        /* Titre et sous-titre (avec optionally iconBadge) */
-        <Box sx={{ minWidth: 0, flex: 1, mr: 1, display: 'flex', alignItems: 'center', gap: 0.875 }}>
-          {iconBadge && (
-            <Box
-              sx={{
-                width: 28, height: 28, borderRadius: '8px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                bgcolor: iconBadgeColor
-                  ? `color-mix(in srgb, ${iconBadgeColor} 12%, transparent)`
-                  : 'var(--accent-soft)',
-                color: iconBadgeColor || 'var(--accent)',
-                flexShrink: 0,
-              }}
-            >
-              {React.isValidElement(iconBadge)
-                ? React.cloneElement(iconBadge as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
-                    size: badgeIconSize,
-                    strokeWidth: 1.75,
-                  })
-                : iconBadge}
-            </Box>
-          )}
-          <Box sx={{ minWidth: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-              <Typography
-                variant="h5"
-                component="h1"
-                sx={{
-                  fontFamily: 'var(--font-display)',
-                  letterSpacing: '-0.01em',
-                  color: 'var(--ink)',
-                  lineHeight: 1.2,
-                  ...(isCompact && {
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }),
-                }}
-              >
-                {title}
-              </Typography>
-              {titleAdornment && (
-                <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                  {titleAdornment}
-                </Box>
-              )}
-            </Box>
-            {subtitle && (
-              <Typography
-                variant="caption"
-                sx={{
-                  color: 'var(--muted)',
-                  display: 'block',
-                  fontSize: '11.5px',
-                  lineHeight: 1.3,
-                  ...(isCompact && {
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }),
-                }}
-              >
-                {subtitle}
-              </Typography>
-            )}
-          </Box>
-        </Box>
-        )}
+    <header className={cn('mb-3 flex flex-col gap-1.5', className)}>
+      <PageBreadcrumb currentLabel={title} />
 
-        {/* Filters + Actions a droite — icon-only à toute taille, repli overflow
-            (un seul ⋯ + dropdown) en responsive. Cf. PageHeaderActions. */}
-        <Box display="flex" gap={1} alignItems="center" sx={{ flexShrink: 0 }}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          {icon && (
+            <span
+              aria-hidden
+              className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-primary/10 text-primary"
+              style={
+                iconBadgeColor
+                  ? {
+                      backgroundColor: `color-mix(in srgb, ${iconBadgeColor} 12%, transparent)`,
+                      color: iconBadgeColor,
+                    }
+                  : undefined
+              }
+            >
+              {sizedIcon(icon, 17)}
+            </span>
+          )}
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-2">
+              <h1 className="cn-font-heading m-0 truncate text-xl font-semibold tracking-tight text-foreground">
+                {title}
+              </h1>
+              {titleAdornment && <span className="flex shrink-0 items-center">{titleAdornment}</span>}
+            </div>
+            {subtitle && (
+              <p className="m-0 mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2">
+          <GlobalSearchField />
+
           <PageHeaderActions filters={filters} actions={actions} narrow={isCompact} />
 
-          {(showBackButton || showBackButtonWithActions) && backButton}
-        </Box>
-      </Box>
-    </Box>
+          {showBack && (
+            <Tooltip>
+              {/* Le trigger enveloppe un <span> (élément hôte) : Radix y pose sa
+                  ref d'ancrage, ce qu'un composant fonction React 18 ne peut pas
+                  recevoir. */}
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleBack}
+                    aria-label={backLabel}
+                  >
+                    <ArrowLeftIcon className="cn-rtl-flip" />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{backLabel}</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      </div>
+    </header>
   );
 }

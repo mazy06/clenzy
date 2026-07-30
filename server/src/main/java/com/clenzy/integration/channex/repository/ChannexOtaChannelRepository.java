@@ -20,6 +20,18 @@ public interface ChannexOtaChannelRepository extends JpaRepository<ChannexOtaCha
     Optional<ChannexOtaChannel> findByMappingAndOta(@Param("mappingId") UUID mappingId,
                                                       @Param("otaType") String otaType);
 
+    /**
+     * Lignes locales correspondant a un channel Channex, pour une organisation.
+     *
+     * <p>Renvoie une liste et non un {@code Optional} : rien n'empeche Channex de
+     * rattacher un meme channel a plusieurs properties, donc a plusieurs mappings.
+     * La contrainte UNIQUE porte sur (property_mapping_id, ota_type), pas sur
+     * channex_channel_id.</p>
+     */
+    @Query("SELECT c FROM ChannexOtaChannel c WHERE c.organizationId = :orgId AND c.channexChannelId = :channelId")
+    List<ChannexOtaChannel> findByOrgAndChannelId(@Param("orgId") Long orgId,
+                                                  @Param("channelId") String channelId);
+
     /** Channels actifs avec erreurs (utilise pour les alertes). */
     @Query("SELECT c FROM ChannexOtaChannel c WHERE c.organizationId = :orgId AND c.enabled = true AND c.errorCount > 0 ORDER BY c.errorCount DESC")
     List<ChannexOtaChannel> findErrorsByOrgId(@Param("orgId") Long orgId);

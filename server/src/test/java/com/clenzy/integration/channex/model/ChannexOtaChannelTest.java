@@ -78,6 +78,47 @@ class ChannexOtaChannelTest {
         assertTrue(ch.getUpdatedAt().equals(first) || ch.getUpdatedAt().isAfter(first));
     }
 
+    // ─── slugFor ────────────────────────────────────────────────────────────
+
+    @Test
+    void slugFor_knownOtas_useCanonicalSlugs() {
+        assertEquals("airbnb", ChannexOtaChannel.slugFor("Airbnb"));
+        assertEquals("booking_com", ChannexOtaChannel.slugFor("BookingCom"));
+        assertEquals("vrbo", ChannexOtaChannel.slugFor("VrboCom"));
+        assertEquals("expedia", ChannexOtaChannel.slugFor("ExpediaQuickConnect"));
+        assertEquals("agoda", ChannexOtaChannel.slugFor("Agoda"));
+    }
+
+    /**
+     * Channex ecrit "Airbnb" a la creation et "AirBNB" en lecture : les deux
+     * doivent tomber sur la meme ligne, sinon la contrainte UNIQUE
+     * (property_mapping_id, ota_type) laisse passer un doublon.
+     */
+    @Test
+    void slugFor_channexSpellingVariants_collapseToOneSlug() {
+        assertEquals(ChannexOtaChannel.slugFor("Airbnb"), ChannexOtaChannel.slugFor("AirBNB"));
+        assertEquals(ChannexOtaChannel.slugFor("BookingCom"), ChannexOtaChannel.slugFor("Booking.com"));
+    }
+
+    @Test
+    void slugFor_unknownOta_derivesSnakeCase() {
+        assertEquals("some_new_ota", ChannexOtaChannel.slugFor("SomeNewOta"));
+        assertEquals("stay_22", ChannexOtaChannel.slugFor("Stay 22"));
+    }
+
+    @Test
+    void slugFor_nullOrBlank_fallsBackToUnknown() {
+        assertEquals("unknown", ChannexOtaChannel.slugFor(null));
+        assertEquals("unknown", ChannexOtaChannel.slugFor("   "));
+        assertEquals("unknown", ChannexOtaChannel.slugFor("!!!"));
+    }
+
+    @Test
+    void slugFor_longName_truncatedToColumnLength() {
+        String slug = ChannexOtaChannel.slugFor("A".repeat(80));
+        assertTrue(slug.length() <= 40, "ota_type est un VARCHAR(40)");
+    }
+
     private void invokeLifecycleMethod(ChannexOtaChannel ch, String name) throws Exception {
         var m = ChannexOtaChannel.class.getDeclaredMethod(name);
         m.setAccessible(true);

@@ -4,8 +4,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
   MenuItem, ListSubheader, Select, FormControl, InputLabel, CircularProgress, Alert,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Card, CardContent, Grid, Skeleton, TablePagination,
-} from '@mui/material';
+  Card, CardContent, Grid, Skeleton, } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -58,6 +57,7 @@ import {
 import { guestMessagingApi } from '../../services/api/guestMessagingApi';
 import type { MessageTemplate } from '../../services/api/guestMessagingApi';
 import { useQuery } from '@tanstack/react-query';
+import PagePagination from '../../components/PagePagination';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -823,13 +823,11 @@ const ExecutionsDialog: React.FC<{
                 </TableBody>
               </Table>
             </TableContainer>
-            <TablePagination
-              component="div"
+            <PagePagination
               count={totalElements}
               page={page}
-              onPageChange={(_, p) => onPageChange(p)}
+              onPageChange={(p) => onPageChange(p)}
               rowsPerPage={20}
-              rowsPerPageOptions={[20]}
             />
           </>
         )}

@@ -5,6 +5,7 @@ import com.clenzy.dto.DashboardOperationsDto.ActionItemsDto;
 import com.clenzy.dto.DashboardOperationsDto.UpcomingArrivalDto;
 import com.clenzy.model.UserRole;
 import com.clenzy.service.DashboardOperationsService;
+import com.clenzy.service.dashboard.ActionItemQueryService;
 import com.clenzy.tenant.TenantContext;
 import com.clenzy.util.JwtRoleExtractor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -35,11 +36,14 @@ public class DashboardOperationsController {
     private static final int MAX_UPCOMING_DAYS = 30;
 
     private final DashboardOperationsService operationsService;
+    private final ActionItemQueryService actionItemQueryService;
     private final TenantContext tenantContext;
 
     public DashboardOperationsController(DashboardOperationsService operationsService,
+                                         ActionItemQueryService actionItemQueryService,
                                          TenantContext tenantContext) {
         this.operationsService = operationsService;
+        this.actionItemQueryService = actionItemQueryService;
         this.tenantContext = tenantContext;
     }
 
@@ -64,11 +68,16 @@ public class DashboardOperationsController {
                 tenantContext.getRequiredOrganizationId(), days, role, jwt.getSubject());
     }
 
-    /** Soldes à percevoir, avis sans réponse, calendriers désynchronisés. */
+    /**
+     * La file « à traiter ».
+     *
+     * <p>Lecture d'une table indexée : la découverte des anomalies se fait
+     * ailleurs, par balayage périodique, hors du chemin de l'utilisateur.</p>
+     */
     @GetMapping("/action-items")
     public ActionItemsDto getActionItems(@AuthenticationPrincipal Jwt jwt) {
         final UserRole role = JwtRoleExtractor.extractUserRole(jwt);
-        return operationsService.getActionItems(
+        return actionItemQueryService.getActionItems(
                 tenantContext.getRequiredOrganizationId(), role, jwt.getSubject());
     }
 }

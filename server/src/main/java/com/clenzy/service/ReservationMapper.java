@@ -6,6 +6,7 @@ import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.GuestRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.service.agent.analytics.ChannelCommissionResolver;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -20,11 +21,36 @@ public class ReservationMapper {
 
     private final PropertyRepository propertyRepository;
     private final GuestRepository guestRepository;
+    private final ChannelCommissionResolver commissionResolver;
 
     public ReservationMapper(PropertyRepository propertyRepository,
-                             GuestRepository guestRepository) {
+                             GuestRepository guestRepository,
+                             ChannelCommissionResolver commissionResolver) {
         this.propertyRepository = propertyRepository;
         this.guestRepository = guestRepository;
+        this.commissionResolver = commissionResolver;
+    }
+
+    /**
+     * Commission du canal sur ce sejour : le montant reellement remonte quand il
+     * existe, sinon une estimation au taux par defaut.
+     *
+     * <p>Le calcul est delegue a {@link ChannelCommissionResolver} plutot que
+     * reproduit ici : la regle « reel sinon estime » sert deja aux analytics et
+     * a la facturation, et deux implementations divergeraient.</p>
+     *
+     * @return {@code null} sur une vente directe, ou faute de prix a estimer
+     */
+    private Double resolveOtaFee(Reservation entity) {
+        if (entity.getOtaFeeAmount() != null) {
+            return entity.getOtaFeeAmount().doubleValue();
+        }
+        BigDecimal gross = entity.getTotalPrice();
+        if (gross == null) {
+            return null;
+        }
+        BigDecimal estimated = commissionResolver.commissionOf(entity, gross);
+        return estimated == null || estimated.signum() <= 0 ? null : estimated.doubleValue();
     }
 
     public ReservationDto toDto(Reservation entity) {
@@ -59,7 +85,10 @@ public class ReservationMapper {
             entity.getPaidAt() != null ? entity.getPaidAt().toString() : null,
             entity.getIntervention() != null ? entity.getIntervention().getId() : null,
             entity.getAdultsCount(),
-            entity.getChildrenCount()
+            entity.getChildrenCount(),
+            resolveOtaFee(entity),
+            // Sortie seule : le champ n'est jamais relu depuis le DTO en entree.
+            commissionResolver.isEstimated(entity)
         );
     }
 

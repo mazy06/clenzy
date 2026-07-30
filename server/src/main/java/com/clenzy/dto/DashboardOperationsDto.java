@@ -3,6 +3,7 @@ package com.clenzy.dto;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Blocs opérationnels de l'écran Dashboard : la journée en cours, les arrivées
@@ -84,49 +85,163 @@ public record DashboardOperationsDto(
             BigDecimal amountDue) {}
 
     /**
-     * Bloc « à traiter » — trois natures d'alerte agrégées en une seule liste
-     * ordonnée, pour que l'écran n'ait pas à fusionner trois appels.
+     * Bloc « à traiter » — **une seule file**, toutes natures confondues.
+     *
+     * <p>Choix de conception : les cartes HITL des agents, les soldes dus, les avis
+     * sans réponse, les calendriers en dérive et les demandes de service impayées
+     * partagent la même forme. Des listes parallèles obligeaient l'écran à les
+     * fusionner et à les ordonner lui-même — et laissaient la catégorie la plus
+     * bavarde noyer les autres.</p>
+     *
+     * @param items        file ordonnée par urgence, déjà plafonnée par nature
+     * @param total        nombre réel d'éléments en attente, avant plafonnement
+     * @param totalsByKind décompte réel par nature — sans lui, l'écran ne pourrait
+     *                     compter que les lignes reçues et afficherait « Avis (3) »
+     *                     là où douze attendent
      */
     public record ActionItemsDto(
-            List<BalanceDueDto> balancesDue,
-            List<UnansweredReviewDto> unansweredReviews,
-            List<StaleFeedDto> staleFeeds) {
+            List<ActionItemDto> items,
+            int total,
+            Map<ActionItemKind, Integer> totalsByKind) {}
 
-        /** Total, tous types confondus — alimente le badge « N à traiter ». */
-        public int total() {
-            return balancesDue.size() + unansweredReviews.size() + staleFeeds.size();
+    /**
+     * Élément de la file « à traiter ».
+     *
+     * <p>Les champs sont volontairement <b>génériques</b> et non spécifiques à une
+     * nature : {@code subject} porte la personne concernée quelle que soit
+     * l'origine (le voyageur d'un avis comme celui d'un solde) et {@code badge}
+     * la mention courte affichée en fin de ligne quand ce n'est pas un montant.
+     * Un champ par nature aurait fait de ce record un fourre-tout.</p>
+     *
+     * @param id        identifiant stable, préfixé par la nature ({@code hitl:42})
+     * @param kind      nature — voir {@link ActionItemKind}
+     * @param severity  {@code critical} | {@code warning} | {@code info}
+     * @param title     intitulé métier, lisible seul
+     * @param detail    contexte court (voyageur, logement, ancienneté…)
+     * @param subject      personne concernée, s'il y en a une — porte l'avatar
+     * @param targetId     identifiant de l'objet visé, pour agir dessus
+     * @param propertyId   logement concerné — permet d'agir sans le redemander
+     * @param propertyId   logement concerné — l'écran doit pouvoir agir sans le
+     *                     redemander au serveur
+     * @param amount       montant en jeu quand la nature en porte un, sinon {@code null}
+     * @param badge        mention courte de fin de ligne ({@code 4★}), sinon {@code null}
+     * @param actionType   réservé : nature technique de l'action, {@code null} aujourd'hui
+     * @param actionParams réservé : paramètres de cette action (JSON), {@code null} aujourd'hui
+     */
+    public record ActionItemDto(
+            String id,
+            ActionItemKind kind,
+            String severity,
+            String title,
+            String detail,
+            String subject,
+            Long targetId,
+            Long propertyId,
+            String propertyName,
+            BigDecimal amount,
+            String badge,
+            String actionType,
+            String actionParams,
+            /**
+             * Devise du montant, quand elle peut différer de celle de
+             * l'organisation — un litige porte la devise de la transaction
+             * contestée. {@code null} = déjà dans la devise d'affichage.
+             */
+            String currency,
+            /**
+             * Identifiant de la ligne dans la file persistée, seul moyen de la
+             * clôturer. Distinct de {@code targetId}, qui désigne l'objet
+             * métier visé (une réservation, un reversement).
+             *
+             * <p>{@code null} tant que la ligne n'est pas enregistrée : une
+             * source produit une action <i>candidate</i>, c'est la lecture qui
+             * lui donne son identité.</p>
+             */
+            Long actionItemId) {
+
+        /**
+         * Forme employée par les sources : une action candidate, pas encore
+         * enregistrée, dont le montant est dans la devise de l'organisation.
+         */
+        public ActionItemDto(String id, ActionItemKind kind, String severity, String title,
+                             String detail, String subject, Long targetId, Long propertyId,
+                             String propertyName, BigDecimal amount, String badge,
+                             String actionType, String actionParams) {
+            this(id, kind, severity, title, detail, subject, targetId, propertyId, propertyName,
+                    amount, badge, actionType, actionParams, null, null);
         }
     }
 
-    /** Solde de séjour restant dû avant l'arrivée. */
-    public record BalanceDueDto(
-            Long reservationId,
-            String reference,
-            String guestName,
-            String propertyName,
-            LocalDate checkIn,
-            BigDecimal amountDue) {}
-
-    /** Avis publié sans réponse de l'hôte. */
-    public record UnansweredReviewDto(
-            Long reviewId,
-            String guestName,
-            String propertyName,
-            String channelName,
-            Integer rating,
-            String excerpt,
-            LocalDate reviewDate) {}
-
     /**
-     * Flux de calendrier en échec ou muet.
+     * Natures d'action, par ordre de priorité d'affichage.
      *
-     * @param hoursSinceLastSync {@code null} si le flux n'a jamais été synchronisé
+     * <p>L'ordre de déclaration EST l'ordre de tri à sévérité égale : un solde
+     * non encaissé passe avant un avis sans réponse.</p>
      */
-    public record StaleFeedDto(
-            Long feedId,
-            Long propertyId,
-            String propertyName,
-            String sourceName,
-            String lastSyncStatus,
-            Long hoursSinceLastSync) {}
+    public enum ActionItemKind {
+        /** Le fournisseur de paiement contredit un règlement enregistré. */
+        PAYMENT_INCIDENT,
+        /** Séjour arrivé sans déclaration voyageur — obligation légale. */
+        GUEST_DECLARATION_MISSING,
+        /** Réservation jamais confirmée dont l'arrivée approche. */
+        RESERVATION_PENDING,
+        /** Intervention dont la date est passée et le statut encore ouvert. */
+        INTERVENTION_OVERDUE,
+        /** Message de voyageur resté sans réponse. */
+        CONVERSATION_UNANSWERED,
+        /** Solde de séjour restant dû avant l'arrivée. */
+        BALANCE_DUE,
+        /** Séjour terminé dont le solde n'a jamais été encaissé. */
+        BALANCE_ABANDONED,
+        /** Message voyageur dont l'envoi a échoué, sans renvoi réussi. */
+        GUEST_MESSAGE_FAILED,
+        /** Arrivée proche sans livret d'accueil publié. */
+        WELCOME_GUIDE_MISSING,
+        /** Caution encore retenue bien après le départ. */
+        DEPOSIT_STUCK,
+        /** Demande de service réalisée et non réglée. */
+        SERVICE_UNPAID,
+        /** Prestation sans prestataire, que l'assignation automatique n'aboutira plus. */
+        SERVICE_UNASSIGNED,
+        /** Flux de calendrier en échec ou muet. */
+        FEED_STALE,
+        /** Avis publié sans réponse de l'hôte. */
+        REVIEW_UNANSWERED,
+
+        // Natures métier ajoutées après l'inventaire des angles morts. Elles se
+        // placent ici, en fin d'énumération, plutôt qu'à leur rang d'urgence :
+        // l'ordre de déclaration sert de départage à sévérité égale, et
+        // réordonner l'existant aurait déplacé des lignes qui vont bien.
+
+        /** Intervention planifiée sans personne ni équipe pour l'exécuter. */
+        INTERVENTION_UNASSIGNED,
+        /** Intervention arrêtée faute de règlement. */
+        INTERVENTION_UNPAID,
+        /** Check-in en ligne jamais commencé alors que l'arrivée est proche. */
+        CHECKIN_NOT_STARTED,
+        /** Alerte de bruit que personne n'a acquittée. */
+        NOISE_ALERT_UNACKNOWLEDGED,
+        /** Signalement ouvert laissé sans suite. */
+        ISSUE_OPEN,
+        /** Reversement propriétaire en attente d'approbation depuis trop longtemps. */
+        OWNER_PAYOUT_PENDING,
+        /** Compte de paiement raccordé mais jamais finalisé : aucun versement possible. */
+        PAYOUT_ONBOARDING_INCOMPLETE,
+        /** Invitation périmée : la personne ne peut plus rejoindre l'organisation. */
+        INVITATION_EXPIRED,
+        /** Document généré dont l'envoi au destinataire a échoué. */
+        DOCUMENT_DELIVERY_FAILED,
+        /** Facture électronique refusée par l'administration fiscale. */
+        EINVOICE_FAILED,
+
+        // Natures techniques : réservées au staff plateforme. Ce sont des pannes
+        // de plomberie interne, qu'un hôte ne pourrait ni comprendre ni éteindre.
+
+        /** Automatisation en échec : l'action promise n'a pas eu lieu. */
+        AUTOMATION_FAILED,
+        /** Message interne définitivement perdu, toutes tentatives épuisées. */
+        OUTBOX_DEAD_LETTER,
+        /** Intégration déconnectée : la synchronisation est muette. */
+        INTEGRATION_DISCONNECTED,
+    }
 }

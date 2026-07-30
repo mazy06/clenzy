@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Badge, Tabs, TabsList, TabsTrigger } from '../ui';
+import { Tabs, TabsList, TabsTrigger } from '../ui';
+import NavCountBadge from '../NavCountBadge';
 import { cn } from '../../utils/cn';
 
 /**
@@ -30,14 +31,6 @@ export interface PageTabsProps<T extends string | number> {
   ariaLabel?: string;
 }
 
-const BADGE_VARIANT: Record<NonNullable<PageTabItem['badgeColor']>, 'destructive' | 'warning' | 'default' | 'info' | 'success'> = {
-  error: 'destructive',
-  warning: 'warning',
-  primary: 'default',
-  info: 'info',
-  success: 'success',
-};
-
 export default function PageTabs<T extends string | number = number>({
   options,
   value,
@@ -67,15 +60,15 @@ export default function PageTabs<T extends string | number = number>({
               key={opt.key ?? String(valueOf(opt, index))}
               value={String(index)}
               disabled={opt.disabled}
-              className={cn(size === 'compact' ? 'text-xs' : 'text-sm')}
+              className={cn(
+                'gap-1.5 font-medium [&_svg]:shrink-0 [&_svg]:text-muted-foreground data-active:[&_svg]:text-foreground',
+                size === 'compact' ? 'px-2 py-1 text-xs' : 'px-2.5 py-1.5 text-sm',
+              )}
             >
               {opt.icon}
               {opt.label}
-              {opt.badge !== undefined && opt.badge > 0 && (
-                <Badge variant={BADGE_VARIANT[opt.badgeColor ?? 'primary']} className="px-1.5 py-0 text-2xs">
-                  {opt.badge}
-                </Badge>
-              )}
+              {/* Pastille partagée avec la sidebar (NavCountBadge). */}
+              <NavCountBadge count={opt.badge} tone={opt.badgeColor} />
             </TabsTrigger>
           ))}
         </TabsList>

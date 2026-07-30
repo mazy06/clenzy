@@ -127,12 +127,16 @@ function occupancyColor(rate: number): string {
 }
 
 /**
- * `PortfolioAnalyticsService` ne plafonne pas : deux séjours qui se chevauchent
- * produisent un taux > 100 %. On borne ici plutôt que d'afficher « 117 % », qui
- * n'a aucun sens pour un taux d'occupation.
+ * Arrondi d'affichage.
+ *
+ * <p>Le plafond à 100 % qui vivait ici a été retiré : il masquait un bug de
+ * calcul (les nuits hors fenêtre et les séjours qui se chevauchent étaient
+ * comptés) au lieu de le montrer. `PortfolioAnalyticsService` borne désormais
+ * l'occupation à la source, en marquant les nuits plutôt qu'en les additionnant.
+ * Si un taux repassait au-dessus de 100 %, il doit se voir.</p>
  */
 function clampRate(rate: number): number {
-  return Math.min(100, Math.max(0, Math.round(rate)));
+  return Math.max(0, Math.round(rate));
 }
 
 type OccupancyView = 'bars' | 'radial';

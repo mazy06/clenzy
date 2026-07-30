@@ -74,6 +74,77 @@ class ServiceRequestServiceTest {
                 organizationAccessGuard);
     }
 
+    // ── Clôture et replanification ───────────────────────────────────────────
+
+    @Test
+    void whenServiceWillNeverHappen_thenItIsClosedAndKept() {
+        ServiceRequest stuck = buildEntity(41L, "Menage Airbnb", RequestStatus.PENDING);
+        stuck.setAutoAssignStatus("exhausted");
+        when(serviceRequestRepository.findById(41L)).thenReturn(Optional.of(stuck));
+        when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.cancel(41L, "Le logement a ete vendu");
+
+        ArgumentCaptor<ServiceRequest> saved = ArgumentCaptor.forClass(ServiceRequest.class);
+        verify(serviceRequestRepository).save(saved.capture());
+        assertThat(saved.getValue().getStatus()).isEqualTo(RequestStatus.CANCELLED);
+        // La recherche d'equipe s'arrete avec elle.
+        assertThat(saved.getValue().getAutoAssignStatus()).isNull();
+        assertThat(saved.getValue().getSpecialInstructions()).contains("Le logement a ete vendu");
+        // Cloturer n'est pas supprimer : la demande reste consultable.
+        verify(serviceRequestRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void whenServiceIsAlreadyCompleted_thenClosingIsRefused() {
+        ServiceRequest done = buildEntity(42L, "Menage Airbnb", RequestStatus.COMPLETED);
+        when(serviceRequestRepository.findById(42L)).thenReturn(Optional.of(done));
+
+        assertThatThrownBy(() -> service.cancel(42L, null))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(serviceRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void whenRescheduledWithoutAStay_thenTheNewRequestCarriesNoReservation() {
+        // Une remise en etat ne concerne aucun sejour : c'est un choix, pas un oubli.
+        ServiceRequest stuck = buildEntity(43L, "Installation climatisation", RequestStatus.PENDING);
+        Property property = new Property();
+        property.setId(20L);
+        stuck.setProperty(property);
+        stuck.setEstimatedCost(new java.math.BigDecimal("138"));
+        when(serviceRequestRepository.findById(43L)).thenReturn(Optional.of(stuck));
+        when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> {
+            ServiceRequest sr = inv.getArgument(0);
+            if (sr.getId() == null) sr.setId(99L);
+            return sr;
+        });
+
+        LocalDateTime when = LocalDateTime.now().plusDays(5);
+        service.reschedule(43L, when, null, null, null, null);
+
+        ArgumentCaptor<ServiceRequest> saved = ArgumentCaptor.forClass(ServiceRequest.class);
+        verify(serviceRequestRepository, atLeastOnce()).save(saved.capture());
+        ServiceRequest created = saved.getAllValues().get(0);
+        assertThat(created.getReservationId()).isNull();
+        assertThat(created.getDesiredDate()).isEqualTo(when);
+        assertThat(created.getStatus()).isEqualTo(RequestStatus.PENDING);
+        // Le coût et le logement suivent la nouvelle demande.
+        assertThat(created.getEstimatedCost()).isEqualByComparingTo("138");
+        assertThat(created.getProperty()).isSameAs(property);
+        // Et l'ancienne est close dans le même geste.
+        assertThat(saved.getAllValues()).anyMatch(sr -> sr.getStatus() == RequestStatus.CANCELLED);
+    }
+
+    @Test
+    void whenRescheduledWithoutADate_thenNothingIsCreated() {
+        assertThatThrownBy(() -> service.reschedule(44L, null, null, null, null, null))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(serviceRequestRepository, never()).save(any());
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private ServiceRequest buildEntity(Long id, String title, RequestStatus status) {

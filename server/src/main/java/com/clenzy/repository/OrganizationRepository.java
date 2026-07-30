@@ -46,4 +46,8 @@ public interface OrganizationRepository extends JpaRepository<Organization, Long
 
     /** Orgs avec un programme de parrainage actif (referral_credit_cents > 0) — scan du crédit. */
     List<Organization> findByReferralCreditCentsGreaterThan(int value);
+
+    /** Identifiants de toutes les organisations — pour les balayages périodiques. */
+    @Query("SELECT o.id FROM Organization o")
+    List<Long> findAllIds();
 }

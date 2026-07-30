@@ -92,4 +92,22 @@ public interface OutboxEventRepository extends JpaRepository<OutboxEvent, Long> 
             @Param("status") String status,
             @Param("topic") String topic,
             Pageable pageable);
+
+    /**
+     * Messages définitivement perdus : en échec, toutes tentatives épuisées.
+     *
+     * <p>{@code findRetryableEvents} rend l'inverse — ceux qu'on retentera. Ici
+     * on cherche ceux que plus personne ne retentera, et que rien ne signalait.
+     * L'organisation est filtrée explicitement : cette table n'a pas de
+     * {@code @Filter}, le relais devant voir toutes les organisations.</p>
+     */
+    @Query("""
+            SELECT e FROM OutboxEvent e
+            WHERE e.status = 'FAILED'
+              AND e.retryCount >= :maxRetries
+              AND e.organizationId = :orgId
+            ORDER BY e.createdAt DESC
+            """)
+    List<OutboxEvent> findExhaustedForOrg(@Param("orgId") Long orgId,
+                                          @Param("maxRetries") int maxRetries);
 }

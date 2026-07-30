@@ -8,6 +8,7 @@ import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.model.GuestReview;
 import com.clenzy.service.ReviewService;
 import com.clenzy.service.ReviewSyncService;
+import com.clenzy.service.agent.supervision.ReviewReplyDraftService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,13 +34,14 @@ class ReviewControllerTest {
 
     @Mock private ReviewService reviewService;
     @Mock private ReviewSyncService syncService;
+    @Mock private ReviewReplyDraftService draftService;
     @Mock private TenantContext tenantContext;
 
     private ReviewController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new ReviewController(reviewService, syncService, tenantContext);
+        controller = new ReviewController(reviewService, syncService, draftService, tenantContext);
         lenient().when(tenantContext.getOrganizationId()).thenReturn(1L);
     }
 
@@ -52,6 +54,23 @@ class ReviewControllerTest {
         r.setReviewText("Great stay");
         r.setReviewDate(LocalDate.of(2026, 1, 1));
         return r;
+    }
+
+    @Test
+    void whenDraftRequested_thenAgentWritesForTheCallerOrgAndNothingIsPublished() {
+        GuestReview drafted = stubReview();
+        drafted.setHostResponseDraft("Merci pour votre retour, au plaisir de vous accueillir.");
+        when(reviewService.getById(10L, 1L)).thenReturn(drafted);
+
+        ResponseEntity<GuestReviewDto> resp = controller.draftReply(10L);
+
+        assertThat(resp.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(resp.getBody().hostResponseDraft())
+                .isEqualTo("Merci pour votre retour, au plaisir de vous accueillir.");
+        // L'organisation vient du contexte tenant, jamais de la requête.
+        verify(draftService).generateDraft(1L, 10L);
+        // Un brouillon n'est pas une réponse : rien ne doit être publié ici.
+        verify(reviewService, never()).respondToReview(any(), any(), any());
     }
 
     @Test

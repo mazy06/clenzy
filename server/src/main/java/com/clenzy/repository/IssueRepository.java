@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Repository
 public interface IssueRepository extends JpaRepository<Issue, Long> {
@@ -42,4 +43,16 @@ public interface IssueRepository extends JpaRepository<Issue, Long> {
      */
     boolean existsByOrganizationIdAndPropertyIdAndStatusIn(
             Long organizationId, Long propertyId, Collection<Issue.IssueStatus> statuses);
+
+    /** Signalements ouverts qu'aucune décision n'a suivis. */
+    @Query("""
+            SELECT i FROM Issue i
+            WHERE i.organizationId = :orgId
+              AND i.status = :open
+              AND i.createdAt <= :staleBefore
+            ORDER BY i.createdAt ASC
+            """)
+    List<Issue> findOpenStaleForOrg(@Param("orgId") Long orgId,
+                                    @Param("open") Issue.IssueStatus open,
+                                    @Param("staleBefore") LocalDateTime staleBefore);
 }

@@ -113,9 +113,9 @@ public class ManagementContractService {
         contract.setEndDate(request.endDate());
         contract.setCommissionRate(request.commissionRate());
         contract.setUpsellCommissionRate(request.upsellCommissionRate());
-        contract.setActivityCommissionRate(request.activityCommissionRate());
         contract.setPaymentModel(request.paymentModel() != null ? request.paymentModel() : ManagementContract.PaymentModel.DIRECT);
         contract.setCommissionBase(request.commissionBase() != null ? request.commissionBase() : ManagementContract.CommissionBase.GROSS);
+        contract.setOtaFeeBorneBy(request.otaFeeBorneBy() != null ? request.otaFeeBorneBy() : ManagementContract.OtaFeeBearer.AGENCY);
         contract.setMinimumStayNights(request.minimumStayNights());
         contract.setAutoRenew(request.autoRenew() != null ? request.autoRenew() : false);
         contract.setNoticePeriodDays(request.noticePeriodDays() != null ? request.noticePeriodDays() : 30);
@@ -223,6 +223,7 @@ public class ManagementContractService {
                 renewed.setCommissionRate(contract.getCommissionRate());
                 renewed.setPaymentModel(contract.getPaymentModel());
                 renewed.setCommissionBase(contract.getCommissionBase());
+                renewed.setOtaFeeBorneBy(contract.getOtaFeeBorneBy());
                 renewed.setMinimumStayNights(contract.getMinimumStayNights());
                 renewed.setAutoRenew(true);
                 renewed.setNoticePeriodDays(contract.getNoticePeriodDays());
@@ -260,9 +261,9 @@ public class ManagementContractService {
         contract.setEndDate(request.endDate());
         contract.setCommissionRate(request.commissionRate());
         contract.setUpsellCommissionRate(request.upsellCommissionRate());
-        contract.setActivityCommissionRate(request.activityCommissionRate());
         if (request.paymentModel() != null) contract.setPaymentModel(request.paymentModel());
         if (request.commissionBase() != null) contract.setCommissionBase(request.commissionBase());
+        if (request.otaFeeBorneBy() != null) contract.setOtaFeeBorneBy(request.otaFeeBorneBy());
         contract.setMinimumStayNights(request.minimumStayNights());
         if (request.autoRenew() != null) contract.setAutoRenew(request.autoRenew());
         if (request.noticePeriodDays() != null) contract.setNoticePeriodDays(request.noticePeriodDays());

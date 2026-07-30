@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronRightIcon } from 'lucide-react';
+import NavCountBadge, { NavCornerCountBadge } from './NavCountBadge';
 import {
   ChevronsLeft,
   ChevronsRight,
@@ -78,14 +79,6 @@ import { cn } from '../utils/cn';
 
 const GROUP_ORDER: NavGroup[] = ['main', 'management', 'admin'];
 
-/** Couleur de pastille par sévérité — les cinq tons de l'ancienne sidebar. */
-const BADGE_TONE: Record<NonNullable<MenuItem['badgeColor']>, string> = {
-  warning: 'bg-warning text-primary-foreground',
-  error: 'bg-destructive text-destructive-foreground',
-  success: 'bg-success text-primary-foreground',
-  info: 'bg-info text-primary-foreground',
-  primary: 'bg-primary text-primary-foreground',
-};
 
 /**
  * Pastille « non lus » de la cloche, isolée pour que le tick du poll ne re-rende
@@ -109,30 +102,22 @@ function UnreadNotificationsDot() {
 }
 
 function NavBadge({ item }: { item: MenuItem }) {
-  if (item.badge == null || item.badge <= 0) return null;
   return (
-    <span
-      className={cn(
-        'ms-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5 text-[10.5px] font-bold tabular-nums',
-        BADGE_TONE[item.badgeColor ?? 'warning'],
-        // Sur l'item actif, la pastille se fond dans le fond d'accent.
-        'group-data-[active=true]/menu-button:bg-sidebar-accent-foreground/25'
-      )}
-    >
-      {item.badge > 99 ? '99+' : item.badge}
-    </span>
+    <NavCountBadge count={item.badge} tone={item.badgeColor} className="ms-auto" />
   );
 }
 
-/** Point de badge ancré au coin de l'icône — utilisé en mode icônes. */
+/**
+ * Compteur ancré au coin de l'icône — n'apparaît QU'EN mode icônes (sidebar
+ * repliée), où le compteur de fin de ligne n'a plus de place. Même pastille du
+ * kit, réduite à 16 px : replier la sidebar ne coûte pas le chiffre.
+ */
 function NavBadgeDot({ item }: { item: MenuItem }) {
-  if (item.badge == null || item.badge <= 0) return null;
   return (
-    <span
-      className={cn(
-        'pointer-events-none absolute -top-0.5 -end-0.5 hidden size-2 rounded-full ring-[1.5px] ring-sidebar group-data-[collapsible=icon]:block',
-        BADGE_TONE[item.badgeColor ?? 'warning']
-      )}
+    <NavCornerCountBadge
+      count={item.badge}
+      tone={item.badgeColor}
+      className="hidden group-data-[collapsible=icon]:inline-flex"
     />
   );
 }
@@ -275,14 +260,17 @@ export default function AppSidebar({
   const navigate = useNavigate();
   const location = useLocation();
   const { user, clearUser } = useAuth();
-  const { t, changeLanguage, currentLanguage } = useTranslation();
+  const { t, changeLanguage, currentLanguage, isArabic } = useTranslation();
   const { currency, setCurrency, rateDate, ratesLoading } = useCurrency();
   const { mode: themeMode, setMode: setThemeMode } = useThemeMode();
   const { accent, setAccent } = useAccent();
   const { isMobile, setOpenMobile } = useSidebar();
   const [prefsOpen, setPrefsOpen] = useState(false);
 
-  const isRtl = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
+  // La langue, pas `document.documentElement.dir` : cette lecture-là se faisait
+  // une fois au rendu et ne rebasculait pas quand l'utilisateur changeait de
+  // langue sans recharger la page.
+  const isRtl = isArabic;
   const tooltipSide = isRtl ? ('left' as const) : ('right' as const);
 
   const grouped = useMemo(() => groupMenuItems(menuItems), [menuItems]);
@@ -333,7 +321,9 @@ export default function AppSidebar({
   );
 
   return (
-    <Sidebar collapsible="icon">
+    // En arabe, la barre passe à droite : elle est le point de départ de la
+    // lecture, et la laisser à gauche coupait le sens de parcours de l'écran.
+    <Sidebar collapsible="icon" side={isRtl ? 'right' : 'left'}>
       {/* ── Logo → tableau de bord ─────────────────────────────────────── */}
       <SidebarHeader>
         <SidebarMenu>

@@ -241,7 +241,7 @@ export function usePortfoliosPage() {
   });
 
   // ── Tab handler ──────────────────────────────────────────────────────────
-  const handleTabChange = useCallback((_event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = useCallback((newValue: number) => {
     setTabValue(newValue);
   }, []);
 

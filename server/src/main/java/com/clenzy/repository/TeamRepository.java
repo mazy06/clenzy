@@ -24,6 +24,16 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
     List<Object[]> findIdAndNameForReport(@Param("orgId") Long orgId);
 
     /**
+     * Toutes les équipes d'une organisation, sans fetch des membres.
+     *
+     * Sert au choix manuel d'un prestataire : quand aucune équipe ne couvre la
+     * zone du logement — le cas de toute prestation dont l'assignation
+     * automatique a échoué — il faut pouvoir en désigner une quand même.
+     */
+    @Query("SELECT t FROM Team t WHERE t.organizationId = :orgId ORDER BY t.name")
+    List<Team> findAllForOrg(@Param("orgId") Long orgId);
+
+    /**
      * Fetch a team by ID with members and their users eagerly loaded.
      */
     @Query("SELECT t FROM Team t LEFT JOIN FETCH t.members tm LEFT JOIN FETCH tm.user WHERE t.id = :id")

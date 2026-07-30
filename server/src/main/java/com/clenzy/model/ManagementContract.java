@@ -39,6 +39,24 @@ public class ManagementContract {
         GROSS, NET_OF_OTA_FEE
     }
 
+    /**
+     * Qui supporte les frais preleves par l'OTA (host fee Airbnb, commission Booking.com).
+     *
+     * <p>Sur un sejour OTA, la conciergerie n'encaisse jamais le brut : l'OTA retient sa
+     * commission a la source. Un reversement calcule sur le brut fait donc porter ces frais
+     * a la conciergerie, en silence. Ce champ rend le choix explicite.</p>
+     *
+     * <p>AGENCY : le proprietaire est reverse sur le brut, la conciergerie absorbe les frais
+     * OTA sur sa propre commission. C'est le comportement historique, et le defaut — un
+     * contrat deja signe ne change pas de camp parce qu'on a ajoute une colonne.</p>
+     *
+     * <p>OWNER : les frais OTA sont deduits avant reversement. La conciergerie encaisse
+     * exactement sa commission, ni plus ni moins.</p>
+     */
+    public enum OtaFeeBearer {
+        AGENCY, OWNER
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -76,10 +94,6 @@ public class ManagementContract {
     @Column(name = "upsell_commission_rate", precision = 5, scale = 4)
     private BigDecimal upsellCommissionRate;
 
-    /** Part conciergerie sur les activités/marketplace (fraction, après commission plateforme). null = défaut org. */
-    @Column(name = "activity_commission_rate", precision = 5, scale = 4)
-    private BigDecimal activityCommissionRate;
-
     /** Modèle de flux des paiements / répartition. Défaut DIRECT (comportement Stripe historique). */
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_model", nullable = false, length = 30)
@@ -89,6 +103,11 @@ public class ManagementContract {
     @Enumerated(EnumType.STRING)
     @Column(name = "commission_base", nullable = false, length = 20)
     private CommissionBase commissionBase = CommissionBase.GROSS;
+
+    /** Qui supporte les frais preleves par l'OTA. Defaut AGENCY (comportement historique). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ota_fee_borne_by", nullable = false, length = 20)
+    private OtaFeeBearer otaFeeBorneBy = OtaFeeBearer.AGENCY;
 
     @Column(name = "minimum_stay_nights")
     private Integer minimumStayNights;
@@ -160,12 +179,13 @@ public class ManagementContract {
     public void setCommissionRate(BigDecimal commissionRate) { this.commissionRate = commissionRate; }
     public BigDecimal getUpsellCommissionRate() { return upsellCommissionRate; }
     public void setUpsellCommissionRate(BigDecimal upsellCommissionRate) { this.upsellCommissionRate = upsellCommissionRate; }
-    public BigDecimal getActivityCommissionRate() { return activityCommissionRate; }
-    public void setActivityCommissionRate(BigDecimal activityCommissionRate) { this.activityCommissionRate = activityCommissionRate; }
     public PaymentModel getPaymentModel() { return paymentModel; }
     public void setPaymentModel(PaymentModel paymentModel) { this.paymentModel = paymentModel; }
     public CommissionBase getCommissionBase() { return commissionBase; }
     public void setCommissionBase(CommissionBase commissionBase) { this.commissionBase = commissionBase; }
+
+    public OtaFeeBearer getOtaFeeBorneBy() { return otaFeeBorneBy; }
+    public void setOtaFeeBorneBy(OtaFeeBearer otaFeeBorneBy) { this.otaFeeBorneBy = otaFeeBorneBy; }
     public Integer getMinimumStayNights() { return minimumStayNights; }
     public void setMinimumStayNights(Integer minimumStayNights) { this.minimumStayNights = minimumStayNights; }
     public Boolean getAutoRenew() { return autoRenew; }

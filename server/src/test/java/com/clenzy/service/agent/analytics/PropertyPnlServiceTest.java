@@ -81,6 +81,45 @@ class PropertyPnlServiceTest {
         assertThat(result.recommendation()).contains("déficit");
     }
 
+    /**
+     * Une marge supposée ne doit pas se présenter comme un fait : les frais OTA réels
+     * ne viennent que de Booking.com et Airbnb via Channex, partout ailleurs la
+     * commission est déduite d'un taux par défaut. Le drapeau est ce qui permet à
+     * l'assistant de le dire — d'autant plus depuis que le taux Airbnb par défaut est
+     * passé de 3 % à 15,5 %.
+     */
+    @Test
+    @DisplayName("Commission déduite d'un taux par défaut → signalée comme estimée")
+    void estimatedCommission_isFlagged() {
+        Property p = property(9L, "Loft C");
+        when(reservationRepository.findAllByDateRange(any(), any(), eq(ORG)))
+                .thenReturn(List.of(res(p, "1000", null, "airbnb")));
+        when(interventionRepository.findAllByDateRange(any(), any(), eq(ORG)))
+                .thenReturn(List.of());
+
+        PropertyPnlService.PnlResult result = service.compute(3);
+
+        assertThat(result.properties().get(0).commission()).isEqualByComparingTo("155.00");
+        assertThat(result.properties().get(0).commissionEstimated()).isTrue();
+        assertThat(result.commissionEstimated()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Frais OTA réels sur tous les séjours → rien n'est estimé")
+    void realFeesEverywhere_nothingFlagged() {
+        Property p = property(9L, "Loft C");
+        when(reservationRepository.findAllByDateRange(any(), any(), eq(ORG)))
+                .thenReturn(List.of(res(p, "1000", "148.32", "airbnb")));
+        when(interventionRepository.findAllByDateRange(any(), any(), eq(ORG)))
+                .thenReturn(List.of());
+
+        PropertyPnlService.PnlResult result = service.compute(3);
+
+        assertThat(result.properties().get(0).commission()).isEqualByComparingTo("148.32");
+        assertThat(result.properties().get(0).commissionEstimated()).isFalse();
+        assertThat(result.commissionEstimated()).isFalse();
+    }
+
     @Test
     @DisplayName("Réservation annulée exclue du revenu")
     void cancelled_excluded() {

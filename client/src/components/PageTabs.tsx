@@ -1,6 +1,9 @@
 import React from 'react';
-import { Box, Paper, Tabs, Tab, Badge } from '@mui/material';
-import { useIconSize } from '../hooks/useResponsiveSize';
+import { Tabs, TabsList, TabsTrigger } from './ui';
+import { useScreenTrailSegment } from './ScreenChrome';
+import NavCountBadge from './NavCountBadge';
+import { sizedIcon } from '../config/navigationIcons';
+import { cn } from '../utils/cn';
 
 /**
  * Description d'un onglet pour PageTabs.
@@ -33,32 +36,36 @@ interface PageTabsProps<T extends string | number> {
   onChange: (value: T) => void;
   /** Slot rendu à droite des tabs (boutons d'action, filtres, etc.). */
   inlineActions?: React.ReactNode;
-  /**
-   * Densité :
-   *   - 'comfortable' (default) — minHeight 38px, fontSize 0.75rem (style PropertiesPage)
-   *   - 'compact' — minHeight 30px, fontSize 0.6875rem (style filter tabs)
-   */
+  /** Densité : 'comfortable' (défaut) ou 'compact' (sous-onglets de filtre). */
   size?: 'comfortable' | 'compact';
-  /** Wrap dans `<Paper>`. Default true. False = box transparent (filter tabs autonomes). */
+  /**
+   * Conservé pour compatibilité d'API : les onglets Baitly sont toujours plats
+   * (soulignement + hairline), il n'y a plus de carte englobante.
+   */
   paper?: boolean;
-  /** Margin bottom sur le wrapper. Default 1.5 (12px). */
+  /** Marge basse, en unités de 8 px (défaut 1.5 = 12 px). */
   mb?: number;
   /** ARIA label pour Tabs. */
   ariaLabel?: string;
+  /**
+   * Publier l'onglet actif dans le fil d'Ariane du header. Défaut : true.
+   * À passer à `false` pour une rangée d'onglets qui n'est PAS le niveau de
+   * navigation de la page (onglets d'un panneau latéral, d'une fiche device…).
+   */
+  trail?: boolean;
+  className?: string;
 }
 
 /**
- * Composant de tabs standardisé pour le PMS.
+ * Onglets standardisés du PMS Baitly (kit Baitly UI, variante `line`).
  *
- * Visuellement aligné sur les onglets niveau 1 Signature (.s-tab) :
- *   - Conteneur (Paper plat en option) avec borderBottom hairline var(--line)
- *   - Label var(--muted), hover var(--body), actif var(--accent) + souligné 2px var(--accent)
- *   - Tabs scrollable + scrollButtons auto
- *   - Tab icon à gauche (start), label sans uppercase
- *   - Slot inline à droite pour actions contextuelles
+ * Rendu : libellés discrets, onglet actif en encre pleine SOULIGNÉ, le tout posé
+ * sur une hairline pleine largeur — la signature « Tabs / Line » de la galerie
+ * (/admin/design-system). Un slot d'actions contextuelles reste disponible à
+ * droite de la rangée.
  *
- * Les icônes passées dans `icon` sont automatiquement redimensionnées via
- * `useIconSize('section')` pour rester cohérentes avec le PMS.
+ * L'onglet actif est aussi publié dans le fil d'Ariane du header : le chemin
+ * affiché devient « Hub › Écran › Onglet ».
  *
  * @example
  * ```tsx
@@ -69,7 +76,7 @@ interface PageTabsProps<T extends string | number> {
  *   ]}
  *   value={activeTab}
  *   onChange={setActiveTab}
- *   inlineActions={<Button size="small">Action</Button>}
+ *   inlineActions={<Button size="sm">Action</Button>}
  * />
  * ```
  */
@@ -79,122 +86,60 @@ export default function PageTabs<T extends string | number = number>({
   onChange,
   inlineActions,
   size = 'comfortable',
-  paper = true,
+  paper: _paper,
   mb = 1.5,
   ariaLabel,
+  trail = true,
+  className,
 }: PageTabsProps<T>) {
-  const sectionIconSize = useIconSize('section');
+  const visibleOptions = options.filter((opt) => !opt.hidden);
+  const valueOf = (opt: PageTabItem<T>, index: number) => (opt.value !== undefined ? opt.value : (index as T));
+  const activeIndex = visibleOptions.findIndex((opt, index) => valueOf(opt, index) === value);
   const compact = size === 'compact';
-  const minHeight = compact ? 30 : 38;
-  const fontSize = compact ? '0.6875rem' : '0.75rem';
-  const xlFontSize = compact ? '0.75rem' : '0.8125rem';
 
-  const visibleOptions = options.filter((o) => !o.hidden);
-
-  const tabsRow = (
-    <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--line)' }}>
-      <Tabs
-        value={value}
-        onChange={(_, v) => onChange(v as T)}
-        variant="scrollable"
-        scrollButtons="auto"
-        aria-label={ariaLabel}
-        sx={{
-          flex: 1,
-          minHeight,
-          '& .MuiTabs-indicator': { backgroundColor: 'var(--accent)', height: 2 },
-          '& .MuiTabs-flexContainer': { gap: 0.25 },
-          '& .MuiTab-root': {
-            minHeight,
-            textTransform: 'none',
-            fontSize,
-            '@media (min-width:1536px)': { fontSize: xlFontSize },
-            fontWeight: 600,
-            color: 'var(--muted)',
-            transition: 'color .14s',
-            '&:hover': { color: 'var(--body)' },
-            '&.Mui-selected': { color: 'var(--accent)' },
-            py: compact ? 0.25 : 0.5,
-            px: compact ? 1 : 1.5,
-            gap: 0.5,
-            '& .MuiTab-iconWrapper': {
-              marginBottom: 0,
-              marginRight: 0.5,
-            },
-          },
-        }}
-      >
-        {visibleOptions.map((opt, idx) => {
-          const tabValue = (opt.value !== undefined ? opt.value : idx) as T;
-
-          // Inject responsive size into lucide-style icons.
-          const iconNode = opt.icon && React.isValidElement(opt.icon)
-            ? React.cloneElement(opt.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
-                size: sectionIconSize,
-                strokeWidth: 1.75,
-              })
-            : opt.icon;
-
-          // Label with optional badge — pastille inline a droite du texte,
-          // taille discrete mais lisible, halo subtil pour suggerer un etat "nouveau".
-          const labelNode = opt.badge != null && opt.badge > 0
-            ? (
-              <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-                <span>{opt.label}</span>
-                <Badge
-                  badgeContent={opt.badge}
-                  color={opt.badgeColor ?? 'error'}
-                  max={99}
-                  sx={{
-                    '& .MuiBadge-badge': {
-                      position: 'static',
-                      transform: 'none',
-                      fontSize: '0.625rem',
-                      fontWeight: 600,
-                      letterSpacing: '0.01em',
-                      height: 18,
-                      minWidth: 18,
-                      padding: '0 6px',
-                      borderRadius: '9px',
-                      boxShadow: (theme) => `0 0 0 2px ${theme.palette.background.paper}, 0 1px 4px ${theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.12)'}`,
-                    },
-                  }}
-                />
-              </Box>
-            )
-            : opt.label;
-
-          return (
-            <Tab
-              key={String(tabValue)}
-              value={tabValue}
-              icon={iconNode as React.ReactElement | undefined}
-              iconPosition="start"
-              label={labelNode}
-              disabled={opt.disabled}
-            />
-          );
-        })}
-      </Tabs>
-      {inlineActions && (
-        <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1, pr: 1.25 }}>
-          {inlineActions}
-        </Box>
-      )}
-    </Box>
+  useScreenTrailSegment(
+    trail && activeIndex >= 0 ? visibleOptions[activeIndex]?.label : undefined,
   );
 
-  if (paper) {
-    // Signature : onglets niveau 1 = souligné seul (la hairline du conteneur
-    // tabsRow fait office de bordure), le Paper devient un wrapper plat.
-    return (
-      <Paper
-        sx={{ mb, border: 'none', borderRadius: 0, bgcolor: 'transparent', backgroundImage: 'none' }}
-        variant="outlined"
+  return (
+    <div
+      className={cn('flex items-end justify-between gap-3 border-b border-border', className)}
+      style={{ marginBottom: mb * 8 }}
+    >
+      <Tabs
+        className="min-w-0 flex-1"
+        value={String(activeIndex >= 0 ? activeIndex : 0)}
+        onValueChange={(next) => {
+          const index = Number(next);
+          const opt = visibleOptions[index];
+          if (opt && !opt.disabled) onChange(valueOf(opt, index));
+        }}
       >
-        {tabsRow}
-      </Paper>
-    );
-  }
-  return <Box sx={{ mb }}>{tabsRow}</Box>;
+        <TabsList
+          variant="line"
+          aria-label={ariaLabel}
+          className={cn('max-w-full flex-wrap', compact ? 'gap-0.5' : 'gap-1')}
+        >
+          {visibleOptions.map((opt, index) => (
+            <TabsTrigger
+              key={opt.key ?? String(valueOf(opt, index))}
+              value={String(index)}
+              disabled={opt.disabled}
+              className={cn(
+                'gap-1.5 font-medium [&_svg]:shrink-0 [&_svg]:text-muted-foreground data-active:[&_svg]:text-foreground',
+                compact ? 'px-2 py-1 text-xs' : 'px-2.5 py-1.5 text-sm',
+              )}
+            >
+              {opt.icon && sizedIcon(opt.icon, compact ? 14 : 16, 1.75)}
+              {opt.label}
+              {/* Même pastille que la sidebar (NavCountBadge) : une seule
+                  définition de la notification dans toute la navigation. */}
+              <NavCountBadge count={opt.badge} tone={opt.badgeColor} />
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+      {inlineActions && <div className="mb-1 flex shrink-0 items-center gap-2">{inlineActions}</div>}
+    </div>
+  );
 }

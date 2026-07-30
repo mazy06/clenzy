@@ -14,6 +14,24 @@ import java.util.List;
 public interface GuestMessageLogRepository extends JpaRepository<GuestMessageLog, Long> {
 
     /**
+     * Messages voyageur dont l'envoi a échoué, sans renvoi réussi depuis.
+     *
+     * <p>Le seul signal existant est une pastille agrégée sur le menu Documents,
+     * sans nom de voyageur ni réservation : on apprend qu'« il y a des échecs »
+     * sans savoir qui n'a pas reçu ses instructions d'arrivée.</p>
+     */
+    @Query("SELECT l FROM GuestMessageLog l WHERE l.organizationId = :orgId "
+        + "AND l.status = com.clenzy.model.MessageStatus.FAILED "
+        + "AND l.createdAt >= :since "
+        + "AND NOT EXISTS (SELECT 1 FROM GuestMessageLog ok WHERE ok.reservationId = l.reservationId "
+        + "  AND ok.templateId = l.templateId AND ok.createdAt > l.createdAt "
+        + "  AND ok.status IN (com.clenzy.model.MessageStatus.SENT, com.clenzy.model.MessageStatus.DELIVERED)) "
+        + "ORDER BY l.createdAt DESC")
+    List<GuestMessageLog> findFailedWithoutRetry(@Param("orgId") Long orgId,
+                                                 @Param("since") LocalDateTime since);
+
+
+    /**
      * Historique org borne ({@code Pageable}) — la table est cumulative,
      * l'appelant limite aux N entrees les plus recentes (audit perf 2026-07-21).
      * guest/template sont des ManyToOne : le fetch join reste compatible
@@ -90,4 +108,28 @@ public interface GuestMessageLogRepository extends JpaRepository<GuestMessageLog
     long countFailedByOrganizationSince(
         @Param("orgId") Long orgId,
         @Param("since") LocalDateTime since);
+
+    /**
+     * Vrai si une tentative d'envoi est déjà partie — ou peut l'être — pour ce
+     * séjour et ce modèle, depuis un instant donné.
+     *
+     * <p>{@code PENDING} compte : la trace est ouverte <b>avant</b> l'appel au
+     * fournisseur, donc une ligne restée dans cet état signifie « parti, issue
+     * inconnue ». C'est précisément le cas où un rejeu produirait un doublon,
+     * et le seul qu'on ne peut pas trancher automatiquement.</p>
+     */
+    @Query("""
+            SELECT COUNT(l) > 0 FROM GuestMessageLog l
+            WHERE l.organizationId = :orgId
+              AND l.reservationId = :reservationId
+              AND l.templateId = :templateId
+              AND l.createdAt >= :since
+              AND l.status IN (com.clenzy.model.MessageStatus.PENDING,
+                               com.clenzy.model.MessageStatus.SENT,
+                               com.clenzy.model.MessageStatus.DELIVERED)
+            """)
+    boolean existsAttemptSince(@Param("orgId") Long orgId,
+                               @Param("reservationId") Long reservationId,
+                               @Param("templateId") Long templateId,
+                               @Param("since") LocalDateTime since);
 }

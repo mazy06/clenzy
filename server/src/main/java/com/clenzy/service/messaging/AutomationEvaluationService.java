@@ -178,6 +178,58 @@ public class AutomationEvaluationService implements AutomationEngine {
         });
     }
 
+    /**
+     * Rejoue une exécution en échec, et <b>elle seule</b>.
+     *
+     * <p>{@link #fireTrigger} réévalue toutes les règles actives du
+     * déclencheur : l'appeler pour réparer un échec renverrait les messages des
+     * règles voisines, qui, elles, avaient abouti. Ce chemin reprend donc la
+     * ligne d'exécution existante et ne réexécute que son action.</p>
+     *
+     * <p>La déduplication par sujet est volontairement contournée : elle sert à
+     * empêcher une seconde exécution, or c'est exactement ce qu'on demande ici.
+     * Le garde-fou n'est pas technique mais humain — l'écran annonce que
+     * l'action va repartir, et c'est une personne qui décide.</p>
+     *
+     * @throws IllegalArgumentException si l'exécution est introuvable ou d'une
+     *                                  autre organisation
+     * @throws IllegalStateException    si elle n'est pas en échec
+     */
+    @Transactional
+    public void replayExecution(Long executionId, Long orgId) {
+        final AutomationExecution execution = executionRepository.findById(executionId)
+            .filter(e -> orgId.equals(e.getOrganizationId()))
+            .orElseThrow(() -> new IllegalArgumentException("Execution introuvable : " + executionId));
+
+        if (execution.getStatus() != AutomationExecutionStatus.FAILED) {
+            // Rejouer une execution reussie doublerait son effet sans qu'aucune
+            // panne ne le justifie.
+            throw new IllegalStateException(
+                "Seule une execution en echec se rejoue (statut : " + execution.getStatus() + ")");
+        }
+
+        final AutomationRule rule = execution.getAutomationRule();
+        withTenantScope(orgId, () -> {
+            final AutomationSubject subject = new AutomationSubject(
+                execution.getSubjectType(), execution.getSubjectId(), Map.of());
+            final Reservation reservation = resolveReservationSubject(subject, orgId);
+            if (AutomationSubject.TYPE_RESERVATION.equals(execution.getSubjectType())
+                    && reservation == null) {
+                throw new IllegalStateException(
+                    "La reservation " + execution.getSubjectId() + " n'existe plus : rien a rejouer");
+            }
+            final AutomationActionContext context = new AutomationActionContext(
+                orgId, execution.getSubjectType(), execution.getSubjectId(),
+                subject.data(), reservation);
+
+            execution.setErrorMessage(null);
+            executeAction(execution, rule, context);
+            log.info("Automation {} rejouee manuellement pour sujet {}/{} — statut {}",
+                rule.getName(), execution.getSubjectType(), execution.getSubjectId(),
+                execution.getStatus());
+        });
+    }
+
     // ── Chemin temporel (cycle de vie reservation) ──────────────────────────────
 
     /**

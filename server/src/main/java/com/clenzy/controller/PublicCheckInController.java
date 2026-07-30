@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.OnlineCheckInSubmission;
 import com.clenzy.dto.PublicCheckInDataDto;
 import com.clenzy.model.OnlineCheckIn;
+import com.clenzy.service.CheckInSubmissionService;
 import com.clenzy.service.OnlineCheckInService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -16,8 +17,11 @@ import java.util.UUID;
 public class PublicCheckInController {
 
     private final OnlineCheckInService checkInService;
+    private final CheckInSubmissionService checkInSubmissionService;
 
-    public PublicCheckInController(OnlineCheckInService checkInService) {
+    public PublicCheckInController(OnlineCheckInService checkInService,
+                                   CheckInSubmissionService checkInSubmissionService) {
+        this.checkInSubmissionService = checkInSubmissionService;
         this.checkInService = checkInService;
     }
 
@@ -39,12 +43,7 @@ public class PublicCheckInController {
     public ResponseEntity<Map<String, String>> submitCheckIn(
             @PathVariable UUID token,
             @Valid @RequestBody OnlineCheckInSubmission submission) {
-        checkInService.completeCheckIn(token,
-            submission.firstName(), submission.lastName(),
-            submission.email(), submission.phone(),
-            submission.idDocumentNumber(), submission.idDocumentType(),
-            submission.estimatedArrivalTime(), submission.specialRequests(),
-            submission.numberOfGuests(), submission.additionalGuests());
+        checkInSubmissionService.submit(token, submission);
         return ResponseEntity.ok(Map.of("status", "COMPLETED"));
     }
 }

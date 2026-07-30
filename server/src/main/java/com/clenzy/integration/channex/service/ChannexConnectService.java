@@ -26,6 +26,7 @@ import com.clenzy.integration.channex.dto.ChannexPropertyDto;
 import com.clenzy.integration.channex.dto.ChannexRatePlanDto;
 import com.clenzy.integration.channex.dto.ChannexRoomTypeDto;
 import com.clenzy.integration.channex.exception.ChannexException;
+import com.clenzy.integration.channex.model.ChannexOtaChannel;
 import com.clenzy.integration.channex.model.ChannexPropertyMapping;
 import com.clenzy.integration.channex.model.ChannexSyncStatus;
 import com.clenzy.integration.channex.repository.ChannexOtaChannelRepository;
@@ -48,6 +49,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Service d'onboarding Channex (connexion/deconnexion d'une property Clenzy).
@@ -355,10 +357,14 @@ public class ChannexConnectService {
         String channexPropertyId = mapping.getChannexPropertyId();
         List<DisconnectStep> steps = new ArrayList<>();
 
-        // 1. Enumere les channels Channex lies a cette property
+        // 1. Enumere les channels Channex lies a cette property.
+        //    Si le hub est injoignable, on se rabat sur les channel_ids deja
+        //    connus localement : mieux vaut desactiver un sous-ensemble que rien.
         List<String> channelIds;
+        boolean channelsEnumerated;
         try {
             channelIds = findChannelIdsForProperty(channexPropertyId);
+            channelsEnumerated = true;
             steps.add(DisconnectStep.success("LIST_CHANNELS",
                 "Channels detectes sur le hub",
                 channelIds.isEmpty()
@@ -367,10 +373,16 @@ public class ChannexConnectService {
         } catch (Exception e) {
             log.warn("ChannexConnect[FULL-DISCONNECT]: list channels for property {} KO: {}",
                 channexPropertyId, e.getMessage());
+            channelIds = knownLocalChannelIds(mapping.getId());
+            channelsEnumerated = false;
             steps.add(DisconnectStep.failed("LIST_CHANNELS",
                 "Enumeration des channels Channex",
-                "Erreur API : " + e.getMessage()));
-            channelIds = List.of();
+                "Erreur API : " + e.getMessage()
+                    + (channelIds.isEmpty()
+                        ? ". Aucun channel connu localement pour prendre le relais —"
+                            + " impossible de savoir ce qui reste actif sur le hub."
+                        : ". Repli sur " + channelIds.size()
+                            + " channel(s) connu(s) localement — la liste peut etre incomplete.")));
         }
 
         // 2. Pour chaque channel : deactivate (priorite #1 : liberer l'OTA) puis delete
@@ -430,8 +442,25 @@ public class ChannexConnectService {
                 "Mode soft : reversible. Reconnect possible sans recreation."));
         }
 
-        // 4. CLEANUP_LOCAL — toujours execute, meme si Channex a galere.
-        //    L'utilisateur doit pouvoir "abandonner" et nettoyer cote Clenzy.
+        // 4. CLEANUP_LOCAL — sauf si on n'a pas pu enumerer les channels du hub.
+        //    Supprimer le mapping alors qu'on ignore ce qui reste actif cote Channex
+        //    rend la property invisible dans Clenzy tout en la laissant branchee aux
+        //    OTA : plus aucun ecran ne permet de la rattraper. Tant que l'enumeration
+        //    a echoue, on garde le mapping — c'est lui qui permet de rejouer.
+        if (!channelsEnumerated) {
+            steps.add(DisconnectStep.skipped("CLEANUP_LOCAL",
+                "Mapping local conserve",
+                "Le hub n'a pas pu etre interroge : on ignore quels channels restent"
+                    + " actifs. Le mapping est conserve pour pouvoir relancer la"
+                    + " deconnexion une fois Channex joignable."));
+            boolean partialSuccess = steps.stream()
+                .noneMatch(s -> s.status() == ChannexFullDisconnectResult.Status.FAILED);
+            log.info("ChannexConnect[FULL-DISCONNECT]: interrompu property={} channex={} (hub injoignable)",
+                clenzyPropertyId, channexPropertyId);
+            return new ChannexFullDisconnectResult(
+                partialSuccess, clenzyPropertyId, channexPropertyId, steps);
+        }
+
         try {
             otaChannelRepository.findByMappingId(mapping.getId())
                 .forEach(otaChannelRepository::delete);
@@ -467,6 +496,21 @@ public class ChannexConnectService {
      * Java. Cf. {@link ChannexClient#hasActiveOtaChannel} qui fait la meme
      * gymnastique en mode boolean.</p>
      */
+    /**
+     * Helper : channel_ids Channex deja connus en base pour ce mapping.
+     *
+     * <p>Filet de secours quand {@code GET /channels} echoue (hub injoignable,
+     * credentials absents) : on tente au moins de desactiver ce qu'on connait
+     * plutot que de ne rien faire du tout. La liste peut etre incomplete — un
+     * channel cree cote hub sans passer par Clenzy n'y figure pas.</p>
+     */
+    private List<String> knownLocalChannelIds(UUID mappingId) {
+        return otaChannelRepository.findByMappingId(mappingId).stream()
+            .map(ChannexOtaChannel::getChannexChannelId)
+            .filter(id -> id != null && !id.isBlank())
+            .toList();
+    }
+
     private List<String> findChannelIdsForProperty(String channexPropertyId) {
         JsonNode response = channexClient.fetchAllChannelsRaw();
         if (response == null || !response.path("data").isArray()) {
@@ -758,16 +802,18 @@ public class ChannexConnectService {
             ? property.getName()
             : "Propriete #" + clenzyPropertyId;
 
-        // Count active OTAs on the hub for this property (best-effort)
-        int activeOtaCount = countActiveOtasForProperty(mapping.getChannexPropertyId());
-        boolean hasActiveOta = activeOtaCount > 0;
+        // Count active OTAs on the hub for this property. null = hub injoignable,
+        // ce qui n'est PAS la meme chose que "aucun OTA actif" (cf. SyncSnapshot).
+        Integer activeOtaCount = countActiveOtasForProperty(mapping.getChannexPropertyId());
+        boolean otaCountKnown = activeOtaCount != null;
 
         SyncSnapshot snapshot = new SyncSnapshot(
             mapping.getSyncStatus(),
             mapping.getLastSyncAt(),
             mapping.getLastSyncError(),
-            activeOtaCount,
-            hasActiveOta
+            otaCountKnown ? activeOtaCount : 0,
+            otaCountKnown && activeOtaCount > 0,
+            otaCountKnown
         );
 
         List<RecommendedAction> actions = buildRecommendedActions(snapshot);
@@ -787,13 +833,17 @@ public class ChannexConnectService {
 
     /**
      * Compte les channels Channex actifs (is_active=true) lies a une property.
-     * Best-effort : en cas d'erreur API, retourne 0 et log un warn.
+     *
+     * @return le nombre d'OTA actifs, ou {@code null} si le hub n'a pas pu etre
+     *         interroge. Ne jamais degrader ce {@code null} en {@code 0} : le
+     *         diagnostic recommanderait une deconnexion complete sur la foi d'un
+     *         incident reseau.
      */
-    private int countActiveOtasForProperty(String channexPropertyId) {
+    private Integer countActiveOtasForProperty(String channexPropertyId) {
         try {
             JsonNode response = channexClient.fetchAllChannelsRaw();
             if (response == null || !response.path("data").isArray()) {
-                return 0;
+                return null;
             }
             int count = 0;
             for (JsonNode channel : response.path("data")) {
@@ -804,7 +854,7 @@ public class ChannexConnectService {
         } catch (Exception e) {
             log.warn("ChannexConnect[DIAGNOSE]: count active OTAs for {} KO: {}",
                 channexPropertyId, e.getMessage());
-            return 0;
+            return null;
         }
     }
 
@@ -830,6 +880,19 @@ public class ChannexConnectService {
         List<RecommendedAction> actions = new ArrayList<>();
         ChannexSyncStatus status = snapshot.status();
         boolean hasOta = snapshot.hasActiveOta();
+
+        // Hub injoignable : tout l'arbre de decision repose sur le nombre d'OTA
+        // actifs, qu'on ignore. On n'oriente vers aucune action destructive —
+        // seule l'inspection manuelle a du sens.
+        if (!snapshot.otaCountKnown()) {
+            actions.add(new RecommendedAction("OPEN_HUB",
+                "Inspecter le hub Channex",
+                "Le hub n'a pas repondu : impossible de savoir quels OTA sont encore"
+                    + " actifs. Verifiez l'etat des channels sur Channex avant toute"
+                    + " deconnexion.",
+                Priority.PRIMARY));
+            return actions;
+        }
 
         switch (status) {
             case ACTIVE, PENDING -> {
@@ -898,6 +961,12 @@ public class ChannexConnectService {
         ChannexSyncStatus status = snapshot.status();
         boolean hasOta = snapshot.hasActiveOta();
         int n = snapshot.activeOtaCount();
+
+        if (!snapshot.otaCountKnown()) {
+            return "Le hub Channex n'a pas repondu : impossible de savoir si des OTA"
+                + " sont encore connectes a cette propriete. Verifiez le hub avant"
+                + " de deconnecter quoi que ce soit.";
+        }
 
         return switch (status) {
             case ACTIVE -> hasOta
@@ -1258,11 +1327,99 @@ public class ChannexConnectService {
         log.info("ChannexConnect: channel OTA cree id={} title={} pour property {} (org={})",
             created.id(), created.title(), clenzyPropertyId, orgId);
 
-        // 4. Generer l'URL iframe qui ouvre directement ce channel pour OAuth
+        // 4. Enregistrer le channel en base : c'est cette ligne qui alimente
+        //    RateParityService (declinaison par OTA) et le repli local de
+        //    fullDisconnect quand le hub est injoignable.
+        rememberOtaChannel(mapping, orgId,
+            created.channelName() != null ? created.channelName() : otaChannelName,
+            created.id());
+
+        // 5. Generer l'URL iframe qui ouvre directement ce channel pour OAuth
         String embedUrl = channexClient.createChannelEmbedUrl(
             mapping.getChannexPropertyId(), created.id(), username, language);
 
         return ChannexOtaChannelResponse.of(created.id(), created.title(),
             created.channelName(), embedUrl);
+    }
+
+    // ─── Registre local des channels OTA ────────────────────────────────────
+
+    /**
+     * Enregistre (ou rafraichit) la ligne {@code channex_ota_channels} d'un
+     * channel qui vient d'etre cree cote hub.
+     *
+     * <p>Deliberement best-effort : le channel existe deja chez Channex quand on
+     * arrive ici. Faire echouer l'appel sur un probleme de bookkeeping local
+     * pousserait l'utilisateur a re-cliquer, donc a creer un second channel sur
+     * le hub — pire que la ligne manquante. On log en WARN a la place.</p>
+     *
+     * <p>Pas de {@code @Transactional} sur {@link #createOtaChannel} : la methode
+     * enchaine trois appels HTTP a Channex, qu'on ne veut pas voir tenir une
+     * transaction ouverte. Le couple find/save ci-dessous s'execute donc dans les
+     * transactions courtes de Spring Data.</p>
+     */
+    private void rememberOtaChannel(ChannexPropertyMapping mapping, Long orgId,
+                                    String channexChannelName, String channexChannelId) {
+        String otaType = ChannexOtaChannel.slugFor(channexChannelName);
+        try {
+            // La contrainte UNIQUE (property_mapping_id, ota_type) interdit une
+            // seconde ligne pour le meme OTA : on reutilise celle qui existe deja
+            // (cas d'une reconnexion apres un DELETE cote hub uniquement).
+            ChannexOtaChannel channel = otaChannelRepository
+                .findByMappingAndOta(mapping.getId(), otaType)
+                .orElseGet(ChannexOtaChannel::new);
+
+            channel.setPropertyMappingId(mapping.getId());
+            channel.setOrganizationId(orgId);
+            channel.setOtaType(otaType);
+            channel.setChannexChannelId(channexChannelId);
+            channel.setEnabled(true);
+            channel.setErrorCount(0);
+            channel.setLastErrorMessage(null);
+
+            otaChannelRepository.save(channel);
+            log.info("ChannexConnect: channel OTA enregistre localement mapping={} ota={} channel={}",
+                mapping.getId(), otaType, channexChannelId);
+        } catch (Exception e) {
+            log.warn("ChannexConnect: enregistrement local du channel {} (ota={}, mapping={}) KO : {}"
+                    + " — le channel existe cote Channex mais restera invisible de la parite"
+                    + " tarifaire et du repli de deconnexion.",
+                channexChannelId, otaType, mapping.getId(), e.getMessage());
+        }
+    }
+
+    /**
+     * Marque un channel comme desactive en base, apres un deactivate reussi cote
+     * hub. La ligne est conservee : elle reste le seul moyen de retrouver le
+     * channel si le DELETE echoue et qu'il faut rejouer la deconnexion.
+     */
+    @Transactional
+    public void disableLocalOtaChannel(Long orgId, String channexChannelId) {
+        List<ChannexOtaChannel> channels = otaChannelRepository
+            .findByOrgAndChannelId(orgId, channexChannelId);
+        for (ChannexOtaChannel channel : channels) {
+            channel.setEnabled(false);
+            otaChannelRepository.save(channel);
+        }
+        if (!channels.isEmpty()) {
+            log.info("ChannexConnect: {} ligne(s) ota_channel passee(s) a enabled=false (channel={}, org={})",
+                channels.size(), channexChannelId, orgId);
+        }
+    }
+
+    /**
+     * Oublie un channel supprime du hub : plus rien a desactiver ni a decliner
+     * par OTA, la ligne locale n'a plus d'objet.
+     */
+    @Transactional
+    public void forgetLocalOtaChannel(Long orgId, String channexChannelId) {
+        List<ChannexOtaChannel> channels = otaChannelRepository
+            .findByOrgAndChannelId(orgId, channexChannelId);
+        if (channels.isEmpty()) {
+            return;
+        }
+        channels.forEach(otaChannelRepository::delete);
+        log.info("ChannexConnect: {} ligne(s) ota_channel supprimee(s) (channel={}, org={})",
+            channels.size(), channexChannelId, orgId);
     }
 }

@@ -18,8 +18,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Typography,
-  Tabs,
-  Tab,
   Stack,
   TextField,
   InputAdornment,
@@ -71,6 +69,7 @@ import {
   type AmenityCategory,
 } from '../../../utils/amenities';
 import CreateCustomAmenityModal from './CreateCustomAmenityModal';
+import PageTabs from '../../../components/PageTabs';
 
 // Tokens design (cf. CLAUDE.md primary palette)
 const ACCENT = 'var(--accent)';
@@ -359,23 +358,24 @@ export default function AmenityMappingPage() {
 
       {/* Tabs */}
       <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 2 }}>
-        <Tabs
+        <PageTabs
+          options={[
+            { value: 'unmapped' as TabKey, label: 'À mapper', badge: unmapped.length, badgeColor: 'warning' },
+            { value: 'aliases' as TabKey, label: 'Mes mappings', badge: aliases.length, badgeColor: 'primary' },
+            { value: 'custom' as TabKey, label: 'Commodités custom', badge: customs.length, badgeColor: 'primary' },
+            { value: 'ignored' as TabKey, label: 'Ignorés', badge: ignored.length, badgeColor: 'primary' },
+            {
+              value: 'reference' as TabKey,
+              label: t('settings.amenities.tabs.reference', 'Référentiel Baitly'),
+              badge: BUILT_IN_AMENITIES.length,
+              badgeColor: 'primary',
+            },
+          ]}
           value={tab}
-          onChange={(_e, v) => setTab(v as TabKey)}
-          textColor="primary"
-          sx={{
-            minHeight: 38,
-            '& .MuiTab-root': { minHeight: 38, textTransform: 'none', fontSize: '0.85rem' },
-            '& .Mui-selected': { color: ACCENT },
-            '& .MuiTabs-indicator': { backgroundColor: ACCENT, height: 2 },
-          }}
-        >
-          <Tab label={`À mapper (${unmapped.length})`} value="unmapped" />
-          <Tab label={`Mes mappings (${aliases.length})`} value="aliases" />
-          <Tab label={`Commodités custom (${customs.length})`} value="custom" />
-          <Tab label={`Ignorés (${ignored.length})`} value="ignored" />
-          <Tab label={`${t('settings.amenities.tabs.reference', 'Référentiel Baitly')} (${BUILT_IN_AMENITIES.length})`} value="reference" />
-        </Tabs>
+          onChange={setTab}
+          mb={0}
+          trail={false}
+        />
       </Box>
 
       {error && (

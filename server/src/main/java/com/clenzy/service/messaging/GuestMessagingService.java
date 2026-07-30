@@ -33,6 +33,7 @@ public class GuestMessagingService {
     private final List<MessageChannel> channels;
     private final TemplateInterpolationService interpolationService;
     private final GuestMessageLogRepository messageLogRepository;
+    private final GuestMessageAttemptLog attemptLog;
     private final CheckInInstructionsRepository instructionsRepository;
     private final MessageTemplateRepository templateRepository;
     private final ReservationRepository reservationRepository;
@@ -45,6 +46,7 @@ public class GuestMessagingService {
             List<MessageChannel> channels,
             TemplateInterpolationService interpolationService,
             GuestMessageLogRepository messageLogRepository,
+            GuestMessageAttemptLog attemptLog,
             CheckInInstructionsRepository instructionsRepository,
             MessageTemplateRepository templateRepository,
             ReservationRepository reservationRepository,
@@ -56,6 +58,7 @@ public class GuestMessagingService {
         this.channels = channels;
         this.interpolationService = interpolationService;
         this.messageLogRepository = messageLogRepository;
+        this.attemptLog = attemptLog;
         this.instructionsRepository = instructionsRepository;
         this.templateRepository = templateRepository;
         this.reservationRepository = reservationRepository;
@@ -307,14 +310,32 @@ public class GuestMessagingService {
             return failedLog;
         }
 
-        // Envoyer
-        MessageDeliveryResult result = channel.send(request);
+        // Ouvrir la trace AVANT l'envoi, dans sa propre transaction.
+        //
+        // L'ordre inverse — envoyer puis journaliser — laissait une fenetre ou le
+        // message etait parti sans qu'il en reste trace : le fournisseur avait
+        // accepte, l'ecriture avait echoue. « Rien n'est parti » devenait alors
+        // indiscernable de « on ne sait pas », et un rejeu envoyait deux fois.
+        GuestMessageLog logEntry = attemptLog.begin(
+            reservation, guest, template, orgId, channel.getChannelType(),
+            recipient, interpolated.subject());
+
+        MessageDeliveryResult result;
+        try {
+            result = channel.send(request);
+        } catch (RuntimeException e) {
+            // L'appel lui-meme a echoue : rien n'est parti, la trace le dit.
+            attemptLog.complete(logEntry.getId(), MessageStatus.FAILED, e.getMessage());
+            throw e;
+        }
 
         MessageStatus status = result.success() ? MessageStatus.SENT : MessageStatus.FAILED;
-        GuestMessageLog logEntry = createLog(
-            reservation, guest, template, orgId, channel.getChannelType(),
-            recipient, interpolated.subject(), status, result.errorMessage()
-        );
+        // Si CE processus meurt ici, la ligne reste PENDING — c'est-a-dire
+        // exactement « parti, issue inconnue ». C'est l'etat qu'on veut pouvoir
+        // lire plus tard.
+        attemptLog.complete(logEntry.getId(), status, result.errorMessage());
+        logEntry.setStatus(status);
+        logEntry.setErrorMessage(result.errorMessage());
 
         // Notification interne : succes → owner seul (information) ; echec → owner
         // + admins/managers (alerte, meme circuit que les echecs de generation de document).

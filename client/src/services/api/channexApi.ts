@@ -776,6 +776,12 @@ export interface ChannexSyncSnapshot {
   /** Nombre d'OTAs actifs (is_active=true) sur le hub pour cette property. */
   activeOtaCount: number;
   hasActiveOta: boolean;
+  /**
+   * `false` quand le hub n'a pas pu etre interroge : `activeOtaCount` et
+   * `hasActiveOta` sont alors sans valeur informative et ne doivent pas etre
+   * affiches comme « aucun OTA ».
+   */
+  otaCountKnown: boolean;
 }
 
 /**

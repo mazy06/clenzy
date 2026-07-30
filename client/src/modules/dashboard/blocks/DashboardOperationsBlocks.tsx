@@ -2,16 +2,35 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BanknoteIcon,
+  BanknoteXIcon,
+  BookOpenIcon,
   BrushIcon,
   CalendarSyncIcon,
+  CalendarXIcon,
   ChevronRightIcon,
+  ClockAlertIcon,
+  LockIcon,
+  MailWarningIcon,
+  VolumeXIcon,
+  ClipboardListIcon,
+  ZapOffIcon,
+  SendHorizonalIcon,
+  PlugZapIcon,
+  FileWarningIcon,
+  LandmarkIcon,
+  ReceiptTextIcon,
+  MessageCircleIcon,
+  ShieldAlertIcon,
   LogInIcon,
   LogOutIcon,
   StarIcon,
   TriangleAlertIcon,
+  UserSearchIcon,
+  WrenchIcon,
 } from 'lucide-react';
 import {
   Button,
+  buttonVariants,
   Table,
   TableBody,
   TableCell,
@@ -21,6 +40,14 @@ import {
 } from '../../../components/ui';
 import GuestAvatar from '../../../components/baitly/GuestAvatar';
 import ReviewReplyDialog from '../../../components/baitly/ReviewReplyDialog';
+import ReservationActionDialog from '../../../components/baitly/ReservationActionDialog';
+import FeedSyncDialog from '../../../components/baitly/FeedSyncDialog';
+import ActionCardDialog from '../../../components/baitly/ActionCardDialog';
+import { ACTION_CARDS } from '../../../components/baitly/actionCards';
+import PaymentIncidentDialog from '../../../components/baitly/PaymentIncidentDialog';
+import RetryDeliveryDialog from '../../../components/baitly/RetryDeliveryDialog';
+import StuckServiceDialog from '../../../components/baitly/StuckServiceDialog';
+import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
 import StatusChip from '../../../components/baitly/StatusChip';
 import { Money } from '../../../components/baitly/Money';
 import { cn } from '../../../utils/cn';
@@ -32,8 +59,8 @@ import {
   useDashboardUpcomingArrivals,
 } from '../../../hooks/useDashboardOperations';
 import type {
-  DashboardStaleFeed,
-  DashboardUnansweredReview,
+  DashboardActionItem,
+  DashboardActionItems,
   DashboardUpcomingArrival,
 } from '../../../services/api/dashboardOperationsApi';
 
@@ -77,15 +104,12 @@ function BlockCard({
   icon,
   title,
   count,
-  titleSuffix,
   children,
   className,
 }: {
   icon?: React.ReactNode;
   title: React.ReactNode;
   count?: number;
-  /** Prolonge le titre sur la MÊME ligne (ex. l'unique rubrique peuplée). */
-  titleSuffix?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -101,7 +125,6 @@ function BlockCard({
         {icon}
         {title}
         {count !== undefined && <span className="tabular-nums">({count})</span>}
-        {titleSuffix}
       </h3>
       {children}
     </section>
@@ -119,6 +142,11 @@ export function TodayOperationsSection() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data, isLoading } = useDashboardToday();
+  // Le séjour s'ouvre sur place : `/reservations/:id` n'existe pas, et quitter
+  // le tableau de bord pour lire deux dates n'aide personne.
+  // ⚠️ Avant tout early return (règles des hooks).
+  const [openedReservation, setOpenedReservation] =
+    React.useState<{ id: number; guestName: string | null; propertyName: string | null } | null>(null);
 
   if (isLoading) return null;
 
@@ -142,7 +170,13 @@ export function TodayOperationsSection() {
               <button
                 key={arrival.reservationId}
                 type="button"
-                onClick={() => navigate(`/reservations/${arrival.reservationId}`)}
+                onClick={() =>
+                  setOpenedReservation({
+                    id: arrival.reservationId,
+                    guestName: arrival.guestName,
+                    propertyName: arrival.propertyName,
+                  })
+                }
                 className="flex cursor-pointer items-center gap-2.5 rounded-md text-start outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 <GuestAvatar name={arrival.guestName ?? '?'} size={30} />
@@ -258,6 +292,16 @@ export function TodayOperationsSection() {
           </div>
         )}
       </BlockCard>
+
+      <ReservationActionDialog
+        reservationId={openedReservation?.id ?? null}
+        onClose={() => setOpenedReservation(null)}
+        preview={{
+          guestName: openedReservation?.guestName,
+          propertyName: openedReservation?.propertyName,
+        }}
+        invalidateKeys={[['dashboard', 'operations', 'today']]}
+      />
     </div>
   );
 }
@@ -273,200 +317,487 @@ function cleaningWindow(start: string | null, end: string | null): string | null
 // ─── §6 — À traiter ─────────────────────────────────────────────────────────
 
 /**
- * Lignes affichées par groupe. Le serveur en renvoie jusqu'à 20 par catégorie
- * (`DashboardOperationsService.MAX_ROWS`), soit 60 lignes possibles dans une
- * tuile de tableau de bord : à ce volume la carte n'est plus une liste de
- * priorités mais un backlog, qu'on ne lit plus. Au-delà, un lien renvoie vers
- * l'écran qui sait vraiment traiter le sujet.
+ * Lignes visibles avant dépliage. La file reste une liste de priorités : au-delà
+ * de trois lignes par rubrique, on ne lit plus, on parcourt.
  */
-const GROUP_LIMIT = 3;
+const GROUP_PREVIEW = 3;
 
+/**
+ * Une nature d'action et sa présentation : icône, teinte, libellé de rubrique,
+ * et le verbe de son bouton de fin de ligne.
+ *
+ * L'ordre de ce tableau EST l'ordre d'affichage des rubriques — le même que la
+ * priorité serveur (`ActionItemKind`) : ce qu'on n'a pas encaissé et ce qui peut
+ * provoquer une double réservation passent avant la réputation.
+ *
+ * `action` est le geste attendu, pas un « Ouvrir » générique : la rubrique dit
+ * ce qui ne va pas, le bouton dit ce qu'on va en faire. Un même verbe peut
+ * servir deux natures (« Assigner » pour une prestation et pour une
+ * intervention) — c'est la rubrique qui lève l'ambiguïté.
+ *
+ * Les cartes des agents n'y figurent pas : elles vivent dans la constellation.
+ */
+function actionKinds(t: TranslateFn) {
+  return [
+    {
+      kind: 'GUEST_DECLARATION_MISSING' as const,
+      icon: <ShieldAlertIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.declarationGroup', 'Déclarations voyageur manquantes'),
+      action: t('dashboard.actionItems.declarationAction', 'Déclarer'),
+    },
+    {
+      kind: 'PAYMENT_INCIDENT' as const,
+      icon: <LandmarkIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.incidentGroup', 'Incidents de règlement'),
+      action: t('dashboard.actionItems.incidentAction', 'Régulariser'),
+    },
+    {
+      kind: 'RESERVATION_PENDING' as const,
+      icon: <CalendarXIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.pendingGroup', 'Réservations à confirmer'),
+      action: t('dashboard.actionItems.pendingAction', 'Confirmer'),
+    },
+    {
+      kind: 'INTERVENTION_OVERDUE' as const,
+      icon: <ClockAlertIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.overdueGroup', 'Interventions en retard'),
+      action: t('dashboard.actionItems.overdueAction', 'Relancer'),
+    },
+    {
+      kind: 'CONVERSATION_UNANSWERED' as const,
+      icon: <MessageCircleIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.conversationGroup', 'Messages sans réponse'),
+      action: t('dashboard.actionItems.conversationAction', 'Répondre'),
+    },
+    {
+      kind: 'BALANCE_DUE' as const,
+      icon: <BanknoteIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.balancesGroup', 'Soldes à percevoir'),
+      action: t('dashboard.actionItems.balancesAction', 'Encaisser'),
+    },
+    {
+      kind: 'BALANCE_ABANDONED' as const,
+      icon: <BanknoteXIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.abandonedGroup', 'Soldes jamais encaissés'),
+      action: t('dashboard.actionItems.abandonedAction', 'Encaisser'),
+    },
+    {
+      kind: 'GUEST_MESSAGE_FAILED' as const,
+      icon: <MailWarningIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.messageFailedGroup', 'Messages non délivrés'),
+      action: t('dashboard.actionItems.messageFailedAction', 'Renvoyer'),
+    },
+    {
+      kind: 'WELCOME_GUIDE_MISSING' as const,
+      icon: <BookOpenIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.guideGroup', 'Livrets d’accueil à publier'),
+      action: t('dashboard.actionItems.guideAction', 'Publier'),
+    },
+    {
+      kind: 'DEPOSIT_STUCK' as const,
+      icon: <LockIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.depositGroup', 'Cautions à libérer'),
+      action: t('dashboard.actionItems.depositAction', 'Libérer'),
+    },
+    {
+      kind: 'SERVICE_UNPAID' as const,
+      icon: <WrenchIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.servicesGroup', 'Prestations à régler'),
+      action: t('dashboard.actionItems.servicesAction', 'Régler'),
+    },
+    {
+      kind: 'SERVICE_UNASSIGNED' as const,
+      icon: <UserSearchIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.unassignedGroup', 'Prestations sans prestataire'),
+      action: t('dashboard.actionItems.unassignedAction', 'Assigner'),
+    },
+    {
+      kind: 'FEED_STALE' as const,
+      icon: <CalendarSyncIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.feedsGroup', 'Calendriers désynchronisés'),
+      action: t('dashboard.actionItems.feedsAction', 'Resynchroniser'),
+    },
+    {
+      kind: 'REVIEW_UNANSWERED' as const,
+      icon: <StarIcon />,
+      tone: 'text-info',
+      label: t('dashboard.actionItems.reviewsGroup', 'Avis sans réponse'),
+      action: t('dashboard.actionItems.reviewsAction', 'Répondre'),
+    },
+    {
+      kind: 'INTERVENTION_UNASSIGNED' as const,
+      icon: <UserSearchIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.interventionUnassignedGroup', 'Interventions sans exécutant'),
+      action: t('dashboard.actionItems.interventionUnassignedAction', 'Assigner'),
+    },
+    {
+      kind: 'INTERVENTION_UNPAID' as const,
+      icon: <WrenchIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.interventionUnpaidGroup', 'Interventions à régler'),
+      action: t('dashboard.actionItems.interventionUnpaidAction', 'Régler'),
+    },
+    {
+      kind: 'CHECKIN_NOT_STARTED' as const,
+      icon: <LogInIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.checkinGroup', 'Check-in en ligne non commencés'),
+      action: t('dashboard.actionItems.checkinAction', 'Relancer'),
+    },
+    {
+      kind: 'NOISE_ALERT_UNACKNOWLEDGED' as const,
+      icon: <VolumeXIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.noiseGroup', 'Alertes de bruit non acquittées'),
+      action: t('dashboard.actionItems.noiseAction', 'Acquitter'),
+    },
+    {
+      kind: 'ISSUE_OPEN' as const,
+      icon: <ClipboardListIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.issueGroup', 'Signalements à qualifier'),
+      action: t('dashboard.actionItems.issueAction', 'Qualifier'),
+    },
+    {
+      kind: 'OWNER_PAYOUT_PENDING' as const,
+      icon: <BanknoteIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.payoutGroup', 'Reversements à approuver'),
+      action: t('dashboard.actionItems.payoutAction', 'Approuver'),
+    },
+    {
+      kind: 'PAYOUT_ONBOARDING_INCOMPLETE' as const,
+      icon: <LandmarkIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.onboardingGroup', 'Comptes de paiement non finalisés'),
+      action: t('dashboard.actionItems.onboardingAction', 'Finaliser'),
+    },
+    {
+      kind: 'INVITATION_EXPIRED' as const,
+      icon: <MailWarningIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.invitationGroup', 'Invitations expirées'),
+      action: t('dashboard.actionItems.invitationAction', 'Réinviter'),
+    },
+    {
+      kind: 'DOCUMENT_DELIVERY_FAILED' as const,
+      icon: <FileWarningIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.documentGroup', 'Documents non délivrés'),
+      action: t('dashboard.actionItems.documentAction', 'Renvoyer'),
+    },
+    {
+      kind: 'EINVOICE_FAILED' as const,
+      icon: <ReceiptTextIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.einvoiceGroup', 'Factures électroniques rejetées'),
+      action: t('dashboard.actionItems.einvoiceAction', 'Renvoyer'),
+    },
+    {
+      kind: 'AUTOMATION_FAILED' as const,
+      icon: <ZapOffIcon />,
+      tone: 'text-warning',
+      label: t('dashboard.actionItems.automationGroup', 'Automatisations en échec'),
+      action: t('dashboard.actionItems.automationAction', 'Relancer'),
+    },
+    {
+      kind: 'OUTBOX_DEAD_LETTER' as const,
+      icon: <SendHorizonalIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.outboxGroup', 'Messages internes perdus'),
+      action: t('dashboard.actionItems.outboxAction', 'Rejouer'),
+    },
+    {
+      kind: 'INTEGRATION_DISCONNECTED' as const,
+      icon: <PlugZapIcon />,
+      tone: 'text-destructive',
+      label: t('dashboard.actionItems.integrationGroup', 'Intégrations déconnectées'),
+      action: t('dashboard.actionItems.integrationAction', 'Reconnecter'),
+    },
+  ];
+}
+
+/**
+ * File unique de tout ce qui attend une décision : cartes des agents, soldes,
+ * prestations impayées, calendriers muets, avis sans réponse.
+ *
+ * <p>Le serveur trie et plafonne par nature ; l'écran ne fait que regrouper pour
+ * dire chaque libellé une fois. Le compteur du titre est le total <b>réel</b>,
+ * pas le nombre de lignes visibles.</p>
+ */
 export function ActionItemsCard() {
+  const { data, isLoading } = useDashboardActionItems();
+  if (isLoading) return null;
+  return <ActionItemsView data={data} />;
+}
+
+/**
+ * Le rendu, séparé de sa source de données.
+ *
+ * Cette séparation n'est pas décorative : la carte a huit états visuels (une
+ * seule rubrique, plusieurs, rubrique tronquée, montant, note, avatar ou non,
+ * flux jamais synchronisé, vide) qu'aucun jeu de données réel ne présente en
+ * même temps. La galerie les met tous à l'écran en passant `data` à la main,
+ * sans réseau ni mode démo dans le produit.
+ */
+export function ActionItemsView({ data }: { data?: DashboardActionItems }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { data, isLoading } = useDashboardActionItems();
   // Répondre est le geste attendu ici : on ouvre l'avis sur place. Quitter le
   // tableau de bord reste possible, mais c'est le rôle du lien « Voir les avis ».
   // ⚠️ Avant tout early return (règles des hooks).
-  const [replyingTo, setReplyingTo] = React.useState<DashboardUnansweredReview | null>(null);
+  const [active, setActive] = React.useState<DashboardActionItem | null>(null);
 
-  if (isLoading) return null;
+  const items = data?.items ?? [];
+  const total = data?.total ?? 0;
 
-  const balances = data?.balancesDue ?? [];
-  const reviews = data?.unansweredReviews ?? [];
-  const feeds = data?.staleFeeds ?? [];
-  const total = balances.length + reviews.length + feeds.length;
-  // Une seule rubrique peuplée : elle remonte sur la ligne du titre de la carte,
-  // et son compteur disparaît — il redirait celui de l'en-tête. Deux lignes
-  // d'en-tête empilées pour dire la même chose gaspillaient de la hauteur.
-  const populatedGroups = [
-    { size: balances.length, icon: <BanknoteIcon />, tone: 'text-warning',
-      label: t('dashboard.actionItems.balancesGroup', 'Soldes à percevoir') },
-    { size: feeds.length, icon: <CalendarSyncIcon />, tone: 'text-destructive',
-      label: t('dashboard.actionItems.feedsGroup', 'Calendriers désynchronisés') },
-    { size: reviews.length, icon: <StarIcon />, tone: 'text-info',
-      label: t('dashboard.actionItems.reviewsGroup', 'Avis sans réponse') },
-  ].filter((group) => group.size > 0);
-  const soleGroup = populatedGroups.length === 1 ? populatedGroups[0] : null;
-  const showGroupCounts = soleGroup == null;
+  const totalsByKind = data?.totalsByKind ?? {};
+  const groups = actionKinds(t)
+    .map((meta) => {
+      const rows = items.filter((item) => item.kind === meta.kind);
+      // Le décompte vient du serveur : `rows` est déjà tronqué.
+      return { ...meta, rows, kindTotal: totalsByKind[meta.kind] ?? rows.length };
+    })
+    .filter((group) => group.rows.length > 0);
 
   return (
     <BlockCard
       icon={<TriangleAlertIcon className="size-3.5 text-warning" />}
       title={t('dashboard.actionItems.title', 'À traiter')}
       count={total}
-      titleSuffix={
-        soleGroup && (
-          <span className="flex items-center gap-1.5 border-s border-border ps-1.5">
-            <span className={cn('inline-flex [&>svg]:size-3.5', soleGroup.tone)}>
-              {soleGroup.icon}
-            </span>
-            {soleGroup.label}
-          </span>
-        )
-      }
     >
-      {total === 0 ? (
+      {groups.length === 0 ? (
         <BlockEmpty>
           {t('dashboard.actionItems.empty', 'Rien à traiter — tout est à jour.')}
         </BlockEmpty>
       ) : (
-        /* Ordre d'urgence, et non ordre d'arrivée : de l'argent qu'on n'a pas
-           encaissé, puis un calendrier muet (risque de double réservation),
-           puis la réputation. Le plafond par groupe rend cet ordre décisif —
-           sans lui, six avis pouvaient enterrer une synchro cassée. */
-        <div className="flex flex-col gap-4">
-          <ActionGroup
-            icon={<BanknoteIcon />}
-            tone="text-warning"
-            label={t('dashboard.actionItems.balancesGroup', 'Soldes à percevoir')}
-            total={balances.length}
-            showCount={showGroupCounts}
-            hideHeader={soleGroup != null}
-            seeAllLabel={t('dashboard.actionItems.seeBilling', 'Voir la facturation')}
-            onSeeAll={() => navigate('/billing')}
-          >
-            {balances.slice(0, GROUP_LIMIT).map((item) => (
-              <ActionRow
-                key={`balance-${item.reservationId}`}
-                primary={item.guestName ?? item.reference}
-                secondary={`${item.reference} · ${t('dashboard.actionItems.arrivingOn', 'arrivée')} ${formatArrivalDate(item.checkIn)}`}
-                value={
-                  <span className="text-sm font-semibold text-foreground tabular-nums">
-                    <Money value={item.amountDue} decimals={0} />
-                  </span>
-                }
-                onClick={() => navigate(`/reservations/${item.reservationId}`)}
-              />
-            ))}
-          </ActionGroup>
-
-          <ActionGroup
-            icon={<CalendarSyncIcon />}
-            tone="text-destructive"
-            label={t('dashboard.actionItems.feedsGroup', 'Calendriers désynchronisés')}
-            total={feeds.length}
-            showCount={showGroupCounts}
-            hideHeader={soleGroup != null}
-            seeAllLabel={t('dashboard.actionItems.seeChannels', 'Voir les canaux')}
-            onSeeAll={() => navigate('/channels')}
-          >
-            {feeds.slice(0, GROUP_LIMIT).map((item) => (
-              <ActionRow
-                key={`feed-${item.feedId}`}
-                primary={item.sourceName ?? t('dashboard.actionItems.unnamedFeed', 'Flux sans nom')}
-                secondary={[item.propertyName, feedDelay(item, t)].filter(Boolean).join(' · ')}
-                onClick={() => navigate('/channels')}
-              />
-            ))}
-          </ActionGroup>
-
-          <ActionGroup
-            icon={<StarIcon />}
-            tone="text-info"
-            label={t('dashboard.actionItems.reviewsGroup', 'Avis sans réponse')}
-            total={reviews.length}
-            showCount={showGroupCounts}
-            hideHeader={soleGroup != null}
-            seeAllLabel={t('dashboard.actionItems.seeReviews', 'Voir les avis')}
-            onSeeAll={() => navigate('/channels/reviews')}
-          >
-            {reviews.slice(0, GROUP_LIMIT).map((item) => {
-              const author = item.guestName?.trim() || null;
-              const reviewedOn = formatReviewDate(item.reviewDate);
-              return (
+        // Hauteur bornée : avec vingt-deux actions la carte poussait tout le
+        // reste du tableau de bord hors de l'écran, et son propre en-tête
+        // disparaissait avant qu'on ait fini de lire.
+        //
+        // `max-h` et non `h` : une organisation qui n'a que deux actions ne doit
+        // pas se voir servir un cadre aux trois quarts vide.
+        //
+        // `pe-2 -me-2` place l'ascenseur dans la gouttière de la carte plutôt
+        // que par-dessus les chevrons : le contenu garde exactement la même
+        // largeur qu'avant, seul le rail vient s'y ajouter.
+        <div className="-me-2 flex max-h-[28rem] flex-col gap-4 overflow-y-auto pe-2">
+          {groups.map((group) => (
+            <ActionGroup
+              key={group.kind}
+              icon={group.icon}
+              tone={group.tone}
+              label={group.label}
+              total={group.kindTotal}
+              shown={group.rows.length}
+              moreLabel={(count) =>
+                t('dashboard.actionItems.showMore', {
+                  count,
+                  defaultValue: 'Voir les {{count}} autres',
+                })
+              }
+              lessLabel={t('dashboard.actionItems.showLess', 'Réduire')}
+            >
+              {(expanded) => (group.rows.slice(0, expanded ? undefined : GROUP_PREVIEW)).map((item) => (
                 <ActionRow
-                  key={`review-${item.reviewId}`}
-                  /* On répond à quelqu'un, pas à une ligne de texte : le
-                     voyageur ouvre la ligne, son propos suit. Sans auteur
-                     connu (avis importé anonyme), l'extrait reprend la tête
-                     plutôt que d'afficher un avatar vide. */
-                  leading={author ? <GuestAvatar name={author} size={30} /> : undefined}
-                  primary={
-                    author ? (
-                      <>
-                        <span className="font-medium">{author}</span>
-                        {item.propertyName && ` · ${item.propertyName}`}
-                      </>
-                    ) : (
-                      item.excerpt ? `« ${item.excerpt} »` : (item.propertyName ?? '—')
-                    )
-                  }
-                  secondary={
-                    author
-                      ? item.excerpt && `« ${item.excerpt} »`
-                      : [item.propertyName, reviewedOn].filter(Boolean).join(' · ')
-                  }
-                  value={
-                    item.rating != null && (
-                      <span className="flex shrink-0 flex-col items-end">
-                        <span className="flex items-center gap-0.5 text-sm font-semibold text-foreground tabular-nums">
-                          {item.rating}
-                          <StarIcon className="size-3.5 fill-warning text-warning" />
-                        </span>
-                        {author && reviewedOn && (
-                          <span className="text-2xs text-muted-foreground">{reviewedOn}</span>
-                        )}
-                      </span>
-                    )
-                  }
-                  onClick={() => setReplyingTo(item)}
+                  key={item.id}
+                  /* On agit envers quelqu'un, pas envers une ligne de texte :
+                     quand l'action concerne une personne, elle ouvre la ligne. */
+                  leading={item.subject ? <GuestAvatar name={item.subject} size={30} /> : undefined}
+                  primary={item.title}
+                  secondary={actionSecondary(item, t)}
+                  value={actionValue(item)}
+                  actionLabel={group.action}
+                  // Toujours une modale, jamais une redirection : on traite
+                  // depuis le tableau de bord, et c'est la modale qui propose
+                  // ensuite d'ouvrir l'écran complet.
+                  onClick={() => setActive(item)}
                 />
-              );
-            })}
-          </ActionGroup>
+              ))}
+            </ActionGroup>
+          ))}
         </div>
       )}
 
-      {/* Publier fait disparaître la ligne : la carte se recharge. */}
-      <ReviewReplyDialog
-        reviewId={replyingTo?.reviewId ?? null}
-        onClose={() => setReplyingTo(null)}
-        preview={{
-          guestName: replyingTo?.guestName,
-          propertyName: replyingTo?.propertyName,
-          rating: replyingTo?.rating,
-        }}
-        invalidateKeys={[['dashboard', 'action-items']]}
-      />
+      {/* Traiter fait disparaître la ligne : la carte se recharge. */}
+      <ActionItemDialog item={active} onClose={() => setActive(null)} />
     </BlockCard>
   );
 }
 
-/** « il y a 30 h » / « jamais synchronisé ». */
-function feedDelay(item: DashboardStaleFeed, t: TranslateFn): string {
-  if (item.hoursSinceLastSync == null) {
-    return t('dashboard.actionItems.neverSynced', 'jamais synchronisé');
+/**
+ * Seconde ligne : le contexte, sans jamais répéter la première.
+ *
+ * Le cas du calendrier est le seul où le serveur envoie un nombre plutôt qu'une
+ * phrase — pour que la phrase reste traduisible.
+ */
+function actionSecondary(item: DashboardActionItem, t: TranslateFn): React.ReactNode {
+  if (item.kind === 'FEED_STALE') {
+    // Interpolé et non concaténé : l'anglais place le complément après le
+    // nombre (« 31 h ago »), le français avant. Coller deux morceaux de phrase
+    // ne se traduit pas.
+    const delay = item.amount == null
+      ? t('dashboard.actionItems.neverSynced', 'jamais synchronisé')
+      : t('dashboard.actionItems.lastSuccess', {
+          hours: item.amount,
+          defaultValue: 'dernier succès il y a {{hours}} h',
+        });
+    return [item.detail, delay].filter(Boolean).join(' · ');
   }
-  return `${t('dashboard.actionItems.lastSuccess', 'dernier succès il y a')} ${item.hoursSinceLastSync} h`;
+  if (item.kind === 'REVIEW_UNANSWERED') {
+    return item.detail ? `« ${item.detail} »` : item.propertyName;
+  }
+  // Le logement complète le contexte quand il n'est pas déjà ce que dit `detail`.
+  return [item.detail, item.detail === item.propertyName ? null : item.propertyName]
+    .filter(Boolean)
+    .join(' · ');
 }
 
-function formatReviewDate(iso: string | null): string | null {
-  if (!iso) return null;
-  return new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'short',
-  });
+/**
+ * Chiffre du bouton : un montant, une mention courte, ou rien.
+ *
+ * <p>Aucune couleur ici : le chiffre s'affiche <b>dans</b> le bouton et h\u00e9rite
+ * de sa teinte. Lui en imposer une (le `text-foreground` d'avant) le rendait
+ * illisible sur le fond plein.</p>
+ */
+function actionValue(item: DashboardActionItem): React.ReactNode {
+  if (
+    item.kind === 'BALANCE_DUE'
+    || item.kind === 'SERVICE_UNPAID'
+    || item.kind === 'SERVICE_UNASSIGNED'
+    || item.kind === 'BALANCE_ABANDONED'
+    || item.kind === 'DEPOSIT_STUCK'
+  ) {
+    return item.amount == null ? null : (
+      <span className="font-semibold tabular-nums">
+        <Money value={item.amount} decimals={0} />
+      </span>
+    );
+  }
+  // Le badge arrive pr\u00eat \u00e0 afficher (\u00ab 4\u2605 \u00bb) : le front ne le red\u00e9core pas.
+  if (item.badge) {
+    return <span className="font-semibold tabular-nums">{item.badge}</span>;
+  }
+  return null;
+}
+
+/**
+ * La modale qui traite l'élément cliqué, choisie par sa nature.
+ *
+ * Aucune de ces natures ne redirige : on reste sur le tableau de bord et c'est
+ * la modale qui propose, en pied, d'ouvrir l'écran complet. La navigation
+ * directe qu'on avait au départ envoyait d'ailleurs vers `/reservations/:id`,
+ * une route qui n'existe pas.
+ */
+function ActionItemDialog({
+  item,
+  onClose,
+}: {
+  item: DashboardActionItem | null;
+  onClose: () => void;
+}) {
+  const kind = item?.kind;
+  // Les listes rechargent après traitement : la ligne traitée disparaît.
+  const invalidateKeys = [['dashboard', 'action-items']] as const;
+
+  return (
+    <>
+      <ReviewReplyDialog
+        reviewId={kind === 'REVIEW_UNANSWERED' ? (item?.targetId ?? null) : null}
+        onClose={onClose}
+        preview={{ guestName: item?.subject, propertyName: item?.propertyName }}
+        invalidateKeys={invalidateKeys}
+      />
+
+      <ReservationActionDialog
+        reservationId={kind === 'BALANCE_DUE' ? (item?.targetId ?? null) : null}
+        onClose={onClose}
+        preview={{
+          guestName: item?.subject,
+          propertyName: item?.propertyName,
+          amountDue: item?.amount,
+        }}
+        invalidateKeys={invalidateKeys}
+      />
+
+      <FeedSyncDialog
+        feedId={kind === 'FEED_STALE' ? (item?.targetId ?? null) : null}
+        onClose={onClose}
+        feed={{
+          sourceName: item?.title,
+          propertyName: item?.propertyName,
+          hoursSinceLastSync: item?.amount,
+        }}
+        invalidateKeys={invalidateKeys}
+      />
+
+      <PaymentIncidentDialog
+        incidentId={kind === 'PAYMENT_INCIDENT' ? (item?.actionItemId ?? null) : null}
+        onClose={onClose}
+        incident={{
+          type: item?.actionType,
+          title: item?.title,
+          detail: item?.detail,
+          amount: item?.amount,
+          badge: item?.badge,
+        }}
+        invalidateKeys={invalidateKeys}
+      />
+
+      <RetryDeliveryDialog
+        item={
+          kind === 'DOCUMENT_DELIVERY_FAILED' || kind === 'GUEST_MESSAGE_FAILED' ? item : null
+        }
+        onClose={onClose}
+        invalidateKeys={invalidateKeys}
+      />
+
+      <ActionCardDialog
+        item={kind && ACTION_CARDS[kind] ? item : null}
+        onClose={onClose}
+        invalidateKeys={invalidateKeys}
+      />
+
+      <StuckServiceDialog
+        serviceRequestId={kind === 'SERVICE_UNASSIGNED' ? (item?.targetId ?? null) : null}
+        onClose={onClose}
+        service={{
+          title: item?.title,
+          propertyId: item?.propertyId,
+          propertyName: item?.propertyName,
+          severity: item?.severity,
+        }}
+        invalidateKeys={invalidateKeys}
+      />
+
+      {/* Le règlement passe par le tunnel Stripe embarqué déjà en service
+          ailleurs — on ne réécrit pas un formulaire de paiement. */}
+      {kind === 'SERVICE_UNPAID' && item?.targetId != null && (
+        <PaymentCheckoutModal
+          open
+          onClose={onClose}
+          onSuccess={onClose}
+          serviceRequestId={item.targetId}
+          amount={item.amount ?? 0}
+          interventionTitle={item.title}
+        />
+      )}
+    </>
+  );
 }
 
 /**
@@ -477,75 +808,106 @@ function formatReviewDate(iso: string | null): string | null {
  * Ne rend rien si le groupe est vide — un dashboard ne montre pas une rubrique
  * pour dire qu'elle est vide, la carte a déjà son état vide global.
  */
+/**
+ * Rubrique de la file.
+ *
+ * <p>Le reste des lignes se déplie <b>ici</b>, dans la carte : quitter le
+ * tableau de bord pour lire trois avis de plus n'aidait personne, et faisait
+ * perdre le contexte des autres rubriques.</p>
+ *
+ * <p>Le compteur du titre est le décompte réel du serveur ; le bouton, lui,
+ * n'annonce que ce qu'il peut réellement montrer. Quand le serveur a tronqué
+ * au-delà de ce qui a été transmis, le reliquat est dit à part plutôt que promis
+ * par un bouton qui ne le livrerait pas.</p>
+ */
 function ActionGroup({
   icon,
   tone,
   label,
   total,
-  showCount,
-  hideHeader,
-  seeAllLabel,
-  onSeeAll,
+  shown,
+  moreLabel,
+  lessLabel,
   children,
 }: {
   icon: React.ReactNode;
   tone: string;
   label: string;
+  /** Décompte réel de la rubrique, tel que compté par le serveur. */
   total: number;
-  /** Faux quand ce groupe est le seul peuplé : son compte répéterait celui de la carte. */
-  showCount: boolean;
-  /** Vrai quand le libellé est déjà porté par le titre de la carte. */
-  hideHeader: boolean;
-  seeAllLabel: string;
-  onSeeAll: () => void;
-  children: React.ReactNode;
+  /** Nombre de lignes effectivement reçues — le serveur plafonne. */
+  shown: number;
+  moreLabel: (count: number) => string;
+  lessLabel: string;
+  /** Reçoit l'état de dépliage : la rubrique décide de ce qu'elle montre. */
+  children: (expanded: boolean) => React.ReactNode;
 }) {
+  const [expanded, setExpanded] = React.useState(false);
   if (total === 0) return null;
-  const hidden = total - Math.min(total, GROUP_LIMIT);
+
+  const expandable = Math.max(0, shown - GROUP_PREVIEW);
+  const untransmitted = Math.max(0, total - shown);
 
   return (
     <section>
-      {/* En-tête masqué quand cette rubrique est la seule peuplée : elle est alors
-          affichée sur la ligne du titre de la carte (`titleSuffix`). */}
-      {!hideHeader && (
-        <h4 className="m-0 flex items-center gap-1.5 text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
-          <span className={cn('inline-flex [&>svg]:size-3.5', tone)}>{icon}</span>
-          {label}
-          {showCount && <span className="tabular-nums">({total})</span>}
-        </h4>
-      )}
-      <div className={cn('flex flex-col', !hideHeader && 'mt-1')}>{children}</div>
-      {hidden > 0 && (
+      <h4 className="m-0 flex items-center gap-1.5 text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
+        <span className={cn('inline-flex [&>svg]:size-3.5', tone)}>{icon}</span>
+        {label}
+        <span className="tabular-nums">({total})</span>
+      </h4>
+      <div className="mt-1 flex flex-col">{children(expanded)}</div>
+
+      {expandable > 0 && (
         <button
           type="button"
-          onClick={onSeeAll}
+          onClick={() => setExpanded((open) => !open)}
+          aria-expanded={expanded}
           className="mt-1 cursor-pointer rounded-md text-xs font-medium text-primary underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
-          {`+${hidden} · ${seeAllLabel}`}
+          {expanded ? lessLabel : moreLabel(expandable)}
         </button>
+      )}
+      {expanded && untransmitted > 0 && (
+        <p className="m-0 mt-1 text-2xs text-muted-foreground">
+          {`+${untransmitted}`}
+        </p>
       )}
     </section>
   );
 }
 
 /**
- * Ligne d'action : contenu à gauche, valeur à droite, la ligne entière est le
- * bouton. Un bouton d'action par ligne — six « Répondre » empilés — pesait plus
- * que l'information qu'il accompagnait, et le verbe est déjà porté par le
- * groupe. Même geste que les blocs Arrivées, qui naviguent aussi au clic.
+ * Ligne d'action : contenu à gauche, geste attendu à droite, la ligne entière
+ * est le bouton. Même geste que les blocs Arrivées, qui ouvrent aussi au clic.
+ *
+ * <p>Le chevron a laissé place au verbe : « ceci s'ouvre » ne disait pas ce
+ * qu'on allait y faire, et une file de priorités se parcourt en lisant les
+ * gestes, pas en devinant les destinations. Le montant vit <b>dans</b> le
+ * bouton — « Encaisser 75 € » est une seule phrase, là où un chiffre posé à
+ * côté du verbe obligeait à recoller les deux.</p>
+ *
+ * <p>Le verbe est rendu en <b>span</b> habillé par `buttonVariants`, pas en
+ * `<Button>` : la ligne est déjà un bouton, et un bouton dans un bouton est du
+ * HTML invalide. Le clic sur la pastille est donc exactement le clic sur la
+ * ligne — un seul contrôle, un seul nom accessible (« … · Encaisser 75 € »),
+ * aucune cible morte à côté de la cible utile.</p>
  */
 function ActionRow({
   leading,
   primary,
   secondary,
   value,
+  actionLabel,
   onClick,
 }: {
   /** Visuel d'entrée de ligne — avatar du voyageur pour les avis. */
   leading?: React.ReactNode;
   primary: React.ReactNode;
   secondary: React.ReactNode;
+  /** Montant ou mention courte, rendu dans le bouton, après le verbe. */
   value?: React.ReactNode;
+  /** Verbe du geste attendu, propre à la nature de l'action. */
+  actionLabel: string;
   onClick: () => void;
 }) {
   return (
@@ -563,8 +925,21 @@ function ActionRow({
             sont pas affectés. */}
         <span className="line-clamp-2 text-xs leading-snug text-muted-foreground">{secondary}</span>
       </span>
-      {value}
-      <ChevronRightIcon className="cn-rtl-flip size-4 shrink-0 text-muted-foreground/40 transition-transform duration-150 group-hover/row:translate-x-0.5 motion-reduce:transition-none" />
+      <span
+        className={cn(
+          buttonVariants({ variant: 'ghost', size: 'xs' }),
+          // Plein encrier : `bg-foreground` est le noir de la charte, pas
+          // `#000` — il porte la teinte de marque, et il se retourne tout seul
+          // en clair sur thème sombre (le texte suit en `text-background`).
+          // Le survol de la LIGNE, pas de la pastille : c'est la ligne entière
+          // qui est le bouton.
+          'shrink-0 bg-foreground text-background',
+          'group-hover/row:bg-foreground/85',
+        )}
+      >
+        {actionLabel}
+        {value}
+      </span>
     </button>
   );
 }
@@ -575,6 +950,10 @@ export function UpcomingArrivalsCard({ days = 7 }: { days?: number }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data, isLoading } = useDashboardUpcomingArrivals(days);
+  // Même règle que partout ailleurs sur cet écran : la ligne ouvre le séjour,
+  // elle ne quitte pas le tableau de bord.
+  // ⚠️ Avant tout early return (règles des hooks).
+  const [opened, setOpened] = React.useState<DashboardUpcomingArrival | null>(null);
 
   if (isLoading) return null;
   const rows = data ?? [];
@@ -620,7 +999,7 @@ export function UpcomingArrivalsCard({ days = 7 }: { days?: number }) {
               <TableRow
                 key={row.reservationId}
                 className="cursor-pointer"
-                onClick={() => navigate(`/reservations/${row.reservationId}`)}
+                onClick={() => setOpened(row)}
               >
                 <TableCell>
                   <span className="flex items-center gap-2">
@@ -650,6 +1029,17 @@ export function UpcomingArrivalsCard({ days = 7 }: { days?: number }) {
           </TableBody>
         </Table>
       )}
+
+      <ReservationActionDialog
+        reservationId={opened?.reservationId ?? null}
+        onClose={() => setOpened(null)}
+        preview={{
+          guestName: opened?.guestName,
+          propertyName: opened?.propertyName,
+          amountDue: opened?.amountDue,
+        }}
+        invalidateKeys={[['dashboard', 'upcoming-arrivals', days]]}
+      />
     </section>
   );
 }

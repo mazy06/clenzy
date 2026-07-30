@@ -8,7 +8,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
   Chip,
   IconButton,
   Tooltip,
@@ -29,6 +28,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import ChangeRoleDialog from './ChangeRoleDialog';
 import RemoveMemberDialog from './RemoveMemberDialog';
+import PagePagination from '../../components/PagePagination';
 
 interface Props {
   organizationId: number;
@@ -338,14 +338,11 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
       </TableContainer>
 
       {members.length > ROWS_PER_PAGE && (
-        <TablePagination
-          component="div"
+        <PagePagination
           count={members.length}
           page={page}
-          onPageChange={(_e, newPage) => setPage(newPage)}
+          onPageChange={(newPage) => setPage(newPage)}
           rowsPerPage={ROWS_PER_PAGE}
-          rowsPerPageOptions={[]}
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
         />
       )}
 

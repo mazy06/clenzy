@@ -66,12 +66,13 @@ class StripeWebhookControllerTest {
     @Mock private DirectBookingService directBookingService;
     @Mock private com.clenzy.service.ai.AiCreditGrantService aiCreditGrantService;
     @Mock private com.clenzy.service.automation.PaymentFailedTriggerService paymentFailedTriggerService;
+    @Mock private com.clenzy.service.dashboard.PaymentEventActionRecorder paymentEventActionRecorder;
 
     private StripeWebhookController controller;
 
     @BeforeEach
     void setUp() throws Exception {
-        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService, stripeGateway, directBookingService, aiCreditGrantService, paymentFailedTriggerService);
+        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService, stripeGateway, directBookingService, aiCreditGrantService, paymentFailedTriggerService, paymentEventActionRecorder);
         setField("webhookSecret", "whsec_test_secret");
     }
 

@@ -9,7 +9,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
   Chip,
   IconButton,
   Tooltip,
@@ -49,6 +48,7 @@ import PaymentCheckoutModal from '../../components/PaymentCheckoutModal';
 import StatTile from '../../components/StatTile';
 import EmptyState from '../../components/EmptyState';
 import { Money } from '../../components/Money';
+import PagePagination from '../../components/PagePagination';
 
 interface PaymentHistoryPageProps {
   embedded?: boolean;
@@ -205,12 +205,12 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
 
-  const handleChangePage = (_event: unknown, newPage: number) => {
+  const handleChangePage = (newPage: number) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+  const handleChangeRowsPerPage = (rows: number) => {
+    setRowsPerPage(rows);
     setPage(0);
   };
 
@@ -699,16 +699,13 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
               })}
             </TableBody>
           </Table>
-          <TablePagination
-            component="div"
+          <PagePagination
             count={totalElements}
             page={page}
             onPageChange={handleChangePage}
             rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
             rowsPerPageOptions={[5, 10, 25, 50]}
-            labelRowsPerPage={t('common.all') === 'Tous' ? 'Lignes par page' : 'Rows per page'}
-            sx={{ borderTop: '1px solid var(--line)' }}
+            onRowsPerPageChange={handleChangeRowsPerPage}
           />
         </TableContainer>
       </DataFetchWrapper>

@@ -8,6 +8,9 @@ yarn-error.log*
 # Production builds
 build/
 dist/
+# Sortie du build du site marketing (vite.site.config.ts, outDir dist-site).
+# `dist/` ne le couvre pas : le nom differe pour ne pas ecraser le build du PMS.
+dist-site/
 
 # SDK widget buildé (artefact `npm run build:sdk` / prebuild) — généré au build, non commité
 client/public/booking/v1/

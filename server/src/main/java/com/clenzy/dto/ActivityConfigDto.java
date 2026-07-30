@@ -10,13 +10,16 @@ public record ActivityConfigDto(
     String provider,
     String affiliateId,
     boolean enabled,
-    boolean hasKey
+    boolean hasKey,
+    /** Part Baitly (%) sur la commission de ce programme. null = rien retenu. */
+    java.math.BigDecimal platformCommissionPct
 ) {
     public static ActivityConfigDto from(ActivityAffiliateConfig c) {
         return new ActivityConfigDto(
             c.getProvider().name(),
             c.getAffiliateId(),
             c.isEnabled(),
-            c.getApiKey() != null && !c.getApiKey().isBlank());
+            c.getApiKey() != null && !c.getApiKey().isBlank(),
+            c.getPlatformCommissionPct());
     }
 }

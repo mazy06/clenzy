@@ -16,11 +16,11 @@ import {
   Card,
   CardContent,
   TextField,
-  TablePagination,
 } from '@mui/material';
 import { syncAdminApi, SyncLog, SyncEventStats } from '../../../services/api/syncAdminApi';
 import FilterChipRow from '../../../components/FilterChipRow';
 import { useSyncAdminHeader } from '../SyncAdminPage';
+import PagePagination from '../../../components/PagePagination';
 
 type ChannelOption = 'AIRBNB' | 'BOOKING' | 'VRBO' | 'ICAL' | 'OTHER';
 
@@ -147,12 +147,12 @@ const EventsTab: React.FC = () => {
     return () => setHeaderFilters(null);
   }, [setHeaderFilters, channel, status, from]);
 
-  const handleChangePage = (_event: unknown, newPage: number) => {
+  const handleChangePage = (newPage: number) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+  const handleChangeRowsPerPage = (rows: number) => {
+    setRowsPerPage(rows);
     setPage(0);
   };
 
@@ -289,14 +289,13 @@ const EventsTab: React.FC = () => {
               </TableBody>
             </Table>
           </TableContainer>
-          <TablePagination
-            component="div"
+          <PagePagination
             count={totalElements}
             page={page}
             onPageChange={handleChangePage}
             rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
             rowsPerPageOptions={[10, 20, 50]}
+            onRowsPerPageChange={handleChangeRowsPerPage}
           />
         </>
       )}
