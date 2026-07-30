@@ -10,7 +10,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
   IconButton,
   Tooltip,
   CircularProgress,
@@ -41,6 +40,7 @@ import { FilterSearchBar } from '../../components/FilterSearchBar';
 import { Money } from '../../components/Money';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
+import PagePagination from '../../components/PagePagination';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
@@ -394,17 +394,11 @@ const ReservationsList: React.FC = () => {
             </Table>
           </TableContainer>
 
-          <TablePagination
-            component="div"
+          <PagePagination
             count={totalElements}
             page={page}
-            onPageChange={(_, newPage) => setPage(newPage)}
+            onPageChange={(newPage) => setPage(newPage)}
             rowsPerPage={rowsPerPage}
-            rowsPerPageOptions={[]}
-            labelDisplayedRows={({ from, to, count }) =>
-              `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
-            }
-            sx={{ flexShrink: 0, borderTop: '1px solid', borderColor: 'divider' }}
           />
         </Paper>
       )}

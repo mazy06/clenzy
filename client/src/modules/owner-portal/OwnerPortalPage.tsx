@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   Box, Paper, Typography, Button, Chip, CircularProgress, Alert,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Tabs, Tab, TextField, FormControl, InputLabel, Select, MenuItem,
+  TextField, FormControl, InputLabel, Select, MenuItem,
   Card, CardContent, Grid,
   Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
@@ -25,6 +25,7 @@ import { ownerPortalApi } from '../../services/api/ownerPortalApi';
 import type { OwnerDashboard, OwnerStatement } from '../../services/api/ownerPortalApi';
 import { useQuery } from '@tanstack/react-query';
 import { Money } from '../../components/Money';
+import PageTabs from '../../components/PageTabs';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -39,8 +40,6 @@ const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={curr
 
 const CELL_SX = { fontSize: '0.8125rem', py: 1.25 } as const;
 const HEAD_CELL_SX = { fontSize: '0.75rem', fontWeight: 700, py: 1, color: 'text.secondary' } as const;
-const TAB_SX = { textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, minHeight: 40 } as const;
-
 const KPI_CARD_SX = {
   ...CARD_SX,
   textAlign: 'center',
@@ -115,14 +114,15 @@ const OwnerPortalPage: React.FC = () => {
       </Paper>
 
       <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
-        <Tabs
+        <PageTabs
+          options={[
+            { label: t('ownerPortal.tabs.dashboard', 'Dashboard') },
+            { label: t('ownerPortal.tabs.statement', 'Releve') },
+          ]}
           value={activeTab}
-          onChange={(_, v) => setActiveTab(v)}
-          sx={{ borderBottom: 1, borderColor: 'divider', minHeight: 40 }}
-        >
-          <Tab label={t('ownerPortal.tabs.dashboard', 'Dashboard')} sx={TAB_SX} />
-          <Tab label={t('ownerPortal.tabs.statement', 'Releve')} sx={TAB_SX} />
-        </Tabs>
+          onChange={setActiveTab}
+          mb={0}
+        />
       </Paper>
 
       {!ownerId ? (

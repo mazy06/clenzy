@@ -11,9 +11,9 @@ import {
   Chip,
   Skeleton,
   Alert,
-  TablePagination,
 } from '@mui/material';
 import { syncAdminApi, MappingSummary } from '../../../services/api/syncAdminApi';
+import PagePagination from '../../../components/PagePagination';
 
 const MappingsTab: React.FC = () => {
   const [mappings, setMappings] = useState<MappingSummary[]>([]);
@@ -41,12 +41,12 @@ const MappingsTab: React.FC = () => {
     fetchMappings();
   }, [fetchMappings]);
 
-  const handleChangePage = (_event: unknown, newPage: number) => {
+  const handleChangePage = (newPage: number) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+  const handleChangeRowsPerPage = (rows: number) => {
+    setRowsPerPage(rows);
     setPage(0);
   };
 
@@ -121,14 +121,13 @@ const MappingsTab: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      <TablePagination
-        component="div"
+      <PagePagination
         count={totalElements}
         page={page}
         onPageChange={handleChangePage}
         rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
         rowsPerPageOptions={[10, 20, 50]}
+        onRowsPerPageChange={handleChangeRowsPerPage}
       />
     </Box>
   );

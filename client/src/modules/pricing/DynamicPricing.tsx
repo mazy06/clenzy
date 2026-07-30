@@ -2,8 +2,6 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Box,
-  Tabs,
-  Tab,
   FormControl,
   InputLabel,
   Select,
@@ -33,37 +31,11 @@ import AiPricingRecommendations from './AiPricingRecommendations';
 import MarketPositioningCard from './MarketPositioningCard';
 import YieldRulesPanel from './YieldRulesPanel';
 import { useIsAiFeatureEnabled } from '../../hooks/useAi';
+import PageTabs from '../../components/PageTabs';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
 // Sous-onglets niveau 2 — pattern Signature .s-subtab : pilules, actif accent-soft/accent.
-const TABS_SX = {
-  minHeight: 32,
-  mb: 1.5,
-  '& .MuiTabs-flexContainer': { gap: 0.75 },
-  '& .MuiTab-root': {
-    minHeight: 32,
-    py: 0.5,
-    px: 1.75,
-    fontSize: '0.78125rem',
-    fontWeight: 600,
-    textTransform: 'none',
-    color: 'var(--muted)',
-    bgcolor: 'var(--field)',
-    borderRadius: '9999px',
-    transition: 'background-color 0.15s, color 0.15s',
-    '&:hover': { color: 'var(--body)' },
-    '&.Mui-selected': {
-      fontWeight: 700,
-      color: 'var(--accent)',
-      bgcolor: 'var(--accent-soft)',
-    },
-  },
-  '& .MuiTabs-indicator': {
-    display: 'none',
-  },
-} as const;
-
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface Owner {
@@ -310,16 +282,16 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
       )}
 
       {/* Tabs */}
-      <Tabs
+      <PageTabs
+        options={[
+          { label: t('dynamicPricing.tabs.byProperty') },
+          { label: t('dynamicPricing.tabs.overview') },
+          { label: t('dynamicPricing.tabs.yield', 'Yield') },
+          { label: t('dynamicPricing.tabs.restrictions', 'Restrictions') },
+        ]}
         value={activeTab}
-        onChange={(_, v) => setActiveTab(v)}
-        sx={TABS_SX}
-      >
-        <Tab label={t('dynamicPricing.tabs.byProperty')} />
-        <Tab label={t('dynamicPricing.tabs.overview')} />
-        <Tab label={t('dynamicPricing.tabs.yield', 'Yield')} />
-        <Tab label={t('dynamicPricing.tabs.restrictions', 'Restrictions')} />
-      </Tabs>
+        onChange={setActiveTab}
+      />
 
       {/* ─── Tab: Par propriété ─── */}
       {activeTab === 0 && (

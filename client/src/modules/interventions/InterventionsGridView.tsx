@@ -1,8 +1,8 @@
 import React from 'react';
-import { Grid, TablePagination } from '@mui/material';
+import { Grid } from '@mui/material';
 import InterventionCard from './InterventionCard';
 import type { Intervention } from './useInterventionsList';
-import { PAGINATION_SX } from './interventionsListConstants';
+import PagePagination from '../../components/PagePagination';
 
 interface InterventionsGridViewProps {
   interventions: Intervention[];
@@ -46,15 +46,11 @@ const InterventionsGridView: React.FC<InterventionsGridViewProps> = ({
         })}
     </Grid>
     {totalCount > itemsPerPage && (
-      <TablePagination
-        component="div"
+      <PagePagination
         count={totalCount}
         page={page}
-        onPageChange={(_, p) => onPageChange(p)}
+        onPageChange={(p) => onPageChange(p)}
         rowsPerPage={itemsPerPage}
-        rowsPerPageOptions={[itemsPerPage]}
-        labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-        sx={PAGINATION_SX}
       />
     )}
   </>

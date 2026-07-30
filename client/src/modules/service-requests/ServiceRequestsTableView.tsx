@@ -1,8 +1,7 @@
 import React from 'react';
 import {
   Paper, Typography, Chip, Tooltip, IconButton,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination,
-} from '@mui/material';
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, MoreVert } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -12,8 +11,9 @@ import {
   getServiceRequestPriorityLabel,
 } from '../../utils/statusUtils';
 import { stripPropertySuffix, formatDateShort } from './serviceRequestDisplayMapper';
-import { LIST_PAPER_SX, PAGINATION_SX, srStatusChipSx, srPriorityChipSx } from './serviceRequestsListConstants';
+import { LIST_PAPER_SX, srStatusChipSx, srPriorityChipSx } from './serviceRequestsListConstants';
 import { Money } from '../../components/Money';
+import PagePagination from '../../components/PagePagination';
 
 interface ServiceRequestsTableViewProps {
   serviceRequests: ServiceRequest[];
@@ -149,15 +149,11 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
           </TableBody>
         </Table>
       </TableContainer>
-      <TablePagination
-        component="div"
+      <PagePagination
         count={totalCount}
         page={page}
-        onPageChange={(_, p) => onPageChange(p)}
+        onPageChange={(p) => onPageChange(p)}
         rowsPerPage={rowsPerPage}
-        rowsPerPageOptions={[]}
-        labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-        sx={{ ...PAGINATION_SX, flexShrink: 0 }}
       />
     </Paper>
   );

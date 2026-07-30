@@ -12,8 +12,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import {
   Box, Paper, Typography, Button, Chip, IconButton, Tooltip, Link,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination,
-  Alert, Skeleton, CircularProgress,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, Skeleton, CircularProgress,
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { Build as RetryIcon, AccountBalance as PayoutIcon } from '../../../icons';
@@ -31,6 +30,7 @@ import {
   type HousekeeperPayoutStatus,
 } from '../../../services/api/housekeeperPayoutsApi';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import PagePagination from '../../../components/PagePagination';
 
 // Cartes/tableaux : hairline --line, r14, pas d'ombre (baseline §2, aligné AccountingPage).
 const CARD_SX = {
@@ -267,13 +267,11 @@ export const HousekeeperPayoutsTab: React.FC = () => {
             </TableBody>
           </Table>
           {filtered.length > ROWS_PER_PAGE && (
-            <TablePagination
-              component="div"
+            <PagePagination
               count={filtered.length}
               page={page}
-              onPageChange={(_, p) => setPage(p)}
+              onPageChange={(p) => setPage(p)}
               rowsPerPage={ROWS_PER_PAGE}
-              rowsPerPageOptions={[ROWS_PER_PAGE]}
             />
           )}
         </TableContainer>

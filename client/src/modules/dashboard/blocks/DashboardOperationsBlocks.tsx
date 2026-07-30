@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import {
   Button,
+  buttonVariants,
   Table,
   TableBody,
   TableCell,
@@ -322,11 +323,17 @@ function cleaningWindow(start: string | null, end: string | null): string | null
 const GROUP_PREVIEW = 3;
 
 /**
- * Une nature d'action et sa présentation : icône, teinte, libellé de rubrique.
+ * Une nature d'action et sa présentation : icône, teinte, libellé de rubrique,
+ * et le verbe de son bouton de fin de ligne.
  *
  * L'ordre de ce tableau EST l'ordre d'affichage des rubriques — le même que la
  * priorité serveur (`ActionItemKind`) : ce qu'on n'a pas encaissé et ce qui peut
  * provoquer une double réservation passent avant la réputation.
+ *
+ * `action` est le geste attendu, pas un « Ouvrir » générique : la rubrique dit
+ * ce qui ne va pas, le bouton dit ce qu'on va en faire. Un même verbe peut
+ * servir deux natures (« Assigner » pour une prestation et pour une
+ * intervention) — c'est la rubrique qui lève l'ambiguïté.
  *
  * Les cartes des agents n'y figurent pas : elles vivent dans la constellation.
  */
@@ -337,162 +344,189 @@ function actionKinds(t: TranslateFn) {
       icon: <ShieldAlertIcon />,
       tone: 'text-destructive',
       label: t('dashboard.actionItems.declarationGroup', 'Déclarations voyageur manquantes'),
+      action: t('dashboard.actionItems.declarationAction', 'Déclarer'),
     },
     {
       kind: 'PAYMENT_INCIDENT' as const,
       icon: <LandmarkIcon />,
       tone: 'text-destructive',
       label: t('dashboard.actionItems.incidentGroup', 'Incidents de règlement'),
+      action: t('dashboard.actionItems.incidentAction', 'Régulariser'),
     },
     {
       kind: 'RESERVATION_PENDING' as const,
       icon: <CalendarXIcon />,
       tone: 'text-destructive',
       label: t('dashboard.actionItems.pendingGroup', 'Réservations à confirmer'),
+      action: t('dashboard.actionItems.pendingAction', 'Confirmer'),
     },
     {
       kind: 'INTERVENTION_OVERDUE' as const,
       icon: <ClockAlertIcon />,
       tone: 'text-destructive',
       label: t('dashboard.actionItems.overdueGroup', 'Interventions en retard'),
+      action: t('dashboard.actionItems.overdueAction', 'Relancer'),
     },
     {
       kind: 'CONVERSATION_UNANSWERED' as const,
       icon: <MessageCircleIcon />,
       tone: 'text-warning',
       label: t('dashboard.actionItems.conversationGroup', 'Messages sans réponse'),
+      action: t('dashboard.actionItems.conversationAction', 'Répondre'),
     },
     {
       kind: 'BALANCE_DUE' as const,
       icon: <BanknoteIcon />,
       tone: 'text-warning',
       label: t('dashboard.actionItems.balancesGroup', 'Soldes à percevoir'),
+      action: t('dashboard.actionItems.balancesAction', 'Encaisser'),
     },
     {
       kind: 'BALANCE_ABANDONED' as const,
       icon: <BanknoteXIcon />,
       tone: 'text-destructive',
       label: t('dashboard.actionItems.abandonedGroup', 'Soldes jamais encaissés'),
+      action: t('dashboard.actionItems.abandonedAction', 'Encaisser'),
     },
     {
       kind: 'GUEST_MESSAGE_FAILED' as const,
       icon: <MailWarningIcon />,
       tone: 'text-warning',
       label: t('dashboard.actionItems.messageFailedGroup', 'Messages non délivrés'),
+      action: t('dashboard.actionItems.messageFailedAction', 'Renvoyer'),
     },
     {
       kind: 'WELCOME_GUIDE_MISSING' as const,
       icon: <BookOpenIcon />,
       tone: 'text-warning',
       label: t('dashboard.actionItems.guideGroup', 'Livrets d’accueil à publier'),
+      action: t('dashboard.actionItems.guideAction', 'Publier'),
     },
     {
       kind: 'DEPOSIT_STUCK' as const,
       icon: <LockIcon />,
       tone: 'text-warning',
       label: t('dashboard.actionItems.depositGroup', 'Cautions à libérer'),
+      action: t('dashboard.actionItems.depositAction', 'Libérer'),
     },
     {
       kind: 'SERVICE_UNPAID' as const,
       icon: <WrenchIcon />,
       tone: 'text-warning',
       label: t('dashboard.actionItems.servicesGroup', 'Prestations à régler'),
+      action: t('dashboard.actionItems.servicesAction', 'Régler'),
     },
     {
       kind: 'SERVICE_UNASSIGNED' as const,
       icon: <UserSearchIcon />,
       tone: 'text-destructive',
       label: t('dashboard.actionItems.unassignedGroup', 'Prestations sans prestataire'),
+      action: t('dashboard.actionItems.unassignedAction', 'Assigner'),
     },
     {
       kind: 'FEED_STALE' as const,
       icon: <CalendarSyncIcon />,
       tone: 'text-destructive',
       label: t('dashboard.actionItems.feedsGroup', 'Calendriers désynchronisés'),
+      action: t('dashboard.actionItems.feedsAction', 'Resynchroniser'),
     },
     {
       kind: 'REVIEW_UNANSWERED' as const,
       icon: <StarIcon />,
       tone: 'text-info',
       label: t('dashboard.actionItems.reviewsGroup', 'Avis sans réponse'),
+      action: t('dashboard.actionItems.reviewsAction', 'Répondre'),
     },
     {
       kind: 'INTERVENTION_UNASSIGNED' as const,
       icon: <UserSearchIcon />,
       tone: 'text-destructive',
       label: t('dashboard.actionItems.interventionUnassignedGroup', 'Interventions sans exécutant'),
+      action: t('dashboard.actionItems.interventionUnassignedAction', 'Assigner'),
     },
     {
       kind: 'INTERVENTION_UNPAID' as const,
       icon: <WrenchIcon />,
       tone: 'text-warning',
       label: t('dashboard.actionItems.interventionUnpaidGroup', 'Interventions à régler'),
+      action: t('dashboard.actionItems.interventionUnpaidAction', 'Régler'),
     },
     {
       kind: 'CHECKIN_NOT_STARTED' as const,
       icon: <LogInIcon />,
       tone: 'text-warning',
       label: t('dashboard.actionItems.checkinGroup', 'Check-in en ligne non commencés'),
+      action: t('dashboard.actionItems.checkinAction', 'Relancer'),
     },
     {
       kind: 'NOISE_ALERT_UNACKNOWLEDGED' as const,
       icon: <VolumeXIcon />,
       tone: 'text-destructive',
       label: t('dashboard.actionItems.noiseGroup', 'Alertes de bruit non acquittées'),
+      action: t('dashboard.actionItems.noiseAction', 'Acquitter'),
     },
     {
       kind: 'ISSUE_OPEN' as const,
       icon: <ClipboardListIcon />,
       tone: 'text-warning',
       label: t('dashboard.actionItems.issueGroup', 'Signalements à qualifier'),
+      action: t('dashboard.actionItems.issueAction', 'Qualifier'),
     },
     {
       kind: 'OWNER_PAYOUT_PENDING' as const,
       icon: <BanknoteIcon />,
       tone: 'text-warning',
       label: t('dashboard.actionItems.payoutGroup', 'Reversements à approuver'),
+      action: t('dashboard.actionItems.payoutAction', 'Approuver'),
     },
     {
       kind: 'PAYOUT_ONBOARDING_INCOMPLETE' as const,
       icon: <LandmarkIcon />,
       tone: 'text-destructive',
       label: t('dashboard.actionItems.onboardingGroup', 'Comptes de paiement non finalisés'),
+      action: t('dashboard.actionItems.onboardingAction', 'Finaliser'),
     },
     {
       kind: 'INVITATION_EXPIRED' as const,
       icon: <MailWarningIcon />,
       tone: 'text-warning',
       label: t('dashboard.actionItems.invitationGroup', 'Invitations expirées'),
+      action: t('dashboard.actionItems.invitationAction', 'Réinviter'),
     },
     {
       kind: 'DOCUMENT_DELIVERY_FAILED' as const,
       icon: <FileWarningIcon />,
       tone: 'text-destructive',
       label: t('dashboard.actionItems.documentGroup', 'Documents non délivrés'),
+      action: t('dashboard.actionItems.documentAction', 'Renvoyer'),
     },
     {
       kind: 'EINVOICE_FAILED' as const,
       icon: <ReceiptTextIcon />,
       tone: 'text-destructive',
       label: t('dashboard.actionItems.einvoiceGroup', 'Factures électroniques rejetées'),
+      action: t('dashboard.actionItems.einvoiceAction', 'Renvoyer'),
     },
     {
       kind: 'AUTOMATION_FAILED' as const,
       icon: <ZapOffIcon />,
       tone: 'text-warning',
       label: t('dashboard.actionItems.automationGroup', 'Automatisations en échec'),
+      action: t('dashboard.actionItems.automationAction', 'Relancer'),
     },
     {
       kind: 'OUTBOX_DEAD_LETTER' as const,
       icon: <SendHorizonalIcon />,
       tone: 'text-destructive',
       label: t('dashboard.actionItems.outboxGroup', 'Messages internes perdus'),
+      action: t('dashboard.actionItems.outboxAction', 'Rejouer'),
     },
     {
       kind: 'INTEGRATION_DISCONNECTED' as const,
       icon: <PlugZapIcon />,
       tone: 'text-destructive',
       label: t('dashboard.actionItems.integrationGroup', 'Intégrations déconnectées'),
+      action: t('dashboard.actionItems.integrationAction', 'Reconnecter'),
     },
   ];
 }
@@ -587,6 +621,7 @@ export function ActionItemsView({ data }: { data?: DashboardActionItems }) {
                   primary={item.title}
                   secondary={actionSecondary(item, t)}
                   value={actionValue(item)}
+                  actionLabel={group.action}
                   // Toujours une modale, jamais une redirection : on traite
                   // depuis le tableau de bord, et c'est la modale qui propose
                   // ensuite d'ouvrir l'écran complet.
@@ -632,7 +667,13 @@ function actionSecondary(item: DashboardActionItem, t: TranslateFn): React.React
     .join(' · ');
 }
 
-/** Fin de ligne : un montant, une mention courte, ou rien. */
+/**
+ * Chiffre du bouton : un montant, une mention courte, ou rien.
+ *
+ * <p>Aucune couleur ici : le chiffre s'affiche <b>dans</b> le bouton et h\u00e9rite
+ * de sa teinte. Lui en imposer une (le `text-foreground` d'avant) le rendait
+ * illisible sur le fond plein.</p>
+ */
 function actionValue(item: DashboardActionItem): React.ReactNode {
   if (
     item.kind === 'BALANCE_DUE'
@@ -642,16 +683,14 @@ function actionValue(item: DashboardActionItem): React.ReactNode {
     || item.kind === 'DEPOSIT_STUCK'
   ) {
     return item.amount == null ? null : (
-      <span className="text-sm font-semibold text-foreground tabular-nums">
+      <span className="font-semibold tabular-nums">
         <Money value={item.amount} decimals={0} />
       </span>
     );
   }
   // Le badge arrive pr\u00eat \u00e0 afficher (\u00ab 4\u2605 \u00bb) : le front ne le red\u00e9core pas.
   if (item.badge) {
-    return (
-      <span className="text-sm font-semibold text-warning tabular-nums">{item.badge}</span>
-    );
+    return <span className="font-semibold tabular-nums">{item.badge}</span>;
   }
   return null;
 }
@@ -838,23 +877,37 @@ function ActionGroup({
 }
 
 /**
- * Ligne d'action : contenu à gauche, valeur à droite, la ligne entière est le
- * bouton. Un bouton d'action par ligne — six « Répondre » empilés — pesait plus
- * que l'information qu'il accompagnait, et le verbe est déjà porté par le
- * groupe. Même geste que les blocs Arrivées, qui naviguent aussi au clic.
+ * Ligne d'action : contenu à gauche, geste attendu à droite, la ligne entière
+ * est le bouton. Même geste que les blocs Arrivées, qui ouvrent aussi au clic.
+ *
+ * <p>Le chevron a laissé place au verbe : « ceci s'ouvre » ne disait pas ce
+ * qu'on allait y faire, et une file de priorités se parcourt en lisant les
+ * gestes, pas en devinant les destinations. Le montant vit <b>dans</b> le
+ * bouton — « Encaisser 75 € » est une seule phrase, là où un chiffre posé à
+ * côté du verbe obligeait à recoller les deux.</p>
+ *
+ * <p>Le verbe est rendu en <b>span</b> habillé par `buttonVariants`, pas en
+ * `<Button>` : la ligne est déjà un bouton, et un bouton dans un bouton est du
+ * HTML invalide. Le clic sur la pastille est donc exactement le clic sur la
+ * ligne — un seul contrôle, un seul nom accessible (« … · Encaisser 75 € »),
+ * aucune cible morte à côté de la cible utile.</p>
  */
 function ActionRow({
   leading,
   primary,
   secondary,
   value,
+  actionLabel,
   onClick,
 }: {
   /** Visuel d'entrée de ligne — avatar du voyageur pour les avis. */
   leading?: React.ReactNode;
   primary: React.ReactNode;
   secondary: React.ReactNode;
+  /** Montant ou mention courte, rendu dans le bouton, après le verbe. */
   value?: React.ReactNode;
+  /** Verbe du geste attendu, propre à la nature de l'action. */
+  actionLabel: string;
   onClick: () => void;
 }) {
   return (
@@ -872,8 +925,21 @@ function ActionRow({
             sont pas affectés. */}
         <span className="line-clamp-2 text-xs leading-snug text-muted-foreground">{secondary}</span>
       </span>
-      {value}
-      <ChevronRightIcon className="cn-rtl-flip size-4 shrink-0 text-muted-foreground/40 transition-transform duration-150 group-hover/row:translate-x-0.5 motion-reduce:transition-none" />
+      <span
+        className={cn(
+          buttonVariants({ variant: 'ghost', size: 'xs' }),
+          // Plein encrier : `bg-foreground` est le noir de la charte, pas
+          // `#000` — il porte la teinte de marque, et il se retourne tout seul
+          // en clair sur thème sombre (le texte suit en `text-background`).
+          // Le survol de la LIGNE, pas de la pastille : c'est la ligne entière
+          // qui est le bouton.
+          'shrink-0 bg-foreground text-background',
+          'group-hover/row:bg-foreground/85',
+        )}
+      >
+        {actionLabel}
+        {value}
+      </span>
     </button>
   );
 }

@@ -8,7 +8,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
   Button,
   Typography,
   CircularProgress,
@@ -25,6 +24,7 @@ import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
 import { exchangeRateApi, type ExchangeRateHistoryParams } from '../../services/api/exchangeRateApi';
 import { useCurrency } from '../../hooks/useCurrency';
+import PagePagination from '../../components/PagePagination';
 
 // Palette catégorielle devises (accents Baitly — pattern catégoriel à arbitrer, cf. baseline §7)
 const CURRENCY_COLORS: Record<string, string> = {
@@ -126,12 +126,12 @@ export default function ExchangeRateHistoryPage() {
     },
   });
 
-  const handlePageChange = useCallback((_: unknown, newPage: number) => {
+  const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage);
   }, []);
 
-  const handleRowsPerPageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(e.target.value, 10));
+  const handleRowsPerPageChange = useCallback((rows: number) => {
+    setRowsPerPage(rows);
     setPage(0);
   }, []);
 
@@ -328,15 +328,13 @@ export default function ExchangeRateHistoryPage() {
                 ))}
               </TableBody>
             </Table>
-            <TablePagination
-              component="div"
+            <PagePagination
               count={rows.length}
               page={page}
               onPageChange={handlePageChange}
               rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={handleRowsPerPageChange}
               rowsPerPageOptions={[10, 25, 50]}
-              labelRowsPerPage="Lignes par page"
+              onRowsPerPageChange={handleRowsPerPageChange}
             />
           </>
         )}

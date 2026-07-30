@@ -13,10 +13,10 @@ import {
   Alert,
   Typography,
   TextField,
-  TablePagination,
 } from '@mui/material';
 import { syncAdminApi, CalendarCommand, CalendarConflict } from '../../../services/api/syncAdminApi';
 import { useSyncAdminHeader } from '../SyncAdminPage';
+import PagePagination from '../../../components/PagePagination';
 
 // Types de commande → tokens sémantiques (chips -soft : texte couleur + fond -soft)
 const COMMAND_TOKEN: Record<string, { fg: string; bg: string }> = {
@@ -92,12 +92,12 @@ const CalendarAuditTab: React.FC = () => {
     return () => setHeaderFilters(null);
   }, [setHeaderFilters, propertyId]);
 
-  const handleChangePage = (_event: unknown, newPage: number) => {
+  const handleChangePage = (newPage: number) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+  const handleChangeRowsPerPage = (rows: number) => {
+    setRowsPerPage(rows);
     setPage(0);
   };
 
@@ -205,14 +205,13 @@ const CalendarAuditTab: React.FC = () => {
               </TableBody>
             </Table>
           </TableContainer>
-          <TablePagination
-            component="div"
+          <PagePagination
             count={totalElements}
             page={page}
             onPageChange={handleChangePage}
             rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
             rowsPerPageOptions={[10, 20, 50]}
+            onRowsPerPageChange={handleChangeRowsPerPage}
           />
         </>
       )}

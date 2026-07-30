@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Box, Paper, Typography, Tabs, Tab, Button, TextField, Chip, IconButton, Tooltip,
+  Box, Paper, Typography, Button, TextField, Chip, IconButton, Tooltip,
   Table, TableHead, TableBody, TableRow, TableCell, TableContainer, CircularProgress,
   Skeleton, Snackbar, Alert,
 } from '@mui/material';
@@ -9,6 +9,7 @@ import { VpnKey, History, Add, Delete as Trash, LocationOn } from '../../../icon
 import EmptyState from '../../../components/EmptyState';
 import { keyExchangeApi, type KeyExchangeCodeDto } from '../../../services/api/keyExchangeApi';
 import type { ConnectedDevice } from '../types';
+import PageTabs from '../../../components/PageTabs';
 
 // Statuts de code : tokens sémantiques désaturés (texte couleur + fond `-soft`) —
 // actif = --ok, utilisé = --info, expiré = neutre, annulé = --err.
@@ -111,14 +112,17 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
 
       {/* Codes | Mouvements */}
       <Box>
-        <Tabs
+        <PageTabs
+          options={[
+            { label: 'Codes', icon: <VpnKey /> },
+            { label: 'Mouvements', icon: <History /> },
+          ]}
           value={subTab}
-          onChange={(_, v) => setSubTab(v)}
-          sx={{ borderBottom: 1, borderColor: 'divider', minHeight: 36, '& .MuiTab-root': { minHeight: 36, textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, py: 0.5 } }}
-        >
-          <Tab icon={<VpnKey size={16} strokeWidth={1.75} />} iconPosition="start" label="Codes" />
-          <Tab icon={<History size={16} strokeWidth={1.75} />} iconPosition="start" label="Mouvements" />
-        </Tabs>
+          onChange={setSubTab}
+          size="compact"
+          mb={0}
+          trail={false}
+        />
 
         <Box sx={{ pt: 2 }}>
           {subTab === 0 && (

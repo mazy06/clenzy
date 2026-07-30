@@ -16,16 +16,12 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Pagination,
-  TextField,
-  InputAdornment,
 } from '@mui/material';
 import {
   Add,
   Edit,
   Delete,
   Visibility,
-  Search,
   Refresh,
   AutoAwesome,
   Build,
@@ -36,6 +32,8 @@ import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import TeamCard from '../../components/TeamCard';
 import { useTeamsList } from './useTeamsList';
+import PagePagination from '../../components/PagePagination';
+import { useScreenSearch } from '../../components/ScreenChrome';
 
 // Catégories de filtrage pour la liste des équipes
 const TEAM_FILTER_CATEGORIES = [
@@ -83,6 +81,9 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
     navigate,
     t,
   } = useTeamsList();
+
+  // Recherche de l'écran → champ UNIQUE du PageHeader (cf. ScreenChrome).
+  useScreenSearch(searchTerm, setSearchTerm, t('teams.searchPlaceholder') || 'Rechercher une équipe…');
 
   if (loading) {
     return (
@@ -132,28 +133,6 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
 
       {/* ─── Barre de recherche + filtres ─── */}
       <Box sx={{ mb: 2 }}>
-        {/* Recherche */}
-        <TextField
-          fullWidth
-          size="small"
-          placeholder={t('teams.searchPlaceholder') || 'Rechercher une équipe...'}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={18} strokeWidth={1.75} /></Box>
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            mb: 1.5,
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2,
-              fontSize: '0.85rem',
-            },
-          }}
-        />
 
         {/* Filtres par catégorie de service */}
         <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
@@ -241,12 +220,10 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
           {/* Pagination */}
           {totalPages > 1 && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-              <Pagination
-                count={totalPages}
-                page={page + 1}
-                onChange={(_, newPage) => setPage(newPage - 1)}
-                color="primary"
-                size="small"
+              <PagePagination
+                totalPages={totalPages}
+                page={page}
+                onPageChange={(newPage) => setPage(newPage)}
               />
             </Box>
           )}

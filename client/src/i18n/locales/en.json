@@ -852,7 +852,8 @@
     "finances": "Finance",
     "distribution": "Distribution",
     "platformTools": "Platform tools",
-    "automationRules": "Automations"
+    "automationRules": "Automations",
+    "screens": "Screens"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1523,7 +1524,34 @@
       "outboxGroup": "Lost internal messages",
       "integrationGroup": "Disconnected integrations",
       "documentGroup": "Undelivered documents",
-      "einvoiceGroup": "Rejected e-invoices"
+      "einvoiceGroup": "Rejected e-invoices",
+      "declarationAction": "Declare",
+      "incidentAction": "Resolve",
+      "pendingAction": "Confirm",
+      "overdueAction": "Follow up",
+      "conversationAction": "Reply",
+      "balancesAction": "Collect",
+      "abandonedAction": "Collect",
+      "messageFailedAction": "Resend",
+      "guideAction": "Publish",
+      "depositAction": "Release",
+      "servicesAction": "Pay",
+      "unassignedAction": "Assign",
+      "feedsAction": "Resync",
+      "reviewsAction": "Reply",
+      "interventionUnassignedAction": "Assign",
+      "interventionUnpaidAction": "Pay",
+      "checkinAction": "Follow up",
+      "noiseAction": "Acknowledge",
+      "issueAction": "Triage",
+      "payoutAction": "Approve",
+      "onboardingAction": "Finish",
+      "invitationAction": "Reinvite",
+      "documentAction": "Resend",
+      "einvoiceAction": "Resend",
+      "automationAction": "Retry",
+      "outboxAction": "Replay",
+      "integrationAction": "Reconnect"
     },
     "activePropertiesShort": "active properties",
     "newReservation": "Reservation",
@@ -3197,15 +3225,32 @@
       "totalError": "Total must equal 100%",
       "configName": "Default configuration",
       "noConfig": "No configuration found. Default values will be used.",
-      "defaults": "Defaults: Owner 80%, Platform 5%, Concierge 15%"
+      "defaults": "Defaults: Owner 80%, Platform 5%, Concierge 15%",
+      "simulateOn": "Simulate on",
+      "channelFee": "Channel commission",
+      "projectionHint": "Projection on €100 collected, at constant split. This is not a payout statement.",
+      "detailTitle": "Breakdown by channel",
+      "tabChannels": "Distribution channels",
+      "tabServices": "Services & activities"
     },
     "commissions": {
       "title": "Channel Commissions",
-      "subtitle": "Commission rate charged by each booking platform. External platform rates cannot be modified. Only the booking engine rate is configurable.",
+      "subtitle": "“Applied rate” drives margin calculations when the platform does not report its commission; “Actual” is what it really charged over 12 months. OTA rates are set by the platform — only the booking engine is configurable.",
       "channel": "Channel",
-      "rate": "Rate (%)",
       "error": "Error loading commissions",
-      "empty": "No booking channel configured"
+      "source": "Source",
+      "driftHint": "Gap with the applied rate: margins computed on stays without a reported commission are off by the same amount.",
+      "provenance": {
+        "real": "Charged",
+        "realHint": "{{count}} of {{total}} stay(s) reported the commission actually charged by the platform.",
+        "estimated": "Estimated",
+        "estimatedHint": "No stay reported its commission: the reference rate is used for margin calculations.",
+        "noStay": "No stays",
+        "noStayHint": "No stays on this channel over the last 12 months."
+      },
+      "fee": "Commission",
+      "net": "Net",
+      "bookingEngineRate": "Booking engine rate"
     },
     "monetization": {
       "title": "Platform commission (upsells & activities)",
@@ -3464,6 +3509,25 @@
       },
       "completeMission": "Complete the mission",
       "finishOnboarding": "Finish payout account setup"
+    },
+    "providers": {
+      "title": "Payment providers",
+      "subtitle": "Enable or disable providers for your organisation.",
+      "open": "Providers"
+    },
+    "services": {
+      "upsellTitle": "Upsells — services sold to the guest",
+      "conciergeOnNet": "Concierge share (on net)",
+      "contractOverride": "A property's management contract can override the concierge share: the contract rate then applies instead of this one.",
+      "activitiesTitle": "Activities — affiliate programmes",
+      "affiliationHint": "The guest books with the provider through an affiliate link. The commission is paid to the Baitly affiliate account, which keeps its share and pays you the balance.",
+      "active": "Active",
+      "inactive": "Inactive",
+      "unconfigured": "Not configured",
+      "source": "Source",
+      "status": "Status",
+      "affiliationProjection": "Projection on €100 of affiliate commission received by Baitly, which keeps its share and pays you the balance. An empty rate means nothing is withheld.",
+      "baitlyRate": "Baitly share"
     }
   },
   "contracts": {
@@ -6844,5 +6908,15 @@
     "stripe": "Stripe Connect",
     "manual": "Manual transfer",
     "wise": "Wise"
+  },
+  "pagination": {
+    "range": "{{from}}-{{to}} of {{count}}",
+    "previous": "Previous",
+    "next": "Next",
+    "rowsPerPage": "Rows per page",
+    "rowsPerPageOption": "{{count}} / page"
+  },
+  "search": {
+    "goToScreen": "Go to a screen…"
   }
 }

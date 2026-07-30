@@ -9,7 +9,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
   TextField,
   MenuItem,
   Chip,
@@ -27,6 +26,7 @@ import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { SPACING } from '../../theme/spacing';
 import { Money } from '../../components/Money';
+import PagePagination from '../../components/PagePagination';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -48,16 +48,6 @@ const TABLE_HEAD_SX = {
     color: 'var(--faint)',
     borderBottom: '1px solid var(--line)',
     whiteSpace: 'nowrap',
-  },
-} as const;
-
-const PAGINATION_SX = {
-  borderTop: '1px solid var(--line)',
-  '& .MuiTablePagination-displayedRows, & .MuiTablePagination-selectLabel': {
-    fontSize: '11.5px',
-    fontWeight: 600,
-    color: 'var(--muted)',
-    fontVariantNumeric: 'tabular-nums',
   },
 } as const;
 
@@ -358,20 +348,16 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
               </TableBody>
             </Table>
           </TableContainer>
-          <TablePagination
-            component="div"
+          <PagePagination
             count={totalElements}
             page={page}
-            onPageChange={(_, p) => setPage(p)}
+            onPageChange={(p) => setPage(p)}
             rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(parseInt(e.target.value, 10));
+            rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
+            onRowsPerPageChange={(rows) => {
+              setRowsPerPage(rows);
               setPage(0);
             }}
-            rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
-            labelRowsPerPage="Par page"
-            labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-            sx={PAGINATION_SX}
           />
         </Paper>
       )}

@@ -852,7 +852,8 @@
     "finances": "المالية",
     "distribution": "التوزيع",
     "platformTools": "أدوات المنصة",
-    "automationRules": "الأتمتة"
+    "automationRules": "الأتمتة",
+    "screens": "الشاشات"
   },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -1533,7 +1534,34 @@
       "outboxGroup": "رسائل داخلية مفقودة",
       "integrationGroup": "تكاملات منقطعة",
       "documentGroup": "مستندات لم تُسلَّم",
-      "einvoiceGroup": "فواتير إلكترونية مرفوضة"
+      "einvoiceGroup": "فواتير إلكترونية مرفوضة",
+      "declarationAction": "تصريح",
+      "incidentAction": "تسوية",
+      "pendingAction": "تأكيد",
+      "overdueAction": "تذكير",
+      "conversationAction": "رد",
+      "balancesAction": "تحصيل",
+      "abandonedAction": "تحصيل",
+      "messageFailedAction": "إعادة إرسال",
+      "guideAction": "نشر",
+      "depositAction": "تحرير",
+      "servicesAction": "سداد",
+      "unassignedAction": "إسناد",
+      "feedsAction": "إعادة مزامنة",
+      "reviewsAction": "رد",
+      "interventionUnassignedAction": "إسناد",
+      "interventionUnpaidAction": "سداد",
+      "checkinAction": "تذكير",
+      "noiseAction": "تأكيد الاستلام",
+      "issueAction": "تصنيف",
+      "payoutAction": "موافقة",
+      "onboardingAction": "استكمال",
+      "invitationAction": "إعادة دعوة",
+      "documentAction": "إعادة إرسال",
+      "einvoiceAction": "إعادة إرسال",
+      "automationAction": "إعادة تشغيل",
+      "outboxAction": "إعادة تنفيذ",
+      "integrationAction": "إعادة ربط"
     },
     "activePropertiesShort": "وحدات نشطة",
     "newReservation": "حجز",
@@ -3167,15 +3195,32 @@
       "totalError": "يجب أن يكون المجموع 100%",
       "configName": "الإعداد الافتراضي",
       "noConfig": "لم يتم العثور على إعداد. سيتم استخدام القيم الافتراضية.",
-      "defaults": "القيم الافتراضية: المالك 80%، المنصة 5%، الكونسيرج 15%"
+      "defaults": "القيم الافتراضية: المالك 80%، المنصة 5%، الكونسيرج 15%",
+      "simulateOn": "محاكاة على",
+      "channelFee": "عمولة القناة",
+      "projectionHint": "إسقاط على 100 € محصّلة، بتوزيع ثابت. هذا ليس كشف تحويلات.",
+      "detailTitle": "التفصيل حسب القناة",
+      "tabChannels": "قنوات التوزيع",
+      "tabServices": "الخدمات والأنشطة"
     },
     "commissions": {
       "title": "عمولات القنوات",
-      "subtitle": "نسبة العمولة التي تفرضها كل منصة حجز. نسب المنصات الخارجية غير قابلة للتعديل. فقط نسبة محرك الحجز يمكن تعديلها.",
+      "subtitle": "«النسبة المطبقة» تُستخدم في حساب الهامش عندما لا ترسل المنصة عمولتها؛ و«المحقق» هو ما اقتطعته فعليًا خلال 12 شهرًا. نسب المنصات الخارجية تحددها المنصة — محرك الحجز وحده قابل للتعديل.",
       "channel": "القناة",
-      "rate": "النسبة (%)",
       "error": "خطأ في تحميل العمولات",
-      "empty": "لا توجد قنوات حجز مُهيأة"
+      "source": "المصدر",
+      "driftHint": "فارق مع النسبة المطبقة: الهوامش المحسوبة على الإقامات التي لم تُرسل عمولتها منحرفة بالقدر نفسه.",
+      "provenance": {
+        "real": "مفوتر",
+        "realHint": "{{count}} من {{total}} إقامة أرسلت العمولة التي اقتطعتها المنصة فعليًا.",
+        "estimated": "تقديري",
+        "estimatedHint": "لم تُرسل أي إقامة عمولتها: تُطبَّق النسبة المرجعية في حساب الهامش.",
+        "noStay": "لا إقامات",
+        "noStayHint": "لا توجد إقامات على هذه القناة خلال آخر 12 شهرًا."
+      },
+      "fee": "العمولة",
+      "net": "الصافي",
+      "bookingEngineRate": "نسبة محرك الحجز"
     },
     "monetization": {
       "title": "عمولة المنصة (الخدمات الإضافية والأنشطة)",
@@ -3434,6 +3479,25 @@
       },
       "completeMission": "أكمل المهمة",
       "finishOnboarding": "أكمل إعداد حساب الدفع"
+    },
+    "providers": {
+      "title": "مزودو الدفع",
+      "subtitle": "فعّل أو عطّل المزودين لمؤسستك.",
+      "open": "المزودون"
+    },
+    "services": {
+      "upsellTitle": "الخدمات الإضافية — المباعة للنزيل",
+      "conciergeOnNet": "حصة الكونسيرج (على الصافي)",
+      "contractOverride": "قد يتجاوز عقد إدارة العقار حصة الكونسيرج: عندها تُطبَّق نسبة العقد بدل هذه.",
+      "activitiesTitle": "الأنشطة — برامج الإحالة",
+      "affiliationHint": "يحجز النزيل لدى المزود عبر رابط إحالة. تُدفع العمولة إلى حساب Baitly، الذي يحتفظ بحصته ويحوّل لك الرصيد.",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "unconfigured": "غير مُهيأ",
+      "source": "المصدر",
+      "status": "الحالة",
+      "affiliationProjection": "إسقاط على 100 € من عمولة الإحالة التي تتلقاها Baitly، فتحتفظ بحصتها وتحوّل لك الرصيد. النسبة الفارغة تعني عدم اقتطاع شيء.",
+      "baitlyRate": "حصة Baitly"
     }
   },
   "contracts": {
@@ -6569,5 +6633,15 @@
     "stripe": "Stripe Connect",
     "manual": "تحويل يدوي",
     "wise": "Wise"
+  },
+  "pagination": {
+    "range": "{{from}}-{{to}} من {{count}}",
+    "previous": "السابق",
+    "next": "التالي",
+    "rowsPerPage": "صفوف لكل صفحة",
+    "rowsPerPageOption": "{{count}} / صفحة"
+  },
+  "search": {
+    "goToScreen": "الانتقال إلى شاشة…"
   }
 }

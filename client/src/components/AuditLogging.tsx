@@ -21,7 +21,6 @@ import {
   Divider,
   Alert,
   CircularProgress,
-  Pagination,
 } from '@mui/material';
 import {
   Info,
@@ -40,6 +39,7 @@ import {
 import { monitoringApi } from '../services/api/monitoringApi';
 import type { AuditLogEntry, AuditLogPage } from '../services/api/monitoringApi';
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
+import PagePagination from './PagePagination';
 
 /** Chip -soft : texte couleur + fond -soft (pilule/typo via theme global MuiChip) */
 const chipSx = (fg: string, bg: string) => ({
@@ -363,13 +363,10 @@ const AuditLogging: React.FC = () => {
 
           {totalPages > 1 && (
             <Box display="flex" justifyContent="center" mt={3}>
-              <Pagination
-                count={totalPages}
-                page={currentPage + 1}
-                onChange={(_, value) => setCurrentPage(value - 1)}
-                color="primary"
-                showFirstButton
-                showLastButton
+              <PagePagination
+                totalPages={totalPages}
+                page={currentPage}
+                onPageChange={(value) => setCurrentPage(value)}
               />
             </Box>
           )}

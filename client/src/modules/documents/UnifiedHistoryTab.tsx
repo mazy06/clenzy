@@ -6,7 +6,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  TablePagination,
   TextField,
   Typography,
   Chip,
@@ -40,6 +39,7 @@ import GenerateDialog from './GenerateDialog';
 import FilterChipRow from '../../components/FilterChipRow';
 import EmptyState from '../../components/EmptyState';
 import { renderServerEmailPreview } from '../../utils/emailMarkdown';
+import PagePagination from '../../components/PagePagination';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -610,15 +610,13 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
 
           {/* Pagination only for documents view */}
           {filter !== 'messages' && docTotalElements > docSize && (
-            <TablePagination
-              component="div"
+            <PagePagination
               count={docTotalElements}
               page={docPage}
-              onPageChange={(_, p) => setDocPage(p)}
+              onPageChange={(p) => setDocPage(p)}
               rowsPerPage={docSize}
-              onRowsPerPageChange={(e) => { setDocSize(parseInt(e.target.value, 10)); setDocPage(0); }}
               rowsPerPageOptions={[10, 20, 50]}
-              labelRowsPerPage="Par page"
+              onRowsPerPageChange={(rows) => { setDocSize(rows); setDocPage(0); }}
             />
           )}
         </>

@@ -2,16 +2,6 @@
 
 import type { Intervention } from './useInterventionsList';
 
-export const PAGINATION_SX = {
-  position: 'sticky',
-  bottom: 0,
-  bgcolor: 'var(--card)',
-  borderTop: '1px solid',
-  borderColor: 'var(--line)',
-  mt: 2,
-  borderRadius: '9px',
-} as const;
-
 export const LIST_PAPER_SX = {
   border: '1px solid',
   borderColor: 'var(--line)',

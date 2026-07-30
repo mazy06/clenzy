@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react';
-import { Box, TablePagination } from '@mui/material';
+import { Box } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import PropertyCard from './PropertyCard';
 import { toPropertyDetails } from './propertyDetailsMapper';
-import { ITEMS_PER_PAGE, PAGINATION_SX } from './propertiesListConstants';
+import { ITEMS_PER_PAGE } from './propertiesListConstants';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { ChannexMappingDto } from '../../services/api/channexApi';
 import { usePropertyKpiSummaries } from '../../hooks/usePropertyKpiSummaries';
+import PagePagination from '../../components/PagePagination';
 
 interface PropertiesGridViewProps {
   properties: PropertyListItem[];
@@ -64,15 +65,11 @@ const PropertiesGridView: React.FC<PropertiesGridViewProps> = ({
       ))}
     </Box>
     {totalCount > ITEMS_PER_PAGE && (
-      <TablePagination
-        component="div"
+      <PagePagination
         count={totalCount}
         page={page}
-        onPageChange={(_, p) => onPageChange(p)}
+        onPageChange={(p) => onPageChange(p)}
         rowsPerPage={ITEMS_PER_PAGE}
-        rowsPerPageOptions={[ITEMS_PER_PAGE]}
-        labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-        sx={PAGINATION_SX}
       />
     )}
   </>

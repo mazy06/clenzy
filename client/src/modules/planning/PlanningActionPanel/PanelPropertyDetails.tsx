@@ -10,8 +10,6 @@ import {
   AccordionSummary,
   AccordionDetails,
   Alert,
-  Tabs,
-  Tab,
 } from '@mui/material';
 import {
   Apartment,
@@ -39,6 +37,7 @@ import { PropertyImageCarousel } from '../../../components/PropertyImageCarousel
 import { MapboxPropertyMap } from '../../../components/MapboxPropertyMap';
 import { formatShortDate, formatTimeFromDate } from '../../../utils/formatUtils';
 import { getCleaningFrequencyLabel } from '../../../utils/statusUtils';
+import PageTabs from '../../../components/PageTabs';
 
 // ─── Type scale du panneau ───────────────────────────────────────────────────
 //
@@ -533,36 +532,29 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
       <Divider sx={{ my: 1.5 }} />
 
       {/* ─── SUB-TABS : Demandes / Interventions ──────────────────── */}
-      <Tabs
-        value={activeSubTab}
-        onChange={(_, v) => setActiveSubTab(v)}
-        variant="fullWidth"
-        sx={{
-          minHeight: 30,
-          mb: 1,
-          '& .MuiTab-root': {
-            minHeight: 30,
-            fontSize: LABEL_FS,
-            textTransform: 'none',
-            fontWeight: 600,
-            py: 0.25,
-            gap: 0.5,
+      <PageTabs
+        options={[
+          {
+            value: 'requests',
+            label: 'Demandes',
+            icon: <Assignment />,
+            badge: serviceRequests.length,
+            badgeColor: 'primary',
           },
-        }}
-      >
-        <Tab
-          icon={<Assignment size={12} strokeWidth={1.75} />}
-          iconPosition="start"
-          label={`Demandes (${serviceRequests.length})`}
-          value="requests"
-        />
-        <Tab
-          icon={<Handyman size={12} strokeWidth={1.75} />}
-          iconPosition="start"
-          label={`Interventions (${interventions.length})`}
-          value="interventions"
-        />
-      </Tabs>
+          {
+            value: 'interventions',
+            label: 'Interventions',
+            icon: <Handyman />,
+            badge: interventions.length,
+            badgeColor: 'primary',
+          },
+        ]}
+        value={activeSubTab}
+        onChange={setActiveSubTab}
+        size="compact"
+        mb={1}
+        trail={false}
+      />
 
       {/* ─── LIST : Demandes ──────────────────────────────────────── */}
       {activeSubTab === 'requests' && (

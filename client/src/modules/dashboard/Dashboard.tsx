@@ -1,8 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
   Box,
-  Tabs,
-  Tab,
   Paper,
   Chip,
   Tooltip,
@@ -36,6 +34,7 @@ import type { DashboardPeriod, DateFilterOption } from './DashboardDateFilter';
 import { useDashboardOverview } from '../../hooks/useDashboardOverview';
 import { useDashboardActionItems } from '../../hooks/useDashboardOperations';
 import { countActionItems } from '../../services/api/dashboardOperationsApi';
+import PageTabs from '../../components/PageTabs';
 
 // ─── Tab icon mapping ────────────────────────────────────────────────────────
 
@@ -48,13 +47,6 @@ const TAB_ICONS: Record<string, React.ReactElement> = {
 // via t() pour reagir au changement de langue (cf. dashboardTabMeta plus bas).
 
 // ─── Tab helpers ────────────────────────────────────────────────────────────
-
-function a11yProps(index: number) {
-  return {
-    id: `dashboard-tab-${index}`,
-    'aria-controls': `dashboard-tabpanel-${index}`,
-  };
-}
 
 // ─── Filter option configs ──────────────────────────────────────────────────
 
@@ -231,41 +223,16 @@ const Dashboard: React.FC = () => {
         {/* ─── Tabs (dynamic per role) ──────────────────────────────────── */}
         {visibleTabs.length > 1 && (
           <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 0, flexShrink: 0 }}>
-            <Tabs
+            <PageTabs
+              options={visibleTabs.map((tab) => ({
+                key: tab.key,
+                icon: TAB_ICONS[tab.key],
+                label: t(tab.labelKey) || tab.key,
+              }))}
               value={tabValue}
-              onChange={(_, v) => setTabValue(v)}
-              sx={{
-                minHeight: 36,
-                '& .MuiTab-root': {
-                  minHeight: 36,
-                  py: 0.5,
-                  px: 2,
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  letterSpacing: '0.01em',
-                  color: 'text.secondary',
-                  '&.Mui-selected': {
-                    fontWeight: 700,
-                    color: 'primary.main',
-                  },
-                },
-                '& .MuiTabs-indicator': {
-                  height: 2,
-                  borderRadius: 1,
-                },
-              }}
-            >
-              {visibleTabs.map((tab, idx) => (
-                <Tab
-                  key={tab.key}
-                  icon={TAB_ICONS[tab.key]}
-                  iconPosition="start"
-                  label={t(tab.labelKey) || tab.key}
-                  {...a11yProps(idx)}
-                />
-              ))}
-            </Tabs>
+              onChange={setTabValue}
+              mb={0}
+            />
           </Paper>
         )}
 

@@ -14,6 +14,7 @@ import {
   useSidebar,
 } from '../../components/ui';
 import { LoadingStates } from '../../components/LoadingStates';
+import { ScreenChromeProvider } from '../../components/ScreenChrome';
 import OfflineBanner from '../../components/OfflineBanner';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
 
@@ -110,10 +111,13 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
   }
 
   return (
-    // Le provider est le conteneur flex de l'application : il place la sidebar
+    // ScreenChromeProvider : état partagé du chrome d'écran (recherche unique du
+    // header + fil d'Ariane interne alimenté par les onglets).
+    // Le provider de sidebar est le conteneur flex de l'application : il place la sidebar
     // (qui réserve sa propre gouttière) et l'inset côte à côte. `h-svh` +
     // `overflow-hidden` conservent la règle historique — c'est le contenu qui
     // scrolle, jamais la page.
+    <ScreenChromeProvider>
     <SidebarProvider
       open={!isCollapsed}
       onOpenChange={(open) => {
@@ -151,9 +155,9 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             overflow: fullBleed ? 'hidden' : 'auto',
           }}
         >
-          {/* Navigation de niveau 1 des hubs : le switcher segmenté (Direction A)
-              est rendu DANS le PageHeader de chaque page-racine de hub
-              (cf. HubScreenSwitcher), pas comme un bandeau séparé. */}
+          {/* Navigation de niveau 1 des hubs : elle passe par le menu du premier
+              segment du fil d'Ariane, rendu DANS le PageHeader de chaque page
+              (cf. PageBreadcrumb), pas par un bandeau séparé. */}
           {children}
         </Box>
       </SidebarInset>
@@ -169,5 +173,6 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
         {ASSISTANT_PRESENTATION === 'dock' ? <AssistantDockTab /> : <AssistantWidget />}
       </Suspense>
     </SidebarProvider>
+    </ScreenChromeProvider>
   );
 }

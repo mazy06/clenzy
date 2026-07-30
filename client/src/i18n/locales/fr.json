@@ -853,7 +853,8 @@
     "distribution": "Distribution",
     "platformTools": "Outils plateforme",
     "automationRules": "Automatisations",
-    "technicianPrestations": "Mes tarifs travaux"
+    "technicianPrestations": "Mes tarifs travaux",
+    "screens": "Écrans"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -1543,7 +1544,34 @@
       "outboxGroup": "Messages internes perdus",
       "integrationGroup": "Intégrations déconnectées",
       "documentGroup": "Documents non délivrés",
-      "einvoiceGroup": "Factures électroniques rejetées"
+      "einvoiceGroup": "Factures électroniques rejetées",
+      "declarationAction": "Déclarer",
+      "incidentAction": "Régulariser",
+      "pendingAction": "Confirmer",
+      "overdueAction": "Relancer",
+      "conversationAction": "Répondre",
+      "balancesAction": "Encaisser",
+      "abandonedAction": "Encaisser",
+      "messageFailedAction": "Renvoyer",
+      "guideAction": "Publier",
+      "depositAction": "Libérer",
+      "servicesAction": "Régler",
+      "unassignedAction": "Assigner",
+      "feedsAction": "Resynchroniser",
+      "reviewsAction": "Répondre",
+      "interventionUnassignedAction": "Assigner",
+      "interventionUnpaidAction": "Régler",
+      "checkinAction": "Relancer",
+      "noiseAction": "Acquitter",
+      "issueAction": "Qualifier",
+      "payoutAction": "Approuver",
+      "onboardingAction": "Finaliser",
+      "invitationAction": "Réinviter",
+      "documentAction": "Renvoyer",
+      "einvoiceAction": "Renvoyer",
+      "automationAction": "Relancer",
+      "outboxAction": "Rejouer",
+      "integrationAction": "Reconnecter"
     },
     "activePropertiesShort": "logements actifs",
     "newReservation": "Réservation",
@@ -3219,15 +3247,32 @@
       "totalError": "Le total doit être égal à 100%",
       "configName": "Configuration par défaut",
       "noConfig": "Aucune configuration trouvée. Les valeurs par défaut seront utilisées.",
-      "defaults": "Valeurs par défaut : Propriétaire 80%, Plateforme 5%, Conciergerie 15%"
+      "defaults": "Valeurs par défaut : Propriétaire 80%, Plateforme 5%, Conciergerie 15%",
+      "simulateOn": "Simuler sur",
+      "channelFee": "Commission canal",
+      "projectionHint": "Projection sur 100 € encaissés, à répartition constante. Ce n'est pas un relevé de reversements.",
+      "detailTitle": "Détail par canal",
+      "tabChannels": "Canaux de distribution",
+      "tabServices": "Services & activités"
     },
     "commissions": {
       "title": "Commissions canaux",
-      "subtitle": "Taux de commission prélevé par chaque plateforme de réservation. Les taux des plateformes externes ne sont pas modifiables. Seul le taux du booking engine est configurable.",
+      "subtitle": "« Taux appliqué » sert au calcul de marge quand la plateforme ne remonte pas sa commission ; « Constaté » est ce qu'elle a réellement prélevé sur 12 mois. Les taux OTA sont fixés par la plateforme — seul le booking engine est configurable.",
       "channel": "Canal",
-      "rate": "Taux (%)",
       "error": "Erreur lors du chargement des commissions",
-      "empty": "Aucun canal de réservation configuré"
+      "source": "Source",
+      "driftHint": "Écart avec le taux appliqué : les marges calculées sur les séjours sans commission remontée sont décalées d’autant.",
+      "provenance": {
+        "real": "Facturé",
+        "realHint": "{{count}} séjour(s) sur {{total}} ont remonté la commission réellement prélevée par la plateforme.",
+        "estimated": "Estimé",
+        "estimatedHint": "Aucun séjour n'a remonté sa commission : le taux de référence est appliqué au calcul de marge.",
+        "noStay": "Aucun séjour",
+        "noStayHint": "Aucun séjour sur ce canal ces 12 derniers mois."
+      },
+      "fee": "Commission",
+      "net": "Net",
+      "bookingEngineRate": "Taux du booking engine"
     },
     "monetization": {
       "title": "Commission plateforme (upsells & activités)",
@@ -3486,6 +3531,25 @@
       },
       "completeMission": "Compléter la mission",
       "finishOnboarding": "Finaliser le compte de versement"
+    },
+    "providers": {
+      "title": "Fournisseurs de paiement",
+      "subtitle": "Activez ou désactivez les fournisseurs pour votre organisation.",
+      "open": "Fournisseurs"
+    },
+    "services": {
+      "upsellTitle": "Upsells — services vendus au voyageur",
+      "conciergeOnNet": "Part conciergerie (sur le net)",
+      "contractOverride": "La part conciergerie peut être surchargée par le contrat de gestion d'un logement : c'est alors le taux du contrat qui s'applique, pas celui-ci.",
+      "activitiesTitle": "Activités — programmes d'affiliation",
+      "affiliationHint": "Le voyageur réserve chez le prestataire via un lien affilié. La commission est versée sur le compte affilié Baitly, qui en retient sa part et vous reverse le solde.",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "unconfigured": "Non configuré",
+      "source": "Source",
+      "status": "Statut",
+      "affiliationProjection": "Projection sur 100 € de commission d'affiliation perçue par Baitly, qui en retient sa part et vous reverse le solde. Un taux vide signifie qu'aucune part n'est retenue.",
+      "baitlyRate": "Part Baitly"
     }
   },
   "contracts": {
@@ -6868,5 +6932,15 @@
     "stripe": "Stripe Connect",
     "manual": "Virement manuel",
     "wise": "Wise"
+  },
+  "pagination": {
+    "range": "{{from}}-{{to}} sur {{count}}",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "rowsPerPage": "Lignes par page",
+    "rowsPerPageOption": "{{count}} / page"
+  },
+  "search": {
+    "goToScreen": "Aller à un écran…"
   }
 }

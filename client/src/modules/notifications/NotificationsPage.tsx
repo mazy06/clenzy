@@ -5,7 +5,6 @@ import {
   Button,
   IconButton,
   Tooltip,
-  TablePagination,
 } from '@mui/material';
 import {
   Build,
@@ -31,6 +30,7 @@ import { useTabValueParam } from '../../components/tabKeyParam';
 import EmptyState from '../../components/EmptyState';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 import { parseApiDate } from '../../utils/formatUtils';
+import PagePagination from '../../components/PagePagination';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -74,12 +74,6 @@ function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown
 const MIN_PER_PAGE = 3;
 const ROW_HEIGHT_FALLBACK = 61; // px — utilisé tant qu'aucune ligne n'est peinte
 const BOTTOM_RESERVE = 96; // px réservés sous la liste (pagination + mt + padding layout)
-const PAGINATION_SX = {
-  bgcolor: 'var(--card)',
-  borderTop: '1px solid var(--line)',
-  mt: 1.5,
-  borderRadius: '9px',
-} as const;
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -99,7 +93,7 @@ export default function NotificationsPage() {
   }, [queryClient]);
 
   // Pagination SERVEUR, SANS scroll : la taille de page s'adapte à la
-  // hauteur d'écran disponible (pattern PAGINATION_SX / TablePagination).
+  // hauteur d'écran disponible (cf. PagePagination).
   const [page, setPage] = useState(0);
   const [perPage, setPerPage] = useState(10);
   const listRef = React.useRef<HTMLDivElement>(null);
@@ -376,15 +370,11 @@ export default function NotificationsPage() {
           ))}
         </Box>
         {totalElements > perPage && (
-          <TablePagination
-            component="div"
+          <PagePagination
             count={totalElements}
             page={page}
-            onPageChange={(_, p) => setPage(p)}
+            onPageChange={(p) => setPage(p)}
             rowsPerPage={perPage}
-            rowsPerPageOptions={[perPage]}
-            labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-            sx={PAGINATION_SX}
           />
         )}
       </DataFetchWrapper>

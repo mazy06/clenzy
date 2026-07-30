@@ -21,7 +21,6 @@ import {
   TableBody,
   TableCell,
   TableHead,
-  TablePagination,
   TableRow,
   TextField,
   ToggleButton,
@@ -39,6 +38,7 @@ import {
   type YieldPropertyBounds,
   type YieldRuleV1,
 } from '../../services/api/yieldRulesApi';
+import PagePagination from '../../components/PagePagination';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -569,13 +569,11 @@ const YieldRulesPanel: React.FC = () => {
                 </TableBody>
               </Table>
             </Box>
-            <TablePagination
-              component="div"
+            <PagePagination
               count={journal.totalElements}
               page={journalPage}
-              onPageChange={(_, page) => void loadJournal(page)}
+              onPageChange={(page) => void loadJournal(page)}
               rowsPerPage={journal.size}
-              rowsPerPageOptions={[journal.size]}
             />
           </>
         )}

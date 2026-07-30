@@ -9,21 +9,23 @@ describe('resolveTabHeader', () => {
   };
   const TABS = ['Général', 'Notifications', 'Commodités OTA'];
 
-  // ─── Title (breadcrumb) ─────────────────────────────────────────────────────
+  // ─── Title ──────────────────────────────────────────────────────────────────
+  // Le CHEMIN est porte par le fil d'Ariane (PageBreadcrumb) : le titre ne
+  // porte plus que la page courante, jamais "Racine › Onglet".
 
   it('returns root title alone when active tab is index 0 (root)', () => {
     const result = resolveTabHeader('Paramètres', 'Default subtitle', TABS, 0, META);
     expect(result.title).toBe('Paramètres');
   });
 
-  it('returns "Root › Tab" when active tab > 0', () => {
+  it('returns the active tab label alone when active tab > 0', () => {
     const result = resolveTabHeader('Paramètres', 'Default subtitle', TABS, 1, META);
-    expect(result.title).toBe('Paramètres › Notifications');
+    expect(result.title).toBe('Notifications');
   });
 
   it('handles the last tab correctly', () => {
     const result = resolveTabHeader('Paramètres', 'Default subtitle', TABS, 2, META);
-    expect(result.title).toBe('Paramètres › Commodités OTA');
+    expect(result.title).toBe('Commodités OTA');
   });
 
   // ─── Subtitle ───────────────────────────────────────────────────────────────
@@ -64,9 +66,9 @@ describe('resolveTabHeader', () => {
     expect(result.subtitle).toBe('Default subtitle');
   });
 
-  it('preserves the typographic chevron › (not ASCII >) in title', () => {
+  it('never bakes a path separator into the title (le fil d\'Ariane s\'en charge)', () => {
     const result = resolveTabHeader('Paramètres', 'Default', TABS, 1, META);
-    expect(result.title).toContain(' › ');
+    expect(result.title).not.toContain('›');
     expect(result.title).not.toContain(' > ');
   });
 });

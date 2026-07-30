@@ -11,7 +11,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
   Chip,
   alpha,
 } from '@mui/material';
@@ -27,6 +26,7 @@ import { Money } from '../../components/Money';
 import type { WalletDto, LedgerEntryDto } from '../../types/payment';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import PagePagination from '../../components/PagePagination';
 
 // Accents = palette Clenzy validée (ESCROW : mauve désaturé validé planning #9A7FA3)
 const WALLET_TYPE_LABELS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
@@ -346,17 +346,11 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                       </TableBody>
                     </Table>
                   </TableContainer>
-                  <TablePagination
-                    component="div"
+                  <PagePagination
                     count={totalEntries}
                     page={page}
-                    onPageChange={(_, newPage) => setPage(newPage)}
+                    onPageChange={(newPage) => setPage(newPage)}
                     rowsPerPage={10}
-                    rowsPerPageOptions={[10]}
-                    labelDisplayedRows={({ from, to, count }) =>
-                      `${from}-${to} sur ${count}`
-                    }
-                    sx={{ borderTop: '1px solid var(--line)' }}
                   />
                 </>
               )}

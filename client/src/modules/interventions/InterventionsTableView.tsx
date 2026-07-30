@@ -1,8 +1,7 @@
 import React from 'react';
 import {
   Box, Typography, Chip, Tooltip, IconButton, LinearProgress,
-  Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination,
-} from '@mui/material';
+  Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility as VisibilityIcon, MoreVert } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -13,7 +12,8 @@ import {
   getInterventionTypeLabel,
 } from '../../utils/statusUtils';
 import { getStatusTokens, getPriorityTokens, getTypeTokens } from './interventionUtils';
-import { LIST_PAPER_SX, PAGINATION_SX, stripPropertySuffix, formatDateShort, getProgress } from './interventionsListConstants';
+import { LIST_PAPER_SX, stripPropertySuffix, formatDateShort, getProgress } from './interventionsListConstants';
+import PagePagination from '../../components/PagePagination';
 
 interface InterventionsTableViewProps {
   interventions: Intervention[];
@@ -207,15 +207,11 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
           </TableBody>
         </Table>
       </TableContainer>
-      <TablePagination
-        component="div"
+      <PagePagination
         count={totalCount}
         page={page}
-        onPageChange={(_, p) => onPageChange(p)}
+        onPageChange={(p) => onPageChange(p)}
         rowsPerPage={rowsPerPage}
-        rowsPerPageOptions={[]}
-        labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-        sx={{ ...PAGINATION_SX, flexShrink: 0 }}
       />
     </Paper>
   );

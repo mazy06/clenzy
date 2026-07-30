@@ -18,7 +18,6 @@ import {
   Typography,
   Grid,
   TextField,
-  TablePagination,
 } from '@mui/material';
 import {
   Replay,
@@ -32,6 +31,7 @@ import FilterChipRow from '../../../components/FilterChipRow';
 import HelpPopover from '../../../components/HelpPopover';
 import StatTile from '../../../components/StatTile';
 import { useSyncAdminHeader } from '../SyncAdminPage';
+import PagePagination from '../../../components/PagePagination';
 
 // Contenu d'aide contextuelle (statique) — porté par l'icône ⓘ dans le header
 // SyncAdmin plutôt qu'un bandeau permanent qui mange de la hauteur.
@@ -306,13 +306,13 @@ const OutboxTab: React.FC = () => {
     return () => setHeaderActions(null);
   }, [setHeaderActions, handleSelectAllFailed, handleRetry, retrying, selectedIds.size]);
 
-  const handleChangePage = (_event: unknown, newPage: number) => {
+  const handleChangePage = (newPage: number) => {
     setPage(newPage);
     setSelectedIds(new Set());
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+  const handleChangeRowsPerPage = (rows: number) => {
+    setRowsPerPage(rows);
     setPage(0);
     setSelectedIds(new Set());
   };
@@ -493,14 +493,13 @@ const OutboxTab: React.FC = () => {
               </TableBody>
             </Table>
           </TableContainer>
-          <TablePagination
-            component="div"
+          <PagePagination
             count={totalElements}
             page={page}
             onPageChange={handleChangePage}
             rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
             rowsPerPageOptions={[10, 20, 50]}
+            onRowsPerPageChange={handleChangeRowsPerPage}
           />
         </>
       )}

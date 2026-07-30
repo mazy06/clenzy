@@ -3,8 +3,6 @@ import { createPortal } from 'react-dom';
 import {
   Box,
   Typography,
-  Tabs,
-  Tab,
   Paper,
   Button,
   Grid,
@@ -39,6 +37,7 @@ import ConfirmationModal from '../../components/ConfirmationModal';
 import PortfolioStatsTab from './PortfolioStatsTab';
 import { ReassignmentDialog } from './PortfoliosDialogs';
 import { usePortfoliosPage } from './usePortfoliosPage';
+import PageTabs from '../../components/PageTabs';
 
 // ─── Helper components ───────────────────────────────────────────────────────
 
@@ -62,13 +61,6 @@ function TabPanel(props: TabPanelProps) {
       {value === index && <Box sx={{ p: 2.5 }}>{children}</Box>}
     </div>
   );
-}
-
-function a11yProps(index: number) {
-  return {
-    id: `portfolios-tab-${index}`,
-    'aria-controls': `portfolios-tabpanel-${index}`,
-  };
 }
 
 // ─── Section Header ──────────────────────────────────────────────────────────
@@ -244,40 +236,20 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
 
       <Paper sx={{ width: '100%', mt: 2, borderRadius: 2, overflow: 'hidden' }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs
+          <PageTabs
+            options={[
+              {
+                label: t('portfolios.tabs.myPortfolios'),
+                icon: <BusinessIcon />,
+              },
+              { label: t('portfolios.tabs.teamManagement'), icon: <Group /> },
+              { label: t('portfolios.tabs.statistics'), icon: <BarChart /> },
+            ]}
             value={tabValue}
             onChange={handleTabChange}
-            aria-label="portfolios tabs"
-            sx={{
-              px: 2,
-              '& .MuiTab-root': {
-                fontSize: '0.82rem',
-                fontWeight: 500,
-                textTransform: 'none',
-                minHeight: 48,
-                py: 1,
-              },
-            }}
-          >
-            <Tab
-              label={t('portfolios.tabs.myPortfolios')}
-              icon={<BusinessIcon size={18} strokeWidth={1.75} />}
-              iconPosition="start"
-              {...a11yProps(0)}
-            />
-            <Tab
-              label={t('portfolios.tabs.teamManagement')}
-              icon={<Group size={18} strokeWidth={1.75} />}
-              iconPosition="start"
-              {...a11yProps(1)}
-            />
-            <Tab
-              label={t('portfolios.tabs.statistics')}
-              icon={<BarChart size={18} strokeWidth={1.75} />}
-              iconPosition="start"
-              {...a11yProps(2)}
-            />
-          </Tabs>
+            ariaLabel="portfolios tabs"
+            mb={0}
+          />
         </Box>
 
         {/* ─── Tab 0: My Portfolios ─────────────────────────────────────── */}

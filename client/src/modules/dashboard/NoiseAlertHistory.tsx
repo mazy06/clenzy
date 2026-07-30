@@ -24,7 +24,6 @@ import {
   Button,
   TextField,
   CircularProgress,
-  TablePagination,
 } from '@mui/material';
 import {
   History,
@@ -38,6 +37,7 @@ import {
   useAcknowledgeAlert,
   type NoiseAlertDto,
 } from '../../hooks/useNoiseAlerts';
+import PagePagination from '../../components/PagePagination';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -207,16 +207,13 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
               </Table>
             </TableContainer>
 
-            <TablePagination
-              component="div"
+            <PagePagination
               count={totalElements}
               page={page}
-              onPageChange={(_, p) => setPage(p)}
+              onPageChange={(p) => setPage(p)}
               rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
               rowsPerPageOptions={[5, 10, 25]}
-              labelRowsPerPage="Par page :"
-              sx={{ '.MuiTablePagination-displayedRows, .MuiTablePagination-selectLabel': { fontSize: '0.75rem' } }}
+              onRowsPerPageChange={(rows) => { setRowsPerPage(rows); setPage(0); }}
             />
           </>
         )}

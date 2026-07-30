@@ -139,7 +139,7 @@ interface TabHeaderResolution {
  * @param activeIndex  visible-index du tab actif (= valeur de PageTabs)
  * @param tabMeta      mapping label → { subtitle }
  *
- * @returns { title: "Root" ou "Root › Tab", subtitle: tab-specific ou default }
+ * @returns { title: "Root" ou "Tab", subtitle: tab-specific ou default }
  */
 export function resolveTabHeader(
   rootTitle: string,
@@ -150,8 +150,10 @@ export function resolveTabHeader(
 ): TabHeaderResolution {
   const activeLabel = tabLabels[activeIndex];
   const meta = activeLabel ? tabMeta[activeLabel] : undefined;
-  // Tab 0 = racine → on n'ajoute pas de "> Label" pour eviter "Root > Root".
-  const title = activeLabel && activeIndex > 0 ? `${rootTitle} › ${activeLabel}` : rootTitle;
+  // Le CHEMIN est desormais porte par le fil d'Ariane (PageBreadcrumb) : le
+  // titre ne repete plus "Racine › Onglet", il ne porte que la page courante.
+  // Tab 0 = racine → le titre reste celui de la page.
+  const title = activeLabel && activeIndex > 0 ? activeLabel : rootTitle;
   const subtitle = meta?.subtitle ?? defaultSubtitle;
   return { title, subtitle };
 }

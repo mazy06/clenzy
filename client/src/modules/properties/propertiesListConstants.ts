@@ -12,15 +12,6 @@ export const ICON_BUTTON_SX = {
   '& .MuiSvgIcon-root': { fontSize: 18 },
 } as const;
 
-export const PAGINATION_SX = {
-  position: 'sticky',
-  bottom: 0,
-  bgcolor: 'var(--card)',
-  borderTop: '1px solid var(--line)',
-  mt: 1.5,
-  borderRadius: '9px',
-} as const;
-
 export const ITEMS_PER_PAGE = 6;
 export const LIST_ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
 export const LIST_DEFAULT_ROWS = 10;

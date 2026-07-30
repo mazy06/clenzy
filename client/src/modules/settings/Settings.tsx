@@ -664,11 +664,12 @@ export default function Settings() {
   const settingsRootTitle = t('tabHeaders.settings.title', 'Paramètres');
   const settingsDefaultSubtitle = t('tabHeaders.settings.default', 'Configurez votre application selon vos préférences');
 
-  // Breadcrumb : "Paramètres" (root = Général) ou "Paramètres › <label>" sinon.
+  // Titre = page courante SEULE : le chemin ("Paramètres › <label>") est porte
+  // par le fil d'Ariane du PageHeader, ne pas le repeter dans le h1.
   // On indexe par label car tabValue est le visible-index (filtree par role).
   const activeTabLabel = visibleSettingsTabs[tabValue]?.label;
   const activeTabMeta = activeTabLabel ? settingsTabMeta[activeTabLabel] : undefined;
-  const headerTitle = activeTabLabel && tabValue > 0 ? `${settingsRootTitle} › ${activeTabLabel}` : settingsRootTitle;
+  const headerTitle = activeTabLabel && tabValue > 0 ? activeTabLabel : settingsRootTitle;
   const headerSubtitle = activeTabMeta?.subtitle ?? settingsDefaultSubtitle;
 
   // Actions : un tab a-t-il deja inline son bouton via headerActions (tab 1/4/8)

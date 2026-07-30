@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Skeleton, Pagination, Box } from '@mui/material';
+import { Skeleton, Box } from '@mui/material';
 import {
   LayoutGrid, List, Star, Plus, Check, Clock, Users, Globe, Calendar,
   ShieldCheck, ArrowLeft, BookOpen, Boxes, MoreHorizontal,
@@ -11,6 +11,7 @@ import {
   type MarketplaceExperience, type PartnerName,
 } from './marketplaceData';
 import './marketplace.css';
+import PagePagination from '../../../components/PagePagination';
 
 type View = 'cards' | 'list';
 type Filter = 'Tous' | 'Internes' | PartnerName;
@@ -303,12 +304,10 @@ export default function ServicesCatalog({
 
       {totalPages > 1 && (
         <Box display="flex" justifyContent="center" mt={3}>
-          <Pagination
-            count={totalPages}
-            page={curPage}
-            onChange={(_e, v) => setPage(v)}
-            color="primary"
-            shape="rounded"
+          <PagePagination
+            totalPages={totalPages}
+            page={curPage - 1}
+            onPageChange={(v) => setPage(v + 1)}
           />
         </Box>
       )}
