@@ -3226,7 +3226,8 @@
       "projectionHint": "Projection on €100 collected, at constant split. This is not a payout statement.",
       "detailTitle": "Breakdown by channel",
       "tabChannels": "Distribution channels",
-      "tabServices": "Services & activities"
+      "tabServices": "Services & activities",
+      "contractOverride": "{{count}} property(ies) under a management contract do not follow this split: the owner receives the balance after their contract rate, and the commission is shared 25% platform / 75% concierge."
     },
     "commissions": {
       "title": "Channel Commissions",

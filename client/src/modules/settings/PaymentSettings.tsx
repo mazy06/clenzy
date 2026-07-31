@@ -33,7 +33,9 @@ import {
   CreditCard,
   Public,
 } from "../../icons";
+import { useQuery } from "@tanstack/react-query";
 import { channelLogo } from "../../components/channelLogos";
+import { managementContractsApi } from "../../services/api/managementContractsApi";
 import { paymentConfigApi } from "../../services/api/paymentConfigApi";
 import { splitConfigApi } from "../../services/api/splitConfigApi";
 import { monetizationConfigApi } from "../../services/api/monetizationConfigApi";
@@ -209,6 +211,20 @@ export default function PaymentSettings() {
   const [splitTab, setSplitTab] = useState(0);
 
   const { data: overviewRows = [] } = useCommissionOverview();
+
+  // Combien de logements echappent a la repartition ci-dessus : sous contrat de
+  // gestion, SplitPaymentService lit le taux du contrat et non split_configurations.
+  // L'afficher evite de lire cet ecran comme la regle unique, ce qu'il n'est pas.
+  const { data: activeContracts = [] } = useQuery({
+    queryKey: ["management-contracts", "ACTIVE"],
+    queryFn: () => managementContractsApi.getAll({ status: "ACTIVE" }),
+    staleTime: 300_000,
+  });
+  const contractedCount = new Set(
+    activeContracts
+      .filter((c) => c.commissionRate != null && c.commissionRate > 0)
+      .map((c) => c.propertyId),
+  ).size;
 
   // Le canal le plus utilise ouvre la simulation (le backend trie par volume).
   const activeChannel = simulatedChannel ?? overviewRows[0]?.channel ?? null;
@@ -726,11 +742,22 @@ export default function PaymentSettings() {
               ]}
               footer={<BookingEngineRateRow row={overviewRows.find((r) => r.editable)} />}
               notice={
-                !splitConfig ? (
-                  <Alert severity="info" sx={{ mt: 2, borderRadius: "8px" }}>
-                    {t("settings.split.defaults")}
-                  </Alert>
-                ) : null
+                <>
+                  {contractedCount > 0 && (
+                    <Alert severity="warning" sx={{ mt: 2, borderRadius: "8px" }}>
+                      {t(
+                        "settings.split.contractOverride",
+                        "{{count}} logement(s) sous contrat de gestion ne suivent pas cette répartition : le propriétaire y reçoit le solde après le taux de son contrat, et la commission se partage 25 % plateforme / 75 % conciergerie.",
+                        { count: contractedCount },
+                      )}
+                    </Alert>
+                  )}
+                  {!splitConfig && (
+                    <Alert severity="info" sx={{ mt: 2, borderRadius: "8px" }}>
+                      {t("settings.split.defaults")}
+                    </Alert>
+                  )}
+                </>
               }
             />
           ) : (

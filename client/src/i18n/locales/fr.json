@@ -3248,7 +3248,8 @@
       "projectionHint": "Projection sur 100 € encaissés, à répartition constante. Ce n'est pas un relevé de reversements.",
       "detailTitle": "Détail par canal",
       "tabChannels": "Canaux de distribution",
-      "tabServices": "Services & activités"
+      "tabServices": "Services & activités",
+      "contractOverride": "{{count}} logement(s) sous contrat de gestion ne suivent pas cette répartition : le propriétaire y reçoit le solde après le taux de son contrat, et la commission se partage 25 % plateforme / 75 % conciergerie."
     },
     "commissions": {
       "title": "Commissions canaux",
