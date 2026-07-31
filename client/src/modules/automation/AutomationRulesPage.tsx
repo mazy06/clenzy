@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -124,47 +125,23 @@ const systemStatusStyle = (status: string) =>
 // les colonnes en vue liste et les regrouper en vue carte.
 const renderTriggerChips = (rule: AutomationRule) => (
   <>
-    <Chip
-      label={TRIGGER_LABELS[rule.triggerType] ?? rule.triggerType}
-      size="small"
-      sx={pillSx('var(--accent-soft)', 'var(--accent)')}
-    />
+    <StatusChip pill tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={TRIGGER_LABELS[rule.triggerType] ?? rule.triggerType} />
     {isLifecycleTrigger(rule.triggerType) && rule.triggerOffsetDays !== 0 && (
-      <Chip
-        label={`${rule.triggerOffsetDays > 0 ? '+' : ''}${rule.triggerOffsetDays}j`}
-        size="small"
-        sx={{ ...pillSx('var(--field)', 'var(--body)'), fontVariantNumeric: 'tabular-nums' }}
-      />
+      <StatusChip pill tokens={{ color: 'var(--body)', bg: 'var(--field)' }} label={`${rule.triggerOffsetDays > 0 ? '+' : ''}${rule.triggerOffsetDays}j`} className="tabular-nums" />
     )}
     {isLifecycleTrigger(rule.triggerType) && rule.triggerTime && (
-      <Chip
-        label={rule.triggerTime}
-        size="small"
-        sx={{ ...pillSx('var(--field)', 'var(--body)'), fontVariantNumeric: 'tabular-nums' }}
-      />
+      <StatusChip pill tokens={{ color: 'var(--body)', bg: 'var(--field)' }} label={rule.triggerTime} className="tabular-nums" />
     )}
   </>
 );
 
 const renderActionChip = (rule: AutomationRule) => (
-  <Chip
-    label={ACTION_LABELS[rule.actionType] ?? rule.actionType}
-    size="small"
-    sx={pillSx('var(--info-soft)', 'var(--info)')}
-  />
+  <StatusChip pill tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={ACTION_LABELS[rule.actionType] ?? rule.actionType} />
 );
 
 const renderChannelChip = (rule: AutomationRule) =>
   isMessagingAction(rule.actionType) ? (
-    <Chip
-      icon={channelIcon(rule.deliveryChannel) as React.ReactElement}
-      label={rule.deliveryChannel}
-      size="small"
-      sx={pillSx(
-        `${CHANNEL_HEX[rule.deliveryChannel] ?? '#67757C'}1F`,
-        CHANNEL_HEX[rule.deliveryChannel] ?? 'var(--muted)',
-      )}
-    />
+    <StatusChip pill tokens={{ color: CHANNEL_HEX[rule.deliveryChannel] ?? 'var(--muted)', bg: `${CHANNEL_HEX[rule.deliveryChannel] ?? '#67757C'}1F` }} label={rule.deliveryChannel} icon={channelIcon(rule.deliveryChannel) as React.ReactElement} />
   ) : null;
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -287,13 +264,13 @@ const AutomationRulesPage: React.FC = () => {
         <p className="cn-text-body1 truncate text-[0.6875rem] text-muted-foreground">{sa.description}</p>
       </div>
       <div className="flex min-w-0">
-        <Chip label={sa.triggerLabel} size="small" sx={pillSx('var(--accent-soft)', 'var(--accent)')} />
+        <StatusChip pill tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={sa.triggerLabel} />
       </div>
       <div className="flex min-w-0">
-        <Chip label={sa.actionLabel} size="small" sx={pillSx('var(--info-soft)', 'var(--info)')} />
+        <StatusChip pill tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={sa.actionLabel} />
       </div>
       <div className="flex min-w-0">
-        <Chip label={sa.mechanism} size="small" sx={pillSx('var(--field)', 'var(--muted)')} />
+        <StatusChip pill tokens={{ color: 'var(--muted)', bg: 'var(--field)' }} label={sa.mechanism} />
       </div>
       <div />
     </Box>
@@ -538,11 +515,7 @@ const AutomationRulesPage: React.FC = () => {
             <p className="cn-text-body1 text-[0.95rem] font-semibold text-[var(--ink)]">
               {t('automation.system.title', 'Automatisations système')}
             </p>
-            <Chip
-              label={t('automation.system.readOnly', 'Lecture seule')}
-              size="small"
-              sx={pillSx('var(--field)', 'var(--muted)')}
-            />
+            <StatusChip pill tokens={{ color: 'var(--muted)', bg: 'var(--field)' }} label={t('automation.system.readOnly', 'Lecture seule')} />
           </div>
           <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground mb-2">
             {t('automation.system.subtitle', 'Automatisations gérées ailleurs dans le produit (hors règles). Affichées ici pour visibilité — leur statut reflète l’état réel.')}
@@ -562,9 +535,9 @@ const AutomationRulesPage: React.FC = () => {
                       {sa.description}
                     </p>
                     <div className="flex gap-1 flex-wrap">
-                      <Chip label={sa.triggerLabel} size="small" sx={pillSx('var(--accent-soft)', 'var(--accent)')} />
-                      <Chip label={sa.actionLabel} size="small" sx={pillSx('var(--info-soft)', 'var(--info)')} />
-                      <Chip label={sa.mechanism} size="small" sx={pillSx('var(--field)', 'var(--muted)')} />
+                      <StatusChip pill tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={sa.triggerLabel} />
+                      <StatusChip pill tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={sa.actionLabel} />
+                      <StatusChip pill tokens={{ color: 'var(--muted)', bg: 'var(--field)' }} label={sa.mechanism} />
                     </div>
                   </CardContent>
                 </Card>
@@ -811,7 +784,7 @@ const ExecutionsDialog: React.FC<{
                         <TableCell sx={CELL_SX}>{exec.guestName}</TableCell>
                         <TableCell sx={{ ...CELL_SX, fontVariantNumeric: 'tabular-nums' }}>#{exec.reservationId}</TableCell>
                         <TableCell align="center">
-                          <Chip label={exec.status} size="small" sx={pillSx(tokens.soft, tokens.color)} />
+                          <StatusChip pill tokens={{ color: tokens.color, bg: tokens.soft }} label={exec.status} />
                         </TableCell>
                         <TableCell sx={{ ...CELL_SX, color: exec.errorMessage ? 'var(--err)' : 'var(--faint)' }}>
                           {exec.errorMessage ?? '—'}

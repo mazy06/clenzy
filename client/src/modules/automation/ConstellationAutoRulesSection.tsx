@@ -16,7 +16,8 @@
    ============================================================ */
 
 import React, { useCallback } from 'react';
-import { Box, Button, Chip, Switch, Select, MenuItem, TextField, FormControl, Card, Tooltip } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { Box, Button, Switch, Select, MenuItem, TextField, FormControl, Card, Tooltip } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -28,16 +29,6 @@ import {
 import { useSupervisionReport } from '../supervision/core/useSupervisionReport';
 
 // Chips soft (pilule fond -soft + texte couleur — même pattern que la page).
-const pillSx = (bg: string, color: string) => ({
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  backgroundColor: bg,
-  color,
-  border: 'none',
-  borderRadius: 'var(--radius-pill)',
-  '& .MuiChip-label': { px: 1 },
-});
 
 // Switch compact identique à la vue liste des règles.
 const switchSx = {
@@ -206,13 +197,9 @@ const ConstellationAutoRulesSection: React.FC = () => {
                     — INERTE, l'humain active ou ignore. Jamais sur un type déjà ON. */}
                 {!rule.enabled && rule.suggestedAt && (
                   <div className="flex items-center gap-1 mt-0.5">
-                    <Chip
-                      label={t('automation.constellation.recommended',
+                    <StatusChip pill tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label={t('automation.constellation.recommended',
                         'Recommandé — {{count}} approbations consécutives',
-                        { count: rule.consecutiveApprovals })}
-                      size="small"
-                      sx={{ ...pillSx('var(--ok-soft)', 'var(--ok)'), fontVariantNumeric: 'tabular-nums' }}
-                    />
+                        { count: rule.consecutiveApprovals })} className="tabular-nums" />
                     {canEdit && (
                       <>
                         <Button
@@ -239,7 +226,7 @@ const ConstellationAutoRulesSection: React.FC = () => {
                 )}
               </div>
 
-              <Chip label={moduleLabel} size="small" sx={pillSx('var(--accent-soft)', 'var(--accent)')} />
+              <StatusChip pill tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={moduleLabel} />
 
               {/* Taux d'acceptation du type (30 j) — aide à la décision d'activation. */}
               <Tooltip
@@ -247,16 +234,9 @@ const ConstellationAutoRulesSection: React.FC = () => {
                   'Taux d’acceptation des cartes de ce type sur 30 jours ({{count}} décisions). Activez quand il est durablement élevé.',
                   { count: decided })}
               >
-                <Chip
-                  label={decided > 0
+                <StatusChip pill tokens={{ color: decided > 0 ? 'var(--body)' : 'var(--muted)', bg: 'var(--field)' }} label={decided > 0
                     ? `${t('automation.constellation.acceptance', 'Acceptation')} ${Math.round((acceptance?.acceptanceRate ?? 0) * 100)} % · ${decided}`
-                    : t('automation.constellation.noDecisions', 'Pas encore de décision')}
-                  size="small"
-                  sx={{
-                    ...pillSx('var(--field)', decided > 0 ? 'var(--body)' : 'var(--muted)'),
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                />
+                    : t('automation.constellation.noDecisions', 'Pas encore de décision')} className="tabular-nums" />
               </Tooltip>
 
               <FormControl size="small" sx={{ minWidth: 168 }}>

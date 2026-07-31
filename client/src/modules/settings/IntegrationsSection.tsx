@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -123,23 +124,6 @@ const refinedOutlinedSx = (hoverColor: string) => ({
   '&:focus-visible': { outline: `2px solid ${hoverColor}`, outlineOffset: 2 },
 });
 
-const buildStatusChipSx = (color: string) => ({
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  letterSpacing: '0.01em',
-  borderRadius: '6px',
-  px: 0.25,
-  backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
-  color,
-  border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-  '& .MuiChip-icon': {
-    color: `${color} !important`,
-    ml: '6px',
-    mr: '-2px',
-  },
-  '& .MuiChip-label': { px: 0.875 },
-});
 
 // ─── Integration metadata ──────────────────────────────────────────────────
 
@@ -504,26 +488,11 @@ export default function IntegrationsSection({
 
   const isConnected = !!status?.connected;
   const statusChip = notConfigured ? (
-    <Chip
-      icon={<ErrorOutline size={11} strokeWidth={2} />}
-      label={t('settings.integrations.pennylane.notConfigured', 'Non configuré')}
-      size="small"
-      sx={buildStatusChipSx(NEUTRAL)}
-    />
+    <StatusChip color={NEUTRAL} label={t('settings.integrations.pennylane.notConfigured', 'Non configuré')} icon={<ErrorOutline size={11} strokeWidth={2} />} />
   ) : isConnected ? (
-    <Chip
-      icon={<CheckCircleIcon size={11} strokeWidth={2} />}
-      label={t('settings.integrations.pennylane.connected')}
-      size="small"
-      sx={buildStatusChipSx(ACCENT)}
-    />
+    <StatusChip color={ACCENT} label={t('settings.integrations.pennylane.connected')} icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
   ) : (
-    <Chip
-      icon={<ErrorOutline size={11} strokeWidth={2} />}
-      label={t('settings.integrations.pennylane.notConnected')}
-      size="small"
-      sx={buildStatusChipSx(NEUTRAL)}
-    />
+    <StatusChip color={NEUTRAL} label={t('settings.integrations.pennylane.notConnected')} icon={<ErrorOutline size={11} strokeWidth={2} />} />
   );
 
   return (
@@ -533,12 +502,7 @@ export default function IntegrationsSection({
       <Card className="gap-0 py-0 border-border mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-marketing">
         <div className="flex items-center gap-1.5 mb-0.5">
           <p className="cn-text-body1 text-[0.82rem] font-semibold">Marketing &amp; Newsletter</p>
-          <Chip
-            icon={<CheckCircleIcon size={11} strokeWidth={2} />}
-            label="Disponible"
-            size="small"
-            sx={buildStatusChipSx(ACCENT)}
-          />
+          <StatusChip color={ACCENT} label="Disponible" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
         </div>
         <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           Synchronisez vos contacts (waitlist, newsletter, leads devis) vers votre plateforme d&apos;emailing pour vos campagnes.
@@ -702,18 +666,8 @@ export default function IntegrationsSection({
               {/* Sync stats */}
               {syncStatus && (
                 <div className="flex gap-1 mb-2 flex-wrap">
-                  <Chip
-                    icon={<ReceiptIcon size={11} strokeWidth={2} />}
-                    label={`${syncStatus.pendingInvoices} ${t('settings.integrations.pennylane.pendingInvoices')}`}
-                    size="small"
-                    sx={buildStatusChipSx(syncStatus.pendingInvoices > 0 ? WARM : NEUTRAL)}
-                  />
-                  <Chip
-                    icon={<ShoppingCartIcon size={11} strokeWidth={2} />}
-                    label={`${syncStatus.pendingExpenses} ${t('settings.integrations.pennylane.pendingExpenses')}`}
-                    size="small"
-                    sx={buildStatusChipSx(syncStatus.pendingExpenses > 0 ? WARM : NEUTRAL)}
-                  />
+                  <StatusChip color={syncStatus.pendingInvoices > 0 ? WARM : NEUTRAL} label={`${syncStatus.pendingInvoices} ${t('settings.integrations.pennylane.pendingInvoices')}`} icon={<ReceiptIcon size={11} strokeWidth={2} />} />
+                  <StatusChip color={syncStatus.pendingExpenses > 0 ? WARM : NEUTRAL} label={`${syncStatus.pendingExpenses} ${t('settings.integrations.pennylane.pendingExpenses')}`} icon={<ShoppingCartIcon size={11} strokeWidth={2} />} />
                 </div>
               )}
 

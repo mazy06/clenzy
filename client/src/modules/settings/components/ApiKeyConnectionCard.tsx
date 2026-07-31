@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from '@mui/material';
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -51,19 +52,6 @@ const ACCENT = 'var(--ok)';
 const DANGER = 'var(--err)';
 const NEUTRAL = 'var(--muted)';
 
-const statusChipSx = (color: string) => ({
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  letterSpacing: '0.01em',
-  borderRadius: '6px',
-  px: 0.25,
-  backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
-  color,
-  border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-  '& .MuiChip-icon': { color: `${color} !important`, ml: '6px', mr: '-2px' },
-  '& .MuiChip-label': { px: 0.875 },
-});
 
 // ─── Contrats partages (Strategy) ──────────────────────────────────────────
 
@@ -213,19 +201,9 @@ export default function ApiKeyConnectionCard<P extends string>({
           {loading ? (
             <Spinner className="size-[18px]" />
           ) : connected ? (
-            <Chip
-              icon={<CheckCircleIcon size={11} strokeWidth={2} />}
-              label="Connecté"
-              size="small"
-              sx={statusChipSx(ACCENT)}
-            />
+            <StatusChip color={ACCENT} label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
           ) : (
-            <Chip
-              icon={<ErrorOutline size={11} strokeWidth={2} />}
-              label="Non connecté"
-              size="small"
-              sx={statusChipSx(NEUTRAL)}
-            />
+            <StatusChip color={NEUTRAL} label="Non connecté" icon={<ErrorOutline size={11} strokeWidth={2} />} />
           )}
         </div>
       </div>

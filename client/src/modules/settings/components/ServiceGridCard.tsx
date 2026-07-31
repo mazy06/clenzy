@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Chip } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { Box } from '@mui/material';
 import { Card } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import { CheckCircle as CheckCircleIcon, ErrorOutline } from '../../../icons';
@@ -79,11 +80,11 @@ export default function ServiceGridCard({
 }: ServiceGridCardProps) {
   const statusChip =
     status === 'connected' ? (
-      <Chip icon={<CheckCircleIcon size={11} strokeWidth={2} />} label="Connecté" size="small" sx={buildStatusChipSx(ACCENT)} />
+      <StatusChip color={ACCENT} label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
     ) : status === 'comingSoon' ? (
-      <Chip label="Bientôt disponible" size="small" sx={buildStatusChipSx(NEUTRAL)} />
+      <StatusChip color={NEUTRAL} label="Bientôt disponible" />
     ) : (
-      <Chip icon={<ErrorOutline size={11} strokeWidth={2} />} label="Non connecté" size="small" sx={buildStatusChipSx(NEUTRAL)} />
+      <StatusChip color={NEUTRAL} label="Non connecté" icon={<ErrorOutline size={11} strokeWidth={2} />} />
     );
 
   const infoZone = (

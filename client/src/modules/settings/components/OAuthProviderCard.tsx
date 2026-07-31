@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Box, Button, Chip, CircularProgress, Alert, IconButton, Tooltip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
+import { Box, Button, CircularProgress, Alert, IconButton, Tooltip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -82,19 +83,6 @@ interface OAuthProviderCardProps {
   };
 }
 
-const buildStatusChipSx = (color: string) => ({
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  letterSpacing: '0.01em',
-  borderRadius: '6px',
-  px: 0.25,
-  backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
-  color,
-  border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-  '& .MuiChip-icon': { color: `${color} !important`, ml: '6px', mr: '-2px' },
-  '& .MuiChip-label': { px: 0.875 },
-});
 
 export default function OAuthProviderCard({
   providerId,
@@ -190,33 +178,13 @@ export default function OAuthProviderCard({
   const isError = status?.status === 'ERROR';
 
   const statusChip = notConfigured ? (
-    <Chip
-      icon={<ErrorOutline size={11} strokeWidth={2} />}
-      label={labels.notConfigured ?? 'Non configuré'}
-      size="small"
-      sx={buildStatusChipSx(NEUTRAL)}
-    />
+    <StatusChip color={NEUTRAL} label={labels.notConfigured ?? 'Non configuré'} icon={<ErrorOutline size={11} strokeWidth={2} />} />
   ) : isError ? (
-    <Chip
-      icon={<ErrorOutline size={11} strokeWidth={2} />}
-      label="Erreur"
-      size="small"
-      sx={buildStatusChipSx('var(--err)')}
-    />
+    <StatusChip color={'var(--err)'} label="Erreur" icon={<ErrorOutline size={11} strokeWidth={2} />} />
   ) : isConnected ? (
-    <Chip
-      icon={<CheckCircleIcon size={11} strokeWidth={2} />}
-      label="Connecté"
-      size="small"
-      sx={buildStatusChipSx(ACCENT)}
-    />
+    <StatusChip color={ACCENT} label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
   ) : (
-    <Chip
-      icon={<ErrorOutline size={11} strokeWidth={2} />}
-      label="Non connecté"
-      size="small"
-      sx={buildStatusChipSx(NEUTRAL)}
-    />
+    <StatusChip color={NEUTRAL} label="Non connecté" icon={<ErrorOutline size={11} strokeWidth={2} />} />
   );
 
   const connectTooltip = mainActionDisabled

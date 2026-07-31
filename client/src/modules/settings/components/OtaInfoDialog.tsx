@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
@@ -56,19 +57,6 @@ const ACCENT = 'var(--ok)';
 const DANGER = 'var(--err)';
 const NEUTRAL = 'var(--muted)';
 
-const statusChipSx = (color: string) => ({
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  letterSpacing: '0.01em',
-  borderRadius: '6px',
-  px: 0.25,
-  backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
-  color,
-  border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-  '& .MuiChip-icon': { color: `${color} !important`, ml: '6px', mr: '-2px' },
-  '& .MuiChip-label': { px: 0.875 },
-});
 
 // Labels FR pour les champs de credentials — evite la dependance sur i18n
 // pour ces stubs scaffoldes.
@@ -255,19 +243,9 @@ export default function OtaInfoDialog({
           </div>
           <div className="shrink-0">
             {isConnected ? (
-              <Chip
-                icon={<CheckCircleIcon size={11} strokeWidth={2} />}
-                label="Connecté"
-                size="small"
-                sx={statusChipSx(ACCENT)}
-              />
+              <StatusChip color={ACCENT} label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
             ) : (
-              <Chip
-                icon={<ErrorOutline size={11} strokeWidth={2} />}
-                label={ota.available ? 'Non connecté' : 'Bientôt'}
-                size="small"
-                sx={statusChipSx(NEUTRAL)}
-              />
+              <StatusChip color={NEUTRAL} label={ota.available ? 'Non connecté' : 'Bientôt'} icon={<ErrorOutline size={11} strokeWidth={2} />} />
             )}
           </div>
         </div>
