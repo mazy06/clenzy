@@ -1,16 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  Typography,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, CircularProgress, Alert } from '@mui/material';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
 import { ASSIGNABLE_ORG_ROLES, getOrgRoleLabel } from '../../utils/orgRoleLabels';
 
@@ -59,10 +48,10 @@ export default function ChangeRoleDialog({ open, onClose, member, organizationId
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
       <DialogTitle>Changer le role</DialogTitle>
       <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <p className="cn-text-body2 text-muted-foreground mb-3">
           Modifier le role de <strong>{memberName}</strong> dans l'organisation.
           Role actuel : <strong>{member ? getOrgRoleLabel(member.roleInOrg) : ''}</strong>
-        </Typography>
+        </p>
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>

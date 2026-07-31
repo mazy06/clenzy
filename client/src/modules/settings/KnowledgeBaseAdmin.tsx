@@ -1,21 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  CircularProgress,
-  Alert,
-  Chip,
-  Divider,
-  IconButton,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TextField,
-  Tooltip,
-} from '@mui/material';
+import { Box, Button, CircularProgress, Alert, Chip, Divider, IconButton, Table, TableHead, TableRow, TableCell, TableBody, TextField, Tooltip } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { AttachFile, Delete } from '../../icons';
 import apiClient from '../../services/apiClient';
@@ -254,7 +238,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
     >
       {stats && (
         <>
-          <Box sx={{ mb: 2, display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+          <div className="mb-3 flex gap-2 flex-wrap">
             {[
               { label: 'Documents', value: stats.documents.total, detail: `${stats.documents.global} globaux · ${stats.documents.org} org` },
               { label: 'Extraits indexés', value: stats.chunks.indexed, detail: `sur ${stats.chunks.total}` },
@@ -273,18 +257,18 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                   border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}`,
                 }}
               >
-                <Typography variant="caption" color="text.secondary" component="div">
+                <div className="cn-text-caption text-muted-foreground">
                   {kpi.label}
-                </Typography>
-                <Typography variant="h6" sx={{ fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>
+                </div>
+                <h6 className="cn-text-h6 tabular-nums leading-[1.2]">
                   {kpi.value}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" component="div">
+                </h6>
+                <div className="cn-text-caption text-muted-foreground">
                   {kpi.detail}
-                </Typography>
+                </div>
               </Box>
             ))}
-          </Box>
+          </div>
           {stats.index.retuneRecommended && (
             <Alert severity="warning" sx={{ mb: 2 }}>
               La base a grossi : l'index vectoriel (lists = {stats.index.currentLists}) est loin de
@@ -297,7 +281,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
         </>
       )}
 
-      <Box sx={{ mb: 2, display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="mb-3 flex gap-1.5 items-center flex-wrap">
         {canEdit && (
           <>
             <input
@@ -319,7 +303,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
             {uploading && <CircularProgress size={20} />}
           </>
         )}
-        <Box sx={{ flex: 1 }} />
+        <div className="flex-1" />
         <Button
           variant="text"
           size="small"
@@ -329,7 +313,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
         >
           Rafraichir
         </Button>
-      </Box>
+      </div>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
@@ -343,12 +327,12 @@ export const KnowledgeBaseAdmin: React.FC = () => {
           bgcolor: alpha(theme.palette.text.primary, 0.03),
           borderRadius: 1.5,
         }}>
-          <Typography variant="body2" color="text.secondary">
+          <p className="cn-text-body2 text-muted-foreground">
             Aucun document indexe. Upload ton premier markdown pour activer le RAG.
-          </Typography>
+          </p>
         </Box>
       ) : (
-        <Box sx={{ overflowX: 'auto' }}>
+        <div className="overflow-x-auto">
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -405,24 +389,24 @@ export const KnowledgeBaseAdmin: React.FC = () => {
               ))}
             </TableBody>
           </Table>
-        </Box>
+        </div>
       )}
 
       {canUploadGlobal && (
         <>
           <Divider sx={{ my: 3 }} />
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <Box sx={{ flex: 1, minWidth: 240 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+          <div className="flex gap-1.5 items-start flex-wrap">
+            <div className="flex-1 min-w-[240px]">
+              <h6 className="cn-text-subtitle2 font-semibold mb-0.5">
                 Évaluer le retrieval
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              </h6>
+              <p className="cn-text-body2 text-muted-foreground">
                 Lance les {evalReport?.total ?? 40} questions du jeu de test officiel sur le
                 pipeline réel et mesure la qualité de recherche. À relancer après chaque
                 changement de documentation, de seuils ou de modèle (~30&nbsp;secondes,
                 quelques centimes d'API).
-              </Typography>
-            </Box>
+              </p>
+            </div>
             <Button
               variant="outlined"
               onClick={handleRunEval}
@@ -435,20 +419,20 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                   : 'Évaluation en cours…'
                 : "Lancer l'évaluation"}
             </Button>
-          </Box>
+          </div>
           {evaluating && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2 }}>
+            <div className="flex items-center gap-2 py-3">
               <CircularProgress size={20} />
-              <Typography variant="caption" color="text.secondary">
+              <span className="cn-text-caption text-muted-foreground">
                 {evalProgress && evalProgress.done < evalProgress.total
                   ? `${evalProgress.done} question(s) sur ${evalProgress.total} évaluée(s) — le rythme s'adapte aux limites de l'API (jusqu'à ~15 min si elle est bridée).`
                   : 'Démarrage du run…'}
-              </Typography>
-            </Box>
+              </span>
+            </div>
           )}
           {evalReport && (
-            <Box sx={{ mt: 2 }}>
-              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 1.5 }}>
+            <div className="mt-3">
+              <div className="flex gap-2 flex-wrap mb-2">
                 {[
                   {
                     label: `Recall@${evalReport.topK}`,
@@ -469,28 +453,28 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                       border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}`,
                     }}
                   >
-                    <Typography variant="caption" color="text.secondary" component="div">
+                    <div className="cn-text-caption text-muted-foreground">
                       {kpi.label}
-                    </Typography>
-                    <Typography variant="h6" sx={{ fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>
+                    </div>
+                    <h6 className="cn-text-h6 tabular-nums leading-[1.2]">
                       {kpi.value}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" component="div">
+                    </h6>
+                    <div className="cn-text-caption text-muted-foreground">
                       {kpi.detail}
-                    </Typography>
+                    </div>
                   </Box>
                 ))}
-              </Box>
+              </div>
               {evalReport.misses.length === 0 ? (
                 <Alert severity="success">
                   Toutes les questions du jeu de test retrouvent leur fiche : le retrieval est sain.
                 </Alert>
               ) : (
                 <>
-                  <Typography variant="caption" color="text.secondary" component="div" sx={{ mb: 0.5 }}>
+                  <div className="cn-text-caption text-muted-foreground mb-0.5">
                     Questions sans leur fiche attendue dans le top {evalReport.topK} :
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                  </div>
+                  <div className="flex flex-col gap-1">
                     {evalReport.misses.map((miss, idx) => (
                       <Box
                         key={idx}
@@ -500,18 +484,18 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                           border: `1px solid ${alpha(theme.palette.warning.main, 0.25)}`,
                         }}
                       >
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        <p className="cn-text-body2 font-semibold">
                           {miss.question}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" component="div">
+                        </p>
+                        <div className="cn-text-caption text-muted-foreground">
                           attendu : {miss.expected} · obtenu : {miss.retrieved.join(', ') || 'aucun résultat'}
-                        </Typography>
+                        </div>
                       </Box>
                     ))}
-                  </Box>
+                  </div>
                 </>
               )}
-            </Box>
+            </div>
           )}
         </>
       )}
@@ -519,14 +503,14 @@ export const KnowledgeBaseAdmin: React.FC = () => {
       {canEdit && (
         <>
           <Divider sx={{ my: 3 }} />
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+          <h6 className="cn-text-subtitle2 font-semibold mb-0.5">
             Tester la recherche
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          </h6>
+          <p className="cn-text-body2 text-muted-foreground mb-2">
             Exécute la même recherche que l'assistant (vectorielle + mots-clés + re-ranking)
             et montre les extraits retrouvés avec leur score de pertinence.
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 2 }}>
+          </p>
+          <div className="flex gap-1.5 items-center mb-3">
             <TextField
               size="small"
               fullWidth
@@ -544,7 +528,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
             >
               {testing ? 'Recherche...' : 'Tester'}
             </Button>
-          </Box>
+          </div>
           {testing && (
             <Box display="flex" justifyContent="center" py={2}>
               <CircularProgress size={20} />
@@ -557,7 +541,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
             </Alert>
           )}
           {testResult && testResult.items.length > 0 && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <div className="flex flex-col gap-2">
               {testResult.items.map((hit, idx) => {
                 const aboveThreshold = hit.relevance >= testResult.relevanceThreshold;
                 return (
@@ -570,10 +554,10 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                       border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}`,
                     }}
                   >
-                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 0.5, flexWrap: 'wrap' }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    <div className="flex gap-1.5 items-center mb-0.5 flex-wrap">
+                      <p className="cn-text-body2 font-semibold">
                         {hit.title || hit.sourcePath}
-                      </Typography>
+                      </p>
                       <Chip
                         label={`${Math.round(hit.relevance * 100)} %`}
                         size="small"
@@ -591,22 +575,22 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                         }}
                       />
                       {!aboveThreshold && (
-                        <Typography variant="caption" color="text.secondary">
+                        <span className="cn-text-caption text-muted-foreground">
                           sous le seuil d'injection automatique
                           ({Math.round(testResult.relevanceThreshold * 100)} %)
-                        </Typography>
+                        </span>
                       )}
-                    </Box>
-                    <Typography variant="caption" color="text.secondary" component="div" sx={{ mb: 0.5 }}>
+                    </div>
+                    <div className="cn-text-caption text-muted-foreground mb-0.5">
                       {hit.sourcePath}
-                    </Typography>
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                    </div>
+                    <p className="cn-text-body2 whitespace-pre-line">
                       {hit.snippet}
-                    </Typography>
+                    </p>
                   </Box>
                 );
               })}
-            </Box>
+            </div>
           )}
         </>
       )}

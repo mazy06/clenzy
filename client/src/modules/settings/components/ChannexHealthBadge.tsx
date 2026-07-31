@@ -74,13 +74,13 @@ export default function ChannexHealthBadge({
   const lastSyncStr = formatLastSync(mapping.lastSyncAt);
 
   const tooltipContent = (
-    <Box sx={{ maxWidth: 260 }}>
-      <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.75rem', lineHeight: 1.3, mb: 0.3 }}>
+    <div className="max-w-[260px]">
+      <p className="cn-text-body2 font-semibold text-[0.75rem] leading-[1.3] mb-0.5">
         {meta.label}
-      </Typography>
-      <Typography variant="caption" sx={{ display: 'block', lineHeight: 1.45, opacity: 0.85 }}>
+      </p>
+      <span className="cn-text-caption block leading-[1.45] opacity-85">
         Derniere sync : {lastSyncStr}
-      </Typography>
+      </span>
       {mapping.lastSyncError && mapping.syncStatus === 'ERROR' && (
         <Typography
           variant="caption"
@@ -98,19 +98,11 @@ export default function ChannexHealthBadge({
         </Typography>
       )}
       {onClick && (
-        <Typography
-          variant="caption"
-          sx={{
-            display: 'block',
-            mt: 0.5,
-            fontSize: '0.65rem',
-            opacity: 0.7,
-          }}
-        >
+        <span className="cn-text-caption block mt-0.5 text-[0.65rem] opacity-70">
           Cliquer pour ouvrir les details
-        </Typography>
+        </span>
       )}
-    </Box>
+    </div>
   );
 
   return (

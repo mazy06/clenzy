@@ -1,26 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
+import { Box, TextField, Button, Alert, Snackbar, CircularProgress, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   AccountBalance,
   Save,
@@ -200,15 +179,15 @@ export default function OwnerPayoutSettings() {
         icon={AccountBalance}
         accent="accent"
       >
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+        <div className="flex justify-center py-3">
           <CircularProgress size={24} />
-        </Box>
+        </div>
       </SettingsSection>
     );
   }
 
   return (
-    <Box ref={containerRef}>
+    <div ref={containerRef}>
       <SettingsSection
         title={t('settings.ownerPayout.title', 'Configuration des reversements propriétaires')}
         icon={AccountBalance}
@@ -241,19 +220,19 @@ export default function OwnerPayoutSettings() {
               severity={isCritical ? 'error' : 'warning'}
               sx={{ mb: 2, fontSize: '0.85rem', borderRadius: 2 }}
             >
-              <Box>
-                <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 0.25 }}>
+              <div>
+                <p className="cn-text-body1 text-[0.85rem] font-semibold mb-0.5">
                   Open Banking — {expired.length} consent{expired.length > 1 ? 's' : ''} expiré{expired.length > 1 ? 's' : ''}
                   {expired.length > 0 && expiringSoon.length > 0 ? ', ' : ''}
                   {expiringSoon.length > 0 && `${expiringSoon.length} expirant dans 7 jours`}
-                </Typography>
-                <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
+                </p>
+                <p className="cn-text-body1 text-[0.78rem] text-muted-foreground">
                   Les propriétaires concernés doivent refaire l'authentification bancaire (SCA) depuis leur page
                   <strong> Mes reversements </strong>
                   pour réactiver les virements automatiques. Vous pouvez aussi initier le SCA pour eux via l'icône
                   engrenage (Configurer la méthode).
-                </Typography>
-              </Box>
+                </p>
+              </div>
             </Alert>
           );
         })()}
@@ -287,12 +266,12 @@ export default function OwnerPayoutSettings() {
             >
               <AccountBalance size={22} strokeWidth={1.75} />
             </Box>
-            <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary', maxWidth: 480 }}>
+            <p className="cn-text-body1 text-[0.85rem] text-muted-foreground max-w-[480px]">
               {t(
                 'settings.ownerPayout.empty',
                 'Aucune configuration trouvée. Les configurations sont créées automatiquement lors de la première génération de payout.',
               )}
-            </Typography>
+            </p>
           </Box>
         ) : (
           <TableContainer sx={{ overflowX: 'hidden' }}>
@@ -312,9 +291,9 @@ export default function OwnerPayoutSettings() {
                   return (
                     <TableRow key={config.id} hover>
                       <TableCell sx={CELL_SX}>
-                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'text.primary' }}>
+                        <p className="cn-text-body1 text-[0.82rem] font-semibold text-foreground">
                           {t('settings.ownerPayout.ownerLabel', 'Propriétaire')} #{config.ownerId}
-                        </Typography>
+                        </p>
                       </TableCell>
                       <TableCell sx={CELL_SX}>
                         <Chip
@@ -335,30 +314,22 @@ export default function OwnerPayoutSettings() {
                       </TableCell>
                       <TableCell sx={CELL_SX}>
                         {config.payoutMethod === 'SEPA_TRANSFER' && config.maskedIban && (
-                          <Typography
-                            component="span"
-                            sx={{
-                              fontFamily: 'monospace',
-                              fontSize: '0.75rem',
-                              fontVariantNumeric: 'tabular-nums',
-                              color: 'text.primary',
-                            }}
-                          >
+                          <span className="font-mono text-[0.75rem] tabular-nums text-foreground">
                             {config.maskedIban}
                             {config.bic ? ` / ${config.bic}` : ''}
-                          </Typography>
+                          </span>
                         )}
                         {config.payoutMethod === 'STRIPE_CONNECT' && (
-                          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
                             {config.stripeOnboardingComplete
                               ? t('settings.ownerPayout.stripeConnected', 'Compte connecté')
                               : t('settings.ownerPayout.stripeNotConnected', 'Onboarding en cours...')}
-                          </Typography>
+                          </p>
                         )}
                         {config.payoutMethod === 'MANUAL' && (
-                          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
                             {t('settings.ownerPayout.manualNote', 'Virement manuel')}
-                          </Typography>
+                          </p>
                         )}
                       </TableCell>
                       <TableCell sx={CELL_SX} align="center">
@@ -411,7 +382,7 @@ export default function OwnerPayoutSettings() {
                         )}
                       </TableCell>
                       <TableCell sx={{ ...CELL_SX, pr: 1.25 }} align="right">
-                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, justifyContent: 'flex-end' }}>
+                        <div className="inline-flex items-center gap-0.5 justify-end">
                           <Tooltip title={t('settings.ownerPayout.changeMethod', 'Changer la méthode de reversement')}>
                             <IconButton
                               size="small"
@@ -492,7 +463,7 @@ export default function OwnerPayoutSettings() {
                               </IconButton>
                             </Tooltip>
                           )}
-                        </Box>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -640,6 +611,6 @@ export default function OwnerPayoutSettings() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 }

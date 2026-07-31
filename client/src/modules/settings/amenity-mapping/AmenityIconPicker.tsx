@@ -1,18 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Box,
-  Typography,
-  TextField,
-  InputAdornment,
-  IconButton,
-  Button,
-  Tooltip,
-  Stack,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box, TextField, InputAdornment, IconButton, Button, Tooltip, Stack } from '@mui/material';
 import { Search, X, RotateCcw } from 'lucide-react';
 import { ICON_CATALOG, ICON_REGISTRY, type IconGroup } from './amenityIcons';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -175,17 +162,17 @@ export default function AmenityIconPicker({
               <CurrentIcon size={20} strokeWidth={1.75} />
             </Box>
           )}
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontSize: '0.95rem', fontWeight: 600, lineHeight: 1.3 }}>
+          <div className="flex-1 min-w-0">
+            <p className="cn-text-body1 text-[0.95rem] font-semibold leading-[1.3]">
               {t('settings.amenities.iconPicker.title', 'Choisir une icône')}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
+            </p>
+            <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
               {amenityLabel} ·{' '}
               <Box component="span" sx={{ fontFamily: '"SF Mono", Menlo, Consolas, monospace' }}>
                 {amenityCode}
               </Box>
-            </Typography>
-          </Box>
+            </span>
+          </div>
         </Stack>
         <IconButton
           onClick={handleClose}
@@ -233,39 +220,26 @@ export default function AmenityIconPicker({
 
         {/* Grouped icon grid */}
         {filteredGroups.length === 0 ? (
-          <Box sx={{ py: 4, textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
+          <div className="py-6 text-center">
+            <p className="cn-text-body2 text-muted-foreground">
               {t('settings.amenities.iconPicker.noMatch', 'Aucune icône ne correspond à « {{query}} ».', { query })}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         ) : (
           // Grid wrapper avec onKeyDown pour la navigation flechee
           // (role=grid + aria-rowcount/colcount serait plus strict mais le
           // layout est dynamique — on garde role implicite).
-          <Box
-            role="listbox"
-            aria-label={t('settings.amenities.iconPicker.title', 'Choisir une icône')}
-            onKeyDown={handleGridKeyDown}
-          >
+          <div role="listbox" aria-label={t('settings.amenities.iconPicker.title', 'Choisir une icône')} onKeyDown={handleGridKeyDown}>
             <Stack spacing={2}>
               {filteredGroups.map((group, groupIdx) => {
                 // Calcule l'offset de ce groupe dans flatIcons pour matcher
                 // l'index global avec la position visuelle.
                 const offset = filteredGroups.slice(0, groupIdx).reduce((sum, g) => sum + g.icons.length, 0);
                 return (
-                  <Box key={group.id}>
-                    <Typography
-                      sx={{
-                        fontSize: '0.7rem',
-                        fontWeight: 600,
-                        color: 'text.secondary',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.04em',
-                        mb: 0.75,
-                      }}
-                    >
+                  <div key={group.id}>
+                    <p className="cn-text-body1 text-[0.7rem] font-semibold text-muted-foreground uppercase tracking-[0.04em] mb-1">
                       {group.label}
-                    </Typography>
+                    </p>
                     <Box
                       sx={{
                         display: 'grid',
@@ -317,16 +291,16 @@ export default function AmenityIconPicker({
                         );
                       })}
                     </Box>
-                  </Box>
+                  </div>
                 );
               })}
             </Stack>
-          </Box>
+          </div>
         )}
       </DialogContent>
 
       <DialogActions sx={{ px: 2.5, py: 1.5, borderTop: '1px solid', borderColor: 'divider', justifyContent: 'space-between' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <div className="flex items-center gap-1.5">
           {isOverridden && (
             <Button
               size="small"
@@ -343,7 +317,7 @@ export default function AmenityIconPicker({
               {t('settings.amenities.iconPicker.resetToDefault', "Revenir à l'icône par défaut")}
             </Button>
           )}
-        </Box>
+        </div>
         <Button
           onClick={handleClose}
           size="small"

@@ -1,20 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Chip,
-  CircularProgress,
-  Alert,
-  IconButton,
-  Tooltip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-} from '@mui/material';
+import { Card } from '../../../components/ui';
+import { Box, Button, Chip, CircularProgress, Alert, IconButton, Tooltip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -193,12 +179,9 @@ export default function OAuthProviderCard({
 
   if (loading) {
     return (
-      <Paper
-        elevation={0}
-        sx={{ borderRadius: '12px', border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 3, display: 'flex', justifyContent: 'center' }}
-      >
+      <Card className="gap-0 py-0 border-border p-4 flex justify-center">
         <CircularProgress size={28} sx={{ color: ACCENT }} />
-      </Paper>
+      </Card>
     );
   }
 
@@ -275,54 +258,34 @@ export default function OAuthProviderCard({
   // Zone descriptive (logo + titre + statut + description). C'est l'ancre du tooltip riche du service,
   // tenue à l'écart des boutons (frères) pour qu'aucun tooltip ne s'imbrique.
   const infoZone = (
-    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1, minWidth: 0 }}>
+    <div className="flex items-start gap-2 flex-1 min-w-0">
       <ProviderLogo provider={providerId} size={40} muted={notConfigured} />
-      <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>{label}</Typography>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <p className="cn-text-body1 text-[0.875rem] font-semibold">{label}</p>
           {statusChip}
-        </Box>
-        <Typography
-          noWrap
-          sx={{
-            fontSize: '0.72rem',
-            color: 'text.secondary',
-            mt: 0.25,
-          }}
-        >
+        </div>
+        <p className="cn-text-body1 truncate text-[0.72rem] text-muted-foreground mt-0.5">
           {description}
-        </Typography>
-      </Box>
-    </Box>
+        </p>
+      </div>
+    </div>
   );
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: '12px',
-        border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: 'none',
-        overflow: 'hidden',
-        transition: 'border-color 200ms cubic-bezier(0.16, 1, 0.3, 1)',
-        '&:hover': {
-          borderColor: 'color-mix(in srgb, var(--ok) 25%, transparent)',
-        },
-      }}
-    >
+    <Card className="gap-0 overflow-hidden py-0 transition-colors duration-200 hover:border-[color-mix(in_srgb,var(--ok)_25%,transparent)]">
       {/* Carte compacte : zone descriptive (tooltip riche du service) + actions en icônes à droite. */}
-      <Box sx={{ px: 2, py: 1.75, display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+      <div className="px-3 py-2.5 flex items-start gap-1.5">
         {serviceTooltipId ? (
           <ServiceTooltip providerId={serviceTooltipId} name={label}>{infoZone}</ServiceTooltip>
         ) : (
           infoZone
         )}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}>
+        <div className="flex items-center gap-0.5 shrink-0">
           {secondaryAction}
           {mainAction}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {message && (
         <Box sx={{ px: 2, pb: 1.5, mt: -0.5 }}>
@@ -363,6 +326,6 @@ export default function OAuthProviderCard({
           </Button>
         </DialogActions>
       </Dialog>
-    </Paper>
+    </Card>
   );
 }

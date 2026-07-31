@@ -1,16 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  TextField,
-  Button,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  InputAdornment,
-  Skeleton,
-} from '@mui/material';
+import { Card } from '../../components/ui';
+import { Box, Typography, TextField, Button, Alert, Snackbar, CircularProgress, InputAdornment, Skeleton } from '@mui/material';
 import { Euro, Save, CheckCircle } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -145,10 +135,10 @@ export default function MyRatesSettings() {
 
   if (ratesQuery.isLoading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div className="flex flex-col gap-3">
         <Skeleton variant="rounded" height={120} sx={{ borderRadius: '13px' }} />
         <Skeleton variant="rounded" height={260} sx={{ borderRadius: '13px' }} />
-      </Box>
+      </div>
     );
   }
 
@@ -157,32 +147,32 @@ export default function MyRatesSettings() {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="flex flex-col gap-3">
       {/* ── Score qualité 30 jours (MM-3D) ───────────────────────────────── */}
       {score != null && (
-        <Paper sx={{ border: '1px solid var(--line)', boxShadow: 'none', borderRadius: '13px', p: 2.5 }}>
+        <Card className="gap-0 py-0 p-3.5">
           <Typography sx={SECTION_TITLE_SX}>{t('settings.myRates.scoreSection')}</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, flexWrap: 'wrap' }}>
-            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '26px', fontWeight: 600, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
-              {score.score}<Box component="span" sx={{ fontSize: '14px', color: 'var(--muted)', fontWeight: 500 }}>/100</Box>
-            </Typography>
-            <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <p className="cn-text-body1 font-[var(--font-display)] text-[26px] font-semibold text-[var(--accent)] tabular-nums">
+              {score.score}<span className="text-[14px] text-[var(--muted)] font-medium">/100</span>
+            </p>
+            <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
               {t('settings.myRates.scoreDetail', {
                 count: score.completedCount,
                 proof: Math.round(score.proofRate * 100),
               })}
-            </Typography>
-          </Box>
-          <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: 1 }}>
+            </p>
+          </div>
+          <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mt-1.5">
             {t('settings.myRates.scoreHint')}
-          </Typography>
-        </Paper>
+          </p>
+        </Card>
       )}
 
       {/* ── Taux horaire général ─────────────────────────────────────────── */}
-      <Paper sx={{ border: '1px solid var(--line)', boxShadow: 'none', borderRadius: '13px', p: 2.5 }}>
+      <Card className="gap-0 py-0 p-3.5">
         <Typography sx={SECTION_TITLE_SX}>{t('settings.myRates.hourlySection')}</Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+        <div className="flex items-center gap-3 flex-wrap">
           <TextField
             label={t('settings.myRates.hourlyRate')}
             type="number"
@@ -195,29 +185,29 @@ export default function MyRatesSettings() {
             sx={{ ...NUM_SX, width: 220 }}
           />
           {referenceRate != null && (
-            <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+            <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
               {t('settings.myRates.referenceRate')} : {referenceRate} €/h
-            </Typography>
+            </p>
           )}
-        </Box>
-        <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: 1 }}>
+        </div>
+        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mt-1.5">
           {t('settings.myRates.hourlyHint')}
-        </Typography>
-      </Paper>
+        </p>
+      </Card>
 
       {/* ── Forfaits par logement ────────────────────────────────────────── */}
-      <Paper sx={{ border: '1px solid var(--line)', boxShadow: 'none', borderRadius: '13px', p: 2.5 }}>
+      <Card className="gap-0 py-0 p-3.5">
         <Typography sx={SECTION_TITLE_SX}>{t('settings.myRates.flatSection')}</Typography>
-        <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', mb: 2 }}>
+        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mb-3">
           {t('settings.myRates.flatHint')}
-        </Typography>
+        </p>
 
         {properties.length === 0 ? (
-          <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', fontStyle: 'italic' }}>
+          <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] italic">
             {t('settings.myRates.noProperties')}
-          </Typography>
+          </p>
         ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="flex flex-col">
             {properties.map((property) => {
               const raw = flats[property.propertyId] ?? '';
               const amount = raw.trim() !== '' && !isNaN(parseFloat(raw)) ? parseFloat(raw) : null;
@@ -233,11 +223,11 @@ export default function MyRatesSettings() {
                     '& + &': { borderTop: '1px solid var(--line)' },
                   }}
                 >
-                  <Typography sx={{ flex: 1, minWidth: 160, fontSize: '13px', fontWeight: 600, color: 'var(--ink)', pt: 1 }}>
+                  <p className="cn-text-body1 flex-1 min-w-[160px] text-[13px] font-semibold text-[var(--ink)] pt-1.5">
                     {property.propertyName}
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  </p>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-1.5">
                       <TextField
                         type="number"
                         size="small"
@@ -249,25 +239,25 @@ export default function MyRatesSettings() {
                         sx={{ ...NUM_SX, width: 150 }}
                       />
                       <NudgeBadge amount={amount} rate={property} />
-                    </Box>
+                    </div>
                     {/* Nudge : fourchette conseil, ancre médiane */}
-                    <Typography sx={{ fontSize: '11px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                    <p className="cn-text-body1 text-[11px] text-[var(--muted)] tabular-nums">
                       {t('settings.myRates.advisoryLine', {
                         min: property.advisoryMin,
                         max: property.advisoryMax,
                       })}{' '}
                       · {t('settings.myRates.advisoryMedian')} <b>{property.advisoryRecommended} €</b>
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                 </Box>
               );
             })}
-          </Box>
+          </div>
         )}
-      </Paper>
+      </Card>
 
       {/* ── Enregistrer ──────────────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <div className="flex justify-end">
         <Button
           variant="contained"
           size="small"
@@ -277,7 +267,7 @@ export default function MyRatesSettings() {
         >
           {t('settings.myRates.save')}
         </Button>
-      </Box>
+      </div>
 
       <Snackbar
         open={snackbar.open}
@@ -289,6 +279,6 @@ export default function MyRatesSettings() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 }

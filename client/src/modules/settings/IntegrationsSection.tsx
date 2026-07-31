@@ -1,20 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Chip,
-  CircularProgress,
-  Alert,
-  Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  TextField,
-} from '@mui/material';
+import { Card } from '../../components/ui';
+import { Box, Button, Chip, CircularProgress, Alert, Divider, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField } from '@mui/material';
 import {
   Link as LinkIcon,
   LinkOff as LinkOffIcon,
@@ -538,35 +524,22 @@ export default function IntegrationsSection({
   );
 
   return (
-    <Box>
+    <div>
       {/* ─── Section : Marketing & Newsletter (Brevo — ACTIVE) ─────────── */}
       {showSection('marketing') && (
-      <Paper
-        id="section-marketing"
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mb: 2,
-          px: 2,
-          py: 1.75,
-          scrollMarginTop: 80,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>Marketing &amp; Newsletter</Typography>
+      <Card className="gap-0 py-0 border-border mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-marketing">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className="cn-text-body1 text-[0.82rem] font-semibold">Marketing &amp; Newsletter</p>
           <Chip
             icon={<CheckCircleIcon size={11} strokeWidth={2} />}
             label="Disponible"
             size="small"
             sx={buildStatusChipSx(ACCENT)}
           />
-        </Box>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+        </div>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           Synchronisez vos contacts (waitlist, newsletter, leads devis) vers votre plateforme d&apos;emailing pour vos campagnes.
-        </Typography>
+        </p>
         <Box
           sx={{
             display: 'grid',
@@ -583,28 +556,13 @@ export default function IntegrationsSection({
             status={marketingConfigured ? 'connected' : 'idle'}
             onClick={() => setOpenMarketing(true)}
             logo={
-              <Box
-                sx={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '8px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: '#0B996E',
-                  color: '#fff',
-                  fontWeight: 700,
-                  fontSize: '1rem',
-                  flexShrink: 0,
-                }}
-                aria-hidden="true"
-              >
+              <div className="w-[40px] h-[40px] rounded-[8px] inline-flex items-center justify-center bg-[#0B996E] text-[#fff] font-bold text-[1rem] shrink-0" aria-hidden="true">
                 B
-              </Box>
+              </div>
             }
           />
         </Box>
-      </Paper>
+      </Card>
       )}
       <IntegrationConfigDialog open={openMarketing} onClose={() => setOpenMarketing(false)}>
         <BrevoConfigCard />
@@ -612,24 +570,11 @@ export default function IntegrationsSection({
 
       {/* ─── Choix du provider signature (radio) ──────────────────────── */}
       {showSection('signature') && (
-      <Paper
-        id="section-signature"
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mb: 2,
-          px: 2,
-          py: 1.75,
-          scrollMarginTop: 80,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+      <Card className="gap-0 py-0 border-border mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-signature">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className="cn-text-body1 text-[0.82rem] font-semibold">
             {t('settings.integrations.signatureProvider.title', 'Signature electronique')}
-          </Typography>
+          </p>
           <Chip
             label="Opérationnel — à brancher"
             size="small"
@@ -643,13 +588,13 @@ export default function IntegrationsSection({
               '& .MuiChip-label': { px: 0.875 },
             }}
           />
-        </Box>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+        </div>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           {t(
             'settings.integrations.signatureProvider.description',
             'Deux intégrations prêtes côté code : Yousign (QTSP certifié ANSSI) et DocuSeal (open source self-hosted). Les mandats sont signés via le workflow interne Clenzy tant qu’aucune n’est branchée.',
           )}
-        </Typography>
+        </p>
         <SignatureProviderCards
           value={openSignatureProvider}
           onChange={(next) => setOpenSignatureProvider(next)}
@@ -672,7 +617,7 @@ export default function IntegrationsSection({
             {providerMessage.text}
           </Alert>
         )}
-      </Paper>
+      </Card>
       )}
 
       {/* ─── Modal Pennylane (OAuth — inline car gere son propre sync) ── */}
@@ -681,16 +626,7 @@ export default function IntegrationsSection({
         onClose={() => setOpenSignatureProvider(null)}
         maxWidth="md"
       >
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          overflow: 'hidden',
-        }}
-      >
+      <Card className="gap-0 py-0 border-border overflow-hidden">
         {/* Header */}
         <Box
           sx={{
@@ -725,74 +661,47 @@ export default function IntegrationsSection({
             {PENNYLANE_INITIALS}
           </Box>
           {/* Info */}
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              fontWeight={600}
-              sx={{
-                fontSize: '0.95rem',
-                lineHeight: 1.25,
-                color: 'text.primary',
-                letterSpacing: '-0.005em',
-              }}
-            >
+          <div className="flex-1 min-w-0">
+            <p className="cn-text-body1 font-semibold text-[0.95rem] leading-[1.25] text-foreground tracking-[-0.005em]">
               {t('settings.integrations.pennylane.title')}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: '0.78rem',
-                color: 'text.secondary',
-                lineHeight: 1.4,
-                mt: 0.25,
-              }}
-            >
+            </p>
+            <p className="cn-text-body1 text-[0.78rem] text-muted-foreground leading-[1.4] mt-0.5">
               {t('settings.integrations.pennylane.description')}
-            </Typography>
-          </Box>
+            </p>
+          </div>
           {/* Status chip */}
-          <Box sx={{ flexShrink: 0 }}>{statusChip}</Box>
+          <div className="shrink-0">{statusChip}</div>
         </Box>
 
         {/* Body */}
-        <Box sx={{ p: 2 }}>
+        <div className="p-3">
           {isConnected ? (
             <>
               {/* Connection metadata */}
               {(status?.connectedAt || status?.lastSyncAt) && (
-                <Box sx={{ display: 'flex', gap: 2, mb: 1.5, flexWrap: 'wrap' }}>
+                <div className="flex gap-3 mb-2 flex-wrap">
                   {status.connectedAt && (
-                    <Typography
-                      sx={{
-                        fontSize: '0.72rem',
-                        color: 'text.secondary',
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
-                      <Typography component="span" sx={{ fontWeight: 600, color: 'text.primary', fontSize: '0.72rem' }}>
+                    <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums">
+                      <span className="font-semibold text-foreground text-[0.72rem]">
                         {t('settings.integrations.pennylane.connectedAt')} :
-                      </Typography>{' '}
+                      </span>{' '}
                       {new Date(status.connectedAt).toLocaleDateString('fr-FR')}
-                    </Typography>
+                    </p>
                   )}
                   {status.lastSyncAt && (
-                    <Typography
-                      sx={{
-                        fontSize: '0.72rem',
-                        color: 'text.secondary',
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
-                      <Typography component="span" sx={{ fontWeight: 600, color: 'text.primary', fontSize: '0.72rem' }}>
+                    <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums">
+                      <span className="font-semibold text-foreground text-[0.72rem]">
                         {t('settings.integrations.pennylane.lastSync')} :
-                      </Typography>{' '}
+                      </span>{' '}
                       {new Date(status.lastSyncAt).toLocaleString('fr-FR')}
-                    </Typography>
+                    </p>
                   )}
-                </Box>
+                </div>
               )}
 
               {/* Sync stats */}
               {syncStatus && (
-                <Box sx={{ display: 'flex', gap: 0.75, mb: 1.5, flexWrap: 'wrap' }}>
+                <div className="flex gap-1 mb-2 flex-wrap">
                   <Chip
                     icon={<ReceiptIcon size={11} strokeWidth={2} />}
                     label={`${syncStatus.pendingInvoices} ${t('settings.integrations.pennylane.pendingInvoices')}`}
@@ -805,13 +714,13 @@ export default function IntegrationsSection({
                     size="small"
                     sx={buildStatusChipSx(syncStatus.pendingExpenses > 0 ? WARM : NEUTRAL)}
                   />
-                </Box>
+                </div>
               )}
 
               <Divider sx={{ mb: 1.5, borderColor: 'divider' }} />
 
               {/* Sync actions */}
-              <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div className="flex gap-1 flex-wrap items-center">
                 <Button
                   variant="outlined"
                   size="small"
@@ -863,7 +772,7 @@ export default function IntegrationsSection({
                     ? t('settings.integrations.pennylane.syncing')
                     : t('settings.integrations.pennylane.syncAll')}
                 </Button>
-                <Box sx={{ flexGrow: 1 }} />
+                <div className="grow" />
                 <Button
                   variant="outlined"
                   size="small"
@@ -873,7 +782,7 @@ export default function IntegrationsSection({
                 >
                   {t('settings.integrations.pennylane.disconnect')}
                 </Button>
-              </Box>
+              </div>
             </>
           ) : notConfigured ? (
             <Alert
@@ -914,8 +823,8 @@ export default function IntegrationsSection({
               {syncMessage.text}
             </Alert>
           )}
-        </Box>
-      </Paper>
+        </div>
+      </Card>
       </IntegrationConfigDialog>
 
       {/* ─── Modals de config signature (Yousign + DocuSeal) ──────────── */}
@@ -941,30 +850,16 @@ export default function IntegrationsSection({
 
       {/* ─── Section : Comptabilité (QuickBooks) ──────────────────────── */}
       {showSection('accounting') && (
-      <Paper
-        id="section-accounting"
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mt: 3,
-          mb: 2,
-          px: 2,
-          py: 1.75,
-          scrollMarginTop: 80,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+      <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-accounting">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className="cn-text-body1 text-[0.82rem] font-semibold">
             Comptabilité
-          </Typography>
+          </p>
           <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
-        </Box>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+        </div>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           Synchronisez factures et dépenses vers votre logiciel comptable.
-        </Typography>
+        </p>
         {/* Pennylane : connexion OAuth réelle (sync factures) — carte interactive,
             hors du wrapper « Bientôt disponible » des autres logiciels compta. */}
         {matchesService('PENNYLANE') && (
@@ -1010,7 +905,7 @@ export default function IntegrationsSection({
             />
           ))}
         </Box>
-      </Paper>
+      </Card>
       )}
       <IntegrationConfigDialog
         open={openAccountingProvider !== null}
@@ -1047,29 +942,15 @@ export default function IntegrationsSection({
 
       {/* ─── Section : Conformité légale (Chekin / Police MA / Absher KSA) ── */}
       {showSection('compliance') && (
-      <Paper
-        id="section-compliance"
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mt: 3,
-          mb: 2,
-          px: 2,
-          py: 1.75,
-          scrollMarginTop: 80,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+      <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-compliance">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className="cn-text-body1 text-[0.82rem] font-semibold">
             Conformité légale
-          </Typography>
-        </Box>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+          </p>
+        </div>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           Automatisez la déclaration légale des voyageurs auprès des autorités locales (fiche police France, DGSN Maroc, Absher Arabie Saoudite). Évite les amendes et les contrôles surprises.
-        </Typography>
+        </p>
         {/* Chekin : API publique (clé API → JWT) — connexion + soumission réelles,
             carte interactive hors du wrapper « Bientôt disponible » des providers
             gouvernementaux (DGSN / Absher, partenariat officiel requis). */}
@@ -1117,7 +998,7 @@ export default function IntegrationsSection({
             />
           ))}
         </Box>
-      </Paper>
+      </Card>
       )}
       <IntegrationConfigDialog
         open={openComplianceProvider !== null}
@@ -1133,29 +1014,15 @@ export default function IntegrationsSection({
 
       {/* ─── Section : KYC / Vérification d'identité ─────────────────── */}
       {showSection('kyc') && (
-      <Paper
-        id="section-kyc"
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mt: 3,
-          mb: 2,
-          px: 2,
-          py: 1.75,
-          scrollMarginTop: 80,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+      <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-kyc">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className="cn-text-body1 text-[0.82rem] font-semibold">
             Vérification d'identité (KYC)
-          </Typography>
-        </Box>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+          </p>
+        </div>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           Vérification automatique des pièces d'identité des voyageurs (lutte contre la fraude, conformité LCB-FT). Indispensable pour les paiements sur compte et les réservations à forte valeur.
-        </Typography>
+        </p>
         {/* Les 3 providers ont une API publique : la connexion valide les credentials
             par un appel réel (Onfido token, Sumsub/Veriff requêtes signées HMAC). */}
         <Box
@@ -1183,7 +1050,7 @@ export default function IntegrationsSection({
             />
           ))}
         </Box>
-      </Paper>
+      </Card>
       )}
       <IntegrationConfigDialog
         open={openKycProvider !== null}
@@ -1199,27 +1066,13 @@ export default function IntegrationsSection({
 
       {/* ─── Section : Channel Manager (middleware OTAs) ──────────────── */}
       {showSection('channel_manager') && (
-      <Paper
-        id="section-channel-manager"
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mt: 3,
-          mb: 2,
-          px: 2,
-          py: 1.75,
-          scrollMarginTop: 80,
-        }}
-      >
-        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
+      <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-channel-manager">
+        <p className="cn-text-body1 text-[0.82rem] font-semibold mb-0.5">
           Channel Manager (middleware)
-        </Typography>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+        </p>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           Connectez un middleware qui agrège plusieurs OTAs en une seule API — utile pour les marchés niches ou régionaux sans intégration directe. Les OTAs eux-mêmes (Airbnb, Booking, Vrbo) restent dans la tab <strong>Channels</strong>.
-        </Typography>
+        </p>
         <Box
           sx={{
             display: 'grid',
@@ -1250,7 +1103,7 @@ export default function IntegrationsSection({
             />
           ))}
         </Box>
-      </Paper>
+      </Card>
       )}
       <IntegrationConfigDialog
         open={openChannelManagerProvider !== null}
@@ -1301,29 +1154,17 @@ export default function IntegrationsSection({
         <Box id="section-market-intelligence" sx={{ scrollMarginTop: 80 }}>
           {/* Cartes ACTIVES : la clé API saisie ici réveille l'adaptateur dormant
               au prochain cycle d'ingestion (roadmap market data). */}
-          <Paper
-            elevation={0}
-            sx={{
-              borderRadius: '12px',
-              border: '1px solid',
-              borderColor: 'divider',
-              boxShadow: 'none',
-              mt: 3,
-              mb: 2,
-              px: 2,
-              py: 1.75,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-              <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+          <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <p className="cn-text-body1 text-[0.82rem] font-semibold">
                 Intelligence de marché — sources de données
-              </Typography>
-            </Box>
-            <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+              </p>
+            </div>
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
               Benchmarks ADR / occupation / RevPAR par zone pour le revenue management.
               Sans clé, le RMS fonctionne déjà avec les données réseau (first-party) et
               l'open data ; une clé active l'ingestion quotidienne du fournisseur.
-            </Typography>
+            </p>
             <Box
               sx={{
                 display: 'grid',
@@ -1348,7 +1189,7 @@ export default function IntegrationsSection({
                 />
               ))}
             </Box>
-          </Paper>
+          </Card>
           <IntegrationConfigDialog
             open={openMarketDataProvider !== null}
             onClose={() => setOpenMarketDataProvider(null)}
@@ -1522,6 +1363,6 @@ export default function IntegrationsSection({
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 }

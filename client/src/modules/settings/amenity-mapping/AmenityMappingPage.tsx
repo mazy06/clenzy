@@ -357,7 +357,7 @@ export default function AmenityMappingPage() {
       </Stack>
 
       {/* Tabs */}
-      <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 2 }}>
+      <div className="border-b border-[divider] mb-3">
         <PageTabs
           options={[
             { value: 'unmapped' as TabKey, label: 'À mapper', badge: unmapped.length, badgeColor: 'warning' },
@@ -376,7 +376,7 @@ export default function AmenityMappingPage() {
           mb={0}
           trail={false}
         />
-      </Box>
+      </div>
 
       {error && (
         <Alert severity="error" variant="outlined" sx={{ mb: 2 }}>{error}</Alert>
@@ -400,7 +400,7 @@ export default function AmenityMappingPage() {
                 ),
               }}
             />
-            <Box sx={{ flex: 1 }} />
+            <div className="flex-1" />
             {selectedRaw.size > 0 && (
               <Stack direction="row" spacing={1} alignItems="center" sx={{
                 px: 1.5, py: 0.75,
@@ -503,12 +503,12 @@ export default function AmenityMappingPage() {
           ) : (
             aliases.map((a) => (
               <Box key={a.id} sx={SX_LIST_ROW}>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
+                <div className="flex-1 min-w-0">
                   <Stack direction="row" alignItems="center" spacing={1}>
-                    <Typography sx={{ fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 500 }}>
+                    <p className="cn-text-body1 font-mono text-[0.85rem] font-medium">
                       {a.rawOtaName}
-                    </Typography>
-                    <Typography variant="caption" color="text.disabled">→</Typography>
+                    </p>
+                    <span className="cn-text-caption text-muted-foreground opacity-60">→</span>
                     <Chip
                       size="small"
                       label={codeLabelOf(a.clenzyCode)}
@@ -519,11 +519,11 @@ export default function AmenityMappingPage() {
                             sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--hover)', color: 'text.secondary' }} />
                     )}
                   </Stack>
-                  <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>
+                  <span className="cn-text-caption text-muted-foreground opacity-60 block mt-0.5">
                     Créé le {new Date(a.createdAt).toLocaleDateString('fr-FR')}
                     {a.createdByEmail && ` · par ${a.createdByEmail}`}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
                 <IconButton size="small" onClick={() => handleDeleteAlias(a.id)} sx={{ color: 'var(--err)' }}>
                   <Trash2 size={14} />
                 </IconButton>
@@ -585,23 +585,21 @@ export default function AmenityMappingPage() {
                     </Box>
                   </Tooltip>
 
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <div className="flex-1 min-w-0">
                     <Stack direction="row" alignItems="center" spacing={1}>
-                      <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>{c.labelFr}</Typography>
+                      <p className="cn-text-body1 text-[0.9rem] font-semibold">{c.labelFr}</p>
                       {c.labelEn && (
-                        <Typography variant="caption" color="text.secondary">/ {c.labelEn}</Typography>
+                        <span className="cn-text-caption text-muted-foreground">/ {c.labelEn}</span>
                       )}
                       <Chip size="small"
                             label={AMENITY_CATEGORY_LABELS[c.category as AmenityCategory] ?? c.category}
                             sx={{ height: 18, fontSize: '0.65rem',
                                   bgcolor: 'var(--info-soft)', color: PRIMARY }} />
                     </Stack>
-                    <Typography variant="caption" sx={{
-                      display: 'block', fontFamily: 'monospace', color: 'text.disabled', mt: 0.25,
-                    }}>
+                    <span className="cn-text-caption block font-mono text-muted-foreground opacity-60 mt-0.5">
                       {c.code}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
 
                   {/* Reset icon (uniquement si override actif) */}
                   {isOverridden && (
@@ -648,16 +646,16 @@ export default function AmenityMappingPage() {
           ) : (
             ignored.map((i) => (
               <Box key={i.id} sx={SX_LIST_ROW}>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
+                <div className="flex-1 min-w-0">
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <Ban size={14} color="var(--faint)" />
-                    <Typography sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{i.rawOtaName}</Typography>
+                    <p className="cn-text-body1 font-mono text-[0.85rem]">{i.rawOtaName}</p>
                     {i.otaSource && (
                       <Chip size="small" label={i.otaSource}
                             sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--hover)', color: 'text.secondary' }} />
                     )}
                   </Stack>
-                </Box>
+                </div>
                 <Tooltip title={t('settings.amenities.ignored.reintroduce', 'Réintroduire dans la liste à mapper')}>
                   <IconButton size="small" onClick={() => handleDeleteIgnored(i.id)} sx={{ color: ACCENT }}>
                     <RotateCcw size={14} />
@@ -684,11 +682,11 @@ export default function AmenityMappingPage() {
             const items = BUILT_IN_AMENITIES.filter((a) => a.category === cat);
             if (items.length === 0) return null;
             return (
-              <Box key={cat}>
+              <div key={cat}>
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.875 }}>
-                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'text.primary' }}>
+                  <p className="cn-text-body1 text-[0.78rem] font-semibold text-foreground">
                     {AMENITY_CATEGORY_LABELS[cat]}
-                  </Typography>
+                  </p>
                   <Chip
                     size="small"
                     label={items.length}
@@ -760,19 +758,10 @@ export default function AmenityMappingPage() {
                         </Tooltip>
 
                         {/* Label + code */}
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography
-                            sx={{
-                              fontSize: '0.82rem',
-                              fontWeight: 500,
-                              color: 'text.primary',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
+                        <div className="flex-1 min-w-0">
+                          <p className="cn-text-body1 text-[0.82rem] font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                             {label}
-                          </Typography>
+                          </p>
                           <Typography
                             variant="caption"
                             sx={{
@@ -788,7 +777,7 @@ export default function AmenityMappingPage() {
                           >
                             {a.code}
                           </Typography>
-                        </Box>
+                        </div>
 
                         {/* Edit pencil (visible au hover) + badge override si actif */}
                         <Stack direction="row" alignItems="center" spacing={0.5} sx={{ flexShrink: 0 }}>
@@ -834,7 +823,7 @@ export default function AmenityMappingPage() {
                     );
                   })}
                 </Box>
-              </Box>
+              </div>
             );
           })}
         </Stack>
@@ -866,14 +855,14 @@ export default function AmenityMappingPage() {
       <Dialog open={confirmReprocess} onClose={() => setConfirmReprocess(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1.5 }}>
           <AlertCircle size={18} color={WARN} />
-          <Typography variant="subtitle1" fontWeight={600}>Re-traiter les propriétés ?</Typography>
+          <h6 className="cn-text-subtitle1 font-semibold">Re-traiter les propriétés ?</h6>
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary">
+          <p className="cn-text-body2 text-muted-foreground">
             Cette action applique <strong>{aliases.length}</strong> alias et <strong>{ignored.length}</strong> ignored à
             toutes les propriétés de votre organisation. Les commodités OTA brutes seront soit converties en codes
             Baitly, soit retirées si ignorées. Sans effet sur les amenities déjà mappées manuellement.
-          </Typography>
+          </p>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 1.5 }}>
           <Button onClick={() => setConfirmReprocess(false)} size="small"
@@ -888,18 +877,18 @@ export default function AmenityMappingPage() {
       <Dialog open={confirmRescrape} onClose={() => setConfirmRescrape(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1.5 }}>
           <Sparkles size={18} color="#8B5CF6" />
-          <Typography variant="subtitle1" fontWeight={600}>Re-scrape les pages Airbnb ?</Typography>
+          <h6 className="cn-text-subtitle1 font-semibold">Re-scrape les pages Airbnb ?</h6>
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary">
+          <p className="cn-text-body2 text-muted-foreground">
             Cette action <strong>re-télécharge la page publique Airbnb</strong> de chaque propriété
             de votre organisation pour récupérer le nom à jour + les commodités JSON-LD,
             puis applique automatiquement vos {aliases.length} alias et {ignored.length} ignored.
-          </Typography>
-          <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 1.5 }}>
+          </p>
+          <span className="cn-text-caption text-muted-foreground opacity-60 block mt-2">
             Peut prendre quelques secondes par propriété (1 HTTP GET vers airbnb.com).
             Les amenities déjà cochées manuellement sont préservées.
-          </Typography>
+          </span>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 1.5 }}>
           <Button onClick={() => setConfirmRescrape(false)} size="small"
@@ -947,9 +936,9 @@ function KpiTile({ label, value, color, loading }: {
       border: '1px solid', borderColor: 'divider',
       bgcolor: 'var(--card)',
     }}>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+      <span className="cn-text-caption text-muted-foreground block mb-0.5">
         {label}
-      </Typography>
+      </span>
       {loading ? (
         <Skeleton width={40} height={32} />
       ) : (
@@ -971,8 +960,8 @@ function EmptyState({ title, subtitle }: { title: string; subtitle: string }) {
       border: '1px dashed', borderColor: 'divider',
       bgcolor: SURFACE,
     }}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>{title}</Typography>
-      <Typography variant="body2" color="text.secondary">{subtitle}</Typography>
+      <h6 className="cn-text-subtitle1 font-semibold mb-0.5">{title}</h6>
+      <p className="cn-text-body2 text-muted-foreground">{subtitle}</p>
     </Box>
   );
 }
@@ -1006,13 +995,11 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
         onChange={(e) => onToggleSelect(e.target.checked)}
         sx={{ p: 0.5, color: ACCENT, '&.Mui-checked': { color: ACCENT } }}
       />
-      <Box sx={{ flex: 1, minWidth: 0 }}>
+      <div className="flex-1 min-w-0">
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.25 }}>
-          <Typography sx={{
-            fontFamily: 'monospace', fontSize: '0.9rem', fontWeight: 500, mr: 0.5,
-          }}>
+          <p className="cn-text-body1 font-mono text-[0.9rem] font-medium me-0.5">
             {item.rawOtaName}
-          </Typography>
+          </p>
           {item.otaSources[0] && item.otaSources[0] !== 'OTA' && (
             <Chip size="small" label={item.otaSources[0]}
                   sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--hover)', color: 'text.secondary' }} />
@@ -1021,13 +1008,13 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
                 sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--warn-soft)', color: 'var(--warn)' }} />
         </Stack>
         {item.affectedProperties.length > 0 && (
-          <Typography variant="caption" color="text.secondary" noWrap>
+          <span className="cn-text-caption text-muted-foreground truncate">
             {item.affectedProperties.slice(0, 3).map((p) => p.name).join(' · ')}
             {item.affectedProperties.length < item.occurrences
               && `, +${item.occurrences - item.affectedProperties.length} autre${item.occurrences - item.affectedProperties.length > 1 ? 's' : ''}`}
-          </Typography>
+          </span>
         )}
-      </Box>
+      </div>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
         <FormControl size="small" sx={{ minWidth: 180 }}>
           <Select

@@ -173,9 +173,9 @@ export const AssistantBriefingPrefs: React.FC = () => {
             />
           }
           label={
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            <p className="cn-text-body2 font-semibold">
               {prefs.enabled ? 'Activé' : 'Désactivé'}
-            </Typography>
+            </p>
           }
           sx={{ m: 0, gap: 0.5 }}
         />
@@ -202,7 +202,7 @@ export const AssistantBriefingPrefs: React.FC = () => {
             mb: 3,
           }}
         >
-          <Box>
+          <div>
             <Typography
               variant="overline"
               sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
@@ -222,16 +222,12 @@ export const AssistantBriefingPrefs: React.FC = () => {
                 </MenuItem>
               ))}
             </Select>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ display: 'block', mt: 0.75, lineHeight: 1.4 }}
-            >
+            <span className="cn-text-caption text-muted-foreground block mt-1 leading-[1.4]">
               {FREQUENCY_OPTIONS.find((o) => o.value === prefs.frequency)?.description}
-            </Typography>
-          </Box>
+            </span>
+          </div>
 
-          <Box>
+          <div>
             <Typography
               variant="overline"
               sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
@@ -247,9 +243,9 @@ export const AssistantBriefingPrefs: React.FC = () => {
               inputProps={{ step: 300 }}
               sx={{ mt: 0.5 }}
             />
-          </Box>
+          </div>
 
-          <Box>
+          <div>
             <Typography
               variant="overline"
               sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
@@ -265,11 +261,11 @@ export const AssistantBriefingPrefs: React.FC = () => {
               sx={{ mt: 0.5 }}
               FormHelperTextProps={{ sx: { ml: 0, fontSize: '0.7rem' } }}
             />
-          </Box>
+          </div>
         </Box>
 
         {/* ── Ligne 2 : Canaux en grille 3 colonnes ───────────────────── */}
-        <Box>
+        <div>
           <Typography
             variant="overline"
             sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
@@ -315,28 +311,24 @@ export const AssistantBriefingPrefs: React.FC = () => {
                     size="small"
                     sx={{ p: 0, mt: 0.25 }}
                   />
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
+                  <div className="min-w-0">
+                    <p className="cn-text-body2 font-semibold leading-[1.3]">
                       {opt.label}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ display: 'block', lineHeight: 1.4 }}
-                    >
+                    </p>
+                    <span className="cn-text-caption text-muted-foreground block leading-[1.4]">
                       {opt.description}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 </Box>
               );
             })}
           </Box>
-        </Box>
+        </div>
       </Box>
 
       {/* ── Actions ───────────────────────────────────────────────────── */}
       <Divider sx={{ my: 3 }} />
-      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+      <div className="flex gap-1.5 justify-end flex-wrap">
         <Button
           variant="outlined"
           onClick={triggerTest}
@@ -353,7 +345,7 @@ export const AssistantBriefingPrefs: React.FC = () => {
         >
           {saving ? 'Enregistrement...' : 'Enregistrer'}
         </Button>
-      </Box>
+      </div>
     </AiSettingsCard>
   );
 };

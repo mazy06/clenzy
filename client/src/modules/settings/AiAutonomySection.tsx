@@ -1,25 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  FormControl,
-  InputLabel,
-  LinearProgress,
-  MenuItem,
-  Paper,
-  Select,
-  Skeleton,
-  Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Card } from '../../components/ui';
+import { Alert, Button, Chip, FormControl, InputLabel, LinearProgress, MenuItem, Select, Skeleton, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
 import { ShieldCheck, Gauge } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -145,42 +126,42 @@ export default function AiAutonomySection() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
+      <div className="flex flex-col gap-2 mb-3">
         <Skeleton variant="rounded" height={140} />
         <Skeleton variant="rounded" height={96} />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
+    <div className="flex flex-col gap-2 mb-3">
       {error && <Alert severity="warning">{error}</Alert>}
 
       {/* ── Sous-budget d'autonomie premium (X4) ── */}
-      <Paper variant="outlined" sx={{ p: 1.75 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+      <Card className="gap-0 py-0 p-2.5">
+        <div className="flex items-center gap-1.5 mb-0.5">
           <Gauge size={18} aria-hidden />
-          <Typography variant="subtitle2">
+          <h6 className="cn-text-subtitle2">
             {t('aiAutonomy.budgetTitle', "Budget d'autonomie premium")}
-          </Typography>
-        </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+          </h6>
+        </div>
+        <span className="cn-text-caption text-muted-foreground block mb-2">
           {t(
             'aiAutonomy.budgetSubtitle',
             "Plafond mensuel des actions proactives premium. L'autonomie socle (auto-réponses, alertes, briefings) reste incluse et n'est jamais décomptée. Plafond à 0 = autonomie premium désactivée.",
           )}
-        </Typography>
+        </span>
 
-        <Box sx={{ mb: 1.5 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-            <Typography variant="caption" color="text.secondary">
+        <div className="mb-2">
+          <div className="flex justify-between mb-0.5">
+            <span className="cn-text-caption text-muted-foreground">
               {t('aiAutonomy.consumedThisCycle', 'Consommé ce cycle')}
-            </Typography>
-            <Typography variant="caption" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+            </span>
+            <span className="cn-text-caption tabular-nums">
               {consumedCredits.toLocaleString()} / {capValue.toLocaleString()}{' '}
               {t('aiAutonomy.credits', 'crédits')}
-            </Typography>
-          </Box>
+            </span>
+          </div>
           <LinearProgress
             variant="determinate"
             value={gaugeRatio}
@@ -192,9 +173,9 @@ export default function AiAutonomySection() {
               },
             }}
           />
-        </Box>
+        </div>
 
-        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="flex gap-2 flex-wrap items-center">
           <TextField
             label={t('aiAutonomy.capLabel', 'Plafond (crédits / mois)')}
             type="number"
@@ -228,53 +209,53 @@ export default function AiAutonomySection() {
           >
             {t('aiAutonomy.save', 'Enregistrer')}
           </Button>
-        </Box>
+        </div>
 
         {/* Toggles des comportements premium — alimentés au fil des branchements (X8-b). */}
-        <Box sx={{ mt: 1.5 }}>
+        <div className="mt-2">
           {behaviorKeys.length === 0 ? (
-            <Typography variant="caption" color="text.secondary">
+            <span className="cn-text-caption text-muted-foreground">
               {t(
                 'aiAutonomy.noBehaviors',
                 'Aucun comportement premium branché pour le moment — les interrupteurs apparaîtront ici (ex. optimisation tarifaire proactive).',
               )}
-            </Typography>
+            </span>
           ) : (
             behaviorKeys.map((key) => (
-              <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <div className="flex items-center gap-0.5" key={key}>
                 <Switch
                   size="small"
                   checked={Boolean(behaviors[key])}
                   onChange={(e) => setBehaviors((cur) => ({ ...cur, [key]: e.target.checked }))}
                 />
-                <Typography variant="body2">
+                <p className="cn-text-body2">
                   {t(`aiAutonomy.behavior.${key}`, key)}
-                </Typography>
-              </Box>
+                </p>
+              </div>
             ))
           )}
-        </Box>
-      </Paper>
+        </div>
+      </Card>
 
       {/* ── Règles de Confiance (X2) ── */}
-      <Paper variant="outlined" sx={{ p: 1.75 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+      <Card className="gap-0 py-0 p-2.5">
+        <div className="flex items-center gap-1.5 mb-0.5">
           <ShieldCheck size={18} aria-hidden />
-          <Typography variant="subtitle2">
+          <h6 className="cn-text-subtitle2">
             {t('aiAutonomy.trustTitle', 'Règles de Confiance')}
-          </Typography>
-        </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+          </h6>
+        </div>
+        <span className="cn-text-caption text-muted-foreground block mb-1.5">
           {t(
             'aiAutonomy.trustSubtitle',
             "Quand vous confirmez plusieurs fois la même action, l'assistant propose de ne plus demander. Chaque règle est visible et révocable ici — les actions d'argent ne sont jamais éligibles.",
           )}
-        </Typography>
+        </span>
 
         {rules.length === 0 ? (
-          <Typography variant="caption" color="text.secondary">
+          <span className="cn-text-caption text-muted-foreground">
             {t('aiAutonomy.noRules', 'Aucune règle pour le moment — elles apparaissent après plusieurs confirmations de la même action.')}
-          </Typography>
+          </span>
         ) : (
           <Table size="small">
             <TableHead>
@@ -341,7 +322,7 @@ export default function AiAutonomySection() {
             </TableBody>
           </Table>
         )}
-      </Paper>
-    </Box>
+      </Card>
+    </div>
   );
 }

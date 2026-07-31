@@ -33,6 +33,11 @@ import {
   CreditCard,
   Public,
 } from "../../icons";
+import { Info, TriangleAlert } from "lucide-react";
+import {
+  Alert as UiAlert,
+  AlertDescription as UiAlertDescription,
+} from "../../components/ui";
 import { useQuery } from "@tanstack/react-query";
 import { channelLogo } from "../../components/channelLogos";
 import { managementContractsApi } from "../../services/api/managementContractsApi";
@@ -499,7 +504,7 @@ export default function PaymentSettings() {
   const isValidTotal = total === 100;
 
   return (
-    <Box>
+    <div>
       {headerActions}
       {/* Fournisseurs de paiement — dans une modale : c'est une configuration
           qu'on ouvre pour brancher un PSP, pas une lecture du quotidien. */}
@@ -532,25 +537,17 @@ export default function PaymentSettings() {
           >
             <Payment size={16} strokeWidth={1.75} />
           </Box>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography
-              sx={{ fontSize: "0.95rem", fontWeight: 600, lineHeight: 1.25 }}
-            >
+          <div className="min-w-0">
+            <p className="cn-text-body1 text-[0.95rem] font-semibold leading-[1.25]">
               {t("settings.providers.title", "Fournisseurs de paiement")}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: "0.72rem",
-                color: "text.secondary",
-                lineHeight: 1.35,
-              }}
-            >
+            </p>
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.35]">
               {t(
                 "settings.providers.subtitle",
                 "Activez ou désactivez les fournisseurs pour votre organisation."
               )}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         </DialogTitle>
         <DialogContent dividers>
           {allProviders.map((type, index) => {
@@ -627,31 +624,17 @@ export default function PaymentSettings() {
             ) : null;
 
             return (
-              <Box key={type} sx={{ position: "relative" }}>
+              <div className="relative" key={type}>
                 <SettingsToggleRow
                   icon={CreditCard}
                   iconColor={brandColor}
                   title={
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 0.625,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <Typography
-                        component="span"
-                        sx={{
-                          fontSize: "0.8125rem",
-                          fontWeight: 600,
-                          color: "inherit",
-                        }}
-                      >
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <span className="text-[0.8125rem] font-semibold text-inherit">
                         {PAYMENT_PROVIDER_LABELS[type]}
-                      </Typography>
+                      </span>
                       {statusChips}
-                    </Box>
+                    </div>
                   }
                   description={PROVIDER_REGIONS[type]}
                   checked={enabled}
@@ -672,7 +655,7 @@ export default function PaymentSettings() {
                     {configureButton}
                   </Box>
                 )}
-              </Box>
+              </div>
             );
           })}
         </DialogContent>
@@ -683,7 +666,7 @@ export default function PaymentSettings() {
         </DialogActions>
       </Dialog>
 
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <div className="flex flex-col gap-3">
         {/* ─── Revenue Split ─── */}
         <SettingsSection
           title={t("settings.split.title")}
@@ -744,18 +727,22 @@ export default function PaymentSettings() {
               notice={
                 <>
                   {contractedCount > 0 && (
-                    <Alert severity="warning" sx={{ mt: 2, borderRadius: "8px" }}>
+                    <UiAlert variant="warning" className="mt-3">
+                      <TriangleAlert />
+                      <UiAlertDescription>
                       {t(
                         "settings.split.contractOverride",
                         "{{count}} logement(s) sous contrat de gestion ne suivent pas cette répartition : le propriétaire y reçoit le solde après le taux de son contrat, et la commission se partage 25 % plateforme / 75 % conciergerie.",
                         { count: contractedCount },
                       )}
-                    </Alert>
+                      </UiAlertDescription>
+                    </UiAlert>
                   )}
                   {!splitConfig && (
-                    <Alert severity="info" sx={{ mt: 2, borderRadius: "8px" }}>
-                      {t("settings.split.defaults")}
-                    </Alert>
+                    <UiAlert variant="info" className="mt-3">
+                      <Info />
+                      <UiAlertDescription>{t("settings.split.defaults")}</UiAlertDescription>
+                    </UiAlert>
                   )}
                 </>
               }
@@ -779,7 +766,7 @@ export default function PaymentSettings() {
           )}
         </SettingsSection>
 
-      </Box>
+      </div>
 
       <PaymentProviderConfigDialog
         open={configDialogOpen}
@@ -804,7 +791,7 @@ export default function PaymentSettings() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 }
 
@@ -934,45 +921,18 @@ function ProvenanceChip({ row }: { row: ChannelCommissionOverview }) {
 function ChannelCell({ row }: { row: ChannelCommissionOverview }) {
   const logo = channelLogo(row.channel);
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-      <Box
-        sx={{
-          width: 24,
-          height: 24,
-          borderRadius: "50%",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-          border: "1px solid",
-          borderColor: "divider",
-          bgcolor: "background.paper",
-          overflow: "hidden",
-        }}
-      >
+    <div className="flex items-center gap-1.5">
+      <div className="w-[24px] h-[24px] rounded-[50%] inline-flex items-center justify-center shrink-0 border border-[divider] bg-[background.paper] overflow-hidden">
         {logo ? (
-          <Box
-            component="img"
-            src={logo}
-            alt=""
-            aria-hidden
-            sx={{ width: 14, height: 14, objectFit: "contain" }}
-          />
+          <img className="w-[14px] h-[14px] object-contain" src={logo} alt="" aria-hidden />
         ) : (
           <Public size={12} strokeWidth={1.75} color="var(--muted)" />
         )}
-      </Box>
-      <Typography
-        sx={{
-          fontSize: "0.8125rem",
-          fontWeight: 600,
-          color: "text.primary",
-          whiteSpace: "nowrap",
-        }}
-      >
+      </div>
+      <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground whitespace-nowrap">
         {row.label}
-      </Typography>
-    </Box>
+      </p>
+    </div>
   );
 }
 
@@ -1023,12 +983,15 @@ function ChannelProjectionTable({
 
   if (rows.length === 0) {
     return (
-      <Alert severity="error" sx={{ borderRadius: "8px" }}>
-        {t(
-          "settings.commissions.error",
-          "Erreur lors du chargement des commissions"
-        )}
-      </Alert>
+      <UiAlert variant="destructive">
+        <TriangleAlert />
+        <UiAlertDescription>
+          {t(
+            "settings.commissions.error",
+            "Erreur lors du chargement des commissions"
+          )}
+        </UiAlertDescription>
+      </UiAlert>
     );
   }
 
@@ -1202,25 +1165,10 @@ function RevenueSplitPanel({
   return (
     <>
           {/* Etage 1 — ce que le canal preleve avant tout partage. */}
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 0.75,
-              flexWrap: "wrap",
-              mb: 1.25,
-            }}
-          >
-            <Typography
-              sx={{
-                fontSize: "0.72rem",
-                color: "text.secondary",
-                fontWeight: 500,
-                mr: 0.25,
-              }}
-            >
+          <div className="flex items-center gap-1 flex-wrap mb-2">
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-medium me-0.5">
               {t("settings.split.simulateOn", "Simuler sur")}
-            </Typography>
+            </p>
             {rows.map((row) => (
               <Box
                 key={row.channel}
@@ -1261,10 +1209,10 @@ function RevenueSplitPanel({
                 {row.label}
               </Box>
             ))}
-          </Box>
+          </div>
 
           {/* Etage 2 — partage du net, ajustable a la souris. */}
-          <Box sx={{ mb: 2 }}>
+          <div className="mb-3">
             <SplitBarEditor
               segments={segments}
               onChange={onSegmentsChange}
@@ -1278,7 +1226,7 @@ function RevenueSplitPanel({
                   : undefined
               }
             />
-          </Box>
+          </div>
 
           {/* Champs de saisie — memes reglages que la barre, valeur exacte. */}
           <Stack
@@ -1298,84 +1246,44 @@ function RevenueSplitPanel({
           </Stack>
 
           {/* Total — l'enregistrement vit dans le header de la page. */}
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 0.875,
-              flexWrap: "wrap",
-            }}
-          >
-            <Typography
-              sx={{
-                fontSize: "0.78rem",
-                color: "text.secondary",
-                fontWeight: 500,
-              }}
-            >
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="cn-text-body1 text-[0.78rem] text-muted-foreground font-medium">
               Total
-            </Typography>
+            </p>
             <Chip
               label={`${total}%`}
               size="small"
               sx={buildStatusChipSx(isValidTotal ? "var(--ok)" : "var(--err)")}
             />
             {!isValidTotal && (
-              <Typography
-                sx={{
-                  fontSize: "0.72rem",
-                  color: "var(--err)",
-                  fontWeight: 500,
-                }}
-              >
+              <p className="cn-text-body1 text-[0.72rem] text-[var(--err)] font-medium">
                 {t("settings.split.totalError")}
-              </Typography>
+              </p>
             )}
-          </Box>
+          </div>
 
           {notice}
 
           {/* Detail par canal — toujours visible : c'est ce tableau qui relie
               la commission du canal au reversement reel, l'information que les
               deux sections separees masquaient. */}
-          <Box
-            sx={{
-              mt: 1.75,
-              borderTop: "1px solid",
-              borderColor: "divider",
-              pt: 1.25,
-            }}
-          >
-            <Typography
-              sx={{
-                fontSize: "0.75rem",
-                fontWeight: 600,
-                color: "text.secondary",
-              }}
-            >
+          <div className="mt-2.5 border-t border-[divider] pt-2">
+            <p className="cn-text-body1 text-[0.75rem] font-semibold text-muted-foreground">
               {t("settings.split.detailTitle", "Détail par canal")}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: "0.72rem",
-                color: "text.secondary",
-                mt: 0.5,
-                mb: 0.5,
-                lineHeight: 1.5,
-              }}
-            >
+            </p>
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-0.5 mb-0.5 leading-[1.5]">
               {t(
                 "settings.split.projectionHint",
                 "Projection sur 100 € encaissés, à répartition constante. Ce n’est pas un relevé de reversements."
               )}
-            </Typography>
+            </p>
             <ChannelProjectionTable
               rows={rows}
               shares={shares}
               activeChannel={activeChannel}
             />
             {footer}
-          </Box>
+          </div>
     </>
   );
 }
@@ -1422,11 +1330,9 @@ function BookingEngineRateRow({
         flexWrap: "wrap",
       }}
     >
-      <Typography
-        sx={{ fontSize: "0.75rem", color: "text.secondary", fontWeight: 500 }}
-      >
+      <p className="cn-text-body1 text-[0.75rem] text-muted-foreground font-medium">
         {t("settings.commissions.bookingEngineRate", "Taux du booking engine")}
-      </Typography>
+      </p>
       <TextField
         type="number"
         size="small"

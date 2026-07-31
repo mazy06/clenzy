@@ -1,20 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  Button,
-  Alert,
-  Chip,
-  CircularProgress,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from '@mui/material';
+import { Card } from '../../components/ui';
+import { Box, Button, Alert, Chip, CircularProgress, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import { AccountBalance, CheckCircle, Refresh } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { loadConnectAndInitialize } from '@stripe/connect-js';
@@ -105,10 +91,10 @@ export default function MyProPayoutsSettings() {
 
   if (payoutsQuery.isLoading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div className="flex flex-col gap-3">
         <Skeleton variant="rounded" height={140} sx={{ borderRadius: '13px' }} />
         <Skeleton variant="rounded" height={220} sx={{ borderRadius: '13px' }} />
-      </Box>
+      </div>
     );
   }
   if (payoutsQuery.isError) {
@@ -131,16 +117,16 @@ export default function MyProPayoutsSettings() {
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="flex flex-col gap-3">
       {/* ── Compte de versement (onboarding embarqué) ─────────────────────── */}
-      <Paper id="pro-onboarding" sx={{ border: '1px solid var(--line)', boxShadow: 'none', borderRadius: '13px', p: 2.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1, flexWrap: 'wrap' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
+      <Card className="gap-0 py-0 p-3.5" id="pro-onboarding">
+        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+          <span className="inline-flex text-[var(--accent)]">
             <AccountBalance size={18} strokeWidth={1.75} />
-          </Box>
-          <Typography sx={{ fontWeight: 600, fontSize: '14px', color: 'var(--ink)' }}>
+          </span>
+          <p className="cn-text-body1 font-semibold text-[14px] text-[var(--ink)]">
             {t('settings.myProPayouts.accountSection')}
-          </Typography>
+          </p>
           {statusChip}
           <Box sx={{ marginInlineStart: 'auto', display: 'flex', gap: 1 }}>
             {data?.accountCreated && !data?.onboardingCompleted && (
@@ -168,10 +154,10 @@ export default function MyProPayoutsSettings() {
               </Button>
             )}
           </Box>
-        </Box>
-        <Typography sx={{ fontSize: '12px', color: 'var(--muted)' }}>
+        </div>
+        <p className="cn-text-body1 text-[12px] text-[var(--muted)]">
           {t('settings.myProPayouts.accountHint')}
-        </Typography>
+        </p>
 
         {onboardingError && (
           <Alert severity="error" sx={{ mt: 1.5, fontSize: '12.5px' }}>{onboardingError}</Alert>
@@ -182,19 +168,19 @@ export default function MyProPayoutsSettings() {
           ref={containerRef}
           sx={{ mt: onboardingOpen ? 2 : 0, minHeight: onboardingOpen ? 420 : 0, transition: 'min-height .2s' }}
         />
-      </Paper>
+      </Card>
 
       {/* ── Historique des versements ─────────────────────────────────────── */}
-      <Paper sx={{ border: '1px solid var(--line)', boxShadow: 'none', borderRadius: '13px', overflow: 'hidden' }}>
-        <Box sx={{ px: 2.5, pt: 2, pb: 1 }}>
-          <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
+      <Card className="gap-0 py-0 overflow-hidden">
+        <div className="px-3.5 pt-3 pb-1.5">
+          <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
             {t('settings.myProPayouts.historySection')}
-          </Typography>
-        </Box>
+          </p>
+        </div>
         {records.length === 0 ? (
-          <Typography sx={{ px: 2.5, pb: 2.5, fontSize: '12.5px', color: 'var(--muted)', fontStyle: 'italic' }}>
+          <p className="cn-text-body1 px-3.5 pb-3.5 text-[12.5px] text-[var(--muted)] italic">
             {t('settings.myProPayouts.noPayouts')}
-          </Typography>
+          </p>
         ) : (
           <TableContainer>
             <Table size="small">
@@ -237,17 +223,17 @@ export default function MyProPayoutsSettings() {
                           : ''}
                       </Box>
                       {record.status === 'BLOCKED' && record.failureReason === 'PROOF_MISSING' && (
-                        <Box sx={{ mt: 0.5 }}>
+                        <div className="mt-0.5">
                           <a
                             href={`/interventions/${record.interventionId}`}
                             style={{ fontSize: '11.5px', color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}
                           >
                             {t('settings.myProPayouts.completeMission')}
                           </a>
-                        </Box>
+                        </div>
                       )}
                       {record.status === 'BLOCKED' && record.failureReason === 'ONBOARDING_INCOMPLETE' && (
-                        <Box sx={{ mt: 0.5 }}>
+                        <div className="mt-0.5">
                           <Box
                             component="button"
                             type="button"
@@ -259,7 +245,7 @@ export default function MyProPayoutsSettings() {
                           >
                             {t('settings.myProPayouts.finishOnboarding')}
                           </Box>
-                        </Box>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>
@@ -268,7 +254,7 @@ export default function MyProPayoutsSettings() {
             </Table>
           </TableContainer>
         )}
-      </Paper>
-    </Box>
+      </Card>
+    </div>
   );
 }

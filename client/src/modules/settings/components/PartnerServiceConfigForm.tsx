@@ -1,12 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  TextField,
-} from '@mui/material';
+import { Alert, Button, Chip, CircularProgress, TextField } from '@mui/material';
 import {
   partnerConnectionApi,
   type PartnerServiceProvider,
@@ -90,21 +83,21 @@ export default function PartnerServiceConfigForm({
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+      <div className="flex justify-center py-3">
         <CircularProgress size={22} />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5, mb: 1.5 }}>
+    <div className="border border-[divider] rounded-[2px] p-2 mb-2">
       <Alert severity="info" variant="outlined" sx={{ borderRadius: '8px', fontSize: '0.74rem', mb: 1.25 }}>
         Vos accès {serviceName} sont chiffrés et enregistrés dès maintenant ; la
         synchronisation native sera activée dans une prochaine release.
       </Alert>
 
       {connected ? (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+        <div className="flex items-center gap-1.5 flex-wrap">
           <Chip
             label="Accès enregistrés"
             size="small"
@@ -118,9 +111,9 @@ export default function PartnerServiceConfigForm({
             }}
           />
           {connectedServerUrl && (
-            <Box component="span" sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
+            <span className="text-[0.72rem] text-muted-foreground">
               {connectedServerUrl}
-            </Box>
+            </span>
           )}
           <Button
             size="small"
@@ -132,7 +125,7 @@ export default function PartnerServiceConfigForm({
           >
             Déconnecter
           </Button>
-        </Box>
+        </div>
       ) : (
         <>
           <TextField
@@ -179,6 +172,6 @@ export default function PartnerServiceConfigForm({
           {message.text}
         </Alert>
       )}
-    </Box>
+    </div>
   );
 }

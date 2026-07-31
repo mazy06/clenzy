@@ -36,9 +36,9 @@ const LaunchSettingsSection: React.FC = () => {
   return (
     <SettingsSection title="Pré-lancement" icon={Rocket} accent="primary">
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+        <div className="flex justify-center py-3">
           <CircularProgress size={20} />
-        </Box>
+        </div>
       ) : (
         <>
           <SettingsToggleRow
@@ -76,14 +76,14 @@ const LaunchSettingsSection: React.FC = () => {
       )}
 
       {/* Liste d'attente de lancement */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5, py: 1.25 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
-          <Box sx={{ color: 'text.secondary', display: 'inline-flex', flexShrink: 0 }}><Users size={18} /></Box>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary' }}>
+      <div className="flex items-center justify-between gap-2 py-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="text-muted-foreground inline-flex shrink-0"><Users size={18} /></div>
+          <div className="min-w-0">
+            <p className="cn-text-body1 text-[0.8125rem] font-medium text-foreground">
               Liste d'attente de lancement
-            </Typography>
-            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+            </p>
+            <p className="cn-text-body1 text-[0.75rem] text-muted-foreground tabular-nums">
               {stats ? (
                 <>
                   {stats.total} inscrit{stats.total > 1 ? 's' : ''}
@@ -93,9 +93,9 @@ const LaunchSettingsSection: React.FC = () => {
                     : 'Places fondateur complètes'}
                 </>
               ) : '—'}
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
         <Button
           size="small"
           variant="text"
@@ -105,15 +105,15 @@ const LaunchSettingsSection: React.FC = () => {
         >
           {showList ? 'Masquer' : 'Voir les inscrits'}
         </Button>
-      </Box>
+      </div>
 
       <Collapse in={showList} unmountOnExit>
         <Divider sx={{ mb: 1 }} />
-        <Box sx={{ maxHeight: 320, overflowY: 'auto' }}>
+        <div className="max-h-[320px] overflow-y-auto">
           {(list ?? []).length === 0 ? (
-            <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', textAlign: 'center', py: 2 }}>
+            <p className="cn-text-body1 text-[0.78rem] text-muted-foreground text-center py-3">
               Aucun inscrit pour le moment.
-            </Typography>
+            </p>
           ) : (
             (list ?? []).map((w, i) => (
               <Box
@@ -131,21 +131,21 @@ const LaunchSettingsSection: React.FC = () => {
                 }}>
                   #{i + 1}
                 </Typography>
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography sx={{ fontSize: '0.78rem', color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div className="min-w-0 flex-1">
+                  <p className="cn-text-body1 text-[0.78rem] text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                     {w.fullName || w.email}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.68rem', color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  </p>
+                  <p className="cn-text-body1 text-[0.68rem] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                     {w.email}{w.city ? ` · ${w.city}` : ''}
-                  </Typography>
-                </Box>
-                <Typography sx={{ fontSize: '0.66rem', color: 'text.disabled', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+                  </p>
+                </div>
+                <p className="cn-text-body1 text-[0.66rem] text-muted-foreground opacity-60 shrink-0 tabular-nums">
                   {fmtDate(w.createdAt)}
-                </Typography>
+                </p>
               </Box>
             ))
           )}
-        </Box>
+        </div>
       </Collapse>
     </SettingsSection>
   );

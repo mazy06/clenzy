@@ -1,18 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Card } from '../../components/ui';
 import { useSearchParams } from 'react-router-dom';
 import { accountingApi } from '../../services/api/accountingApi';
-import {
-  Box,
-  Typography,
-  Paper,
-  TextField,
-  Button,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  Chip,
-  Divider,
-} from '@mui/material';
+import { TextField, Button, Alert, Snackbar, CircularProgress, Chip, Divider } from '@mui/material';
 import {
   AccountBalance,
   Save,
@@ -138,9 +128,9 @@ export default function MyPayoutSettings() {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+      <div className="flex justify-center py-6">
         <CircularProgress size={32} />
-      </Box>
+      </div>
     );
   }
 
@@ -158,24 +148,24 @@ export default function MyPayoutSettings() {
   const isStripeInProgress = hasStripeConnect && !config?.stripeOnboardingComplete && config?.stripeConnectedAccountId;
 
   return (
-    <Box>
+    <div>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+      <div className="flex items-center gap-1.5 mb-0.5">
         <AccountBalance size={20} strokeWidth={1.75} color='var(--info)' />
-        <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
+        <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
           {t('settings.myPayout.title', 'Mes coordonnees de reversement')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('settings.myPayout.subtitle', 'Renseignez vos coordonnees bancaires pour recevoir vos reversements.')}
-      </Typography>
+      </p>
 
       {/* Status */}
       {config && config.id && (
-        <Box sx={{ mb: 2.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8125rem' }}>
+        <div className="mb-3.5 flex items-center gap-2">
+          <p className="cn-text-body2 font-semibold text-[0.8125rem]">
             {t('settings.myPayout.statusLabel', 'Statut')} :
-          </Typography>
+          </p>
           {config.verified ? (
             <Chip
               icon={<VerifiedUser size={12} strokeWidth={1.75} />}
@@ -193,7 +183,7 @@ export default function MyPayoutSettings() {
               sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600 }}
             />
           )}
-        </Box>
+        </div>
       )}
 
       {/* ── Banner retour Open Banking SCA ── */}
@@ -215,32 +205,23 @@ export default function MyPayoutSettings() {
       />
 
       {/* ── Bannière Méthodes avancées (Wise, Open Banking) ── */}
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 2,
-          mb: 2.5,
-          borderRadius: 2,
-          backgroundColor: 'var(--accent-soft)',
-          borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          flexWrap: 'wrap',
-        }}
+      {/* `color-mix()` reste en style inline : la syntaxe arbitraire de Tailwind
+          n'accepte pas les espaces, et l'echapper la rendrait illisible. */}
+      <Card
+        className="mb-4 flex flex-row flex-wrap items-center justify-between gap-3 bg-[var(--accent-soft)] p-3"
+        style={{ borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)' }}
       >
-        <Box sx={{ flex: 1, minWidth: 200 }}>
-          <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent)', mb: 0.25 }}>
+        <div className="flex-1 min-w-[200px]">
+          <p className="cn-text-body1 text-[0.85rem] font-bold text-[var(--accent)] mb-0.5">
             {t('settings.myPayout.advancedTitle', 'Méthodes avancées disponibles')}
-          </Typography>
-          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', lineHeight: 1.45 }}>
+          </p>
+          <p className="cn-text-body1 text-[0.78rem] text-muted-foreground leading-[1.45]">
             {t(
               'settings.myPayout.advancedSubtitle',
               'Wise Business pour les virements internationaux (Maroc, Arabie Saoudite, 80+ pays) ou Open Banking PIS pour des virements SEPA automatiques sans upload manuel.',
             )}
-          </Typography>
-        </Box>
+          </p>
+        </div>
         <Button
           variant="outlined"
           size="small"
@@ -258,16 +239,16 @@ export default function MyPayoutSettings() {
         >
           {t('settings.myPayout.changeMethodBtn', 'Choisir une autre méthode')}
         </Button>
-      </Paper>
+      </Card>
 
       {/* ── Section SEPA ── */}
-      <Paper variant="outlined" sx={{ p: 2.5, mb: 2.5, borderRadius: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+      <Card className="gap-0 py-0 p-3.5 mb-3.5">
+        <div className="flex items-center gap-1.5 mb-2">
           <AccountBalance size={18} strokeWidth={1.75} color='var(--info)' />
-          <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.875rem' }}>
+          <h6 className="cn-text-subtitle2 font-bold text-[0.875rem]">
             {t('settings.myPayout.sepaSection', 'Virement bancaire (SEPA)')}
-          </Typography>
-        </Box>
+          </h6>
+        </div>
 
         {hasSepaConfig && (
           <Alert severity="info" sx={{ mb: 2, fontSize: '0.8125rem' }} icon={<CheckCircle size={18} strokeWidth={1.75} />}>
@@ -277,7 +258,7 @@ export default function MyPayoutSettings() {
           </Alert>
         )}
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <div className="flex flex-col gap-2">
           <TextField
             label={t('settings.myPayout.ibanLabel', 'IBAN')}
             value={sepaIban}
@@ -293,7 +274,7 @@ export default function MyPayoutSettings() {
             InputProps={{ sx: { fontFamily: 'monospace', fontSize: '0.875rem' } }}
             InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
           />
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <div className="flex gap-2">
             <TextField
               label={t('settings.myPayout.bicLabel', 'BIC / SWIFT')}
               value={sepaBic}
@@ -314,9 +295,9 @@ export default function MyPayoutSettings() {
               InputProps={{ sx: { fontSize: '0.875rem' } }}
               InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
             />
-          </Box>
+          </div>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 0.5 }}>
+          <div className="flex items-center gap-2 mt-0.5">
             <Button
               variant="contained"
               size="small"
@@ -327,25 +308,25 @@ export default function MyPayoutSettings() {
             >
               {t('settings.myPayout.saveSepa', 'Enregistrer')}
             </Button>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+            <span className="cn-text-caption text-muted-foreground text-[0.6875rem]">
               {t('settings.myPayout.verificationNote', 'Apres modification, vos coordonnees seront verifiees par Baitly avant activation.')}
-            </Typography>
-          </Box>
-        </Box>
-      </Paper>
+            </span>
+          </div>
+        </div>
+      </Card>
 
       {/* ── Section Stripe Connect ── */}
-      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+      <Card className="gap-0 py-0 p-3.5">
+        <div className="flex items-center gap-1.5 mb-2">
           <CreditCard size={18} strokeWidth={1.75} color='#635bff' />
-          <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.875rem' }}>
+          <h6 className="cn-text-subtitle2 font-bold text-[0.875rem]">
             {t('settings.myPayout.stripeSection', 'Stripe Connect')}
-          </Typography>
-        </Box>
+          </h6>
+        </div>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.8125rem' }}>
+        <p className="cn-text-body2 text-muted-foreground mb-3 text-[0.8125rem]">
           {t('settings.myPayout.stripeDescription', 'Connectez votre compte Stripe pour recevoir vos reversements automatiquement.')}
-        </Typography>
+        </p>
 
         {isStripeComplete && (
           <Alert severity="success" sx={{ fontSize: '0.8125rem' }} icon={<CheckCircle size={18} strokeWidth={1.75} />}>
@@ -354,7 +335,7 @@ export default function MyPayoutSettings() {
         )}
 
         {isStripeInProgress && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <div className="flex flex-col gap-2">
             <Alert severity="warning" sx={{ fontSize: '0.8125rem' }}>
               {t('settings.myPayout.stripeOnboardingPending', "Votre inscription Stripe n'est pas terminee. Veuillez la completer.")}
             </Alert>
@@ -375,7 +356,7 @@ export default function MyPayoutSettings() {
             >
               {t('settings.myPayout.stripeResumeBtn', "Reprendre l'inscription Stripe")}
             </Button>
-          </Box>
+          </div>
         )}
 
         {!hasStripeConnect && (
@@ -396,7 +377,7 @@ export default function MyPayoutSettings() {
             {t('settings.myPayout.stripeConnectBtn', 'Connecter mon compte Stripe')}
           </Button>
         )}
-      </Paper>
+      </Card>
 
       {/* Snackbar */}
       <Snackbar
@@ -427,6 +408,6 @@ export default function MyPayoutSettings() {
           queryClient.invalidateQueries({ queryKey: ownerPayoutConfigKeys.me });
         }}
       />
-    </Box>
+    </div>
   );
 }

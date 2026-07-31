@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Tooltip, Typography, Link } from '@mui/material';
+import { Tooltip, Link } from '@mui/material';
 import { OpenInNew as ExternalLinkIcon, Info as InfoIcon } from '../../../icons';
 import { SERVICE_TOOLTIPS, type ServiceTooltipData } from '../../../services/integrations/serviceTooltips';
 
@@ -42,65 +42,31 @@ export default function ServiceTooltip({ providerId, data, name, children }: Ser
       enterDelay={300}
       leaveDelay={100}
       title={
-        <Box>
+        <div>
           {/* Header : nom + chip region */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mb: 0.5 }}>
-            <Typography component="span" sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'inherit' }}>
+          <div className="flex items-center gap-1 mb-0.5">
+            <span className="text-[0.75rem] font-bold text-inherit">
               {displayName}
-            </Typography>
+            </span>
             {tooltipData.region && (
-              <Box
-                component="span"
-                sx={{
-                  fontSize: '0.58rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.02em',
-                  px: 0.5,
-                  py: 0.125,
-                  borderRadius: '3px',
-                  border: '1px solid currentColor',
-                  opacity: 0.7,
-                }}
-              >
+              <span className="text-[0.58rem] font-bold tracking-[0.02em] px-0.5 py-0 rounded-[3px] border border-[currentColor] opacity-70">
                 {tooltipData.region}
-              </Box>
+              </span>
             )}
-          </Box>
+          </div>
 
           {/* Description longue */}
-          <Typography
-            component="span"
-            sx={{
-              display: 'block',
-              fontSize: '0.7rem',
-              color: 'inherit',
-              opacity: 0.92,
-              lineHeight: 1.45,
-              mb: 0.75,
-            }}
-          >
+          <span className="block text-[0.7rem] text-inherit opacity-92 leading-[1.45] mb-1">
             {tooltipData.description}
-          </Typography>
+          </span>
 
           {/* Modalites d'acces */}
-          <Typography
-            component="span"
-            sx={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 0.5,
-              fontSize: '0.68rem',
-              color: 'inherit',
-              opacity: 0.85,
-              lineHeight: 1.4,
-              mb: 0.5,
-            }}
-          >
+          <span className="flex items-start gap-0.5 text-[0.68rem] text-inherit opacity-85 leading-[1.4] mb-0.5">
             <InfoIcon size={11} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1, opacity: 0.7 }} />
             <span>
               <strong style={{ fontWeight: 700 }}>Modalités :</strong> {tooltipData.accessModality}
             </span>
-          </Typography>
+          </span>
 
           {/* Lien officiel */}
           <Link
@@ -125,7 +91,7 @@ export default function ServiceTooltip({ providerId, data, name, children }: Ser
             {tooltipData.websiteUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '')}
             <ExternalLinkIcon size={10} strokeWidth={2} />
           </Link>
-        </Box>
+        </div>
       }
       // Pattern PlanningPropertyColumn : background.paper + text.primary
       // -> blanc en mode clair, dark surface en mode sombre.

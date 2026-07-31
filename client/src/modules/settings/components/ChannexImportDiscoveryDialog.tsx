@@ -14,25 +14,7 @@
  *   5. Recap : N created, M skipped, K errors
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  Box,
-  Typography,
-  Stack,
-  CircularProgress,
-  Alert,
-  Checkbox,
-  FormControl,
-  Select,
-  MenuItem,
-  Button,
-  Divider,
-  Chip,
-  ButtonBase,
-} from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, IconButton, Box, Stack, CircularProgress, Alert, Checkbox, FormControl, Select, MenuItem, Button, Divider, Chip, ButtonBase } from '@mui/material';
 import { X, Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Image as ImageIcon } from 'lucide-react';
 
 import {
@@ -398,14 +380,14 @@ export default function ChannexImportDiscoveryDialog({
           >
             <Download size={18} />
           </Box>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="subtitle1" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+          <div className="min-w-0">
+            <h6 className="cn-text-subtitle1 font-semibold leading-[1.3]">
               Importer une propriete deja en ligne
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.4 }}>
+            </h6>
+            <span className="cn-text-caption text-muted-foreground block leading-[1.4]">
               Detecte les listings Airbnb/Booking/Vrbo deja connus du hub de distribution et non encore dans Baitly
-            </Typography>
-          </Box>
+            </span>
+          </div>
         </Stack>
         <IconButton onClick={onClose} size="small" aria-label="Fermer">
           <X size={18} />
@@ -416,13 +398,13 @@ export default function ChannexImportDiscoveryDialog({
         {/* Phase 1 UX : Stepper visuel 3 etapes (Autoriser → Detecter → Synchroniser)
             qui montre ou en est l'utilisateur dans le flow Connect, base sur l'etat
             reel (nb OTAs connectes, nb properties detectees, nb importees). */}
-        <Box sx={{ mb: 1.5 }}>
+        <div className="mb-2">
           <ChannexImportProgressStepper
             connectedOtaCount={connectedOtas.filter((o) => o.isActive || o.hasOauthToken).length}
             totalInHub={totalInHub}
             importedCount={discovered.filter((p) => p.isImported).length}
           />
-        </Box>
+        </div>
 
         {/* Banner d'aide */}
         <Stack
@@ -441,20 +423,20 @@ export default function ChannexImportDiscoveryDialog({
           <Box sx={{ color: ACCENT, mt: 0.25, flexShrink: 0 }}>
             <Info size={14} />
           </Box>
-          <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+          <span className="cn-text-caption text-muted-foreground leading-[1.5]">
             Apres avoir connecte votre compte Airbnb (ou autre OTA) via le widget de configuration,
             tous vos listings detectes apparaissent ici. Selectionnez ceux a importer dans
             Baitly — leur nom, devise, pays et capacite sont pre-remplis automatiquement.
-          </Typography>
+          </span>
         </Stack>
 
         {/* Loading initial */}
         {loading && (
           <Stack alignItems="center" justifyContent="center" spacing={2} sx={{ py: 6 }}>
             <CircularProgress size={24} thickness={4} />
-            <Typography variant="body2" color="text.secondary">
+            <p className="cn-text-body2 text-muted-foreground">
               Recherche des proprietes en ligne...
-            </Typography>
+            </p>
           </Stack>
         )}
 
@@ -487,7 +469,7 @@ export default function ChannexImportDiscoveryDialog({
             (picker des 5 OTAs majeurs). Click sur une card declenche le
             setup-oauth backend qui cree une property pivot + ouvre l'iframe. */}
         {!loading && !error && discovered.length === 0 && totalInHub === 0 && !importResult && (
-          <Box sx={{ py: 2, px: 1 }}>
+          <div className="py-3 px-1.5">
             <Stack alignItems="center" sx={{ mb: 2.5, textAlign: 'center' }}>
               <Box
                 sx={{
@@ -504,18 +486,14 @@ export default function ChannexImportDiscoveryDialog({
               >
                 <Info size={24} />
               </Box>
-              <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+              <p className="cn-text-body2 font-semibold mb-0.5">
                 Connectez un compte OTA pour importer vos listings
-              </Typography>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: 'block', maxWidth: 500, lineHeight: 1.6 }}
-              >
+              </p>
+              <span className="cn-text-caption text-muted-foreground block max-w-[500px] leading-[1.6]">
                 Choisissez l'OTA sur lequel vous avez deja des proprietes en ligne.
                 Apres authentification, Baitly detectera automatiquement vos listings
                 et vous proposera de les importer.
-              </Typography>
+              </span>
             </Stack>
 
             {/* Picker OTA inline (5 cards horizontales en grid responsive)
@@ -559,27 +537,12 @@ export default function ChannexImportDiscoveryDialog({
                       },
                     }}
                   >
-                    <Box
-                      component="img"
-                      src={OTA_LOGO_BY_CODE[option.code]}
-                      alt={option.name}
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 1,
-                        objectFit: 'contain',
-                        bgcolor: 'var(--card)',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        p: 0.5,
-                        flexShrink: 0,
-                      }}
-                    />
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <img className="w-[40px] h-[40px] rounded-[1px] object-contain bg-[var(--card)] border border-[divider] p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
+                    <div className="flex-1 min-w-0">
                       <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.25 }}>
-                        <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+                        <p className="cn-text-body2 font-semibold leading-[1.3]">
                           {existing ? `Re-detecter mes listings ${option.name}` : `Connecter ${option.name}`}
-                        </Typography>
+                        </p>
                         {existing && (
                           <Chip
                             size="small"
@@ -595,18 +558,18 @@ export default function ChannexImportDiscoveryDialog({
                           />
                         )}
                       </Stack>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.3 }}>
+                      <span className="cn-text-caption text-muted-foreground block leading-[1.3]">
                         {isLoading
                           ? 'Preparation de la connexion...'
                           : existing
                             ? 'Rouvre le wizard pour mapper de nouveaux listings ajoutes recemment'
                             : option.description}
-                      </Typography>
-                    </Box>
+                      </span>
+                    </div>
                     <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', color: isLoading ? option.brandColor : 'text.disabled' }}>
                       {isLoading
                         ? <CircularProgress size={14} thickness={5} sx={{ color: option.brandColor }} />
-                        : <Typography variant="caption" sx={{ fontWeight: 600 }}>→</Typography>}
+                        : <span className="cn-text-caption font-semibold">→</span>}
                     </Box>
                   </ButtonBase>
                 );
@@ -616,9 +579,9 @@ export default function ChannexImportDiscoveryDialog({
             {/* Action secondaire : si l'utilisateur prefere passer par une property Baitly existante */}
             {onRequestConnectExisting && (
               <Stack direction="row" spacing={1} justifyContent="center" sx={{ mt: 2 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+                <span className="cn-text-caption text-muted-foreground self-center">
                   Ou bien :
-                </Typography>
+                </span>
                 <Button
                   size="small"
                   onClick={onRequestConnectExisting}
@@ -636,40 +599,24 @@ export default function ChannexImportDiscoveryDialog({
                 </Button>
               </Stack>
             )}
-          </Box>
+          </div>
         )}
 
         {/* Cas 2 : Hub non vide mais tout deja importe */}
         {!loading && !error && discovered.length === 0 && totalInHub > 0 && !importResult && (
-          <Box sx={{ py: 4, px: 2 }}>
+          <div className="py-6 px-3">
             <Stack alignItems="center" sx={{ mb: 3, textAlign: 'center' }}>
-              <Box
-                sx={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '50%',
-                  bgcolor: 'var(--ok-soft)',
-                  color: 'var(--ok)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mb: 1.5,
-                }}
-              >
+              <div className="w-[56px] h-[56px] rounded-[50%] bg-[var(--ok-soft)] text-[var(--ok)] inline-flex items-center justify-center mb-2">
                 <CheckCircle2 size={24} />
-              </Box>
-              <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+              </div>
+              <p className="cn-text-body2 font-semibold mb-0.5">
                 Tout est synchronise
-              </Typography>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: 'block', mb: 2, maxWidth: 480, lineHeight: 1.6 }}
-              >
+              </p>
+              <span className="cn-text-caption text-muted-foreground block mb-3 max-w-[480px] leading-[1.6]">
                 Vos {totalInHub} propriete{totalInHub > 1 ? 's' : ''} en ligne {totalInHub > 1 ? 'sont' : 'est'} deja
                 import{totalInHub > 1 ? 'ees' : 'ee'} dans Baitly. Si vous avez ajoute de nouvelles
                 proprietes cote OTA depuis, re-detectez-les ci-dessous.
-              </Typography>
+              </span>
               <Button
                 variant="outlined"
                 size="small"
@@ -685,14 +632,9 @@ export default function ChannexImportDiscoveryDialog({
             {connectedOtas.length > 0 && (
               <>
                 <Divider sx={{ my: 2 }} />
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  fontWeight={600}
-                  sx={{ display: 'block', mb: 1, textAlign: 'center' }}
-                >
+                <span className="cn-text-caption text-muted-foreground font-semibold block mb-1.5 text-center">
                   Re-detecter de nouveaux listings ajoutes recemment cote OTA
-                </Typography>
+                </span>
                 <Stack spacing={1}>
                   {CHANNEX_OTA_OPTIONS
                     .flatMap((option) => {
@@ -726,36 +668,21 @@ export default function ChannexImportDiscoveryDialog({
                             } : {},
                           }}
                         >
-                          <Box
-                            component="img"
-                            src={OTA_LOGO_BY_CODE[option.code]}
-                            alt={option.name}
-                            sx={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 1,
-                              objectFit: 'contain',
-                              bgcolor: 'var(--card)',
-                              border: '1px solid',
-                              borderColor: 'divider',
-                              p: 0.5,
-                              flexShrink: 0,
-                            }}
-                          />
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+                          <img className="w-[36px] h-[36px] rounded-[1px] object-contain bg-[var(--card)] border border-[divider] p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
+                          <div className="flex-1 min-w-0">
+                            <p className="cn-text-body2 font-semibold leading-[1.3]">
                               Re-detecter mes listings {option.name}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.3 }}>
+                            </p>
+                            <span className="cn-text-caption text-muted-foreground block leading-[1.3]">
                               {isLoading
                                 ? 'Ouverture du widget...'
                                 : 'Rouvre le wizard onglet Listing pour mapper de nouveaux listings'}
-                            </Typography>
-                          </Box>
+                            </span>
+                          </div>
                           <Box sx={{ flexShrink: 0, color: isLoading ? option.brandColor : 'text.disabled' }}>
                             {isLoading
                               ? <CircularProgress size={14} thickness={5} sx={{ color: option.brandColor }} />
-                              : <Typography variant="caption" sx={{ fontWeight: 600 }}>→</Typography>}
+                              : <span className="cn-text-caption font-semibold">→</span>}
                           </Box>
                         </ButtonBase>,
                       ];
@@ -763,27 +690,15 @@ export default function ChannexImportDiscoveryDialog({
                 </Stack>
               </>
             )}
-          </Box>
+          </div>
         )}
 
         {/* Liste des properties non-mappees */}
         {!loading && discovered.length > 0 && (
           <>
             {/* Header avec resume du diff (au lieu de select-all classique) */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                p: 1,
-                px: 1.5,
-                borderRadius: 1,
-                bgcolor: 'background.default',
-                mb: 1,
-                flexWrap: 'wrap',
-              }}
-            >
-              <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
+            <div className="flex items-center gap-2 p-1.5 px-2 rounded-[1px] bg-[background.default] mb-1.5 flex-wrap">
+              <span className="cn-text-caption text-muted-foreground flex-1">
                 {discovered.length} propriete{discovered.length > 1 ? 's' : ''} dans le hub
                 {diff.toImport.length > 0 && (
                   <> · <Box component="span" sx={{ color: ACCENT, fontWeight: 600 }}>
@@ -791,11 +706,11 @@ export default function ChannexImportDiscoveryDialog({
                   </Box></>
                 )}
                 {diff.toDisconnect.length > 0 && (
-                  <> · <Box component="span" sx={{ color: 'var(--err)', fontWeight: 600 }}>
+                  <> · <span className="text-[var(--err)] font-semibold">
                     −{diff.toDisconnect.length} a desimporter
-                  </Box></>
+                  </span></>
                 )}
-              </Typography>
+              </span>
               <Button
                 size="small"
                 startIcon={<RefreshCw size={12} />}
@@ -804,7 +719,7 @@ export default function ChannexImportDiscoveryDialog({
               >
                 Rafraichir
               </Button>
-            </Box>
+            </div>
 
             {/* Banner info si user a coche des desimports (perte sync) */}
             {diff.toDisconnect.length > 0 && (
@@ -861,11 +776,11 @@ export default function ChannexImportDiscoveryDialog({
                         '&.Mui-checked': { color: p.isImported ? 'var(--ok)' : ACCENT },
                       }}
                     />
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <div className="flex-1 min-w-0">
                       <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.25, flexWrap: 'wrap' }}>
-                        <Typography variant="body2" fontWeight={600} noWrap sx={{ mr: 0.5 }}>
+                        <p className="cn-text-body2 font-semibold truncate me-0.5">
                           {p.title || 'Sans titre'}
-                        </Typography>
+                        </p>
                         {p.isImported && (
                           <Chip
                             size="small"
@@ -925,7 +840,7 @@ export default function ChannexImportDiscoveryDialog({
                           />
                         )}
                       </Stack>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.4 }}>
+                      <span className="cn-text-caption text-muted-foreground block leading-[1.4]">
                         {[
                           p.country,
                           p.currency,
@@ -935,7 +850,7 @@ export default function ChannexImportDiscoveryDialog({
                         ]
                           .filter(Boolean)
                           .join(' · ')}
-                      </Typography>
+                      </span>
                       {/* Donnees STRUCTUREES OTA (rate_plan.settings) — pas de
                           scraping HTML. Chaque chip correspond a un champ JSON
                           de Channex (fiable et verifiable). Bedrooms/beds/baths/
@@ -1015,7 +930,7 @@ export default function ChannexImportDiscoveryDialog({
                           )}
                         </Stack>
                       )}
-                    </Box>
+                    </div>
                     {/* Colonne droite : logos OTA + chip "Actif" en haut,
                         dropdown type Baitly en dessous. */}
                     <Stack direction="column" spacing={1} alignItems="flex-end" sx={{ flexShrink: 0 }}>
@@ -1066,11 +981,11 @@ export default function ChannexImportDiscoveryDialog({
 
             {/* Details du recap (errors / skipped) */}
             {importResult && importResult.details.some((d) => d.status !== 'CREATED') && (
-              <Box sx={{ mt: 2 }}>
+              <div className="mt-3">
                 <Divider sx={{ mb: 1 }} />
-                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>
+                <span className="cn-text-caption text-muted-foreground font-semibold block mb-0.5">
                   Detail des cas particuliers
-                </Typography>
+                </span>
                 <Stack spacing={0.5}>
                   {importResult.details
                     .flatMap((d) => d.status !== 'CREATED' ? [
@@ -1085,13 +1000,13 @@ export default function ChannexImportDiscoveryDialog({
                           size={12}
                           style={{ color: d.status === 'ERROR' ? 'var(--err)' : 'var(--warn)', flexShrink: 0 }}
                         />
-                        <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }} noWrap>
+                        <span className="cn-text-caption text-muted-foreground flex-1 truncate">
                           {d.channexPropertyId.slice(0, 8)} : {d.message}
-                        </Typography>
+                        </span>
                       </Stack>,
                     ] : [])}
                 </Stack>
-              </Box>
+              </div>
             )}
           </>
         )}
@@ -1099,27 +1014,15 @@ export default function ChannexImportDiscoveryDialog({
 
       {/* Footer avec bouton Import */}
       {!loading && discovered.length > 0 && (
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 2,
-            px: 3,
-            py: 2,
-            borderTop: '1px solid',
-            borderColor: 'divider',
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className="flex justify-between items-center gap-3 px-4 py-3 border-t border-[divider] flex-wrap">
           {/* Override multi-tenant — visible uniquement pour les platform staff
               (SUPER_ADMIN / SUPER_MANAGER). Permet d'attribuer la property creee
               a une autre org + un autre user (sinon owner = self). */}
           {staffMode && diff.toImport.length > 0 ? (
             <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, flexShrink: 0 }}>
+              <span className="cn-text-caption text-muted-foreground font-semibold shrink-0">
                 Attribuer à :
-              </Typography>
+              </span>
               <FormControl size="small" sx={{ minWidth: 160 }}>
                 <Select
                   value={targetOrgId}
@@ -1175,7 +1078,7 @@ export default function ChannexImportDiscoveryDialog({
               )}
             </Stack>
           ) : (
-            <Box sx={{ flex: 1 }} />
+            <div className="flex-1" />
           )}
           <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
           <Button onClick={onClose} size="small" sx={{ textTransform: 'none', color: 'text.secondary' }}>
@@ -1200,7 +1103,7 @@ export default function ChannexImportDiscoveryDialog({
                     : `Desimporter ${diff.toDisconnect.length} propriete${diff.toDisconnect.length > 1 ? 's' : ''}`}
           </Button>
           </Stack>
-        </Box>
+        </div>
       )}
     </Dialog>
 

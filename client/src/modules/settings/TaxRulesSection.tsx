@@ -1,10 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Box, Paper, Typography, Button, TextField, MenuItem,
-  CircularProgress, Alert, Snackbar, IconButton, Tooltip,
-  Table, TableHead, TableRow, TableCell, TableBody, TableContainer,
-  Dialog, DialogTitle, DialogContent, DialogActions, Chip,
-} from '@mui/material';
+import { Button, TextField, MenuItem, CircularProgress, Alert, Snackbar, IconButton, Tooltip, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Dialog, DialogTitle, DialogContent, DialogActions, Chip } from '@mui/material';
+import { Card } from '../../components/ui';
 import {
   Add, Edit, Delete, Gavel, Info as InfoIcon,
   Hotel, Percent, CleaningServices, Restaurant,
@@ -178,9 +174,9 @@ const TaxRulesSection: React.FC = () => {
   // ── Loading ──
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+      <div className="flex justify-center py-6">
         <CircularProgress />
-      </Box>
+      </div>
     );
   }
 
@@ -203,18 +199,18 @@ const TaxRulesSection: React.FC = () => {
   }
 
   return (
-    <Box>
-      <Paper sx={{ p: 2 }}>
+    <div>
+      <Card className="gap-0 py-0 p-3">
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Gavel size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-primary"><Gavel size={20} strokeWidth={1.75} /></span>
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
               {t('fiscal.taxRules.title')}
-            </Typography>
-          </Box>
+            </h6>
+          </div>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <div className="flex items-center gap-2">
             {/* Country selector */}
             <TextField
               select
@@ -240,8 +236,8 @@ const TaxRulesSection: React.FC = () => {
                 {t('fiscal.taxRules.add')}
               </Button>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* Rules table */}
         {sortedRules.length === 0 ? (
@@ -308,7 +304,7 @@ const TaxRulesSection: React.FC = () => {
                     </TableCell>
                     {isSuperAdmin && (
                       <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
-                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                        <div className="inline-flex items-center gap-0.5">
                           <Tooltip title={t('fiscal.taxRules.edit')}>
                             <IconButton
                               size="small"
@@ -355,7 +351,7 @@ const TaxRulesSection: React.FC = () => {
                               <Delete size={13} strokeWidth={1.75} />
                             </IconButton>
                           </Tooltip>
-                        </Box>
+                        </div>
                       </TableCell>
                     )}
                   </TableRow>
@@ -365,7 +361,7 @@ const TaxRulesSection: React.FC = () => {
             </Table>
           </TableContainer>
         )}
-      </Paper>
+      </Card>
 
       {/* ── Create/Edit Dialog ── */}
       <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>
@@ -475,12 +471,12 @@ const TaxRulesSection: React.FC = () => {
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} maxWidth="xs">
         <DialogTitle>{t('fiscal.taxRules.deleteConfirmTitle')}</DialogTitle>
         <DialogContent>
-          <Typography variant="body2">
+          <p className="cn-text-body2">
             {t('fiscal.taxRules.deleteConfirmMessage', {
               name: deleteTarget?.taxName ?? '',
               category: deleteTarget ? categoryLabel(deleteTarget.taxCategory) : '',
             })}
-          </Typography>
+          </p>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteTarget(null)} size="small">
@@ -512,7 +508,7 @@ const TaxRulesSection: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 };
 

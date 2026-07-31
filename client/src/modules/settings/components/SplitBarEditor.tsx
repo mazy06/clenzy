@@ -1,5 +1,5 @@
 import React, { useCallback, useRef } from 'react';
-import { Box, Tooltip, Typography } from '@mui/material';
+import { Box, Tooltip } from '@mui/material';
 import { Lock, LockOpen } from '../../../icons';
 import {
   redistributeShares,
@@ -141,7 +141,7 @@ export default function SplitBarEditor({
   );
 
   return (
-    <Box>
+    <div>
       <Box
         ref={barRef}
         sx={{
@@ -237,42 +237,28 @@ export default function SplitBarEditor({
 
       {/* Legende : porte la valeur exacte (les segments etroits ne peuvent pas
           l'afficher) et le verrou, plus lisible ici que dans une bande de 1 %. */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 1.25 }}>
+      <div className="flex flex-wrap gap-2 mt-2">
         {upstream && upstreamPct > 0 && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: 'var(--muted)' }} />
-            <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', fontWeight: 500 }}>
+          <div className="flex items-center gap-1">
+            <div className="w-[8px] h-[8px] rounded-[2px] bg-[var(--muted)]" />
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-medium">
               {upstream.label}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                fontVariantNumeric: 'tabular-nums',
-                color: 'text.secondary',
-              }}
-            >
+            </p>
+            <p className="cn-text-body1 text-[0.72rem] font-bold tabular-nums text-muted-foreground">
               {formatPct(upstreamPct)}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
 
         {segments.map((segment) => (
-          <Box key={segment.key} sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
+          <div className="flex items-center gap-1" key={segment.key}>
             <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: segment.color }} />
-            <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', fontWeight: 500 }}>
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-medium">
               {segment.label}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                fontVariantNumeric: 'tabular-nums',
-                color: 'text.primary',
-              }}
-            >
+            </p>
+            <p className="cn-text-body1 text-[0.72rem] font-bold tabular-nums text-foreground">
               {formatPct(segment.value)}
-            </Typography>
+            </p>
             {onToggleLock && (
             <Tooltip
               title={
@@ -321,7 +307,7 @@ export default function SplitBarEditor({
               </Box>
             </Tooltip>
             )}
-          </Box>
+          </div>
         ))}
 
         {/* Une part amont a ete prelevee : les trois valeurs ci-dessus portent
@@ -329,17 +315,11 @@ export default function SplitBarEditor({
             elles s'additionnent a plus de 100 % a la lecture, alors que les
             largeurs de la barre, elles, sont bien a l'echelle du total. */}
         {upstream && upstreamPct > 0 && (
-          <Typography
-            sx={{
-              fontSize: '0.72rem',
-              color: 'text.disabled',
-              fontStyle: 'italic',
-            }}
-          >
+          <p className="cn-text-body1 text-[0.72rem] text-muted-foreground opacity-60 italic">
             (% du net)
-          </Typography>
+          </p>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

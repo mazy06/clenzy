@@ -1,21 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  IconButton,
-  TextField,
-  Alert,
-  CircularProgress,
-  Tooltip,
-} from '@mui/material';
+import { Button, Table, TableBody, TableCell, TableHead, TableRow, Chip, IconButton, TextField, Alert, CircularProgress, Tooltip } from '@mui/material';
+import { Card } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Gavel, Add, Edit, Delete, Download, Receipt } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -159,7 +144,7 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
   };
 
   return (
-    <Box sx={{ pt: 2 }}>
+    <div className="pt-3">
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
@@ -167,14 +152,14 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
       )}
 
       {/* ─── Section barèmes ─────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}>
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="inline-flex text-primary">
           <Gavel size={20} strokeWidth={1.75} />
-        </Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+        </span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('touristTax.baremes.title', 'Barèmes de taxe de séjour')}
-        </Typography>
-        <Box sx={{ flex: 1 }} />
+        </h6>
+        <div className="flex-1" />
         {canEdit && (
           <Button
             size="small"
@@ -188,18 +173,18 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
             {t('touristTax.baremes.add', 'Ajouter un barème')}
           </Button>
         )}
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t(
           'touristTax.baremes.subtitle',
           'Saisis tes barèmes communaux : un barème par défaut pour l’organisation, et des barèmes spécifiques par logement si besoin.'
         )}
-      </Typography>
+      </p>
 
       {configsQuery.isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+        <div className="flex justify-center py-6">
           <CircularProgress size={24} />
-        </Box>
+        </div>
       ) : (configsQuery.data ?? []).length === 0 ? (
         <Alert severity="info" sx={{ mb: 3 }}>
           {t(
@@ -208,7 +193,7 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
           )}
         </Alert>
       ) : (
-        <Paper variant="outlined" sx={{ mb: 3, overflowX: 'auto' }}>
+        <Card className="gap-0 py-0 mb-4 overflow-x-auto">
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -280,26 +265,26 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
               ))}
             </TableBody>
           </Table>
-        </Paper>
+        </Card>
       )}
 
       {/* ─── Section rapport / export ─────────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}>
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="inline-flex text-primary">
           <Receipt size={20} strokeWidth={1.75} />
-        </Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+        </span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('touristTax.report.title', 'Rapport par période')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t(
           'touristTax.report.subtitle',
           'Taxe de séjour des réservations confirmées dont le départ tombe dans la période (pour ta déclaration).'
         )}
-      </Typography>
+      </p>
 
-      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', mb: 2 }}>
+      <div className="flex gap-2 items-center flex-wrap mb-3">
         <TextField
           size="small"
           type="date"
@@ -328,7 +313,7 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
         >
           {t('touristTax.report.exportCsv', 'Exporter CSV')}
         </Button>
-      </Box>
+      </div>
 
       {report && (
         <>
@@ -346,7 +331,7 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
               {t('touristTax.report.empty', 'Aucune réservation taxable sur la période.')}
             </Alert>
           ) : (
-            <Paper variant="outlined" sx={{ overflowX: 'auto' }}>
+            <Card className="gap-0 py-0 overflow-x-auto">
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -379,19 +364,19 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
                   ))}
                   <TableRow>
                     <TableCell colSpan={6}>
-                      <Typography variant="body2" fontWeight={600}>
+                      <p className="cn-text-body2 font-semibold">
                         {t('touristTax.report.total', 'Total collecté')}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                      <Typography variant="body2" fontWeight={600}>
+                      <p className="cn-text-body2 font-semibold">
                         {num(report.totalTax)} EUR
-                      </Typography>
+                      </p>
                     </TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
-            </Paper>
+            </Card>
           )}
         </>
       )}
@@ -404,6 +389,6 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
         onClose={() => setDialogOpen(false)}
         onSave={(request) => saveMutation.mutate(request)}
       />
-    </Box>
+    </div>
   );
 }

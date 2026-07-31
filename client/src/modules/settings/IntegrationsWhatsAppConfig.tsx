@@ -1,19 +1,7 @@
 import React, { useState } from 'react';
+import { Card } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Box,
-  Paper,
-  Typography,
-  IconButton,
-  Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Button,
-  CircularProgress,
-} from '@mui/material';
+import { Box, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, CircularProgress } from '@mui/material';
 import { Settings2 } from 'lucide-react';
 import { Link as LinkIcon, LinkOff as LinkOffIcon } from '../../icons';
 import ServiceGridCard from './components/ServiceGridCard';
@@ -123,26 +111,14 @@ export default function IntegrationsWhatsAppConfig() {
   return (
     <>
       {/* Section + card : design identique aux cartes IoT (Objets connectés). */}
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mt: 3,
-          mb: 2,
-          px: 2,
-          py: 1.75,
-        }}
-      >
-        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
+      <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5">
+        <p className="cn-text-body1 text-[0.82rem] font-semibold mb-0.5">
           Messagerie
-        </Typography>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+        </p>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           Envoyez vos messages WhatsApp via l'API native du provider, sans intermédiaire.
           Compte WhatsApp unique pour toute la plateforme.
-        </Typography>
+        </p>
         <Box
           sx={{
             display: 'grid',
@@ -193,23 +169,13 @@ export default function IntegrationsWhatsAppConfig() {
             }
           />
         </Box>
-      </Paper>
+      </Card>
 
       {/* Dialog de config du compte WhatsApp global — coque modale standard. */}
       <IntegrationConfigDialog open={open} onClose={closeConfig} maxWidth="lg">
-        <Paper elevation={0} sx={{ borderRadius: '12px', overflow: 'hidden' }}>
+        <Card className="gap-0 py-0 overflow-hidden">
           {/* Header — uniforme avec les autres modales d'intégration. */}
-          <Box
-            sx={{
-              px: 2,
-              py: 1.75,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
+          <div className="px-3 py-2.5 flex items-center gap-2 border-b border-[divider]">
             <Box
               sx={{
                 width: 40,
@@ -229,21 +195,21 @@ export default function IntegrationsWhatsAppConfig() {
             >
               WA
             </Box>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ fontSize: '0.92rem', fontWeight: 600 }}>
+            <div className="flex-1 min-w-0">
+              <p className="cn-text-body1 text-[0.92rem] font-semibold">
                 {service.name}
-              </Typography>
-              <Typography sx={{ fontSize: '0.74rem', color: 'text.secondary' }}>
+              </p>
+              <p className="cn-text-body1 text-[0.74rem] text-muted-foreground">
                 {service.shortDescription}
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
 
           {/* Body — configuration du compte global (pas de sélecteur d'org). */}
-          <Box sx={{ p: 2 }}>
+          <div className="p-3">
             <WhatsAppProviderConfigSection />
-          </Box>
-        </Paper>
+          </div>
+        </Card>
       </IntegrationConfigDialog>
 
       {/* Confirmation de déconnexion (désactivation de l'envoi). */}

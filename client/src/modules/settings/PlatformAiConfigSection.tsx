@@ -364,7 +364,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
       </DialogTitle>
 
       <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+        <div className="flex flex-col gap-3 mt-1.5">
           {/* Name */}
           <TextField
             label={t('settings.ai.platform.name')}
@@ -394,10 +394,10 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
           >
             {PROVIDER_IDS.map((pid) => (
               <MenuItem key={pid} value={pid}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <div className="flex items-center gap-1.5">
                   <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: PROVIDER_COLORS[pid], flexShrink: 0 }} />
-                  <Typography variant="body2" fontWeight={600}>{PROVIDER_LABELS[pid]}</Typography>
-                </Box>
+                  <p className="cn-text-body2 font-semibold">{PROVIDER_LABELS[pid]}</p>
+                </div>
               </MenuItem>
             ))}
           </TextField>
@@ -405,7 +405,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
           {/* Model — sélecteur UNIQUE : catalogue live du provider si chargé,
               sinon presets curés (pas de doublon). Le catalogue live n'est dispo
               que pour les providers qui l'exposent (NVIDIA aujourd'hui). */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+          <div className="flex flex-col gap-1">
             {catalog.length > 0 ? (
               <Autocomplete
                 options={
@@ -458,14 +458,14 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
               >
                 {models.map((m) => (
                   <MenuItem key={m.id} value={m.id}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                      <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8125rem' }}>
+                    <div className="flex flex-col">
+                      <p className="cn-text-body2 font-semibold text-[0.8125rem]">
                         {m.label}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.675rem' }}>
+                      </p>
+                      <span className="cn-text-caption text-muted-foreground text-[0.675rem]">
                         {m.desc}
-                      </Typography>
-                    </Box>
+                      </span>
+                    </div>
                   </MenuItem>
                 ))}
               </TextField>
@@ -490,18 +490,18 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
                 : t('settings.ai.platform.loadCatalog', 'Charger le catalogue du provider')}
             </Button>
             {catalogMutation.isError && (
-              <Typography variant="caption" color="error">
+              <span className="cn-text-caption text-destructive">
                 {(catalogMutation.error as Error)?.message
                   || t('settings.ai.platform.catalogError', 'Échec du chargement du catalogue.')}
-              </Typography>
+              </span>
             )}
             {catalog.length > 0 && (
-              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.45 }}>
+              <span className="cn-text-caption text-muted-foreground leading-[1.45]">
                 {t('settings.ai.platform.catalogLegend',
                   'Chat / Raisonnement → Assistant, Messagerie, Tarification, Analytics · Code → Design, Studio · Audio, OCR, Embeddings, Image, Rerank ne conviennent pas aux agents conversationnels.')}
-              </Typography>
+              </span>
             )}
-          </Box>
+          </div>
 
           {/* API Key */}
           <TextField
@@ -585,7 +585,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
           {saveMutation.isError && (
             <Alert severity="error" sx={{ py: 0.5 }}>{t('settings.ai.platform.saveError')}</Alert>
           )}
-        </Box>
+        </div>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -687,16 +687,12 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
       />
 
       {/* Model ID */}
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{ fontSize: '0.7rem', fontFamily: 'monospace', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-      >
+      <span className="cn-text-caption text-muted-foreground text-[0.7rem] font-mono flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
         {model.modelId}
-      </Typography>
+      </span>
 
       {/* Assigned features chips */}
-      <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+      <div className="flex gap-0.5 shrink-0">
         {model.assignedFeatures.map((feat) => {
           const featureConf = AI_FEATURES.find((f) => f.key === feat);
           return (
@@ -714,7 +710,7 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
             />
           );
         })}
-      </Box>
+      </div>
 
       {/* Availability (live) — vert / rouge / gris + tooltip (dernier contrôle + erreur) */}
       <Tooltip title={<span style={{ whiteSpace: 'pre-line' }}>{avTip}</span>}>
@@ -740,7 +736,7 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
       )}
 
       {/* Actions */}
-      <Box sx={{ display: 'flex', gap: 0.25, flexShrink: 0 }}>
+      <div className="flex gap-0.5 shrink-0">
         <Tooltip title={t('settings.ai.platform.recheck', 'Revérifier la disponibilité')}>
           <span>
             <IconButton size="small" onClick={() => recheck.mutate(model.id)} disabled={recheck.isPending}>
@@ -754,7 +750,7 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
         <IconButton size="small" onClick={() => onDelete(model.id)} disabled={isDeleting} color="error">
           {isDeleting ? <CircularProgress size={14} /> : <Delete size={16} strokeWidth={1.75} />}
         </IconButton>
-      </Box>
+      </div>
     </Box>
   );
 }
@@ -805,37 +801,37 @@ function UsageBreakdownTooltip({
         arrow: { sx: { color: 'background.paper', '&::before': { border: '1px solid', borderColor: 'divider' } } },
       }}
       title={
-        <Box sx={{ p: 1.5, minWidth: 280 }}>
+        <div className="p-2 min-w-[280px]">
           {/* Header */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <div className="flex items-center justify-between mb-1.5 pb-1.5 border-b border-[divider]">
             <Typography variant="caption" sx={{ fontWeight: 700, color: feature.color, letterSpacing: 0.4 }}>
               {feature.label.toUpperCase()}
             </Typography>
-            <Typography variant="caption" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+            <span className="cn-text-caption font-bold tabular-nums">
               ${totalCost.toFixed(4)} USD
-            </Typography>
-          </Box>
+            </span>
+          </div>
           {/* Rows: 1 par (provider, model) */}
           {breakdown.map((m) => {
             const totalTokens = m.tokensIn + m.tokensOut;
             return (
-              <Box key={`${m.provider}-${m.model}`} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+              <div className="flex items-center gap-1.5 py-0.5" key={`${m.provider}-${m.model}`}>
                 <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: PROVIDER_COLORS[m.provider] || '#888', flexShrink: 0 }} />
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="caption" sx={{ display: 'block', fontWeight: 600, fontSize: '0.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div className="flex-1 min-w-0">
+                  <span className="cn-text-caption block font-semibold text-[0.72rem] overflow-hidden text-ellipsis whitespace-nowrap">
                     {m.model}
-                  </Typography>
-                  <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: '0.65rem', fontVariantNumeric: 'tabular-nums' }}>
+                  </span>
+                  <span className="cn-text-caption block text-muted-foreground text-[0.65rem] tabular-nums">
                     {Math.round(totalTokens / 1000)}k tok ({Math.round(m.tokensIn / 1000)}k in + {Math.round(m.tokensOut / 1000)}k out) · {m.callCount} call{m.callCount > 1 ? 's' : ''}
-                  </Typography>
-                </Box>
-                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.72rem', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                  </span>
+                </div>
+                <span className="cn-text-caption font-semibold text-[0.72rem] tabular-nums shrink-0">
                   ${m.costUsd.toFixed(4)}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             );
           })}
-        </Box>
+        </div>
       }
     >
       {children}
@@ -962,12 +958,12 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
 
       {/* Feature name + desc */}
       <Box sx={{ flex: 1, minWidth: 0, opacity: enabled ? 1 : 0.5 }}>
-        <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+        <p className="cn-text-body2 font-semibold leading-[1.3]">
           {feature.label}
-        </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+        </p>
+        <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
           {feature.desc}
-        </Typography>
+        </span>
       </Box>
 
       {/* Model / connected-provider selector */}
@@ -998,14 +994,14 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
         )}
         {providerOptions.map((p) => (
           <MenuItem key={`${PROVIDER_VALUE_PREFIX}${p.provider}`} value={`${PROVIDER_VALUE_PREFIX}${p.provider}`}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, width: '100%' }}>
+            <div className="flex items-center gap-1.5 min-w-0 w-full">
               <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: PROVIDER_COLORS[p.provider] || '#888', flexShrink: 0 }} />
-              <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{p.label}</Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', ml: 'auto', pl: 1, flexShrink: 0 }}>
+              <p className="cn-text-body2 text-[0.8125rem]">{p.label}</p>
+              <span className="cn-text-caption text-muted-foreground text-[0.65rem] ms-auto ps-1.5 shrink-0">
                 {p.source === 'ORGANIZATION' ? t('settings.ai.platform.providerOwnKey') : t('settings.ai.platform.providerSharedKey')}
                 {p.model ? ` · ${p.model}` : ''}
-              </Typography>
-            </Box>
+              </span>
+            </div>
           </MenuItem>
         ))}
 
@@ -1015,10 +1011,10 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
         )}
         {models.map((m) => (
           <MenuItem key={`${MODEL_VALUE_PREFIX}${m.id}`} value={`${MODEL_VALUE_PREFIX}${m.id}`}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <div className="flex items-center gap-1.5">
               <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: PROVIDER_COLORS[m.provider] || '#888', flexShrink: 0 }} />
-              <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{m.name}</Typography>
-            </Box>
+              <p className="cn-text-body2 text-[0.8125rem]">{m.name}</p>
+            </div>
           </MenuItem>
         ))}
       </TextField>
@@ -1033,16 +1029,7 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
           <UsageBreakdownTooltip breakdown={usageBreakdown} totalCost={totalCost} feature={feature}>
             <Box sx={{ position: 'relative', width: 170, flexShrink: 0, cursor: usageBreakdown.length > 0 ? 'help' : 'default' }}>
               {/* Progress bar background */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  borderRadius: 1,
-                  overflow: 'hidden',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                }}
-              >
+              <div className="absolute inset-[0px] rounded-[1px] overflow-hidden border border-[divider]">
                 <Box
                   sx={{
                     position: 'absolute',
@@ -1054,7 +1041,7 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
                     transition: 'width 0.3s ease, background-color 0.3s ease',
                   }}
                 />
-              </Box>
+              </div>
               {/* Input on top */}
               <TextField
                 size="small"
@@ -1071,9 +1058,9 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
                 title={t('bookingEngine.ai.platform.budgetHint', 'Budget mensuel de tokens (modifiable)')}
                 InputProps={{
                   endAdornment: (
-                    <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', ml: 0.5, fontSize: '0.65rem', fontVariantNumeric: 'tabular-nums' }}>
+                    <span className="cn-text-caption text-muted-foreground whitespace-nowrap ms-0.5 text-[0.65rem] tabular-nums">
                       {Math.round(used / 1000)}k / {Math.round(budget / 1000)}k
-                    </Typography>
+                    </span>
                   ),
                 }}
                 sx={{
@@ -1259,7 +1246,7 @@ export default function PlatformAiConfigSection() {
       }
     >
       {/* ── Section 1: Configured Models ── */}
-      <Box sx={{ mb: 1 }}>
+      <div className="mb-1.5">
         <Typography
           variant="overline"
           sx={{
@@ -1271,14 +1258,14 @@ export default function PlatformAiConfigSection() {
         >
           {t('settings.ai.platform.models')}
         </Typography>
-      </Box>
+      </div>
 
       {modelList.length === 0 ? (
-        <Box sx={{ pb: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', fontStyle: 'italic' }}>
+        <div className="pb-3">
+          <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] italic">
             {t('settings.ai.platform.noModel')}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       ) : (
         <Box
           sx={{
@@ -1304,7 +1291,7 @@ export default function PlatformAiConfigSection() {
       )}
 
       {/* ── Section 2: Feature Assignments ── */}
-      <Box sx={{ mt: 3, mb: 1 }}>
+      <div className="mt-4 mb-1.5">
         <Typography
           variant="overline"
           sx={{
@@ -1316,7 +1303,7 @@ export default function PlatformAiConfigSection() {
         >
           {t('settings.ai.platform.featureMapping')}
         </Typography>
-      </Box>
+      </div>
 
       {assignError && (
         <Alert severity="warning" onClose={() => setAssignError(null)} sx={{ mb: 1 }}>
@@ -1361,31 +1348,22 @@ export default function PlatformAiConfigSection() {
       </Box>
 
       {/* ── Section 3: Amorçage des crédits IA ── */}
-      <Box sx={{ mt: 3, mb: 1 }}>
+      <div className="mt-4 mb-1.5">
         <Typography
           variant="overline"
           sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
         >
           {t('settings.ai.platform.creditsBootstrap', 'Amorçage des crédits')}
         </Typography>
-      </Box>
+      </div>
 
-      <Box
-        sx={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: 2,
-          justifyContent: 'space-between',
-          py: 1.5,
-        }}
-      >
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', maxWidth: 560, lineHeight: 1.5 }}>
+      <div className="flex flex-wrap items-center gap-3 justify-between py-2">
+        <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] max-w-[560px] leading-[1.5]">
           {t(
             'settings.ai.platform.creditsBootstrapHelp',
             'Dote toutes les organisations existantes de leur poche de crédits initiale. Action idempotente : une organisation déjà pourvue est ignorée. Les abonnés sont ensuite auto-provisionnés à l’usage et rechargés chaque mois.',
           )}
-        </Typography>
+        </p>
         <Button
           size="small"
           variant="outlined"
@@ -1396,7 +1374,7 @@ export default function PlatformAiConfigSection() {
         >
           {t('settings.ai.platform.grantInitial', 'Doter les organisations')}
         </Button>
-      </Box>
+      </div>
 
       {grantResult && (
         <Alert severity="success" onClose={() => setGrantResult(null)} sx={{ mt: 1 }}>
@@ -1428,12 +1406,12 @@ export default function PlatformAiConfigSection() {
           </Typography>
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary">
+          <p className="cn-text-body2 text-muted-foreground">
             {t('settings.ai.platform.deleteConfirmBody', {
               defaultValue: 'Le modèle « {{name}} » sera supprimé. Les features qui l’utilisent repasseront au modèle par défaut.',
               name: modelList.find((m) => m.id === confirmDeleteId)?.name ?? '',
             })}
-          </Typography>
+          </p>
           {deleteMutation.isError && (
             <Alert severity="error" sx={{ mt: 1.5, py: 0.5 }}>
               {(deleteMutation.error as Error)?.message

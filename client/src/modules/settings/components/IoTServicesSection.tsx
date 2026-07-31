@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Card } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Box, IconButton, Paper, Tooltip, Typography } from '@mui/material';
+import { Box, IconButton, Tooltip } from '@mui/material';
 import { Settings2 } from 'lucide-react';
 import OAuthProviderCard, { type OAuthApiAdapter } from './OAuthProviderCard';
 import TuyaProjectConfigDialog from './TuyaProjectConfigDialog';
@@ -137,26 +138,12 @@ export default function IoTServicesSection() {
   );
 
   return (
-    <Paper
-      id="section-connected-objects"
-      elevation={0}
-      sx={{
-        borderRadius: '12px',
-        border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: 'none',
-        mt: 3,
-        mb: 2,
-        px: 2,
-        py: 1.75,
-        scrollMarginTop: 80,
-      }}
-    >
-      <Typography sx={{ fontWeight: 700, fontSize: '1rem', mb: 0.25 }}>Objets connectés (IoT)</Typography>
-      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.75 }}>
+    <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-connected-objects">
+      <p className="cn-text-body1 font-bold text-[1rem] mb-0.5">Objets connectés (IoT)</p>
+      <p className="cn-text-body2 text-muted-foreground mb-2.5">
         Reliez les comptes IoT de l'organisation : serrures, caméras, thermostats et capteurs de bruit.
         Une fois un service connecté, les membres de l'org ajoutent leurs appareils en quelques clics.
-      </Typography>
+      </p>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 1.5 }}>
         <OAuthProviderCard
@@ -200,6 +187,6 @@ export default function IoTServicesSection() {
         current={netatmoConfig}
         onSaved={() => refetchNetatmoConfig()}
       />
-    </Paper>
+    </Card>
   );
 }

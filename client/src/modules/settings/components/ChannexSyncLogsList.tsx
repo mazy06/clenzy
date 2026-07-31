@@ -9,17 +9,7 @@
  * timestamp formate "il y a Xm/Xh", erreur tronquee en monospace si FAIL.</p>
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Box,
-  Typography,
-  IconButton,
-  Collapse,
-  Stack,
-  Skeleton,
-  Chip,
-  Tooltip,
-  Button,
-} from '@mui/material';
+import { Box, IconButton, Collapse, Stack, Skeleton, Chip, Tooltip, Button } from '@mui/material';
 import {
   History,
   ChevronDown,
@@ -102,12 +92,12 @@ function LogRow({ log }: { log: ChannexSyncLogDto }) {
       <Box sx={{ mt: 0.25, color: statusMeta.color, flexShrink: 0 }}>
         <statusMeta.Icon size={14} strokeWidth={2.2} />
       </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-0.5 flex-wrap">
           <TypeIcon size={11} strokeWidth={2} color="var(--muted)" />
-          <Typography variant="caption" fontWeight={600} sx={{ lineHeight: 1.3, fontSize: '0.72rem' }}>
+          <span className="cn-text-caption font-semibold leading-[1.3] text-[0.72rem]">
             {typeMeta.label}
-          </Typography>
+          </span>
           {log.recordCount > 0 && (
             <Chip
               size="small"
@@ -122,27 +112,16 @@ function LogRow({ log }: { log: ChannexSyncLogDto }) {
               }}
             />
           )}
-          <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem', ml: 'auto' }}>
+          <span className="cn-text-caption text-muted-foreground opacity-60 text-[0.65rem] ms-auto">
             {formatDuration(log.durationMs)} · {formatRelative(log.startedAt)}
-          </Typography>
-        </Box>
+          </span>
+        </div>
         {log.errorMessage && (
-          <Typography
-            variant="caption"
-            sx={{
-              display: 'block',
-              mt: 0.3,
-              fontSize: '0.66rem',
-              color: 'var(--err)',
-              fontFamily: 'monospace',
-              lineHeight: 1.35,
-              wordBreak: 'break-word',
-            }}
-          >
+          <span className="cn-text-caption block mt-0.5 text-[0.66rem] text-[var(--err)] font-mono leading-[1.35] break-words">
             {log.errorMessage}
-          </Typography>
+          </span>
         )}
-      </Box>
+      </div>
     </Box>
   );
 }
@@ -182,14 +161,7 @@ export default function ChannexSyncLogsList({
   const hiddenCount = logs.length - visibleLogs.length;
 
   return (
-    <Box
-      sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        overflow: 'hidden',
-      }}
-    >
+    <div className="border border-[divider] rounded-[1px] overflow-hidden">
       {/* Header cliquable pour collapse */}
       <Box
         onClick={() => setCollapsed((c) => !c)}
@@ -205,14 +177,14 @@ export default function ChannexSyncLogsList({
         }}
       >
         <History size={14} color="var(--accent)" strokeWidth={2.2} />
-        <Typography variant="caption" fontWeight={600} sx={{ flex: 1 }}>
+        <span className="cn-text-caption font-semibold flex-1">
           Historique de sync
           {logs.length > 0 && (
-            <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.5, fontWeight: 400 }}>
+            <span className="cn-text-caption text-muted-foreground ms-0.5 font-normal">
               · {logs.length} entree{logs.length > 1 ? 's' : ''}
-            </Typography>
+            </span>
           )}
-        </Typography>
+        </span>
         {!collapsed && (
           <Tooltip title="Rafraichir" arrow placement="top">
             <span>
@@ -233,7 +205,7 @@ export default function ChannexSyncLogsList({
       </Box>
 
       <Collapse in={!collapsed}>
-        <Box sx={{ px: 1.25, pb: 1.25, pt: 0.25 }}>
+        <div className="px-2 pb-2 pt-0.5">
           {loading && logs.length === 0 && (
             <Stack spacing={0.5}>
               <Skeleton variant="rounded" height={32} />
@@ -242,19 +214,19 @@ export default function ChannexSyncLogsList({
             </Stack>
           )}
           {error && !loading && (
-            <Box sx={{ py: 1 }}>
-              <Typography variant="caption" color="error" sx={{ display: 'block', mb: 0.5 }}>
+            <div className="py-1.5">
+              <span className="cn-text-caption text-destructive block mb-0.5">
                 {error}
-              </Typography>
+              </span>
               <Button size="small" onClick={() => void fetchLogs()} sx={{ textTransform: 'none', fontSize: '0.72rem' }}>
                 Reessayer
               </Button>
-            </Box>
+            </div>
           )}
           {!loading && !error && logs.length === 0 && (
-            <Typography variant="caption" color="text.disabled" sx={{ display: 'block', py: 1, fontStyle: 'italic' }}>
+            <span className="cn-text-caption text-muted-foreground opacity-60 block py-1.5 italic">
               Aucune operation sync enregistree pour cette propriete.
-            </Typography>
+            </span>
           )}
           {logs.length > 0 && (
             <Stack spacing={0.3}>
@@ -272,8 +244,8 @@ export default function ChannexSyncLogsList({
               )}
             </Stack>
           )}
-        </Box>
+        </div>
       </Collapse>
-    </Box>
+    </div>
   );
 }

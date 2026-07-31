@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Alert,
-  Chip,
-} from '@mui/material';
+import { Card } from '../../../components/ui';
+import { Box, Button, Alert, Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   OpenInNew as ExternalLinkIcon,
@@ -102,30 +96,18 @@ export default function ServiceCatalogSection({
 
   return (
     <>
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mt: 3,
-          mb: 2,
-          px: 2,
-          py: 1.75,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+      <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className="cn-text-body1 text-[0.82rem] font-semibold">
             {title}
-          </Typography>
+          </p>
           {disabled && (
             <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
           )}
-        </Box>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+        </div>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           {description}
-        </Typography>
+        </p>
         <Box
           aria-disabled={disabled || undefined}
           onClickCapture={disabled ? blockInteraction : undefined}
@@ -146,7 +128,7 @@ export default function ServiceCatalogSection({
             />
           ))}
         </Box>
-      </Paper>
+      </Card>
 
       {/* Modal d'info — meme format visuel que les autres modales d'integration */}
       <IntegrationConfigDialog
@@ -154,28 +136,9 @@ export default function ServiceCatalogSection({
         onClose={() => setOpenService(null)}
       >
         {openService && (
-          <Paper
-            elevation={0}
-            sx={{
-              borderRadius: '12px',
-              border: '1px solid',
-              borderColor: 'divider',
-              boxShadow: 'none',
-              overflow: 'hidden',
-            }}
-          >
+          <Card className="gap-0 py-0 border-border overflow-hidden">
             {/* Header — uniforme avec les autres cards */}
-            <Box
-              sx={{
-                px: 2,
-                py: 1.75,
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 1.5,
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-              }}
-            >
+            <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[divider]">
               <Box
                 sx={{
                   width: 40,
@@ -195,9 +158,9 @@ export default function ServiceCatalogSection({
               >
                 {getInitials(openService.name)}
               </Box>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                  <Typography sx={{ fontSize: '0.92rem', fontWeight: 600 }}>{openService.name}</Typography>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-0.5 flex-wrap">
+                  <p className="cn-text-body1 text-[0.92rem] font-semibold">{openService.name}</p>
                   {openService.region && (
                     <Chip
                       label={openService.region}
@@ -213,12 +176,12 @@ export default function ServiceCatalogSection({
                       }}
                     />
                   )}
-                </Box>
-                <Typography sx={{ fontSize: '0.74rem', color: 'text.secondary', mt: 0.5 }}>
+                </div>
+                <p className="cn-text-body1 text-[0.74rem] text-muted-foreground mt-0.5">
                   {openService.shortDescription}
-                </Typography>
-              </Box>
-              <Box sx={{ flexShrink: 0 }}>
+                </p>
+              </div>
+              <div className="shrink-0">
                 <Chip
                   icon={<ErrorOutline size={11} strokeWidth={2} />}
                   label={openService.available ? 'Configurable' : 'Bientôt'}
@@ -237,14 +200,14 @@ export default function ServiceCatalogSection({
                     '& .MuiChip-label': { px: 0.875 },
                   }}
                 />
-              </Box>
-            </Box>
+              </div>
+            </div>
 
             {/* Body — description longue + modalites + lien */}
-            <Box sx={{ p: 2 }}>
-              <Typography sx={{ fontSize: '0.82rem', color: 'text.primary', lineHeight: 1.55, mb: 1.5 }}>
+            <div className="p-3">
+              <p className="cn-text-body1 text-[0.82rem] text-foreground leading-[1.55] mb-2">
                 {openService.tooltipDescription}
-              </Typography>
+              </p>
 
               <Alert
                 severity="info"
@@ -255,7 +218,7 @@ export default function ServiceCatalogSection({
               </Alert>
 
               {configNode ? (
-                <Box sx={{ mb: 1.5 }}>
+                <div className="mb-2">
                   {configNode}
                   {openService.websiteUrl && (
                     <Button
@@ -279,7 +242,7 @@ export default function ServiceCatalogSection({
                       En savoir plus
                     </Button>
                   )}
-                </Box>
+                </div>
               ) : (
               <>
               {!openService.available && !openService.internalRoute && (
@@ -292,7 +255,7 @@ export default function ServiceCatalogSection({
                 </Alert>
               )}
 
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <div className="flex gap-1.5 flex-wrap">
                 {/* Bouton primaire : Configurer (internal) ou Visiter le site (external) */}
                 <Button
                   variant="contained"
@@ -333,11 +296,11 @@ export default function ServiceCatalogSection({
                     En savoir plus
                   </Button>
                 )}
-              </Box>
+              </div>
               </>
               )}
-            </Box>
-          </Paper>
+            </div>
+          </Card>
         )}
       </IntegrationConfigDialog>
     </>

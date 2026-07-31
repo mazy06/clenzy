@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Paper, Typography, Button, Chip } from '@mui/material';
+import { Card } from '../../../components/ui';
+import { Box, Button, Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { ArrowForward as ArrowRightIcon } from '../../../icons';
 import { OTA_CHANNELS, type OtaChannel } from '../../../services/channels/otaChannels';
@@ -65,33 +66,21 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
 
   return (
     <>
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mt: 3,
-          mb: 2,
-          px: 2,
-          py: 1.75,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 0.5 }}>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-              <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+      <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5">
+        <div className="flex items-start justify-between gap-3 mb-0.5">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <p className="cn-text-body1 text-[0.82rem] font-semibold">
                 Canaux de réservation (OTAs)
-              </Typography>
+              </p>
               {disabled && (
                 <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
               )}
-            </Box>
-            <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
+            </div>
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground">
               Connectez vos OTAs ici ou depuis l'onglet <strong>Channels</strong> dédié. Les modifications sont synchronisées entre les deux vues.
-            </Typography>
-          </Box>
+            </p>
+          </div>
           <Button
             variant="outlined"
             size="small"
@@ -112,7 +101,7 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
           >
             Voir dans Channels
           </Button>
-        </Box>
+        </div>
 
         <Box
           aria-disabled={disabled || undefined}
@@ -153,16 +142,11 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
                     aria-hidden="true"
                   >
                     {ota.logo ? (
-                      <Box
-                        component="img"
-                        src={ota.logo}
-                        alt=""
-                        sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                      />
+                      <img className="max-w-full max-h-[100%] object-contain" src={ota.logo} alt="" />
                     ) : (
-                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--on-accent)', letterSpacing: '-0.02em' }}>
+                      <p className="cn-text-body1 text-[0.85rem] font-bold text-[var(--on-accent)] tracking-[-0.02em]">
                         {ota.name.slice(0, 2).toUpperCase()}
-                      </Typography>
+                      </p>
                     )}
                   </Box>
                 }
@@ -170,7 +154,7 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
             );
           })}
         </Box>
-      </Paper>
+      </Card>
 
       {/* Modal unifie — gere les 4 cas (coming-soon, connecte, Airbnb OAuth,
           form-based). Strictement le meme format visuel que les autres

@@ -91,58 +91,36 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
   return (
     <SettingsSection title={t('billing.title')} icon={ReceiptIcon} accent="accent" action={periodChip}>
       {/* Base plan */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.625 }}>
-        <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
+      <div className="flex justify-between items-baseline mb-1">
+        <p className="cn-text-body1 text-[0.8rem] text-muted-foreground">
           {t('billing.basePlan')}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            color: 'text.primary',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
+        </p>
+        <p className="cn-text-body1 text-[0.8rem] font-semibold text-foreground tabular-nums">
           <Money value={summary.basePriceCents / 100} />
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {/* Per-seat */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.5 }}>
-        <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
+      <div className="flex justify-between items-baseline mb-0.5">
+        <p className="cn-text-body1 text-[0.8rem] text-muted-foreground">
           {t('billing.seats')} ({summary.billableSeats} × <Money value={summary.perSeatPriceCents / 100} />)
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            color: 'text.primary',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
+        </p>
+        <p className="cn-text-body1 text-[0.8rem] font-semibold text-foreground tabular-nums">
           <Money value={summary.seatsTotalCents / 100} />
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
-      <Typography
-        sx={{
-          display: 'block',
-          fontSize: '0.7rem',
-          color: 'text.disabled',
-          fontVariantNumeric: 'tabular-nums',
-          mb: 1,
-        }}
-      >
+      <p className="cn-text-body1 block text-[0.7rem] text-muted-foreground opacity-60 tabular-nums mb-1.5">
         {summary.memberCount} {t('billing.members')} · {summary.freeSeats} {t('billing.included')}
-      </Typography>
+      </p>
 
       <Divider sx={{ mb: 1, borderColor: 'divider' }} />
 
       {/* Total */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: hasDiscount ? 0.625 : 0 }}>
-        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'text.primary' }}>
+        <p className="cn-text-body1 text-[0.85rem] font-bold text-foreground">
           {t('billing.monthlyTotal')}
-        </Typography>
+        </p>
         <Typography
           sx={{
             fontSize: '0.95rem',
@@ -159,11 +137,11 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
 
       {/* Effective with discount */}
       {hasDiscount && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--ok)' }}>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-1">
+            <p className="cn-text-body1 text-[0.85rem] font-bold text-[var(--ok)]">
               {t('billing.effectiveMonthly')}
-            </Typography>
+            </p>
             <Chip
               label={`-${discountPercent}%`}
               size="small"
@@ -176,19 +154,11 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
                 '& .MuiChip-label': { px: 0.625 },
               }}
             />
-          </Box>
-          <Typography
-            sx={{
-              fontSize: '0.95rem',
-              fontWeight: 700,
-              color: 'var(--ok)',
-              fontVariantNumeric: 'tabular-nums',
-              letterSpacing: '-0.01em',
-            }}
-          >
+          </div>
+          <p className="cn-text-body1 text-[0.95rem] font-bold text-[var(--ok)] tabular-nums tracking-[-0.01em]">
             <Money value={summary.effectiveMonthlyCents / 100} />
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
     </SettingsSection>
   );

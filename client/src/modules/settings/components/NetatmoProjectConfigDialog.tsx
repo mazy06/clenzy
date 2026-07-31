@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Link, TextField, Typography,
-} from '@mui/material';
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Link, TextField } from '@mui/material';
 import { KeyRound } from 'lucide-react';
 import { netatmoApi, type NetatmoConfigStatus } from '../../../services/api/netatmoApi';
 
@@ -76,18 +74,18 @@ export default function NetatmoProjectConfigDialog({ open, onClose, current, onS
         Configurer l'app Netatmo
       </DialogTitle>
       <DialogContent>
-        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+        <p className="cn-text-body2 text-muted-foreground mb-3">
           Renseignez le <strong>Client ID</strong> et le <strong>Client Secret</strong> de l'app créée sur{' '}
           <Link href="https://dev.netatmo.com/apps/" target="_blank" rel="noopener noreferrer">
             dev.netatmo.com
           </Link>
           . La <strong>Redirect URI</strong> doit être <u>identique</u> à celle déclarée dans l'app Netatmo.
           Les identifiants sont stockés chiffrés en base.
-        </Typography>
+        </p>
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="flex flex-col gap-3">
           <TextField
             label="Client ID"
             value={clientId}
@@ -116,7 +114,7 @@ export default function NetatmoProjectConfigDialog({ open, onClose, current, onS
             disabled={saving}
             helperText="Doit correspondre exactement à l'URI de redirection déclarée dans l'app Netatmo."
           />
-        </Box>
+        </div>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} disabled={saving} sx={{ cursor: 'pointer' }}>Annuler</Button>

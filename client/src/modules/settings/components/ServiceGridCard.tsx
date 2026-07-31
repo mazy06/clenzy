@@ -1,5 +1,7 @@
 import React from 'react';
-import { Box, Paper, Typography, Chip } from '@mui/material';
+import { Box, Chip } from '@mui/material';
+import { Card } from '../../../components/ui';
+import { cn } from '../../../utils/cn';
 import { CheckCircle as CheckCircleIcon, ErrorOutline } from '../../../icons';
 import { Settings2 } from 'lucide-react';
 import ProviderLogo, { type ProviderId } from './ProviderLogos';
@@ -85,19 +87,19 @@ export default function ServiceGridCard({
     );
 
   const infoZone = (
-    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1, minWidth: 0 }}>
+    <div className="flex items-start gap-2 flex-1 min-w-0">
       {logo ?? (providerId ? <ProviderLogo provider={providerId} size={40} muted={disabled} /> : null)}
-      <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>{label}</Typography>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <p className="cn-text-body1 text-[0.875rem] font-semibold">{label}</p>
           {titleAdornment}
           {badge ?? statusChip}
-        </Box>
-        <Typography noWrap sx={{ fontSize: '0.72rem', color: 'text.secondary', mt: 0.25 }}>
+        </div>
+        <p className="cn-text-body1 truncate text-[0.72rem] text-muted-foreground mt-0.5">
           {description}
-        </Typography>
-      </Box>
-    </Box>
+        </p>
+      </div>
+    </div>
   );
 
   const tooltipId = serviceTooltipId ?? providerId;
@@ -112,35 +114,25 @@ export default function ServiceGridCard({
   };
 
   return (
-    <Paper
-      elevation={0}
+    <Card
       role={role}
       aria-checked={role === 'radio' ? selected : undefined}
       tabIndex={disabled ? -1 : 0}
       onClick={interactive ? onClick : undefined}
       onKeyDown={handleKeyDown}
-      sx={{
-        borderRadius: '12px',
-        border: '1px solid',
-        borderColor: selected ? 'var(--accent)' : 'divider',
-        backgroundColor: selected ? 'var(--accent-soft)' : 'background.paper',
-        boxShadow: 'none',
-        overflow: 'hidden',
-        outline: 'none',
-        cursor: interactive ? 'pointer' : 'default',
-        transition: 'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1)',
-        ...(disabled
-          ? {}
-          : {
-              '&:hover': {
-                borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)',
-                boxShadow: 'var(--shadow-card)',
-              },
-              '&:focus-visible': { borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-soft)' },
-            }),
-      }}
+      // L'etat selectionne et le survol sont des ETATS : ils passent par des
+      // classes conditionnelles, pas par un sx recalcule a chaque rendu.
+      className={cn(
+        'gap-0 overflow-hidden py-0 outline-none transition-[border-color,box-shadow] duration-200',
+        selected ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-border bg-card',
+        interactive ? 'cursor-pointer' : 'cursor-default',
+        !disabled && [
+          'hover:border-[color-mix(in_srgb,var(--accent)_25%,transparent)] hover:shadow-[var(--shadow-card)]',
+          'focus-visible:border-[var(--accent)] focus-visible:shadow-[0_0_0_3px_var(--accent-soft)]',
+        ],
+      )}
     >
-      <Box sx={{ px: 2, py: 1.75, display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+      <div className="px-3 py-2.5 flex items-start gap-1.5">
         {tooltipId || tooltipData ? (
           <ServiceTooltip providerId={tooltipId ?? label} data={tooltipData} name={label}>
             {infoZone}
@@ -149,12 +141,9 @@ export default function ServiceGridCard({
           infoZone
         )}
         {actions ? (
-          <Box
-            sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
             {actions}
-          </Box>
+          </div>
         ) : interactive && status !== 'comingSoon' ? (
           // Affordance par défaut (remplace l'ancien chevron) : engrenage de config,
           // teinté selon l'état — warm tant que non configuré, neutre une fois connecté
@@ -172,7 +161,7 @@ export default function ServiceGridCard({
             <Settings2 size={18} strokeWidth={2} />
           </Box>
         ) : null}
-      </Box>
-    </Paper>
+      </div>
+    </Card>
   );
 }

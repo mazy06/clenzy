@@ -14,16 +14,7 @@
  *   - L'utilisateur reste guide cote Baitly avant de basculer dans Channex
  */
 import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  Box,
-  Typography,
-  Stack,
-  ButtonBase,
-} from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, IconButton, Box, Stack, ButtonBase } from '@mui/material';
 import { X, ChevronRight } from 'lucide-react';
 
 import {
@@ -63,18 +54,14 @@ export default function ChannexOtaPickerDialog({
           pb: 1.5,
         }}
       >
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography variant="subtitle1" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+        <div className="min-w-0 flex-1">
+          <h6 className="cn-text-subtitle1 font-semibold leading-[1.3]">
             Choisir l'OTA a connecter
-          </Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: 'block', lineHeight: 1.4, mt: 0.25 }}
-          >
+          </h6>
+          <span className="cn-text-caption text-muted-foreground block leading-[1.4] mt-0.5">
             « {propertyName} » sera distribue sur l'OTA selectionne via le hub
-          </Typography>
-        </Box>
+          </span>
+        </div>
         <IconButton onClick={onClose} size="small" aria-label="Fermer">
           <X size={18} />
         </IconButton>
@@ -128,33 +115,25 @@ export default function ChannexOtaPickerDialog({
               >
                 {option.initials}
               </Box>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+              <div className="flex-1 min-w-0">
+                <p className="cn-text-body2 font-semibold leading-[1.3]">
                   {option.name}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ display: 'block', lineHeight: 1.3 }}
-                >
+                </p>
+                <span className="cn-text-caption text-muted-foreground block leading-[1.3]">
                   {option.description}
-                </Typography>
-              </Box>
-              <Box sx={{ color: 'text.disabled', flexShrink: 0 }}>
+                </span>
+              </div>
+              <div className="text-muted-foreground opacity-60 shrink-0">
                 <ChevronRight size={16} />
-              </Box>
+              </div>
             </ButtonBase>
           ))}
         </Stack>
 
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: 'block', mt: 2, textAlign: 'center', lineHeight: 1.5 }}
-        >
+        <span className="cn-text-caption text-muted-foreground block mt-3 text-center leading-[1.5]">
           Vous serez redirige vers le widget de configuration OTA pour finaliser la
           connexion (login OTA + mapping des chambres).
-        </Typography>
+        </span>
       </DialogContent>
     </Dialog>
   );

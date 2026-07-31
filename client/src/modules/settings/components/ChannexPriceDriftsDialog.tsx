@@ -98,32 +98,24 @@ function DriftRow({
   const TrendIcon = clenzyHigher ? TrendingUp : TrendingDown;
   const trendColor = clenzyHigher ? 'var(--ok)' : 'var(--err)';
   return (
-    <Box
-      sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        p: 1.25,
-        bgcolor: 'var(--surface-2)',
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+    <div className="border border-[divider] rounded-[1px] p-2 bg-[var(--surface-2)]">
+      <div className="flex items-center gap-2 mb-1.5">
         <Box sx={{ color: trendColor, flexShrink: 0 }}>
           <TrendIcon size={18} strokeWidth={2.2} />
         </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, flexWrap: 'wrap' }}>
-            <Typography variant="body2" fontWeight={600}>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-1 flex-wrap">
+            <p className="cn-text-body2 font-semibold">
               {drift.driftDate}
-            </Typography>
-            <Typography variant="caption" color="text.disabled">
+            </p>
+            <span className="cn-text-caption text-muted-foreground opacity-60">
               · property #{drift.clenzyPropertyId}
-            </Typography>
-            <Typography variant="caption" color="text.disabled" sx={{ ml: 'auto' }}>
+            </span>
+            <span className="cn-text-caption text-muted-foreground opacity-60 ms-auto">
               {formatRelative(drift.detectedAt)}
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5">
             <Chip
               size="small"
               label={`Baitly ${drift.clenzyPrice}${drift.currency}`}
@@ -135,7 +127,7 @@ function DriftRow({
                 fontWeight: 600,
               }}
             />
-            <Typography variant="caption" color="text.disabled">vs</Typography>
+            <span className="cn-text-caption text-muted-foreground opacity-60">vs</span>
             <Chip
               size="small"
               label={`OTA ${drift.otaPrice}${drift.currency}`}
@@ -159,9 +151,9 @@ function DriftRow({
                 fontWeight: 700,
               }}
             />
-          </Box>
-        </Box>
-      </Box>
+          </div>
+        </div>
+      </div>
 
       {/* Boutons d'action */}
       <Stack direction="row" spacing={1} sx={{ mt: 1.25 }}>
@@ -202,7 +194,7 @@ function DriftRow({
           );
         })}
       </Stack>
-    </Box>
+    </div>
   );
 }
 
@@ -284,32 +276,19 @@ export default function ChannexPriceDriftsDialog({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, pb: 1 }}>
-        <Box
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: 1,
-            bgcolor: 'var(--warn-soft)',
-            color: 'var(--warn)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            mt: 0.25,
-          }}
-        >
+        <div className="w-[36px] h-[36px] rounded-[1px] bg-[var(--warn-soft)] text-[var(--warn)] flex items-center justify-center shrink-0 mt-0.5">
           <AlertTriangle size={20} />
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.3, fontSize: '1.05rem' }}>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h6 className="cn-text-h6 font-semibold leading-[1.3] text-[1.05rem]">
             Conflits de prix Baitly ↔ Channex
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.4 }}>
+          </h6>
+          <span className="cn-text-caption text-muted-foreground block mt-0.5">
             {drifts.length === 0 && !loading
               ? 'Aucun conflit actif'
               : `${drifts.length} drift${drifts.length > 1 ? 's' : ''} en attente de résolution${propertyId ? ' pour cette propriete' : ''}`}
-          </Typography>
-        </Box>
+          </span>
+        </div>
         <Tooltip title="Rafraichir" arrow placement="top">
           <span>
             <IconButton size="small" disabled={loading} onClick={() => void fetchDrifts()}>
@@ -341,18 +320,18 @@ export default function ChannexPriceDriftsDialog({
         )}
 
         {!loading && drifts.length === 0 && !error && (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
+          <div className="text-center py-6">
             <CheckCircle2 size={36} color="var(--ok)" strokeWidth={2} />
-            <Typography variant="body2" sx={{ mt: 1.5, color: 'text.secondary' }}>
+            <p className="cn-text-body2 mt-2 text-muted-foreground">
               Tous les prix sont alignes entre Baitly et Channex.
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
 
         {drifts.length > 0 && (
           <Stack spacing={1.25}>
             {Object.entries(grouped).map(([groupLabel, groupDrifts]) => (
-              <Box key={groupLabel}>
+              <div key={groupLabel}>
                 {propertyId == null && (
                   <Typography
                     variant="caption"
@@ -378,7 +357,7 @@ export default function ChannexPriceDriftsDialog({
                     />
                   ))}
                 </Stack>
-              </Box>
+              </div>
             ))}
           </Stack>
         )}

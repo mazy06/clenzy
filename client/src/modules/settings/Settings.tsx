@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Box, Button, TextField, Grid, Alert, Snackbar, CircularProgress } from '@mui/material';
 import {
-  Box,
-  Typography,
-  Button,
-  TextField,
-  Grid,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  ToggleButton,
-  ToggleButtonGroup,
-} from '@mui/material';
+  Button as UiButton,
+  Field,
+  FieldGroup,
+  FieldLabel,
+  Input,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+  NativeSelect,
+  NativeSelectOption,
+  ToggleGroup,
+  ToggleGroupItem,
+} from '../../components/ui';
 import {
   Notifications,
   Security,
@@ -34,6 +40,7 @@ import {
   Extension,
   CalendarMonth,
   LocalOffer,
+  Bolt,
 } from '../../icons';
 import { guestMessagingApi } from '../../services/api/guestMessagingApi';
 import type { MessagingAutomationConfig } from '../../services/api/guestMessagingApi';
@@ -111,7 +118,7 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ pt: 2 }}>{children}</Box>
+        <div className="pt-3">{children}</div>
       )}
     </div>
   );
@@ -395,18 +402,18 @@ export default function Settings() {
   // Si pas de permission, afficher un message informatif
   if (!canViewSettings) {
     return (
-      <Box sx={{ p: 3 }}>
+      <div className="p-4">
         <Alert severity="info">
-          <Typography variant="h6" gutterBottom>
+          <h6 className="cn-text-h6 mb-[0.35em]">
             Accès non autorisé
-          </Typography>
-          <Typography variant="body1">
+          </h6>
+          <p className="cn-text-body1">
             Vous n'avez pas les permissions nécessaires pour accéder aux paramètres.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </Typography>
+          </p>
         </Alert>
-      </Box>
+      </div>
     );
   }
 
@@ -676,15 +683,15 @@ export default function Settings() {
   // OU bien il portale via le slot ? Si headerActions est defini ET le slot est
   // utilise par un tab, on stack les deux. Sinon on prend ce qui existe.
   const combinedActions = (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+    <div className="flex items-center gap-1.5">
       {headerActionsPortal}
       {headerActions}
-    </Box>
+    </div>
   );
 
   return (
     <SettingsHeaderProvider slot={headerActionsSlot}>
-    <Box>
+    <div>
       {/* Header avec actions */}
       <PageHeader
         title={headerTitle}
@@ -733,99 +740,86 @@ export default function Settings() {
                 alt: user?.fullName || user?.username || 'Photo de profil',
               }}
             >
-              <Grid container spacing={1.5}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Prénom"
-                    value={user?.firstName || ''}
-                    disabled
-                    size="small"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Nom"
-                    value={user?.lastName || ''}
-                    disabled
-                    size="small"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Nom d'utilisateur"
-                    value={user?.username || ''}
-                    disabled
-                    size="small"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    value={user?.email || ''}
-                    disabled
-                    size="small"
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Nom de l'entreprise"
+              <FieldGroup className="gap-3">
+                {/* Identite : ces quatre valeurs viennent de Keycloak et ne sont
+                    JAMAIS modifiables ici. Les rendre en champs desactives
+                    invitait a cliquer dans un formulaire qui n'accepte rien —
+                    on les donne a lire, et la section n'expose plus que ce qui
+                    se modifie vraiment. */}
+                <div className="rounded-lg border border-border/70 bg-muted/30 px-2.5 py-2">
+                  <dl className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+                    {[
+                      { label: 'Prénom', value: user?.firstName },
+                      { label: 'Nom', value: user?.lastName },
+                      { label: "Nom d'utilisateur", value: user?.username },
+                      { label: 'Email', value: user?.email },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="min-w-0">
+                        <dt className="text-[0.68rem] uppercase tracking-[0.04em] text-muted-foreground">
+                          {label}
+                        </dt>
+                        <dd className="m-0 truncate text-[0.8125rem] text-foreground">
+                          {value || <span className="text-muted-foreground">—</span>}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+
+                <Field>
+                  <FieldLabel htmlFor="settings-company-name">Nom de l'entreprise</FieldLabel>
+                  <Input
+                    id="settings-company-name"
                     value={settings.business.companyName}
                     onChange={(e) => handleSettingChange('business', 'companyName', e.target.value)}
-                    size="small"
                   />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Fuseau horaire"
-                    value={settings.business.timezone}
-                    onChange={(e) => handleSettingChange('business', 'timezone', e.target.value)}
-                    select
-                    size="small"
-                    SelectProps={{ native: true }}
-                  >
-                    <option value="Europe/Paris">Europe/Paris</option>
-                    <option value="Europe/London">Europe/London</option>
-                    <option value="America/New_York">America/New_York</option>
-                    <option value="Asia/Tokyo">Asia/Tokyo</option>
-                  </TextField>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Devise"
-                    value={settings.business.currency}
-                    onChange={(e) => handleSettingChange('business', 'currency', e.target.value)}
-                    select
-                    size="small"
-                    SelectProps={{ native: true }}
-                  >
-                    {CURRENCY_OPTIONS.map(c => (
-                      <option key={c.code} value={c.code}>{c.label}</option>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Langue"
+                </Field>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <Field>
+                    <FieldLabel htmlFor="settings-timezone">Fuseau horaire</FieldLabel>
+                    <NativeSelect
+                      id="settings-timezone"
+                      className="w-full"
+                      value={settings.business.timezone}
+                      onChange={(e) => handleSettingChange('business', 'timezone', e.target.value)}
+                    >
+                      <NativeSelectOption value="Europe/Paris">Europe/Paris</NativeSelectOption>
+                      <NativeSelectOption value="Europe/London">Europe/London</NativeSelectOption>
+                      <NativeSelectOption value="America/New_York">America/New_York</NativeSelectOption>
+                      <NativeSelectOption value="Asia/Tokyo">Asia/Tokyo</NativeSelectOption>
+                    </NativeSelect>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel htmlFor="settings-currency">Devise</FieldLabel>
+                    <NativeSelect
+                      id="settings-currency"
+                      className="w-full"
+                      value={settings.business.currency}
+                      onChange={(e) => handleSettingChange('business', 'currency', e.target.value)}
+                    >
+                      {CURRENCY_OPTIONS.map(c => (
+                        <NativeSelectOption key={c.code} value={c.code}>{c.label}</NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  </Field>
+                </div>
+
+                <Field>
+                  <FieldLabel htmlFor="settings-language">Langue</FieldLabel>
+                  <NativeSelect
+                    id="settings-language"
+                    className="w-full"
                     value={settings.business.language}
                     onChange={(e) => handleSettingChange('business', 'language', e.target.value)}
-                    select
-                    size="small"
-                    SelectProps={{ native: true }}
                   >
-                    <option value="fr">Français</option>
-                    <option value="en">English</option>
-                    <option value="ar">العربية</option>
-                  </TextField>
-                </Grid>
-              </Grid>
+                    <NativeSelectOption value="fr">Français</NativeSelectOption>
+                    <NativeSelectOption value="en">English</NativeSelectOption>
+                    <NativeSelectOption value="ar">العربية</NativeSelectOption>
+                  </NativeSelect>
+                </Field>
+              </FieldGroup>
             </SettingsSection>
           </Grid>
 
@@ -846,7 +840,7 @@ export default function Settings() {
                 title="Délai d'annulation"
                 description="Temps limite pour annuler une demande approuvée"
                 control={(
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <div className="flex items-center gap-0.5">
                     <TextField
                       type="number"
                       value={workflowSettings.cancellationDeadlineHours}
@@ -858,12 +852,10 @@ export default function Settings() {
                       size="small"
                       inputProps={{ min: 0, 'aria-label': "Délai d'annulation en heures" }}
                     />
-                    <Typography
-                      sx={{ fontSize: '0.72rem', color: 'text.secondary', fontWeight: 600, letterSpacing: '0.02em' }}
-                    >
+                    <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-semibold tracking-[0.02em]">
                       h
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                 )}
               />
               <SettingsToggleRow
@@ -902,63 +894,47 @@ export default function Settings() {
               accent="warm"
               description="Apparence, densité et préférences visuelles"
             >
-              <Box sx={{ pb: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
-                <Typography
-                  sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', mb: 0.125 }}
-                >
+              <div className="pb-2 border-b border-[divider]">
+                <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground mb-0">
                   Apparence
-                </Typography>
-                <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 1 }}>
+                </p>
+                <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-1.5">
                   {themeMode === 'auto'
                     ? `Système (${isDark ? 'sombre' : 'clair'} détecté)`
                     : themeMode === 'dark'
                       ? 'Mode sombre'
                       : 'Mode clair'}
-                </Typography>
-                <ToggleButtonGroup
+                </p>
+                <ToggleGroup
+                  type="single"
+                  variant="outline"
+                  size="sm"
+                  spacing={0}
                   value={themeMode}
-                  exclusive
-                  onChange={(_e, newMode) => {
-                    if (newMode !== null) {
-                      handleSettingChange('display', 'theme', newMode);
-                      setThemeMode(newMode);
-                    }
+                  // Radix renvoie '' quand on re-clique l'option active : sans ce
+                  // garde-fou, l'apparence se retrouverait sans valeur.
+                  onValueChange={(newMode) => {
+                    if (!newMode) return;
+                    handleSettingChange('display', 'theme', newMode);
+                    setThemeMode(newMode as typeof themeMode);
                   }}
-                  size="small"
-                  fullWidth
-                  sx={{
-                    '& .MuiToggleButton-root': {
-                      textTransform: 'none',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      gap: 0.625,
-                      py: 0.625,
-                      borderColor: 'divider',
-                      color: 'text.secondary',
-                      '&.Mui-selected': {
-                        bgcolor: 'var(--accent-soft)',
-                        color: 'var(--accent)',
-                        borderColor: 'color-mix(in srgb, var(--accent) 38%, transparent)',
-                        '&:hover': { bgcolor: 'var(--accent-soft)' },
-                      },
-                      '&:hover': { bgcolor: 'var(--hover)' },
-                    },
-                  }}
+                  aria-label="Apparence"
+                  className="w-full [&>*]:flex-1"
                 >
-                  <ToggleButton value="light">
+                  <ToggleGroupItem value="light" className="gap-1.5 text-[0.78rem] font-semibold">
                     <LightMode size={14} strokeWidth={1.75} />
                     Clair
-                  </ToggleButton>
-                  <ToggleButton value="dark">
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="dark" className="gap-1.5 text-[0.78rem] font-semibold">
                     <DarkMode size={14} strokeWidth={1.75} />
                     Sombre
-                  </ToggleButton>
-                  <ToggleButton value="auto">
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="auto" className="gap-1.5 text-[0.78rem] font-semibold">
                     <SettingsBrightness size={14} strokeWidth={1.75} />
                     Système
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Box>
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
               <SettingsToggleRow
                 icon={Storage}
                 iconColor="var(--muted)"
@@ -984,49 +960,43 @@ export default function Settings() {
 
       {/* ─── Onglet Notifications ───────────────────────────────────────── */}
       <TabPanel value={tabValue} index={tabIdx.notifications}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="flex flex-col gap-3">
           <NotificationPreferencesCard
             ref={notifRef}
             onChangeState={() => forceUpdate(n => n + 1)}
           />
           <MarketingPreferencesCard />
-        </Box>
+        </div>
       </TabPanel>
 
       {/* ─── Onglet Messagerie ────────────────────────────────────────── */}
       <TabPanel value={tabValue} index={tabIdx.messaging}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div className="flex flex-col gap-6">
           {/* La config du provider WhatsApp (credentials Meta/OpenWA) est gérée
               par la plateforme depuis l'onglet Organisation. Le HOST voit ici un
               statut read-only + ses automatisations de messages voyageurs. */}
           <WhatsAppStatusBanner />
           {/* La messagerie automatique check-in/check-out est désormais gérée dans
               le hub Automatisations (source de vérité unique). */}
-          <Box
-            sx={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              gap: 2, p: 2, borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--hairline)', backgroundColor: 'var(--field)',
-            }}
-          >
-            <Box>
-              <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink)' }}>
+          <Item variant="muted">
+            <ItemMedia variant="icon">
+              <Bolt size={16} strokeWidth={1.75} />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>
                 {t('messaging.automation.movedTitle', 'Messages automatiques (check-in / check-out)')}
-              </Typography>
-              <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mt: 0.5 }}>
+              </ItemTitle>
+              <ItemDescription>
                 {t('messaging.automation.movedBody', 'La messagerie automatique est désormais gérée dans Automatisations, avec les autres règles.')}
-              </Typography>
-            </Box>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => navigate('/automation-rules')}
-              sx={{ flexShrink: 0 }}
-            >
-              {t('messaging.automation.movedCta', 'Ouvrir les automatisations')}
-            </Button>
-          </Box>
-        </Box>
+              </ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <UiButton variant="outline" onClick={() => navigate('/automation-rules')}>
+                {t('messaging.automation.movedCta', 'Ouvrir les automatisations')}
+              </UiButton>
+            </ItemActions>
+          </Item>
+        </div>
       </TabPanel>
 
       {/* ─── Onglet Mes reversements (HOST) ────────────────────────── */}
@@ -1064,9 +1034,9 @@ export default function Settings() {
             ref={fiscalRef}
             onChangeState={() => forceUpdate(n => n + 1)}
           />
-          <Box sx={{ mt: 3 }} />
+          <div className="mt-4" />
           <TaxRulesSection />
-          <Box sx={{ mt: 3 }} />
+          <div className="mt-4" />
           <TouristTaxSection canEdit={hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER'])} />
         </TabPanel>
       )}
@@ -1115,9 +1085,9 @@ export default function Settings() {
               />
             </Grid>
           </Grid>
-          <Box sx={{ mt: 2 }}>
+          <div className="mt-3">
             <OwnerPayoutSettings />
-          </Box>
+          </div>
         </TabPanel>
       )}
 
@@ -1166,7 +1136,7 @@ export default function Settings() {
           {oauthSnackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
     </SettingsHeaderProvider>
   );
 }

@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Alert,
-  Autocomplete,
-  TextField,
-  Chip,
-  CircularProgress,
-  Grid,
-} from '@mui/material';
+import { Button, Alert, Autocomplete, TextField, Chip, CircularProgress, Grid } from '@mui/material';
 import {
   Business,
   PersonAdd,
@@ -174,10 +164,10 @@ export default function OrganizationSection({ organizationId }: Props) {
                 const c = getOrgTypeColor(option.type);
                 return (
                   <li key={key} {...optionProps}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                      <Typography sx={{ fontWeight: 500, flex: 1, fontSize: '0.85rem' }}>
+                    <div className="flex items-center gap-1.5 w-full">
+                      <p className="cn-text-body1 font-medium flex-1 text-[0.85rem]">
                         {option.name}
-                      </Typography>
+                      </p>
                       <Chip
                         label={getOrgTypeLabel(option.type)}
                         size="small"
@@ -189,16 +179,10 @@ export default function OrganizationSection({ organizationId }: Props) {
                           '& .MuiChip-label': { px: 0.75 },
                         }}
                       />
-                      <Typography
-                        sx={{
-                          fontSize: '0.7rem',
-                          color: 'text.secondary',
-                          fontVariantNumeric: 'tabular-nums',
-                        }}
-                      >
+                      <p className="cn-text-body1 text-[0.7rem] text-muted-foreground tabular-nums">
                         {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                   </li>
                 );
               }}
@@ -223,18 +207,9 @@ export default function OrganizationSection({ organizationId }: Props) {
 
             {effectiveOrgId ? (
               <>
-                <Typography
-                  sx={{
-                    fontSize: '10.5px',
-                    fontWeight: 700,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: 'var(--faint)',
-                    mb: 1,
-                  }}
-                >
+                <p className="cn-text-body1 text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)] mb-1.5">
                   Membres de l'organisation
-                </Typography>
+                </p>
 
                 <MembersList
                   organizationId={effectiveOrgId}
@@ -256,7 +231,7 @@ export default function OrganizationSection({ organizationId }: Props) {
 
         {/* ─── Colonne droite : Facturation + Invitations ─────────── */}
         <Grid item xs={12} md={7}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div className="flex flex-col gap-3">
             {effectiveOrgId ? (
               <BillingSummaryCard
                 organizationId={effectiveOrgId}
@@ -264,9 +239,9 @@ export default function OrganizationSection({ organizationId }: Props) {
               />
             ) : (
               <SettingsSection title="Facturation" icon={Business} accent="accent">
-                <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', textAlign: 'center', py: 2 }}>
+                <p className="cn-text-body1 text-[0.78rem] text-muted-foreground text-center py-3">
                   Sélectionnez une organisation pour voir la facturation.
-                </Typography>
+                </p>
               </SettingsSection>
             )}
 
@@ -278,7 +253,7 @@ export default function OrganizationSection({ organizationId }: Props) {
                 />
               </SettingsSection>
             )}
-          </Box>
+          </div>
         </Grid>
       </Grid>
       </>

@@ -85,10 +85,10 @@ function CheckRow({ check }: { check: ChannexPreflightCheck }) {
           : 'transparent',
       }}
     >
-      <Box sx={{ mt: 0.2, flexShrink: 0 }}>
+      <div className="mt-0.5 shrink-0">
         <SeverityIcon severity={check.severity} />
-      </Box>
-      <Box sx={{ minWidth: 0, flex: 1 }}>
+      </div>
+      <div className="min-w-0 flex-1">
         <Typography
           variant="body2"
           fontWeight={isIssue ? 600 : 500}
@@ -96,13 +96,9 @@ function CheckRow({ check }: { check: ChannexPreflightCheck }) {
         >
           {check.label}
         </Typography>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: 'block', lineHeight: 1.45, mt: 0.15 }}
-        >
+        <span className="cn-text-caption text-muted-foreground block leading-[1.45] mt-0">
           {check.detail}
-        </Typography>
+        </span>
         {check.remediation && (
           <Typography
             variant="caption"
@@ -117,7 +113,7 @@ function CheckRow({ check }: { check: ChannexPreflightCheck }) {
             ↳ {check.remediation}
           </Typography>
         )}
-      </Box>
+      </div>
     </Box>
   );
 }
@@ -210,39 +206,34 @@ export default function ChannexPreflightBanner({
         >
           <Stethoscope size={16} strokeWidth={2.2} />
         </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+        <div className="flex-1 min-w-0">
+          <p className="cn-text-body2 font-semibold leading-[1.3]">
             Diagnostic Channex
             {propertyId != null && (
-              <Typography
-                component="span"
-                variant="caption"
-                color="text.secondary"
-                sx={{ ml: 0.75, fontWeight: 400 }}
-              >
+              <span className="cn-text-caption text-muted-foreground ms-1 font-normal">
                 · propriete #{propertyId}
-              </Typography>
+              </span>
             )}
-          </Typography>
+          </p>
           {loading && (
-            <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+            <span className="cn-text-caption text-muted-foreground leading-[1.4]">
               Verification en cours…
-            </Typography>
+            </span>
           )}
           {!loading && error && (
-            <Typography variant="caption" color="error" sx={{ lineHeight: 1.4 }}>
+            <span className="cn-text-caption text-destructive leading-[1.4]">
               {error}
-            </Typography>
+            </span>
           )}
           {!loading && report && (
-            <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+            <span className="cn-text-caption text-muted-foreground leading-[1.4]">
               {report.canProceed ? 'Pret a connecter' : 'Action requise avant connexion'}
               {okCount > 0 && ` · ${okCount} OK`}
               {warningCount > 0 && ` · ${warningCount} attention`}
               {blockerCount > 0 && ` · ${blockerCount} bloquant${blockerCount > 1 ? 's' : ''}`}
-            </Typography>
+            </span>
           )}
-        </Box>
+        </div>
         <Tooltip title="Relancer le diagnostic" arrow placement="top">
           <span>
             <IconButton
@@ -280,7 +271,7 @@ export default function ChannexPreflightBanner({
 
       {/* Corps (deroulable) */}
       <Collapse in={!collapsed}>
-        <Box sx={{ px: 1.5, pb: 1.5, pt: 0.25 }}>
+        <div className="px-2 pb-2 pt-0.5">
           {loading && !report && (
             <Stack spacing={0.5}>
               <Skeleton variant="rounded" height={36} />
@@ -300,7 +291,7 @@ export default function ChannexPreflightBanner({
               ))}
             </Stack>
           )}
-        </Box>
+        </div>
       </Collapse>
     </Box>
   );

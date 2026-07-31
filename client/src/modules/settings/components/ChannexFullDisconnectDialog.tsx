@@ -20,20 +20,7 @@
  * </ol>
  */
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  Box,
-  Typography,
-  Button,
-  CircularProgress,
-  Alert,
-  Checkbox,
-  FormControlLabel,
-  Stack,
-  Chip,
-} from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, Box, Button, CircularProgress, Alert, Checkbox, FormControlLabel, Stack, Chip } from '@mui/material';
 import {
   AlertCircle,
   CheckCircle2,
@@ -104,18 +91,14 @@ function StepRow({ step }: { step: ChannexFullDisconnectStep }) {
         alignItems: 'flex-start',
       }}
     >
-      <Box sx={{ mt: 0.2 }}>
+      <div className="mt-0.5">
         <StepIcon status={step.status} />
-      </Box>
-      <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
-          <Typography
-            variant="body2"
-            fontWeight={600}
-            sx={{ lineHeight: 1.3, color: 'text.primary' }}
-          >
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1 mb-0.5">
+          <p className="cn-text-body2 font-semibold leading-[1.3] text-foreground">
             {STEP_LABEL_FR[step.code] ?? step.label}
-          </Typography>
+          </p>
           {step.targetId && (
             <Chip
               size="small"
@@ -128,15 +111,11 @@ function StepRow({ step }: { step: ChannexFullDisconnectStep }) {
               }}
             />
           )}
-        </Box>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: 'block', lineHeight: 1.45 }}
-        >
+        </div>
+        <span className="cn-text-caption text-muted-foreground block leading-[1.45]">
           {step.detail}
-        </Typography>
-      </Box>
+        </span>
+      </div>
     </Box>
   );
 }
@@ -208,36 +187,23 @@ export default function ChannexFullDisconnectDialog({
               pb: 1,
             }}
           >
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: 1,
-                bgcolor: 'var(--err-soft)',
-                color: 'var(--err)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                mt: 0.25,
-              }}
-            >
+            <div className="w-[36px] h-[36px] rounded-[1px] bg-[var(--err-soft)] text-[var(--err)] flex items-center justify-center shrink-0 mt-0.5">
               <ShieldAlert size={20} />
-            </Box>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.3, fontSize: '1.05rem' }}>
+            </div>
+            <div className="min-w-0 flex-1">
+              <h6 className="cn-text-h6 font-semibold leading-[1.3] text-[1.05rem]">
                 Deconnexion complete de « {propertyName} »
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+              </h6>
+              <span className="cn-text-caption text-muted-foreground block mt-0.5">
                 Smart Disconnect orchestre · libere les OTA + nettoie le hub
-              </Typography>
-            </Box>
+              </span>
+            </div>
           </DialogTitle>
 
           <DialogContent sx={{ pt: 1, pb: 1.5 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <p className="cn-text-body2 text-muted-foreground mb-3">
               Cette operation va executer en sequence&nbsp;:
-            </Typography>
+            </p>
             <Stack
               spacing={0.75}
               sx={{
@@ -246,18 +212,18 @@ export default function ChannexFullDisconnectDialog({
                 borderLeft: '2px solid var(--line-2)',
               }}
             >
-              <Typography variant="body2" color="text.primary">
+              <p className="cn-text-body2 text-foreground">
                 1. <b>Detecter</b> tous les channels OTA actifs sur cette property
-              </Typography>
-              <Typography variant="body2" color="text.primary">
+              </p>
+              <p className="cn-text-body2 text-foreground">
                 2. <b>Desactiver</b> chaque channel (les hosts reprennent la main immediatement)
-              </Typography>
-              <Typography variant="body2" color="text.primary">
+              </p>
+              <p className="cn-text-body2 text-foreground">
                 3. <b>Supprimer</b> chaque channel du hub (tokens OAuth detruits)
-              </Typography>
-              <Typography variant="body2" color="text.primary">
+              </p>
+              <p className="cn-text-body2 text-foreground">
                 4. <b>Nettoyer</b> le mapping local Baitly
-              </Typography>
+              </p>
             </Stack>
 
             <FormControlLabel
@@ -269,15 +235,15 @@ export default function ChannexFullDisconnectDialog({
                 />
               }
               label={
-                <Box>
-                  <Typography variant="body2" fontWeight={600}>
+                <div>
+                  <p className="cn-text-body2 font-semibold">
                     Reset complet : supprimer aussi la property cote hub
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  </p>
+                  <span className="cn-text-caption text-muted-foreground block">
                     Plus de trace dans le dashboard Channex. Irreversible : il faudra recreer la
                     property pour reconnecter.
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               }
               sx={{
                 m: 0,
@@ -296,7 +262,7 @@ export default function ChannexFullDisconnectDialog({
             )}
           </DialogContent>
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, px: 3, pb: 2 }}>
+          <div className="flex justify-end gap-1.5 px-4 pb-3">
             <Button
               onClick={handleClose}
               size="small"
@@ -314,25 +280,25 @@ export default function ChannexFullDisconnectDialog({
             >
               {deletePivot ? 'Reset complet' : 'Deconnecter'}
             </Button>
-          </Box>
+          </div>
         </>
       )}
 
       {/* ─── Phase RUNNING ─────────────────────────────────────────────── */}
       {phase === 'RUNNING' && (
         <DialogContent sx={{ py: 5 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <div className="flex flex-col items-center gap-3">
             <CircularProgress size={42} sx={{ color: 'var(--err)' }} />
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
+            <div className="text-center">
+              <h6 className="cn-text-subtitle1 font-semibold mb-0.5">
                 Deconnexion en cours…
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
+              </h6>
+              <span className="cn-text-caption text-muted-foreground">
                 Le hub libere les OTA et nettoie les channels. 5 a 10 secondes selon le nombre
                 d'OTA connectes.
-              </Typography>
-            </Box>
-          </Box>
+              </span>
+            </div>
+          </div>
         </DialogContent>
       )}
 
@@ -364,18 +330,18 @@ export default function ChannexFullDisconnectDialog({
                 <AlertCircle size={20} />
               )}
             </Box>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.3, fontSize: '1.05rem' }}>
+            <div className="min-w-0 flex-1">
+              <h6 className="cn-text-h6 font-semibold leading-[1.3] text-[1.05rem]">
                 {result.overallSuccess
                   ? 'Deconnexion reussie'
                   : 'Deconnexion partielle'}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+              </h6>
+              <span className="cn-text-caption text-muted-foreground block mt-0.5">
                 {successCount} reussie{successCount > 1 ? 's' : ''}
                 {failedCount > 0 && ` · ${failedCount} echec${failedCount > 1 ? 's' : ''}`}
                 {skippedCount > 0 && ` · ${skippedCount} ignoree${skippedCount > 1 ? 's' : ''}`}
-              </Typography>
-            </Box>
+              </span>
+            </div>
           </DialogTitle>
 
           <DialogContent sx={{ pt: 1, pb: 2 }}>
@@ -398,7 +364,7 @@ export default function ChannexFullDisconnectDialog({
             </Stack>
           </DialogContent>
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, px: 3, pb: 2 }}>
+          <div className="flex justify-end gap-1.5 px-4 pb-3">
             <Button
               onClick={handleClose}
               size="small"
@@ -408,7 +374,7 @@ export default function ChannexFullDisconnectDialog({
             >
               Fermer
             </Button>
-          </Box>
+          </div>
         </>
       )}
     </Dialog>

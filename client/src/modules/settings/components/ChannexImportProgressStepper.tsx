@@ -94,7 +94,7 @@ function StepBubble({ step }: { step: Step }) {
   const color = STATUS_COLOR[step.status];
   const Icon = step.status === 'COMPLETE' ? Check : step.Icon;
   return (
-    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0, flex: 1 }}>
+    <div className="flex items-start gap-1.5 min-w-0 flex-1">
       <Box
         sx={{
           width: 32,
@@ -121,7 +121,7 @@ function StepBubble({ step }: { step: Step }) {
           step.num
         )}
       </Box>
-      <Box sx={{ minWidth: 0, flex: 1 }}>
+      <div className="min-w-0 flex-1">
         <Typography
           variant="caption"
           sx={{
@@ -146,8 +146,8 @@ function StepBubble({ step }: { step: Step }) {
         >
           {step.hint}
         </Typography>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 

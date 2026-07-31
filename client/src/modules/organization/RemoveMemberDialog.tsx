@@ -1,14 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, CircularProgress, Alert } from '@mui/material';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
 
 interface Props {
@@ -51,12 +42,12 @@ export default function RemoveMemberDialog({ open, onClose, member, organization
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
       <DialogTitle>Retirer un membre</DialogTitle>
       <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+        <p className="cn-text-body2 text-muted-foreground mb-1.5">
           Etes-vous sur de vouloir retirer <strong>{memberName}</strong> de l'organisation ?
-        </Typography>
-        <Typography variant="body2" sx={{ color: 'var(--err)' }}>
+        </p>
+        <p className="cn-text-body2 text-[var(--err)]">
           Cette action retirera son acces a toutes les ressources de l'organisation.
-        </Typography>
+        </p>
 
         {error && (
           <Alert severity="error" sx={{ mt: 2 }}>

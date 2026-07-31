@@ -221,18 +221,16 @@ export default function ServicesActivitiesPanel({
 
   return (
     <>
-      <Typography
-        sx={{ fontSize: "0.75rem", fontWeight: 600, color: "text.secondary", mb: 1 }}
-      >
+      <p className="cn-text-body1 text-[0.75rem] font-semibold text-muted-foreground mb-1.5">
         {t("settings.services.upsellTitle", "Upsells — services vendus au voyageur")}
-      </Typography>
+      </p>
 
-      <Box sx={{ mb: 2 }}>
+      <div className="mb-3">
         {/* Pas de verrous ici : trois parts pilotees par deux taux seulement,
             dont un relatif au net. Figer une part ne pourrait pas etre honore
             sans bloquer la conversion — le cadenas mentirait. */}
         <SplitBarEditor segments={segments} onChange={handleSegmentsChange} />
-      </Box>
+      </div>
 
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25} sx={{ mb: 1.5 }}>
         {renderInput({
@@ -261,26 +259,16 @@ export default function ServicesActivitiesPanel({
         )}
       </Alert>
 
-      <Box sx={{ borderTop: "1px solid", borderColor: "divider", pt: 1.5 }}>
-        <Typography
-          sx={{ fontSize: "0.75rem", fontWeight: 600, color: "text.secondary" }}
-        >
+      <div className="border-t border-[divider] pt-2">
+        <p className="cn-text-body1 text-[0.75rem] font-semibold text-muted-foreground">
           {t("settings.services.activitiesTitle", "Activités — programmes d’affiliation")}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: "0.72rem",
-            color: "text.secondary",
-            mt: 0.5,
-            mb: 1.25,
-            lineHeight: 1.5,
-          }}
-        >
+        </p>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-0.5 mb-2 leading-[1.5]">
           {t(
             "settings.services.affiliationHint",
             "Le voyageur réserve chez le prestataire via un lien affilié. La commission est versée sur le compte affilié Baitly, qui en retient sa part et vous reverse le solde.",
           )}
-        </Typography>
+        </p>
 
         <TableContainer sx={{ overflowX: "auto" }}>
           <Table size="small" sx={{ minWidth: 460 }}>
@@ -313,11 +301,9 @@ export default function ServicesActivitiesPanel({
                 return (
                   <TableRow key={provider} hover>
                     <TableCell>
-                      <Typography
-                        sx={{ fontSize: "0.8125rem", fontWeight: 600, whiteSpace: "nowrap" }}
-                      >
+                      <p className="cn-text-body1 text-[0.8125rem] font-semibold whitespace-nowrap">
                         {PROVIDER_LABELS[provider]}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell>
                       <Chip
@@ -363,19 +349,12 @@ export default function ServicesActivitiesPanel({
                       />
                     </TableCell>
                     <TableCell align="right">
-                      <Typography
-                        sx={{
-                          fontSize: "0.78rem",
-                          fontWeight: 700,
-                          fontVariantNumeric: "tabular-nums",
-                          color: "text.primary",
-                        }}
-                      >
+                      <p className="cn-text-body1 text-[0.78rem] font-bold tabular-nums text-foreground">
                         {formatMoney(100 - platformRate(provider))}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell align="right">
-                      <Box sx={{ display: "inline-flex", gap: 0.5 }}>
+                      <div className="inline-flex gap-0.5">
                       <Tooltip
                         title={t(
                           "settings.services.importTooltip",
@@ -442,7 +421,7 @@ export default function ServicesActivitiesPanel({
                           </IconButton>
                         </span>
                       </Tooltip>
-                      </Box>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -451,20 +430,13 @@ export default function ServicesActivitiesPanel({
           </Table>
         </TableContainer>
 
-        <Typography
-          sx={{
-            fontSize: "0.72rem",
-            color: "text.secondary",
-            mt: 1,
-            lineHeight: 1.5,
-          }}
-        >
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-1.5 leading-[1.5]">
           {t(
             "settings.services.affiliationProjection",
             "Projection sur 100 € de commission d’affiliation perçue par Baitly, qui en retient sa part et vous reverse le solde. Un taux vide signifie qu’aucune part n’est retenue.",
           )}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       <AffiliateImportDialog
         open={importProvider !== null}

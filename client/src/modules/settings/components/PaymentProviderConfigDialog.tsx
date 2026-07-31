@@ -1,21 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Box,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  MenuItem,
-  Switch,
-  FormControlLabel,
-  IconButton,
-  InputAdornment,
-  CircularProgress,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Alert, MenuItem, Switch, FormControlLabel, IconButton, InputAdornment, CircularProgress } from '@mui/material';
 import { Close as CloseIcon, Visibility, VisibilityOff } from '../../../icons';
 import type {
   PaymentMethodConfig,
@@ -406,15 +390,12 @@ export default function PaymentProviderConfigDialog({
           pb: 1,
         }}
       >
-        <Box>
+        <div>
           Configurer {PAYMENT_PROVIDER_LABELS[providerType]}
-          <Typography
-            component="span"
-            sx={{ display: 'block', fontSize: '0.72rem', fontWeight: 400, color: 'text.secondary', mt: 0.25 }}
-          >
+          <span className="block text-[0.72rem] font-normal text-muted-foreground mt-0.5">
             Renseignez les identifiants marchands. Les secrets sont chiffres avant stockage (AES-256-GCM).
-          </Typography>
-        </Box>
+          </span>
+        </div>
         <IconButton onClick={onClose} disabled={saving} size="small">
           <CloseIcon size={16} strokeWidth={2} />
         </IconButton>
@@ -485,14 +466,14 @@ export default function PaymentProviderConfigDialog({
             />
           }
           label={
-            <Box>
-              <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+            <div>
+              <p className="cn-text-body1 text-[0.82rem] font-semibold">
                 Mode sandbox
-              </Typography>
-              <Typography sx={{ fontSize: '0.68rem', color: 'text.secondary' }}>
+              </p>
+              <p className="cn-text-body1 text-[0.68rem] text-muted-foreground">
                 Activez en developpement ; desactivez pour la production (apres validation KYB).
-              </Typography>
-            </Box>
+              </p>
+            </div>
           }
           sx={{ alignItems: 'flex-start', mt: 0.5 }}
         />

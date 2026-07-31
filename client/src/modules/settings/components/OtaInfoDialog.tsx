@@ -1,14 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Chip,
-  Alert,
-  CircularProgress,
-  TextField,
-} from '@mui/material';
+import { Card } from '../../../components/ui';
+import { Box, Button, Chip, Alert, CircularProgress, TextField } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle as CheckCircleIcon,
@@ -208,28 +200,9 @@ export default function OtaInfoDialog({
 
   return (
     <IntegrationConfigDialog open={open} onClose={onClose}>
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          overflow: 'hidden',
-        }}
-      >
+      <Card className="gap-0 py-0 border-border overflow-hidden">
         {/* ─── Header (uniforme avec ApiKeyConnectionCard) ─────────────── */}
-        <Box
-          sx={{
-            px: 2,
-            py: 1.75,
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 1.5,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
+        <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[divider]">
           <Box
             sx={{
               width: 40,
@@ -245,21 +218,16 @@ export default function OtaInfoDialog({
             aria-hidden="true"
           >
             {ota.logo ? (
-              <Box
-                component="img"
-                src={ota.logo}
-                alt=""
-                sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-              />
+              <img className="max-w-full max-h-[100%] object-contain" src={ota.logo} alt="" />
             ) : (
-              <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--on-accent)' }}>
+              <p className="cn-text-body1 text-[0.85rem] font-bold text-[var(--on-accent)]">
                 {ota.name.slice(0, 2).toUpperCase()}
-              </Typography>
+              </p>
             )}
           </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-              <Typography sx={{ fontSize: '0.92rem', fontWeight: 600 }}>{ota.name}</Typography>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-0.5 flex-wrap">
+              <p className="cn-text-body1 text-[0.92rem] font-semibold">{ota.name}</p>
               <Chip
                 label={ota.segment}
                 size="small"
@@ -273,16 +241,16 @@ export default function OtaInfoDialog({
                   '& .MuiChip-label': { px: 0.625 },
                 }}
               />
-            </Box>
-            <Typography sx={{ fontSize: '0.74rem', color: 'text.secondary', mt: 0.5 }}>
+            </div>
+            <p className="cn-text-body1 text-[0.74rem] text-muted-foreground mt-0.5">
               {isAirbnb
                 ? 'Connexion OAuth2 native'
                 : isFormConnectable
                   ? 'Connexion via formulaire (API ou iCal)'
                   : 'Intégration en cours de développement'}
-            </Typography>
-          </Box>
-          <Box sx={{ flexShrink: 0 }}>
+            </p>
+          </div>
+          <div className="shrink-0">
             {isConnected ? (
               <Chip
                 icon={<CheckCircleIcon size={11} strokeWidth={2} />}
@@ -298,11 +266,11 @@ export default function OtaInfoDialog({
                 sx={statusChipSx(NEUTRAL)}
               />
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* ─── Body ────────────────────────────────────────────────────── */}
-        <Box sx={{ p: 2 }}>
+        <div className="p-3">
           {/* Cas 1 : Coming soon */}
           {!ota.available && (
             <Alert
@@ -316,7 +284,7 @@ export default function OtaInfoDialog({
 
           {/* Cas 2 : Deja connecte (form OTA ou Airbnb), mode consultation */}
           {ota.available && isConnected && !editingForm && (
-            <Box>
+            <div>
               <Alert
                 severity="success"
                 variant="outlined"
@@ -330,40 +298,40 @@ export default function OtaInfoDialog({
                 {isChannelConnected && channelStatus && (
                   <>
                     {channelStatus.externalPropertyId && (
-                      <Box>
-                        <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Property ID</Typography>
-                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>{channelStatus.externalPropertyId}</Typography>
-                      </Box>
+                      <div>
+                        <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Property ID</p>
+                        <p className="cn-text-body1 text-[0.82rem] font-medium">{channelStatus.externalPropertyId}</p>
+                      </div>
                     )}
                     {channelStatus.connectedAt && (
-                      <Box>
-                        <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Connecté depuis</Typography>
-                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>
+                      <div>
+                        <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Connecté depuis</p>
+                        <p className="cn-text-body1 text-[0.82rem] font-medium">
                           {new Date(channelStatus.connectedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
                     )}
                     {channelStatus.lastSyncAt && (
-                      <Box>
-                        <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Dernière sync</Typography>
-                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>
+                      <div>
+                        <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Dernière sync</p>
+                        <p className="cn-text-body1 text-[0.82rem] font-medium">
                           {new Date(channelStatus.lastSyncAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
                     )}
                   </>
                 )}
                 {isAirbnbConnected && airbnbStatus?.connectedAt && (
-                  <Box>
-                    <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Connecté depuis</Typography>
-                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>
+                  <div>
+                    <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Connecté depuis</p>
+                    <p className="cn-text-body1 text-[0.82rem] font-medium">
                       {new Date(airbnbStatus.connectedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                 )}
               </Box>
 
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <div className="flex gap-1.5 flex-wrap">
                 {isFormConnectable && (
                   <Button
                     variant="outlined"
@@ -418,17 +386,17 @@ export default function OtaInfoDialog({
                 >
                   Gérer dans Channels
                 </Button>
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
           {/* Cas 3 : Airbnb non connecte (OAuth) */}
           {ota.available && isAirbnb && !isConnected && (
-            <Box>
-              <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary', mb: 1.5 }}>
+            <div>
+              <p className="cn-text-body1 text-[0.82rem] text-muted-foreground mb-2">
                 Airbnb utilise un flow OAuth2 natif. Vous serez redirigé vers Airbnb pour autoriser l'accès à votre compte.
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              </p>
+              <div className="flex gap-1.5 flex-wrap">
                 <Button
                   variant="contained"
                   size="small"
@@ -453,22 +421,18 @@ export default function OtaInfoDialog({
                 >
                   Détails dans Channels
                 </Button>
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
           {/* Cas 4 : Form OTA — non connecte OU mode "modifier" */}
           {showForm && (
-            <Box
-              component="form"
-              onSubmit={(e) => { e.preventDefault(); handleConnect(); }}
-              sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}
-            >
-              <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
+            <form className="flex flex-col gap-2" onSubmit={(e) => { e.preventDefault(); handleConnect(); }}>
+              <p className="cn-text-body1 text-[0.78rem] text-muted-foreground">
                 {editingForm
                   ? `Modifier les credentials ${ota.name}. Les anciennes valeurs seront ecrasees apres connexion.`
                   : `Renseignez vos credentials ${ota.name}. Ils sont chiffrés (AES-256) avant stockage.`}
-              </Typography>
+              </p>
 
               {fields.map((field) => (
                 <TextField
@@ -499,7 +463,7 @@ export default function OtaInfoDialog({
                 </Alert>
               )}
 
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
+              <div className="flex gap-1.5 flex-wrap mt-0.5">
                 <Button
                   type="button"
                   variant="outlined"
@@ -545,8 +509,8 @@ export default function OtaInfoDialog({
                     Annuler
                   </Button>
                 )}
-              </Box>
-            </Box>
+              </div>
+            </form>
           )}
 
           {actionError && (
@@ -554,8 +518,8 @@ export default function OtaInfoDialog({
               {actionError}
             </Alert>
           )}
-        </Box>
-      </Paper>
+        </div>
+      </Card>
     </IntegrationConfigDialog>
   );
 }

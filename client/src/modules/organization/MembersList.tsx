@@ -1,20 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Box,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  IconButton,
-  Tooltip,
-  CircularProgress,
-  Alert,
-  Avatar,
-} from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, CircularProgress, Alert, Avatar } from '@mui/material';
 import {
   Edit as EditIcon,
   PersonRemove as PersonRemoveIcon,
@@ -108,9 +93,9 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+      <div className="flex justify-center py-4">
         <CircularProgress size={32} />
-      </Box>
+      </div>
     );
   }
 
@@ -124,9 +109,9 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
 
   if (members.length === 0) {
     return (
-      <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+      <p className="cn-text-body2 text-muted-foreground py-3 text-center">
         Aucun membre dans cette organisation
-      </Typography>
+      </p>
     );
   }
 
@@ -159,7 +144,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                 <TableRow key={member.id} hover>
                   {/* Membre (avatar + nom + email) */}
                   <TableCell sx={CELL_MEMBER_SX}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
+                    <div className="flex items-center gap-2 min-w-0">
                       <Avatar
                         src={usersApi.profilePictureUrl(member.userId)}
                         alt={`${member.firstName} ${member.lastName}`.trim() || member.email}
@@ -178,41 +163,20 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                       >
                         {getInitials(member)}
                       </Avatar>
-                      <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography
-                          sx={{
-                            fontSize: '0.82rem',
-                            fontWeight: 600,
-                            color: 'text.primary',
-                            lineHeight: 1.25,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                          title={getMemberName(member)}
-                        >
+                      <div className="min-w-0 flex-1">
+                        <p className="cn-text-body1 text-[0.82rem] font-semibold text-foreground leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap" title={getMemberName(member)}>
                           {getMemberName(member)}
-                        </Typography>
-                        <Typography
-                          sx={{
-                            fontSize: '0.7rem',
-                            color: 'text.secondary',
-                            lineHeight: 1.3,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                          title={member.email}
-                        >
+                        </p>
+                        <p className="cn-text-body1 text-[0.7rem] text-muted-foreground leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap" title={member.email}>
                           {member.email}
-                        </Typography>
-                      </Box>
-                    </Box>
+                        </p>
+                      </div>
+                    </div>
                   </TableCell>
 
                   {/* Role : org + plateforme (les deux, parite avec l'Annuaire) */}
                   <TableCell sx={CELL_NOWRAP_SX}>
-                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                    <div className="flex gap-0.5 flex-wrap">
                       <Tooltip title="Rôle dans l'organisation">
                         <Chip
                           icon={<RoleIcon size={11} strokeWidth={2} />}
@@ -245,29 +209,23 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                           </Tooltip>
                         );
                       })()}
-                    </Box>
+                    </div>
                   </TableCell>
 
                   {/* Depuis */}
                   <TableCell sx={CELL_NOWRAP_SX}>
-                    <Typography
-                      sx={{
-                        fontSize: '0.72rem',
-                        color: 'text.secondary',
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
+                    <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums">
                       {member.joinedAt
                         ? new Date(member.joinedAt).toLocaleDateString('fr-FR')
                         : '—'}
-                    </Typography>
+                    </p>
                   </TableCell>
 
                   {/* Actions — visible uniquement pour staff plateforme ou admin org */}
                   {canManage && (
                     <TableCell align="right" sx={{ ...CELL_NOWRAP_SX, pr: 1.25 }}>
                       {!isOwner && (
-                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                        <div className="inline-flex items-center gap-0.5">
                           <Tooltip title="Changer le rôle">
                             <IconButton
                               size="small"
@@ -326,7 +284,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                               <PersonRemoveIcon size={13} strokeWidth={1.75} />
                             </IconButton>
                           </Tooltip>
-                        </Box>
+                        </div>
                       )}
                     </TableCell>
                   )}

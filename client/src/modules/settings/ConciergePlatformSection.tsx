@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, CircularProgress, MenuItem, Select, Typography } from '@mui/material';
+import { CircularProgress, MenuItem, Select } from '@mui/material';
 import { Bot, PenLine, Send, Gem } from 'lucide-react';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
@@ -43,9 +43,9 @@ const ConciergePlatformSection: React.FC = () => {
       description="Activation globale du concierge guest — appliquée à chaud, sans redéploiement. Chaque organisation garde la main via son module « Communication » (activation + niveau d'autonomie)."
     >
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+        <div className="flex justify-center py-3">
           <CircularProgress size={20} />
-        </Box>
+        </div>
       ) : (
         <>
           <SettingsToggleRow
@@ -86,9 +86,9 @@ const ConciergePlatformSection: React.FC = () => {
             }
           />
           {settings?.updatedBy && (
-            <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', mt: 1 }}>
+            <p className="cn-text-body1 text-[0.7rem] text-muted-foreground opacity-60 mt-1.5">
               Dernière modification par {settings.updatedBy}.
-            </Typography>
+            </p>
           )}
         </>
       )}

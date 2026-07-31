@@ -8,26 +8,7 @@
  *   - Cochee par defaut : "Appliquer aux X propriete(s)"
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Box,
-  Typography,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Button,
-  Stack,
-  IconButton,
-  FormControlLabel,
-  Checkbox,
-  Alert,
-  Autocomplete,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box, TextField, Select, MenuItem, FormControl, InputLabel, Button, Stack, IconButton, FormControlLabel, Checkbox, Alert, Autocomplete } from '@mui/material';
 import { X, Sparkles } from 'lucide-react';
 
 import {
@@ -167,12 +148,12 @@ export default function CreateCustomAmenityModal({
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         borderBottom: '1px solid', borderColor: 'divider', py: 1.5,
       }}>
-        <Box>
-          <Typography variant="subtitle1" fontWeight={600}>Nouvelle commodité</Typography>
-          <Typography variant="caption" color="text.secondary">
+        <div>
+          <h6 className="cn-text-subtitle1 font-semibold">Nouvelle commodité</h6>
+          <span className="cn-text-caption text-muted-foreground">
             Étend le référentiel Baitly pour votre organisation
-          </Typography>
-        </Box>
+          </span>
+        </div>
         <IconButton size="small" onClick={onClose}><X size={18} /></IconButton>
       </DialogTitle>
 
@@ -182,7 +163,7 @@ export default function CreateCustomAmenityModal({
                  sx={{ mb: 2, '& .MuiAlert-message': { fontSize: '0.8rem' } }}>
             Détectée sur <strong>{prefillAffectedCount}</strong> propriété
             {prefillAffectedCount > 1 ? 's' : ''} sous le nom OTA brut «&nbsp;
-            <Box component="span" sx={{ fontFamily: 'monospace' }}>{prefillRawName}</Box>&nbsp;».
+            <span className="font-mono">{prefillRawName}</span>&nbsp;».
           </Alert>
         )}
 
@@ -216,12 +197,12 @@ export default function CreateCustomAmenityModal({
             renderOption={(props, opt) => (
               <li {...props}>
                 <Sparkles size={12} style={{ marginRight: 8, color: '#8B5CF6' }} />
-                <Box>
-                  <Typography sx={{ fontSize: '0.85rem' }}>{opt.title}</Typography>
-                  <Typography variant="caption" color="text.disabled" sx={{ display: 'block' }}>
+                <div>
+                  <p className="cn-text-body1 text-[0.85rem]">{opt.title}</p>
+                  <span className="cn-text-caption text-muted-foreground opacity-60 block">
                     {opt.category}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               </li>
             )}
             renderInput={(params) => (
@@ -292,14 +273,14 @@ export default function CreateCustomAmenityModal({
             >
               <PreviewIcon size={20} strokeWidth={1.75} />
             </Box>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ fontSize: '0.78rem', fontWeight: 600 }}>
+            <div className="flex-1 min-w-0">
+              <p className="cn-text-body1 text-[0.78rem] font-semibold">
                 {t('settings.amenities.iconLabel', 'Icône')}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+              </p>
+              <span className="cn-text-caption text-muted-foreground font-mono">
                 {selectedIconName}
-              </Typography>
-            </Box>
+              </span>
+            </div>
             <Button
               size="small"
               variant="outlined"
@@ -328,9 +309,9 @@ export default function CreateCustomAmenityModal({
                   />
                 }
                 label={
-                  <Typography variant="caption">
+                  <span className="cn-text-caption">
                     Créer aussi l'alias «&nbsp;<strong>{prefillRawName}</strong>&nbsp;» → <strong>{previewCode || '...'}</strong>
-                  </Typography>
+                  </span>
                 }
               />
               {prefillAffectedCount > 0 && (
@@ -345,9 +326,9 @@ export default function CreateCustomAmenityModal({
                     />
                   }
                   label={
-                    <Typography variant="caption">
+                    <span className="cn-text-caption">
                       Appliquer aux <strong>{prefillAffectedCount}</strong> propriété{prefillAffectedCount > 1 ? 's' : ''} maintenant
-                    </Typography>
+                    </span>
                   }
                 />
               )}

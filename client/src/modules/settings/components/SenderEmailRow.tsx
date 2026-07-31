@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Button, TextField, Typography } from '@mui/material';
+import { Box, Button, TextField } from '@mui/material';
 import { Info, Send } from 'lucide-react';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -33,21 +33,21 @@ const SenderEmailRow: React.FC<Props> = ({ email, name, onSave, saving }) => {
   const foreignDomain = emailValid && domain.length > 0 && domain !== AUTHENTICATED_DOMAIN;
 
   return (
-    <Box sx={{ py: 1.25 }}>
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.25, mb: 0.75 }}>
+    <div className="py-2">
+      <div className="flex items-start gap-2 mb-1">
         <Box sx={{ color: 'text.secondary', display: 'inline-flex', flexShrink: 0, mt: '1px' }}>
           <Send size={18} />
         </Box>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary' }}>
+        <div className="min-w-0">
+          <p className="cn-text-body1 text-[0.8125rem] font-medium text-foreground">
             Adresse d'expédition
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+          </p>
+          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
             Le « From » de tous les emails de la plateforme. Le nom d'affichage précède l'adresse
             (ex. Baitly &lt;info@clenzy.fr&gt;).
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, ml: { sm: '30px' } }}>
         <TextField
@@ -81,13 +81,13 @@ const SenderEmailRow: React.FC<Props> = ({ email, name, onSave, saving }) => {
           <Box sx={{ color: 'warning.main', display: 'inline-flex', mt: '1px', flexShrink: 0 }}>
             <Info size={14} />
           </Box>
-          <Typography sx={{ fontSize: '0.72rem', color: 'warning.main' }}>
+          <p className="cn-text-body1 text-[0.72rem] text-[var(--bui-warning-ink)]">
             Domaine «&nbsp;{domain}&nbsp;» : authentifiez-le d'abord dans Brevo (SPF&nbsp;+&nbsp;DKIM)
             avant de l'utiliser, sinon les emails partiront en spam / soft bounce.
-          </Typography>
+          </p>
         </Box>
       )}
-    </Box>
+    </div>
   );
 };
 

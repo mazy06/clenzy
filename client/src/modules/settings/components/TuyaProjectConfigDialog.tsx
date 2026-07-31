@@ -1,18 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  Link,
-  MenuItem,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Link, MenuItem, TextField } from '@mui/material';
 import { KeyRound } from 'lucide-react';
 import { tuyaApi, type TuyaConfigStatus } from '../../../services/api/noiseApi';
 
@@ -114,14 +101,14 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
         Configurer le projet Tuya Cloud
       </DialogTitle>
       <DialogContent>
-        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+        <p className="cn-text-body2 text-muted-foreground mb-3">
           Renseignez l'<strong>Access ID</strong> et l'<strong>Access Secret</strong> du projet cloud
           créé sur{' '}
           <Link href="https://iot.tuya.com" target="_blank" rel="noopener noreferrer">
             iot.tuya.com
           </Link>{' '}
           (Cloud → Development → votre projet → Authorization Key). Ils sont stockés chiffrés en base.
-        </Typography>
+        </p>
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -129,7 +116,7 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
           </Alert>
         )}
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="flex flex-col gap-3">
           <TextField
             label="Access ID"
             value={accessId}
@@ -169,9 +156,9 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
             ))}
           </TextField>
           <Divider sx={{ mt: 0.5 }} />
-          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
+          <span className="cn-text-caption text-muted-foreground font-bold">
             App SDK mobile (appairage — modèle C)
-          </Typography>
+          </span>
           <TextField
             label="App SDK schema (optionnel)"
             value={appSchema}
@@ -221,7 +208,7 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
             placeholder={current?.androidAppKey ? '•••••••• (inchangé si laissé vide)' : undefined}
             helperText="Laisser vide pour conserver l'AppSecret Android déjà enregistré."
           />
-        </Box>
+        </div>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} disabled={saving} sx={{ cursor: 'pointer' }}>

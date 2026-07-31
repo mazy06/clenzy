@@ -1,18 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  Skeleton,
-  TextField,
-  Typography,
-  useTheme,
-} from '@mui/material';
+import { Alert, Box, Button, Chip, Dialog, DialogContent, DialogTitle, IconButton, Skeleton, TextField, useTheme } from '@mui/material';
 import { Brain, Wrench, GitBranch, PauseCircle, FileText, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { agentRunApi, type AgentRunReplay, type AgentRunStep } from '../../services/api/agentRunApi';
@@ -67,34 +54,34 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
-        <Box>
-          <Typography variant="h6" sx={{ lineHeight: 1.2 }}>
+        <div>
+          <h6 className="cn-text-h6 leading-[1.2]">
             {t('agentReplay.title', 'Replay du run')}
-          </Typography>
+          </h6>
           {replay && (
-            <Typography variant="caption" color="text.secondary">
+            <span className="cn-text-caption text-muted-foreground">
               {t(`agentReplay.origin.${replay.origin}`, replay.origin)}
               {' · '}
               {new Date(replay.startedAt).toLocaleString()}
-            </Typography>
+            </span>
           )}
-        </Box>
+        </div>
         <IconButton onClick={onClose} size="small" aria-label={t('common.close', 'Fermer')}>
           <X size={18} />
         </IconButton>
       </DialogTitle>
       <DialogContent dividers>
         {loading && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <div className="flex flex-col gap-1.5">
             <Skeleton variant="rounded" height={48} />
             <Skeleton variant="rounded" height={48} />
             <Skeleton variant="rounded" height={48} />
-          </Box>
+          </div>
         )}
         {error && <Alert severity="warning">{error}</Alert>}
         {replay && !loading && (
           <>
-            <Box sx={{ display: 'flex', gap: 0.75, mb: 1.5, flexWrap: 'wrap' }}>
+            <div className="flex gap-1 mb-2 flex-wrap">
               <Chip
                 size="small"
                 label={t(`agentReplay.status.${replay.status}`, replay.status)}
@@ -105,13 +92,13 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
                 variant="outlined"
                 label={`${replay.steps.length} ${t('agentReplay.steps', 'étapes')}`}
               />
-            </Box>
+            </div>
             {replay.error && (
               <Alert severity="error" sx={{ mb: 1.5 }}>
                 {replay.error}
               </Alert>
             )}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            <div className="flex flex-col gap-1">
               {replay.steps.map((step) => {
                 const Icon = KIND_ICON[step.kind] ?? Brain;
                 const tokens = step.promptTokens + step.completionTokens;
@@ -136,44 +123,40 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
                       color={theme.palette.text.secondary}
                       aria-hidden
                     />
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <p className="cn-text-body2 font-semibold">
                           {t(`agentReplay.kind.${step.kind}`, step.kind)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <span className="cn-text-caption text-muted-foreground">
                           {step.toolName ?? step.agent}
-                        </Typography>
-                      </Box>
+                        </span>
+                      </div>
                       {step.detail && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                        <span className="cn-text-caption text-muted-foreground block">
                           {step.detail}
-                        </Typography>
+                        </span>
                       )}
-                    </Box>
+                    </div>
                     {tokens > 0 && (
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}
-                      >
+                      <span className="cn-text-caption text-muted-foreground tabular-nums whitespace-nowrap">
                         {tokens.toLocaleString()} tok
-                      </Typography>
+                      </span>
                     )}
                   </Box>
                 );
               })}
-            </Box>
+            </div>
             {replay.userQuery && (
-              <Box sx={{ mt: 2, pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
-                <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+              <div className="mt-3 pt-2 border-t border-[divider]">
+                <h6 className="cn-text-subtitle2 mb-0.5">
                   {t('agentReplay.whatIf.title', 'Et si… ? (rejouer avec une hypothèse)')}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                </h6>
+                <span className="cn-text-caption text-muted-foreground block mb-1.5">
                   {t('agentReplay.whatIf.subtitle',
                     'Le prompt de re-analyse est copié — collez-le dans le chat de l\u2019assistant pour lancer le what-if.')}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                </span>
+                <div className="flex gap-1.5 items-start">
                   <TextField
                     size="small"
                     fullWidth
@@ -205,8 +188,8 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
                         ? t('agentReplay.whatIf.error', 'Échec')
                         : t('agentReplay.whatIf.copy', 'Copier le prompt')}
                   </Button>
-                </Box>
-              </Box>
+                </div>
+              </div>
             )}
           </>
         )}

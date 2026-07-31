@@ -1,18 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Switch,
-  Divider,
-  Select,
-  MenuItem,
-  TextField,
-  CircularProgress,
-  Alert,
-  Snackbar,
-  useTheme,
-  alpha,
-} from '@mui/material';
+import { Box, Switch, Divider, Select, MenuItem, TextField, CircularProgress, Alert, Snackbar, useTheme, alpha } from '@mui/material';
 import AiSettingsCard from './AiSettingsCard';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -114,43 +101,43 @@ export default function AgentSupervisionSection() {
           {t('settings.ai.supervision.loadError', "Impossible de charger la configuration.")}
         </Alert>
       ) : config ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="flex flex-col">
           {/* ── Master : activation de la feature ── */}
-          <Box sx={{ display: 'flex', alignItems: 'center', py: 1.5 }}>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" fontWeight={600}>
+          <div className="flex items-center py-2">
+            <div className="flex-1 min-w-0">
+              <p className="cn-text-body2 font-semibold">
                 {t('settings.ai.supervision.master.label', 'Activer le superviseur')}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+              </p>
+              <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                 {t(
                   'settings.ai.supervision.master.description',
                   "Affiche la constellation dans le planning et autorise les agents à proposer des actions.",
                 )}
-              </Typography>
-            </Box>
+              </span>
+            </div>
             <Switch
               checked={config.enabled}
               onChange={(e) => handleMaster(e.target.checked)}
               disabled={!canEdit || busy}
               size="small"
             />
-          </Box>
+          </div>
 
           <Divider />
 
           {/* ── Pause globale ── */}
           <Box sx={{ display: 'flex', alignItems: 'center', py: 1.5, opacity: config.enabled ? 1 : 0.5 }}>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" fontWeight={600}>
+            <div className="flex-1 min-w-0">
+              <p className="cn-text-body2 font-semibold">
                 {t('settings.ai.supervision.paused.label', 'Mettre en pause')}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+              </p>
+              <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                 {t(
                   'settings.ai.supervision.paused.description',
                   "Suspend temporairement l'activité automatique des agents (la config est conservée).",
                 )}
-              </Typography>
-            </Box>
+              </span>
+            </div>
             <Switch
               checked={config.paused}
               onChange={(e) => handlePaused(e.target.checked)}
@@ -163,17 +150,17 @@ export default function AgentSupervisionSection() {
 
           {/* ── Budget (plafond de scans automatiques) ── */}
           <Box sx={{ display: 'flex', alignItems: 'center', py: 1.5, opacity: config.enabled ? 1 : 0.5 }}>
-            <Box sx={{ flex: 1, minWidth: 0, pr: 2 }}>
-              <Typography variant="body2" fontWeight={600}>
+            <div className="flex-1 min-w-0 pe-3">
+              <p className="cn-text-body2 font-semibold">
                 {t('settings.ai.supervision.budget.label', 'Plafond de scans automatiques')}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+              </p>
+              <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                 {t(
                   'settings.ai.supervision.budget.description',
                   "Nombre maximum d'analyses automatiques par jour pour l'organisation (0 = aucune analyse automatique). Limite le coût IA.",
                 )}
-              </Typography>
-            </Box>
+              </span>
+            </div>
             <TextField
               type="number"
               size="small"
@@ -189,13 +176,9 @@ export default function AgentSupervisionSection() {
           <Divider sx={{ mb: 1 }} />
 
           {/* ── Modules ── */}
-          <Typography
-            variant="overline"
-            color="text.secondary"
-            sx={{ mt: 1, mb: 0.5, fontWeight: 700, letterSpacing: '0.04em' }}
-          >
+          <span className="cn-text-overline text-muted-foreground mt-1.5 mb-0.5 font-bold tracking-[0.04em]">
             {t('settings.ai.supervision.modules.title', 'Modules')}
-          </Typography>
+          </span>
 
           {config.modules.map((module, index) => {
             const disabled = !canEdit || busy || !config.enabled;
@@ -213,11 +196,11 @@ export default function AgentSupervisionSection() {
                   }}
                 >
                   <ModuleDot moduleKey={module.key} />
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+                  <div className="flex-1 min-w-0">
+                    <p className="cn-text-body2 font-semibold leading-[1.3]">
                       {t(module.labelKey, module.key)}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
 
                   {/* Niveau d'autonomie */}
                   <Select
@@ -260,7 +243,7 @@ export default function AgentSupervisionSection() {
               {t('settings.ai.supervision.saveError', "Échec de l'enregistrement. Réessayez.")}
             </Alert>
           )}
-        </Box>
+        </div>
       ) : null}
 
       <Snackbar

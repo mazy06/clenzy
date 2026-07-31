@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
-import {
-  Box, Typography, TextField, Alert, CircularProgress, Chip,
-} from '@mui/material';
+import { TextField, Alert, CircularProgress, Chip } from '@mui/material';
 import { AccountBalance, VerifiedUser } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountingApi } from '../../services/api/accountingApi';
@@ -106,9 +104,9 @@ const SepaDebtorSettings = forwardRef<SepaDebtorHandle, SepaDebtorSettingsProps>
         icon={AccountBalance}
         accent="primary"
       >
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+        <div className="flex justify-center py-3">
           <CircularProgress size={24} />
-        </Box>
+        </div>
       </SettingsSection>
     );
   }
@@ -168,7 +166,7 @@ const SepaDebtorSettings = forwardRef<SepaDebtorHandle, SepaDebtorSettingsProps>
         </Alert>
       )}
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.75 }}>
+      <div className="flex flex-col gap-2.5">
         <TextField
           label={t('settings.sepaDebtor.nameLabel', 'Nom du titulaire')}
           value={name}
@@ -210,7 +208,7 @@ const SepaDebtorSettings = forwardRef<SepaDebtorHandle, SepaDebtorSettingsProps>
           placeholder="BNPAFRPPXXX"
           InputProps={{ sx: { fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', textTransform: 'uppercase' } }}
         />
-      </Box>
+      </div>
     </SettingsSection>
   );
 });

@@ -1,19 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Paper,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Card } from '../../../components/ui';
+import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -206,39 +193,20 @@ export default function ApiKeyConnectionCard<P extends string>({
     `L'intégration ${meta.label} est en cours de scaffolding. La connexion permet de valider et stocker vos credentials ; les appels API métier seront ajoutés prochainement.`;
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: '12px',
-        border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: 'none',
-        overflow: 'hidden',
-      }}
-    >
+    <Card className="gap-0 py-0 border-border overflow-hidden">
       {/* Header */}
-      <Box
-        sx={{
-          px: 2,
-          py: 1.75,
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1.5,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
+      <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[divider]">
         <ProviderLogo provider={logoId} size={40} />
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-            <Typography sx={{ fontSize: '0.92rem', fontWeight: 600 }}>{meta.label}</Typography>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1 flex-wrap">
+            <p className="cn-text-body1 text-[0.92rem] font-semibold">{meta.label}</p>
             {headerChip}
-          </Box>
-          <Typography sx={{ fontSize: '0.74rem', color: 'text.secondary', mt: 0.5 }}>
+          </div>
+          <p className="cn-text-body1 text-[0.74rem] text-muted-foreground mt-0.5">
             {meta.description}
-          </Typography>
-        </Box>
-        <Box sx={{ flexShrink: 0 }}>
+          </p>
+        </div>
+        <div className="shrink-0">
           {loading ? (
             <CircularProgress size={18} />
           ) : connected ? (
@@ -256,36 +224,36 @@ export default function ApiKeyConnectionCard<P extends string>({
               sx={statusChipSx(NEUTRAL)}
             />
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Body */}
-      <Box sx={{ p: 2 }}>
-        {bodyAlert && <Box sx={{ mb: 1.5 }}>{bodyAlert}</Box>}
+      <div className="p-3">
+        {bodyAlert && <div className="mb-2">{bodyAlert}</div>}
 
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+          <div className="flex justify-center py-3">
             <CircularProgress size={24} />
-          </Box>
+          </div>
         ) : connected ? (
-          <Box>
+          <div>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.25, mb: 1.5 }}>
-              <Box>
-                <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Serveur</Typography>
-                <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>{status?.serverUrl}</Typography>
-              </Box>
+              <div>
+                <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Serveur</p>
+                <p className="cn-text-body1 text-[0.82rem] font-medium">{status?.serverUrl}</p>
+              </div>
               {status?.accountIdentifier && (
-                <Box>
-                  <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+                <div>
+                  <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">
                     {meta.accountIdentifierLabel ?? 'Identifiant'}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>{status.accountIdentifier}</Typography>
-                </Box>
+                  </p>
+                  <p className="cn-text-body1 text-[0.82rem] font-medium">{status.accountIdentifier}</p>
+                </div>
               )}
-              <Box>
-                <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Statut</Typography>
-                <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>{status?.status}</Typography>
-              </Box>
+              <div>
+                <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Statut</p>
+                <p className="cn-text-body1 text-[0.82rem] font-medium">{status?.status}</p>
+              </div>
             </Box>
             <Button
               variant="outlined"
@@ -306,14 +274,10 @@ export default function ApiKeyConnectionCard<P extends string>({
             >
               Déconnecter {meta.label}
             </Button>
-          </Box>
+          </div>
         ) : (
-          <Box
-            component="form"
-            onSubmit={(e) => { e.preventDefault(); handleConnect(); }}
-            sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}
-          >
-            <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
+          <form className="flex flex-col gap-2" onSubmit={(e) => { e.preventDefault(); handleConnect(); }}>
+            <p className="cn-text-body1 text-[0.78rem] text-muted-foreground">
               Pour obtenir vos credentials : voir la doc{' '}
               {meta.apiKeyHelpUrl ? (
                 <a href={meta.apiKeyHelpUrl} target="_blank" rel="noreferrer noopener" style={{ color: 'inherit' }}>
@@ -323,7 +287,7 @@ export default function ApiKeyConnectionCard<P extends string>({
                 meta.label
               )}
               . L'API key est chiffrée avant stockage (AES-256-GCM).
-            </Typography>
+            </p>
             <TextField
               label="URL serveur"
               placeholder={meta.serverUrlPlaceholder}
@@ -352,7 +316,7 @@ export default function ApiKeyConnectionCard<P extends string>({
               onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
               inputProps={{ minLength: 8 }}
             />
-            <Box>
+            <div>
               <Button
                 type="submit"
                 variant="contained"
@@ -363,7 +327,7 @@ export default function ApiKeyConnectionCard<P extends string>({
               >
                 {submitting ? 'Connexion...' : `Connecter ${meta.label}`}
               </Button>
-            </Box>
+            </div>
             <Alert
               severity="info"
               variant="outlined"
@@ -371,7 +335,7 @@ export default function ApiKeyConnectionCard<P extends string>({
             >
               {scaffoldingNote ?? defaultScaffoldingNote}
             </Alert>
-          </Box>
+          </form>
         )}
 
         {message && (
@@ -383,7 +347,7 @@ export default function ApiKeyConnectionCard<P extends string>({
             {message.text}
           </Alert>
         )}
-      </Box>
+      </div>
 
       {/* Disconnect confirmation */}
       <Dialog open={disconnectOpen} onClose={() => setDisconnectOpen(false)} maxWidth="xs" fullWidth>
@@ -398,6 +362,6 @@ export default function ApiKeyConnectionCard<P extends string>({
           <Button onClick={handleDisconnect} color="error" variant="contained">Déconnecter</Button>
         </DialogActions>
       </Dialog>
-    </Paper>
+    </Card>
   );
 }

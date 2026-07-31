@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
-import {
-  Box, Paper, Typography, Button, TextField, MenuItem,
-  Switch, FormControlLabel, Grid, CircularProgress, Alert, Snackbar,
-  Chip,
-} from '@mui/material';
+import { Button, TextField, MenuItem, Switch, FormControlLabel, Grid, CircularProgress, Alert, Snackbar, Chip } from '@mui/material';
+import { Card } from '../../components/ui';
 import {
   AccountBalance, Info as InfoIcon, Verified,
 } from '../../icons';
@@ -168,16 +165,16 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
   // ── Loading state ──
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+      <div className="flex justify-center py-6">
         <CircularProgress />
-      </Box>
+      </div>
     );
   }
 
   // ── Error state — show a helpful retry notice, NOT a blocking error ──
   if (error && !profile) {
     return (
-      <Box>
+      <div>
         <Alert
           severity="warning"
           icon={<InfoIcon />}
@@ -190,12 +187,12 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
         >
           {t('fiscal.profile.loadError')}
         </Alert>
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       {/* First-time setup banner */}
       {isFirstSetup && (
         <Alert
@@ -203,27 +200,27 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
           icon={<InfoIcon />}
           sx={{ mb: 2, '& .MuiAlert-message': { width: '100%' } }}
         >
-          <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.5 }}>
+          <h6 className="cn-text-subtitle2 font-semibold mb-0.5">
             {t('fiscal.profile.setupTitle')}
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+          </h6>
+          <p className="cn-text-body2 text-[0.8rem]">
             {t('fiscal.profile.setupDescription')}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: '0.7rem' }}>
+          </p>
+          <span className="cn-text-caption text-muted-foreground block mt-0.5 text-[0.7rem]">
             {t('fiscal.profile.setupNotice')}
-          </Typography>
+          </span>
         </Alert>
       )}
 
       <Grid container spacing={2}>
         {/* ── Section 1 : Informations fiscales ── */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2, height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AccountBalance size={20} strokeWidth={1.75} /></Box>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
+          <Card className="gap-0 py-0 p-3 h-full">
+            <div className="flex items-center gap-1.5 mb-3">
+              <span className="inline-flex text-primary"><AccountBalance size={20} strokeWidth={1.75} /></span>
+              <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
                 {t('fiscal.profile.sectionFiscalInfo')}
-              </Typography>
+              </h6>
               {!isFirstSetup && profile?.vatRegistered && (
                 <Chip
                   icon={<Verified size={11} strokeWidth={2} />}
@@ -249,7 +246,7 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                   }}
                 />
               )}
-            </Box>
+            </div>
 
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
@@ -371,22 +368,22 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                       onChange={(e) => handleChange('vatRegistered', e.target.checked)}
                     />
                   }
-                  label={<Typography variant="body2">{t('fiscal.profile.vatRegistered')}</Typography>}
+                  label={<p className="cn-text-body2">{t('fiscal.profile.vatRegistered')}</p>}
                 />
               </Grid>
             </Grid>
-          </Paper>
+          </Card>
         </Grid>
 
         {/* ── Section 2 : Informations legales ── */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2, height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><AccountBalance size={20} strokeWidth={1.75} /></Box>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
+          <Card className="gap-0 py-0 p-3 h-full">
+            <div className="flex items-center gap-1.5 mb-3">
+              <span className="inline-flex text-[secondary.main]"><AccountBalance size={20} strokeWidth={1.75} /></span>
+              <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
                 {t('fiscal.profile.sectionLegalInfo')}
-              </Typography>
-            </Box>
+              </h6>
+            </div>
 
             <Grid container spacing={2}>
               <Grid item xs={12}>
@@ -421,7 +418,7 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                 />
               </Grid>
             </Grid>
-          </Paper>
+          </Card>
         </Grid>
       </Grid>
 
@@ -438,7 +435,7 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 });
 

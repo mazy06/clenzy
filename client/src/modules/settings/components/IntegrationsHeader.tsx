@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  Autocomplete,
-  Box,
-  Select,
-  MenuItem,
-  TextField,
-  Typography,
-  InputAdornment,
-} from '@mui/material';
+import { Autocomplete, Box, Select, MenuItem, TextField, InputAdornment } from '@mui/material';
 import { Search as SearchIcon } from '../../../icons';
 import {
   ALL_SERVICES,
@@ -87,7 +79,7 @@ export default function IntegrationsHeader({
   };
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+    <div className="flex items-center gap-1.5 flex-wrap">
       <Autocomplete
         size="small"
         options={ALL_SERVICES}
@@ -120,38 +112,20 @@ export default function IntegrationsHeader({
           const { key, ...optionProps } = props as React.HTMLAttributes<HTMLLIElement> & { key?: React.Key };
           return (
             <Box component="li" key={key} {...optionProps} sx={{ display: 'flex !important', alignItems: 'center', py: 0.5 }}>
-              <Typography sx={{ fontSize: '0.78rem', fontWeight: 500, color: 'text.primary' }}>
+              <p className="cn-text-body1 text-[0.78rem] font-medium text-foreground">
                 {option.name}
-              </Typography>
+              </p>
             </Box>
           );
         }}
         renderGroup={(params) => (
           <li key={params.key}>
-            <Box
-              sx={{
-                position: 'sticky',
-                top: 0,
-                backgroundColor: 'background.paper',
-                px: 1.25,
-                py: 0.375,
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-              }}
-            >
-              <Typography
-                sx={{
-                  fontSize: '0.6rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.06em',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                }}
-              >
+            <div className="sticky top-[0px] bg-[background.paper] px-2 py-0.5 border-b border-[divider]">
+              <p className="cn-text-body1 text-[0.6rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
                 {params.group}
-              </Typography>
-            </Box>
-            <Box component="ul" sx={{ p: 0, m: 0 }}>{params.children}</Box>
+              </p>
+            </div>
+            <ul className="p-0 m-0">{params.children}</ul>
           </li>
         )}
         slotProps={{
@@ -201,6 +175,6 @@ export default function IntegrationsHeader({
           </MenuItem>
         ))}
       </Select>
-    </Box>
+    </div>
   );
 }

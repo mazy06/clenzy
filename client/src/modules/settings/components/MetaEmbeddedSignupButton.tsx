@@ -1,13 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Typography,
-  alpha,
-  useTheme,
-} from '@mui/material';
+import { Alert, Box, Button, CircularProgress, alpha, useTheme } from '@mui/material';
 import { CheckCircle, ErrorOutline } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -226,12 +218,12 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
+      <div className="flex items-center gap-2 py-1.5">
         <CircularProgress size={16} />
-        <Typography variant="caption" color="text.secondary">
+        <span className="cn-text-caption text-muted-foreground">
           {t('settings.whatsapp.meta.signup.loading', 'Initialisation du SDK Facebook…')}
-        </Typography>
-      </Box>
+        </span>
+      </div>
     );
   }
 
@@ -239,25 +231,25 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
     return (
       <Alert severity="success" icon={<CheckCircle size={20} />}>
         <strong>{t('settings.whatsapp.meta.signup.success', 'WhatsApp connecté avec succès')}</strong>
-        <Typography variant="body2" sx={{ mt: 0.5 }}>
+        <p className="cn-text-body2 mt-0.5">
           {t('settings.whatsapp.meta.signup.successDetails',
             "Numéro {{phoneNumber}} — WABA {{wabaId}}. Vous pouvez maintenant activer l'envoi WhatsApp.",
             { phoneNumber: success.phoneNumber, wabaId: success.wabaId })}
-        </Typography>
+        </p>
         {success.templatesSubmitted > 0 && (
-          <Typography variant="body2" sx={{ mt: 0.5 }}>
+          <p className="cn-text-body2 mt-0.5">
             {t('settings.whatsapp.meta.signup.templatesSubmitted',
               "✓ {{count}} templates Baitly standards soumis à Meta (validation ~24h).",
               { count: success.templatesSubmitted })}
-          </Typography>
+          </p>
         )}
       </Alert>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-2 flex-wrap">
         <Button
           variant="contained"
           disableElevation
@@ -290,11 +282,11 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
             ? t('settings.whatsapp.meta.signup.inProgress', 'Connexion en cours…')
             : t('settings.whatsapp.meta.signup.cta', 'Connecter avec Facebook')}
         </Button>
-        <Typography variant="caption" color="text.secondary">
+        <span className="cn-text-caption text-muted-foreground">
           {t('settings.whatsapp.meta.signup.hint',
             "~5 min · Configuration auto du WhatsApp Business + templates")}
-        </Typography>
-      </Box>
+        </span>
+      </div>
 
       {error && error !== 'UNAVAILABLE' && (
         <Alert severity="error" icon={<ErrorOutline size={20} />} onClose={() => setError(null)} sx={{ mt: 1 }}>
@@ -309,13 +301,13 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
         bgcolor: alpha(theme.palette.info.main, 0.06),
         border: `1px solid ${alpha(theme.palette.info.main, 0.15)}`,
       }}>
-        <Typography variant="caption" color="text.secondary">
+        <span className="cn-text-caption text-muted-foreground">
           <strong>{t('settings.whatsapp.meta.signup.recommendedTitle', 'Méthode recommandée')}</strong>
           {' — '}
           {t('settings.whatsapp.meta.signup.recommendedBody',
             "Pas de Meta Business Manager nécessaire en amont. Baitly provisionne tout pour vous : compte WhatsApp Business, vérification du numéro, templates de messages.")}
-        </Typography>
+        </span>
       </Box>
-    </Box>
+    </div>
   );
 }

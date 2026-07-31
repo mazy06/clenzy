@@ -1,25 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { ASSIGNABLE_ORG_ROLES } from '../../utils/orgRoleLabels';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  Typography,
-  Alert,
-  CircularProgress,
-  Box,
-  IconButton,
-  InputAdornment,
-  Tooltip,
-  ToggleButtonGroup,
-  ToggleButton,
-  Autocomplete,
-  Chip,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Typography, Alert, CircularProgress, IconButton, InputAdornment, Tooltip, ToggleButtonGroup, ToggleButton, Autocomplete, Chip } from '@mui/material';
 import {
   Send,
   ContentCopy,
@@ -183,9 +164,9 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="h6" fontWeight={600}>
+        <h6 className="cn-text-h6 font-semibold">
           {result ? 'Invitation envoyee' : memberSuccess ? 'Membre ajoute' : 'Inviter un membre'}
-        </Typography>
+        </h6>
         <IconButton size="small" onClick={handleClose}>
           <Close />
         </IconButton>
@@ -193,7 +174,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
 
       <DialogContent dividers>
         {!result && !memberSuccess ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
+          <div className="flex flex-col gap-3.5 pt-1.5">
             <ToggleButtonGroup
               value={mode}
               exclusive
@@ -253,19 +234,19 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                     const { key, ...optionProps } = props;
                     return (
                       <li key={key} {...optionProps}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                          <Box sx={{ flexGrow: 1 }}>
-                            <Typography variant="body2">
+                        <div className="flex items-center gap-1.5 w-full">
+                          <div className="grow">
+                            <p className="cn-text-body2">
                               {option.firstName} {option.lastName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
+                            </p>
+                            <span className="cn-text-caption text-muted-foreground">
                               {option.email}
-                            </Typography>
-                          </Box>
+                            </span>
+                          </div>
                           {option.hasOrganization && (
                             <Chip label="Deja dans une org" size="small" color="warning" variant="outlined" />
                           )}
-                        </Box>
+                        </div>
                       </li>
                     );
                   }}
@@ -311,26 +292,26 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                 {error}
               </Alert>
             )}
-          </Box>
+          </div>
         ) : memberSuccess ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1, alignItems: 'center' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={56} strokeWidth={1.75} /></Box>
+          <div className="flex flex-col gap-3 pt-1.5 items-center">
+            <span className="inline-flex text-[var(--ok)]"><CheckCircle size={56} strokeWidth={1.75} /></span>
             <Typography variant="body1" textAlign="center">
               <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong> a ete ajoute a l'organisation.
             </Typography>
-          </Box>
+          </div>
         ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1, alignItems: 'center' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={56} strokeWidth={1.75} /></Box>
+          <div className="flex flex-col gap-3 pt-1.5 items-center">
+            <span className="inline-flex text-[var(--ok)]"><CheckCircle size={56} strokeWidth={1.75} /></span>
             <Typography variant="body1" textAlign="center">
               L'invitation a ete envoyee a <strong>{result?.invitedEmail}</strong>
             </Typography>
 
             {result?.invitationLink && (
-              <Box sx={{ width: '100%' }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              <div className="w-full">
+                <p className="cn-text-body2 text-muted-foreground mb-1.5">
                   Vous pouvez aussi partager ce lien directement :
-                </Typography>
+                </p>
                 <TextField
                   value={result?.invitationLink ?? ''}
                   fullWidth
@@ -349,7 +330,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                     ),
                   }}
                 />
-              </Box>
+              </div>
             )}
 
             <Typography variant="caption" color="text.secondary" textAlign="center">
@@ -360,7 +341,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                 year: 'numeric',
               }) : ''}
             </Typography>
-          </Box>
+          </div>
         )}
       </DialogContent>
 

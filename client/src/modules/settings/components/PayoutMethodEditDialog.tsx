@@ -1,25 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Box,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
-  FormControl,
-  FormLabel,
-  CircularProgress,
-  IconButton,
-  Stack,
-  Chip,
-  MenuItem,
-} from '@mui/material';
+import { Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Alert, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, CircularProgress, IconButton, Stack, Chip, MenuItem } from '@mui/material';
 import { Close as CloseIcon, Save } from '../../../icons';
 import { accountingApi } from '../../../services/api/accountingApi';
 import type {
@@ -385,17 +365,14 @@ export default function PayoutMethodEditDialog({
           letterSpacing: '-0.005em',
         }}
       >
-        <Box>
+        <div>
           Méthode de reversement
           {ownerName && (
-            <Typography
-              component="span"
-              sx={{ display: 'block', fontSize: '0.72rem', fontWeight: 400, color: 'text.secondary', mt: 0.25 }}
-            >
+            <span className="block text-[0.72rem] font-normal text-muted-foreground mt-0.5">
               Propriétaire : {ownerName}
-            </Typography>
+            </span>
           )}
-        </Box>
+        </div>
         <IconButton onClick={onClose} disabled={saving} size="small">
           <CloseIcon size={16} strokeWidth={2} />
         </IconButton>
@@ -432,11 +409,11 @@ export default function PayoutMethodEditDialog({
                   value={opt.value}
                   control={<Radio size="small" sx={{ p: 0.5, mr: 1 }} />}
                   label={
-                    <Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.875 }}>
-                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <p className="cn-text-body1 text-[0.85rem] font-semibold">
                           {opt.label}
-                        </Typography>
+                        </p>
                         {opt.badge && (
                           <Chip
                             label={opt.badge}
@@ -453,13 +430,11 @@ export default function PayoutMethodEditDialog({
                             }}
                           />
                         )}
-                      </Box>
-                      <Typography
-                        sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.4, mt: 0.25 }}
-                      >
+                      </div>
+                      <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4] mt-0.5">
                         {opt.description}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                   }
                   sx={{ alignItems: 'flex-start', m: 0, width: '100%' }}
                 />

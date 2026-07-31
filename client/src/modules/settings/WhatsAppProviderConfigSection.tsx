@@ -1,19 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Divider,
-  Stack,
-  Switch,
-  TextField,
-  Tooltip,
-  Typography,
-  alpha,
-  useTheme,
-} from '@mui/material';
+import { Alert, Box, Button, Chip, CircularProgress, Divider, Stack, Switch, TextField, Tooltip, alpha, useTheme } from '@mui/material';
 import { CheckCircle, ErrorOutline, InfoOutlined, Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -159,9 +145,9 @@ export default function WhatsAppProviderConfigSection() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+      <div className="flex justify-center py-9">
         <CircularProgress size={28} />
-      </Box>
+      </div>
     );
   }
 
@@ -181,25 +167,25 @@ export default function WhatsAppProviderConfigSection() {
         : <Chip icon={<ErrorOutline size={14} />} label="Configuration incomplète" size="small" color="warning" />;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <div className="flex flex-col gap-4">
       {/* Header section */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
-        <Box>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h6 className="cn-text-h6 font-semibold mb-0.5">
             {t('settings.whatsapp.title', 'Provider WhatsApp')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
+          </h6>
+          <p className="cn-text-body2 text-muted-foreground">
             {t('settings.whatsapp.subtitle',
               "Choisissez comment Baitly envoie vos messages WhatsApp à vos voyageurs.")}
-          </Typography>
-        </Box>
+          </p>
+        </div>
         {statusChip}
-      </Box>
+      </div>
 
       {/* Provider toggle — deux option cards mutuellement exclusives : le provider
           NON sélectionné est verrouillé tant que les envois sont activés (un seul
           provider actif à la fois). Pour changer : désactiver les envois d'abord. */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <div className="flex flex-col gap-1.5">
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
           <ProviderOptionCard
             selected={provider === 'META'}
@@ -238,12 +224,12 @@ export default function WhatsAppProviderConfigSection() {
           />
         </Box>
         {enabled && (
-          <Typography variant="caption" color="text.secondary">
+          <span className="cn-text-caption text-muted-foreground">
             {t('settings.whatsapp.providerLockHint',
               'Un seul provider actif à la fois. Désactivez « Activer les envois » ci-dessous pour changer de provider.')}
-          </Typography>
+          </span>
         )}
-      </Box>
+      </div>
 
       {/* Disclaimer OpenWA — condensé : une ligne + détail complet en tooltip */}
       {provider === 'OPENWA' && (
@@ -252,10 +238,10 @@ export default function WhatsAppProviderConfigSection() {
           icon={<ErrorOutline size={18} />}
           sx={{ py: 0.5, '& .MuiAlert-message': { display: 'flex', alignItems: 'center', gap: 0.75 } }}
         >
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          <p className="cn-text-body2 font-medium">
             {t('settings.whatsapp.openwaDisclaimer.short',
               'OpenWA est hors conditions Meta — risque de ban du compte.')}
-          </Typography>
+          </p>
           <Tooltip
             arrow
             title={t('settings.whatsapp.openwaDisclaimer.body',
@@ -287,17 +273,17 @@ export default function WhatsAppProviderConfigSection() {
             }}
           />
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, my: 1 }}>
+          <div className="flex items-center gap-3 my-1.5">
             <Divider sx={{ flex: 1 }} />
-            <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+            <span className="cn-text-caption text-muted-foreground whitespace-nowrap">
               {t('settings.whatsapp.meta.orManual', 'OU configuration manuelle')}
-            </Typography>
+            </span>
             <Divider sx={{ flex: 1 }} />
-          </Box>
+          </div>
 
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+          <h6 className="cn-text-subtitle2 font-semibold">
             {t('settings.whatsapp.meta.formTitle', 'Identifiants Meta Cloud API')}
-          </Typography>
+          </h6>
           <TextField
             label={t('settings.whatsapp.meta.apiToken', 'API Token (permanent)')}
             type="password"
@@ -351,9 +337,9 @@ export default function WhatsAppProviderConfigSection() {
         </Stack>
       ) : (
         <Stack spacing={2}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+          <h6 className="cn-text-subtitle2 font-semibold">
             {t('settings.whatsapp.openwa.formTitle', 'Connexion à votre instance OpenWA')}
-          </Typography>
+          </h6>
           <TextField
             label={t('settings.whatsapp.openwa.masterKey', 'Master key OpenWA')}
             type="password"
@@ -378,7 +364,7 @@ export default function WhatsAppProviderConfigSection() {
               endAdornment: <FieldInfo text="Identifiant de la session OpenWA, généré automatiquement au scan du QR code." />,
             }}
           />
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1, flexWrap: 'wrap' }}>
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <Button
               variant="outlined"
               size="small"
@@ -390,12 +376,12 @@ export default function WhatsAppProviderConfigSection() {
                 ? t('settings.whatsapp.openwa.rescan', 'Re-scanner le QR code')
                 : t('settings.whatsapp.openwa.scan', 'Scanner le QR code')}
             </Button>
-            <Typography variant="caption" color="text.secondary">
+            <span className="cn-text-caption text-muted-foreground">
               {config?.hasOpenwaApiKey
                 ? t('settings.whatsapp.openwa.scanHint', 'Crée la session et affiche le QR à scanner avec votre téléphone.')
                 : t('settings.whatsapp.openwa.scanHintNoKey', 'Saisissez la master key et enregistrez avant de scanner.')}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         </Stack>
       )}
 
@@ -416,23 +402,23 @@ export default function WhatsAppProviderConfigSection() {
       <Divider />
 
       {/* Toggle enable */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-        <Box>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h6 className="cn-text-subtitle2 font-semibold">
             {t('settings.whatsapp.enable', 'Activer les envois WhatsApp')}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
+          </h6>
+          <span className="cn-text-caption text-muted-foreground">
             {enabled
               ? t('settings.whatsapp.enableOn', "Baitly enverra les messages WhatsApp via le provider sélectionné.")
               : t('settings.whatsapp.enableOff', "Aucun message WhatsApp ne sera envoyé.")}
-          </Typography>
-        </Box>
+          </span>
+        </div>
         <Switch
           checked={enabled}
           onChange={(e) => setEnabled(e.target.checked)}
           color="primary"
         />
-      </Box>
+      </div>
 
       {/* Feedback */}
       {error && (
@@ -443,7 +429,7 @@ export default function WhatsAppProviderConfigSection() {
       )}
 
       {/* Save button */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <div className="flex justify-end">
         <Button
           variant="contained"
           disableElevation
@@ -454,8 +440,8 @@ export default function WhatsAppProviderConfigSection() {
         >
           {saving ? t('common.saving', 'Enregistrement...') : t('common.save', 'Enregistrer')}
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
@@ -563,9 +549,9 @@ function ProviderOptionCard({
       </Box>
 
       {/* Titre + badge + sous-titre */}
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{title}</Typography>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1 flex-wrap">
+          <h6 className="cn-text-subtitle2 font-semibold">{title}</h6>
           <Chip
             label={badge.label}
             size="small"
@@ -573,11 +559,11 @@ function ProviderOptionCard({
             variant="outlined"
             sx={{ height: 18, '& .MuiChip-label': { px: 0.75, fontSize: '0.6875rem' } }}
           />
-        </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+        </div>
+        <span className="cn-text-caption text-muted-foreground block mt-0.5">
           {subtitle}
-        </Typography>
-      </Box>
+        </span>
+      </div>
 
       {/* Avantages / limites — en tooltip pour ne pas alourdir la card */}
       <Tooltip
@@ -585,16 +571,16 @@ function ProviderOptionCard({
         title={
           <Stack spacing={0.5} sx={{ py: 0.5 }}>
             {pros.map((p) => (
-              <Box key={p} sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, fontSize: '0.72rem' }}>
-                <Box component="span" sx={{ color: 'success.light', fontWeight: 700, lineHeight: 1.4 }}>✓</Box>
+              <div className="flex items-start gap-1 text-[0.72rem]" key={p}>
+                <span className="text-[success.light] font-bold leading-[1.4]">✓</span>
                 <span>{p}</span>
-              </Box>
+              </div>
             ))}
             {cons.map((c) => (
-              <Box key={c} sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, fontSize: '0.72rem', opacity: 0.85 }}>
-                <Box component="span" sx={{ fontWeight: 700, lineHeight: 1.4 }}>−</Box>
+              <div className="flex items-start gap-1 text-[0.72rem] opacity-85" key={c}>
+                <span className="font-bold leading-[1.4]">−</span>
                 <span>{c}</span>
-              </Box>
+              </div>
             ))}
           </Stack>
         }

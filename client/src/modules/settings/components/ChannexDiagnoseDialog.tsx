@@ -100,20 +100,12 @@ function formatRelative(iso: string | null): string {
 function SyncSnapshotPanel({ snapshot }: { snapshot: ChannexSyncSnapshot }) {
   const meta = CHANNEX_STATUS_META[snapshot.status];
   return (
-    <Box
-      sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        p: 1.5,
-        bgcolor: 'var(--surface-2)',
-      }}
-    >
+    <div className="border border-[divider] rounded-[1px] p-2 bg-[var(--surface-2)]">
       <Stack spacing={0.85}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 110, fontWeight: 500 }}>
+        <div className="flex items-center gap-2">
+          <span className="cn-text-caption text-muted-foreground min-w-[110px] font-medium">
             Statut sync
-          </Typography>
+          </span>
           <Chip
             size="small"
             label={meta.label}
@@ -126,17 +118,17 @@ function SyncSnapshotPanel({ snapshot }: { snapshot: ChannexSyncSnapshot }) {
               border: `1px solid ${meta.color}40`,
             }}
           />
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 110, fontWeight: 500 }}>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="cn-text-caption text-muted-foreground min-w-[110px] font-medium">
             Derniere sync
-          </Typography>
-          <Typography variant="body2">{formatRelative(snapshot.lastSyncAt)}</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 110, fontWeight: 500 }}>
+          </span>
+          <p className="cn-text-body2">{formatRelative(snapshot.lastSyncAt)}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="cn-text-caption text-muted-foreground min-w-[110px] font-medium">
             OTAs actifs
-          </Typography>
+          </span>
           <Typography
             variant="body2"
             color={snapshot.otaCountKnown ? undefined : 'text.secondary'}
@@ -147,28 +139,19 @@ function SyncSnapshotPanel({ snapshot }: { snapshot: ChannexSyncSnapshot }) {
                 ? `${snapshot.activeOtaCount} OTA${snapshot.activeOtaCount > 1 ? 's' : ''} actif${snapshot.activeOtaCount > 1 ? 's' : ''}`
                 : 'aucun'}
           </Typography>
-        </Box>
+        </div>
         {snapshot.lastSyncError && snapshot.status === 'ERROR' && (
           <Box sx={{ pt: 0.5, mt: 0.25, borderTop: '1px dashed', borderTopColor: 'divider' }}>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.3, fontWeight: 500 }}>
+            <span className="cn-text-caption text-muted-foreground block mb-0.5 font-medium">
               Derniere erreur
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: '0.78rem',
-                color: 'var(--err)',
-                fontFamily: 'monospace',
-                wordBreak: 'break-word',
-                lineHeight: 1.45,
-              }}
-            >
+            </span>
+            <p className="cn-text-body2 text-[0.78rem] text-[var(--err)] font-mono break-words leading-[1.45]">
               {snapshot.lastSyncError}
-            </Typography>
+            </p>
           </Box>
         )}
       </Stack>
-    </Box>
+    </div>
   );
 }
 
@@ -211,13 +194,13 @@ function ActionButton({
       >
         <Icon size={16} strokeWidth={2.2} />
       </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3, mb: 0.3 }}>
+      <div className="flex-1 min-w-0">
+        <p className="cn-text-body2 font-semibold leading-[1.3] mb-0.5">
           {action.label}
-        </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.45, mb: 1 }}>
+        </p>
+        <span className="cn-text-caption text-muted-foreground block leading-[1.45] mb-1.5">
           {action.detail}
-        </Typography>
+        </span>
         <Button
           size="small"
           variant={isPrimary ? 'contained' : 'outlined'}
@@ -228,7 +211,7 @@ function ActionButton({
         >
           {busy ? 'En cours…' : action.label}
         </Button>
-      </Box>
+      </div>
     </Box>
   );
 }
@@ -349,20 +332,16 @@ export default function ChannexDiagnoseDialog({
         >
           <StatusIcon size={20} />
         </Box>
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.3, fontSize: '1.05rem' }}>
+        <div className="min-w-0 flex-1">
+          <h6 className="cn-text-h6 font-semibold leading-[1.3] text-[1.05rem]">
             Diagnostic Channex
-          </Typography>
+          </h6>
           {report && (
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ display: 'block', mt: 0.4, lineHeight: 1.5 }}
-            >
+            <span className="cn-text-caption text-muted-foreground block mt-0.5 leading-[1.5]">
               « {report.propertyName} » · {report.summary}
-            </Typography>
+            </span>
           )}
-        </Box>
+        </div>
         <Button
           onClick={onClose}
           size="small"
@@ -402,13 +381,10 @@ export default function ChannexDiagnoseDialog({
               </Alert>
             )}
 
-            <Box>
-              <Typography
-                variant="caption"
-                sx={{ display: 'block', mb: 0.85, fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}
-              >
+            <div>
+              <span className="cn-text-caption block mb-1.5 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
                 Actions recommandees
-              </Typography>
+              </span>
               <Stack spacing={1}>
                 {report.recommendedActions.map((action) => (
                   <ActionButton
@@ -419,7 +395,7 @@ export default function ChannexDiagnoseDialog({
                   />
                 ))}
               </Stack>
-            </Box>
+            </div>
 
             {/* Phase 3 : historique de sync replie par defaut. Fetch lazy au deplie. */}
             <ChannexSyncLogsList propertyId={propertyId} defaultCollapsed />

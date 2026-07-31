@@ -16,7 +16,7 @@
  *   - Si aucun OTA : affiche "—" (rien à montrer)
  */
 import React from 'react';
-import { Box, Tooltip, Stack, Typography } from '@mui/material';
+import { Box, Tooltip, Stack } from '@mui/material';
 import { Check } from 'lucide-react';
 
 import {
@@ -66,7 +66,7 @@ function resolveOtaOption(otaName: string): ChannexOtaOption | null {
 export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false }: OtaSyncBadgesProps) {
   if (!otas || otas.length === 0) {
     return showEmptyLabel
-      ? <Typography variant="caption" color="text.disabled" sx={{ fontStyle: 'italic' }}>Aucun OTA</Typography>
+      ? <span className="cn-text-caption text-muted-foreground opacity-60 italic">Aucun OTA</span>
       : null;
   }
 
@@ -104,20 +104,7 @@ export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false 
             >
               {/* Logo officiel OTA (SVG/PNG) ou fallback initiales */}
               {logoSrc ? (
-                <Box
-                  component="img"
-                  src={logoSrc}
-                  alt={displayName}
-                  sx={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: 0.75,
-                    objectFit: 'contain',
-                    bgcolor: 'var(--card)',
-                    border: '1px solid var(--line)',
-                    p: 0.3,
-                  }}
-                />
+                <img className="w-full h-full rounded-[0.75px] object-contain bg-[var(--card)] border border-[var(--line)] p-0.5" src={logoSrc} alt={displayName} />
               ) : (
                 <Box
                   sx={{

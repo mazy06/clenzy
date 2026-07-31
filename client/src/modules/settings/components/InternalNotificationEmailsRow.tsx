@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Autocomplete, Box, Chip, CircularProgress, TextField, Typography } from '@mui/material';
+import { Autocomplete, Box, Chip, CircularProgress, TextField } from '@mui/material';
 import { AlertTriangle, BellRing } from 'lucide-react';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -40,21 +40,21 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
   };
 
   return (
-    <Box sx={{ py: 1.25 }}>
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.25, mb: 0.75 }}>
+    <div className="py-2">
+      <div className="flex items-start gap-2 mb-1">
         <Box sx={{ color: 'text.secondary', display: 'inline-flex', flexShrink: 0, mt: '1px' }}>
           <BellRing size={18} />
         </Box>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary' }}>
+        <div className="min-w-0">
+          <p className="cn-text-body1 text-[0.8125rem] font-medium text-foreground">
             Destinataires des notifications internes
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+          </p>
+          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
             Reçoivent les nouvelles demandes de devis, les copies de devis envoyés, la liste
             d'attente et les demandes de maintenance. L'expéditeur reste toujours info@clenzy.fr.
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
 
       <Autocomplete
         multiple
@@ -105,20 +105,20 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
           <Box sx={{ color: 'warning.main', display: 'inline-flex', mt: '1px', flexShrink: 0 }}>
             <AlertTriangle size={14} />
           </Box>
-          <Typography sx={{ fontSize: '0.72rem', color: 'warning.main' }}>
+          <p className="cn-text-body1 text-[0.72rem] text-[var(--bui-warning-ink)]">
             info@clenzy.fr est l'expéditeur : se l'envoyer à soi-même provoque des soft bounces
             intermittents. Préférez une autre adresse (ex. votre boîte perso).
-          </Typography>
+          </p>
         </Box>
       )}
 
       {saving && (
         <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 0.5, ml: { sm: '30px' } }}>
           <CircularProgress size={11} />
-          <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Enregistrement…</Typography>
+          <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Enregistrement…</p>
         </Box>
       )}
-    </Box>
+    </div>
   );
 };
 

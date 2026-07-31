@@ -7,23 +7,7 @@
    ============================================================ */
 
 import { useMemo, useState } from 'react';
-import {
-  Alert,
-  Box,
-  CircularProgress,
-  MenuItem,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
-  ToggleButton,
-  ToggleButtonGroup,
-  Typography,
-  useTheme,
-} from '@mui/material';
+import { Alert, Box, CircularProgress, MenuItem, Select, Table, TableBody, TableCell, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, useTheme } from '@mui/material';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { aiApi, type AiDailyUsage } from '../../services/api/aiApi';
@@ -106,9 +90,9 @@ export default function AiUsageTrendSection() {
   const empty = rows.length === 0;
 
   return (
-    <Box>
+    <div>
       {/* ── Contrôles ── */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, mb: 2 }}>
+      <div className="flex flex-wrap items-center gap-2 mb-3">
         <Select size="small" value={days} onChange={(e) => setDays(Number(e.target.value))} sx={{ minWidth: 120 }}>
           <MenuItem value={7}>{t('settings.ai.usage.days7', '7 jours')}</MenuItem>
           <MenuItem value={30}>{t('settings.ai.usage.days30', '30 jours')}</MenuItem>
@@ -138,18 +122,18 @@ export default function AiUsageTrendSection() {
           <ToggleButton value="tokens">{t('settings.ai.usage.tokens', 'Tokens')}</ToggleButton>
           <ToggleButton value="cost">{t('settings.ai.usage.cost', 'Coût')}</ToggleButton>
         </ToggleButtonGroup>
-      </Box>
+      </div>
 
       {/* ── Totaux + seuil ── */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 3, mb: 2 }}>
-        <Box>
-          <Typography variant="caption" color="text.secondary">{t('settings.ai.usage.totalTokens', 'Total tokens')}</Typography>
-          <Typography variant="h6" fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }}>{fmtTokens(totalTokens)}</Typography>
-        </Box>
-        <Box>
-          <Typography variant="caption" color="text.secondary">{t('settings.ai.usage.totalCost', 'Coût total')}</Typography>
-          <Typography variant="h6" fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }}>{fmtCost(totalCost)}</Typography>
-        </Box>
+      <div className="flex flex-wrap items-center gap-4 mb-3">
+        <div>
+          <span className="cn-text-caption text-muted-foreground">{t('settings.ai.usage.totalTokens', 'Total tokens')}</span>
+          <h6 className="cn-text-h6 font-bold tabular-nums">{fmtTokens(totalTokens)}</h6>
+        </div>
+        <div>
+          <span className="cn-text-caption text-muted-foreground">{t('settings.ai.usage.totalCost', 'Coût total')}</span>
+          <h6 className="cn-text-h6 font-bold tabular-nums">{fmtCost(totalCost)}</h6>
+        </div>
         <TextField
           size="small"
           type="number"
@@ -158,9 +142,9 @@ export default function AiUsageTrendSection() {
           label={t('settings.ai.usage.threshold', 'Seuil d’alerte ($)')}
           placeholder="ex : 20"
           sx={{ ml: 'auto', width: 170 }}
-          InputProps={{ startAdornment: <Box component="span" sx={{ mr: 0.5, color: 'text.secondary' }}>$</Box> }}
+          InputProps={{ startAdornment: <span className="me-0.5 text-muted-foreground">$</span> }}
         />
-      </Box>
+      </div>
 
       {over && (
         <Alert severity="warning" sx={{ mb: 2 }}>
@@ -176,7 +160,7 @@ export default function AiUsageTrendSection() {
       {empty ? (
         <Alert severity="info">{t('settings.ai.usage.empty', 'Aucune consommation sur la période.')}</Alert>
       ) : (
-        <Box sx={{ height: 300, mb: 3 }}>
+        <div className="h-[300px] mb-4">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} vertical={false} />
@@ -196,7 +180,7 @@ export default function AiUsageTrendSection() {
               ))}
             </BarChart>
           </ResponsiveContainer>
-        </Box>
+        </div>
       )}
 
       {/* ── Détail par (provider, modèle) ── */}
@@ -214,11 +198,11 @@ export default function AiUsageTrendSection() {
             {byModel.map((m) => (
               <TableRow key={`${m.provider}|${m.model}`}>
                 <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <div className="flex items-center gap-1.5">
                     <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: colorOf(m.provider), flexShrink: 0 }} />
-                    <Typography variant="body2" fontWeight={600}>{m.model || m.provider}</Typography>
-                    <Typography variant="caption" color="text.secondary">{m.provider}</Typography>
-                  </Box>
+                    <p className="cn-text-body2 font-semibold">{m.model || m.provider}</p>
+                    <span className="cn-text-caption text-muted-foreground">{m.provider}</span>
+                  </div>
                 </TableCell>
                 <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>{fmtTokens(m.tokens)}</TableCell>
                 <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>{m.calls}</TableCell>
@@ -228,6 +212,6 @@ export default function AiUsageTrendSection() {
           </TableBody>
         </Table>
       )}
-    </Box>
+    </div>
   );
 }

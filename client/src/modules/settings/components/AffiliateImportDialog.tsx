@@ -107,25 +107,23 @@ export default function AffiliateImportDialog({
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
       <DialogTitle sx={{ pb: 1 }}>
-        <Typography sx={{ fontSize: "0.95rem", fontWeight: 600, lineHeight: 1.25 }}>
+        <p className="cn-text-body1 text-[0.95rem] font-semibold leading-[1.25]">
           {t("settings.services.importTitle", "Importer un rapport")}
-        </Typography>
-        <Typography sx={{ fontSize: "0.72rem", color: "text.secondary", lineHeight: 1.4 }}>
+        </p>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4]">
           {providerLabel}
-        </Typography>
+        </p>
       </DialogTitle>
 
       <DialogContent dividers>
         {result === null ? (
           <>
-            <Typography
-              sx={{ fontSize: "0.78rem", color: "text.secondary", lineHeight: 1.55, mb: 1.75 }}
-            >
+            <p className="cn-text-body1 text-[0.78rem] text-muted-foreground leading-[1.55] mb-2.5">
               {t(
                 "settings.services.importHint",
                 "Exportez vos conversions depuis le tableau de bord du programme, puis déposez le fichier ici. Les colonnes de référence de réservation et de montant de commission suffisent ; le séparateur et le format des montants sont détectés automatiquement.",
               )}
-            </Typography>
+            </p>
 
             <Box
               component="input"
@@ -198,13 +196,10 @@ export default function AffiliateImportDialog({
                       strong: true,
                     },
                   ].map((line) => (
-                    <Box
-                      key={line.key}
-                      sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}
-                    >
-                      <Typography sx={{ fontSize: "0.78rem", color: "text.secondary" }}>
+                    <div className="flex justify-between gap-3" key={line.key}>
+                      <p className="cn-text-body1 text-[0.78rem] text-muted-foreground">
                         {line.label}
-                      </Typography>
+                      </p>
                       <Typography
                         sx={{
                           fontSize: "0.78rem",
@@ -215,22 +210,15 @@ export default function AffiliateImportDialog({
                       >
                         {formatMoney(line.value)}
                       </Typography>
-                    </Box>
+                    </div>
                   ))}
                 </Stack>
-                <Typography
-                  sx={{
-                    fontSize: "0.72rem",
-                    color: "text.secondary",
-                    mt: 1.5,
-                    lineHeight: 1.5,
-                  }}
-                >
+                <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-2 leading-[1.5]">
                   {t(
                     "settings.services.importIdempotent",
                     "Les références déjà importées sont renvoyées sans être créditées une seconde fois.",
                   )}
-                </Typography>
+                </p>
               </>
             )}
           </>

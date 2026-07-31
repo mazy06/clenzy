@@ -1,18 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Chip,
-  TextField,
-  Button,
-  Switch,
-  FormControlLabel,
-  MenuItem,
-  Alert,
-  CircularProgress,
-  Divider,
-} from '@mui/material';
+import { Card } from '../../../components/ui';
+import { Box, Typography, Chip, TextField, Button, Switch, FormControlLabel, MenuItem, Alert, CircularProgress, Divider } from '@mui/material';
 import { CheckCircle as CheckCircleIcon, ErrorOutline, Link as LinkIcon } from '../../../icons';
 import {
   useMarketingIntegration,
@@ -71,9 +59,9 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
 
   if (isLoading || !data) {
     return (
-      <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
+      <div className="p-4 flex justify-center">
         <CircularProgress size={28} />
-      </Box>
+      </div>
     );
   }
 
@@ -136,31 +124,18 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
         />
       }
       label={
-        <Box sx={{ mt: 0.25 }}>
-          <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.2 }}>{label}</Typography>
-          <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>{desc}</Typography>
-        </Box>
+        <div className="mt-0.5">
+          <p className="cn-text-body1 text-[0.8rem] font-semibold leading-[1.2]">{label}</p>
+          <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">{desc}</p>
+        </div>
       }
     />
   );
 
   return (
-    <Paper
-      elevation={0}
-      sx={{ borderRadius: '12px', border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}
-    >
+    <Card className="gap-0 py-0 border-border overflow-hidden">
       {/* Header */}
-      <Box
-        sx={{
-          px: 2,
-          py: 1.75,
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1.5,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
+      <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[divider]">
         <Box
           sx={{
             width: 40,
@@ -179,22 +154,22 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
         >
           B
         </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography fontWeight={600} sx={{ fontSize: '0.95rem', lineHeight: 1.25 }}>
+        <div className="flex-1 min-w-0">
+          <p className="cn-text-body1 font-semibold text-[0.95rem] leading-[1.25]">
             Brevo
-          </Typography>
-          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', mt: 0.25, lineHeight: 1.4 }}>
+          </p>
+          <p className="cn-text-body1 text-[0.78rem] text-muted-foreground mt-0.5 leading-[1.4]">
             Emailing &amp; newsletter · synchro des contacts (waitlist, newsletter, prospects)
-          </Typography>
-        </Box>
-        <Box sx={{ flexShrink: 0 }}>{statusChip}</Box>
-      </Box>
+          </p>
+        </div>
+        <div className="shrink-0">{statusChip}</div>
+      </div>
 
-      <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div className="p-3 flex flex-col gap-3">
         {/* Clé API */}
-        <Box>
+        <div>
           <Typography sx={labelSx}>Clé API Brevo (v3)</Typography>
-          <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+          <div className="flex gap-1.5 mt-0.5">
             <TextField
               type="password"
               size="small"
@@ -216,14 +191,14 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
             >
               {setApiKey.isPending ? <CircularProgress size={16} color="inherit" /> : 'Enregistrer'}
             </Button>
-          </Box>
-          <Typography sx={{ fontSize: '0.68rem', color: 'text.secondary', mt: 0.5 }}>
+          </div>
+          <p className="cn-text-body1 text-[0.68rem] text-muted-foreground mt-0.5">
             Stockée chiffrée (AES-256), jamais affichée en clair. Brevo → SMTP &amp; API → Clés API.
-          </Typography>
-        </Box>
+          </p>
+        </div>
 
         {/* Test connexion */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outlined"
             size="small"
@@ -235,11 +210,11 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
             Tester la connexion
           </Button>
           {data.lastTestedAt && (
-            <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+            <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">
               Dernier test : {new Date(data.lastTestedAt).toLocaleString('fr-FR')}
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
         {test.data ? (
           <Alert severity={test.data.success ? 'success' : 'error'} sx={{ borderRadius: '8px', fontSize: '0.78rem', py: 0.25 }}>
             {test.data.message}
@@ -254,12 +229,12 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
         <Divider />
 
         {/* Mapping des listes */}
-        <Box>
+        <div>
           <Typography sx={labelSx}>Listes Brevo</Typography>
           {!data.configured ? (
-            <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mt: 0.5 }}>
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-0.5">
               Enregistre une clé API valide pour charger tes listes Brevo.
-            </Typography>
+            </p>
           ) : (
             <Box
               sx={{
@@ -275,20 +250,20 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
               {listSelect('Leads booking engine', data.leadsListId, 'leadsListId')}
             </Box>
           )}
-        </Box>
+        </div>
 
         <Divider />
 
         {/* Toggles de synchro */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+        <div className="flex flex-col gap-2">
           <Typography sx={labelSx}>Synchronisations</Typography>
           {toggleRow('Waitlist → Brevo', 'Pousse les inscrits de la liste d’attente.', data.syncWaitlistEnabled, 'syncWaitlist')}
           {toggleRow('Newsletter → Brevo', 'Pousse les opt-in newsletter (inscription).', data.syncNewsletterEnabled, 'syncNewsletter')}
           {toggleRow('Leads devis → Brevo', 'Pousse les demandes de devis de la landing.', data.syncProspectsEnabled, 'syncProspects')}
           {toggleRow('Leads booking engine → Brevo', 'Pousse les leads captés (exit-intent / panier abandonné), segmentables par SOURCE.', data.syncLeadsEnabled, 'syncLeads')}
           {toggleRow('Attributs de contact', 'Envoie NOM / VILLE / SOURCE pour segmenter.', data.syncAttributesEnabled, 'syncAttributes')}
-        </Box>
-      </Box>
-    </Paper>
+        </div>
+      </div>
+    </Card>
   );
 }

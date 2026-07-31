@@ -1,19 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  Paper,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-  useTheme,
-} from '@mui/material';
+import { Card } from '../../components/ui';
+import { Alert, Button, Chip, Skeleton, Table, TableBody, TableCell, TableHead, TableRow, Typography, useTheme } from '@mui/material';
 import { Coins, History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -89,15 +76,15 @@ export default function AiCreditsSection() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
+      <div className="flex flex-col gap-2 mb-3">
         <Skeleton variant="rounded" height={96} />
         <Skeleton variant="rounded" height={72} />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
+    <div className="flex flex-col gap-2 mb-3">
       {topupOutcome === 'success' && (
         <Alert severity="success">
           {t('aiCredits.topupSuccess', 'Paiement confirmé — vos crédits seront visibles dans quelques instants.')}
@@ -109,23 +96,23 @@ export default function AiCreditsSection() {
       {error && <Alert severity="warning">{error}</Alert>}
 
       {/* Solde + poches */}
-      <Paper variant="outlined" sx={{ p: 1.75 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+      <Card className="gap-0 py-0 p-2.5">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
             <Coins size={20} color={gaugeColor} aria-hidden />
-            <Box>
-              <Typography variant="body2" color="text.secondary">
+            <div>
+              <p className="cn-text-body2 text-muted-foreground">
                 {t('aiCredits.balanceTitle', 'Crédits IA disponibles')}
-              </Typography>
+              </p>
               <Typography
                 variant="h5"
                 sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: gaugeColor, lineHeight: 1.2 }}
               >
                 {balance ? toCredits(balance.totalMillicredits) : '0'}
               </Typography>
-            </Box>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+            </div>
+          </div>
+          <div className="flex gap-1 flex-wrap">
             {(balance?.pockets ?? []).map((pocket, idx) => (
               <Chip
                 key={`${pocket.source}-${idx}`}
@@ -139,20 +126,20 @@ export default function AiCreditsSection() {
               />
             ))}
             {(balance?.pockets ?? []).length === 0 && (
-              <Typography variant="caption" color="text.secondary">
+              <span className="cn-text-caption text-muted-foreground">
                 {t('aiCredits.noPockets', 'Aucune poche active — rechargez ou attendez votre prochaine dotation mensuelle.')}
-              </Typography>
+              </span>
             )}
-          </Box>
-        </Box>
-      </Paper>
+          </div>
+        </div>
+      </Card>
 
       {/* Packs de recharge */}
-      <Paper variant="outlined" sx={{ p: 1.75 }}>
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+      <Card className="gap-0 py-0 p-2.5">
+        <h6 className="cn-text-subtitle2 mb-1.5">
           {t('aiCredits.topupTitle', 'Recharger (crédits valables 12 mois)')}
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        </h6>
+        <div className="flex gap-1.5 flex-wrap">
           {packs.map((pack) => (
             <Button
               key={pack.key}
@@ -166,15 +153,15 @@ export default function AiCreditsSection() {
               {(pack.priceCents / 100).toLocaleString(undefined, { style: 'currency', currency: 'EUR' })}
             </Button>
           ))}
-        </Box>
-      </Paper>
+        </div>
+      </Card>
 
       {/* Historique ledger */}
       {ledger.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 1.75 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+        <Card className="gap-0 py-0 p-2.5">
+          <h6 className="cn-text-subtitle2 mb-1.5">
             {t('aiCredits.ledgerTitle', 'Derniers mouvements')}
-          </Typography>
+          </h6>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -219,7 +206,7 @@ export default function AiCreditsSection() {
               })}
             </TableBody>
           </Table>
-        </Paper>
+        </Card>
       )}
 
       {/* Grand Livre d'Autonomie (X3) : replay du run d'une ligne du ledger. */}
@@ -228,6 +215,6 @@ export default function AiCreditsSection() {
         open={replayRunId !== null}
         onClose={() => setReplayRunId(null)}
       />
-    </Box>
+    </div>
   );
 }

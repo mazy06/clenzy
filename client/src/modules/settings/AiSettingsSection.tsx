@@ -2,7 +2,6 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useTabValueParam } from '../../components/tabKeyParam';
 import {
   Box,
-  Paper,
   Typography,
   Button,
   TextField,
@@ -21,6 +20,7 @@ import {
   useTheme,
   alpha,
 } from '@mui/material';
+import { Card } from '../../components/ui';
 import {
   CheckCircle,
   Error as ErrorIcon,
@@ -129,21 +129,11 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
   const Logo = brand.id === 'openai' ? OpenAILogo : ClaudeLogo;
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        height: '100%',
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 2,
-        transition: 'border-color 0.2s ease',
-        '&:hover': { borderColor: alpha(theme.palette.primary.main, 0.45) },
-      }}
-    >
-      <Box sx={{ p: 1.75 }}>
+    <Card className="h-full gap-0 py-0 transition-colors duration-200 hover:border-primary/45">
+      <div className="p-2.5">
         {/* ── Header: logo (couleur de marque) + nom/modèle + badge clé ── */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
+        <div className="flex items-center justify-between gap-1.5 mb-2">
+          <div className="flex items-center gap-2 min-w-0">
             <Box
               sx={{
                 display: 'flex',
@@ -158,7 +148,7 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
             >
               <Logo size={18} color={accent} />
             </Box>
-            <Box sx={{ minWidth: 0 }}>
+            <div className="min-w-0">
               <Typography variant="subtitle2" fontWeight={700} lineHeight={1.2} noWrap>
                 {brand.label}
               </Typography>
@@ -166,8 +156,8 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
                 {/* Modèle EFFECTIF (choisi en live), repli sur le défaut — plus figé dans le code. */}
                 {status.modelOverride || brand.model}
               </Typography>
-            </Box>
-          </Box>
+            </div>
+          </div>
 
           <Chip
             size="small"
@@ -181,11 +171,11 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
               color: 'text.secondary',
             }}
           />
-        </Box>
+        </div>
 
         {/* ── Clé masquée + état (clé perso uniquement) — une seule ligne compacte ── */}
         {isOrgKey && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, minWidth: 0 }}>
+          <div className="flex items-center gap-1.5 mb-2 min-w-0">
             <Typography
               variant="caption"
               fontFamily="monospace"
@@ -211,11 +201,11 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
                 '& .MuiChip-icon': { color: status.valid ? ok : theme.palette.error.main },
               }}
             />
-          </Box>
+          </div>
         )}
 
         {/* ── Actions : couleurs cohérentes (primary action, error déconnexion) ── */}
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <div className="flex gap-1.5">
           <Button
             variant={isOrgKey ? 'outlined' : 'contained'}
             size="small"
@@ -239,9 +229,9 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
               {t('bookingEngine.ai.settings.disconnect')}
             </Button>
           )}
-        </Box>
-      </Box>
-    </Paper>
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -341,7 +331,7 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
       </DialogTitle>
 
       <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+        <div className="flex flex-col gap-3 mt-1.5">
           <TextField
             label={t('bookingEngine.ai.settings.apiKeyLabel')}
             type={showKey ? 'text' : 'password'}
@@ -448,7 +438,7 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
           >
             {t('bookingEngine.ai.settings.byokInfo', { provider: brand?.label ?? '' })}
           </Alert>
-        </Box>
+        </div>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -528,16 +518,7 @@ function FeatureTogglesSection() {
   const accentColor = 'var(--accent)';
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        mb: 3,
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
-      }}
-    >
+    <Card className="mb-6 gap-0 overflow-hidden py-0">
       {/* ── Section header ── */}
       <Box
         sx={{
@@ -548,7 +529,7 @@ function FeatureTogglesSection() {
           borderColor: 'divider',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <div className="flex items-center gap-1.5">
           <Box
             sx={{
               width: 8,
@@ -557,13 +538,13 @@ function FeatureTogglesSection() {
               bgcolor: accentColor,
             }}
           />
-          <Typography variant="subtitle1" fontWeight={700} sx={{ color: 'var(--ink)' }}>
+          <h6 className="cn-text-subtitle1 font-bold text-[var(--ink)]">
             {t('bookingEngine.ai.features.title')}
-          </Typography>
-        </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontSize: '0.8rem' }}>
+          </h6>
+        </div>
+        <p className="cn-text-body2 text-muted-foreground mt-0.5 text-[0.8rem]">
           {t('bookingEngine.ai.features.subtitle')}
-        </Typography>
+        </p>
       </Box>
 
       {/* ── Feature rows ── */}
@@ -609,14 +590,14 @@ function FeatureTogglesSection() {
                 </Box>
 
                 {/* Name + description */}
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+                <div className="flex-1 min-w-0">
+                  <p className="cn-text-body2 font-semibold leading-[1.3]">
                     {t(`bookingEngine.ai.features.${feat.key}.name`)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+                  </p>
+                  <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                     {t(`bookingEngine.ai.features.${feat.key}.description`)}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
 
                 {/* Menu chip */}
                 <Chip
@@ -645,7 +626,7 @@ function FeatureTogglesSection() {
           );
         })
       )}
-    </Paper>
+    </Card>
   );
 }
 
@@ -704,7 +685,7 @@ export default function AiSettingsSection() {
   const anthropicStatus = statuses?.find(s => s.provider === 'anthropic');
 
   return (
-    <Box>
+    <div>
       {/* ── Tabs internes ── */}
       <PageTabs
         options={[
@@ -775,6 +756,6 @@ export default function AiSettingsSection() {
         onClose={() => setDialogProvider(null)}
         provider={dialogProvider}
       />
-    </Box>
+    </div>
   );
 }

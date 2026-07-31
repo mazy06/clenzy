@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, AlertTitle, Box, CircularProgress } from '@mui/material';
+import { CheckCircle2, Info, TriangleAlert } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle, Spinner } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { whatsAppConfigApi, type WhatsAppConfig } from '../../services/api/whatsAppConfigApi';
 
@@ -38,23 +39,26 @@ export default function WhatsAppStatusBanner() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
-        <CircularProgress size={14} />
-      </Box>
+      <div className="flex items-center gap-1.5 py-0.5">
+        <Spinner className="size-3.5" />
+      </div>
     );
   }
 
   // Aucune config provisionnée par la plateforme pour cette org.
   if (!config) {
     return (
-      <Alert severity="info" sx={{ borderRadius: '8px' }}>
-        <AlertTitle sx={{ fontWeight: 600 }}>
+      <Alert variant="info">
+        <Info />
+        <AlertTitle>
           {t('messaging.whatsappStatus.notConfiguredTitle', 'WhatsApp non configuré')}
         </AlertTitle>
-        {t(
-          'messaging.whatsappStatus.notConfiguredBody',
-          "L'envoi WhatsApp n'est pas encore configuré pour votre organisation. Contactez votre gestionnaire de plateforme pour l'activer.",
-        )}
+        <AlertDescription>
+          {t(
+            'messaging.whatsappStatus.notConfiguredBody',
+            "L'envoi WhatsApp n'est pas encore configuré pour votre organisation. Contactez votre gestionnaire de plateforme pour l'activer.",
+          )}
+        </AlertDescription>
       </Alert>
     );
   }
@@ -68,29 +72,31 @@ export default function WhatsAppStatusBanner() {
   // Config présente mais désactivée ou incomplète.
   if (!config.enabled || !isConfigured) {
     return (
-      <Alert severity="warning" sx={{ borderRadius: '8px' }}>
-        <AlertTitle sx={{ fontWeight: 600 }}>
-          {t('messaging.whatsappStatus.disabledTitle', 'WhatsApp désactivé')}
-        </AlertTitle>
-        {t(
-          'messaging.whatsappStatus.disabledBody',
-          "L'envoi WhatsApp est géré par votre plateforme et n'est pas actif actuellement. Vos messages voyageurs ne partiront pas sur ce canal.",
-        )}
+      <Alert variant="warning">
+        <TriangleAlert />
+        <AlertTitle>{t('messaging.whatsappStatus.disabledTitle', 'WhatsApp désactivé')}</AlertTitle>
+        <AlertDescription>
+          {t(
+            'messaging.whatsappStatus.disabledBody',
+            "L'envoi WhatsApp est géré par votre plateforme et n'est pas actif actuellement. Vos messages voyageurs ne partiront pas sur ce canal.",
+          )}
+        </AlertDescription>
       </Alert>
     );
   }
 
   // WhatsApp actif et configuré.
   return (
-    <Alert severity="success" sx={{ borderRadius: '8px' }}>
-      <AlertTitle sx={{ fontWeight: 600 }}>
-        {t('messaging.whatsappStatus.activeTitle', 'WhatsApp actif')}
-      </AlertTitle>
-      {t(
-        'messaging.whatsappStatus.activeBody',
-        "L'envoi WhatsApp est actif via {{provider}}, géré par votre plateforme.",
-        { provider: providerLabel },
-      )}
+    <Alert variant="success">
+      <CheckCircle2 />
+      <AlertTitle>{t('messaging.whatsappStatus.activeTitle', 'WhatsApp actif')}</AlertTitle>
+      <AlertDescription>
+        {t(
+          'messaging.whatsappStatus.activeBody',
+          "L'envoi WhatsApp est actif via {{provider}}, géré par votre plateforme.",
+          { provider: providerLabel },
+        )}
+      </AlertDescription>
     </Alert>
   );
 }

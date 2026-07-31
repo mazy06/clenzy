@@ -115,24 +115,24 @@ function AttentionRow({
       <Box sx={{ mt: 0.2, color: meta.color, flexShrink: 0 }}>
         <Icon size={16} strokeWidth={2.2} />
       </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, mb: 0.2 }}>
-          <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3, color: 'text.primary' }}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-1 mb-0.5">
+          <p className="cn-text-body2 font-semibold leading-[1.3] text-foreground">
             {item.propertyName}
-          </Typography>
+          </p>
           <Typography variant="caption" sx={{ color: meta.color, fontWeight: 500, fontSize: '0.65rem' }}>
             #{item.clenzyPropertyId}
           </Typography>
-        </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.45 }}>
+        </div>
+        <span className="cn-text-caption text-muted-foreground block leading-[1.45]">
           {item.reason}
-        </Typography>
+        </span>
         {item.lastSyncAt && (
-          <Typography variant="caption" sx={{ display: 'block', mt: 0.25, color: 'text.disabled', fontSize: '0.65rem' }}>
+          <span className="cn-text-caption block mt-0.5 text-muted-foreground opacity-60 text-[0.65rem]">
             Derniere sync : il y a {formatRelative(item.lastSyncAt)}
-          </Typography>
+          </span>
         )}
-      </Box>
+      </div>
       {onClick && (
         <Box sx={{ color: meta.color, mt: 0.4, flexShrink: 0 }}>
           <ChevronRight size={14} />
@@ -170,19 +170,12 @@ export default function ChannexHealthSummaryPanel({
 
   if (loading && !summary) {
     return (
-      <Box
-        sx={{
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 1,
-          p: 1.5,
-        }}
-      >
+      <div className="border border-[divider] rounded-[1px] p-2">
         <Stack spacing={1}>
           <Skeleton variant="rounded" height={32} />
           <Skeleton variant="rounded" height={48} />
         </Stack>
-      </Box>
+      </div>
     );
   }
 
@@ -197,9 +190,9 @@ export default function ChannexHealthSummaryPanel({
           bgcolor: 'color-mix(in srgb, var(--err) 5%, transparent)',
         }}
       >
-        <Typography variant="caption" color="error" sx={{ display: 'block', mb: 0.5 }}>
+        <span className="cn-text-caption text-destructive block mb-0.5">
           {error}
-        </Typography>
+        </span>
         <Button size="small" onClick={() => void fetchSummary()} sx={{ textTransform: 'none', fontSize: '0.72rem' }}>
           Reessayer
         </Button>
@@ -211,22 +204,14 @@ export default function ChannexHealthSummaryPanel({
 
   if (summary.totalMappings === 0) {
     return (
-      <Box
-        sx={{
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 1,
-          p: 1.5,
-          bgcolor: 'var(--surface-2)',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <div className="border border-[divider] rounded-[1px] p-2 bg-[var(--surface-2)]">
+        <div className="flex items-center gap-1.5">
           <Activity size={16} color="var(--muted)" strokeWidth={2.2} />
-          <Typography variant="caption" color="text.secondary">
+          <span className="cn-text-caption text-muted-foreground">
             Aucune propriete connectee a Channex pour l'instant.
-          </Typography>
-        </Box>
-      </Box>
+          </span>
+        </div>
+      </div>
     );
   }
 
@@ -236,22 +221,14 @@ export default function ChannexHealthSummaryPanel({
   const hiddenCount = summary.attentionItems.length - visibleItems.length;
 
   return (
-    <Box
-      sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        p: 1.5,
-        bgcolor: 'var(--surface-2)',
-      }}
-    >
+    <div className="border border-[divider] rounded-[1px] p-2 bg-[var(--surface-2)]">
       {/* Header : total + chips par status + refresh */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: summary.attentionItems.length > 0 ? 1.25 : 0 }}>
         <Activity size={16} color="var(--accent)" strokeWidth={2.2} />
-        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
+        <span className="cn-text-caption font-semibold text-foreground">
           {summary.totalMappings} propriete{summary.totalMappings > 1 ? 's' : ''} connectee{summary.totalMappings > 1 ? 's' : ''}
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 0.5, ml: 'auto', flexWrap: 'wrap' }}>
+        </span>
+        <div className="flex gap-0.5 ms-auto flex-wrap">
           {STATUS_ORDER.map((st) => {
             const n = summary.countsByStatus[st] ?? 0;
             if (n === 0) return null;
@@ -272,7 +249,7 @@ export default function ChannexHealthSummaryPanel({
               />
             );
           })}
-        </Box>
+        </div>
         <Tooltip title="Rafraichir" arrow placement="top">
           <span>
             <IconButton
@@ -308,6 +285,6 @@ export default function ChannexHealthSummaryPanel({
           )}
         </Stack>
       )}
-    </Box>
+    </div>
   );
 }

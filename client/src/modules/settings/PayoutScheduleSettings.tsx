@@ -1,13 +1,5 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Switch,
-  TextField,
-  Alert,
-  Snackbar,
-  CircularProgress,
-} from '@mui/material';
+import { Box, Switch, TextField, Alert, Snackbar, CircularProgress } from '@mui/material';
 import { CalendarMonth } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePayoutSchedule, useUpdatePayoutSchedule } from '../../hooks/usePayoutSchedule';
@@ -131,9 +123,9 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
           icon={CalendarMonth}
           accent="info"
         >
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+          <div className="flex justify-center py-3">
             <CircularProgress size={24} />
-          </Box>
+          </div>
         </SettingsSection>
       );
     }
@@ -146,37 +138,21 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
         description={t('settings.payoutSchedule.subtitle')}
       >
         {/* Auto-generate toggle */}
-        <Box
-          sx={{
-            p: 1.5,
-            mb: 1.5,
-            borderRadius: '8px',
-            border: '1px solid',
-            borderColor: 'divider',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 1.5,
-          }}
-        >
-          <Box sx={{ minWidth: 0 }}>
-            <Typography
-              sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}
-            >
+        <div className="p-2 mb-2 rounded-[8px] border border-[divider] flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground leading-[1.3]">
               {t('settings.payoutSchedule.autoGenerate')}
-            </Typography>
-            <Typography
-              sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.4, mt: 0.125 }}
-            >
+            </p>
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4] mt-0">
               {t('settings.payoutSchedule.autoGenerateHelper')}
-            </Typography>
-          </Box>
+            </p>
+          </div>
           <Switch
             size="small"
             checked={autoGenerate}
             onChange={(e) => setAutoGenerate(e.target.checked)}
           />
-        </Box>
+        </div>
 
         {/* Days of month selector */}
         <Box
@@ -191,17 +167,13 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
             transition: 'opacity 180ms cubic-bezier(0.22, 1, 0.36, 1)',
           }}
         >
-          <Typography
-            sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}
-          >
+          <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground leading-[1.3]">
             {t('settings.payoutSchedule.daysOfMonth')}
-          </Typography>
-          <Typography
-            sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.4, mt: 0.125, mb: 1.25 }}
-          >
+          </p>
+          <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4] mt-0 mb-2">
             {t('settings.payoutSchedule.daysOfMonthHelper')}
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+          </p>
+          <div className="flex flex-wrap gap-0.5">
             {VALID_DAYS.map((day) => {
               const active = selectedDays.includes(day);
               return (
@@ -251,29 +223,18 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
                 </Box>
               );
             })}
-          </Box>
+          </div>
         </Box>
 
         {/* Grace period */}
-        <Box
-          sx={{
-            p: 1.5,
-            borderRadius: '8px',
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Typography
-            sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}
-          >
+        <div className="p-2 rounded-[8px] border border-[divider]">
+          <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground leading-[1.3]">
             {t('settings.payoutSchedule.gracePeriod')}
-          </Typography>
-          <Typography
-            sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.4, mt: 0.125, mb: 1 }}
-          >
+          </p>
+          <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4] mt-0 mb-1.5">
             {t('settings.payoutSchedule.gracePeriodHelper')}
-          </Typography>
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.625 }}>
+          </p>
+          <div className="inline-flex items-center gap-1">
             <TextField
               type="number"
               value={gracePeriod}
@@ -289,13 +250,11 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
               }}
               sx={{ width: 80 }}
             />
-            <Typography
-              sx={{ fontSize: '0.72rem', color: 'text.secondary', fontWeight: 600, letterSpacing: '0.02em' }}
-            >
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-semibold tracking-[0.02em]">
               {t('common.daysShort', 'jours')}
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
 
         <Snackbar
           open={snackbar.open}

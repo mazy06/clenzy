@@ -1,14 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  FormControlLabel,
-  Snackbar,
-  Switch,
-  TextField,
-} from '@mui/material';
+import { Alert, Button, CircularProgress, FormControlLabel, Snackbar, Switch, TextField } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { activitiesApi, type ActivityProvider } from '../../../services/api/activitiesApi';
@@ -74,14 +65,14 @@ export default function ActivityProviderConfigForm({ provider }: { provider: Act
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+      <div className="flex justify-center py-3">
         <CircularProgress size={22} />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5, mb: 1.5 }}>
+    <div className="border border-[divider] rounded-[2px] p-2 mb-2">
       <FormControlLabel
         control={<Switch size="small" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />}
         label={t('welcomeGuide.activities.enabled', 'Actif')}
@@ -127,6 +118,6 @@ export default function ActivityProviderConfigForm({ provider }: { provider: Act
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 }

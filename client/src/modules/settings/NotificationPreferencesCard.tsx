@@ -1,22 +1,6 @@
 import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Switch,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  CircularProgress,
-  Alert,
-  Snackbar,
-  Chip,
-  Tooltip,
-} from '@mui/material';
+import { Box, Typography, Switch, List, ListItem, ListItemText, ListItemSecondaryAction, Accordion, AccordionSummary, AccordionDetails, CircularProgress, Alert, Snackbar, Chip, Tooltip } from '@mui/material';
+import { Card } from '../../components/ui';
 import {
   ExpandMore,
   Notifications,
@@ -338,33 +322,33 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
 
   if (loading) {
     return (
-      <Paper sx={{ p: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
+      <Card className="gap-0 py-0 p-4 flex justify-center items-center min-h-[200px]">
         <CircularProgress size={32} />
-      </Paper>
+      </Card>
     );
   }
 
   if (error) {
     return (
-      <Paper sx={{ p: 3 }}>
+      <Card className="gap-0 py-0 p-4">
         <Alert severity="warning">{error}</Alert>
-      </Paper>
+      </Card>
     );
   }
 
   return (
-    <Paper sx={{ p: 2 }}>
+    <Card className="gap-0 py-0 p-3">
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Notifications size={20} strokeWidth={1.75} /></Box>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
+      <div className="flex items-center gap-1.5 mb-3">
+        <span className="inline-flex text-[secondary.main]"><Notifications size={20} strokeWidth={1.75} /></span>
+        <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
           Preferences de notifications
-        </Typography>
-      </Box>
+        </h6>
+      </div>
 
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.8rem' }}>
+      <p className="cn-text-body2 text-muted-foreground mb-3 text-[0.8rem]">
         Choisissez les notifications que vous souhaitez recevoir. Desactivez celles qui ne vous interessent pas.
-      </Typography>
+      </p>
 
       {/* Categories Accordions — grille 2 colonnes */}
       <Box
@@ -398,7 +382,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
                 expandIcon={<ExpandMore />}
                 sx={{ minHeight: 48, '& .MuiAccordionSummary-content': { my: 0.5 } }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', pr: 1 }}>
+                <div className="flex items-center gap-1.5 w-full pe-1.5">
                   <Box sx={{ color: noneEnabled ? 'text.disabled' : category.color, display: 'flex', transition: 'color 0.2s' }}>
                     {category.icon}
                   </Box>
@@ -433,7 +417,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
                       sx={{ ml: 0.5 }}
                     />
                   </Tooltip>
-                </Box>
+                </div>
               </AccordionSummary>
               <AccordionDetails sx={{ pt: 0, pb: 1, opacity: noneEnabled ? 0.45 : 1, transition: 'opacity 0.2s' }}>
                 <List dense disablePadding>
@@ -441,14 +425,14 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
                     <ListItem key={nKey.key} sx={{ py: 0.25, px: 1 }}>
                       <ListItemText
                         primary={
-                          <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                          <p className="cn-text-body2 text-[0.82rem]">
                             {nKey.title}
-                          </Typography>
+                          </p>
                         }
                         secondary={
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+                          <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                             {nKey.description}
-                          </Typography>
+                          </span>
                         }
                       />
                       <ListItemSecondaryAction>
@@ -482,7 +466,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Paper>
+    </Card>
   );
 });
 

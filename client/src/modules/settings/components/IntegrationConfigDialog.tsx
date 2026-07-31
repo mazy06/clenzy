@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent, IconButton, Box, useTheme, useMediaQuery } from '@mui/material';
+import { Dialog, DialogContent, IconButton, useTheme, useMediaQuery } from '@mui/material';
 import { Close as CloseIcon } from '../../../icons';
 
 /**
@@ -57,7 +57,7 @@ export default function IntegrationConfigDialog({
       }}
     >
       {/* Bouton de fermeture floating en haut-droite */}
-      <Box sx={{ position: 'relative' }}>
+      <div className="relative">
         <IconButton
           onClick={onClose}
           aria-label="Fermer"
@@ -98,7 +98,7 @@ export default function IntegrationConfigDialog({
         >
           {children}
         </DialogContent>
-      </Box>
+      </div>
     </Dialog>
   );
 }

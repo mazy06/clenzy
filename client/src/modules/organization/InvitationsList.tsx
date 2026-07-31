@@ -1,20 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { getOrgRoleLabel, getOrgRoleHex, getOrgRoleIcon } from '../../utils/orgRoleLabels';
-import {
-  Box,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  IconButton,
-  Tooltip,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, CircularProgress, Alert } from '@mui/material';
 import {
   Refresh as RefreshIcon,
   Cancel as CancelIcon,
@@ -191,9 +177,9 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+      <div className="flex justify-center py-4">
         <CircularProgress size={32} />
-      </Box>
+      </div>
     );
   }
 
@@ -207,9 +193,9 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
 
   if (invitations.length === 0) {
     return (
-      <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+      <p className="cn-text-body2 text-muted-foreground py-3 text-center">
         Aucune invitation envoyee.
-      </Typography>
+      </p>
     );
   }
 
@@ -235,19 +221,9 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
           {invitations.map((inv) => (
             <TableRow key={inv.id} hover>
               <TableCell sx={CELL_EMAIL_SX}>
-                <Typography
-                  variant="body2"
-                  fontWeight={500}
-                  sx={{
-                    fontSize: '0.75rem',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                  title={inv.invitedEmail}
-                >
+                <p className="cn-text-body2 font-medium text-[0.75rem] overflow-hidden text-ellipsis whitespace-nowrap" title={inv.invitedEmail}>
                   {inv.invitedEmail}
-                </Typography>
+                </p>
               </TableCell>
               <TableCell sx={CELL_SX}>
                 {(() => {
@@ -271,18 +247,18 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
                 {getStatusChip(inv.status)}
               </TableCell>
               <TableCell sx={CELL_SX}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums' }}>
+                <p className="cn-text-body2 text-muted-foreground text-[0.75rem] tabular-nums">
                   {formatShortDate(inv.createdAt)}
-                </Typography>
+                </p>
               </TableCell>
               <TableCell sx={CELL_SX}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums' }}>
+                <p className="cn-text-body2 text-muted-foreground text-[0.75rem] tabular-nums">
                   {formatShortDate(inv.expiresAt)}
-                </Typography>
+                </p>
               </TableCell>
               <TableCell align="right" sx={{ ...CELL_SX, pr: 1.25 }}>
                 {inv.status === 'PENDING' && (
-                  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                  <div className="inline-flex items-center gap-0.5">
                     <Tooltip title="Renvoyer l'invitation">
                       <IconButton
                         size="small"
@@ -309,10 +285,10 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
                         <CancelIcon size={13} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
-                  </Box>
+                  </div>
                 )}
                 {(inv.status === 'CANCELLED' || inv.status === 'EXPIRED') && (
-                  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, justifyContent: 'flex-end' }}>
+                  <div className="inline-flex items-center gap-0.5 justify-end">
                     <Tooltip title="Supprimer l'invitation">
                       <IconButton
                         size="small"
@@ -328,7 +304,7 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
                         )}
                       </IconButton>
                     </Tooltip>
-                  </Box>
+                  </div>
                 )}
               </TableCell>
             </TableRow>

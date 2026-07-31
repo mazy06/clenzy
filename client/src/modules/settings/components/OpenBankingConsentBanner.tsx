@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Box, Button, Typography } from '@mui/material';
+import { Alert, Button } from '@mui/material';
 import { Warning, ErrorOutline } from '../../../icons';
 import type { OwnerPayoutConfig } from '../../../services/api/accountingApi';
 
@@ -60,15 +60,15 @@ export default function OpenBankingConsentBanner({
           )
         }
       >
-        <Box>
-          <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 0.25 }}>
+        <div>
+          <p className="cn-text-body1 text-[0.85rem] font-semibold mb-0.5">
             Configuration Open Banking incomplète
-          </Typography>
-          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
+          </p>
+          <p className="cn-text-body1 text-[0.78rem] text-muted-foreground">
             La méthode Open Banking est sélectionnée, mais l'authentification bancaire (SCA)
             n'a pas encore été validée. Aucun virement ne peut être effectué tant que ce n'est pas fait.
-          </Typography>
-        </Box>
+          </p>
+        </div>
       </Alert>
     );
   }
@@ -105,16 +105,16 @@ export default function OpenBankingConsentBanner({
           )
         }
       >
-        <Box>
-          <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 0.25 }}>
+        <div>
+          <p className="cn-text-body1 text-[0.85rem] font-semibold mb-0.5">
             Consent bancaire expiré
-          </Typography>
-          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
+          </p>
+          <p className="cn-text-body1 text-[0.78rem] text-muted-foreground">
             Votre consent Open Banking a expiré le{' '}
             <strong>{new Date(expiresAt).toLocaleDateString('fr-FR')}</strong>. Les virements automatiques
             sont suspendus jusqu'à reconnexion. Refaites le SCA bancaire pour réactiver les payouts.
-          </Typography>
-        </Box>
+          </p>
+        </div>
       </Alert>
     );
   }
@@ -140,11 +140,11 @@ export default function OpenBankingConsentBanner({
           )
         }
       >
-        <Box>
-          <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 0.25 }}>
+        <div>
+          <p className="cn-text-body1 text-[0.85rem] font-semibold mb-0.5">
             Consent bancaire à renouveler bientôt
-          </Typography>
-          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
+          </p>
+          <p className="cn-text-body1 text-[0.78rem] text-muted-foreground">
             Votre consent Open Banking expire dans{' '}
             <strong>
               {daysUntilExpiry === 0
@@ -155,8 +155,8 @@ export default function OpenBankingConsentBanner({
             </strong>
             {' '}({new Date(expiresAt).toLocaleDateString('fr-FR')}). Renouvelez dès maintenant pour éviter
             toute interruption des virements automatiques.
-          </Typography>
-        </Box>
+          </p>
+        </div>
       </Alert>
     );
   }

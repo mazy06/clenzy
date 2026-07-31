@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Paper, Typography, useTheme, alpha } from '@mui/material';
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '../../components/ui';
+import { cn } from '../../utils/cn';
 
 /**
  * Wrapper visuel commun aux sections de la page Settings > IA.
@@ -11,12 +12,9 @@ import { Box, Paper, Typography, useTheme, alpha } from '@mui/material';
  * tailles de titre incoherentes (h6 vs subtitle1). Resultat : empilement
  * visuel chaotique avec 3 esthetiques differentes.
  *
- * Ce composant impose un cadre unique :
- * - {@code Paper variant="outlined"} avec border discret (divider theme)
- * - {@code bgcolor: 'background.paper'} (s'adapte light/dark theme)
- * - Header titre + subtitle aligne a gauche, action optionnelle a droite
- * - Padding cohérent (24px desktop, 16px mobile)
- * - {@code mb: 3} entre sections
+ * Ce composant impose un cadre unique, celui du kit Baitly UI : {@code Card}
+ * et ses slots (header / action / content). Le cadre n'est donc plus decrit
+ * ici — il est celui de toutes les cartes du produit.
  *
  * <h3>Anti-patterns evites (Impeccable rules)</h3>
  * - Pas de dot colore au-dessus du title (AI-slop "templated")
@@ -32,12 +30,12 @@ export interface AiSettingsCardProps {
   subtitle?: React.ReactNode;
   /**
    * Slot d'action a droite du header (bouton primaire, icon button, etc.).
-   * Reste aligne baseline avec le titre pour ne pas casser la grille verticale.
+   * Reste aligne en haut avec le titre pour ne pas casser la grille verticale.
    */
   action?: React.ReactNode;
   /** Contenu de la section. */
   children: React.ReactNode;
-  /** Override la marge basse (defaut mb=3). */
+  /** Override la marge basse, en unites de 8 px (defaut 3 = 24 px). */
   mb?: number;
 }
 
@@ -48,78 +46,38 @@ export default function AiSettingsCard({
   children,
   mb = 3,
 }: AiSettingsCardProps) {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
-
   return (
-    <Paper
-      variant="outlined"
-      sx={{
-        mb,
-        p: { xs: 2, md: 3 },
-        borderRadius: 2.5,
-        borderColor: isDark
-          ? alpha(theme.palette.divider, 0.5)
-          : theme.palette.divider,
-        bgcolor: 'background.paper',
-        boxShadow: 'none',
-        transition: 'border-color 200ms ease',
-        '&:hover': {
-          borderColor: isDark
-            ? alpha(theme.palette.divider, 0.7)
-            : alpha(theme.palette.text.primary, 0.18),
-        },
-      }}
+    <Card
+      className="gap-0 p-4 transition-colors duration-200 hover:border-foreground/20 md:p-6"
+      style={{ marginBottom: mb * 8 }}
     >
       {(title || subtitle || action) && (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: { xs: 'flex-start', md: 'flex-start' },
-            justifyContent: 'space-between',
-            gap: 2,
-            mb: 2.5,
-            flexDirection: { xs: 'column', md: 'row' },
-          }}
+        <CardHeader
+          className={cn(
+            'gap-2 px-0 pt-0',
+            // Sur mobile l'action passe sous le titre : cote a cote, un bouton
+            // large comprimerait le titre a quelques caracteres.
+            'max-md:flex max-md:flex-col max-md:items-stretch',
+          )}
         >
-          <Box sx={{ minWidth: 0, flex: 1 }}>
+          <div className="min-w-0 flex-1">
             {title && (
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 600,
-                  fontSize: { xs: '1rem', md: '1.0625rem' },
-                  lineHeight: 1.3,
-                  color: 'text.primary',
-                  textWrap: 'balance',
-                }}
-              >
+              <CardTitle className="text-balance text-[1rem] font-semibold leading-[1.3] text-foreground md:text-[1.0625rem]">
                 {title}
-              </Typography>
+              </CardTitle>
             )}
             {subtitle && (
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{
-                  mt: 0.5,
-                  maxWidth: 720,
-                  lineHeight: 1.5,
-                  fontSize: '0.8125rem',
-                }}
-              >
+              <p className="m-0 mt-0.5 max-w-[720px] text-[0.8125rem] leading-[1.5] text-muted-foreground">
                 {subtitle}
-              </Typography>
+              </p>
             )}
-          </Box>
-          {action && (
-            <Box sx={{ flexShrink: 0, alignSelf: { xs: 'stretch', md: 'flex-start' } }}>
-              {action}
-            </Box>
-          )}
-        </Box>
+          </div>
+          {action && <CardAction className="shrink-0 self-start max-md:self-stretch">{action}</CardAction>}
+        </CardHeader>
       )}
-      {children}
-    </Paper>
+      <CardContent className={cn('px-0 pb-0', (title || subtitle || action) && 'pt-5')}>
+        {children}
+      </CardContent>
+    </Card>
   );
 }
