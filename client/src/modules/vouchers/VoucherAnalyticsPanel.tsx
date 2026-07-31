@@ -1,7 +1,9 @@
 import React from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Alert, Grid, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import { Grid, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useVoucherAnalytics } from '../../hooks/useBookingVouchers';
 import type { VoucherStats } from '../../services/api/bookingVouchersApi';
@@ -54,8 +56,9 @@ export default function VoucherAnalyticsPanel() {
 
   if (error) {
     return (
-      <Alert severity="warning" sx={{ mb: 2 }}>
-        {t('vouchers.analytics.loadError')}
+      <Alert variant="warning" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{t('vouchers.analytics.loadError')}</AlertDescription>
       </Alert>
     );
   }

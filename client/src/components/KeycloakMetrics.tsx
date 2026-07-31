@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Alert as UiAlert, AlertDescription } from './ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from './ui';
 import { Box, Card, CardContent, Typography, Grid, Chip, Alert, Button, IconButton, Tooltip, LinearProgress } from '@mui/material';
 import {
@@ -129,9 +131,10 @@ const KeycloakMetrics: React.FC = () => {
 
   if (!metrics) {
     return (
-      <Alert severity="warning">
-        Aucune donnée de métriques disponible
-      </Alert>
+      <UiAlert variant="warning">
+        <TriangleAlert />
+        <AlertDescription>Aucune donnée de métriques disponible</AlertDescription>
+      </UiAlert>
     );
   }
 

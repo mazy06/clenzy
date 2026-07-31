@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Box, TextField, Button, Stack, Alert, MenuItem, ThemeProvider, CssBaseline } from '@mui/material';
+import { Box, TextField, Button, Stack, MenuItem, ThemeProvider, CssBaseline } from '@mui/material';
 import { ArrowBack, CheckCircle } from '../../icons';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
@@ -187,8 +189,9 @@ export default function Support() {
               />
 
               {error && (
-                <Alert severity="error" sx={{ py: 0.75 }}>
-                  <p className="cn-text-body2 text-[0.85rem]">{error}</p>
+                <Alert variant="destructive" className="py-1">
+                  <TriangleAlert />
+                  <AlertDescription><p className="cn-text-body2 text-[0.85rem]">{error}</p></AlertDescription>
                 </Alert>
               )}
 

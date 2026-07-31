@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { getOrgRoleLabel, getOrgRoleHex, getOrgRoleIcon } from '../../utils/orgRoleLabels';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, Alert } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip } from '@mui/material';
 import {
   Refresh as RefreshIcon,
   Cancel as CancelIcon,
@@ -186,8 +188,9 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mb: 2 }}>
-        {error}
+      <Alert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
   }

@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Checkbox, Skeleton, Alert, Tooltip, Grid, TextField } from '@mui/material';
+import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Checkbox, Skeleton, Tooltip, Grid, TextField } from '@mui/material';
 import {
   Replay,
   InfoOutlined,
@@ -335,8 +337,14 @@ const OutboxTab: React.FC = () => {
         </Grid>
       )}
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {retryMessage && <Alert severity="info" sx={{ mb: 2 }}>{retryMessage}</Alert>}
+      {error && <Alert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
+      {retryMessage && <Alert variant="info" className="mb-3">
+        <Info />
+        <AlertDescription>{retryMessage}</AlertDescription>
+      </Alert>}
 
       {loading ? (
         <div className="flex flex-col gap-1.5">

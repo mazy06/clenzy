@@ -14,6 +14,8 @@
  *   5. Recap : N created, M skipped, K errors
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Dialog, DialogContent, DialogTitle, IconButton, Box, Stack, CircularProgress, Alert, Checkbox, FormControl, Select, MenuItem, Button, Divider, Chip, ButtonBase } from '@mui/material';
 import { X, Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Image as ImageIcon } from 'lucide-react';
@@ -443,9 +445,10 @@ export default function ChannexImportDiscoveryDialog({
 
         {/* Erreur */}
         {error && !loading && (
-          <Alert severity="error" variant="outlined" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
+          <UiAlert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+          </UiAlert>
         )}
 
         {/* Recap apres import */}
@@ -724,12 +727,12 @@ export default function ChannexImportDiscoveryDialog({
 
             {/* Banner info si user a coche des desimports (perte sync) */}
             {diff.toDisconnect.length > 0 && (
-              <Alert severity="warning" variant="outlined" sx={{ mb: 1, fontSize: '0.78rem' }}>
-                <strong>{diff.toDisconnect.length} propriete{diff.toDisconnect.length > 1 ? 's' : ''}</strong>
-                {' '}va etre desimport{diff.toDisconnect.length > 1 ? 'ees' : 'ee'} : le lien avec le hub sera
+              <UiAlert variant="warning" className="mb-1.5 text-[0.78rem]">
+                <TriangleAlert />
+                <AlertDescription><strong>{diff.toDisconnect.length} propriete{diff.toDisconnect.length > 1 ? 's' : ''}</strong>{' '}va etre desimport{diff.toDisconnect.length > 1 ? 'ees' : 'ee'}: le lien avec le hub sera
                 supprime mais la Property Baitly correspondante sera conservee (vous pourrez la re-importer
-                plus tard).
-              </Alert>
+                plus tard).</AlertDescription>
+              </UiAlert>
             )}
 
             <Stack spacing={0.5}>

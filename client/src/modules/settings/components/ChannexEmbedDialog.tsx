@@ -15,8 +15,10 @@
  * Ref Channex : docs.channex.io/api-v.1-documentation/channel-iframe
  */
 import React, { useEffect, useRef, useState } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, IconButton, Box, Alert, Skeleton, Stack, Tooltip } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, IconButton, Box, Skeleton, Stack, Tooltip } from '@mui/material';
 import { X, Link2, Info, RefreshCw } from 'lucide-react';
 
 import {
@@ -447,8 +449,9 @@ export default function ChannexEmbedDialog({
 
         {error && (
           <div className="p-3">
-            <Alert severity="error" variant="outlined">
-              {error}
+            <Alert variant="destructive">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           </div>
         )}

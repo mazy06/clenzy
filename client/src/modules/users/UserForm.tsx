@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText, Chip, IconButton, Alert, Box as MuiBox } from '@mui/material';
+import { Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText, Chip, IconButton, Box as MuiBox } from '@mui/material';
 import {
   Save,
   Cancel,
@@ -134,15 +136,15 @@ const UserForm: React.FC = () => {
   if (!canManageUsers) {
     return (
       <div className="p-3">
-        <Alert severity="info" sx={{ p: 2, py: 1 }}>
-          <h6 className="cn-text-subtitle1 mb-[0.35em] mb-1.5">
+        <Alert variant="info" className="p-3 py-1.5">
+          <Info />
+          <AlertDescription><h6 className="cn-text-subtitle1 mb-[0.35em] mb-1.5">
             Accès non autorisé
-          </h6>
-          <p className="cn-text-body2 text-[0.85rem]">
+          </h6><p className="cn-text-body2 text-[0.85rem]">
             Vous n'avez pas les permissions nécessaires pour créer des utilisateurs.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </p>
+          </p></AlertDescription>
         </Alert>
       </div>
     );
@@ -215,14 +217,16 @@ const UserForm: React.FC = () => {
 
       {/* Messages d'erreur/succès */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
-          {error}
+        <Alert variant="destructive" className="mb-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 2, py: 1 }}>
-          Utilisateur créé avec succès ! Redirection en cours...
+        <Alert variant="success" className="mb-3 py-1.5">
+          <CircleCheck />
+          <AlertDescription>Utilisateur créé avec succès ! Redirection en cours...</AlertDescription>
         </Alert>
       )}
 

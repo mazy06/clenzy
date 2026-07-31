@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Alert } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
 
 interface Props {
@@ -51,8 +53,9 @@ export default function RemoveMemberDialog({ open, onClose, member, organization
         </p>
 
         {error && (
-          <Alert severity="error" sx={{ mt: 2 }}>
-            {error}
+          <Alert variant="destructive" className="mt-3">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
       </DialogContent>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Typography, Alert, FormControl, InputLabel, Select, MenuItem, Rating, TextField, Button, Chip, Collapse } from '@mui/material';
+import { Box, Paper, Typography, FormControl, InputLabel, Select, MenuItem, Rating, TextField, Button, Chip, Collapse } from '@mui/material';
 import {
   Star as StarIcon,
   Reply as ReplyIcon,
@@ -113,7 +115,10 @@ const ReviewsPage: React.FC = () => {
         showBackButton
       />
 
-      {error && <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.8125rem' }}>{error}</Alert>}
+      {error && <Alert variant="destructive" className="mb-2 text-[0.8125rem]">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {/* Stats bar */}
       <div className="flex gap-2 mb-2 flex-wrap">

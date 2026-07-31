@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Grid, MenuItem, Paper, TextField } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Grid, MenuItem, Paper, TextField } from '@mui/material';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -157,19 +159,22 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
         )}
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {t('whatsappTemplates.dialog.loadError')}
+          <Alert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{t('whatsappTemplates.dialog.loadError')}</AlertDescription>
           </Alert>
         )}
 
         {upsertMutation.error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {t('whatsappTemplates.dialog.saveError')} {upsertMutation.error.message}
+          <Alert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{t('whatsappTemplates.dialog.saveError')}{upsertMutation.error.message}</AlertDescription>
           </Alert>
         )}
         {removeMutation.error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {t('whatsappTemplates.dialog.resetError')}
+          <Alert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{t('whatsappTemplates.dialog.resetError')}</AlertDescription>
           </Alert>
         )}
 

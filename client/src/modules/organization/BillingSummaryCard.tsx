@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Divider,
-  Skeleton,
-  Alert,
-  Chip,
-} from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Box, Typography, Divider, Skeleton, Chip } from '@mui/material';
 import {
   Receipt as ReceiptIcon,
 } from '../../icons';
@@ -64,8 +59,9 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
   if (error) {
     return (
       <SettingsSection title={t('billing.title')} icon={ReceiptIcon} accent="accent">
-        <Alert severity="error" sx={{ borderRadius: '8px' }}>
-          {error}
+        <Alert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       </SettingsSection>
     );

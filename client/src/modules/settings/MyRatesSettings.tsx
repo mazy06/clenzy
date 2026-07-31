@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Box, Typography, TextField, Button, Alert, Snackbar, InputAdornment, Skeleton } from '@mui/material';
@@ -144,7 +146,10 @@ export default function MyRatesSettings() {
   }
 
   if (ratesQuery.isError) {
-    return <Alert severity="error">{t('settings.myRates.loadError')}</Alert>;
+    return <UiAlert variant="destructive">
+      <TriangleAlert />
+      <AlertDescription>{t('settings.myRates.loadError')}</AlertDescription>
+    </UiAlert>;
   }
 
   return (

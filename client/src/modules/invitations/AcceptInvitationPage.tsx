@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Box, Paper, Button, Alert, Chip, ThemeProvider, CssBaseline, TextField, Stack, InputAdornment, IconButton } from '@mui/material';
@@ -482,9 +484,15 @@ export default function AcceptInvitationPage() {
               </div>
 
               {error && (
-                <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
-                  {error}
-                </Alert>
+                <BuiAlert variant="destructive" className="mb-3">
+                  <TriangleAlert />
+                  <AlertDescription>{error}</AlertDescription>
+                  <AlertAction>
+                    <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+                      <X />
+                    </BuiButton>
+                  </AlertAction>
+                </BuiAlert>
               )}
 
               <Stack spacing={2}>

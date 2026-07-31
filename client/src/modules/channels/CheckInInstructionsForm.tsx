@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { propertyDetailsKeys } from '../../hooks/usePropertyDetails';
@@ -895,9 +897,10 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
       >
         <div className="min-w-0 flex-1">
           {error && (
-            <Alert severity="error" sx={{ fontSize: '0.75rem', py: 0.5 }}>
-              {error}
-            </Alert>
+            <UiAlert variant="destructive" className="text-[0.75rem] py-0.5">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
+            </UiAlert>
           )}
           {success && !error && (
             <Alert

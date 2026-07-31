@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Alert, IconButton, Tooltip, Button } from '@mui/material';
+import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, Button } from '@mui/material';
 import {
   Add,
   Edit,
@@ -162,9 +164,15 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
   return (
     <div>
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {rows.length === 0 ? (

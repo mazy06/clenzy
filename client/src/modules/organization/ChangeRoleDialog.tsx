@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Alert } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem } from '@mui/material';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
 import { ASSIGNABLE_ORG_ROLES, getOrgRoleLabel } from '../../utils/orgRoleLabels';
 
@@ -55,8 +57,9 @@ export default function ChangeRoleDialog({ open, onClose, member, organizationId
         </p>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
+          <Alert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 

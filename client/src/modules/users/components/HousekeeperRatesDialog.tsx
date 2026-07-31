@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, InputAdornment, TextField, Alert } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, InputAdornment, TextField } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -115,7 +117,10 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
           </div>
         )}
         {ratesQuery.isError && (
-          <Alert severity="error">{t('users.ratesDialog.loadError', 'Impossible de charger les tarifs de ce prestataire.')}</Alert>
+          <Alert variant="destructive">
+            <TriangleAlert />
+            <AlertDescription>{t('users.ratesDialog.loadError', 'Impossible de charger les tarifs de ce prestataire.')}</AlertDescription>
+          </Alert>
         )}
         {data && (
           <div className="flex flex-col gap-3.5">
@@ -204,10 +209,16 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
             </div>
 
             {saveMutation.isError && (
-              <Alert severity="error">{t('users.ratesDialog.saveError', 'Enregistrement impossible.')}</Alert>
+              <Alert variant="destructive">
+                <TriangleAlert />
+                <AlertDescription>{t('users.ratesDialog.saveError', 'Enregistrement impossible.')}</AlertDescription>
+              </Alert>
             )}
             {saved && !saveMutation.isPending && (
-              <Alert severity="success">{t('users.ratesDialog.saved', 'Tarifs enregistrés.')}</Alert>
+              <Alert variant="success">
+                <CircleCheck />
+                <AlertDescription>{t('users.ratesDialog.saved', 'Tarifs enregistrés.')}</AlertDescription>
+              </Alert>
             )}
           </div>
         )}

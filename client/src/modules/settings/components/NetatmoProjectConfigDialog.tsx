@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Link, TextField } from '@mui/material';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Link, TextField } from '@mui/material';
 import { KeyRound } from 'lucide-react';
 import { netatmoApi, type NetatmoConfigStatus } from '../../../services/api/netatmoApi';
 
@@ -83,7 +85,10 @@ export default function NetatmoProjectConfigDialog({ open, onClose, current, onS
           Les identifiants sont stockés chiffrés en base.
         </p>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {error && <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>}
 
         <div className="flex flex-col gap-3">
           <TextField

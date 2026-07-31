@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Button, Alert, Autocomplete, TextField, Chip, Grid } from '@mui/material';
 import {
@@ -144,9 +146,10 @@ export default function OrganizationSection({ organizationId }: Props) {
             action={inviteAction}
           >
             {orgsError && (
-              <Alert severity="error" sx={{ mb: 1.5, borderRadius: '8px' }}>
-                {orgsError}
-              </Alert>
+              <UiAlert variant="destructive" className="mb-2">
+                <TriangleAlert />
+                <AlertDescription>{orgsError}</AlertDescription>
+              </UiAlert>
             )}
 
             <Autocomplete

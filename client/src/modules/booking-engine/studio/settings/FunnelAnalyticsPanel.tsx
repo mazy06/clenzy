@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Alert, Box, Card, Skeleton, Table, TableBody, TableCell, TableHead, TableRow, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Alert, AlertDescription } from '../../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Box, Card, Skeleton, Table, TableBody, TableCell, TableHead, TableRow, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { CalendarX2, Eye, MousePointerClick, Search, ShoppingCart } from 'lucide-react';
 import StatTile from '../../../../components/StatTile';
 import EmptyState from '../../../../components/EmptyState';
@@ -99,7 +101,10 @@ export default function FunnelAnalyticsPanel() {
         </ToggleButtonGroup>
       </div>
 
-      {error && <Alert severity="error">{error}</Alert>}
+      {error && <Alert variant="destructive">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(5, 1fr)' }, gap: 1.25 }}>
         {steps.map((s) => (

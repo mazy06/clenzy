@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Alert, Box, Button, Chip, Divider, Stack, Switch, TextField, Tooltip, alpha, useTheme } from '@mui/material';
 import { CheckCircle, ErrorOutline, InfoOutlined, Save } from '../../icons';
@@ -423,10 +425,21 @@ export default function WhatsAppProviderConfigSection() {
 
       {/* Feedback */}
       {error && (
-        <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>
+        <BuiAlert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {success && (
-        <Alert severity="success">{t('settings.whatsapp.saved', 'Configuration enregistrée.')}</Alert>
+        <BuiAlert variant="success">
+          <CircleCheck />
+          <AlertDescription>{t('settings.whatsapp.saved', 'Configuration enregistrée.')}</AlertDescription>
+        </BuiAlert>
       )}
 
       {/* Save button */}

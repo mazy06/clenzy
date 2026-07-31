@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Typography, Button, Chip, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Paper, Typography, Button, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Home as HomeIcon,
   EventAvailable as ReservationIcon,
@@ -234,7 +236,10 @@ const BrandingButton: React.FC = () => {
             {t('ownerPortal.branding.subtitle',
               'Logo et couleur affichés sur les liens de suivi partagés à vos propriétaires. Aucune mention de la plateforme.')}
           </p>
-          {error && <Alert severity="warning">{error}</Alert>}
+          {error && <Alert variant="warning">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>}
           <TextField
             label={t('ownerPortal.branding.logoUrl', 'URL du logo (HTTPS)')}
             size="small"
@@ -284,8 +289,9 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
 
   if (isError || !dashboard) {
     return (
-      <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
-        {t('ownerPortal.dashboardError', 'Erreur lors du chargement du dashboard')}
+      <Alert variant="destructive" className="text-[0.8125rem]">
+        <TriangleAlert />
+        <AlertDescription>{t('ownerPortal.dashboardError', 'Erreur lors du chargement du dashboard')}</AlertDescription>
       </Alert>
     );
   }
@@ -467,8 +473,9 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
 
       {/* ── Statement ── */}
       {isError && (
-        <Alert severity="error" sx={{ fontSize: '0.8125rem', mb: 1.5 }}>
-          {t('ownerPortal.statementError', 'Erreur lors de la generation du releve')}
+        <Alert variant="destructive" className="text-[0.8125rem] mb-2">
+          <TriangleAlert />
+          <AlertDescription>{t('ownerPortal.statementError', 'Erreur lors de la generation du releve')}</AlertDescription>
         </Alert>
       )}
 

@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Paper, Typography, MenuItem, TextField, Skeleton, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Paper, Typography, MenuItem, TextField, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import {
   AccountBalance,
   Gavel as StepTvaIcon,
@@ -157,8 +159,9 @@ const FiscalReportSection: React.FC = () => {
           <Skeleton variant="rounded" height={200} sx={{ borderRadius: 'var(--radius-lg)' }} />
         </div>
       ) : activeQuery.error ? (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          Erreur lors du chargement du rapport fiscal
+        <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>Erreur lors du chargement du rapport fiscal</AlertDescription>
         </Alert>
       ) : !summary ? (
         <EmptyState

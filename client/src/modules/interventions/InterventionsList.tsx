@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { Box, MenuItem, Alert, Menu, IconButton, Tooltip } from '@mui/material';
@@ -197,9 +199,10 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
   if (!Array.isArray(interventions)) {
     return (
       <Box sx={createSpacing.page()}>
-        <Alert severity="error">
-          Erreur de chargement des données. Veuillez rafraîchir la page.
-        </Alert>
+        <UiAlert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>Erreur de chargement des données. Veuillez rafraîchir la page.</AlertDescription>
+        </UiAlert>
       </Box>
     );
   }
@@ -226,14 +229,14 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
   if (!canViewInterventions) {
     return (
       <Box sx={createSpacing.page()}>
-        <Alert severity="info">
-          <h6 className="cn-text-h6 mb-[0.35em]">
+        <UiAlert variant="info">
+          <Info />
+          <AlertDescription><h6 className="cn-text-h6 mb-[0.35em]">
             {t('interventions.errors.noPermission')}
-          </h6>
-          <p className="cn-text-body1">
+          </h6><p className="cn-text-body1">
             {t('interventions.noPermissionMessage')}
-          </p>
-        </Alert>
+          </p></AlertDescription>
+        </UiAlert>
       </Box>
     );
   }

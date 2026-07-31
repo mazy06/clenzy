@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { CircleCheck, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { TextField, Button, Typography, Stack, Alert, Link } from '@mui/material';
+import { TextField, Button, Typography, Stack, Link } from '@mui/material';
 import apiClient, { ApiError } from '../../services/apiClient';
 import AuthLayout from './AuthLayout';
 
@@ -71,13 +73,14 @@ export default function ForgotPassword() {
 
       {sent ? (
         <Stack spacing={2.5}>
-          <Alert severity="success" sx={{ borderRadius: 1.5 }}>
-            <p className="cn-text-body2 text-[0.875rem] font-medium">
+          <Alert variant="success">
+            <CircleCheck />
+            <AlertDescription><p className="cn-text-body2 text-[0.875rem] font-medium">
               {t(
                 'auth.forgotPassword.successMessage',
                 'Si un compte existe avec cet email, un lien de réinitialisation vient d\'être envoyé. Pensez à vérifier vos spams.',
               )}
-            </p>
+            </p></AlertDescription>
           </Alert>
           <Button
             component={RouterLink}
@@ -120,8 +123,9 @@ export default function ForgotPassword() {
             </div>
 
             {error && (
-              <Alert severity="error" sx={{ borderRadius: 1.5 }}>
-                <p className="cn-text-body2 text-[0.875rem]">{error}</p>
+              <Alert variant="destructive">
+                <TriangleAlert />
+                <AlertDescription><p className="cn-text-body2 text-[0.875rem]">{error}</p></AlertDescription>
               </Alert>
             )}
 

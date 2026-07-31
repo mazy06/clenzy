@@ -1,15 +1,7 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  Chip,
-  CircularProgress,
-  Alert,
-  Skeleton,
-  Tooltip,
-  Button,
-} from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
+import { Box, Typography, Paper, Chip, CircularProgress, Skeleton, Tooltip, Button } from '@mui/material';
 import {
   AutoAwesome,
   TrendingUp,
@@ -106,11 +98,11 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
             </Typography>
           </Box>
           {aiNotConfigured ? (
-            <Alert severity="info" sx={{ fontSize: '0.75rem' }}>
-              <Typography variant="body2" fontSize="0.75rem" sx={{ mb: 1 }}>
+            <Alert variant="info" className="text-[0.75rem]">
+              <Info />
+              <AlertDescription><Typography variant="body2" fontSize="0.75rem" sx={{ mb: 1 }}>
                 {t('bookingEngine.ai.guidance.pricing.text')}
-              </Typography>
-              <Button
+              </Typography><Button
                 size="small"
                 variant="outlined"
                 startIcon={<SettingsIcon size={14} strokeWidth={1.75} />}
@@ -118,11 +110,12 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
                 sx={{ textTransform: 'none', fontSize: '0.7rem' }}
               >
                 {t('bookingEngine.ai.guidance.pricing.button')}
-              </Button>
+              </Button></AlertDescription>
             </Alert>
           ) : (
-            <Alert severity="error" sx={{ fontSize: '0.75rem' }}>
-              {t('common.error')}
+            <Alert variant="destructive" className="text-[0.75rem]">
+              <TriangleAlert />
+              <AlertDescription>{t('common.error')}</AlertDescription>
             </Alert>
           )}
         </Paper>

@@ -1,6 +1,8 @@
 import React, { useState, forwardRef, useImperativeHandle } from 'react';
+import { Alert, AlertDescription, AlertAction, Button } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Chip, IconButton, Tooltip, Alert } from '@mui/material';
+import { Box, Typography, Chip, IconButton, Tooltip } from '@mui/material';
 import {
   Delete,
   CheckCircle,
@@ -71,7 +73,15 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
 
   return (
     <div>
-      {displayError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>{displayError}</Alert>}
+      {displayError && <Alert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{displayError}</AlertDescription>
+        <AlertAction>
+          <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setActionError(null)}>
+            <X />
+          </Button>
+        </AlertAction>
+      </Alert>}
 
       {templates.length === 0 ? (
         <EmptyState

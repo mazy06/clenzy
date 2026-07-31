@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Box, Paper, TextField, Button, Stack, Alert, Chip, ThemeProvider, CssBaseline } from '@mui/material';
+import { Box, Paper, TextField, Button, Stack, Chip, ThemeProvider, CssBaseline } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -225,8 +227,9 @@ export default function InscriptionConfirm() {
               </div>
 
               {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                  {error}
+                <Alert variant="destructive" className="mb-3">
+                  <TriangleAlert />
+                  <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
 

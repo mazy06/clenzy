@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
-import { Box, Button, Chip, Alert } from '@mui/material';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Box, Button, Chip } from '@mui/material';
 import { Settings, History, Save, VolumeUp, Wifi, WifiOff, TrendingUp, ArrowUpward } from '../../../icons';
 import NoiseMonitorChart from '../../dashboard/NoiseMonitorChart';
 import NoiseAlertConfigPanel, {
@@ -114,7 +116,10 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
           {subTab === 0 && propertyId != null && (
             <div className="flex items-center gap-1.5 pe-0.5">
               {configStatus.hasError && (
-                <Alert severity="error" sx={{ py: 0, px: 1, fontSize: '0.6875rem' }}>Erreur</Alert>
+                <Alert variant="destructive" className="py-0 px-1.5 text-[0.6875rem]">
+                  <TriangleAlert />
+                  <AlertDescription>Erreur</AlertDescription>
+                </Alert>
               )}
               {configStatus.isSaved && (
                 <Chip

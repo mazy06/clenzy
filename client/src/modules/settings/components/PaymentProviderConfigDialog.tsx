@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Alert, MenuItem, Switch, FormControlLabel, IconButton, InputAdornment } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, MenuItem, Switch, FormControlLabel, IconButton, InputAdornment } from '@mui/material';
 import { Close as CloseIcon, Visibility, VisibilityOff } from '../../../icons';
 import type {
   PaymentMethodConfig,
@@ -404,8 +406,9 @@ export default function PaymentProviderConfigDialog({
 
       <DialogContent dividers sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         {fields.length === 0 && (
-          <Alert severity="info" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-            Aucun parametre a configurer pour ce provider — utilisez le toggle pour l'activer / desactiver.
+          <Alert variant="info" className="text-[0.8rem]">
+            <Info />
+            <AlertDescription>Aucun parametre a configurer pour ce provider — utilisez le toggle pour l'activer / desactiver.</AlertDescription>
           </Alert>
         )}
 
@@ -480,8 +483,9 @@ export default function PaymentProviderConfigDialog({
         />
 
         {error && (
-          <Alert severity="error" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-            {error}
+          <Alert variant="destructive" className="text-[0.8rem]">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
       </DialogContent>

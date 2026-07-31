@@ -1,6 +1,8 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { Info } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Box, Button, Grid, Card, CardContent, CardActions, Chip, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, Avatar, List, ListItem, ListItemAvatar, ListItemText, Divider, Alert, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
+import { Box, Button, Grid, Card, CardContent, CardActions, Chip, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, Avatar, List, ListItem, ListItemAvatar, ListItemText, Divider, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
 import {
   MoreVert,
   Edit,
@@ -305,15 +307,15 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
   if (!user || !canManageUsers) {
     return (
       <div className="p-3">
-        <Alert severity="info" sx={{ p: 2, py: 1 }}>
-          <h6 className="cn-text-subtitle1 mb-[0.35em] mb-1.5">
+        <Alert variant="info" className="p-3 py-1.5">
+          <Info />
+          <AlertDescription><h6 className="cn-text-subtitle1 mb-[0.35em] mb-1.5">
             Accès non autorisé
-          </h6>
-          <p className="cn-text-body2 text-[0.85rem]">
+          </h6><p className="cn-text-body2 text-[0.85rem]">
             Vous n'avez pas les permissions nécessaires pour gérer les utilisateurs.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </p>
+          </p></AlertDescription>
         </Alert>
       </div>
     );

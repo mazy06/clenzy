@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Box, Card, MenuItem, Select, Skeleton, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Box, Card, MenuItem, Select, Skeleton, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import {
   CartesianGrid,
@@ -75,7 +77,10 @@ const PaceReport: React.FC = () => {
   );
 
   if (summaryQuery.isError) {
-    return <Alert severity="error">{t('reports.pace.loadError', 'Impossible de charger le pace.')}</Alert>;
+    return <Alert variant="destructive">
+      <TriangleAlert />
+      <AlertDescription>{t('reports.pace.loadError', 'Impossible de charger le pace.')}</AlertDescription>
+    </Alert>;
   }
 
   const loading = summaryQuery.isLoading;

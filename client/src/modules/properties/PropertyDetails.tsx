@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useTabKeyParam } from '../../components/tabKeyParam';
 import { Box, Typography, Alert, Button, Card, CardContent, Grid, Chip, Paper, Divider, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar } from '@mui/material';
@@ -371,7 +373,10 @@ const PropertyDetails: React.FC = () => {
   if (isError) {
     return (
       <div className="p-3">
-        <Alert severity="error" sx={{ py: 0.75, fontSize: '0.8125rem' }}>{error || t('properties.loadError')}</Alert>
+        <UiAlert variant="destructive" className="py-1 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{error || t('properties.loadError')}</AlertDescription>
+        </UiAlert>
       </div>
     );
   }
@@ -379,7 +384,10 @@ const PropertyDetails: React.FC = () => {
   if (!property) {
     return (
       <div className="p-3">
-        <Alert severity="warning" sx={{ py: 0.75, fontSize: '0.8125rem' }}>{t('properties.notFound')}</Alert>
+        <UiAlert variant="warning" className="py-1 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{t('properties.notFound')}</AlertDescription>
+        </UiAlert>
       </div>
     );
   }

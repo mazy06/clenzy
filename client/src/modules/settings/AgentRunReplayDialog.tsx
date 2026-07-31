@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Alert, Box, Button, Chip, Dialog, DialogContent, DialogTitle, IconButton, Skeleton, TextField, useTheme } from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Box, Button, Chip, Dialog, DialogContent, DialogTitle, IconButton, Skeleton, TextField, useTheme } from '@mui/material';
 import { Brain, Wrench, GitBranch, PauseCircle, FileText, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { agentRunApi, type AgentRunReplay, type AgentRunStep } from '../../services/api/agentRunApi';
@@ -78,7 +80,10 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
             <Skeleton variant="rounded" height={48} />
           </div>
         )}
-        {error && <Alert severity="warning">{error}</Alert>}
+        {error && <Alert variant="warning">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>}
         {replay && !loading && (
           <>
             <div className="flex gap-1 mb-2 flex-wrap">
@@ -94,8 +99,9 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
               />
             </div>
             {replay.error && (
-              <Alert severity="error" sx={{ mb: 1.5 }}>
-                {replay.error}
+              <Alert variant="destructive" className="mb-2">
+                <TriangleAlert />
+                <AlertDescription>{replay.error}</AlertDescription>
               </Alert>
             )}
             <div className="flex flex-col gap-1">

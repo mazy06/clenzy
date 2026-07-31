@@ -9,8 +9,10 @@
    ============================================================ */
 
 import React, { useCallback, useMemo, useState } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
+import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Paper, Typography, Button, Chip, IconButton, Tooltip, Link, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, Skeleton } from '@mui/material';
+import { Paper, Typography, Button, Chip, IconButton, Tooltip, Link, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Skeleton } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { Build as RetryIcon, AccountBalance as PayoutIcon } from '../../../icons';
 import FilterChipRow from '../../../components/FilterChipRow';
@@ -155,15 +157,27 @@ export const HousekeeperPayoutsTab: React.FC = () => {
 
       {/* ── Feedback relance ── */}
       {retryMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => retryMutation.reset()}>
-          {t('accounting.housekeeperPayouts.retrySuccess', 'Relance du versement effectuée')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.housekeeperPayouts.retrySuccess', 'Relance du versement effectuée')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => retryMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {retryMutation.isError && (
-        <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => retryMutation.reset()}>
-          {(retryMutation.error as { message?: string })?.message
-            || t('accounting.housekeeperPayouts.retryError', 'Conditions du versement toujours non réunies (preuve / onboarding).')}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-2 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{(retryMutation.error as { message?: string })?.message
+            || t('accounting.housekeeperPayouts.retryError', 'Conditions du versement toujours non réunies (preuve / onboarding).')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => retryMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ── Table ── */}
@@ -174,9 +188,10 @@ export const HousekeeperPayoutsTab: React.FC = () => {
           ))}
         </div>
       ) : isError ? (
-        <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
-          {t('accounting.housekeeperPayouts.error', 'Erreur lors du chargement des versements prestataires')}
-        </Alert>
+        <BuiAlert variant="destructive" className="text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{t('accounting.housekeeperPayouts.error', 'Erreur lors du chargement des versements prestataires')}</AlertDescription>
+        </BuiAlert>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<PayoutIcon />}

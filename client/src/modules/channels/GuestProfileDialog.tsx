@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, Box, Typography, Chip, Alert, IconButton, Divider, TextField, Button } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, Box, Typography, Chip, IconButton, Divider, TextField, Button } from '@mui/material';
 import {
   Close as CloseIcon,
   Person as PersonIcon,
@@ -81,7 +83,10 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
           </div>
         )}
 
-        {error && <Alert severity="error" sx={{ fontSize: '0.8125rem', mb: 1 }}>{error}</Alert>}
+        {error && <Alert variant="destructive" className="text-[0.8125rem] mb-1.5">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>}
 
         {guest && !loading && (
           <div className="flex flex-col gap-2">

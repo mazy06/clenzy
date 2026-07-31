@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Box, Alert, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Box, Divider } from '@mui/material';
 import { CloudUpload } from '../../icons';
 import { useDocumentTypes, useUploadTemplate } from './hooks/useDocuments';
 
@@ -82,7 +84,10 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>Nouveau template de document</DialogTitle>
       <DialogContent>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {error && <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>}
 
         <div className="mt-1.5 flex flex-col gap-3">
           {/* Upload zone — tokens Signature (pas encore de pattern dropzone baseline) */}

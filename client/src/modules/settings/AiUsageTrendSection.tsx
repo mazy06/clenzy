@@ -7,8 +7,10 @@
    ============================================================ */
 
 import { useMemo, useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Alert, Box, MenuItem, Select, Table, TableBody, TableCell, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, useTheme } from '@mui/material';
+import { Box, MenuItem, Select, Table, TableBody, TableCell, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, useTheme } from '@mui/material';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { aiApi, type AiDailyUsage } from '../../services/api/aiApi';
@@ -148,18 +150,22 @@ export default function AiUsageTrendSection() {
       </div>
 
       {over && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          {t('settings.ai.usage.overThreshold', {
+        <Alert variant="warning" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{t('settings.ai.usage.overThreshold', {
             defaultValue: 'Seuil dépassé : {{cost}} sur la période (seuil {{limit}}).',
             cost: fmtCost(totalCost),
             limit: fmtCost(thresholdNum),
-          })}
+          })}</AlertDescription>
         </Alert>
       )}
 
       {/* ── Courbe ── */}
       {empty ? (
-        <Alert severity="info">{t('settings.ai.usage.empty', 'Aucune consommation sur la période.')}</Alert>
+        <Alert variant="info">
+          <Info />
+          <AlertDescription>{t('settings.ai.usage.empty', 'Aucune consommation sur la période.')}</AlertDescription>
+        </Alert>
       ) : (
         <div className="h-[300px] mb-4">
           <ResponsiveContainer width="100%" height="100%">

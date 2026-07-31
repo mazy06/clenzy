@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Button, Alert, Chip, Divider, IconButton, Table, TableHead, TableRow, TableCell, TableBody, TextField, Tooltip } from '@mui/material';
+import { Box, Button, Chip, Divider, IconButton, Table, TableHead, TableRow, TableCell, TableBody, TextField, Tooltip } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { AttachFile, Delete } from '../../icons';
 import apiClient from '../../services/apiClient';
@@ -271,12 +273,13 @@ export const KnowledgeBaseAdmin: React.FC = () => {
             ))}
           </div>
           {stats.index.retuneRecommended && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              La base a grossi : l'index vectoriel (lists = {stats.index.currentLists}) est loin de
+            <Alert variant="warning" className="mb-3">
+              <TriangleAlert />
+              <AlertDescription>La base a grossi : l'index vectoriel (lists = {stats.index.currentLists}) est loin de
               sa taille optimale ({stats.index.optimalLists}) et dégrade la qualité de recherche de
               l'assistant. Activez la reconstruction automatique
               (<code>clenzy.assistant.kb.auto-tune-enabled</code>) ou recréez l'index — la commande
-              exacte est dans les logs du serveur (KbIndexTuningScheduler).
+              exacte est dans les logs du serveur (KbIndexTuningScheduler).</AlertDescription>
             </Alert>
           )}
         </>
@@ -316,7 +319,10 @@ export const KnowledgeBaseAdmin: React.FC = () => {
         </Button>
       </div>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {loading ? (
         <Box display="flex" justifyContent="center" py={4}>
@@ -467,8 +473,9 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                 ))}
               </div>
               {evalReport.misses.length === 0 ? (
-                <Alert severity="success">
-                  Toutes les questions du jeu de test retrouvent leur fiche : le retrieval est sain.
+                <Alert variant="success">
+                  <CircleCheck />
+                  <AlertDescription>Toutes les questions du jeu de test retrouvent leur fiche : le retrieval est sain.</AlertDescription>
                 </Alert>
               ) : (
                 <>
@@ -536,9 +543,10 @@ export const KnowledgeBaseAdmin: React.FC = () => {
             </Box>
           )}
           {testResult && testResult.items.length === 0 && (
-            <Alert severity="warning">
-              Aucun extrait trouvé pour cette question. L'assistant répondra sans contexte
-              documentaire — envisagez d'ajouter ou de compléter un document.
+            <Alert variant="warning">
+              <TriangleAlert />
+              <AlertDescription>Aucun extrait trouvé pour cette question. L'assistant répondra sans contexte
+              documentaire — envisagez d'ajouter ou de compléter un document.</AlertDescription>
             </Alert>
           )}
           {testResult && testResult.items.length > 0 && (

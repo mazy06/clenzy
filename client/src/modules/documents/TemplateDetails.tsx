@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Chip, Button, Grid, Alert, Divider, TextField, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
+import { Box, Chip, Button, Grid, Divider, TextField, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
 import {
   ArrowBack,
   Edit,
@@ -240,7 +242,10 @@ const TemplateDetails: React.FC = () => {
   if (fetchError || !template) {
     return (
       <div>
-        <Alert severity="error">Template introuvable</Alert>
+        <BuiAlert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>Template introuvable</AlertDescription>
+        </BuiAlert>
         <Button startIcon={<ArrowBack />} onClick={() => navigate('/documents')} size="small" sx={{ mt: 2 }}>
           Retour
         </Button>
@@ -336,7 +341,15 @@ const TemplateDetails: React.FC = () => {
         }
       />
 
-      {error && <Alert severity="error" sx={{ mt: 2, mb: 2 }} onClose={() => setActionError(null)}>{error}</Alert>}
+      {error && <BuiAlert variant="destructive" className="mt-3 mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+        <AlertAction>
+          <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setActionError(null)}>
+            <X />
+          </BuiButton>
+        </AlertAction>
+      </BuiAlert>}
 
       <Grid container spacing={3} alignItems="flex-start">
         {/* Colonne gauche : Informations + Apercu PDF empiles */}
@@ -410,9 +423,15 @@ const TemplateDetails: React.FC = () => {
               </div>
 
               {previewError && (
-                <Alert severity="error" sx={{ mb: 2 }} onClose={() => setPreviewError(null)}>
-                  {previewError}
-                </Alert>
+                <BuiAlert variant="destructive" className="mb-3">
+                  <TriangleAlert />
+                  <AlertDescription>{previewError}</AlertDescription>
+                  <AlertAction>
+                    <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setPreviewError(null)}>
+                      <X />
+                    </BuiButton>
+                  </AlertAction>
+                </BuiAlert>
               )}
 
               {/* Hauteur calee sur le ratio A4 portrait : la largeur du panneau

@@ -1,4 +1,6 @@
 import React from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Info } from 'lucide-react';
 import { Box, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import {
   PhotoCamera as PhotoCameraIcon,
@@ -48,13 +50,14 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
         {currentStep === 'after_photos' && t('interventions.dialogs.notesAfterTitle')}
       </DialogTitle>
       <DialogContent>
-        <Alert severity="info" sx={{ mb: 2, mt: 1 }}>
-          <p className="cn-text-body2 text-[0.85rem]">
+        <UiAlert variant="info" className="mb-3 mt-1.5">
+          <Info />
+          <AlertDescription><p className="cn-text-body2 text-[0.85rem]">
             {currentStep === 'inspection' && t('interventions.dialogs.notesInspectionAlert')}
             {currentStep === 'rooms' && t('interventions.dialogs.notesRoomsAlert')}
             {currentStep === 'after_photos' && t('interventions.dialogs.notesAfterAlert')}
-          </p>
-        </Alert>
+          </p></AlertDescription>
+        </UiAlert>
         <TextField
           multiline
           rows={6}
@@ -84,11 +87,12 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
           }
           sx={{ mt: 1 }}
         />
-        <Alert severity="info" sx={{ mt: 1, py: 0.5 }}>
-          <span className="cn-text-caption text-[0.75rem]">
+        <UiAlert variant="info" className="mt-1.5 py-0.5">
+          <Info />
+          <AlertDescription><span className="cn-text-caption text-[0.75rem]">
             {t('interventions.dialogs.notesAutoSave')}
-          </span>
-        </Alert>
+          </span></AlertDescription>
+        </UiAlert>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>

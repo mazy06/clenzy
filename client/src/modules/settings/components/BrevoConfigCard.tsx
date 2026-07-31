@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { Box, Typography, Chip, TextField, Button, Switch, FormControlLabel, MenuItem, Alert, Divider } from '@mui/material';
@@ -222,9 +224,10 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
             {test.data.success ? ` — ${test.data.listCount} liste(s) trouvée(s).` : ''}
           </Alert>
         ) : data.status === 'ERROR' && data.errorMessage ? (
-          <Alert severity="error" sx={{ borderRadius: '8px', fontSize: '0.78rem', py: 0.25 }}>
-            {data.errorMessage}
-          </Alert>
+          <UiAlert variant="destructive" className="text-[0.78rem] py-0.5">
+            <TriangleAlert />
+            <AlertDescription>{data.errorMessage}</AlertDescription>
+          </UiAlert>
         ) : null}
 
         <Divider />

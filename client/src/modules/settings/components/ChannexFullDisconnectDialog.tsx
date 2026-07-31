@@ -20,6 +20,8 @@
  * </ol>
  */
 import React, { useState } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Dialog, DialogContent, DialogTitle, Box, Button, Alert, Checkbox, FormControlLabel, Stack, Chip } from '@mui/material';
 import {
@@ -257,9 +259,10 @@ export default function ChannexFullDisconnectDialog({
             />
 
             {submitError && (
-              <Alert severity="error" sx={{ mt: 2 }}>
-                {submitError}
-              </Alert>
+              <UiAlert variant="destructive" className="mt-3">
+                <TriangleAlert />
+                <AlertDescription>{submitError}</AlertDescription>
+              </UiAlert>
             )}
           </DialogContent>
 

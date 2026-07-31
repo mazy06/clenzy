@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Select, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
+import { Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Select, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
 import { Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -194,9 +196,15 @@ const YieldRulesPanel: React.FC = () => {
   return (
     <div className="flex flex-col gap-2">
       {error && (
-        <Alert severity="error" onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ── Config org : kill-switch + mode ── */}

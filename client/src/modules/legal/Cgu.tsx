@@ -1,5 +1,7 @@
 import React from 'react';
-import { Alert } from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { Info } from 'lucide-react';
+
 import LegalLayout from './LegalLayout';
 
 /**
@@ -15,12 +17,13 @@ import LegalLayout from './LegalLayout';
 export default function Cgu() {
   return (
     <LegalLayout title="Conditions Générales d'Utilisation" lastUpdated="27 mai 2026">
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <p className="cn-text-body2">
+      <Alert variant="info" className="mb-4">
+        <Info />
+        <AlertDescription><p className="cn-text-body2">
           Cette page est un brouillon. Les conditions générales définitives seront publiées
           prochainement. Pour toute question urgente, contactez{' '}
           <a href="mailto:support@clenzy.fr">support@clenzy.fr</a>.
-        </p>
+        </p></AlertDescription>
       </Alert>
 
       <h2>1. Objet</h2>

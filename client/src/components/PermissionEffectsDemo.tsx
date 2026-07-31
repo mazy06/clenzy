@@ -1,5 +1,7 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, Chip, Grid, Alert } from '@mui/material';
+import { Alert, AlertDescription } from './ui';
+import { Info } from 'lucide-react';
+import { Box, Card, CardContent, Typography, Chip, Grid } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
   Home as HomeIcon,
@@ -30,8 +32,9 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
   if (!selectedRole || !rolePermissions) {
     return (
       <div>
-        <Alert severity="info">
-          Veuillez sélectionner un rôle pour voir la démonstration des effets
+        <Alert variant="info">
+          <Info />
+          <AlertDescription>Veuillez sélectionner un rôle pour voir la démonstration des effets</AlertDescription>
         </Alert>
       </div>
     );

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, MenuItem, Chip, Skeleton, Alert } from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, MenuItem, Chip, Skeleton } from '@mui/material';
 import {
   People as PeopleIcon,
 } from '../../icons';
@@ -201,8 +203,9 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
       )}
 
       {isError && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error instanceof Error ? error.message : 'Erreur lors du chargement des voyageurs'}
+        <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{error instanceof Error ? error.message : 'Erreur lors du chargement des voyageurs'}</AlertDescription>
         </Alert>
       )}
 

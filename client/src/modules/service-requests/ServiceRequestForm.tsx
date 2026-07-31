@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Paper, Button, Alert, Collapse } from '@mui/material';
+import { Box, Paper, Button, Collapse } from '@mui/material';
 import { ArrowBack } from "../../icons";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -580,8 +582,9 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   if (isEditMode && approvedStatus) {
     return (
       <div className="p-4">
-        <Alert severity="info" sx={{ mb: 3 }}>
-          {t('serviceRequests.approvedCannotEdit')}
+        <Alert variant="info" className="mb-4">
+          <Info />
+          <AlertDescription>{t('serviceRequests.approvedCannotEdit')}</AlertDescription>
         </Alert>
         <Button
           variant="contained"
@@ -606,14 +609,16 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     <div>
       {/* Messages d'erreur/succès */}
       {error && (
-        <Alert severity="error" sx={{ mb: 1.5, py: 0.75, fontSize: '0.8125rem' }}>
-          {error}
+        <Alert variant="destructive" className="mb-2 py-1 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {isEditMode && success && (
-        <Alert severity="success" sx={{ mb: 1.5, py: 0.75, fontSize: '0.8125rem' }}>
-          {t('serviceRequests.updateRequestSuccess')}
+        <Alert variant="success" className="mb-2 py-1 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('serviceRequests.updateRequestSuccess')}</AlertDescription>
         </Alert>
       )}
 
@@ -648,8 +653,9 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
             {/* Message d'aide quand aucune propriété n'est sélectionnée */}
             <Collapse in={!isPropertySelected} timeout={300}>
-              <Alert severity="info" sx={{ py: 0.75, fontSize: '0.8125rem' }}>
-                {t('serviceRequests.selectPropertyFirst')}
+              <Alert variant="info" className="py-1 text-[0.8125rem]">
+                <Info />
+                <AlertDescription>{t('serviceRequests.selectPropertyFirst')}</AlertDescription>
               </Alert>
             </Collapse>
 

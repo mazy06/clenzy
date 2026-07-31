@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, RadioGroup, FormControlLabel, Radio, Alert, Chip } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, RadioGroup, FormControlLabel, Radio, Chip } from '@mui/material';
 import { useWhatsAppTemplatesList } from '../../hooks/useWhatsAppTemplates';
 import type { WhatsAppTemplateGroup } from '../../services/api/whatsappTemplatesApi';
 
@@ -93,8 +95,9 @@ export default function SendWhatsAppTemplateDialog({
           En OpenWA, le template part comme texte rendu.
         </p>
         {error && (
-          <Alert severity="error" sx={{ mt: 1, fontSize: '0.8125rem' }}>
-            Échec de l'envoi du template. Réessayez.
+          <Alert variant="destructive" className="mt-1.5 text-[0.8125rem]">
+            <TriangleAlert />
+            <AlertDescription>Échec de l'envoi du template. Réessayez.</AlertDescription>
           </Alert>
         )}
       </DialogContent>

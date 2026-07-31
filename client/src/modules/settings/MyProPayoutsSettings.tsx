@@ -1,7 +1,9 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Button, Alert, Chip, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Box, Button, Chip, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import { AccountBalance, CheckCircle, Refresh } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { loadConnectAndInitialize } from '@stripe/connect-js';
@@ -99,7 +101,10 @@ export default function MyProPayoutsSettings() {
     );
   }
   if (payoutsQuery.isError) {
-    return <Alert severity="error">{t('settings.myProPayouts.loadError')}</Alert>;
+    return <Alert variant="destructive">
+      <TriangleAlert />
+      <AlertDescription>{t('settings.myProPayouts.loadError')}</AlertDescription>
+    </Alert>;
   }
 
   const statusChip = data?.onboardingCompleted ? (
@@ -161,7 +166,10 @@ export default function MyProPayoutsSettings() {
         </p>
 
         {onboardingError && (
-          <Alert severity="error" sx={{ mt: 1.5, fontSize: '12.5px' }}>{onboardingError}</Alert>
+          <Alert variant="destructive" className="mt-2 text-[12.5px]">
+            <TriangleAlert />
+            <AlertDescription>{onboardingError}</AlertDescription>
+          </Alert>
         )}
 
         {/* Conteneur du composant Stripe embarqué — le pro reste dans Baitly. */}

@@ -15,28 +15,9 @@
  * Header avec 4 KPI tuiles (À mapper / Aliases / Custom / Properties affectees).
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Box,
-  Typography,
-  Stack,
-  TextField,
-  InputAdornment,
-  Button,
-  Chip,
-  IconButton,
-  Tooltip,
-  Skeleton,
-  Alert,
-  Select,
-  MenuItem,
-  FormControl,
-  Checkbox,
-  Snackbar,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert, Info } from 'lucide-react';
+import { Box, Typography, Stack, TextField, InputAdornment, Button, Chip, IconButton, Tooltip, Skeleton, Select, MenuItem, FormControl, Checkbox, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Search,
   Plus,
@@ -379,7 +360,10 @@ export default function AmenityMappingPage() {
       </div>
 
       {error && (
-        <Alert severity="error" variant="outlined" sx={{ mb: 2 }}>{error}</Alert>
+        <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {/* TAB : À mapper ─────────────────────────────────────────────── */}
@@ -670,12 +654,13 @@ export default function AmenityMappingPage() {
       {/* TAB : Référentiel Baitly (grille compacte avec icones editables) ─── */}
       {tab === 'reference' && (
         <Stack spacing={2}>
-          <Alert severity="info" variant="outlined" sx={{ borderRadius: 1, fontSize: '0.78rem', py: 0.5 }}>
-            {t(
+          <Alert variant="info" className="text-[0.78rem] py-0.5">
+            <Info />
+            <AlertDescription>{t(
               'settings.amenities.reference.intro',
               "Référentiel Baitly : {{count}} commodités prêtes à l'emploi. Cliquez sur une icône pour la personnaliser (catalogue lucide-react, ~80 icônes). Le code de la commodité reste invariant — seule l'icône change.",
               { count: BUILT_IN_AMENITIES.length },
-            )}
+            )}</AlertDescription>
           </Alert>
 
           {(['comfort', 'kitchen', 'appliances', 'outdoor', 'safetyFamily'] as AmenityCategory[]).map((cat) => {

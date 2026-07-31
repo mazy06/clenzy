@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Skeleton, Alert, Typography, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Skeleton, Typography, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   PlayArrow,
   CompareArrows,
@@ -196,8 +198,14 @@ const ReconciliationTab: React.FC = () => {
         </Grid>
       )}
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {triggerMessage && <Alert severity="info" sx={{ mb: 2 }}>{triggerMessage}</Alert>}
+      {error && <Alert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
+      {triggerMessage && <Alert variant="info" className="mb-3">
+        <Info />
+        <AlertDescription>{triggerMessage}</AlertDescription>
+      </Alert>}
 
       {loading ? (
         <div className="flex flex-col gap-1.5">

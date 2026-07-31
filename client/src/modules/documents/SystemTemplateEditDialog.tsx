@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Grid, MenuItem, Paper, TextField, Typography } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Grid, MenuItem, Paper, TextField, Typography } from '@mui/material';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -190,19 +192,22 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
         )}
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {t('systemEmailTemplates.dialog.loadError')}
+          <Alert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{t('systemEmailTemplates.dialog.loadError')}</AlertDescription>
           </Alert>
         )}
 
         {upsertMutation.error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {t('systemEmailTemplates.dialog.saveError')} {upsertMutation.error.message}
+          <Alert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{t('systemEmailTemplates.dialog.saveError')}{upsertMutation.error.message}</AlertDescription>
           </Alert>
         )}
         {removeMutation.error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {t('systemEmailTemplates.dialog.resetError')}
+          <Alert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{t('systemEmailTemplates.dialog.resetError')}</AlertDescription>
           </Alert>
         )}
 

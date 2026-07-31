@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from './ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from './ui';
 import { Box, Button, Alert, Tooltip } from '@mui/material';
 import mapboxgl from 'mapbox-gl';
@@ -167,9 +169,10 @@ export function PropertyLocationPicker({
 
   if (!MAPBOX_TOKEN) {
     return (
-      <Alert severity="warning" sx={{ fontSize: '0.8125rem' }}>
-        Mapbox n'est pas configuré — impossible d'afficher la carte de sélection.
-      </Alert>
+      <BuiAlert variant="warning" className="text-[0.8125rem]">
+        <TriangleAlert />
+        <AlertDescription>Mapbox n'est pas configuré — impossible d'afficher la carte de sélection.</AlertDescription>
+      </BuiAlert>
     );
   }
 
@@ -284,9 +287,15 @@ export function PropertyLocationPicker({
       </Box>
 
       {geoError && (
-        <Alert severity="error" onClose={() => setGeoError(null)} sx={{ fontSize: '0.75rem', py: 0.5 }}>
-          {geoError}
-        </Alert>
+        <BuiAlert variant="destructive" className="text-[0.75rem] py-0.5">
+          <TriangleAlert />
+          <AlertDescription>{geoError}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setGeoError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {hasCoords && (

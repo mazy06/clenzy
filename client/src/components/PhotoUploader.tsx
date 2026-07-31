@@ -1,13 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  IconButton,
-  ImageList,
-  ImageListItem,
-  ImageListItemBar,
-  Alert,
-} from '@mui/material';
+import { Alert, AlertDescription } from './ui';
+import { TriangleAlert } from 'lucide-react';
+import { Box, Typography, IconButton, ImageList, ImageListItem, ImageListItemBar } from '@mui/material';
 import {
   CloudUpload as CloudUploadIcon,
   Close as CloseIcon,
@@ -285,10 +279,11 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
       {/* Erreur de validation */}
       {(validationError || error) && (
-        <Alert severity="error" sx={{ mt: 1, py: 0.5 }}>
-          <span className="cn-text-caption text-[0.75rem]">
+        <Alert variant="destructive" className="mt-1.5 py-0.5">
+          <TriangleAlert />
+          <AlertDescription><span className="cn-text-caption text-[0.75rem]">
             {error || validationError}
-          </span>
+          </span></AlertDescription>
         </Alert>
       )}
 

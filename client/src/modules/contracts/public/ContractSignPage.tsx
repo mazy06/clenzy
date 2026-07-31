@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
-import {
-  Box, Typography, Paper, Button, TextField, Checkbox, FormControlLabel,
-  CircularProgress, Alert,
-} from '@mui/material';
+import { Box, Typography, Paper, Button, TextField, Checkbox, FormControlLabel, CircularProgress } from '@mui/material';
 import { Handshake, CheckCircle, Download, Warning } from '../../../icons';
 import { API_CONFIG } from '../../../config/api';
 import { SIGN_LABELS, detectSignLang, type SignLabels } from './signLabels';
@@ -293,8 +292,9 @@ const ContractSignPage: React.FC = () => {
                     <CircularProgress size={22} sx={{ color: BRAND }} />
                   </div>
                 ) : (
-                  <Alert severity="info" sx={{ borderRadius: 2, fontSize: '0.8125rem' }}>
-                    {L.documentUnavailable}
+                  <Alert variant="info" className="text-[0.8125rem]">
+                    <Info />
+                    <AlertDescription>{L.documentUnavailable}</AlertDescription>
                   </Alert>
                 )}
                 {view.status === 'PENDING' && (
@@ -335,8 +335,9 @@ const ContractSignPage: React.FC = () => {
                     sx={{ alignItems: 'flex-start', mx: 0 }}
                   />
                   {signError && (
-                    <Alert severity="error" sx={{ borderRadius: 2, fontSize: '0.8125rem' }}>
-                      {signError}
+                    <Alert variant="destructive" className="text-[0.8125rem]">
+                      <TriangleAlert />
+                      <AlertDescription>{signError}</AlertDescription>
                     </Alert>
                   )}
                   <Button

@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Skeleton, Alert } from '@mui/material';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Skeleton } from '@mui/material';
 import { syncAdminApi, MappingSummary } from '../../../services/api/syncAdminApi';
 import PagePagination from '../../../components/PagePagination';
 
@@ -49,7 +51,10 @@ const MappingsTab: React.FC = () => {
   }
 
   if (error) {
-    return <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>;
+    return <Alert variant="destructive" className="mb-3">
+      <TriangleAlert />
+      <AlertDescription>{error}</AlertDescription>
+    </Alert>;
   }
 
   return (

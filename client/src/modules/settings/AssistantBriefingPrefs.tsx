@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Switch, FormControlLabel, Select, MenuItem, TextField, Checkbox, Button, Alert, Divider } from '@mui/material';
+import { Box, Typography, Switch, FormControlLabel, Select, MenuItem, TextField, Checkbox, Button, Divider } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import apiClient from '../../services/apiClient';
 import { useNotification } from '../../hooks/useNotification';
@@ -144,7 +146,10 @@ export const AssistantBriefingPrefs: React.FC = () => {
     );
   }
   if (error || !prefs) {
-    return <Alert severity="error">{error ?? 'Données indisponibles.'}</Alert>;
+    return <Alert variant="destructive">
+      <TriangleAlert />
+      <AlertDescription>{error ?? 'Données indisponibles.'}</AlertDescription>
+    </Alert>;
   }
 
   return (

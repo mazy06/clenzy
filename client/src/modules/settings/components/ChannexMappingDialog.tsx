@@ -14,6 +14,8 @@
  * Reference : docs/strategy/channex-integration-plan.md (Sprint 5)
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Dialog, DialogContent, DialogTitle, IconButton, Box, Button, ButtonBase, TextField, Alert, Stack, Divider, Tooltip, Chip } from '@mui/material';
 import { X, Plus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Clock, PauseCircle, ExternalLink, Download, Link2, ArrowLeft, ChevronRight, Globe, Home, Sparkles, Settings as SettingsIcon } from 'lucide-react';
@@ -710,9 +712,10 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                 </Alert>
               )}
               {!guided && otasError && (
-                <Alert severity="error" variant="outlined" sx={{ fontSize: '0.78rem' }}>
-                  {otasError}
-                </Alert>
+                <UiAlert variant="destructive" className="text-[0.78rem]">
+                  <TriangleAlert />
+                  <AlertDescription>{otasError}</AlertDescription>
+                </UiAlert>
               )}
 
               {otasLoading ? (
@@ -848,9 +851,10 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
           ) : (
             <>
           {globalError && (
-            <Alert severity="error" sx={{ mb: 2, fontSize: '0.78rem' }}>
-              {globalError}
-            </Alert>
+            <UiAlert variant="destructive" className="mb-3 text-[0.78rem]">
+              <TriangleAlert />
+              <AlertDescription>{globalError}</AlertDescription>
+            </UiAlert>
           )}
 
           {loading ? (
@@ -1094,9 +1098,10 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
         </DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           {connectForm.error && (
-            <Alert severity="error" sx={{ mb: 2, fontSize: '0.78rem' }}>
-              {connectForm.error}
-            </Alert>
+            <UiAlert variant="destructive" className="mb-3 text-[0.78rem]">
+              <TriangleAlert />
+              <AlertDescription>{connectForm.error}</AlertDescription>
+            </UiAlert>
           )}
 
           {/* Mode toggle */}
@@ -1221,22 +1226,23 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
 
           {/* Recap mode AUTO_CREATE */}
           {connectForm.mode === 'AUTO_CREATE' && connectForm.property && (
-            <Alert severity="info" sx={{ fontSize: '0.72rem' }}>
-              <strong>Sera cree dans le hub de distribution :</strong>
-              <Box component="ul" sx={{ margin: 0, paddingInlineStart: 2, mt: 0.5 }}>
+            <UiAlert variant="info" className="text-[0.72rem]">
+              <Info />
+              <AlertDescription><strong>Sera cree dans le hub de distribution :</strong><Box component="ul" sx={{ margin: 0, paddingInlineStart: 2, mt: 0.5 }}>
                 <li>Property : <em>{connectForm.property.name}</em> ({connectForm.property.city}, {connectForm.property.country})</li>
                 <li>Room Type : 1 unite, capacite {connectForm.property.maxGuests} personnes</li>
                 <li>Rate Plan : Standard Rate, per_room</li>
-              </Box>
-            </Alert>
+              </Box></AlertDescription>
+            </UiAlert>
           )}
 
-          <Alert severity="info" sx={{ mt: 2, fontSize: '0.72rem' }}>
-            Apres connexion, un push initial de 6 mois (prix + disponibilites) sera declenche automatiquement.
+          <UiAlert variant="info" className="mt-3 text-[0.72rem]">
+            <Info />
+            <AlertDescription>Apres connexion, un push initial de 6 mois (prix + disponibilites) sera declenche automatiquement.
             {connectForm.mode === 'AUTO_CREATE' && (
               <> Pour connecter ensuite Airbnb / Booking / Vrbo, utilisez le bouton de connexion (lien) sur la propriete une fois creee.</>
-            )}
-          </Alert>
+            )}</AlertDescription>
+          </UiAlert>
 
           <div className="flex justify-end gap-1.5 mt-3">
             <Button

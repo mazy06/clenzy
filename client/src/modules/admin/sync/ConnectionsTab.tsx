@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Skeleton, Alert } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Skeleton } from '@mui/material';
 import { Refresh } from '../../../icons';
 import { syncAdminApi, ConnectionSummary } from '../../../services/api/syncAdminApi';
 
@@ -70,7 +72,10 @@ const ConnectionsTab: React.FC = () => {
   }
 
   if (error) {
-    return <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>;
+    return <Alert variant="destructive" className="mb-3">
+      <TriangleAlert />
+      <AlertDescription>{error}</AlertDescription>
+    </Alert>;
   }
 
   return (

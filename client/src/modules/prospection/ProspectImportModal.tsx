@@ -1,4 +1,6 @@
 import React, { useState, useCallback } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, IconButton, Alert, FormControl, InputLabel, Select, MenuItem, LinearProgress } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -119,9 +121,10 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
 
         {/* Error message */}
         {importMutation.isError && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            Erreur lors de l&apos;import. Verifiez le format du fichier CSV.
-          </Alert>
+          <UiAlert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>Erreur lors de l&apos;import. Verifiez le format du fichier CSV.</AlertDescription>
+          </UiAlert>
         )}
 
         {/* Category selector */}

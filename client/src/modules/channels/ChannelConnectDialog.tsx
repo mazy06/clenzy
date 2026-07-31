@@ -1,4 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Alert, IconButton } from '@mui/material';
 import { Close, CheckCircle, Science } from '../../icons';
@@ -163,9 +165,10 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
 
         {/* Error */}
         {error && (
-          <Alert severity="error" sx={{ mt: 2, fontSize: '0.8125rem' }}>
-            {error}
-          </Alert>
+          <UiAlert variant="destructive" className="mt-3 text-[0.8125rem]">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+          </UiAlert>
         )}
       </DialogContent>
 

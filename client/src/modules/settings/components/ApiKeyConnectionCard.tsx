@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from '@mui/material';
@@ -329,13 +331,10 @@ export default function ApiKeyConnectionCard<P extends string>({
                 {submitting ? 'Connexion...' : `Connecter ${meta.label}`}
               </Button>
             </div>
-            <Alert
-              severity="info"
-              variant="outlined"
-              sx={{ mt: 0.5, borderRadius: '8px', fontSize: '0.76rem' }}
-            >
-              {scaffoldingNote ?? defaultScaffoldingNote}
-            </Alert>
+            <UiAlert variant="info" className="mt-0.5 text-[0.76rem]">
+              <Info />
+              <AlertDescription>{scaffoldingNote ?? defaultScaffoldingNote}</AlertDescription>
+            </UiAlert>
           </form>
         )}
 

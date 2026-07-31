@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Card } from '../../components/ui';
-import { Alert, Button, Chip, FormControl, InputLabel, LinearProgress, MenuItem, Select, Skeleton, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
+import { Button, Chip, FormControl, InputLabel, LinearProgress, MenuItem, Select, Skeleton, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
 import { ShieldCheck, Gauge } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -135,7 +137,10 @@ export default function AiAutonomySection() {
 
   return (
     <div className="flex flex-col gap-2 mb-3">
-      {error && <Alert severity="warning">{error}</Alert>}
+      {error && <Alert variant="warning">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {/* ── Sous-budget d'autonomie premium (X4) ── */}
       <Card className="gap-0 py-0 p-2.5">

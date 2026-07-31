@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Grid, Button, Alert } from '@mui/material';
+import { Box, Grid, Button } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -321,13 +323,13 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
     if (isEditMode) {
       return (
         <div className="p-4">
-          <Alert severity="error">
-            <h6 className="cn-text-h6 mb-[0.35em]">
+          <Alert variant="destructive">
+            <TriangleAlert />
+            <AlertDescription><h6 className="cn-text-h6 mb-[0.35em]">
               {t('common.accessDenied') || 'Acces non autorise'}
-            </h6>
-            <p className="cn-text-body1">
+            </h6><p className="cn-text-body1">
               {t('interventions.errors.noEditPermission') || 'Vous n\'avez pas les permissions necessaires pour modifier des interventions.'}
-            </p>
+            </p></AlertDescription>
           </Alert>
         </div>
       );
@@ -374,8 +376,9 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
       )}
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
-          {error}
+        <Alert variant="destructive" className="mb-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 

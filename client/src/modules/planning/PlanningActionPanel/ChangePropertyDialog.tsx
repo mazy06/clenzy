@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Chip, IconButton, Button, Divider, Alert } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Chip, IconButton, Button, Divider } from '@mui/material';
 import {
   Close,
   Home,
@@ -188,8 +190,9 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
         </div>
 
         {compatibleProperties.length === 0 ? (
-          <Alert severity="info" sx={{ fontSize: '0.75rem', mb: 2 }}>
-            Aucun logement disponible dans la meme ville avec une capacite suffisante pour ces dates.
+          <Alert variant="info" className="text-[0.75rem] mb-3">
+            <Info />
+            <AlertDescription>Aucun logement disponible dans la meme ville avec une capacite suffisante pour ces dates.</AlertDescription>
           </Alert>
         ) : (
           <div className="flex flex-col gap-1.5 mb-3">
@@ -259,17 +262,18 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
 
         {/* Confirmation info */}
         {selectedProperty && (
-          <Alert severity="info" sx={{ fontSize: '0.75rem', mb: 1 }}>
-            La reservation de <strong>{reservation.guestName}</strong> sera deplacee vers{' '}
-            <strong>{selectedProperty.name}</strong>. Les interventions liees (menage) seront
-            automatiquement deplacees.
+          <Alert variant="info" className="text-[0.75rem] mb-1.5">
+            <Info />
+            <AlertDescription>La reservation de <strong>{reservation.guestName}</strong>sera deplacee vers{' '}<strong>{selectedProperty.name}</strong>. Les interventions liees (menage) seront
+            automatiquement deplacees.</AlertDescription>
           </Alert>
         )}
 
         {/* Error */}
         {error && (
-          <Alert severity="error" sx={{ fontSize: '0.75rem', mb: 1 }}>
-            {error}
+          <Alert variant="destructive" className="text-[0.75rem] mb-1.5">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
       </DialogContent>

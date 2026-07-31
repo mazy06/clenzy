@@ -1,4 +1,6 @@
 import React from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Box, Checkbox, Button, Divider, Chip, Alert } from '@mui/material';
 import {
@@ -107,7 +109,10 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
 
       {/* Errors / Success */}
       {paymentError && (
-        <Alert severity="error" sx={{ fontSize: '0.6875rem', mb: 1 }}>{paymentError}</Alert>
+        <UiAlert variant="destructive" className="text-[0.6875rem] mb-1.5">
+          <TriangleAlert />
+          <AlertDescription>{paymentError}</AlertDescription>
+        </UiAlert>
       )}
       {paymentSuccess && (
         <Alert severity="success" icon={<CheckCircle size={18} strokeWidth={1.75} />} sx={{ fontSize: '0.6875rem', mb: 1 }}>

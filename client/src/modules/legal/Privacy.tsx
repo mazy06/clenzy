@@ -1,5 +1,7 @@
 import React from 'react';
-import { Alert } from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { Info } from 'lucide-react';
+
 import LegalLayout from './LegalLayout';
 
 /**
@@ -11,12 +13,13 @@ import LegalLayout from './LegalLayout';
 export default function Privacy() {
   return (
     <LegalLayout title="Politique de confidentialité" lastUpdated="27 mai 2026">
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <p className="cn-text-body2">
+      <Alert variant="info" className="mb-4">
+        <Info />
+        <AlertDescription><p className="cn-text-body2">
           Cette page est un brouillon. La politique définitive sera publiée prochainement.
           Pour toute question RGPD, contactez{' '}
           <a href="mailto:dpo@clenzy.fr">dpo@clenzy.fr</a>.
-        </p>
+        </p></AlertDescription>
       </Alert>
 
       <h2>1. Responsable du traitement</h2>

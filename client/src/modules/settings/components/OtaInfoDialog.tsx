@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { Box, Button, Chip, Alert, TextField } from '@mui/material';
@@ -274,13 +276,10 @@ export default function OtaInfoDialog({
         <div className="p-3">
           {/* Cas 1 : Coming soon */}
           {!ota.available && (
-            <Alert
-              severity="info"
-              variant="outlined"
-              sx={{ borderRadius: '8px', fontSize: '0.78rem' }}
-            >
-              L'intégration {ota.name} est en cours de développement. La page <strong>Channels</strong> permet d'exprimer votre intérêt et de suivre la disponibilité.
-            </Alert>
+            <UiAlert variant="info" className="text-[0.78rem]">
+              <Info />
+              <AlertDescription>L'intégration {ota.name}est en cours de développement. La page <strong>Channels</strong>permet d'exprimer votre intérêt et de suivre la disponibilité.</AlertDescription>
+            </UiAlert>
           )}
 
           {/* Cas 2 : Deja connecte (form OTA ou Airbnb), mode consultation */}
@@ -515,9 +514,10 @@ export default function OtaInfoDialog({
           )}
 
           {actionError && (
-            <Alert severity="error" sx={{ mt: 1.5, borderRadius: '8px', fontSize: '0.78rem' }}>
-              {actionError}
-            </Alert>
+            <UiAlert variant="destructive" className="mt-2 text-[0.78rem]">
+              <TriangleAlert />
+              <AlertDescription>{actionError}</AlertDescription>
+            </UiAlert>
           )}
         </div>
       </Card>

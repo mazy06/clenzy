@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Grid, Chip, Button, Alert } from '@mui/material';
+import { Card, CardContent, Grid, Chip, Button } from '@mui/material';
 import {
   Group,
   Edit,
@@ -88,7 +90,10 @@ const TeamDetails: React.FC = () => {
   if (error) {
     return (
       <div className="p-4">
-        <Alert severity="error">{error}</Alert>
+        <Alert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -96,7 +101,10 @@ const TeamDetails: React.FC = () => {
   if (!team) {
     return (
       <div className="p-4">
-        <Alert severity="warning">Équipe non trouvée</Alert>
+        <Alert variant="warning">
+          <TriangleAlert />
+          <AlertDescription>Équipe non trouvée</AlertDescription>
+        </Alert>
       </div>
     );
   }

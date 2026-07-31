@@ -1,4 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
@@ -1294,7 +1296,10 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         </DialogTitle>
         <DialogContent>
           {payments.length === 0 ? (
-            <Alert severity="info" sx={{ fontSize: '0.8125rem' }}>Aucun paiement enregistre.</Alert>
+            <UiAlert variant="info" className="text-[0.8125rem]">
+              <Info />
+              <AlertDescription>Aucun paiement enregistre.</AlertDescription>
+            </UiAlert>
           ) : (
             <TableContainer>
               <Table size="small">

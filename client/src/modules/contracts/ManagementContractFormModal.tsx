@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, IconButton, Alert, Tooltip } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, IconButton, Tooltip } from '@mui/material';
 import { Handshake, Check, Close } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -185,8 +187,9 @@ const ManagementContractFormModal: React.FC<ManagementContractFormModalProps> = 
         )}
 
         {error && (
-          <Alert severity="error" sx={{ mt: 2, fontSize: '0.8125rem' }}>
-            {error}
+          <Alert variant="destructive" className="mt-3 text-[0.8125rem]">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
       </DialogContent>

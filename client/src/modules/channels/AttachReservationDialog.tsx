@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, TextField, Button, Alert } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, TextField, Button } from '@mui/material';
 import { reservationsApi, type Reservation } from '../../services/api/reservationsApi';
 import { useAttachToReservation } from '../../hooks/useConversations';
 import { formatPhoneNumber } from '../../utils/formatPhone';
@@ -110,8 +112,9 @@ export default function AttachReservationDialog({
           )}
         />
         {attachMutation.isError && (
-          <Alert severity="error" sx={{ mt: 2, fontSize: '0.8125rem' }}>
-            Le rattachement a échoué. Réessayez.
+          <Alert variant="destructive" className="mt-3 text-[0.8125rem]">
+            <TriangleAlert />
+            <AlertDescription>Le rattachement a échoué. Réessayez.</AlertDescription>
           </Alert>
         )}
       </DialogContent>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Card, CardContent, Typography, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Chip, IconButton, Alert, Autocomplete, Avatar, FormHelperText, Divider } from '@mui/material';
+import { Box, Card, CardContent, Typography, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Chip, IconButton, Autocomplete, Avatar, FormHelperText, Divider } from '@mui/material';
 import {
   Save,
   Add,
@@ -141,8 +143,9 @@ const TeamForm: React.FC = () => {
   if (!canCreate) {
     return (
       <div className="p-3">
-        <Alert severity="error" sx={{ py: 1 }}>
-          {t('teams.errors.noPermission')}
+        <Alert variant="destructive" className="py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{t('teams.errors.noPermission')}</AlertDescription>
         </Alert>
       </div>
     );
@@ -254,20 +257,23 @@ const TeamForm: React.FC = () => {
       />
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
-          {error}
+        <Alert variant="destructive" className="mb-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 2, py: 1 }}>
-          {t('teams.createSuccess')}
+        <Alert variant="success" className="mb-3 py-1.5">
+          <CircleCheck />
+          <AlertDescription>{t('teams.createSuccess')}</AlertDescription>
         </Alert>
       )}
 
       {(errors.members?.root?.message || errors.members?.message) && (
-        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
-          {errors.members?.root?.message || errors.members?.message}
+        <Alert variant="destructive" className="mb-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{errors.members?.root?.message || errors.members?.message}</AlertDescription>
         </Alert>
       )}
 

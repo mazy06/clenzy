@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Button, Alert, Snackbar } from '@mui/material';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X, CircleCheck } from 'lucide-react';
+import { Button, Snackbar } from '@mui/material';
 import {
   Link as LinkIcon,
   Refresh as RefreshIcon,
@@ -247,9 +249,15 @@ const ChannelsPage: React.FC = () => {
       />
 
       {(connectionError || connectionQueryError) && (
-        <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => setConnectionError(null)}>
-          {connectionError || t('channels.airbnb.errorFetchingStatus')}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-2 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{connectionError || t('channels.airbnb.errorFetchingStatus')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setConnectionError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
@@ -382,14 +390,15 @@ const ChannelsPage: React.FC = () => {
         onClose={() => setSuccessMessage(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert
-          onClose={() => setSuccessMessage(null)}
-          severity="success"
-          variant="filled"
-          sx={{ width: '100%', fontSize: '0.8125rem' }}
-        >
-          {successMessage}
-        </Alert>
+        <BuiAlert variant="success" className="w-full text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{successMessage}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSuccessMessage(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       </Snackbar>
 
       {/* ═══════════════════════════════════════════════════════════════════════

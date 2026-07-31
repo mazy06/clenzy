@@ -21,17 +21,9 @@
  * existe.</p>
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Box,
-  Typography,
-  IconButton,
-  CircularProgress,
-  Alert,
-  Collapse,
-  Stack,
-  Skeleton,
-  Tooltip,
-} from '@mui/material';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Box, Typography, IconButton, CircularProgress, Collapse, Stack, Skeleton, Tooltip } from '@mui/material';
 import {
   CheckCircle2,
   AlertTriangle,
@@ -280,8 +272,9 @@ export default function ChannexPreflightBanner({
             </Stack>
           )}
           {error && !loading && (
-            <Alert severity="error" sx={{ mt: 0.5 }}>
-              {error}
+            <Alert variant="destructive" className="mt-0.5">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
           {report && !loading && (

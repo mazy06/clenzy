@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Box, Typography, Button, Tooltip, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert, alpha, useTheme } from '@mui/material';
+import { Box, Typography, Button, Tooltip, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, alpha, useTheme } from '@mui/material';
 import { Wifi, WifiOff, ChevronRight, Lock, LockOpen, MoreVert, Delete } from '../../../icons';
 import { useIconSize } from '../../../hooks/useResponsiveSize';
 import StatusPill from './StatusPill';
@@ -227,9 +229,15 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         {error ? (
-          <Alert severity="error" variant="filled" onClose={() => setError(null)} sx={{ width: '100%' }}>
-            {error}
-          </Alert>
+          <BuiAlert variant="destructive" className="w-full">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+            <AlertAction>
+              <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+                <X />
+              </BuiButton>
+            </AlertAction>
+          </BuiAlert>
         ) : undefined}
       </Snackbar>
     </Card>

@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Box, TextField, Grid, InputAdornment, Accordion, AccordionSummary, AccordionDetails, MenuItem, Alert, Skeleton, Switch, FormControlLabel, IconButton, Button } from '@mui/material';
 import { ExpandMore, Timer, Euro, CleaningServices, Speed, CalendarMonth, AutoAwesome, Add, Close } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
@@ -545,9 +547,10 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
           )}
 
           {(estimateQuery.isError || previewQuery.isError) && (
-            <Alert severity="error" sx={{ mb: 1.5, fontSize: '12.5px' }}>
-              {t('tarification.cleaning.simulatorError')}
-            </Alert>
+            <UiAlert variant="destructive" className="mb-2 text-[12.5px]">
+              <TriangleAlert />
+              <AlertDescription>{t('tarification.cleaning.simulatorError')}</AlertDescription>
+            </UiAlert>
           )}
 
           {simProperty && !simProperty.bedroomCount && !simProperty.squareMeters && (

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, Chip, IconButton, Tooltip, Alert, useTheme } from '@mui/material';
 import {
@@ -358,7 +360,15 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
 
   return (
     <div>
-      {actionError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>{actionError}</Alert>}
+      {actionError && <BuiAlert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{actionError}</AlertDescription>
+        <AlertAction>
+          <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setActionError(null)}>
+            <X />
+          </BuiButton>
+        </AlertAction>
+      </BuiAlert>}
       {verifyResult && (
         <Alert
           severity={verifyResult.includes('verifiee') ? 'success' : 'error'}
@@ -621,7 +631,10 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
               <p className="cn-text-body2"><strong>Canal :</strong> {detailLog.channel}</p>
               <p className="cn-text-body2"><strong>Statut :</strong> {detailLog.status}</p>
               {detailLog.errorMessage && (
-                <Alert severity="error" sx={{ mt: 1 }}>{detailLog.errorMessage}</Alert>
+                <BuiAlert variant="destructive" className="mt-1.5">
+                  <TriangleAlert />
+                  <AlertDescription>{detailLog.errorMessage}</AlertDescription>
+                </BuiAlert>
               )}
               <p className="cn-text-body2"><strong>Reservation :</strong> #{detailLog.reservationId}</p>
               <p className="cn-text-body2 text-muted-foreground">

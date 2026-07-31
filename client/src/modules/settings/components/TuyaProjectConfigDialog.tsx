@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Link, MenuItem, TextField } from '@mui/material';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Link, MenuItem, TextField } from '@mui/material';
 import { KeyRound } from 'lucide-react';
 import { tuyaApi, type TuyaConfigStatus } from '../../../services/api/noiseApi';
 
@@ -111,8 +113,9 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
         </p>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
+          <Alert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 

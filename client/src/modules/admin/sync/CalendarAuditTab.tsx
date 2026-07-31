@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Skeleton, Alert, TextField } from '@mui/material';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Skeleton, TextField } from '@mui/material';
 import { syncAdminApi, CalendarCommand, CalendarConflict } from '../../../services/api/syncAdminApi';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 import PagePagination from '../../../components/PagePagination';
@@ -91,11 +93,11 @@ const CalendarAuditTab: React.FC = () => {
     <div>
       {/* Conflicts Alert */}
       {conflicts.length > 0 && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          <h6 className="cn-text-subtitle2 mb-[0.35em]">
+        <Alert variant="warning" className="mb-4">
+          <TriangleAlert />
+          <AlertDescription><h6 className="cn-text-subtitle2 mb-[0.35em]">
             {conflicts.length} conflit(s) calendrier detecte(s)
-          </h6>
-          <TableContainer>
+          </h6><TableContainer>
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -118,11 +120,14 @@ const CalendarAuditTab: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </TableContainer></AlertDescription>
         </Alert>
       )}
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {loading ? (
         <div className="flex flex-col gap-1.5">

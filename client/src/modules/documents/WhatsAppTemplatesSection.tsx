@@ -1,6 +1,8 @@
 import React, { useImperativeHandle, useMemo, useState, forwardRef } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Alert, Chip, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from '@mui/material';
+import { Chip, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from '@mui/material';
 import { Edit } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useWhatsAppTemplatesList } from '../../hooks/useWhatsAppTemplates';
@@ -102,14 +104,16 @@ const WhatsAppTemplatesSection = forwardRef<WhatsAppTemplatesSectionRef>((_, ref
   return (
     <div>
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {t('whatsappTemplates.loadError')}
+        <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{t('whatsappTemplates.loadError')}</AlertDescription>
         </Alert>
       )}
 
       {sortedGroups.length === 0 ? (
-        <Alert severity="info" sx={{ mt: 2 }}>
-          {t('whatsappTemplates.empty')}
+        <Alert variant="info" className="mt-3">
+          <Info />
+          <AlertDescription>{t('whatsappTemplates.empty')}</AlertDescription>
         </Alert>
       ) : (
         <TableContainer component={Paper}>

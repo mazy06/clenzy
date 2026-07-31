@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Button, IconButton, Paper, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { Box, Typography, Button, IconButton, Paper, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import {
   CloudUpload,
   Delete,
@@ -236,8 +238,9 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
   return (
     <div className="flex flex-col gap-2">
       {/* ── Sync info banner ─────────────────────────────────────────────── */}
-      <Alert severity="info" variant="outlined" sx={{ fontSize: '0.75rem' }}>
-        {t('properties.photos.channelSync')}
+      <Alert variant="info" className="text-[0.75rem]">
+        <Info />
+        <AlertDescription>{t('properties.photos.channelSync')}</AlertDescription>
       </Alert>
 
       {/* ── Upload zone ──────────────────────────────────────────────────── */}

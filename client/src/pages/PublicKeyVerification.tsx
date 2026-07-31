@@ -1,7 +1,9 @@
 import React, { useState, useCallback } from 'react';
+import { Alert, AlertDescription } from '../components/ui';
+import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../components/ui';
 import { Card } from '../components/ui';
-import { TextField, Button, Alert, Chip } from '@mui/material';
+import { TextField, Button, Chip } from '@mui/material';
 import {
   VpnKey,
   CheckCircle,
@@ -91,7 +93,10 @@ const PublicKeyVerification: React.FC = () => {
   if (!token) {
     return (
       <div className="flex justify-center items-center min-h-[100vh] bg-[#f5f5f5]">
-        <Alert severity="error">Lien de vérification invalide</Alert>
+        <Alert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>Lien de vérification invalide</AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -140,7 +145,10 @@ const PublicKeyVerification: React.FC = () => {
 
         {/* Error */}
         {error && (
-          <Alert severity="error" sx={{ fontSize: '0.8125rem', mb: 2 }}>{error}</Alert>
+          <Alert variant="destructive" className="text-[0.8125rem] mb-3">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
         {/* Verify result */}
@@ -148,8 +156,9 @@ const PublicKeyVerification: React.FC = () => {
           <div className="mt-3">
             {verifyResult.valid ? (
               <>
-                <Alert severity="success" sx={{ fontSize: '0.8125rem', mb: 2 }}>
-                  Code valide
+                <Alert variant="success" className="text-[0.8125rem] mb-3">
+                  <CircleCheck />
+                  <AlertDescription>Code valide</AlertDescription>
                 </Alert>
 
                 <div className="p-3 border border-[divider] rounded-[1.5px] mb-3">
@@ -212,8 +221,9 @@ const PublicKeyVerification: React.FC = () => {
                 </div>
               </>
             ) : (
-              <Alert severity="warning" sx={{ fontSize: '0.8125rem' }}>
-                Code invalide ou expiré. Statut : {verifyResult.status}
+              <Alert variant="warning" className="text-[0.8125rem]">
+                <TriangleAlert />
+                <AlertDescription>Code invalide ou expiré. Statut : {verifyResult.status}</AlertDescription>
               </Alert>
             )}
           </div>

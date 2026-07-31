@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Box, Typography, Button, Divider, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, List, ListItem, ListItemText, Checkbox, Switch, FormControlLabel, Tooltip, LinearProgress, ListSubheader } from '@mui/material';
 import {
@@ -1790,9 +1792,10 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           )}
 
           {assignError && (
-            <Alert severity="error" sx={{ fontSize: '0.75rem', mt: 1.5 }}>
-              {assignError}
-            </Alert>
+            <UiAlert variant="destructive" className="text-[0.75rem] mt-2">
+              <TriangleAlert />
+              <AlertDescription>{assignError}</AlertDescription>
+            </UiAlert>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
@@ -1863,9 +1866,10 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             ))}
           </div>
           {priorityError && (
-            <Alert severity="error" sx={{ fontSize: '0.75rem', mt: 1.5 }}>
-              {priorityError}
-            </Alert>
+            <UiAlert variant="destructive" className="text-[0.75rem] mt-2">
+              <TriangleAlert />
+              <AlertDescription>{priorityError}</AlertDescription>
+            </UiAlert>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>

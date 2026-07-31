@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Paper, Button, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
@@ -129,9 +131,10 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
 
   if (isSuccess) {
     return (
-      <Alert severity="success" sx={{ fontSize: '0.8125rem', py: 0.75 }}>
-        {isEditMode ? t('properties.updateSuccess') : `${t('properties.create')} ${t('common.success')} !`}
-      </Alert>
+      <UiAlert variant="success" className="text-[0.8125rem] py-1">
+        <CircleCheck />
+        <AlertDescription>{isEditMode ? t('properties.updateSuccess') : `${t('properties.create')} ${t('common.success')} !`}</AlertDescription>
+      </UiAlert>
     );
   }
 

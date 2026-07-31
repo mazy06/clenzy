@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Card, CardContent, Grid, TextField, Button, FormControl, InputLabel, Select, MenuItem, Alert, List, ListItem, ListItemAvatar, ListItemText, Avatar } from '@mui/material';
+import { Box, Card, CardContent, Grid, TextField, Button, FormControl, InputLabel, Select, MenuItem, List, ListItem, ListItemAvatar, ListItemText, Avatar } from '@mui/material';
 import {
   Autocomplete,
   IconButton,
@@ -246,10 +248,10 @@ const TeamEdit: React.FC = () => {
   if (!canEdit) {
     return (
       <div className="p-4">
-        <Alert severity="error">
-          <h6 className="cn-text-h6 mb-[0.35em]">Accès non autorisé</h6>
-          <p className="cn-text-body1">Vous n'avez pas les permissions nécessaires pour modifier des équipes.</p>
-        </Alert>
+        <BuiAlert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription><h6 className="cn-text-h6 mb-[0.35em]">Accès non autorisé</h6><p className="cn-text-body1">Vous n'avez pas les permissions nécessaires pour modifier des équipes.</p></AlertDescription>
+        </BuiAlert>
       </div>
     );
   }
@@ -290,15 +292,22 @@ const TeamEdit: React.FC = () => {
       />
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-4">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 3 }}>
-          Équipe mise à jour avec succès ! Redirection en cours...
-        </Alert>
+        <BuiAlert variant="success" className="mb-4">
+          <CircleCheck />
+          <AlertDescription>Équipe mise à jour avec succès ! Redirection en cours...</AlertDescription>
+        </BuiAlert>
       )}
 
       <Card>

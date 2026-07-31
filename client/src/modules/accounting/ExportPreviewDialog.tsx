@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Skeleton, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton } from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton } from '@mui/material';
 import { Close as CloseIcon } from '../../icons';
 import { useTranslation } from 'react-i18next';
 
@@ -132,7 +134,10 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
 
         {error && (
           <div className="p-3">
-            <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>{error}</Alert>
+            <Alert variant="destructive" className="text-[0.8125rem]">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           </div>
         )}
 

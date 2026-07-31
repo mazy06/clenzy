@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Alert } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { Handshake, Check } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -123,8 +125,9 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
         />
 
         {error && (
-          <Alert severity="error" sx={{ mt: 1.5, fontSize: '0.8125rem' }}>
-            {error}
+          <Alert variant="destructive" className="mt-2 text-[0.8125rem]">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
       </DialogContent>

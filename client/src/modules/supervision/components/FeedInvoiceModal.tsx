@@ -10,8 +10,10 @@
    ============================================================ */
 
 import { useEffect, useState, type ReactNode } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { CircleCheck, TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { invoicesApi, INVOICE_STATUS_COLORS, type Invoice } from '../../../services/api/invoicesApi';
@@ -158,18 +160,21 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
                 </Button>,
               )}
             {sentTo && (
-              <Alert severity="success" sx={{ mt: 1.5 }}>
-                {t('supervision.invoiceModal.sentTo', 'Lien de paiement envoyé à')} {sentTo}
+              <Alert variant="success" className="mt-2">
+                <CircleCheck />
+                <AlertDescription>{t('supervision.invoiceModal.sentTo', 'Lien de paiement envoyé à')}{sentTo}</AlertDescription>
               </Alert>
             )}
             {error && (
-              <Alert severity="error" sx={{ mt: 1.5 }}>
-                {error}
+              <Alert variant="destructive" className="mt-2">
+                <TriangleAlert />
+                <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
             {!payable && (
-              <Alert severity="info" sx={{ mt: 1.5 }}>
-                {t('supervision.invoiceModal.notPayable', 'Cette facture n’est pas (ou plus) payable en ligne.')}
+              <Alert variant="info" className="mt-2">
+                <Info />
+                <AlertDescription>{t('supervision.invoiceModal.notPayable', 'Cette facture n’est pas (ou plus) payable en ligne.')}</AlertDescription>
               </Alert>
             )}
           </>

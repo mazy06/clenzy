@@ -1,6 +1,8 @@
 import React, { useRef, useState } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Alert, Avatar, Box, Button } from '@mui/material';
+import { Avatar, Box, Button } from '@mui/material';
 import { Upload, Delete } from '../../../icons';
 import { usersApi, type User } from '../../../services/api/usersApi';
 
@@ -173,9 +175,15 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
         </div>
       </Box>
       {error && (
-        <Alert severity="error" sx={{ py: 0.5, fontSize: '0.8125rem' }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive" className="py-0.5 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
     </div>
   );

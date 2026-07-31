@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Switch, Alert, Snackbar } from '@mui/material';
 import { Card } from '../../components/ui';
@@ -89,9 +91,10 @@ export default function MarketingPreferencesCard() {
       </p>
 
       {loadError && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          {loadError}
-        </Alert>
+        <UiAlert variant="warning" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{loadError}</AlertDescription>
+        </UiAlert>
       )}
 
       {newsletterOptIn === null && !loadError ? (

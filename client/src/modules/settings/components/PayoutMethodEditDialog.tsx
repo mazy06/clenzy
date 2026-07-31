@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { Info, CircleCheck, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Alert, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, IconButton, Stack, Chip, MenuItem } from '@mui/material';
+import { Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, IconButton, Stack, Chip, MenuItem } from '@mui/material';
 import { Close as CloseIcon, Save } from '../../../icons';
 import { accountingApi } from '../../../services/api/accountingApi';
 import type {
@@ -447,12 +449,13 @@ export default function PayoutMethodEditDialog({
         {/* ─── Section IBAN (SEPA + Wise) ─────────────────────────── */}
         {requiresIban && (
           <Stack spacing={1.5}>
-            <Alert severity="info" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-              {hasExistingIban
+            <Alert variant="info" className="text-[0.8rem]">
+              <Info />
+              <AlertDescription>{hasExistingIban
                 ? 'Les coordonnées bancaires actuelles sont affichées et conservées par défaut. Cliquez dans le champ IBAN pour saisir un nouveau numéro — sinon, gardez les valeurs existantes.'
                 : selectedMethod === 'WISE'
                 ? 'Wise utilisera ces coordonnées pour créer le recipient. Le virement sera converti automatiquement dans la devise du compte destinataire.'
-                : 'Coordonnées du compte destinataire utilisées pour le fichier SEPA pain.001 et le virement bancaire.'}
+                : 'Coordonnées du compte destinataire utilisées pour le fichier SEPA pain.001 et le virement bancaire.'}</AlertDescription>
             </Alert>
             <TextField
               label="IBAN"
@@ -509,10 +512,11 @@ export default function PayoutMethodEditDialog({
         {/* ─── Section Open Banking ───────────────────────────────── */}
         {selectedMethod === 'OPEN_BANKING' && (
           <Stack spacing={1.5}>
-            <Alert severity="info" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-              En cliquant sur "Connecter ma banque" ci-dessous, vous serez redirigé vers le portail
+            <Alert variant="info" className="text-[0.8rem]">
+              <Info />
+              <AlertDescription>En cliquant sur "Connecter ma banque" ci-dessous, vous serez redirigé vers le portail
               de votre banque pour signer le SCA bancaire. Le consent est valable 90 jours et permet à Baitly
-              d'initier des virements SEPA depuis votre compte sans repasser par 2FA.
+              d'initier des virements SEPA depuis votre compte sans repasser par 2FA.</AlertDescription>
             </Alert>
             <TextField
               label="Banque"
@@ -554,10 +558,11 @@ export default function PayoutMethodEditDialog({
               )}
             </TextField>
             {currentConfig?.openBankingConsentActive && (
-              <Alert severity="success" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-                Consent SCA déjà actif{currentConfig.openBankingConsentExpiresAt
+              <Alert variant="success" className="text-[0.8rem]">
+                <CircleCheck />
+                <AlertDescription>Consent SCA déjà actif{currentConfig.openBankingConsentExpiresAt
                   ? ` jusqu'au ${new Date(currentConfig.openBankingConsentExpiresAt).toLocaleDateString('fr-FR')}`
-                  : ''}.
+                  : ''}.</AlertDescription>
               </Alert>
             )}
           </Stack>
@@ -565,29 +570,31 @@ export default function PayoutMethodEditDialog({
 
         {/* ─── Section Stripe Connect ─────────────────────────────── */}
         {selectedMethod === 'STRIPE_CONNECT' && (
-          <Alert severity="info" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-            {mode === 'self'
+          <Alert variant="info" className="text-[0.8rem]">
+            <Info />
+            <AlertDescription>{mode === 'self'
               ? "L'onboarding Stripe Connect se fait depuis la section dédiée plus bas dans Mes reversements."
-              : "Le propriétaire doit compléter lui-même l'onboarding Stripe Connect via sa page Mes reversements."}
-            {currentConfig?.stripeOnboardingComplete && (
+              : "Le propriétaire doit compléter lui-même l'onboarding Stripe Connect via sa page Mes reversements."}{currentConfig?.stripeOnboardingComplete && (
               <Box component="span" sx={{ display: 'block', mt: 0.5, color: ACCENT, fontWeight: 600 }}>
                 ✓ Onboarding Stripe complété pour ce propriétaire.
               </Box>
-            )}
+            )}</AlertDescription>
           </Alert>
         )}
 
         {/* ─── Section Manual ──────────────────────────────────────── */}
         {selectedMethod === 'MANUAL' && (
-          <Alert severity="warning" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-            Le propriétaire reçoit ses paiements hors-Baitly (espèces, chèque, virement perso).
-            Aucune exécution automatique possible : les payouts devront être marqués comme payés à la main.
+          <Alert variant="warning" className="text-[0.8rem]">
+            <TriangleAlert />
+            <AlertDescription>Le propriétaire reçoit ses paiements hors-Baitly (espèces, chèque, virement perso).
+            Aucune exécution automatique possible : les payouts devront être marqués comme payés à la main.</AlertDescription>
           </Alert>
         )}
 
         {error && (
-          <Alert severity="error" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-            {error}
+          <Alert variant="destructive" className="text-[0.8rem]">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
       </DialogContent>

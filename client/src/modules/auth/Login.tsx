@@ -1,4 +1,6 @@
 import React, { useState, useCallback } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -169,11 +171,12 @@ export default function Login() {
 
       {/* Message succes inscription */}
       {inscriptionSuccess && (
-        <Alert severity="success" sx={{ mb: 3, borderRadius: 1.5 }}>
-          <p className="cn-text-body2 text-[0.875rem] font-medium">
+        <UiAlert variant="success" className="mb-4">
+          <CircleCheck />
+          <AlertDescription><p className="cn-text-body2 text-[0.875rem] font-medium">
             {t('auth.login.inscriptionSuccess', 'Votre compte a été créé avec succès. Connectez-vous pour accéder à votre espace.')}
-          </p>
-        </Alert>
+          </p></AlertDescription>
+        </UiAlert>
       )}
 
       {/* ── Form ── */}

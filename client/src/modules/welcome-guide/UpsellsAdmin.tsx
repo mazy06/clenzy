@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, InputAdornment, Menu, MenuItem, Snackbar, Stack, Switch, TextField } from '@mui/material';
@@ -709,12 +711,13 @@ const UpsellsAdmin: React.FC = () => {
           Parametres > Paiement, avec les autres repartitions. La garder ici
           aussi donnait deux champs pour une meme valeur, chacun affichant
           l'ancienne tant que l'autre n'etait pas recharge. */}
-      <Alert severity="info" sx={{ borderRadius: '8px' }}>
-        {t(
+      <UiAlert variant="info">
+        <Info />
+        <AlertDescription>{t(
           'upsells.orgCommission.movedToPayment',
           'Votre part sur les upsells se règle dans Paramètres › Paiement, onglet « Services & activités ».',
-        )}
-      </Alert>
+        )}</AlertDescription>
+      </UiAlert>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCommissionsOpen(false)}>{t('upsells.actions.close', 'Fermer')}</Button>

@@ -1,6 +1,8 @@
 import React, { useState, useCallback } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Button, Chip, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListSubheader, Select, FormControl, InputLabel, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Card, CardContent, Grid, Skeleton } from '@mui/material';
+import { Box, Button, Chip, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListSubheader, Select, FormControl, InputLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Card, CardContent, Grid, Skeleton } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -398,8 +400,9 @@ const AutomationRulesPage: React.FC = () => {
           ))}
         </Grid>
       ) : isError ? (
-        <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
-          {t('automation.error', 'Erreur lors du chargement des regles')}
+        <Alert variant="destructive" className="text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{t('automation.error', 'Erreur lors du chargement des regles')}</AlertDescription>
         </Alert>
       ) : sortedRules.length === 0 ? (
         <EmptyState

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, TextField, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
@@ -704,9 +706,10 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
             Cette action est irréversible. Le montant sera remboursé via Stripe.
           </span>
           {refundError && (
-            <Alert severity="error" sx={{ mt: 1.5, py: 0.5 }}>
-              {refundError}
-            </Alert>
+            <UiAlert variant="destructive" className="mt-2 py-0.5">
+              <TriangleAlert />
+              <AlertDescription>{refundError}</AlertDescription>
+            </UiAlert>
           )}
         </DialogContent>
         <DialogActions>

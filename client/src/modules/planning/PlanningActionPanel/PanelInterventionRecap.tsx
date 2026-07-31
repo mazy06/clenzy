@@ -1,21 +1,7 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Chip,
-  Divider,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
-  Alert,
-} from '@mui/material';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { Info } from 'lucide-react';
+import { Box, Typography, Accordion, AccordionSummary, AccordionDetails, Chip, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
 import {
   ExpandMore,
   Notes,
@@ -103,8 +89,9 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
 
   if (!intervention) {
     return (
-      <Alert severity="info" sx={{ fontSize: '0.75rem' }}>
-        Aucune donnée d'intervention disponible
+      <Alert variant="info" className="text-[0.75rem]">
+        <Info />
+        <AlertDescription>Aucune donnée d'intervention disponible</AlertDescription>
       </Alert>
     );
   }

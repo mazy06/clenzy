@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Paper, Typography, Button, Chip, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Tab, Card, CardContent, Grid } from '@mui/material';
+import { Paper, Typography, Button, Chip, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Tab, Card, CardContent, Grid } from '@mui/material';
 import {
   Add as AddIcon,
   CheckCircle as ApproveIcon,
@@ -282,9 +284,15 @@ export const PayoutsTab: React.FC = () => {
         />
 
         {sepaError && (
-          <Alert severity="error" sx={{ fontSize: '0.8125rem' }} onClose={() => setSepaError(null)}>
-            {sepaError}
-          </Alert>
+          <BuiAlert variant="destructive" className="text-[0.8125rem]">
+            <TriangleAlert />
+            <AlertDescription>{sepaError}</AlertDescription>
+            <AlertAction>
+              <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSepaError(null)}>
+                <X />
+              </BuiButton>
+            </AlertAction>
+          </BuiAlert>
         )}
 
         <div className="ms-auto flex gap-1.5">
@@ -307,35 +315,71 @@ export const PayoutsTab: React.FC = () => {
 
       {/* ── Alerts ── */}
       {approveMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => approveMutation.reset()}>
-          {t('accounting.approveSuccess', 'Payout approuve')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.approveSuccess', 'Payout approuve')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => approveMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {executeMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => executeMutation.reset()}>
-          {t('accounting.executeSuccess', 'Virement execute avec succes')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.executeSuccess', 'Virement execute avec succes')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => executeMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {executeMutation.isError && (
-        <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => executeMutation.reset()}>
-          {(executeMutation.error as { message?: string })?.message
-            || t('accounting.executeError', 'Erreur lors de l\'execution du virement')}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-2 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{(executeMutation.error as { message?: string })?.message
+            || t('accounting.executeError', 'Erreur lors de l\'execution du virement')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => executeMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {retryMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => retryMutation.reset()}>
-          {t('accounting.retrySuccess', 'Relance effectuee avec succes')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.retrySuccess', 'Relance effectuee avec succes')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => retryMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {retryMutation.isError && (
-        <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => retryMutation.reset()}>
-          {t('accounting.retryError', 'Erreur lors de la relance du virement')}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-2 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{t('accounting.retryError', 'Erreur lors de la relance du virement')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => retryMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {markPaidMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => markPaidMutation.reset()}>
-          {t('accounting.paidSuccess', 'Payout marque comme paye')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.paidSuccess', 'Payout marque comme paye')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => markPaidMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ── Table ── */}
@@ -346,9 +390,10 @@ export const PayoutsTab: React.FC = () => {
           ))}
         </div>
       ) : isError ? (
-        <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
-          {t('accounting.error', 'Erreur lors du chargement des payouts')}
-        </Alert>
+        <BuiAlert variant="destructive" className="text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{t('accounting.error', 'Erreur lors du chargement des payouts')}</AlertDescription>
+        </BuiAlert>
       ) : payouts.length === 0 ? (
         <EmptyState
           icon={<AccountIcon />}
@@ -899,34 +944,70 @@ export const ExpensesTab: React.FC = () => {
 
       {/* ── Alerts ── */}
       {createMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => createMutation.reset()}>
-          {t('accounting.expenses.createSuccess', 'Depense creee avec succes')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.expenses.createSuccess', 'Depense creee avec succes')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => createMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {approveMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => approveMutation.reset()}>
-          {t('accounting.expenses.approveSuccess', 'Depense approuvee')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.expenses.approveSuccess', 'Depense approuvee')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => approveMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {cancelMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => cancelMutation.reset()}>
-          {t('accounting.expenses.cancelSuccess', 'Depense annulee')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.expenses.cancelSuccess', 'Depense annulee')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => cancelMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {payMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => payMutation.reset()}>
-          {t('accounting.expenses.paidSuccess', 'Depense marquee comme payee')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.expenses.paidSuccess', 'Depense marquee comme payee')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => payMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {uploadReceiptMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => uploadReceiptMutation.reset()}>
-          {t('accounting.expenses.receiptUploaded', 'Justificatif ajoute')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.expenses.receiptUploaded', 'Justificatif ajoute')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => uploadReceiptMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {uploadReceiptMutation.isError && (
-        <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => uploadReceiptMutation.reset()}>
-          {t('accounting.expenses.receiptUploadError', 'Erreur lors de l\'upload du justificatif')}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-2 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{t('accounting.expenses.receiptUploadError', 'Erreur lors de l\'upload du justificatif')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => uploadReceiptMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ── Table ── */}
@@ -937,9 +1018,10 @@ export const ExpensesTab: React.FC = () => {
           ))}
         </div>
       ) : isError ? (
-        <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
-          {t('accounting.expenses.error', 'Erreur lors du chargement des depenses')}
-        </Alert>
+        <BuiAlert variant="destructive" className="text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{t('accounting.expenses.error', 'Erreur lors du chargement des depenses')}</AlertDescription>
+        </BuiAlert>
       ) : expenses.length === 0 ? (
         <EmptyState
           icon={<AccountIcon />}
@@ -1436,9 +1518,15 @@ export const ExportsTab: React.FC = () => {
       </Paper>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* Export cards */}

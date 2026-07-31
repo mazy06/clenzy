@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X, CircleCheck, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Alert, Box, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Box, Divider } from '@mui/material';
 import { Send } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -91,15 +93,22 @@ export default function SendMessageDialog({
         )}
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
+          <BuiAlert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+            <AlertAction>
+              <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+                <X />
+              </BuiButton>
+            </AlertAction>
+          </BuiAlert>
         )}
 
         {success && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            {t('messaging.send.success')}
-          </Alert>
+          <BuiAlert variant="success" className="mb-3">
+            <CircleCheck />
+            <AlertDescription>{t('messaging.send.success')}</AlertDescription>
+          </BuiAlert>
         )}
 
         {loading ? (
@@ -122,12 +131,13 @@ export default function SendMessageDialog({
             </TextField>
 
             {channel === 'WHATSAPP' && (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                {t(
+              <BuiAlert variant="info" className="mb-3">
+                <Info />
+                <AlertDescription>{t(
                   'messaging.send.whatsappHint',
                   "WhatsApp en texte libre : le message n'est délivré que si le voyageur a écrit au numéro Baitly dans les dernières 24h (fenêtre Meta). Sinon, privilégiez l'email.",
-                )}
-              </Alert>
+                )}</AlertDescription>
+              </BuiAlert>
             )}
 
             <TextField

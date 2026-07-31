@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { TextField, Button, LinearProgress, Alert, Typography, Chip, Stack } from '@mui/material';
 import { AutoFixHighRounded } from '../../icons';
 import { CheckCircleOutlineRounded } from '../../icons';
@@ -207,9 +209,10 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
 
       {/* Generic error state */}
       {analyzeMutation.isError && !isLoading && !aiNotConfigured && !budgetExceeded && (
-        <Alert severity="error" sx={{ mt: 2 }}>
-          {t('bookingEngine.ai.analyzeError')}
-        </Alert>
+        <UiAlert variant="destructive" className="mt-3">
+          <TriangleAlert />
+          <AlertDescription>{t('bookingEngine.ai.analyzeError')}</AlertDescription>
+        </UiAlert>
       )}
     </div>
   );

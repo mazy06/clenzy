@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Button, TextField, MenuItem, Alert, Snackbar, IconButton, Tooltip, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Dialog, DialogTitle, DialogContent, DialogActions, Chip } from '@mui/material';
 import { Card } from '../../components/ui';
@@ -242,9 +244,10 @@ const TaxRulesSection: React.FC = () => {
 
         {/* Rules table */}
         {sortedRules.length === 0 ? (
-          <Alert severity="info" sx={{ mt: 1 }}>
-            {t('fiscal.taxRules.noRules')}
-          </Alert>
+          <UiAlert variant="info" className="mt-1.5">
+            <Info />
+            <AlertDescription>{t('fiscal.taxRules.noRules')}</AlertDescription>
+          </UiAlert>
         ) : (
           <TableContainer>
             <Table size="small">

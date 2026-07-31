@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
-import { Box, Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Chip, Alert, Autocomplete, FormHelperText, Divider } from '@mui/material';
+import { Box, Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Chip, Autocomplete, FormHelperText, Divider } from '@mui/material';
 import {
   Send as SendIcon,
   AttachFile as AttachFileIcon,
@@ -170,20 +172,23 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
       <Card>
         <CardContent>
           {isRestrictedUser && (
-            <Alert severity="info" sx={{ mb: 3 }}>
-              {t('contact.info.restrictedUser')}
+            <Alert variant="info" className="mb-4">
+              <Info />
+              <AlertDescription>{t('contact.info.restrictedUser')}</AlertDescription>
             </Alert>
           )}
 
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
+            <Alert variant="destructive" className="mb-4">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
           {success && (
-            <Alert severity="success" sx={{ mb: 3 }}>
-              {success}
+            <Alert variant="success" className="mb-4">
+              <CircleCheck />
+              <AlertDescription>{success}</AlertDescription>
             </Alert>
           )}
 

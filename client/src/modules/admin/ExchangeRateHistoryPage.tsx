@@ -1,7 +1,9 @@
 import React, { useState, useCallback } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Skeleton, TextField, MenuItem, Chip, Tooltip, Alert } from '@mui/material';
+import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Skeleton, TextField, MenuItem, Chip, Tooltip } from '@mui/material';
 import { Refresh, CurrencyExchange, TrendingUp } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../../components/PageHeader';
@@ -252,15 +254,22 @@ export default function ExchangeRateHistoryPage() {
       </Card>
 
       {refreshMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => refreshMutation.reset()}>
-          Taux de change mis a jour avec succes depuis la BCE.
-        </Alert>
+        <BuiAlert variant="success" className="mb-3">
+          <CircleCheck />
+          <AlertDescription>Taux de change mis a jour avec succes depuis la BCE.</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => refreshMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          Erreur lors du chargement de l'historique des taux.
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>Erreur lors du chargement de l'historique des taux.</AlertDescription>
+        </BuiAlert>
       )}
 
       {/* Table */}

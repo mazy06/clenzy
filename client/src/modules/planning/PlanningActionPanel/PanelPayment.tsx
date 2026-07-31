@@ -1,6 +1,8 @@
 import React, { useState, useCallback } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, Typography, Chip, Divider, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Box, Typography, Chip, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import {
   Payment,
   CheckCircle,
@@ -104,8 +106,9 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
 
   if (!intervention) {
     return (
-      <Alert severity="info" sx={{ fontSize: '0.75rem' }}>
-        Aucune donnée d'intervention disponible
+      <Alert variant="info" className="text-[0.75rem]">
+        <Info />
+        <AlertDescription>Aucune donnée d'intervention disponible</AlertDescription>
       </Alert>
     );
   }
@@ -168,8 +171,9 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
               Validation manager
             </Typography>
           </div>
-          <Alert severity="warning" sx={{ fontSize: '0.6875rem', mb: 1 }}>
-            Cette intervention est terminée et attend votre validation.
+          <Alert variant="warning" className="text-[0.6875rem] mb-1.5">
+            <TriangleAlert />
+            <AlertDescription>Cette intervention est terminée et attend votre validation.</AlertDescription>
           </Alert>
           <Button
             variant="contained"
@@ -256,7 +260,10 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
             onChange={(e) => setValidateCost(e.target.value)}
             inputProps={{ min: 0, step: 0.01 }}
           />
-          {validateError && <Alert severity="error" sx={{ fontSize: '0.6875rem', mt: 1 }}>{validateError}</Alert>}
+          {validateError && <Alert variant="destructive" className="text-[0.6875rem] mt-1.5">
+            <TriangleAlert />
+            <AlertDescription>{validateError}</AlertDescription>
+          </Alert>}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setValidateDialogOpen(false)} size="small">Annuler</Button>

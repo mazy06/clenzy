@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { TextField, MenuItem, Alert } from '@mui/material';
+import { TextField, MenuItem } from '@mui/material';
 import { netatmoApi } from '../../../services/api/netatmoApi';
 
 type NetatmoSource = 'weather' | 'thermostat' | 'security';
@@ -51,13 +53,17 @@ export default function NetatmoDevicePicker({ selectedId, onSelect, source = 'we
   }
   if (isError) {
     return (
-      <Alert severity="warning" sx={{ py: 0.25 }}>
-        Compte Netatmo non relié ou indisponible. Reliez Netatmo dans <strong>Réglages → Intégrations</strong>.
+      <Alert variant="warning" className="py-0.5">
+        <TriangleAlert />
+        <AlertDescription>Compte Netatmo non relié ou indisponible. Reliez Netatmo dans <strong>Réglages → Intégrations</strong>.</AlertDescription>
       </Alert>
     );
   }
   if (modules.length === 0) {
-    return <Alert severity="info" sx={{ py: 0.25 }}>Aucun de ces {NOUN[source]} sur le compte Netatmo relié.</Alert>;
+    return <Alert variant="info" className="py-0.5">
+      <Info />
+      <AlertDescription>Aucun de ces {NOUN[source]}sur le compte Netatmo relié.</AlertDescription>
+    </Alert>;
   }
 
   return (

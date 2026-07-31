@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Paper, Snackbar, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material';
@@ -211,9 +213,10 @@ export default function VouchersPage({
         {!embedded && <div className="mb-3">{filterBar}</div>}
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {t('vouchers.loadError')}
-          </Alert>
+          <UiAlert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{t('vouchers.loadError')}</AlertDescription>
+          </UiAlert>
         )}
 
         {isLoading ? (

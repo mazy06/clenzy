@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { Info, CircleCheck, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Box, Button, TextField, Grid, Alert, Snackbar } from '@mui/material';
 import {
@@ -404,16 +406,16 @@ export default function Settings() {
   if (!canViewSettings) {
     return (
       <div className="p-4">
-        <Alert severity="info">
-          <h6 className="cn-text-h6 mb-[0.35em]">
+        <BuiAlert variant="info">
+          <Info />
+          <AlertDescription><h6 className="cn-text-h6 mb-[0.35em]">
             Accès non autorisé
-          </h6>
-          <p className="cn-text-body1">
+          </h6><p className="cn-text-body1">
             Vous n'avez pas les permissions nécessaires pour accéder aux paramètres.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </p>
-        </Alert>
+          </p></AlertDescription>
+        </BuiAlert>
       </div>
     );
   }
@@ -1105,13 +1107,15 @@ export default function Settings() {
         autoHideDuration={6000}
         onClose={() => setSnackbarOpen(false)}
       >
-        <Alert
-          onClose={() => setSnackbarOpen(false)}
-          severity="success"
-          sx={{ width: '100%' }}
-        >
-          {snackbarMessage}
-        </Alert>
+        <BuiAlert variant="success" className="w-full">
+          <CircleCheck />
+          <AlertDescription>{snackbarMessage}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSnackbarOpen(false)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       </Snackbar>
 
       {/* OAuth callback snackbar */}

@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, InputBase, Tooltip, Typography, Alert } from '@mui/material';
+import { Box, InputBase, Tooltip, Typography } from '@mui/material';
 import {
   Search as SearchIcon,
   Archive as ArchiveIcon,
@@ -351,8 +353,9 @@ export default function ConversationList({
             <Spinner className="size-[22px]" />
           </div>
         ) : error ? (
-          <Alert severity="error" sx={{ m: 1.5, fontSize: '0.8125rem' }}>
-            {t('messagingHub.errorLoading', 'Impossible de charger les conversations.')}
+          <Alert variant="destructive" className="m-2 text-[0.8125rem]">
+            <TriangleAlert />
+            <AlertDescription>{t('messagingHub.errorLoading', 'Impossible de charger les conversations.')}</AlertDescription>
           </Alert>
         ) : filtered.length === 0 ? (
           <p className="cn-text-body1 px-3 py-6 text-center text-[12.5px] text-[var(--muted)]">

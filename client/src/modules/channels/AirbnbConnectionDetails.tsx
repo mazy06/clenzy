@@ -1,5 +1,7 @@
 import React from 'react';
-import { Paper, Alert } from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Paper } from '@mui/material';
 import type { AirbnbConnectionStatus } from '../../services/api/airbnbApi';
 import { CARD_SX } from './channelsPageConstants';
 
@@ -40,8 +42,9 @@ const AirbnbConnectionDetails: React.FC<AirbnbConnectionDetailsProps> = ({
         value={String(connectionStatus.linkedListingsCount)}
       />
       {connectionStatus.errorMessage && (
-        <Alert severity="warning" sx={{ fontSize: '0.75rem', py: 0, width: '100%' }}>
-          {connectionStatus.errorMessage}
+        <Alert variant="warning" className="text-[0.75rem] py-0 w-full">
+          <TriangleAlert />
+          <AlertDescription>{connectionStatus.errorMessage}</AlertDescription>
         </Alert>
       )}
     </div>

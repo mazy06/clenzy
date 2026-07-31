@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Box, IconButton, Badge, Alert, Snackbar } from '@mui/material';
+import { Alert, AlertDescription, AlertAction, Button } from '../../components/ui';
+import { CircleCheck, X } from 'lucide-react';
+import { Box, IconButton, Badge, Snackbar } from '@mui/material';
 import { ShoppingCartOutlined, Memory, CheckCircleOutline } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import apiClient from '../../services/apiClient';
@@ -296,12 +298,14 @@ const ShopPage: React.FC = () => {
         onClose={() => setSnackbarOpen(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert
-          onClose={() => setSnackbarOpen(false)}
-          severity="success"
-          sx={{ width: '100%', borderRadius: '8px' }}
-        >
-          {t('common.processing')}
+        <Alert variant="success" className="w-full">
+          <CircleCheck />
+          <AlertDescription>{t('common.processing')}</AlertDescription>
+          <AlertAction>
+            <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSnackbarOpen(false)}>
+              <X />
+            </Button>
+          </AlertAction>
         </Alert>
       </Snackbar>
     </div>

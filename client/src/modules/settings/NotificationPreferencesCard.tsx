@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Box, Typography, Switch, List, ListItem, ListItemText, ListItemSecondaryAction, Accordion, AccordionSummary, AccordionDetails, Alert, Snackbar, Chip, Tooltip } from '@mui/material';
 import { Card } from '../../components/ui';
@@ -332,7 +334,10 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
   if (error) {
     return (
       <Card className="gap-0 py-0 p-4">
-        <Alert severity="warning">{error}</Alert>
+        <UiAlert variant="warning">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </UiAlert>
       </Card>
     );
   }

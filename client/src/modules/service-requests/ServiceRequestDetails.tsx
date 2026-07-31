@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Skeleton, Alert, Button } from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Skeleton, Button } from '@mui/material';
 import {
   Edit,
   Assignment,
@@ -60,8 +62,9 @@ const ServiceRequestDetails: React.FC = () => {
   if (isError) {
     return (
       <div className="p-3">
-        <Alert severity="error" sx={{ py: 0.75, fontSize: '0.8125rem' }}>
-          {error || t('serviceRequests.loadError')}
+        <Alert variant="destructive" className="py-1 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{error || t('serviceRequests.loadError')}</AlertDescription>
         </Alert>
       </div>
     );
@@ -70,8 +73,9 @@ const ServiceRequestDetails: React.FC = () => {
   if (!serviceRequest) {
     return (
       <div className="p-3">
-        <Alert severity="warning" sx={{ py: 0.75, fontSize: '0.8125rem' }}>
-          {t('serviceRequests.notFound')}
+        <Alert variant="warning" className="py-1 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{t('serviceRequests.notFound')}</AlertDescription>
         </Alert>
       </div>
     );

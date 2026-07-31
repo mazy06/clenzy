@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Skeleton, Alert, Typography, Grid, Card, CardContent, TextField } from '@mui/material';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Skeleton, Typography, Grid, Card, CardContent, TextField } from '@mui/material';
 import { syncAdminApi, SyncLog, SyncEventStats } from '../../../services/api/syncAdminApi';
 import FilterChipRow from '../../../components/FilterChipRow';
 import { useSyncAdminHeader } from '../SyncAdminPage';
@@ -187,7 +189,10 @@ const EventsTab: React.FC = () => {
         </Grid>
       )}
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {loading ? (
         <div className="flex flex-col gap-1.5">

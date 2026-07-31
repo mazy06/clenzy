@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { Info, X } from 'lucide-react';
 import { Card } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, Skeleton, Paper, Chip, Tooltip, alpha, Snackbar, Alert } from '@mui/material';
+import { Box, Typography, Button, Skeleton, Paper, Chip, Tooltip, alpha, Snackbar } from '@mui/material';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, Warning, Home, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
@@ -273,7 +275,15 @@ export default function ConnectedObjectsHub({
       <AddDeviceWizard open={wizardOpen} onClose={() => setWizardOpen(false)} onAdded={() => { void refetch(); }} />
 
       <Snackbar open={!!connectMsg} autoHideDuration={6000} onClose={() => setConnectMsg(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        {connectMsg ? <Alert severity="info" variant="filled" onClose={() => setConnectMsg(null)} sx={{ width: '100%' }}>{connectMsg}</Alert> : undefined}
+        {connectMsg ? <BuiAlert variant="info" className="w-full">
+          <Info />
+          <AlertDescription>{connectMsg}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setConnectMsg(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert> : undefined}
       </Snackbar>
     </div>
   );

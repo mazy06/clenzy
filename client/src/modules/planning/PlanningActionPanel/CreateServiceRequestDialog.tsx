@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Box, IconButton, Button, InputBase, Alert, Link, Stepper, Step, StepLabel, Chip } from '@mui/material';
 import {
@@ -1117,18 +1119,19 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
         {/* Error / Success */}
         {error && (
-          <Alert severity="error" sx={{ fontSize: '0.75rem', mt: 1.5 }}>
-            {error}
-          </Alert>
+          <UiAlert variant="destructive" className="text-[0.75rem] mt-2">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+          </UiAlert>
         )}
 
         {createdId && (
-          <Alert severity="success" sx={{ fontSize: '0.75rem', mt: 1.5 }}>
-            Demande créée.{' '}
-            <Link component="button" onClick={() => navigate(`/service-requests/${createdId}`)} sx={{ fontSize: '0.75rem' }}>
+          <UiAlert variant="success" className="text-[0.75rem] mt-2">
+            <CircleCheck />
+            <AlertDescription>Demande créée.{' '}<Link component="button" onClick={() => navigate(`/service-requests/${createdId}`)} sx={{ fontSize: '0.75rem' }}>
               Voir la demande
-            </Link>
-          </Alert>
+            </Link></AlertDescription>
+          </UiAlert>
         )}
       </DialogContent>
 

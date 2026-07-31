@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import { SwapHoriz, OpenInNew, WhatsApp, Cancel, Warning } from '../../../icons';
 import type { PlanningEvent, PlanningProperty } from '../types';
 import GuestCardDialog from './GuestCardDialog';
@@ -200,12 +202,14 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
           <p className="cn-text-body2 text-[0.8125rem] mb-1.5">
             Du <strong>{reservation.checkIn}</strong> au <strong>{reservation.checkOut}</strong>
           </p>
-          <Alert severity="warning" sx={{ fontSize: '0.75rem' }}>
-            Les interventions liees (menage) seront egalement annulees. Cette action est irreversible.
+          <Alert variant="warning" className="text-[0.75rem]">
+            <TriangleAlert />
+            <AlertDescription>Les interventions liees (menage) seront egalement annulees. Cette action est irreversible.</AlertDescription>
           </Alert>
           {cancelError && (
-            <Alert severity="error" sx={{ fontSize: '0.75rem', mt: 1 }}>
-              {cancelError}
+            <Alert variant="destructive" className="text-[0.75rem] mt-1.5">
+              <TriangleAlert />
+              <AlertDescription>{cancelError}</AlertDescription>
             </Alert>
           )}
         </DialogContent>

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, Info, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useSearchParams } from 'react-router-dom';
@@ -137,9 +139,10 @@ export default function MyPayoutSettings() {
 
   if (isError) {
     return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        {t('common.loadingError', 'Erreur lors du chargement des donnees. Veuillez reessayer.')}
-      </Alert>
+      <BuiAlert variant="destructive" className="mt-3">
+        <TriangleAlert />
+        <AlertDescription>{t('common.loadingError', 'Erreur lors du chargement des donnees. Veuillez reessayer.')}</AlertDescription>
+      </BuiAlert>
     );
   }
 
@@ -189,14 +192,21 @@ export default function MyPayoutSettings() {
 
       {/* ── Banner retour Open Banking SCA ── */}
       {obProcessing && (
-        <Alert severity="info" sx={{ mb: 2, fontSize: '0.85rem', borderRadius: 2 }}>
-          {t('settings.myPayout.obProcessing', 'Validation du consent Open Banking en cours…')}
-        </Alert>
+        <BuiAlert variant="info" className="mb-3 text-[0.85rem]">
+          <Info />
+          <AlertDescription>{t('settings.myPayout.obProcessing', 'Validation du consent Open Banking en cours…')}</AlertDescription>
+        </BuiAlert>
       )}
       {obError && (
-        <Alert severity="error" sx={{ mb: 2, fontSize: '0.85rem', borderRadius: 2 }} onClose={() => setObError(null)}>
-          {obError}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-3 text-[0.85rem]">
+          <TriangleAlert />
+          <AlertDescription>{obError}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setObError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ── Bannière proactive expiration consent Open Banking ── */}
@@ -337,9 +347,10 @@ export default function MyPayoutSettings() {
 
         {isStripeInProgress && (
           <div className="flex flex-col gap-2">
-            <Alert severity="warning" sx={{ fontSize: '0.8125rem' }}>
-              {t('settings.myPayout.stripeOnboardingPending', "Votre inscription Stripe n'est pas terminee. Veuillez la completer.")}
-            </Alert>
+            <BuiAlert variant="warning" className="text-[0.8125rem]">
+              <TriangleAlert />
+              <AlertDescription>{t('settings.myPayout.stripeOnboardingPending', "Votre inscription Stripe n'est pas terminee. Veuillez la completer.")}</AlertDescription>
+            </BuiAlert>
             <Button
               variant="outlined"
               size="small"

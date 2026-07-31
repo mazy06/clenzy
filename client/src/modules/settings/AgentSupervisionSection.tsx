@@ -1,6 +1,8 @@
 import React from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Switch, Divider, Select, MenuItem, TextField, Alert, Snackbar, useTheme, alpha } from '@mui/material';
+import { Box, Switch, Divider, Select, MenuItem, TextField, Snackbar, useTheme, alpha } from '@mui/material';
 import AiSettingsCard from './AiSettingsCard';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -98,8 +100,9 @@ export default function AgentSupervisionSection() {
           <Spinner className="size-6" />
         </Box>
       ) : error ? (
-        <Alert severity="error">
-          {t('settings.ai.supervision.loadError', "Impossible de charger la configuration.")}
+        <Alert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>{t('settings.ai.supervision.loadError', "Impossible de charger la configuration.")}</AlertDescription>
         </Alert>
       ) : config ? (
         <div className="flex flex-col">
@@ -235,13 +238,15 @@ export default function AgentSupervisionSection() {
           })}
 
           {!canEdit && (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              {t('settings.ai.supervision.readOnly', 'Lecture seule — seul un administrateur peut modifier ces réglages.')}
+            <Alert variant="info" className="mt-3">
+              <Info />
+              <AlertDescription>{t('settings.ai.supervision.readOnly', 'Lecture seule — seul un administrateur peut modifier ces réglages.')}</AlertDescription>
             </Alert>
           )}
           {updateMutation.isError && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {t('settings.ai.supervision.saveError', "Échec de l'enregistrement. Réessayez.")}
+            <Alert variant="destructive" className="mt-3">
+              <TriangleAlert />
+              <AlertDescription>{t('settings.ai.supervision.saveError', "Échec de l'enregistrement. Réessayez.")}</AlertDescription>
             </Alert>
           )}
         </div>

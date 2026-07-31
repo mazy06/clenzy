@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Card, CardContent, Button, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, IconButton, Tooltip } from '@mui/material';
+import { Box, Card, CardContent, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, IconButton, Tooltip } from '@mui/material';
 import {
   Payment as PaymentIcon,
   Refresh as RefreshIcon,
@@ -145,7 +147,10 @@ const InterventionsPendingPayment: React.FC = () => {
   if (!hasAccess) {
     return (
       <div>
-        <Alert severity="error">Vous n'avez pas acces a cette page</Alert>
+        <BuiAlert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>Vous n'avez pas acces a cette page</AlertDescription>
+        </BuiAlert>
       </div>
     );
   }
@@ -172,13 +177,15 @@ const InterventionsPendingPayment: React.FC = () => {
       />
 
       {error && (
-        <Alert
-          severity="error"
-          sx={{ mb: 2, borderRadius: '8px', fontSize: '0.8125rem' }}
-          onClose={() => setError(null)}
-        >
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-3 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ─── Resume en haut ────────────────────────────────────────────── */}

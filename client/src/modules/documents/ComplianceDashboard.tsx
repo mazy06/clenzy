@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { Alert as UiAlert, AlertDescription, AlertAction, Button } from '../../components/ui';
+import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Box, Typography, Card, CardContent, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, LinearProgress } from '@mui/material';
 import {
@@ -204,8 +206,24 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
 
   return (
     <div>
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
+      {error && <UiAlert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+        <AlertAction>
+          <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setActionError(null)}>
+            <X />
+          </Button>
+        </AlertAction>
+      </UiAlert>}
+      {success && <UiAlert variant="success" className="mb-3">
+        <CircleCheck />
+        <AlertDescription>{success}</AlertDescription>
+        <AlertAction>
+          <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSuccess(null)}>
+            <X />
+          </Button>
+        </AlertAction>
+      </UiAlert>}
 
       {/* ─── Country & Standard indicator ────────────────────────────── */}
       <div className="flex items-center gap-1.5 mb-3">
@@ -302,7 +320,15 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
       )}
 
       {/* ─── Search result ────────────────────────────────────────────── */}
-      {searchError && <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setSearchError(null)}>{searchError}</Alert>}
+      {searchError && <UiAlert variant="warning" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{searchError}</AlertDescription>
+        <AlertAction>
+          <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSearchError(null)}>
+            <X />
+          </Button>
+        </AlertAction>
+      </UiAlert>}
       {searchResult && (
         <div className="mb-3 p-3 bg-[var(--surface-2)] border border-[var(--line)] rounded-[12px]">
           <p className="cn-text-body2">

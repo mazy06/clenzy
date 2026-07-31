@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Typography, TextField, MenuItem, Chip, Switch, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Skeleton, ToggleButtonGroup, ToggleButton, InputAdornment, Tooltip } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -126,9 +128,15 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
       <DialogContent>
         <div className="flex flex-col gap-3 mt-1.5">
           {error && (
-            <Alert severity="error" onClose={() => setError(null)}>
-              {error}
-            </Alert>
+            <BuiAlert variant="destructive">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
+              <AlertAction>
+                <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+                  <X />
+                </BuiButton>
+              </AlertAction>
+            </BuiAlert>
           )}
 
           <TextField
@@ -376,9 +384,10 @@ export default function PromoCodesPage() {
       </div>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          Impossible de charger les codes promo : {(error as Error).message}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>Impossible de charger les codes promo : {(error as Error).message}</AlertDescription>
+        </BuiAlert>
       )}
 
       {isLoading ? (

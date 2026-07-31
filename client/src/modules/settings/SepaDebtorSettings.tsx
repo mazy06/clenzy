@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
+import { Alert, AlertDescription, AlertAction, Button } from '../../components/ui';
+import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { TextField, Alert, Chip } from '@mui/material';
+import { TextField, Chip } from '@mui/material';
 import { AccountBalance, VerifiedUser } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountingApi } from '../../services/api/accountingApi';
@@ -149,21 +151,25 @@ const SepaDebtorSettings = forwardRef<SepaDebtorHandle, SepaDebtorSettingsProps>
       action={configuredChip}
     >
       {mutation.isSuccess && (
-        <Alert
-          severity="success"
-          sx={{ mb: 2, borderRadius: '8px' }}
-          onClose={() => mutation.reset()}
-        >
-          {t('settings.sepaDebtor.saveSuccess', 'Configuration sauvegardée')}
+        <Alert variant="success" className="mb-3">
+          <CircleCheck />
+          <AlertDescription>{t('settings.sepaDebtor.saveSuccess', 'Configuration sauvegardée')}</AlertDescription>
+          <AlertAction>
+            <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => mutation.reset()}>
+              <X />
+            </Button>
+          </AlertAction>
         </Alert>
       )}
       {mutation.isError && (
-        <Alert
-          severity="error"
-          sx={{ mb: 2, borderRadius: '8px' }}
-          onClose={() => mutation.reset()}
-        >
-          {(mutation.error as Error)?.message ?? t('settings.sepaDebtor.saveError', 'Erreur lors de la sauvegarde')}
+        <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{(mutation.error as Error)?.message ?? t('settings.sepaDebtor.saveError', 'Erreur lors de la sauvegarde')}</AlertDescription>
+          <AlertAction>
+            <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => mutation.reset()}>
+              <X />
+            </Button>
+          </AlertAction>
         </Alert>
       )}
 

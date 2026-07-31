@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Box, Paper, Alert, alpha } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Box, Paper, alpha } from '@mui/material';
 import { ChevronRight } from '../../../icons';
 import { propertiesApi, type Property } from '../../../services/api/propertiesApi';
 import { smartLockApi, type SmartLockBrand, type SmartLockAccessCodeMode } from '../../../services/api/smartLockApi';
@@ -160,8 +162,9 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
                 <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>
               ))}
             </TextField>
-            <Alert severity="info" sx={{ mt: 1.5 }}>
-              Le service doit être relié dans <strong>Réglages → Services connectés</strong> pour piloter l'objet à distance.
+            <Alert variant="info" className="mt-2">
+              <Info />
+              <AlertDescription>Le service doit être relié dans <strong>Réglages → Services connectés</strong>pour piloter l'objet à distance.</AlertDescription>
             </Alert>
           </div>
         )}
@@ -190,9 +193,10 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
               />
             )}
             {kind === 'camera' && /^https?:\/\//i.test(rtspUrl.trim()) && (
-              <Alert severity="warning" sx={{ py: 0.25 }}>
-                URL HTTP/HLS : <strong>transcodée</strong> côté serveur (CPU, qualité réduite, latence) — à réserver au test.
-                Préférez une URL <strong>RTSP</strong> pour une lecture directe et fluide.
+              <Alert variant="warning" className="py-0.5">
+                <TriangleAlert />
+                <AlertDescription>URL HTTP/HLS : <strong>transcodée</strong>côté serveur (CPU, qualité réduite, latence) — à réserver au test.
+                Préférez une URL <strong>RTSP</strong>pour une lecture directe et fluide.</AlertDescription>
               </Alert>
             )}
             {kind === 'camera' && provider === 'TUYA' && (
@@ -230,7 +234,10 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
                 value={externalDeviceId} onChange={(e) => setExternalDeviceId(e.target.value)}
               />
             )}
-            {error && <Alert severity="error">{error}</Alert>}
+            {error && <Alert variant="destructive">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>}
           </div>
         )}
       </DialogContent>

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Box, Button, Chip, Alert, Divider, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField } from '@mui/material';
@@ -602,13 +604,10 @@ export default function IntegrationsSection({
           connectedSet={signatureConnectedSet}
           serviceFilter={selectedServiceId}
         />
-        <Alert
-          severity="info"
-          variant="outlined"
-          sx={{ mt: 1.25, borderRadius: '8px', fontSize: '0.75rem', py: 0.25 }}
-        >
-          {`Ces intégrations sont implémentées et fonctionnelles, mais pas branchées : pour en activer une, renseignez sa connexion (clé API Yousign ou instance DocuSeal) puis basculez la variable serveur SIGNATURE_PROVIDER. Provider actuellement actif : ${activeSignatureProvider === 'CLENZY_CUSTOM' ? 'workflow interne Clenzy (SES)' : activeSignatureProvider}.`}
-        </Alert>
+        <UiAlert variant="info" className="mt-2 text-[0.75rem] py-0.5">
+          <Info />
+          <AlertDescription>{`Ces intégrations sont implémentées et fonctionnelles, mais pas branchées : pour en activer une, renseignez sa connexion (clé API Yousign ou instance DocuSeal) puis basculez la variable serveur SIGNATURE_PROVIDER. Provider actuellement actif : ${activeSignatureProvider === 'CLENZY_CUSTOM' ? 'workflow interne Clenzy (SES)' : activeSignatureProvider}.`}</AlertDescription>
+        </UiAlert>
         {providerMessage && (
           <Alert
             severity={providerMessage.type}

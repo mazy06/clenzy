@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { CircleCheck, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Snackbar, Alert, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Snackbar, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip } from '@mui/material';
 import { Add, OpenInNew, Refresh, ReportProblem } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -406,9 +408,15 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
         onClose={() => setCreatedToast(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert severity="success" variant="filled" onClose={() => setCreatedToast(false)}>
-          {t('issues.create.success', 'Anomalie signalée')}
-        </Alert>
+        <BuiAlert variant="success">
+          <CircleCheck />
+          <AlertDescription>{t('issues.create.success', 'Anomalie signalée')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setCreatedToast(false)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       </Snackbar>
 
       {/* ── Panneau détail / qualification ── */}

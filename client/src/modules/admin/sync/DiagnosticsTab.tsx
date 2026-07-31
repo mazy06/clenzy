@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Skeleton, Alert, Typography, Grid, Card, CardContent, Divider } from '@mui/material';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Skeleton, Typography, Grid, Card, CardContent, Divider } from '@mui/material';
 import {
   Hub,
   CheckCircle,
@@ -59,7 +61,10 @@ const DiagnosticsTab: React.FC = () => {
   }
 
   if (error) {
-    return <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>;
+    return <Alert variant="destructive" className="mb-3">
+      <TriangleAlert />
+      <AlertDescription>{error}</AlertDescription>
+    </Alert>;
   }
 
   return (

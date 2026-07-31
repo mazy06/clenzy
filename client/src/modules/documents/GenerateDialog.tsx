@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Alert, FormControlLabel, Switch } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, FormControlLabel, Switch } from '@mui/material';
 import { Send } from '../../icons';
 import { useDocumentTypes, useGenerateDocument } from './hooks/useDocuments';
 
@@ -81,7 +83,10 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>Générer un document</DialogTitle>
       <DialogContent>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {error && <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>}
 
         <div className="mt-1.5 flex flex-col gap-3">
           <TextField

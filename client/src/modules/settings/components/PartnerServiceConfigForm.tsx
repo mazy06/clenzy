@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Alert, Button, Chip, TextField } from '@mui/material';
 import {
@@ -92,10 +94,11 @@ export default function PartnerServiceConfigForm({
 
   return (
     <div className="border border-[divider] rounded-[2px] p-2 mb-2">
-      <Alert severity="info" variant="outlined" sx={{ borderRadius: '8px', fontSize: '0.74rem', mb: 1.25 }}>
-        Vos accès {serviceName} sont chiffrés et enregistrés dès maintenant ; la
-        synchronisation native sera activée dans une prochaine release.
-      </Alert>
+      <UiAlert variant="info" className="text-[0.74rem] mb-2">
+        <Info />
+        <AlertDescription>Vos accès {serviceName}sont chiffrés et enregistrés dès maintenant ; la
+        synchronisation native sera activée dans une prochaine release.</AlertDescription>
+      </UiAlert>
 
       {connected ? (
         <div className="flex items-center gap-1.5 flex-wrap">

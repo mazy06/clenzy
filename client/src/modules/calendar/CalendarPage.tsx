@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Card } from '../../components/ui';
-import { Skeleton, Alert, FormControl, InputLabel, Select, MenuItem, Button, Paper, useMediaQuery, useTheme } from '@mui/material';
+import { Skeleton, FormControl, InputLabel, Select, MenuItem, Button, Paper, useMediaQuery, useTheme } from '@mui/material';
 import { FilterAltOff as FilterAltOffIcon, CalendarMonth } from '../../icons';
 import EmptyState from '../../components/EmptyState';
 import './calendarSignature.css';
@@ -266,8 +268,9 @@ export default function CalendarPage() {
       />
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
-          {error}
+        <Alert variant="destructive" className="mb-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 

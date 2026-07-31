@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, Grid, Card, CardContent, Alert, Skeleton, Divider } from '@mui/material';
+import { Box, Typography, Grid, Card, CardContent, Skeleton, Divider } from '@mui/material';
 import {
   Euro as EuroIcon,
   Schedule as ScheduleIcon,
@@ -1259,8 +1261,9 @@ const ReportDetails: React.FC = () => {
   if (!currentReportType) {
     return (
       <div>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {t('reports.invalidType')}
+        <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{t('reports.invalidType')}</AlertDescription>
         </Alert>
         <PageHeader
           title={t('reports.title')}
@@ -1299,8 +1302,9 @@ const ReportDetails: React.FC = () => {
           backPath="/reports"
           showBackButton={true}
         />
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {permissionError}
+        <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{permissionError}</AlertDescription>
         </Alert>
         <div className="text-center p-6">
           <p className="cn-text-body1 text-muted-foreground">

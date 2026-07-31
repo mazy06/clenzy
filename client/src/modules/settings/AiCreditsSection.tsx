@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
 import { Card } from '../../components/ui';
-import { Alert, Button, Chip, Skeleton, Table, TableBody, TableCell, TableHead, TableRow, Typography, useTheme } from '@mui/material';
+import { Button, Chip, Skeleton, Table, TableBody, TableCell, TableHead, TableRow, Typography, useTheme } from '@mui/material';
 import { Coins, History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -86,14 +88,21 @@ export default function AiCreditsSection() {
   return (
     <div className="flex flex-col gap-2 mb-3">
       {topupOutcome === 'success' && (
-        <Alert severity="success">
-          {t('aiCredits.topupSuccess', 'Paiement confirmé — vos crédits seront visibles dans quelques instants.')}
+        <Alert variant="success">
+          <CircleCheck />
+          <AlertDescription>{t('aiCredits.topupSuccess', 'Paiement confirmé — vos crédits seront visibles dans quelques instants.')}</AlertDescription>
         </Alert>
       )}
       {topupOutcome === 'cancelled' && (
-        <Alert severity="info">{t('aiCredits.topupCancelled', 'Rechargement annulé.')}</Alert>
+        <Alert variant="info">
+          <Info />
+          <AlertDescription>{t('aiCredits.topupCancelled', 'Rechargement annulé.')}</AlertDescription>
+        </Alert>
       )}
-      {error && <Alert severity="warning">{error}</Alert>}
+      {error && <Alert variant="warning">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {/* Solde + poches */}
       <Card className="gap-0 py-0 p-2.5">

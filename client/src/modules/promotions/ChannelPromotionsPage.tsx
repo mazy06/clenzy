@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Button, Chip, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Box, Paper, Button, Chip, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -230,9 +232,15 @@ const ChannelPromotionsPage: React.FC = () => {
 
       {/* ── Alerts ── */}
       {syncMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => syncMutation.reset()}>
-          {t('promotions.syncSuccess', 'Synchronisation terminee')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('promotions.syncSuccess', 'Synchronisation terminee')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => syncMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ── Table ── */}
@@ -241,9 +249,10 @@ const ChannelPromotionsPage: React.FC = () => {
           <Spinner className="size-8" />
         </div>
       ) : isError ? (
-        <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
-          {t('promotions.error', 'Erreur lors du chargement des promotions')}
-        </Alert>
+        <BuiAlert variant="destructive" className="text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{t('promotions.error', 'Erreur lors du chargement des promotions')}</AlertDescription>
+        </BuiAlert>
       ) : promotions.length === 0 ? (
         <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
           <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><CampaignIcon size={48} strokeWidth={1.75} /></span>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, IconButton, TextField, MenuItem, Alert, Switch, Tooltip, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, IconButton, TextField, MenuItem, Switch, Tooltip, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import {
   Close as CloseIcon,
   CalendarToday as CalendarIcon,
@@ -351,12 +353,10 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   const renderConfigStep = () => (
     <div className="flex flex-col gap-3.5">
       {!hasAccess && (
-        <Alert
-          severity="warning"
-          sx={{ borderRadius: '10px', fontSize: '0.8125rem' }}
-        >
-          L'import iCal est disponible avec les forfaits Confort et Premium.
-        </Alert>
+        <BuiAlert variant="warning" className="text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>L'import iCal est disponible avec les forfaits Confort et Premium.</AlertDescription>
+        </BuiAlert>
       )}
 
       {/* Info banner */}
@@ -507,13 +507,15 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
       </div>
 
       {error && (
-        <Alert
-          severity="error"
-          onClose={() => { setFormError(null); previewMutation.reset(); }}
-          sx={{ borderRadius: '10px', fontSize: '0.8125rem' }}
-        >
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive" className="text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => { setFormError(null); previewMutation.reset(); }}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
     </div>
   );
@@ -569,9 +571,10 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         </div>
 
         {totalCount === 0 && (
-          <Alert severity="info" sx={{ borderRadius: '10px', fontSize: '0.8125rem' }}>
-            Aucune réservation ni période bloquée trouvée dans ce calendrier.
-          </Alert>
+          <BuiAlert variant="info" className="text-[0.8125rem]">
+            <Info />
+            <AlertDescription>Aucune réservation ni période bloquée trouvée dans ce calendrier.</AlertDescription>
+          </BuiAlert>
         )}
 
         <TableContainer
@@ -656,13 +659,15 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         )}
 
         {error && (
-          <Alert
-            severity="error"
-            onClose={() => { setFormError(null); importMutation.reset(); }}
-            sx={{ borderRadius: '10px', fontSize: '0.8125rem' }}
-          >
-            {error}
-          </Alert>
+          <BuiAlert variant="destructive" className="text-[0.8125rem]">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+            <AlertAction>
+              <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => { setFormError(null); importMutation.reset(); }}>
+                <X />
+              </BuiButton>
+            </AlertAction>
+          </BuiAlert>
         )}
       </div>
     );
@@ -736,16 +741,16 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         </div>
 
         {hasErrors && (
-          <Alert severity="warning" sx={{ width: '100%', borderRadius: '10px', fontSize: '0.8125rem' }}>
-            <p className="cn-text-body2 font-semibold mb-0.5 text-[0.8125rem]">
+          <BuiAlert variant="warning" className="w-full text-[0.8125rem]">
+            <TriangleAlert />
+            <AlertDescription><p className="cn-text-body2 font-semibold mb-0.5 text-[0.8125rem]">
               Certains événements n'ont pas pu être importés :
-            </p>
-            {importResult.errors.map((err, i) => (
+            </p>{importResult.errors.map((err, i) => (
               <span className="cn-text-caption block text-muted-foreground text-[0.6875rem]" key={i}>
                 &bull; {err}
               </span>
-            ))}
-          </Alert>
+            ))}</AlertDescription>
+          </BuiAlert>
         )}
 
         <div className="flex items-start gap-2 p-2 rounded-[11px] bg-[var(--accent-soft)] border border-[var(--field-line)] w-full">

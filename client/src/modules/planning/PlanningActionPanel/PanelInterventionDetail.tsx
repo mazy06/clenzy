@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Chip, Divider, Button, TextField, IconButton, LinearProgress, Alert, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Chip, Divider, Button, TextField, IconButton, LinearProgress, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import {
   AutoAwesome,
   Handyman,
@@ -132,8 +134,9 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
 
   if (!intervention) {
     return (
-      <Alert severity="warning" sx={{ fontSize: '0.75rem' }}>
-        Intervention #{interventionId} introuvable
+      <Alert variant="warning" className="text-[0.75rem]">
+        <TriangleAlert />
+        <AlertDescription>Intervention #{interventionId}introuvable</AlertDescription>
       </Alert>
     );
   }
@@ -320,7 +323,10 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
         </div>
       </div>
 
-      {error && <Alert severity="error" sx={{ fontSize: '0.6875rem', mb: 1 }}>{error}</Alert>}
+      {error && <Alert variant="destructive" className="text-[0.6875rem] mb-1.5">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {/* Action buttons */}
       {!isStarted && onStartIntervention && (

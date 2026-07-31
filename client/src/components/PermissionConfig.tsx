@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Alert as UiAlert, AlertDescription } from './ui';
+import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from './ui';
 import { Box, Typography, Card, CardContent, Grid, Chip, Button, Alert, Snackbar, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import {
@@ -260,9 +262,10 @@ const PermissionConfig: React.FC = () => {
   if (!user) {
     return (
       <div>
-        <Alert severity="warning">
-          Aucun utilisateur connecté
-        </Alert>
+        <UiAlert variant="warning">
+          <TriangleAlert />
+          <AlertDescription>Aucun utilisateur connecté</AlertDescription>
+        </UiAlert>
       </div>
     );
   }
@@ -278,9 +281,10 @@ const PermissionConfig: React.FC = () => {
   if (error) {
     return (
       <div>
-        <Alert severity="error">
-          Erreur: {error}
-        </Alert>
+        <UiAlert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>Erreur: {error}</AlertDescription>
+        </UiAlert>
       </div>
     );
   }
@@ -503,17 +507,19 @@ const PermissionConfig: React.FC = () => {
                 </h5>
                 
                 {/* Instructions pour la modification des permissions */}
-                <Alert severity="info" sx={{ mb: 3, fontSize: '1rem' }}>
-                  <strong>Mode modification :</strong> Cliquez sur les badges de permissions (chips) pour les activer/désactiver. 
-                  Les permissions <strong>vertes</strong> sont actives, les permissions <strong>grises</strong> sont inactives.
-                  Les modifications sont temporaires jusqu'à la sauvegarde. Utilisez le bouton <strong>"Sauvegarder"</strong> en haut de page pour persister les changements.
-                </Alert>
+                <UiAlert variant="info" className="mb-4 text-[1rem]">
+                  <Info />
+                  <AlertDescription><strong>Mode modification :</strong>Cliquez sur les badges de permissions (chips) pour les activer/désactiver. 
+                  Les permissions <strong>vertes</strong>sont actives, les permissions <strong>grises</strong>sont inactives.
+                  Les modifications sont temporaires jusqu'à la sauvegarde. Utilisez le bouton <strong>"Sauvegarder"</strong>en haut de page pour persister les changements.</AlertDescription>
+                </UiAlert>
                 
                 {/* Message si aucune permission n'est disponible */}
                 {allPermissions.length === 0 && (
-                  <Alert severity="warning" sx={{ mb: 3 }}>
-                    Aucune permission disponible. Veuillez vérifier que la base de données contient les permissions nécessaires.
-                  </Alert>
+                  <UiAlert variant="warning" className="mb-4">
+                    <TriangleAlert />
+                    <AlertDescription>Aucune permission disponible. Veuillez vérifier que la base de données contient les permissions nécessaires.</AlertDescription>
+                  </UiAlert>
                 )}
                 
                 <div className="flex flex-col gap-0.5">

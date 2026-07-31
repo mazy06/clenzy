@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Alert } from '@mui/material';
+import { Box } from '@mui/material';
 import {
   Euro as EuroIcon,
   Schedule as ScheduleIcon,
@@ -172,8 +174,9 @@ const Reports: React.FC = () => {
           backPath="/dashboard"
           showBackButton={false}
         />
-        <Alert severity="info" sx={{ mt: 1 }}>
-          {t('reports.noPermissions')}
+        <Alert variant="info" className="mt-1.5">
+          <Info />
+          <AlertDescription>{t('reports.noPermissions')}</AlertDescription>
         </Alert>
       </div>
     );
@@ -257,8 +260,9 @@ const Reports: React.FC = () => {
               <CurrentComponent />
             )
           ) : (
-            <Alert severity="warning">
-              {t('reports.noPermission')}
+            <Alert variant="warning">
+              <TriangleAlert />
+              <AlertDescription>{t('reports.noPermission')}</AlertDescription>
             </Alert>
           )}
         </Box>

@@ -1,7 +1,9 @@
 import React from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Grid, Button, Chip, Alert, Menu, MenuItem, ListItemIcon, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Grid, Button, Chip, Menu, MenuItem, ListItemIcon, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Add,
   Edit,
@@ -111,8 +113,9 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
 
       {/* Message d'erreur */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
-          {error}
+        <Alert variant="destructive" className="mb-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 

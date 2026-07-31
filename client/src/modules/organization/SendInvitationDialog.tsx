@@ -1,7 +1,9 @@
 import React, { useState, useCallback } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { ASSIGNABLE_ORG_ROLES } from '../../utils/orgRoleLabels';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Typography, Alert, IconButton, InputAdornment, Tooltip, ToggleButtonGroup, ToggleButton, Autocomplete, Chip } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Typography, IconButton, InputAdornment, Tooltip, ToggleButtonGroup, ToggleButton, Autocomplete, Chip } from '@mui/material';
 import {
   Send,
   ContentCopy,
@@ -289,9 +291,15 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
             )}
 
             {error && (
-              <Alert severity="error" onClose={() => setError(null)}>
-                {error}
-              </Alert>
+              <BuiAlert variant="destructive">
+                <TriangleAlert />
+                <AlertDescription>{error}</AlertDescription>
+                <AlertAction>
+                  <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+                    <X />
+                  </BuiButton>
+                </AlertAction>
+              </BuiAlert>
             )}
           </div>
         ) : memberSuccess ? (

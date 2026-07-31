@@ -1,4 +1,6 @@
 import React from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Alert, Snackbar, Button } from '@mui/material';
 import {
@@ -158,9 +160,10 @@ export default function Tarification() {
         />
 
         {!canEdit && (
-          <Alert severity="info" sx={{ mb: 2 }}>
-            {t('tarification.readOnly')}
-          </Alert>
+          <UiAlert variant="info" className="mb-3">
+            <Info />
+            <AlertDescription>{t('tarification.readOnly')}</AlertDescription>
+          </UiAlert>
         )}
 
         {/* ─── Tabs ──────────────────────────────────────────────────── */}

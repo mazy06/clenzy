@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Typography, IconButton, Tooltip, Snackbar, Alert, alpha } from '@mui/material';
 import { Close, Refresh, Delete } from '../../icons';
@@ -285,13 +287,14 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
               d'autres sévérités (P2/P3) mais ne sont pas listés ici car
               le modal est scopé P1 (contexte du KPI 'P1 Incident Resolution'). */}
           {otherSeveritiesOpenCount > 0 && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              {otherSeveritiesOpenCount} incident
-              {otherSeveritiesOpenCount > 1 ? 's' : ''} ouvert
-              {otherSeveritiesOpenCount > 1 ? 's' : ''} de sévérité autre que P1
-              {otherSeveritiesOpenCount > 1 ? ' ne sont pas affichés' : " n'est pas affiché"} ici
-              (ce tableau ne montre que les incidents P1).
-            </Alert>
+            <UiAlert variant="info" className="mb-3">
+              <Info />
+              <AlertDescription>{otherSeveritiesOpenCount}incident
+              {otherSeveritiesOpenCount > 1 ? 's' : ''}ouvert
+              {otherSeveritiesOpenCount > 1 ? 's' : ''}de sévérité autre que P1
+              {otherSeveritiesOpenCount > 1 ? ' ne sont pas affichés' : " n'est pas affiché"}ici
+              (ce tableau ne montre que les incidents P1).</AlertDescription>
+            </UiAlert>
           )}
 
           {/* Stats KPI + bulk action — uniquement si on a des hors cible */}

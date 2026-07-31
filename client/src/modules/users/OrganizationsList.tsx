@@ -1,6 +1,8 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Box, Button, Grid, Card, CardContent, CardActions, Chip, IconButton, Menu, MenuItem, ListItemIcon, Alert, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select } from '@mui/material';
+import { Box, Button, Grid, Card, CardContent, CardActions, Chip, IconButton, Menu, MenuItem, ListItemIcon, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select } from '@mui/material';
 import {
   MoreVert,
   Edit,
@@ -563,9 +565,10 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
             Etes-vous sur de vouloir supprimer l'organisation "{selectedOrg?.name}" ?
           </p>
           {selectedOrg && selectedOrg.memberCount > 0 && (
-            <Alert severity="warning" sx={{ mt: 1 }}>
-              Cette organisation contient {selectedOrg.memberCount} membre(s).
-              Vous devez retirer tous les membres avant de pouvoir la supprimer.
+            <Alert variant="warning" className="mt-1.5">
+              <TriangleAlert />
+              <AlertDescription>Cette organisation contient {selectedOrg.memberCount}membre(s).
+              Vous devez retirer tous les membres avant de pouvoir la supprimer.</AlertDescription>
             </Alert>
           )}
         </DialogContent>

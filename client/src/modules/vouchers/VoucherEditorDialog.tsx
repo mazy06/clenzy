@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, Grid, InputAdornment, InputLabel, MenuItem, Select, Stack, Switch, TextField, Autocomplete, Chip, FormHelperText } from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, Grid, InputAdornment, InputLabel, MenuItem, Select, Stack, Switch, TextField, Autocomplete, Chip, FormHelperText } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import {
@@ -177,7 +179,10 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
       </DialogTitle>
 
       <DialogContent dividers>
-        {errorMsg && <Alert severity="error" sx={{ mb: 2 }}>{errorMsg}</Alert>}
+        {errorMsg && <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{errorMsg}</AlertDescription>
+        </Alert>}
 
         <Grid container spacing={2}>
           {/* Identite */}

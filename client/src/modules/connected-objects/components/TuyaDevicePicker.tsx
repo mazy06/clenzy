@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { TextField, MenuItem, Alert } from '@mui/material';
+import { TextField, MenuItem } from '@mui/material';
 import { tuyaApi } from '../../../services/api/noiseApi';
 import DevicePairingGuide from './DevicePairingGuide';
 
@@ -35,8 +37,9 @@ export default function TuyaDevicePicker({ category, selectedId, onSelect }: Tuy
   }
   if (isError) {
     return (
-      <Alert severity="warning" sx={{ py: 0.25 }}>
-        Compte Tuya non relié ou indisponible. Reliez Tuya dans <strong>Réglages → Intégrations</strong>.
+      <Alert variant="warning" className="py-0.5">
+        <TriangleAlert />
+        <AlertDescription>Compte Tuya non relié ou indisponible. Reliez Tuya dans <strong>Réglages → Intégrations</strong>.</AlertDescription>
       </Alert>
     );
   }
@@ -47,7 +50,10 @@ export default function TuyaDevicePicker({ category, selectedId, onSelect }: Tuy
   if (list.length === 0) {
     return (
       <div>
-        <Alert severity="info" sx={{ py: 0.25 }}>Aucun appareil trouvé sur le compte Tuya relié.</Alert>
+        <Alert variant="info" className="py-0.5">
+          <Info />
+          <AlertDescription>Aucun appareil trouvé sur le compte Tuya relié.</AlertDescription>
+        </Alert>
         <DevicePairingGuide onRefresh={() => { void refetch(); }} refreshing={isFetching} />
       </div>
     );

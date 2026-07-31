@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useRef } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { LinearProgress, Stepper, Step, StepLabel, StepContent, Button, Checkbox, FormControlLabel, Chip, Alert } from '@mui/material';
+import { LinearProgress, Stepper, Step, StepLabel, StepContent, Button, Checkbox, FormControlLabel, Chip } from '@mui/material';
 import {
   PlayArrow,
   CheckCircle,
@@ -84,8 +86,9 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
 
   if (!intervention) {
     return (
-      <Alert severity="info" sx={{ fontSize: '0.75rem' }}>
-        Aucune donnée d'intervention disponible
+      <Alert variant="info" className="text-[0.75rem]">
+        <Info />
+        <AlertDescription>Aucune donnée d'intervention disponible</AlertDescription>
       </Alert>
     );
   }
@@ -154,7 +157,10 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
         </Button>
       )}
 
-      {error && <Alert severity="error" sx={{ fontSize: '0.6875rem', mb: 1.5 }}>{error}</Alert>}
+      {error && <Alert variant="destructive" className="text-[0.6875rem] mb-2">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {/* Vertical stepper */}
       <Stepper activeStep={activeStep} orientation="vertical" sx={{ '& .MuiStepLabel-label': { fontSize: '0.75rem' } }}>
@@ -276,8 +282,9 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
 
       {/* Completed banner */}
       {isCompleted && (
-        <Alert severity="success" sx={{ mt: 2, fontSize: '0.6875rem' }}>
-          Intervention terminée — en attente de validation
+        <Alert variant="success" className="mt-3 text-[0.6875rem]">
+          <CircleCheck />
+          <AlertDescription>Intervention terminée — en attente de validation</AlertDescription>
         </Alert>
       )}
     </div>

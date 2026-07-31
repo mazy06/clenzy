@@ -1,6 +1,8 @@
 import React from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Alert, Button, Snackbar } from '@mui/material';
+import { Box, Button, Snackbar } from '@mui/material';
 import { Edit } from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
@@ -56,15 +58,15 @@ const UserDetails: React.FC = () => {
   if (!canManageUsers) {
     return (
       <div className="p-3">
-        <Alert severity="info" sx={{ p: 2, py: 1 }}>
-          <h6 className="cn-text-subtitle1 mb-[0.35em] mb-1.5">
+        <Alert variant="info" className="p-3 py-1.5">
+          <Info />
+          <AlertDescription><h6 className="cn-text-subtitle1 mb-[0.35em] mb-1.5">
             Acces non autorise
-          </h6>
-          <p className="cn-text-body2 text-[0.85rem]">
+          </h6><p className="cn-text-body2 text-[0.85rem]">
             Vous n'avez pas les permissions necessaires pour visualiser les details des utilisateurs.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </p>
+          </p></AlertDescription>
         </Alert>
       </div>
     );
@@ -81,7 +83,10 @@ const UserDetails: React.FC = () => {
   if (error) {
     return (
       <div className="p-3">
-        <Alert severity="error" sx={{ p: 2, py: 1 }}>{error}</Alert>
+        <Alert variant="destructive" className="p-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -89,7 +94,10 @@ const UserDetails: React.FC = () => {
   if (!user) {
     return (
       <div className="p-3">
-        <Alert severity="warning" sx={{ p: 2, py: 1 }}>Utilisateur non trouve</Alert>
+        <Alert variant="warning" className="p-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>Utilisateur non trouve</AlertDescription>
+        </Alert>
       </div>
     );
   }

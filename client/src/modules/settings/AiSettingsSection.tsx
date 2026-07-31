@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useTabValueParam } from '../../components/tabKeyParam';
 import { Box, Typography, Button, TextField, Grid, Chip, Alert, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Switch, Divider, useTheme, alpha } from '@mui/material';
@@ -405,9 +407,10 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
           )}
 
           {saveMutation.isError && (
-            <Alert severity="error">
-              {t('bookingEngine.ai.settings.saveError')}
-            </Alert>
+            <UiAlert variant="destructive">
+              <TriangleAlert />
+              <AlertDescription>{t('bookingEngine.ai.settings.saveError')}</AlertDescription>
+            </UiAlert>
           )}
 
           <Alert
@@ -657,9 +660,10 @@ export default function AiSettingsSection() {
 
   if (error) {
     return (
-      <Alert severity="error">
-        {t('bookingEngine.ai.settings.loadError')}
-      </Alert>
+      <UiAlert variant="destructive">
+        <TriangleAlert />
+        <AlertDescription>{t('bookingEngine.ai.settings.loadError')}</AlertDescription>
+      </UiAlert>
     );
   }
 

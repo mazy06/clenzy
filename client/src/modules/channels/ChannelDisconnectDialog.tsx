@@ -1,12 +1,7 @@
 import React from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Alert,
-} from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import type { OtaChannel } from '../../services/channels/otaChannels';
 
 interface ChannelDisconnectDialogProps {
@@ -39,8 +34,9 @@ const ChannelDisconnectDialog: React.FC<ChannelDisconnectDialogProps> = ({
       </DialogTitle>
       <DialogContent>
         {channel && getSharedChannelWarning(channel.id) && (
-          <Alert severity="warning" sx={{ fontSize: '0.8125rem' }}>
-            {getSharedChannelWarning(channel.id)}
+          <Alert variant="warning" className="text-[0.8125rem]">
+            <TriangleAlert />
+            <AlertDescription>{getSharedChannelWarning(channel.id)}</AlertDescription>
           </Alert>
         )}
       </DialogContent>

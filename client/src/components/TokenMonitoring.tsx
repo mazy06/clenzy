@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from './ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from './ui';
 import { Card } from '../components/ui';
 import { Box, Typography, Button, Chip, Alert, IconButton, Tooltip, Stack, LinearProgress, CircularProgress, Avatar } from '@mui/material';
@@ -202,9 +204,15 @@ const TokenMonitoring: React.FC = () => {
   return (
     <div className="flex flex-col gap-3.5">
       {error && (
-        <Alert severity="error" onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ─── Hero card : current token ─────────────────────────────── */}
@@ -396,9 +404,10 @@ const TokenMonitoring: React.FC = () => {
             </Box>
           </div>
         ) : (
-          <Alert severity="warning" sx={{ borderRadius: 1.5 }}>
-            Aucun token actif détecté. Veuillez vous authentifier.
-          </Alert>
+          <BuiAlert variant="warning">
+            <TriangleAlert />
+            <AlertDescription>Aucun token actif détecté. Veuillez vous authentifier.</AlertDescription>
+          </BuiAlert>
         )}
       </Card>
 

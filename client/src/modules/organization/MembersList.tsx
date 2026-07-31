@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, Alert, Avatar } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, Avatar } from '@mui/material';
 import {
   Edit as EditIcon,
   PersonRemove as PersonRemoveIcon,
@@ -102,8 +104,9 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mb: 2 }}>
-        {error}
+      <Alert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
   }

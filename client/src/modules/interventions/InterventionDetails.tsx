@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { Info, TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Button, Alert, Snackbar } from '@mui/material';
+import { Box, Typography, Button, Snackbar } from '@mui/material';
 import {
   Edit as EditIcon,
   Build as WrenchIcon,
@@ -85,13 +87,13 @@ export default function InterventionDetailsPage() {
   if (!canViewInterventions) {
     return (
       <div className="p-3">
-        <Alert severity="info" sx={{ py: 1 }}>
-          <h6 className="cn-text-subtitle1 font-semibold mb-[0.35em]">{t('interventions.detail.unauthorized')}</h6>
-          <p className="cn-text-body2">
+        <BuiAlert variant="info" className="py-1.5">
+          <Info />
+          <AlertDescription><h6 className="cn-text-subtitle1 font-semibold mb-[0.35em]">{t('interventions.detail.unauthorized')}</h6><p className="cn-text-body2">
             {t('interventions.detail.unauthorizedMessage')}
             <br />{t('interventions.detail.unauthorizedContact')}
-          </p>
-        </Alert>
+          </p></AlertDescription>
+        </BuiAlert>
       </div>
     );
   }
@@ -210,7 +212,15 @@ export default function InterventionDetailsPage() {
         />
       </div>
 
-      {error && <Alert severity="error" sx={{ mb: 1.5, py: 0.75, fontSize: '0.8125rem' }} onClose={() => setError(null)}>{error}</Alert>}
+      {error && <BuiAlert variant="destructive" className="mb-2 py-1 text-[0.8125rem]">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+        <AlertAction>
+          <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+            <X />
+          </BuiButton>
+        </AlertAction>
+      </BuiAlert>}
 
       {/* ─── Content ─────────────────────────────────────────────────────── */}
       {vm && intervention && (
@@ -282,9 +292,15 @@ export default function InterventionDetailsPage() {
         onClose={() => setStartSuccessMessage(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert severity="success" onClose={() => setStartSuccessMessage(null)} sx={{ width: '100%' }}>
-          {startSuccessMessage}
-        </Alert>
+        <BuiAlert variant="success" className="w-full">
+          <CircleCheck />
+          <AlertDescription>{startSuccessMessage}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setStartSuccessMessage(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       </Snackbar>
     </div>
   );

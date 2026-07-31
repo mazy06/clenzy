@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Box, Button, Card, CardContent, CircularProgress, Alert, LinearProgress } from '@mui/material';
+import { Box, Button, Card, CardContent, CircularProgress, LinearProgress } from '@mui/material';
 import { CheckCircle, ArrowBack, HourglassTop, ErrorOutline } from "../../icons";
 import { paymentsApi } from '../../services/api/paymentsApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -103,7 +105,10 @@ const PaymentSuccess: React.FC = () => {
           {error ? (
             <>
               <span className="inline-flex text-[var(--err)] mb-3"><ErrorOutline size={64} strokeWidth={1.5} /></span>
-              <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
+              <Alert variant="destructive" className="mb-4">
+                <TriangleAlert />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
               <Button
                 variant="contained"
                 startIcon={<ArrowBack size={18} strokeWidth={1.75} />}

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Alert as BuiAlert, AlertDescription } from './ui';
+import { Info as BuiInfo } from 'lucide-react';
 import { Spinner } from './ui';
 import { Box, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Chip, IconButton, Tooltip, TextField, FormControl, InputLabel, Select, MenuItem, Button, Grid, Divider, Alert } from '@mui/material';
 import {
@@ -264,7 +266,10 @@ const AuditLogging: React.FC = () => {
           </Box>
 
           {logs.length === 0 ? (
-            <Alert severity="info">Aucun log d'audit trouvé pour les filtres sélectionnés</Alert>
+            <BuiAlert variant="info">
+              <BuiInfo />
+              <AlertDescription>Aucun log d'audit trouvé pour les filtres sélectionnés</AlertDescription>
+            </BuiAlert>
           ) : (
             <List>
               {logs.map((log, index) => (

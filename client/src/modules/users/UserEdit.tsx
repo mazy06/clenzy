@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { Info, TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, TextField, Button, FormControl, InputLabel, Select, MenuItem, FormHelperText, Chip, IconButton, Alert, Autocomplete } from '@mui/material';
+import { Box, TextField, Button, FormControl, InputLabel, Select, MenuItem, FormHelperText, Chip, IconButton, Autocomplete } from '@mui/material';
 import {
   Save,
   Cancel,
@@ -146,14 +148,14 @@ const UserEdit: React.FC = () => {
   if (!canManageUsers) {
     return (
       <div className="p-3">
-        <Alert severity="info" sx={{ p: 2, py: 1 }}>
-          <h6 className="cn-text-subtitle1 mb-[0.35em] mb-1.5">
+        <BuiAlert variant="info" className="p-3 py-1.5">
+          <Info />
+          <AlertDescription><h6 className="cn-text-subtitle1 mb-[0.35em] mb-1.5">
             Acces non autorise
-          </h6>
-          <p className="cn-text-body2 text-[0.85rem]">
+          </h6><p className="cn-text-body2 text-[0.85rem]">
             Vous n'avez pas les permissions necessaires pour modifier des utilisateurs.
-          </p>
-        </Alert>
+          </p></AlertDescription>
+        </BuiAlert>
       </div>
     );
   }
@@ -247,7 +249,10 @@ const UserEdit: React.FC = () => {
   if (error && !user) {
     return (
       <div className="p-3">
-        <Alert severity="error" sx={{ p: 2, py: 1 }}>{error}</Alert>
+        <BuiAlert variant="destructive" className="p-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </BuiAlert>
       </div>
     );
   }
@@ -304,14 +309,21 @@ const UserEdit: React.FC = () => {
 
       {/* Messages d'erreur / succès */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {success && (
-        <Alert severity="success" sx={{ mb: 2, py: 1 }}>
-          Utilisateur modifie avec succes ! Redirection en cours...
-        </Alert>
+        <BuiAlert variant="success" className="mb-3 py-1.5">
+          <CircleCheck />
+          <AlertDescription>Utilisateur modifie avec succes ! Redirection en cours...</AlertDescription>
+        </BuiAlert>
       )}
 
       <form onSubmit={handleSubmit}>

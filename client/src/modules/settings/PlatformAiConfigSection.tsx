@@ -1,28 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { CircleCheck, TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import {
-  Autocomplete,
-  Box,
-  Paper,
-  Typography,
-  TextField,
-  Button,
-  Chip,
-  Alert,
-  CircularProgress,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Divider,
-  MenuItem,
-  ListSubheader,
-  Switch,
-  Tooltip,
-  useTheme,
-  alpha,
-} from '@mui/material';
+import { Autocomplete, Box, Paper, Typography, TextField, Button, Chip, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider, MenuItem, ListSubheader, Switch, Tooltip, useTheme, alpha } from '@mui/material';
 import {
   Add,
   Edit,
@@ -578,13 +558,22 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
 
           {/* Feedback */}
           {testResult === 'success' && (
-            <Alert severity="success" sx={{ py: 0.5 }}>{t('settings.ai.platform.testSuccess')}</Alert>
+            <BuiAlert variant="success" className="py-0.5">
+              <CircleCheck />
+              <AlertDescription>{t('settings.ai.platform.testSuccess')}</AlertDescription>
+            </BuiAlert>
           )}
           {testResult === 'error' && (
-            <Alert severity="error" sx={{ py: 0.5 }}>{t('settings.ai.platform.testError')}</Alert>
+            <BuiAlert variant="destructive" className="py-0.5">
+              <TriangleAlert />
+              <AlertDescription>{t('settings.ai.platform.testError')}</AlertDescription>
+            </BuiAlert>
           )}
           {saveMutation.isError && (
-            <Alert severity="error" sx={{ py: 0.5 }}>{t('settings.ai.platform.saveError')}</Alert>
+            <BuiAlert variant="destructive" className="py-0.5">
+              <TriangleAlert />
+              <AlertDescription>{t('settings.ai.platform.saveError')}</AlertDescription>
+            </BuiAlert>
           )}
         </div>
       </DialogContent>
@@ -1139,7 +1128,10 @@ export default function PlatformAiConfigSection() {
   }
 
   if (modelsError) {
-    return <Alert severity="error">{t('settings.ai.platform.loadError')}</Alert>;
+    return <BuiAlert variant="destructive">
+      <TriangleAlert />
+      <AlertDescription>{t('settings.ai.platform.loadError')}</AlertDescription>
+    </BuiAlert>;
   }
 
   const modelList = models || [];
@@ -1307,9 +1299,15 @@ export default function PlatformAiConfigSection() {
       </div>
 
       {assignError && (
-        <Alert severity="warning" onClose={() => setAssignError(null)} sx={{ mb: 1 }}>
-          {assignError}
-        </Alert>
+        <BuiAlert variant="warning" className="mb-1.5">
+          <TriangleAlert />
+          <AlertDescription>{assignError}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setAssignError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       <Box
@@ -1378,18 +1376,30 @@ export default function PlatformAiConfigSection() {
       </div>
 
       {grantResult && (
-        <Alert severity="success" onClose={() => setGrantResult(null)} sx={{ mt: 1 }}>
-          {t('settings.ai.platform.grantInitialDone', {
+        <BuiAlert variant="success" className="mt-1.5">
+          <CircleCheck />
+          <AlertDescription>{t('settings.ai.platform.grantInitialDone', {
             defaultValue: '{{granted}} organisation(s) dotée(s), {{skipped}} déjà pourvue(s).',
             granted: grantResult.granted,
             skipped: grantResult.skipped,
-          })}
-        </Alert>
+          })}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setGrantResult(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {grantError && (
-        <Alert severity="error" onClose={() => setGrantError(null)} sx={{ mt: 1 }}>
-          {grantError}
-        </Alert>
+        <BuiAlert variant="destructive" className="mt-1.5">
+          <TriangleAlert />
+          <AlertDescription>{grantError}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setGrantError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ── Add/Edit Dialog ── */}
@@ -1414,10 +1424,11 @@ export default function PlatformAiConfigSection() {
             })}
           </p>
           {deleteMutation.isError && (
-            <Alert severity="error" sx={{ mt: 1.5, py: 0.5 }}>
-              {(deleteMutation.error as Error)?.message
-                || t('settings.ai.platform.deleteError', 'Échec de la suppression.')}
-            </Alert>
+            <BuiAlert variant="destructive" className="mt-2 py-0.5">
+              <TriangleAlert />
+              <AlertDescription>{(deleteMutation.error as Error)?.message
+                || t('settings.ai.platform.deleteError', 'Échec de la suppression.')}</AlertDescription>
+            </BuiAlert>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
 import { Card } from '../../../components/ui';
-import { Box, Button, Alert, Chip } from '@mui/material';
+import { Box, Button, Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   OpenInNew as ExternalLinkIcon,
@@ -209,12 +211,9 @@ export default function ServiceCatalogSection({
                 {openService.tooltipDescription}
               </p>
 
-              <Alert
-                severity="info"
-                variant="outlined"
-                sx={{ borderRadius: '8px', fontSize: '0.78rem', mb: 1.5 }}
-              >
-                <strong>Modalités d'accès :</strong> {openService.accessModality}
+              <Alert variant="info" className="text-[0.78rem] mb-2">
+                <Info />
+                <AlertDescription><strong>Modalités d'accès :</strong>{openService.accessModality}</AlertDescription>
               </Alert>
 
               {configNode ? (
@@ -246,12 +245,9 @@ export default function ServiceCatalogSection({
               ) : (
               <>
               {!openService.available && !openService.internalRoute && (
-                <Alert
-                  severity="warning"
-                  variant="outlined"
-                  sx={{ borderRadius: '8px', fontSize: '0.78rem', mb: 1.5 }}
-                >
-                  Cette intégration n'est pas encore configurable depuis Baitly. Créez un compte chez le fournisseur — l'intégration native arrivera dans une prochaine release.
+                <Alert variant="warning" className="text-[0.78rem] mb-2">
+                  <TriangleAlert />
+                  <AlertDescription>Cette intégration n'est pas encore configurable depuis Baitly. Créez un compte chez le fournisseur — l'intégration native arrivera dans une prochaine release.</AlertDescription>
                 </Alert>
               )}
 

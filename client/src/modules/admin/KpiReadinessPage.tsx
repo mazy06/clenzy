@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Box, Grid, Card, CardActionArea, CardContent, Typography, Chip, Button, CircularProgress, Alert, Switch, FormControlLabel, Select, MenuItem, FormControl, InputLabel, Skeleton, Tooltip as MuiTooltip } from '@mui/material';
+import { Box, Grid, Card, CardActionArea, CardContent, Typography, Chip, Button, CircularProgress, Switch, FormControlLabel, Select, MenuItem, FormControl, InputLabel, Skeleton, Tooltip as MuiTooltip } from '@mui/material';
 import {
   Refresh,
   Warning,
@@ -431,7 +433,10 @@ const KpiReadinessPage: React.FC = () => {
         showBackButton={false}
       />
 
-      {error && <Alert severity="error" sx={{ mt: 2, mb: 2 }}>{error}</Alert>}
+      {error && <Alert variant="destructive" className="mt-3 mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {loading ? (
         // Skeletons à la silhouette de la page (gauge + panneau + grille KPI)

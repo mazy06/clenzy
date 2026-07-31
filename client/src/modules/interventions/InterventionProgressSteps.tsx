@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Alert } from '@mui/material';
+import { Box, Typography, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   RadioButtonUnchecked as UncheckedIcon,
@@ -803,8 +805,9 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             </object>
           ) : (
             <div className="p-4 text-center">
-              <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
-                {t('interventions.progressSteps.pdfLoadError', 'Erreur lors du chargement du PDF')}
+              <Alert variant="destructive" className="text-[0.8125rem]">
+                <TriangleAlert />
+                <AlertDescription>{t('interventions.progressSteps.pdfLoadError', 'Erreur lors du chargement du PDF')}</AlertDescription>
               </Alert>
             </div>
           )}

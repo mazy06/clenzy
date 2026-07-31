@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, Table, TableBody, TableCell, TableHead, TableRow, Chip, IconButton, TextField, Alert, Tooltip } from '@mui/material';
+import { Button, Table, TableBody, TableCell, TableHead, TableRow, Chip, IconButton, TextField, Tooltip } from '@mui/material';
 import { Card } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Gavel, Add, Edit, Delete, Download, Receipt } from '../../icons';
@@ -147,9 +149,15 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
   return (
     <div className="pt-3">
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ─── Section barèmes ─────────────────────────────────────────── */}
@@ -187,12 +195,13 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
           <Spinner className="size-6" />
         </div>
       ) : (configsQuery.data ?? []).length === 0 ? (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          {t(
+        <BuiAlert variant="info" className="mb-4">
+          <Info />
+          <AlertDescription>{t(
             'touristTax.baremes.empty',
             'Aucun barème configuré : la taxe de séjour n’est calculée pour aucune réservation.'
-          )}
-        </Alert>
+          )}</AlertDescription>
+        </BuiAlert>
       ) : (
         <Card className="gap-0 py-0 mb-4 overflow-x-auto">
           <Table size="small">
@@ -319,18 +328,19 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
       {report && (
         <>
           {report.missingConfigCount > 0 && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              {t(
+            <BuiAlert variant="warning" className="mb-3">
+              <TriangleAlert />
+              <AlertDescription>{t(
                 'touristTax.report.missingConfigs',
                 'Certaines réservations de la période n’ont aucun barème applicable et ne sont pas comptées :'
-              )}{' '}
-              {report.missingConfigCount}
-            </Alert>
+              )}{' '}{report.missingConfigCount}</AlertDescription>
+            </BuiAlert>
           )}
           {report.lines.length === 0 ? (
-            <Alert severity="info">
-              {t('touristTax.report.empty', 'Aucune réservation taxable sur la période.')}
-            </Alert>
+            <BuiAlert variant="info">
+              <Info />
+              <AlertDescription>{t('touristTax.report.empty', 'Aucune réservation taxable sur la période.')}</AlertDescription>
+            </BuiAlert>
           ) : (
             <Card className="gap-0 py-0 overflow-x-auto">
               <Table size="small">

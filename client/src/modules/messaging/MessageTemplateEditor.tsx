@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Grid, Paper, Alert, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Grid, Paper, Divider } from '@mui/material';
 import { Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -160,9 +162,15 @@ export default function MessageTemplateEditor({
 
       <DialogContent dividers>
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
+          <BuiAlert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+            <AlertAction>
+              <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+                <X />
+              </BuiButton>
+            </AlertAction>
+          </BuiAlert>
         )}
 
         <Grid container spacing={3}>
