@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { SearchIcon, XIcon } from 'lucide-react';
 import {
+  Button,
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
@@ -54,6 +55,12 @@ export default function GlobalSearchField({ className }: { className?: string })
 
   const [navQuery, setNavQuery] = useState('');
   const [open, setOpen] = useState(false);
+  /**
+   * Sous 1024px, le champ cede la place a une icone : il occupait une largeur
+   * dont les onglets ont davantage besoin, et la recherche n'est pas le geste
+   * courant de ces ecrans. Deploye au clic, replie quand on le quitte vide.
+   */
+  const [expanded, setExpanded] = useState(false);
 
   const screens = useMemo<ScreenTarget[]>(() => {
     const access: HubAccess = {
@@ -95,11 +102,47 @@ export default function GlobalSearchField({ className }: { className?: string })
     if (path !== pathname) navigate(path);
   };
 
+  /** Icone de repli — visible seulement sous lg, et seulement champ ferme. */
+  const collapsedTrigger = (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon"
+      className="size-9 shrink-0 lg:hidden"
+      aria-label={t('common.search', 'Rechercher…')}
+      aria-expanded={false}
+      onClick={() => setExpanded(true)}
+    >
+      <SearchIcon />
+    </Button>
+  );
+
+  /**
+   * Enveloppe le champ : masque sous lg tant qu'il n'est pas deploye, toujours
+   * visible au-dessus. Le repli se fait a la sortie du champ, et seulement s'il
+   * est vide — sinon on effacerait de vue un filtre encore actif.
+   */
+  const withCollapse = (field: React.ReactNode, isEmpty: boolean) => (
+    <>
+      {!expanded && collapsedTrigger}
+      <div
+        className={cn('items-center', expanded ? 'flex' : 'hidden lg:flex')}
+        onBlur={(event) => {
+          if (isEmpty && !event.currentTarget.contains(event.relatedTarget as Node)) {
+            setExpanded(false);
+          }
+        }}
+      >
+        {field}
+      </div>
+    </>
+  );
+
   // ── Mode filtre d'écran ───────────────────────────────────────────────────
   if (search) {
     const value = search.value;
-    return (
-      <InputGroup className={cn('h-9 w-40 md:w-56 lg:w-64', className)}>
+    return withCollapse(
+      <InputGroup className={cn('h-9 w-44 md:w-56 lg:w-64', className)}>
         <InputGroupAddon>
           <SearchIcon />
         </InputGroupAddon>
@@ -121,12 +164,13 @@ export default function GlobalSearchField({ className }: { className?: string })
             </InputGroupButton>
           </InputGroupAddon>
         )}
-      </InputGroup>
+      </InputGroup>,
+      value === '',
     );
   }
 
   // ── Mode « aller à l'écran » ──────────────────────────────────────────────
-  return (
+  return withCollapse(
     <Popover open={open && matches.length > 0} onOpenChange={setOpen}>
       {/* L'ancre enveloppe un <div> (élément hôte) : Radix y pose sa ref de
           positionnement, qu'un composant fonction React 18 ne peut pas recevoir. */}
@@ -191,6 +235,7 @@ export default function GlobalSearchField({ className }: { className?: string })
           ))}
         </ul>
       </PopoverContent>
-    </Popover>
+    </Popover>,
+    navQuery === '',
   );
 }

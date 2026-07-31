@@ -97,8 +97,13 @@ export default function PageHeader({
   const showBack = (showBackButton || showBackButtonWithActions) && (onBack || backPath);
 
   return (
-    <header className={cn('mb-3 flex flex-col gap-1.5', className)}>
-      <PageBreadcrumb currentLabel={title} />
+    <header className={cn('mb-1.5 flex flex-col gap-1.5 lg:mb-3', className)}>
+      {/* Sous 1024px, le fil d'Ariane coute une ligne pour une information que
+          le titre et l'onglet actif portent deja. Masque en CSS et non par un
+          media query JS : pas de second rendu, donc pas de saut au chargement. */}
+      <div className="hidden lg:block">
+        <PageBreadcrumb currentLabel={title} />
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 flex-1 items-center gap-2.5">
@@ -126,7 +131,9 @@ export default function PageHeader({
               {titleAdornment && <span className="flex shrink-0 items-center">{titleAdornment}</span>}
             </div>
             {subtitle && (
-              <p className="m-0 mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>
+              <p className="m-0 mt-0.5 hidden truncate text-xs text-muted-foreground lg:block">
+                {subtitle}
+              </p>
             )}
           </div>
         </div>
