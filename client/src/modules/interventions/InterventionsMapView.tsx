@@ -1,4 +1,5 @@
 import React from 'react';
+import { Card } from '../../components/ui';
 import { Paper, Chip, Tooltip, IconButton, LinearProgress } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Build, LocationOn, Visibility as VisibilityIcon } from '../../icons';
@@ -59,11 +60,11 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
           </h6>
 
           {viewportInterventions.length === 0 ? (
-            <Paper sx={{ border: '1px solid', borderColor: 'var(--line)', boxShadow: 'none', borderRadius: '14px', p: 2, textAlign: 'center' }}>
+            <Card className="gap-0 py-0 border-[var(--line)] p-3 text-center">
               <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
                 Aucune intervention dans cette zone. Déplacez ou dézoomez la carte.
               </p>
-            </Paper>
+            </Card>
           ) : (
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 pe-0.5">
               {viewportInterventions.map((intervention) => {

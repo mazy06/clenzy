@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Button, IconButton, TextField, Select, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, Chip } from '@mui/material';
+import { Card } from '../../../components/ui';
+import { Button, IconButton, TextField, Select, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, Chip } from '@mui/material';
 import { Add, DeleteOutline, LocalLaundryService, Save, Close } from '../../../icons';
 import type { PropertyLaundryItem, BlanchisserieCatalogItem } from '../../../services/api/propertyInventoryApi';
 
@@ -81,7 +82,7 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
       </div>
 
       {items.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
+        <Card className="gap-0 py-0 p-6 text-center">
           <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><LocalLaundryService size={40} strokeWidth={1.5} /></span>
           <p className="cn-text-body1 text-muted-foreground">Aucun article de linge configure</p>
           {catalog.length === 0 && (
@@ -94,10 +95,10 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
               Ajouter un article
             </Button>
           )}
-        </Paper>
+        </Card>
       ) : (
         <>
-          <TableContainer component={Paper} variant="outlined">
+          <TableContainer component="div" className="overflow-x-auto rounded-xl border border-border bg-card">
             <Table size="small">
               <TableHead>
                 <TableRow>

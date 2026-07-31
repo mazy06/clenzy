@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { TextField, Button, Paper, Alert, CircularProgress, Chip } from '@mui/material';
+import { Card } from '../components/ui';
+import { TextField, Button, Alert, CircularProgress, Chip } from '@mui/material';
 import {
   VpnKey,
   CheckCircle,
@@ -96,15 +97,7 @@ const PublicKeyVerification: React.FC = () => {
 
   return (
     <div className="flex justify-center items-center min-h-[100vh] bg-[#f5f5f5] p-3">
-      <Paper
-        elevation={2}
-        sx={{
-          maxWidth: 420,
-          width: '100%',
-          p: 3,
-          borderRadius: 2,
-        }}
-      >
+      <Card className="gap-0 py-0 max-w-[420px] w-full p-4">
         {/* Header */}
         <div className="text-center mb-4">
           <span className="inline-flex mb-1.5"><VpnKey size={40} strokeWidth={1.75} color='#6B8A9A' /></span>
@@ -256,7 +249,7 @@ const PublicKeyVerification: React.FC = () => {
             Propulsé par Baitly — Gestion immobilière
           </p>
         </div>
-      </Paper>
+      </Card>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Button, Snackbar, Alert, CircularProgress, Skeleton, Tooltip, Chip } from '@mui/material';
+import { Card } from '../../components/ui';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Button, Snackbar, Alert, CircularProgress, Skeleton, Tooltip, Chip } from '@mui/material';
 import {
   Download,
   Delete,
@@ -134,7 +135,7 @@ const DatabaseAdminPage: React.FC = () => {
         }
       />
 
-      <Paper variant="outlined" sx={{ mt: 3, borderRadius: '14px', borderColor: 'var(--line)', overflow: 'hidden' }}>
+      <Card className="gap-0 py-0 mt-4 border-[var(--line)] overflow-hidden">
         {loading ? (
           <div className="flex flex-col gap-1.5 p-3">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -210,7 +211,7 @@ const DatabaseAdminPage: React.FC = () => {
             </Table>
           </TableContainer>
         )}
-      </Paper>
+      </Card>
 
       <Snackbar
         open={snackbar.open}

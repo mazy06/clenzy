@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Button, IconButton, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tooltip, Chip, ToggleButton, ToggleButtonGroup, Stack } from '@mui/material';
+import { Card } from '../../../components/ui';
+import { Box, Button, IconButton, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Chip, ToggleButton, ToggleButtonGroup, Stack } from '@mui/material';
 import {
   Add,
   Edit,
@@ -240,17 +241,7 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
     onChange({ ...value, quantity: Math.max(1, value.quantity + delta) });
 
   return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 2,
-        mb: 2,
-        borderRadius: '13px',
-        border: '1px solid var(--line)',
-        bgcolor: 'var(--surface-2)',
-        boxShadow: 'none',
-      }}
-    >
+    <Card className="gap-0 py-0 p-3 mb-3 bg-[var(--surface-2)]">
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '64px 1.5fr 2fr 0.9fr 1.6fr' }, gap: 2 }}>
         {/* Photo */}
         <PhotoUpload
@@ -403,7 +394,7 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
           {submitLabel}
         </Button>
       </div>
-    </Paper>
+    </Card>
   );
 }
 
@@ -525,10 +516,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
 
       {/* Items table — appears as soon as there is at least one item */}
       {items.length === 0 ? (
-        <Paper
-          variant="outlined"
-          sx={{ p: 4, textAlign: 'center', border: '1px dashed var(--line-2)', borderRadius: '14px', bgcolor: 'var(--card)', boxShadow: 'none' }}
-        >
+        <Card className="gap-0 py-0 p-6 text-center bg-[var(--card)]">
           <span className="inline-flex text-muted-foreground opacity-60 mb-1.5">
             <Inventory2 size={36} strokeWidth={1.5} />
           </span>
@@ -538,9 +526,9 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
           <p className="cn-text-body1 text-muted-foreground opacity-60 text-[0.75rem] mt-0.5">
             Remplis le formulaire ci-dessus pour ajouter ton premier objet
           </p>
-        </Paper>
+        </Card>
       ) : (
-        <TableContainer component={Paper} variant="outlined">
+        <TableContainer component="div" className="overflow-x-auto rounded-xl border border-border bg-card">
           <Table size="small">
             <TableHead>
               <TableRow>

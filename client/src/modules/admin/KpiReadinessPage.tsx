@@ -1,26 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Card as BuiCard } from '../../components/ui';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Box,
-  Paper,
-  Grid,
-  Card,
-  CardActionArea,
-  CardContent,
-  Typography,
-  Chip,
-  Button,
-  CircularProgress,
-  Alert,
-  Switch,
-  FormControlLabel,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Skeleton,
-  Tooltip as MuiTooltip,
-} from '@mui/material';
+import { Box, Grid, Card, CardActionArea, CardContent, Typography, Chip, Button, CircularProgress, Alert, Switch, FormControlLabel, Select, MenuItem, FormControl, InputLabel, Skeleton, Tooltip as MuiTooltip } from '@mui/material';
 import {
   Refresh,
   Warning,
@@ -478,18 +459,7 @@ const KpiReadinessPage: React.FC = () => {
               <ScoreGauge score={snapshot.readinessScore} criticalFailed={snapshot.criticalFailed} />
             </Grid>
             <Grid item xs={12} md={8}>
-              <Paper
-                variant="outlined"
-                sx={{
-                  p: 3,
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  borderRadius: '14px',
-                  borderColor: 'var(--line)',
-                }}
-              >
+              <BuiCard className="gap-0 py-0 p-4 h-full flex flex-col justify-center border-[var(--line)]">
                 <div className="flex justify-between items-center flex-wrap gap-3">
                   <div>
                     <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]">
@@ -541,7 +511,7 @@ const KpiReadinessPage: React.FC = () => {
                     );
                   })}
                 </div>
-              </Paper>
+              </BuiCard>
             </Grid>
           </Grid>
 
@@ -560,10 +530,7 @@ const KpiReadinessPage: React.FC = () => {
           </Grid>
 
           {/* Historical Trend Chart */}
-          <Paper
-            variant="outlined"
-            sx={{ mt: 3, p: 3, borderRadius: '14px', borderColor: 'var(--line)' }}
-          >
+          <BuiCard className="gap-0 py-0 mt-4 p-4 border-[var(--line)]">
             <div className="flex justify-between items-center mb-3">
               <h6 className="cn-text-h6 font-semibold text-[var(--ink)]">
                 Tendance historique
@@ -629,7 +596,7 @@ const KpiReadinessPage: React.FC = () => {
                 </p>
               </div>
             )}
-          </Paper>
+          </BuiCard>
         </>
       ) : null}
 

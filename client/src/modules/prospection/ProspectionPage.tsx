@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { Card } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Box, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Collapse, IconButton, MenuItem, Select, FormControl, InputLabel, Tooltip, useTheme, Button, CircularProgress, SelectChangeEvent } from '@mui/material';
+import { Box, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, IconButton, MenuItem, Select, FormControl, InputLabel, Tooltip, useTheme, Button, CircularProgress, SelectChangeEvent } from '@mui/material';
 import {
   ExpandMore,
   ExpandLess,
@@ -195,7 +196,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
       <ProspectImportModal open={importOpen} onClose={() => setImportOpen(false)} />
 
       {/* ── Filters bar ── */}
-      <Paper sx={{ p: 2, mb: 2 }}>
+      <Card className="gap-0 py-0 p-3 mb-3">
         <div className="flex gap-3 flex-wrap items-center">
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel sx={{ fontSize: '0.8125rem' }}>
@@ -237,7 +238,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
             </Select>
           </FormControl>
         </div>
-      </Paper>
+      </Card>
 
       {/* ── Empty state ── */}
       {prospects.length === 0 && !isLoading ? (
@@ -267,7 +268,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
           {filteredCategories.map((cat) => {
             const isExpanded = expandedCategories.has(cat.key);
             return (
-              <Paper key={cat.key} sx={{ overflow: 'hidden' }}>
+              <Card className="gap-0 py-0 overflow-hidden" key={cat.key}>
                 {/* Category header */}
                 <Box
                   onClick={() => toggleCategory(cat.key)}
@@ -445,7 +446,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                     </Table>
                   </TableContainer>
                 </Collapse>
-              </Paper>
+              </Card>
             );
           })}
         </div>

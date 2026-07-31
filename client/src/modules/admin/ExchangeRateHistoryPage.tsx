@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { Card } from '../../components/ui';
 import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, CircularProgress, Skeleton, TextField, MenuItem, Chip, Tooltip, Alert } from '@mui/material';
 import { Refresh, CurrencyExchange, TrendingUp } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -184,7 +185,7 @@ export default function ExchangeRateHistoryPage() {
       )}
 
       {/* Filters */}
-      <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: '14px', borderColor: 'var(--line)' }}>
+      <Card className="gap-0 py-0 p-3 mb-4 border-[var(--line)]">
         <div className="flex gap-3 items-center flex-wrap">
           <TextField
             select
@@ -247,7 +248,7 @@ export default function ExchangeRateHistoryPage() {
             </div>
           )}
         </div>
-      </Paper>
+      </Card>
 
       {refreshMutation.isSuccess && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => refreshMutation.reset()}>

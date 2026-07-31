@@ -1,5 +1,6 @@
 import React from 'react';
-import { Paper, Box, Typography } from '@mui/material';
+import { Card } from '../components/ui';
+import { Box, Typography } from '@mui/material';
 import { Money } from './Money';
 
 /**
@@ -33,7 +34,7 @@ export default function RevenueByChannelCard({
   headerAction,
 }: RevenueByChannelCardProps) {
   return (
-    <Paper variant="outlined" sx={{ borderRadius: '14px', bgcolor: 'var(--card)', borderColor: 'var(--line)', overflow: 'hidden' }}>
+    <Card className="gap-0 py-0 bg-[var(--card)] border-[var(--line)] overflow-hidden">
       <Box
         sx={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1,
@@ -93,6 +94,6 @@ export default function RevenueByChannelCard({
           );
         })}
       </Box>
-    </Paper>
+    </Card>
   );
 }

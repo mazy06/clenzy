@@ -1,5 +1,6 @@
 import React from 'react';
-import { Paper, Container, Stepper, Step, StepLabel, Button, FormControl, InputLabel, Select, MenuItem, Chip, CircularProgress, Grid, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, Avatar } from '@mui/material';
+import { Card as BuiCard } from '../../components/ui';
+import { Container, Stepper, Step, StepLabel, Button, FormControl, InputLabel, Select, MenuItem, Chip, CircularProgress, Grid, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, Avatar } from '@mui/material';
 import {
   People,
   Assignment,
@@ -259,7 +260,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
               {t('portfolios.fields.confirmAssignments')}
             </h6>
 
-            <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2 }}>
+            <BuiCard className="gap-0 py-0 p-3 mb-3">
               <h6 className="cn-text-subtitle2 text-[0.82rem] mb-0.5 flex items-center gap-0.5">
                 <People size={16} strokeWidth={1.75} />
                 {t('portfolios.fields.selectedManager')}
@@ -283,11 +284,11 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                   {t('portfolios.confirmations.noManagerFound')}
                 </p>
               )}
-            </Paper>
+            </BuiCard>
 
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
-                <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                <BuiCard className="gap-0 py-0 p-3">
                   <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5 flex items-center gap-0.5">
                     <People size={16} strokeWidth={1.75} />
                     {t('portfolios.fields.selectedClients')} ({selectedClientsData.length})
@@ -305,11 +306,11 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                       </ListItem>
                     ))}
                   </List>
-                </Paper>
+                </BuiCard>
               </Grid>
 
               <Grid item xs={12} md={6}>
-                <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                <BuiCard className="gap-0 py-0 p-3">
                   <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5 flex items-center gap-0.5">
                     <Assignment size={16} strokeWidth={1.75} />
                     {t('portfolios.fields.selectedProperties')} ({selectedPropertiesData.length})
@@ -327,7 +328,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                       </ListItem>
                     ))}
                   </List>
-                </Paper>
+                </BuiCard>
               </Grid>
             </Grid>
           </div>
@@ -348,7 +349,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
         showBackButton={true}
       />
 
-      <Paper sx={{ p: 3, borderRadius: 2, mt: 2 }}>
+      <BuiCard className="gap-0 py-0 p-4 mt-3">
         <Stepper
           activeStep={activeStep}
           sx={{
@@ -402,7 +403,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
             </Button>
           )}
         </div>
-      </Paper>
+      </BuiCard>
     </Container>
   );
 };

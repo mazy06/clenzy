@@ -1,4 +1,5 @@
 import React from 'react';
+import { Card } from '../../components/ui';
 import { Paper, Chip, Tooltip, IconButton } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, LocationOn, Build as BuildIcon } from '../../icons';
@@ -64,21 +65,7 @@ const ServiceRequestsMapView: React.FC<ServiceRequestsMapViewProps> = ({
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 pe-0.5">
               {viewportRequests.map((request) => {
                 return (
-                  <Paper
-                    key={request.id}
-                    sx={{
-                      border: '1px solid var(--line)',
-                      bgcolor: 'var(--card)',
-                      boxShadow: 'none',
-                      borderRadius: '14px',
-                      p: 1.5,
-                      cursor: 'pointer',
-                      transition: 'border-color .15s, background-color .15s',
-                      flexShrink: 0,
-                      '&:hover': { borderColor: 'var(--line-2)', bgcolor: 'var(--hover)' },
-                    }}
-                    onClick={() => navigate(`/service-requests/${request.id}`)}
-                  >
+                  <Card className="gap-0 py-0 bg-[var(--card)] p-2 cursor-pointer transition-colors duration-200 shrink-0 hover:border-[var(--line-2)] hover:bg-[var(--hover)]" key={request.id} onClick={() => navigate(`/service-requests/${request.id}`)}>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 min-w-0">
                         <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] overflow-hidden text-ellipsis whitespace-nowrap">
@@ -114,7 +101,7 @@ const ServiceRequestsMapView: React.FC<ServiceRequestsMapViewProps> = ({
                         </Tooltip>
                       </div>
                     </div>
-                  </Paper>
+                  </Card>
                 );
               })}
             </div>

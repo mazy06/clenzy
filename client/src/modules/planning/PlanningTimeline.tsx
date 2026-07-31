@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Box, Paper } from '@mui/material';
+import { Card } from '../../components/ui';
+import { Box } from '@mui/material';
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import PlanningDateHeaders from './PlanningDateHeaders';
 import PlanningPropertyColumn from './PlanningPropertyColumn';
@@ -176,20 +177,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   }, [events]);
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        flex: 1,
-        minHeight: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        // Carte Signature : hairline + radius lg (maquette .pl-grid)
-        backgroundColor: 'var(--card)',
-        border: '1px solid var(--line)',
-        borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
-      }}
-    >
+    <Card className="gap-0 py-0 flex-1 min-h-[0px] flex flex-col bg-[var(--card)] overflow-hidden">
       <DndContext
         sensors={drag.sensors}
         modifiers={drag.modifiers}
@@ -355,7 +343,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
           )}
         </DragOverlay>
       </DndContext>
-    </Paper>
+    </Card>
   );
 });
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Button, IconButton, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Collapse, Tooltip } from '@mui/material';
+import { Card } from '../../../components/ui';
+import { Button, IconButton, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, Tooltip } from '@mui/material';
 import {
   Receipt, Add, CheckCircle, ExpandMore, ExpandLess,
 } from '../../../icons';
@@ -70,20 +71,20 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
       </div>
 
       {!hasLaundryItems && (
-        <Paper sx={{ p: 3, textAlign: 'center', mb: 2, bgcolor: 'action.hover' }}>
+        <Card className="gap-0 py-0 p-4 text-center mb-3 bg-[action.hover]">
           <p className="cn-text-body2 text-muted-foreground">
             Configurez d'abord les articles de linge avant de generer un devis
           </p>
-        </Paper>
+        </Card>
       )}
 
       {quotes.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
+        <Card className="gap-0 py-0 p-6 text-center">
           <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><Receipt size={40} strokeWidth={1.5} /></span>
           <p className="cn-text-body1 text-muted-foreground">Aucun devis genere pour cette propriete</p>
-        </Paper>
+        </Card>
       ) : (
-        <TableContainer component={Paper} variant="outlined">
+        <TableContainer component="div" className="overflow-x-auto rounded-xl border border-border bg-card">
           <Table size="small">
             <TableHead>
               <TableRow>

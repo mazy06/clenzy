@@ -1,22 +1,7 @@
 import React, { useRef, useState } from 'react';
+import { Card as BuiCard } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import {
-  Box,
-  Typography,
-  Paper,
-  Button,
-  Grid,
-  Card,
-  CardContent,
-  Avatar,
-  Chip,
-  CircularProgress,
-  IconButton,
-  Tooltip,
-  Divider,
-  Menu,
-  MenuItem,
-} from '@mui/material';
+import { Box, Typography, Button, Grid, Card, CardContent, Avatar, Chip, CircularProgress, IconButton, Tooltip, Divider, Menu, MenuItem } from '@mui/material';
 import {
   Business as BusinessIcon,
   People as PeopleIcon,
@@ -234,7 +219,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
         />
       )}
 
-      <Paper sx={{ width: '100%', mt: 2, borderRadius: 2, overflow: 'hidden' }}>
+      <BuiCard className="gap-0 py-0 w-full mt-3 overflow-hidden">
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <PageTabs
             options={[
@@ -714,7 +699,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
         <TabPanel value={tabValue} index={2}>
           <PortfolioStatsTab />
         </TabPanel>
-      </Paper>
+      </BuiCard>
 
       {/* Team selection menu for property assignment */}
       <Menu

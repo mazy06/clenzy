@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Chip, Alert, CircularProgress, Autocomplete, FormHelperText, Paper, Divider } from '@mui/material';
+import { Card as BuiCard } from '../../components/ui';
+import { Box, Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Chip, Alert, CircularProgress, Autocomplete, FormHelperText, Divider } from '@mui/material';
 import {
   Send as SendIcon,
   AttachFile as AttachFileIcon,
@@ -390,7 +391,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
 
               {/* Pieces jointes */}
               <Grid item xs={12}>
-                <Paper variant="outlined" sx={{ p: 2 }}>
+                <BuiCard className="gap-0 py-0 p-3">
                   <div className="flex items-center justify-between mb-1.5">
                     <h6 className="cn-text-subtitle2">
                       <Box component="span" sx={{ display: 'inline-flex', mr: 1, verticalAlign: 'middle' }}><AttachFileIcon  /></Box>
@@ -436,7 +437,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                       ))}
                     </div>
                   )}
-                </Paper>
+                </BuiCard>
               </Grid>
 
               {/* Boutons */}

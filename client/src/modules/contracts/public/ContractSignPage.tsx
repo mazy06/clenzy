@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Card } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
 import {
   Box, Typography, Paper, Button, TextField, Checkbox, FormControlLabel,
@@ -173,12 +174,12 @@ const ContractSignPage: React.FC = () => {
         </div>
 
         {state === 'loading' && (
-          <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: 6, textAlign: 'center' }}>
+          <Card className="gap-0 py-0 border-[var(--line)] p-9 text-center">
             <CircularProgress size={28} sx={{ color: BRAND }} />
             <p className="cn-text-body1 mt-3 text-[0.875rem] text-[var(--muted)]">
               {L.loadingText}
             </p>
-          </Paper>
+          </Card>
         )}
 
         {(state === 'notfound' || state === 'error') && (

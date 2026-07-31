@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Card } from '../../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Paper, Button, TextField, Chip, IconButton, Tooltip, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, CircularProgress, Skeleton, Snackbar, Alert } from '@mui/material';
 import { VpnKey, History, Add, Delete as Trash, LocationOn } from '../../../icons';
@@ -94,7 +95,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
   return (
     <div className="flex flex-col gap-3">
       {/* Infos du point */}
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
+      <Card className="gap-0 py-0 p-3">
         <h6 className="cn-text-subtitle2 mb-1.5 font-bold flex items-center gap-0.5">
           <LocationOn size={15} strokeWidth={1.75} /> Point de remise
         </h6>
@@ -104,7 +105,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
         <InfoRow label="Téléphone" value={point?.storePhone} />
         <InfoRow label="Horaires" value={point?.storeOpeningHours} />
         <InfoRow label="Logement" value={device.propertyName} />
-      </Paper>
+      </Card>
 
       {/* Codes | Mouvements */}
       <div>

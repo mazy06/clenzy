@@ -1,5 +1,6 @@
 import React from 'react';
-import { Alert, CircularProgress, Grid, Paper, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import { Card } from '../../components/ui';
+import { Alert, CircularProgress, Grid, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useVoucherAnalytics } from '../../hooks/useBookingVouchers';
 import type { VoucherStats } from '../../services/api/bookingVouchersApi';
@@ -63,11 +64,11 @@ export default function VoucherAnalyticsPanel() {
   // Si pas d'usages historiques, on simplifie : juste le compteur d'actifs.
   if (data.totalUsages === 0) {
     return (
-      <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: '14px', borderColor: 'var(--line)', bgcolor: 'var(--card)' }}>
+      <Card className="gap-0 py-0 p-3 mb-4 border-[var(--line)] bg-[var(--card)]">
         <p className="cn-text-body2 text-muted-foreground">
           {t('vouchers.analytics.noUsageYet', { active: data.activeVouchersCount })}
         </p>
-      </Paper>
+      </Card>
     );
   }
 
@@ -113,7 +114,7 @@ export default function VoucherAnalyticsPanel() {
 
       {/* Top vouchers */}
       {data.topVouchers.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 1.5, borderRadius: '14px', borderColor: 'var(--line)', bgcolor: 'var(--card)' }}>
+        <Card className="gap-0 py-0 p-2 border-[var(--line)] bg-[var(--card)]">
           <span className="cn-text-overline text-[10.5px] tracking-[0.06em] font-bold text-[var(--faint)]">
             {t('vouchers.analytics.topVouchersTitle')}
           </span>
@@ -172,7 +173,7 @@ export default function VoucherAnalyticsPanel() {
               ))}
             </TableBody>
           </Table>
-        </Paper>
+        </Card>
       )}
     </div>
   );
@@ -187,18 +188,7 @@ interface KpiCardProps {
 
 const KpiCard: React.FC<KpiCardProps> = ({ label, value, color, emphasis }) => (
   <Grid item xs={6} md={3}>
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 1.5,
-        borderRadius: '14px',
-        borderColor: 'var(--line)',
-        bgcolor: 'var(--card)',
-        boxShadow: 'none',
-        transition: 'border-color 0.18s cubic-bezier(.16,1,.3,1)',
-        '&:hover': { borderColor: 'var(--line-2)' },
-      }}
-    >
+    <Card className="gap-0 py-0 p-2 border-[var(--line)] bg-[var(--card)] transition-colors duration-200 hover:border-[var(--line-2)]">
       <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em] leading-[1.2] block">
         {label}
       </p>
@@ -214,7 +204,7 @@ const KpiCard: React.FC<KpiCardProps> = ({ label, value, color, emphasis }) => (
       >
         {value}
       </Typography>
-    </Paper>
+    </Card>
   </Grid>
 );
 

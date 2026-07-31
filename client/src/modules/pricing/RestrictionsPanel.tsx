@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { Card } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
@@ -164,11 +165,11 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
 
   if (propertyId == null) {
     return (
-      <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, textAlign: 'center' }}>
+      <Card className="gap-0 py-0 p-4 text-center">
         <p className="cn-text-body1 text-[0.85rem] text-muted-foreground">
           {t('restrictions.selectProperty', 'Sélectionnez un logement pour gérer ses restrictions de séjour.')}
         </p>
-      </Paper>
+      </Card>
     );
   }
 

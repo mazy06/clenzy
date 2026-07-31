@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Card } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, Skeleton, Paper, Chip, Tooltip, alpha, Snackbar, Alert } from '@mui/material';
@@ -115,7 +116,7 @@ export default function ConnectedObjectsHub({
       {embedded && actionsContainer ? createPortal(headerAction, actionsContainer) : null}
 
       {/* Bandeau de connexion — pont vers les Settings */}
-      <Paper variant="outlined" sx={{ p: 1, mb: 1.5, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+      <Card className="gap-0 py-0 p-1.5 mb-2 border-[var(--line)] flex items-center gap-1.5 flex-wrap">
         <span className="cn-text-caption text-[var(--faint)] font-bold text-[10.5px] uppercase tracking-[0.06em] me-0.5">
           Services reliés
         </span>
@@ -146,7 +147,7 @@ export default function ConnectedObjectsHub({
         <Button variant="text" size="small" endIcon={<ChevronRight size={14} strokeWidth={1.75} />} onClick={() => navigate('/settings?tab=integrations')} sx={{ ml: netatmoConnected ? 'auto' : 1, color: 'text.secondary' }}>
           Gérer les intégrations
         </Button>
-      </Paper>
+      </Card>
 
       {/* KPIs */}
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 1, mb: 1.5 }}>

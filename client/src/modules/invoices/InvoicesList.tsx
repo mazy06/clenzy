@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Card } from '../../components/ui';
 import {
   Box,
   Paper,
@@ -298,21 +299,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
       )}
 
       {/* ─── Filters (panneau hairline plat) ─────────────────────────────── */}
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 1.5,
-          mb: 2,
-          display: 'flex',
-          gap: 1.5,
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          borderRadius: 'var(--radius-lg)',
-          borderColor: 'var(--line)',
-          bgcolor: 'var(--card)',
-          boxShadow: 'none',
-        }}
-      >
+      <Card className="gap-0 py-0 p-2 mb-3 flex gap-2 flex-wrap items-center border-[var(--line)] bg-[var(--card)]">
         <TextField
           select
           size="small"
@@ -369,20 +356,17 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
             {t('payments.history.clearFilters')}
           </Button>
         )}
-      </Paper>
+      </Card>
 
       {/* ─── Table ───────────────────────────────────────────────────────── */}
       {isLoading ? (
         /* Skeleton de table (carte hairline plate, lignes Skeleton) */
-        <Paper
-          variant="outlined"
-          sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none', p: 2 }}
-        >
+        <Card className="gap-0 py-0 border-[var(--line)] p-3">
           <Skeleton variant="text" width="30%" height={18} sx={{ mb: 1.5 }} />
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} variant="rectangular" height={36} sx={{ borderRadius: 1, mb: 1 }} />
           ))}
-        </Paper>
+        </Card>
       ) : error ? (
         <Alert
           severity="error"

@@ -1,13 +1,6 @@
 import React from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Chip,
-  Button,
-  IconButton,
-  Divider,
-} from '@mui/material';
+import { Card } from '../../components/ui';
+import { Box, Typography, Chip, Button, IconButton, Divider } from '@mui/material';
 import {
   Add,
   Remove,
@@ -68,25 +61,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const displayedFeatures = product.features.filter((f) => !SAVINGS_FEATURE_RE.test(f));
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        overflow: 'hidden',
-        borderRadius: '14px',
-        border: '1px solid',
-        borderColor: 'var(--line)',
-        bgcolor: 'var(--card)',
-        boxShadow: 'none',
-        transition: 'border-color 0.18s cubic-bezier(.16,1,.3,1)',
-        '&:hover': {
-          borderColor: 'var(--line-2)',
-        },
-      }}
-    >
+    <Card className="gap-0 py-0 relative flex flex-col h-full overflow-hidden border-[var(--line)] bg-[var(--card)] transition-colors duration-200 hover:border-[var(--line-2)]">
       {/* Hero image */}
       <div className="relative">
         <ProductHero product={product} height={172} />
@@ -313,7 +288,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </Box>
         )}
       </div>
-    </Paper>
+    </Card>
   );
 };
 

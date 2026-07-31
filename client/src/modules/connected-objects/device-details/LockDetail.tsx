@@ -1,5 +1,6 @@
-import { Paper } from '@mui/material';
+
 import AccessCodeSection from '../components/AccessCodeSection';
+import { Card } from '../../../components/ui';
 import { DEVICE_KINDS } from '../deviceRegistry';
 import type { ConnectedDevice } from '../types';
 
@@ -20,18 +21,18 @@ export default function LockDetail({ device }: { device: ConnectedDevice }) {
   const meta = DEVICE_KINDS[device.kind];
   return (
     <div className="flex flex-col gap-3">
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
+      <Card className="gap-0 py-0 p-3">
         <h6 className="cn-text-subtitle2 mb-0.5 font-bold">Code d'accès</h6>
         <AccessCodeSection deviceId={device.id} />
-      </Paper>
+      </Card>
 
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
+      <Card className="gap-0 py-0 p-3">
         <h6 className="cn-text-subtitle2 mb-1.5 font-bold">Informations</h6>
         <InfoRow label="Type" value={meta.singular} />
         <InfoRow label="Marque" value={device.provider !== 'UNKNOWN' ? device.provider : '—'} />
         <InfoRow label="Logement" value={device.propertyName} />
         <InfoRow label="Pièce" value={device.roomName ?? '—'} />
-      </Paper>
+      </Card>
     </div>
   );
 }

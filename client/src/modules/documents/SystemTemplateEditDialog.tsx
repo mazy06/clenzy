@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Card } from '../../components/ui';
 import { Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Grid, MenuItem, Paper, TextField, Typography } from '@mui/material';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -293,7 +294,7 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                 <h6 className="cn-text-subtitle2 text-muted-foreground mb-[0.35em]">
                   {t('messaging.templates.editor.preview')}
                 </h6>
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: 'var(--surface-2)', borderColor: 'var(--line)' }}>
+                <Card className="gap-0 py-0 p-3 bg-[var(--surface-2)] border-[var(--line)]">
                   <h6 className="cn-text-subtitle2 mb-[0.35em]">
                     {t('messaging.templates.editor.previewSubject')}: {getPreviewText(subject) || '—'}
                   </h6>
@@ -308,7 +309,7 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                   >
                     {getPreviewText(body) || '—'}
                   </Typography>
-                </Paper>
+                </Card>
                 <span className="cn-text-caption text-muted-foreground opacity-60 block mt-0.5">
                   {t('systemEmailTemplates.dialog.previewNote')}
                 </span>

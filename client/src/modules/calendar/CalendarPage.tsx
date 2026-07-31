@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Card } from '../../components/ui';
 import { Skeleton, Alert, FormControl, InputLabel, Select, MenuItem, Button, Paper, useMediaQuery, useTheme } from '@mui/material';
 import { FilterAltOff as FilterAltOffIcon, CalendarMonth } from '../../icons';
 import EmptyState from '../../components/EmptyState';
@@ -280,10 +281,7 @@ export default function CalendarPage() {
           description="Les interventions planifiees (menage, maintenance, check-in/out) apparaitront ici dans une vue calendrier."
         />
       ) : (
-        <Paper
-          className="cal-signature"
-          sx={{ p: 2, border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)' }}
-        >
+        <Card className="gap-0 py-0 cal-signature p-3">
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
             initialView={isMobile ? 'listWeek' : 'dayGridMonth'}
@@ -320,7 +318,7 @@ export default function CalendarPage() {
               list: 'Liste',
             }}
           />
-        </Paper>
+        </Card>
       )}
 
       {/* Event detail dialog */}

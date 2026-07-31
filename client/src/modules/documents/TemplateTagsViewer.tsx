@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Paper, Accordion, AccordionSummary, AccordionDetails, Chip, Box, Table, TableBody, TableCell, TableRow } from '@mui/material';
+import { Card } from '../../components/ui';
+import { Accordion, AccordionSummary, AccordionDetails, Chip, Box, Table, TableBody, TableCell, TableRow } from '@mui/material';
 import { ExpandMore } from '../../icons';
 import { DocumentTemplateTag } from '../../services/api/documentsApi';
 
@@ -89,7 +90,7 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
   };
 
   return (
-    <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}>
+    <Card className="gap-0 py-0 p-3 border-[var(--line)]">
       <div className="flex justify-between items-center mb-3">
         <h6 className="cn-text-h6">Tags détectés</h6>
         <Chip label={`${tags.length} tags`} size="small" sx={chipSx(TONES.accent)} />
@@ -150,7 +151,7 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
           </Accordion>
         ))
       )}
-    </Paper>
+    </Card>
   );
 };
 

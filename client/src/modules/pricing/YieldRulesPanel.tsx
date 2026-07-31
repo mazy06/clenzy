@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Paper, Select, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
+import { Card } from '../../components/ui';
+import { Alert, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Select, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
 import { Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -198,7 +199,7 @@ const YieldRulesPanel: React.FC = () => {
       )}
 
       {/* ── Config org : kill-switch + mode ── */}
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <Card className="gap-0 py-0 p-3">
         <div className="flex items-center gap-3 flex-wrap">
           <FormControlLabel
             control={
@@ -225,10 +226,10 @@ const YieldRulesPanel: React.FC = () => {
             {modeHelp[(config?.mode ?? 'SIMULATION') as YieldMode]}
           </p>
         </div>
-      </Paper>
+      </Card>
 
       {/* ── Automatisations déterministes (R2) ── */}
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <Card className="gap-0 py-0 p-3">
         <h6 className="cn-text-subtitle1 font-bold mb-0.5">
           {t('yieldRules.automations.title', 'Automatisations')}
         </h6>
@@ -320,10 +321,10 @@ const YieldRulesPanel: React.FC = () => {
           {t('yieldRules.automations.minStay.help',
             'Abaisse le séjour minimum des nuits encore libres à l’approche de la date (last-minute).')}
         </span>
-      </Paper>
+      </Card>
 
       {/* ── Règles ── */}
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <Card className="gap-0 py-0 p-3">
         <div className="flex items-center justify-between mb-1.5">
           <h6 className="cn-text-subtitle1 font-bold">
             {t('yieldRules.rulesTitle', 'Règles d’occupation')}
@@ -404,10 +405,10 @@ const YieldRulesPanel: React.FC = () => {
             </TableBody>
           </Table>
         )}
-      </Paper>
+      </Card>
 
       {/* ── Bornes par bien ── */}
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <Card className="gap-0 py-0 p-3">
         <h6 className="cn-text-subtitle1 font-bold mb-0.5">
           {t('yieldRules.boundsTitle', 'Garde-fous par bien')}
         </h6>
@@ -480,10 +481,10 @@ const YieldRulesPanel: React.FC = () => {
             })}
           </TableBody>
         </Table>
-      </Paper>
+      </Card>
 
       {/* ── Journal ── */}
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <Card className="gap-0 py-0 p-3">
         <h6 className="cn-text-subtitle1 font-bold mb-1.5">
           {t('yieldRules.journalTitle', 'Journal des ajustements')}
         </h6>
@@ -549,7 +550,7 @@ const YieldRulesPanel: React.FC = () => {
             />
           </>
         )}
-      </Paper>
+      </Card>
 
       {/* ── Dialog règle ── */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>

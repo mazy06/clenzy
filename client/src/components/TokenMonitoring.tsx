@@ -1,18 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Chip,
-  Alert,
-  IconButton,
-  Tooltip,
-  Stack,
-  LinearProgress,
-  CircularProgress,
-  Avatar,
-} from '@mui/material';
+import { Card } from '../components/ui';
+import { Box, Typography, Button, Chip, Alert, IconButton, Tooltip, Stack, LinearProgress, CircularProgress, Avatar } from '@mui/material';
 import {
   Refresh,
   Delete,
@@ -219,17 +207,7 @@ const TokenMonitoring: React.FC = () => {
       )}
 
       {/* ─── Hero card : current token ─────────────────────────────── */}
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 3,
-          borderRadius: '14px',
-          bgcolor: 'var(--card)',
-          borderColor: 'var(--line)',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
+      <Card className="gap-0 py-0 p-4 bg-[var(--card)] border-[var(--line)] relative overflow-hidden">
         {currentToken.isAuthenticated ? (
           <div className="flex items-center gap-4 flex-wrap">
             {/* Countdown ring + avatar */}
@@ -421,7 +399,7 @@ const TokenMonitoring: React.FC = () => {
             Aucun token actif détecté. Veuillez vous authentifier.
           </Alert>
         )}
-      </Paper>
+      </Card>
 
       {/* ─── KPI grid ──────────────────────────────────────────────── */}
       <Box
@@ -474,7 +452,7 @@ const TokenMonitoring: React.FC = () => {
       {/* ─── Visualisation + métriques ─────────────────────────────── */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1.4fr' }, gap: 2 }}>
         {/* Donut */}
-        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: '14px', bgcolor: 'var(--card)', borderColor: 'var(--line)' }}>
+        <Card className="gap-0 py-0 p-3.5 bg-[var(--card)] border-[var(--line)]">
           <p className="cn-text-body1 text-[0.875rem] font-bold mb-0.5">
             Distribution des tokens
           </p>
@@ -541,10 +519,10 @@ const TokenMonitoring: React.FC = () => {
               </Stack>
             </div>
           )}
-        </Paper>
+        </Card>
 
         {/* Refresh metrics */}
-        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: '14px', bgcolor: 'var(--card)', borderColor: 'var(--line)' }}>
+        <Card className="gap-0 py-0 p-3.5 bg-[var(--card)] border-[var(--line)]">
           <p className="cn-text-body1 text-[0.875rem] font-bold mb-0.5">
             Métriques de rafraîchissement
           </p>
@@ -609,7 +587,7 @@ const TokenMonitoring: React.FC = () => {
               bg="var(--warn-soft)"
             />
           </div>
-        </Paper>
+        </Card>
       </Box>
 
       {/* ─── Architecture note ─────────────────────────────────────── */}

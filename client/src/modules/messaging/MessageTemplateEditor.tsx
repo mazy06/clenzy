@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Card } from '../../components/ui';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Grid, Paper, CircularProgress, Alert, Divider } from '@mui/material';
 import { Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -243,7 +244,7 @@ export default function MessageTemplateEditor({
               <h6 className="cn-text-subtitle2 text-muted-foreground mb-[0.35em]">
                 {t('messaging.templates.editor.preview')}
               </h6>
-              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
+              <Card className="gap-0 py-0 p-3 bg-[action.hover]">
                 <h6 className="cn-text-subtitle2 mb-[0.35em]">
                   {t('messaging.templates.editor.previewSubject')}: {getPreviewText(subject) || '—'}
                 </h6>
@@ -256,7 +257,7 @@ export default function MessageTemplateEditor({
                 ) : (
                   <p className="cn-text-body2">—</p>
                 )}
-              </Paper>
+              </Card>
             </div>
           </Grid>
 

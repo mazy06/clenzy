@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { Card } from '../../../components/ui';
 import { Dialog, Box, Typography, IconButton, Tooltip, Paper, useTheme } from '@mui/material';
 import { Close as CloseIcon, FullscreenExit as MinimizeIcon } from '../../../icons';
 import BaitlyMarkLogo from '../../../components/BaitlyMarkLogo';
@@ -179,19 +180,7 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
         </Paper>
 
         {/* Chat */}
-        <Paper
-          elevation={0}
-          sx={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            borderRadius: '14px',
-            border: '1px solid var(--line)',
-            bgcolor: 'var(--card)',
-            minWidth: 0,
-          }}
-        >
+        <Card className="gap-0 py-0 flex-1 flex flex-col overflow-hidden bg-[var(--card)] min-w-[0px]">
           <MessageList
             messages={messages}
             emptyState={
@@ -270,7 +259,7 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
           )}
 
           <ChatInput status={status} onSend={sendMessage} onAbort={abort} autoFocus />
-        </Paper>
+        </Card>
       </Box>
     </Dialog>
   );

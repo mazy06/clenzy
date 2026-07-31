@@ -1,4 +1,5 @@
 import { Box, Skeleton, Paper, TableRow, TableCell } from '@mui/material';
+import { Card } from '../components/ui';
 
 interface ListSkeletonProps {
   /** Nombre de lignes/cards à simuler. Default : 6. */
@@ -56,14 +57,14 @@ export default function ListSkeleton({
         }}
       >
         {Array.from({ length: rows }).map((_, idx) => (
-          <Paper key={idx} variant="outlined" sx={{ p: 1.25 }}>
+          <Card className="gap-0 py-0 p-2" key={idx}>
             <div className="flex items-center gap-1.5 mb-1.5">
               <Skeleton variant="rounded" width={26} height={26} />
               <Skeleton variant="text" width="50%" height={12} />
             </div>
             <Skeleton variant="text" width="40%" height={22} />
             <Skeleton variant="text" width="65%" height={12} sx={{ mt: 0.5 }} />
-          </Paper>
+          </Card>
         ))}
       </Box>
     );

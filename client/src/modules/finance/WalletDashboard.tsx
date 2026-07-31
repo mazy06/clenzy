@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Card } from '../../components/ui';
 import {
   Box,
   Typography,
@@ -134,29 +135,23 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
         <Grid container spacing={2} sx={{ mt: 1 }}>
           {[1, 2, 3, 4].map((i) => (
             <Grid item xs={12} sm={6} md={3} key={i}>
-              <Paper
-                variant="outlined"
-                sx={{ p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}
-              >
+              <Card className="gap-0 py-0 p-3 border-[var(--line)]">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Skeleton variant="rounded" width={26} height={26} />
                   <Skeleton variant="text" width="50%" height={16} />
                 </div>
                 <Skeleton variant="text" width="60%" height={28} />
                 <Skeleton variant="text" width="30%" height={14} />
-              </Paper>
+              </Card>
             </Grid>
           ))}
         </Grid>
-        <Paper
-          variant="outlined"
-          sx={{ mt: 3, p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}
-        >
+        <Card className="gap-0 py-0 mt-4 p-3 border-[var(--line)]">
           <Skeleton variant="text" width="25%" height={20} sx={{ mb: 1.5 }} />
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} variant="rectangular" height={36} sx={{ borderRadius: 1, mb: 1 }} />
           ))}
-        </Paper>
+        </Card>
       </div>
     );
   }
@@ -246,10 +241,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
 
           {/* Ledger entries table */}
           {selectedWallet && (
-            <Paper
-              variant="outlined"
-              sx={{ mt: 3, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none', overflow: 'hidden' }}
-            >
+            <Card className="gap-0 py-0 mt-4 border-[var(--line)] overflow-hidden">
               <Box p={2} display="flex" justifyContent="space-between" alignItems="center">
                 <p className="cn-text-body1 font-[var(--font-display)] text-[16px] font-semibold tracking-[-0.01em] text-[var(--ink)]">
                   Historique — {WALLET_TYPE_LABELS[selectedWallet.walletType]?.label}
@@ -338,7 +330,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                   />
                 </>
               )}
-            </Paper>
+            </Card>
           )}
         </>
       )}

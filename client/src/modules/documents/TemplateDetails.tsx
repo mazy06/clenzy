@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Card } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Paper, Chip, Button, Grid, CircularProgress, Alert, Divider, TextField, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
+import { Box, Chip, Button, Grid, CircularProgress, Alert, Divider, TextField, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
 import {
   ArrowBack,
   Edit,
@@ -341,7 +342,7 @@ const TemplateDetails: React.FC = () => {
         <Grid item xs={12} md={6}>
           <div className="flex flex-col gap-4">
             {/* Informations */}
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}>
+            <Card className="gap-0 py-0 p-3 border-[var(--line)]">
               <p className="cn-text-body1 mb-3 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
                 Informations
               </p>
@@ -369,10 +370,10 @@ const TemplateDetails: React.FC = () => {
                   )}
                 </div>
               )}
-            </Paper>
+            </Card>
 
             {/* Apercu PDF — affiche systematiquement sous les Informations */}
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}>
+            <Card className="gap-0 py-0 p-3 border-[var(--line)]">
               <div className="flex justify-between items-center mb-3 flex-wrap gap-1.5">
                 <div>
                   <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
@@ -461,7 +462,7 @@ const TemplateDetails: React.FC = () => {
                   </div>
                 )}
               </Box>
-            </Paper>
+            </Card>
           </div>
         </Grid>
 

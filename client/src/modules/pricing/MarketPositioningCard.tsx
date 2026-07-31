@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Chip, Paper, Skeleton, Tooltip, Typography } from '@mui/material';
+import { Card } from '../../components/ui';
+import { Box, Chip, Skeleton, Tooltip, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, TrendingDown, Remove as Minus, Info } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -61,7 +62,7 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
         : t('marketPositioning.aligned', 'Aligné sur le marché');
 
   return (
-    <Paper variant="outlined" sx={{ p: 1.75, borderRadius: '12px' }}>
+    <Card className="gap-0 py-0 p-2.5">
       <div className="flex items-center gap-1.5 mb-2 flex-wrap">
         <h6 className="cn-text-subtitle2 font-bold">
           {t('marketPositioning.title', 'Positionnement marché')}
@@ -118,7 +119,7 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
       <span className="cn-text-caption text-[var(--muted)] block mt-1.5">
         {data.headline}
       </span>
-    </Paper>
+    </Card>
   );
 };
 

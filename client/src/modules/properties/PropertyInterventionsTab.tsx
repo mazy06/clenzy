@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Card } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -323,7 +324,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
       {view === 'calendar' && (
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.5fr 1fr' }, gap: 2 }}>
           {/* Calendar grid */}
-          <Paper sx={{ p: 2, borderRadius: '14px', border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none' }}>
+          <Card className="gap-0 py-0 p-3 bg-[var(--card)]">
             {/* Weekday header */}
             <div className="grid grid-cols-7 mb-1.5">
               {DAY_LABELS_FR.map((d) => (
@@ -427,10 +428,10 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                 </div>
               ))}
             </div>
-          </Paper>
+          </Card>
 
           {/* Selected day details */}
-          <Paper sx={{ p: 2, borderRadius: '14px', border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', display: 'flex', flexDirection: 'column' }}>
+          <Card className="gap-0 py-0 p-3 bg-[var(--card)] flex flex-col">
             <div className="flex items-center gap-1.5 mb-2">
               <Box
                 sx={{
@@ -543,13 +544,13 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                 })}
               </div>
             )}
-          </Paper>
+          </Card>
         </Box>
       )}
 
       {/* ─── List view ───────────────────────────────────────────────────── */}
       {view === 'list' && (
-        <Paper sx={{ borderRadius: '14px', border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', overflow: 'hidden' }}>
+        <Card className="gap-0 py-0 bg-[var(--card)] overflow-hidden">
           {(() => {
             // Group by month-year
             const groups = new Map<string, PropertyIntervention[]>();
@@ -639,7 +640,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
               );
             });
           })()}
-        </Paper>
+        </Card>
       )}
     </div>
   );

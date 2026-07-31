@@ -1,5 +1,6 @@
 import React from 'react';
-import { Grid, CircularProgress, Paper, List, ListItem, ListItemText, ListItemIcon, Divider, Avatar, Chip } from '@mui/material';
+import { Card } from '../../components/ui';
+import { Grid, CircularProgress, List, ListItem, ListItemText, ListItemIcon, Divider, Avatar, Chip } from '@mui/material';
 import {
   Business,
   People,
@@ -120,7 +121,7 @@ const PortfolioStatsTab: React.FC = () => {
       <Grid container spacing={2}>
         {/* Portfolio breakdown */}
         <Grid item xs={12} md={6}>
-          <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2, height: '100%' }}>
+          <Card className="gap-0 py-0 p-3.5 h-full">
             <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-2">
               {t('portfolios.statistics.title')}
             </h6>
@@ -175,12 +176,12 @@ const PortfolioStatsTab: React.FC = () => {
                 {t('portfolios.statistics.noDataAvailable')}
               </p>
             )}
-          </Paper>
+          </Card>
         </Grid>
 
         {/* Recent assignments */}
         <Grid item xs={12} md={6}>
-          <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2, height: '100%' }}>
+          <Card className="gap-0 py-0 p-3.5 h-full">
             <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-2">
               {t('portfolios.fields.associatedOn')}
             </h6>
@@ -236,7 +237,7 @@ const PortfolioStatsTab: React.FC = () => {
                 {t('portfolios.fields.noClientAssociated')}
               </p>
             )}
-          </Paper>
+          </Card>
         </Grid>
       </Grid>
     </div>

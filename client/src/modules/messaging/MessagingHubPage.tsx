@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Button, Paper, useMediaQuery, useTheme } from '@mui/material';
+import { Card } from '../../components/ui';
+import { Box, Button, useMediaQuery, useTheme } from '@mui/material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Edit as EditIcon, Forum as ForumIcon, Message as MessageIcon } from '../../icons';
 import PageHeader from '../../components/PageHeader';
@@ -184,7 +185,7 @@ export default function MessagingHubPage() {
           </Button>
         }
       />
-      <Paper sx={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden', height: '100%' }}>
+      <Card className="gap-0 py-0 flex-1 flex min-h-[0px] overflow-hidden h-full">
         {/* ── Liste agrégée (340px, plein écran en mobile) ─────────────────── */}
         <Box
           sx={{
@@ -258,7 +259,7 @@ export default function MessagingHubPage() {
             </div>
           )}
         </Box>
-      </Paper>
+      </Card>
     </div>
   );
 }

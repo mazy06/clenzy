@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Card } from '../../components/ui';
 import { Box, Paper, Button, Alert, CircularProgress, Collapse } from '@mui/material';
 import { ArrowBack } from "../../icons";
 import { useNavigate } from 'react-router-dom';
@@ -653,7 +654,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
             {/* 2. Informations de base — révélé quand propriété sélectionnée */}
             <Collapse in={isPropertySelected} timeout={400}>
-              <Paper sx={{ border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', borderRadius: '14px', p: 2 }}>
+              <Card className="gap-0 py-0 bg-[var(--card)] p-3">
                 <ServiceRequestFormInfo
                   control={control}
                   errors={errors}
@@ -667,7 +668,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                   extraPrestations={selectedForfait?.extraPrestations}
                   isEditMode={isEditMode}
                 />
-              </Paper>
+              </Card>
             </Collapse>
           </Box>
 
@@ -675,7 +676,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
           {isPropertySelected && (
             <Box sx={{ flex: 5, display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0, animation: 'fadeSlideIn 0.4s ease-out', '@keyframes fadeSlideIn': { from: { opacity: 0, transform: 'translateX(20px)' }, to: { opacity: 1, transform: 'translateX(0)' } } }}>
               {/* 3. Planification */}
-              <Paper sx={{ border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', borderRadius: '14px', p: 2 }}>
+              <Card className="gap-0 py-0 bg-[var(--card)] p-3">
                 <ServiceRequestFormPlanning
                   control={control}
                   errors={errors}
@@ -684,10 +685,10 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                   isAdminOrManager={isAdminOrManager}
                   reservations={propertyReservations}
                 />
-              </Paper>
+              </Card>
 
               {/* 4. Assignation et statut */}
-              <Paper sx={{ border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', borderRadius: '14px', p: 2 }}>
+              <Card className="gap-0 py-0 bg-[var(--card)] p-3">
                 <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-2">
                   {t('serviceRequests.sections.requestorAssignment')}
                 </p>
@@ -705,7 +706,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                   disabled={!isPropertySelected}
                   eligibleTeamIds={eligibleTeamIds}
                 />
-              </Paper>
+              </Card>
             </Box>
           )}
         </div>

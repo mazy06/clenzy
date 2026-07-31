@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Paper, Button, Chip, CircularProgress, Snackbar, Alert } from '@mui/material';
+import { Card } from '../../../components/ui';
+import { Button, Chip, CircularProgress, Snackbar, Alert } from '@mui/material';
 import { Refresh } from '../../../icons';
 import { environmentSensorsApi, type EnvironmentSensorDto } from '../../../services/api/environmentSensorsApi';
 import { STATUS_TOKENS } from '../deviceRegistry';
@@ -82,7 +83,7 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
+      <Card className="gap-0 py-0 p-3">
         <div className="flex justify-between items-center mb-1.5">
           <h6 className="cn-text-subtitle2 font-bold">État du capteur</h6>
           <Button
@@ -116,14 +117,14 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
         {(sensor.sensorType === 'SMOKE' || sensor.sensorType === 'MOTION' || sensor.sensorType === 'CONTACT') && (
           <InfoRow label="Dernière détection" value={fmt(sensor.lastEventAt)} />
         )}
-      </Paper>
+      </Card>
 
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
+      <Card className="gap-0 py-0 p-3">
         <h6 className="cn-text-subtitle2 font-bold mb-1.5">Identité</h6>
         <InfoRow label="Pièce" value={device.roomName || '—'} />
         <InfoRow label="Fournisseur" value={sensor.brand || '—'} />
         <InfoRow label="Logement" value={device.propertyName} />
-      </Paper>
+      </Card>
 
       {(sensor.sensorType === 'SMOKE' || sensor.sensorType === 'MOTION') && (
         <span className="cn-text-caption text-muted-foreground px-0.5">

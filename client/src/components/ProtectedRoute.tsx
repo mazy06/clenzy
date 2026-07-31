@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { Paper, Chip } from '@mui/material';
+import { Card } from '../components/ui';
+import { Chip } from '@mui/material';
 import {
   Lock as LockIcon
 } from '../icons';
@@ -123,14 +124,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         </h6>
 
         {/* Détails techniques */}
-        <Paper sx={{ 
-          p: 3, 
-          bgcolor: 'background.paper', 
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 2,
-          maxWidth: 500
-        }}>
+        <Card className="gap-0 py-0 p-4 bg-card border-border max-w-[500px]">
           <div className="flex items-center gap-1.5 mb-3 justify-center">
             <p className="cn-text-body2 text-muted-foreground">
               Permission requise : <strong>{requiredPermission}</strong>
@@ -160,7 +154,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
               ))}
             </div>
           )}
-        </Paper>
+        </Card>
       </div>
     );
   }

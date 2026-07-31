@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Alert, CircularProgress, Box, Paper, Divider } from '@mui/material';
+import { Card } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Alert, CircularProgress, Box, Divider } from '@mui/material';
 import { Send } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -145,7 +146,7 @@ export default function SendMessageDialog({
             </TextField>
 
             {selectedTemplate && (
-              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
+              <Card className="gap-0 py-0 p-3 bg-[action.hover]">
                 <span className="cn-text-caption text-muted-foreground">
                   {t('messaging.send.preview')}
                 </span>
@@ -158,7 +159,7 @@ export default function SendMessageDialog({
                     ? selectedTemplate.body.substring(0, 300) + '...'
                     : selectedTemplate.body}
                 </p>
-              </Paper>
+              </Card>
             )}
           </>
         )}

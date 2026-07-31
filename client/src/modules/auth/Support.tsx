@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
+import { Card } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Box, Paper, TextField, Button, Stack, Alert, CircularProgress, MenuItem, ThemeProvider, CssBaseline } from '@mui/material';
+import { Box, TextField, Button, Stack, Alert, CircularProgress, MenuItem, ThemeProvider, CssBaseline } from '@mui/material';
 import { ArrowBack, CheckCircle } from '../../icons';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
@@ -76,15 +77,7 @@ export default function Support() {
       background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)',
       p: 2
     }}>
-      <Paper elevation={0} sx={{
-        p: 2.5,
-        width: '100%',
-        maxWidth: 440,
-        borderRadius: 2,
-        backgroundColor: 'background.paper',
-        border: '1px solid',
-        borderColor: 'divider',
-      }}>
+      <Card className="gap-0 py-0 p-3.5 w-full max-w-[440px] bg-[background.paper] border-border">
         {/* Header avec logo */}
         <div className="text-center mb-3">
           <div className="flex justify-center mb-2">
@@ -246,7 +239,7 @@ export default function Support() {
             </Button>
           </div>
         )}
-      </Paper>
+      </Card>
     </Box>
     </ThemeProvider>
   );

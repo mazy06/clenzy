@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Paper, Box, Typography, Button, CircularProgress, Tooltip, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert, alpha, useTheme } from '@mui/material';
+import { Card } from '../../../components/ui';
+import { Box, Typography, Button, CircularProgress, Tooltip, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert, alpha, useTheme } from '@mui/material';
 import { Wifi, WifiOff, ChevronRight, Lock, LockOpen, MoreVert, Delete } from '../../../icons';
 import { useIconSize } from '../../../hooks/useResponsiveSize';
 import StatusPill from './StatusPill';
@@ -64,19 +65,7 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
   };
 
   return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 1.25,
-        borderRadius: 'var(--radius-lg)',
-        borderColor: 'var(--line)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 0.875,
-        transition: 'border-color 200ms, box-shadow 200ms',
-        '&:hover': { borderColor: 'var(--line-2)' },
-      }}
-    >
+    <Card className="gap-0 py-0 p-2 border-[var(--line)] flex flex-col gap-1.5 transition-colors duration-200 hover:border-[var(--line-2)]">
       {/* En-tête : badge type + nom (+ pièce) | indicateur en ligne */}
       <div className="flex items-start gap-1.5 min-w-0">
         {device.kind === 'camera' ? (
@@ -242,6 +231,6 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
           </Alert>
         ) : undefined}
       </Snackbar>
-    </Paper>
+    </Card>
   );
 }
