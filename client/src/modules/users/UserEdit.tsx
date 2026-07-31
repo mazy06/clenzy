@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, TextField, Button, FormControl, InputLabel, Select, MenuItem, FormHelperText, Chip, IconButton, Autocomplete } from '@mui/material';
+import { Box, TextField, Button, FormControl, InputLabel, Select, MenuItem, FormHelperText, IconButton, Autocomplete } from '@mui/material';
 import {
   Save,
   Cancel,
@@ -31,9 +32,10 @@ const SEM_TOKEN: Partial<Record<ChipColor, { fg: string; bg: string }>> = {
   primary: { fg: 'var(--accent)', bg: 'var(--accent-soft)' },
 };
 const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
-const semChipSx = (color: ChipColor) => {
+/** Tokens de la primitive pour une couleur semantique. */
+const semTokens = (color: ChipColor) => {
   const tk = SEM_TOKEN[color] ?? NEUTRAL_TOKEN;
-  return { backgroundColor: tk.bg, color: tk.fg };
+  return { color: tk.fg, bg: tk.bg };
 };
 import DetailSection from './components/DetailSection';
 import AvatarUploader from './components/AvatarUploader';
@@ -471,21 +473,13 @@ const UserEdit: React.FC = () => {
                     const s = userStatuses.find((x) => x.value === value);
                     if (!s) return null;
                     return (
-                      <Chip
-                        label={s.label}
-                        size="small"
-                        sx={semChipSx(s.color)}
-                      />
+                      <StatusChip tokens={semTokens(s.color)} label={s.label} />
                     );
                   }}
                 >
                   {userStatuses.map((status) => (
                     <MenuItem key={status.value} value={status.value}>
-                      <Chip
-                        label={status.label}
-                        size="small"
-                        sx={semChipSx(status.color)}
-                      />
+                      <StatusChip tokens={semTokens(status.color)} label={status.label} />
                     </MenuItem>
                   ))}
                 </Select>
@@ -588,17 +582,9 @@ const UserEdit: React.FC = () => {
             disableGrid
             action={
               passwordsMatch ? (
-                <Chip
-                  label="Les mots de passe correspondent"
-                  size="small"
-                  sx={semChipSx('success')}
-                />
+                <StatusChip tokens={semTokens('success')} label="Les mots de passe correspondent" />
               ) : passwordsMismatch ? (
-                <Chip
-                  label="Les mots de passe ne correspondent pas"
-                  size="small"
-                  sx={semChipSx('error')}
-                />
+                <StatusChip tokens={semTokens('error')} label="Les mots de passe ne correspondent pas" />
               ) : undefined
             }
           >

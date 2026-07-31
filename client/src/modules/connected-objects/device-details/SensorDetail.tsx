@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Button, Chip, Snackbar, Alert } from '@mui/material';
+import { Button, Snackbar, Alert } from '@mui/material';
 import { Refresh } from '../../../icons';
 import { environmentSensorsApi, type EnvironmentSensorDto } from '../../../services/api/environmentSensorsApi';
 import { STATUS_TOKENS } from '../deviceRegistry';
@@ -11,18 +12,10 @@ import type { ConnectedDevice, DeviceStatusLevel } from '../types';
 
 // Pilule statut : texte couleur + fond `-soft` (tokens sémantiques Signature,
 // mêmes niveaux que StatusPill — remplace l'ancien helper hex softChipSx).
-const statusPillSx = (level: DeviceStatusLevel) => {
+/** Tokens de la primitive pour un niveau de statut d'appareil. */
+const statusTokens = (level: DeviceStatusLevel) => {
   const { color, soft } = STATUS_TOKENS[level];
-  return {
-    height: 22,
-    fontSize: '0.6875rem',
-    fontWeight: 600,
-    backgroundColor: soft,
-    color,
-    border: 'none',
-    borderRadius: 'var(--radius-pill)',
-    '& .MuiChip-label': { px: 1 },
-  } as const;
+  return { color, bg: soft };
 };
 
 function InfoRow({ label, value }: { label: string; value: ReactNode }) {
@@ -63,19 +56,19 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
   const primary = (() => {
     switch (sensor.sensorType) {
       case 'CONTACT': {
-        if (sensor.contactOpen == null) return { label: 'État', node: <Chip size="small" label="Inconnu" sx={statusPillSx('unknown')} /> };
+        if (sensor.contactOpen == null) return { label: 'État', node: <StatusChip pill tokens={statusTokens('unknown')} label="Inconnu" /> };
         const open = sensor.contactOpen === true;
-        return { label: 'État', node: <Chip size="small" label={open ? 'Ouvert' : 'Fermé'} sx={statusPillSx(open ? 'warning' : 'ok')} /> };
+        return { label: 'État', node: <StatusChip pill tokens={statusTokens(open ? 'warning' : 'ok')} label={open ? 'Ouvert' : 'Fermé'} /> };
       }
       case 'MOTION': {
-        if (sensor.motionDetected == null) return { label: 'Mouvement', node: <Chip size="small" label="Inconnu" sx={statusPillSx('unknown')} /> };
+        if (sensor.motionDetected == null) return { label: 'Mouvement', node: <StatusChip pill tokens={statusTokens('unknown')} label="Inconnu" /> };
         const m = sensor.motionDetected === true;
-        return { label: 'Mouvement', node: <Chip size="small" label={m ? 'Détecté' : 'Aucun'} sx={statusPillSx(m ? 'warning' : 'ok')} /> };
+        return { label: 'Mouvement', node: <StatusChip pill tokens={statusTokens(m ? 'warning' : 'ok')} label={m ? 'Détecté' : 'Aucun'} /> };
       }
       case 'SMOKE': {
-        if (sensor.smokeDetected == null) return { label: 'Fumée / vape', node: <Chip size="small" label="Inconnu" sx={statusPillSx('unknown')} /> };
+        if (sensor.smokeDetected == null) return { label: 'Fumée / vape', node: <StatusChip pill tokens={statusTokens('unknown')} label="Inconnu" /> };
         const s = sensor.smokeDetected === true;
-        return { label: 'Fumée / vape', node: <Chip size="small" label={s ? 'Détectée' : 'Aucune'} sx={statusPillSx(s ? 'critical' : 'ok')} /> };
+        return { label: 'Fumée / vape', node: <StatusChip pill tokens={statusTokens(s ? 'critical' : 'ok')} label={s ? 'Détectée' : 'Aucune'} /> };
       }
       default:
         return null; // climate : pas de chip binaire, on montre les mesures
