@@ -380,6 +380,93 @@ class SplitPaymentServiceTest {
     @Nested
     @DisplayName("resolveSplitRatiosForProperty")
     class ResolveByProperty {
+
+        @Test
+        @DisplayName("la commission du contrat se scinde selon le ratio configure, pas 25/75")
+        void whenContractAndOrgRatio_thenSplitFollowsConfiguration() {
+            // 1 % plateforme / 19 % conciergerie → la commission se scinde 5/95.
+            SplitConfiguration cfg = new SplitConfiguration();
+            cfg.setOwnerShare(new BigDecimal("0.8000"));
+            cfg.setPlatformShare(new BigDecimal("0.0100"));
+            cfg.setConciergeShare(new BigDecimal("0.1900"));
+            when(splitConfigRepository.findByOrganizationIdAndIsDefaultTrue(ORG_ID))
+                    .thenReturn(Optional.of(cfg));
+
+            ManagementContract contract = new ManagementContract();
+            contract.setCommissionRate(new BigDecimal("0.20"));
+            when(managementContractService.getActiveContract(11L, ORG_ID))
+                    .thenReturn(Optional.of(contract));
+
+            SplitRatios r = service.resolveSplitRatiosForProperty(ORG_ID, 11L);
+
+            // 0.20 × (0.01 / 0.20) = 0.01 — et non 0.05 comme avec l'ancien 25/75.
+            assertThat(r.ownerShare()).isEqualByComparingTo("0.80");
+            assertThat(r.platformShare()).isEqualByComparingTo("0.0100");
+            assertThat(r.conciergeShare()).isEqualByComparingTo("0.1900");
+        }
+
+        @Test
+        @DisplayName("sans configuration, le partage reste celui d'avant")
+        void whenContractAndNoConfiguration_thenLegacySplitIsPreserved() {
+            // Les defauts (5 / 15) portent deja le ratio 25/75 : le comportement
+            // historique ne bouge pas pour qui n'a rien configure.
+            when(splitConfigRepository.findByOrganizationIdAndIsDefaultTrue(ORG_ID))
+                    .thenReturn(Optional.empty());
+
+            ManagementContract contract = new ManagementContract();
+            contract.setCommissionRate(new BigDecimal("0.20"));
+            when(managementContractService.getActiveContract(11L, ORG_ID))
+                    .thenReturn(Optional.of(contract));
+
+            SplitRatios r = service.resolveSplitRatiosForProperty(ORG_ID, 11L);
+
+            assertThat(r.platformShare()).isEqualByComparingTo("0.0500");
+            assertThat(r.conciergeShare()).isEqualByComparingTo("0.1500");
+        }
+
+        @Test
+        @DisplayName("configuration sans prelevement : repli sur 25/75 plutot qu'une division par zero")
+        void whenConfigurationTakesNothing_thenFallsBackWithoutDividingByZero() {
+            SplitConfiguration cfg = new SplitConfiguration();
+            cfg.setOwnerShare(new BigDecimal("1.0000"));
+            cfg.setPlatformShare(BigDecimal.ZERO);
+            cfg.setConciergeShare(BigDecimal.ZERO);
+            when(splitConfigRepository.findByOrganizationIdAndIsDefaultTrue(ORG_ID))
+                    .thenReturn(Optional.of(cfg));
+
+            ManagementContract contract = new ManagementContract();
+            contract.setCommissionRate(new BigDecimal("0.20"));
+            when(managementContractService.getActiveContract(11L, ORG_ID))
+                    .thenReturn(Optional.of(contract));
+
+            SplitRatios r = service.resolveSplitRatiosForProperty(ORG_ID, 11L);
+
+            assertThat(r.platformShare()).isEqualByComparingTo("0.0500");
+            assertThat(r.conciergeShare()).isEqualByComparingTo("0.1500");
+        }
+
+        @Test
+        @DisplayName("les trois parts retombent exactement sur 1, quel que soit le ratio")
+        void whenRatioDoesNotDivideEvenly_thenSharesStillSumToOne() {
+            // 1/3 : la scission ne tombe pas juste, le solde doit absorber l'arrondi.
+            SplitConfiguration cfg = new SplitConfiguration();
+            cfg.setOwnerShare(new BigDecimal("0.7000"));
+            cfg.setPlatformShare(new BigDecimal("0.1000"));
+            cfg.setConciergeShare(new BigDecimal("0.2000"));
+            when(splitConfigRepository.findByOrganizationIdAndIsDefaultTrue(ORG_ID))
+                    .thenReturn(Optional.of(cfg));
+
+            ManagementContract contract = new ManagementContract();
+            contract.setCommissionRate(new BigDecimal("0.17"));
+            when(managementContractService.getActiveContract(11L, ORG_ID))
+                    .thenReturn(Optional.of(contract));
+
+            SplitRatios r = service.resolveSplitRatiosForProperty(ORG_ID, 11L);
+
+            assertThat(r.ownerShare().add(r.platformShare()).add(r.conciergeShare()))
+                    .isEqualByComparingTo("1");
+        }
+
         @Test
         @DisplayName("null propertyId returns org config")
         void whenNullPropertyId_thenOrg() {

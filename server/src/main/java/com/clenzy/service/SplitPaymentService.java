@@ -20,6 +20,12 @@ import java.util.Optional;
 @Transactional
 public class SplitPaymentService {
 
+    /**
+     * Scission historique de la commission de contrat, conservee uniquement
+     * comme repli quand la repartition de l'organisation ne preleve rien.
+     */
+    private static final BigDecimal LEGACY_PLATFORM_CUT = new BigDecimal("0.25");
+
     private static final Logger log = LoggerFactory.getLogger(SplitPaymentService.class);
 
     private final SplitConfigurationRepository splitConfigRepository;
@@ -226,17 +232,7 @@ public class SplitPaymentService {
                             ManagementContract contract = contractOpt.get();
                             BigDecimal commissionRate = contract.getCommissionRate();
                             if (commissionRate != null && commissionRate.compareTo(BigDecimal.ZERO) > 0) {
-                                // commissionRate = total platform+concierge cut
-                                // Split: platform gets 25% of commission, concierge gets 75%
-                                BigDecimal ownerShare = BigDecimal.ONE.subtract(commissionRate);
-                                BigDecimal platformShare = commissionRate.multiply(new BigDecimal("0.25"))
-                                    .setScale(4, RoundingMode.HALF_UP);
-                                BigDecimal conciergeShare = commissionRate.subtract(platformShare);
-
-                                SplitRatios contractRatios = new SplitRatios(ownerShare, platformShare, conciergeShare);
-                                log.info("Using ManagementContract commission {} for property {} (owner={}, platform={}, concierge={})",
-                                    commissionRate, propertyId, ownerShare, platformShare, conciergeShare);
-                                return contractRatios;
+                                return contractRatios(orgId, commissionRate, propertyId);
                             }
                         } else {
                             // Pas de contrat → on utilise la répartition par défaut de l'org
@@ -274,13 +270,7 @@ public class SplitPaymentService {
                     ManagementContract contract = contractOpt.get();
                     BigDecimal commissionRate = contract.getCommissionRate();
                     if (commissionRate != null && commissionRate.compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal ownerShare = BigDecimal.ONE.subtract(commissionRate);
-                        BigDecimal platformShare = commissionRate.multiply(new BigDecimal("0.25"))
-                            .setScale(4, RoundingMode.HALF_UP);
-                        BigDecimal conciergeShare = commissionRate.subtract(platformShare);
-                        log.info("Property {} has ManagementContract — 3-way split (commission={})",
-                            propertyId, commissionRate);
-                        return new SplitRatios(ownerShare, platformShare, conciergeShare);
+                        return contractRatios(orgId, commissionRate, propertyId);
                     }
                 }
 
@@ -293,6 +283,50 @@ public class SplitPaymentService {
 
         // No property context OR no contract → use org defaults
         return resolveSplitRatios(orgId);
+    }
+
+
+    /**
+     * Repartition d'un logement sous contrat de gestion.
+     *
+     * <p>Le contrat fixe ce qui est preleve au total ({@code commissionRate}) ;
+     * la scission entre plateforme et conciergerie suit le <b>ratio configure par
+     * l'organisation</b> (Parametres &gt; Paiement). Avant, elle etait figee a
+     * 25/75 dans le code : l'ecran de repartition annoncait donc un partage que
+     * le calcul ignorait des qu'un contrat existait.</p>
+     *
+     * <p>Si la configuration ne preleve rien (plateforme et conciergerie a zero),
+     * aucun ratio ne peut en etre deduit alors que le contrat, lui, preleve : on
+     * retombe sur l'ancien 25/75 plutot que de choisir un beneficiaire au
+     * hasard, et on le signale.</p>
+     */
+    private SplitRatios contractRatios(Long orgId, BigDecimal commissionRate, Long propertyId) {
+        SplitRatios orgRatios = resolveSplitRatios(orgId);
+        BigDecimal platformWeight = orgRatios.platformShare() != null
+            ? orgRatios.platformShare() : BigDecimal.ZERO;
+        BigDecimal conciergeWeight = orgRatios.conciergeShare() != null
+            ? orgRatios.conciergeShare() : BigDecimal.ZERO;
+        BigDecimal weightTotal = platformWeight.add(conciergeWeight);
+
+        BigDecimal platformShare;
+        if (weightTotal.compareTo(BigDecimal.ZERO) <= 0) {
+            platformShare = commissionRate.multiply(LEGACY_PLATFORM_CUT)
+                .setScale(4, RoundingMode.HALF_UP);
+            log.warn("Property {} : repartition org sans part plateforme ni conciergerie, "
+                + "scission de la commission de contrat laissee a 25/75", propertyId);
+        } else {
+            platformShare = commissionRate.multiply(platformWeight)
+                .divide(weightTotal, 4, RoundingMode.HALF_UP);
+        }
+
+        // Le solde plutot qu'un second produit : la somme des trois parts doit
+        // retomber exactement sur 1, sans reliquat d'arrondi.
+        BigDecimal conciergeShare = commissionRate.subtract(platformShare);
+        BigDecimal ownerShare = BigDecimal.ONE.subtract(commissionRate);
+
+        log.info("Property {} sous contrat — commission {} scindee plateforme={} conciergerie={} (proprietaire={})",
+            propertyId, commissionRate, platformShare, conciergeShare, ownerShare);
+        return new SplitRatios(ownerShare, platformShare, conciergeShare);
     }
 
     /**
