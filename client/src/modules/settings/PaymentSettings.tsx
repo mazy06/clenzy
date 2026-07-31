@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
 import {
   Box,
@@ -562,32 +563,16 @@ export default function PaymentSettings() {
             const statusChips = (
               <>
                 {isStub && (
-                  <Chip
-                    label="Bientôt"
-                    size="small"
-                    sx={buildStatusChipSx("var(--muted)")}
-                  />
+                  <StatusChip color={"var(--muted)"} label="Bientôt" />
                 )}
                 {isConfigurable && !isConfigured && (
-                  <Chip
-                    label="À configurer"
-                    size="small"
-                    sx={buildStatusChipSx("var(--warn)")}
-                  />
+                  <StatusChip color={"var(--warn)"} label="À configurer" />
                 )}
                 {enabled && !isStub && (
-                  <Chip
-                    label="Actif"
-                    size="small"
-                    sx={buildStatusChipSx("var(--ok)")}
-                  />
+                  <StatusChip color={"var(--ok)"} label="Actif" />
                 )}
                 {config?.sandboxMode && isConfigured && (
-                  <Chip
-                    label="Sandbox"
-                    size="small"
-                    sx={buildStatusChipSx("var(--warn)")}
-                  />
+                  <StatusChip color={"var(--warn)"} label="Sandbox" />
                 )}
               </>
             );
@@ -900,20 +885,13 @@ function ProvenanceChip({ row }: { row: ChannelCommissionOverview }) {
 
   return (
     <Tooltip title={tooltip[provenance]}>
-      <Chip
+      <StatusChip
+        tokens={{ color, bg: soft }}
         label={label}
-        size="small"
-        sx={{
-          height: 20,
-          fontSize: "0.65rem",
-          fontWeight: 600,
-          letterSpacing: "0.01em",
-          backgroundColor: soft,
-          color,
-          border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-          borderRadius: "6px",
-          "& .MuiChip-label": { px: 0.75 },
-        }}
+        // La teinte de bordure est calculee : elle passe en style inline, la ou
+        // une classe arbitraire ne peut pas naitre d'une valeur d'execution.
+        sx={{ borderColor: `color-mix(in srgb, ${color} 20%, transparent)` }}
+        className="h-[20px] border border-solid text-[0.65rem] tracking-[0.01em]"
       />
     </Tooltip>
   );
@@ -1251,11 +1229,7 @@ function RevenueSplitPanel({
             <p className="cn-text-body1 text-[0.78rem] text-muted-foreground font-medium">
               Total
             </p>
-            <Chip
-              label={`${total}%`}
-              size="small"
-              sx={buildStatusChipSx(isValidTotal ? "var(--ok)" : "var(--err)")}
-            />
+            <StatusChip color={isValidTotal ? "var(--ok)" : "var(--err)"} label={`${total}%`} />
             {!isValidTotal && (
               <p className="cn-text-body1 text-[0.72rem] text-[var(--err)] font-medium">
                 {t("settings.split.totalError")}
@@ -1360,11 +1334,7 @@ function BookingEngineRateRow({
         sx={{ width: 110 }}
       />
       {saved ? (
-        <Chip
-          label={t("common.saved", "Sauvegardé")}
-          size="small"
-          sx={buildStatusChipSx("var(--ok)")}
-        />
+        <StatusChip color={"var(--ok)"} label={t("common.saved", "Sauvegardé")} />
       ) : (
         <Tooltip title={t("common.save", "Enregistrer")}>
           <IconButton
