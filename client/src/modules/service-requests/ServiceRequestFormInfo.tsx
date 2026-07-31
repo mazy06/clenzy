@@ -1,4 +1,6 @@
 import React, { useMemo, useState, useCallback } from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
 import {
   Box,
   Typography,
@@ -405,33 +407,17 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                 {CATEGORIES.map((cat) => {
                   const isActive = activeCategory === cat.key;
                   return (
-                    <Chip
+                    <StatusChip
                       key={cat.key}
+                      outlined
+                      selected={isActive}
+                      pressed={isActive}
+                      tokens={{ color: cat.fg, bg: cat.bg }}
                       icon={cat.icon}
                       label={cat.label}
                       onClick={disabled ? undefined : () => handleCategoryClick(cat)}
                       disabled={disabled}
-                      aria-pressed={isActive}
-                      sx={{
-                        height: 30,
-                        fontSize: '11.5px',
-                        fontWeight: 600,
-                        border: '1px solid',
-                        borderColor: isActive ? cat.fg : 'var(--line-2)',
-                        bgcolor: isActive ? cat.bg : 'var(--card)',
-                        color: isActive ? cat.fg : 'var(--body)',
-                        '& .MuiChip-icon': {
-                          fontSize: 16,
-                          color: isActive ? cat.fg : 'var(--muted)',
-                        },
-                        '&:hover': disabled ? {} : {
-                          bgcolor: isActive ? cat.bg : 'var(--hover)',
-                          borderColor: cat.fg,
-                        },
-                        cursor: disabled ? 'default' : 'pointer',
-                        opacity: disabled ? 0.45 : 1,
-                        transition: 'background-color .15s, border-color .15s, color .15s',
-                      }}
+                      className={cn('h-[30px] text-[11.5px] font-semibold', disabled && 'opacity-45')}
                     />
                   );
                 })}
@@ -463,36 +449,17 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                   const IconComponent = option.icon;
 
                   return (
-                    <Chip
+                    <StatusChip
                       key={option.value}
+                      outlined
+                      selected={isSelected}
+                      pressed={isSelected}
+                      tokens={{ color: catFg, bg: catBg }}
                       icon={<IconComponent size={14} strokeWidth={1.75} />}
                       label={option.label}
                       onClick={disabled ? undefined : () => handleSubTypeClick(option)}
                       disabled={disabled}
-                      size="small"
-                      aria-pressed={isSelected}
-                      sx={{
-                        height: 30,
-                        fontSize: '11.5px',
-                        fontWeight: isSelected ? 600 : 500,
-                        border: '1px solid',
-                        borderColor: isSelected ? catFg : 'var(--line-2)',
-                        bgcolor: isSelected ? catBg : 'var(--card)',
-                        color: isSelected ? catFg : 'var(--body)',
-                        '& .MuiChip-icon': {
-                          fontSize: 14,
-                          ml: 0.5,
-                          color: isSelected ? catFg : 'var(--muted)',
-                        },
-                        '& .MuiChip-label': { px: 0.75 },
-                        '&:hover': disabled ? {} : {
-                          bgcolor: isSelected ? catBg : 'var(--hover)',
-                          borderColor: catFg,
-                        },
-                        cursor: disabled ? 'default' : 'pointer',
-                        opacity: disabled ? 0.45 : 1,
-                        transition: 'background-color .15s, border-color .15s, color .15s',
-                      }}
+                      className={cn('h-[30px] text-[11.5px]', disabled && 'opacity-45')}
                     />
                   );
                 })}

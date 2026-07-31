@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
+import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -23,13 +24,13 @@ import EmptyState from '../../components/EmptyState';
 
 /** Tons sémantiques (tokens Signature) pour les chips -soft. */
 const TONE = {
-  ok:    { color: 'var(--ok)',    bgcolor: 'var(--ok-soft)' },
-  warn:  { color: 'var(--warn)',  bgcolor: 'var(--warn-soft)' },
-  info:  { color: 'var(--info)',  bgcolor: 'var(--info-soft)' },
-  muted: { color: 'var(--muted)', bgcolor: 'var(--hover)' },
+  ok: STATUS_TONES.ok,
+  warn: STATUS_TONES.warn,
+  info: STATUS_TONES.info,
+  muted: STATUS_TONES.neutral,
 } as const;
 
-const TYPE_TONE: Record<string, { color: string; bgcolor: string }> = {
+const TYPE_TONE: Record<string, ToneTokens> = {
   CHECK_IN: TONE.ok,
   CHECK_OUT: TONE.warn,
   WELCOME: TONE.info,
@@ -268,18 +269,14 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
       <TableCell>
         <Stack0Spaced>
           <p className="cn-text-body2 font-semibold text-[var(--ink)]">{template.name}</p>
-          <Chip
-            label={TYPE_LABELS[template.type] || template.type}
-            size="small"
-            sx={TYPE_TONE[template.type] ?? TONE.muted}
+          <StatusChip
+            label={TYPE_LABELS[template.type] || template.type} tokens={TYPE_TONE[template.type] ?? TONE.muted}
           />
         </Stack0Spaced>
       </TableCell>
       <TableCell>
-        <Chip
-          label={t('messaging.templates.originUser')}
-          size="small"
-          sx={TONE.muted}
+        <StatusChip
+          label={t('messaging.templates.originUser')} tokens={TONE.muted}
         />
       </TableCell>
       <TableCell>
@@ -288,13 +285,11 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
         </p>
       </TableCell>
       <TableCell>
-        <Chip label={template.language?.toUpperCase()} size="small" sx={TONE.muted} />
+        <StatusChip label={template.language?.toUpperCase()} tokens={TONE.muted} />
       </TableCell>
       <TableCell align="center">
-        <Chip
-          label={template.isActive ? t('messaging.templates.active') : t('messaging.templates.inactive')}
-          size="small"
-          sx={template.isActive ? TONE.ok : TONE.muted}
+        <StatusChip
+          label={template.isActive ? t('messaging.templates.active') : t('messaging.templates.inactive')} tokens={template.isActive ? TONE.ok : TONE.muted}
         />
       </TableCell>
       <TableCell align="center">
@@ -355,20 +350,16 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
           <p className="cn-text-body2 font-semibold text-[var(--ink)]">
             {t(`systemEmailTemplates.keys.${group.templateKey}`)}
           </p>
-          <Chip
-            label={t(`systemEmailTemplates.recipientShort.${group.recipientType}`)}
-            size="small"
-            sx={group.recipientType === 'GUEST' ? TONE.info : group.recipientType === 'OWNER' ? TONE.ok : TONE.muted}
+          <StatusChip
+            label={t(`systemEmailTemplates.recipientShort.${group.recipientType}`)} tokens={group.recipientType === 'GUEST' ? TONE.info : group.recipientType === 'OWNER' ? TONE.ok : TONE.muted}
           />
         </Stack0Spaced>
       </TableCell>
       <TableCell>
-        <Chip
+        <StatusChip
           label={group.isCustomized
             ? t('messaging.templates.originCustomized')
-            : t('messaging.templates.originSystem')}
-          size="small"
-          sx={group.isCustomized ? TONE.ok : TONE.muted}
+            : t('messaging.templates.originSystem')} tokens={group.isCustomized ? TONE.ok : TONE.muted}
         />
       </TableCell>
       <TableCell>
@@ -379,18 +370,14 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
       <TableCell>
         {/* Chip langue identique a UserRow pour coherence (1ere langue dispo —
             les autres sont accessibles dans le dialog d'edition via le selecteur). */}
-        <Chip
-          label={Object.keys(group.languages)[0]?.toUpperCase() ?? '—'}
-          size="small"
-          sx={TONE.muted}
+        <StatusChip
+          label={Object.keys(group.languages)[0]?.toUpperCase() ?? '—'} tokens={TONE.muted}
         />
       </TableCell>
       <TableCell align="center">
         {/* Templates systeme toujours actifs (pas de notion d'activation cote BDD). */}
-        <Chip
-          label={t('messaging.templates.active')}
-          size="small"
-          sx={TONE.ok}
+        <StatusChip
+          label={t('messaging.templates.active')} tokens={TONE.ok}
         />
       </TableCell>
       <TableCell align="center">
