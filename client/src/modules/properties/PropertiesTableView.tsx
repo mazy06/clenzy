@@ -1,4 +1,6 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
 import {
   Box, Paper, Typography, Chip, Tooltip, IconButton,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, } from '@mui/material';
@@ -11,7 +13,7 @@ import { Money } from '../../components/Money';
 import MissingContractChip from './MissingContractChip';
 import { estimateCleaningDuration, formatDuration } from './PropertyCard';
 import { toPropertyDetails } from './propertyDetailsMapper';
-import { LIST_PAPER_SX, LIST_ROWS_PER_PAGE_OPTIONS, softDataChipSx, FIELD_CHIP_SX, propertyGradientCss } from './propertiesListConstants';
+import { LIST_PAPER_SX, LIST_ROWS_PER_PAGE_OPTIONS, softDataChipSx, FIELD_TOKENS, FIELD_CHIP_CLASS, propertyGradientCss } from './propertiesListConstants';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { ChannexMappingDto } from '../../services/api/channexApi';
 import {
@@ -189,22 +191,11 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                     {property.amenities && property.amenities.length > 0 ? (
                       <div className="flex gap-0.5 flex-nowrap items-center min-w-0">
                         {property.amenities.slice(0, 2).map((amenity) => (
-                          <Chip
+                          <StatusChip
                             key={amenity}
+                            tokens={FIELD_TOKENS}
                             label={t(`properties.amenities.items.${amenity}`)}
-                            size="small"
-                            sx={{
-                              ...FIELD_CHIP_SX,
-                              minWidth: 0,
-                              flexShrink: 1,
-                              '& .MuiChip-label': {
-                                px: 1,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                display: 'block',
-                              },
-                            }}
+                            className={cn(FIELD_CHIP_CLASS, 'min-w-0 shrink truncate')}
                           />
                         ))}
                         {property.amenities.length > 2 && (
@@ -212,11 +203,11 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                             title={
                               <div className="flex flex-wrap gap-0.5">
                                 {property.amenities.map((a) => (
-                                  <Chip
+                                  <StatusChip
                                     key={a}
+                                    tokens={FIELD_TOKENS}
                                     label={t(`properties.amenities.items.${a}`)}
-                                    size="small"
-                                    sx={{ ...FIELD_CHIP_SX, height: 20, '& .MuiChip-label': { px: 1 } }}
+                                    className={cn(FIELD_CHIP_CLASS, 'h-[20px]')}
                                   />
                                 ))}
                               </div>

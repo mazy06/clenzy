@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -25,19 +26,12 @@ import VoucherEditorDialog from './VoucherEditorDialog';
 // ─── Tokens Signature : chips -soft par statut ───────────────────────────────
 
 /** Chip -soft (texte couleur + fond -soft) par statut de voucher. */
-const STATUS_CHIP_SX: Record<VoucherStatus, Record<string, unknown>> = {
-  ACTIVE: { backgroundColor: 'var(--ok-soft)', color: 'var(--ok)' },
-  PAUSED: { backgroundColor: 'var(--warn-soft)', color: 'var(--warn)' },
-  DRAFT: { backgroundColor: 'var(--info-soft)', color: 'var(--info)' },
-  EXPIRED: { backgroundColor: 'var(--field)', color: 'var(--muted)' },
+const STATUS_TOKENS: Record<VoucherStatus, ToneTokens> = {
+  ACTIVE: STATUS_TONES.ok,
+  PAUSED: STATUS_TONES.warn,
+  DRAFT: STATUS_TONES.info,
+  EXPIRED: { color: 'var(--muted)', bg: 'var(--field)' },
 };
-
-const CHIP_BASE_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  height: 22,
-  border: 'none',
-} as const;
 
 /**
  * Code voucher — pattern .fr-dip (IP mono de la messagerie) :
@@ -362,19 +356,14 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
             {v.code}
           </Typography>
         ) : (
-          <Chip label={t('vouchers.autoCampaign')} size="small" sx={{ ...CHIP_BASE_SX, backgroundColor: 'var(--info-soft)', color: 'var(--info)' }} />
+          <StatusChip label={t('vouchers.autoCampaign')} tokens={STATUS_TONES.info} className="text-[10.5px] font-bold" />
         )}
       </TableCell>
       <TableCell>
-        <Chip
+        <StatusChip
           label={isAuto ? t('vouchers.typeAuto') : t('vouchers.typeManual')}
-          size="small"
-          sx={{
-            ...CHIP_BASE_SX,
-            ...(isAuto
-              ? { backgroundColor: 'var(--info-soft)', color: 'var(--info)' }
-              : { backgroundColor: 'var(--field)', color: 'var(--muted)' }),
-          }}
+          tokens={isAuto ? STATUS_TONES.info : { color: 'var(--muted)', bg: 'var(--field)' }}
+          className="text-[10.5px] font-bold"
         />
       </TableCell>
       <TableCell>
@@ -396,10 +385,10 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
         </p>
       </TableCell>
       <TableCell align="center">
-        <Chip
+        <StatusChip
           label={t(`vouchers.status.${v.status}`)}
-          size="small"
-          sx={{ ...CHIP_BASE_SX, ...STATUS_CHIP_SX[v.status] }}
+          tokens={STATUS_TOKENS[v.status]}
+          className="text-[10.5px] font-bold"
         />
       </TableCell>
       <TableCell align="right">
