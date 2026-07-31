@@ -423,12 +423,7 @@
       "dialogTitle": "Commissions & my share"
     },
     "orgCommission": {
-      "title": "My commission (management)",
-      "note": "Your share of the remainder after the platform commission. The owner receives the balance.",
-      "platformInfo": "Platform commission (set by the platform)",
-      "upsell": "My share (upsells)",
-      "activity": "My share (activities)",
-      "saved": "Commission saved"
+      "movedToPayment": "Your upsell share is set in Settings › Payment, \"Services & activities\" tab."
     }
   },
   "welcomeGuide": {
