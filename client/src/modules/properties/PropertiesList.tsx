@@ -281,12 +281,6 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
 
   const actionButtons = (
     <div className="flex gap-1 items-center">
-      <ExportButton
-        data={filteredProperties}
-        columns={exportColumns}
-        fileName="proprietes"
-        variant="icon"
-      />
       <Tooltip title={t('properties.create')}>
         <IconButton
           size="small"
@@ -335,6 +329,13 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
         mode: viewMode,
         onChange: setViewMode,
       }}
+      extraActions={(
+        <ExportButton
+          data={filteredProperties}
+          columns={exportColumns}
+          fileName="proprietes"
+        />
+      )}
     />
   );
 
