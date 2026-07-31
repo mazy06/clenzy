@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
+import { Badge } from './ui';
 import { Card } from '../components/ui';
-import { Chip } from '@mui/material';
+
 import {
   Lock as LockIcon
 } from '../icons';
@@ -143,14 +144,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
                 Votre rôle : 
               </p>
               {user.roles.map((role, index) => (
-                <Chip
-                  key={role}
-                  label={role}
-                  size="small" 
-                  color="primary" 
-                  variant="outlined"
-                  sx={{ fontSize: '0.75rem' }}
-                />
+                <Badge variant="default" className="text-[0.75rem]" key={role}>{role}</Badge>
               ))}
             </div>
           )}

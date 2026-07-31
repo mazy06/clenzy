@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, TextField, Skeleton, ToggleButtonGroup, ToggleButton, Chip } from '@mui/material';
+import { Box, Button, TextField, Skeleton, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { Plus, Globe, FileText, Sparkles, SlidersHorizontal, AlertTriangle, Trash2 } from 'lucide-react';
 import PageHeader from '../../../components/PageHeader';
 import {
@@ -153,7 +154,7 @@ export default function DesignSystemsPage() {
                   <div className="text-[13.5px] font-semibold text-[var(--ink)]">{s.name}</div>
                   <div className="flex gap-1 items-center mt-0.5">
                     {s.category && <div className="text-[11px] text-[var(--muted)]">{s.category}</div>}
-                    <Chip size="small" label={s.scope === 'GLOBAL' ? 'Baitly' : 'Privé'} sx={{ height: 16, fontSize: 9.5 }} />
+                    <Badge variant="secondary" className="h-[16px] text-[9.5px]">{s.scope === 'GLOBAL' ? 'Baitly' : 'Privé'}</Badge>
                   </div>
                 </Box>
                 <Box component="button" type="button" aria-label="Supprimer" onClick={() => handleDelete(s.id)} sx={{ border: 0, bgcolor: 'transparent', color: 'var(--muted)', cursor: 'pointer', p: 0.5, display: 'grid', placeItems: 'center' }}>
@@ -212,8 +213,8 @@ export default function DesignSystemsPage() {
             <div>
               <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <div className="text-[18px] font-bold text-[var(--ink)]">{selected.name}</div>
-                {selected.category && <Chip size="small" label={selected.category} />}
-                {selected.sourceType && <Chip size="small" variant="outlined" label={selected.sourceType} />}
+                {selected.category && <Badge variant="secondary">{selected.category}</Badge>}
+                {selected.sourceType && <Badge variant="outline">{selected.sourceType}</Badge>}
               </div>
               {swatches.length > 0 && (
                 <div className="flex gap-1.5 flex-wrap mb-3.5">

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Box, Button, InputBase, Switch, Select, MenuItem, FormControl, Collapse, Chip, Divider } from '@mui/material';
+import { Box, Button, InputBase, Switch, Select, MenuItem, FormControl, Collapse, Divider } from '@mui/material';
 import { ArrowLeft, ArrowRight, AlertTriangle, Sparkles, Upload, LayoutGrid } from 'lucide-react';
 import { designSystemsApi, type DesignSystem, type DesignSystemCreateRequest } from '../../../services/api/designSystemsApi';
 import { bookingEngineApi, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
@@ -394,7 +395,7 @@ function Row({ label, required, optional, soon, description, children }: {
           {label}{required && <span className="text-[var(--accent)] ms-0.5">*</span>}
         </div>
         {optional && <div className="text-[11.5px] font-medium text-[var(--muted)] mt-0.5">optionnel</div>}
-        {soon && <Chip label="Bientôt" size="small" sx={{ height: 18, mt: 0.5, fontSize: 10, fontWeight: 600, bgcolor: 'var(--hover)', color: 'var(--muted)' }} />}
+        {soon && <Badge variant="secondary" className="h-[18px] mt-0.5 text-[10px] font-semibold bg-[var(--hover)] text-[var(--muted)]">Bientôt</Badge>}
       </div>
       <div>
         {description && <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.5] mb-2">{description}</div>}

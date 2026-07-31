@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Badge } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
@@ -1092,16 +1093,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           }}
                         />
                         {typeof sr.estimatedCost === 'number' && sr.estimatedCost > 0 && (
-                          <Chip
-                            label={<Money value={sr.estimatedCost} from="EUR" decimals={0} />}
-                            size="small"
-                            sx={{
-                              fontSize: '0.5625rem', height: 21, fontWeight: 700,
-                              backgroundColor: 'action.hover', color: 'text.primary',
-                              borderRadius: '6px', fontVariantNumeric: 'tabular-nums',
-                              '& .MuiChip-label': { px: 0.625 },
-                            }}
-                          />
+                          <Badge variant="secondary" className="text-[0.5625rem] h-[21px] font-bold bg-[action.hover] text-[text.primary] rounded-[6px] tabular-nums px-1">{<Money value={sr.estimatedCost} from="EUR" decimals={0} />}</Badge>
                         )}
                         <Chip
                           label={statusCfg.label}

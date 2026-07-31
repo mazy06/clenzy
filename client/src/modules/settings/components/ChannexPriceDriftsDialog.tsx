@@ -15,6 +15,7 @@
  * Sans propertyId : montre TOUS les drifts actifs de l'organisation.</p>
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import { Dialog, DialogContent, DialogTitle, Box, Typography, Button, Alert, Stack, Skeleton, Chip, IconButton, Tooltip } from '@mui/material';
 import {
@@ -103,29 +104,9 @@ function DriftRow({
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <Chip
-              size="small"
-              label={`Baitly ${drift.clenzyPrice}${drift.currency}`}
-              sx={{
-                height: 22,
-                fontSize: '0.72rem',
-                bgcolor: 'var(--accent-soft)',
-                color: 'var(--accent)',
-                fontWeight: 600,
-              }}
-            />
+            <Badge variant="secondary" className="h-[22px] text-[0.72rem] bg-[var(--accent-soft)] text-[var(--accent)] font-semibold">{`Baitly ${drift.clenzyPrice}${drift.currency}`}</Badge>
             <span className="cn-text-caption text-muted-foreground opacity-60">vs</span>
-            <Chip
-              size="small"
-              label={`OTA ${drift.otaPrice}${drift.currency}`}
-              sx={{
-                height: 22,
-                fontSize: '0.72rem',
-                bgcolor: 'var(--warn-soft)',
-                color: 'var(--warn)',
-                fontWeight: 600,
-              }}
-            />
+            <Badge variant="secondary" className="h-[22px] text-[0.72rem] bg-[var(--warn-soft)] text-[var(--warn)] font-semibold">{`OTA ${drift.otaPrice}${drift.currency}`}</Badge>
             <Chip
               size="small"
               label={formatPct(drift.diffPercent)}

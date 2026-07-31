@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, RadioGroup, FormControlLabel, Radio, Chip } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, RadioGroup, FormControlLabel, Radio } from '@mui/material';
 import { useWhatsAppTemplatesList } from '../../hooks/useWhatsAppTemplates';
 import type { WhatsAppTemplateGroup } from '../../services/api/whatsappTemplatesApi';
 
@@ -75,11 +76,7 @@ export default function SendWhatsAppTemplateDialog({
                   <div className="py-0.5">
                     <div className="flex items-center gap-1">
                       <p className="cn-text-body1 text-[0.8125rem] font-semibold">{formatKey(g.templateKey)}</p>
-                      <Chip
-                        label={g.category}
-                        size="small"
-                        sx={{ height: 16, fontSize: '0.5625rem', fontWeight: 600, bgcolor: 'action.hover' }}
-                      />
+                      <Badge variant="secondary" className="h-[16px] text-[0.5625rem] font-semibold bg-[action.hover]">{g.category}</Badge>
                     </div>
                     <p className="cn-text-body1 text-[0.75rem] text-muted-foreground whitespace-pre-wrap mt-0.5">
                       {(() => { const b = bodyOf(g); return b.length > 160 ? `${b.slice(0, 160)}…` : b; })()}

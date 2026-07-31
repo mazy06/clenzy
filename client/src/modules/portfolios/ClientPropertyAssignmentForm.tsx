@@ -1,4 +1,5 @@
 import React from 'react';
+import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
 import { Container, Stepper, Step, StepLabel, Button, FormControl, InputLabel, Select, MenuItem, Chip, Grid, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, Avatar } from '@mui/material';
@@ -225,7 +226,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                           </span>
                         </div>
                         <div className="flex gap-1 mt-1 ms-5">
-                          <Chip label={property.type} size="small" sx={{ height: 20, fontSize: '0.6rem' }} />
+                          <Badge variant="secondary" className="h-[20px] text-[0.6rem]">{property.type}</Badge>
                           {property.status && (
                             <Chip
                               label={property.status}

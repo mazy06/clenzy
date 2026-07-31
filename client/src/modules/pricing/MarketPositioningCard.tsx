@@ -1,4 +1,5 @@
 import React from 'react';
+import { Badge } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Box, Chip, Skeleton, Tooltip, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
@@ -85,14 +86,8 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
             title={t('marketPositioning.sourceHint',
               'Provenance et fiabilité de la donnée marché. Le « réseau Baitly » est votre réalisé, jamais présenté comme le marché entier.')}
           >
-            <Chip
-              size="small"
-              variant="outlined"
-              icon={<Info size={13} />}
-              label={`${SOURCE_LABEL[data.source] ?? data.source} · ${
-                data.confidence != null ? `${Math.round(data.confidence * 100)} %` : '—'}`}
-              sx={{ color: 'var(--muted)', borderColor: 'var(--line)' }}
-            />
+            <Badge variant="outline" className="text-[var(--muted)] border-[var(--line)]"><Info size={13} />{`${SOURCE_LABEL[data.source] ?? data.source} · ${
+                data.confidence != null ? `${Math.round(data.confidence * 100)} %` : '—'}`}</Badge>
           </Tooltip>
         )}
       </div>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { IconButton, Chip, ToggleButtonGroup, ToggleButton, Tooltip } from '@mui/material';
+import { Badge } from '../../components/ui';
+import { IconButton, ToggleButtonGroup, ToggleButton, Tooltip } from '@mui/material';
 import {
   ChevronLeft,
   ChevronRight,
@@ -112,25 +113,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
           </IconButton>
         </div>
 
-        <Chip
-          icon={<TodayOutlined size={13} strokeWidth={1.75} />}
-          label="Aujourd'hui"
-          size="small"
-          variant="outlined"
-          onClick={onGoToday}
-          sx={{
-            fontSize: '0.6875rem',
-            fontWeight: 600,
-            height: 28,
-            borderRadius: '9px',
-            cursor: 'pointer',
-            backgroundColor: 'var(--card)',
-            borderColor: 'var(--line-2)',
-            color: 'var(--body)',
-            '&:hover': { backgroundColor: 'var(--hover)', borderColor: 'var(--faint)' },
-            '& .MuiChip-icon': { fontSize: 13, color: 'var(--accent)' },
-          }}
-        />
+        <Badge variant="outline" className="text-[0.6875rem] font-semibold h-[28px] rounded-[9px] cursor-pointer bg-[var(--card)] border-[var(--line-2)] text-[var(--body)] hover:bg-[var(--hover)] hover:border-[var(--faint)] [&>svg]:text-[13px] [&>svg]:text-[var(--accent)]" onClick={onGoToday}><TodayOutlined size={13} strokeWidth={1.75} />Aujourd'hui</Badge>
 
         {/* Zoom selector — segmented control Signature (.s-seg) */}
         <ToggleButtonGroup

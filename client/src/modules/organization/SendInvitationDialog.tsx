@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { ASSIGNABLE_ORG_ROLES } from '../../utils/orgRoleLabels';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Typography, IconButton, InputAdornment, Tooltip, ToggleButtonGroup, ToggleButton, Autocomplete, Chip } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Typography, IconButton, InputAdornment, Tooltip, ToggleButtonGroup, ToggleButton, Autocomplete } from '@mui/material';
 import {
   Send,
   ContentCopy,
@@ -247,7 +248,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                             </span>
                           </div>
                           {option.hasOrganization && (
-                            <Chip label="Deja dans une org" size="small" color="warning" variant="outlined" />
+                            <Badge variant="warning">Deja dans une org</Badge>
                           )}
                         </div>
                       </li>

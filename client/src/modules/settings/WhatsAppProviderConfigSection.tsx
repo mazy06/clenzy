@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -166,8 +167,8 @@ export default function WhatsAppProviderConfigSection() {
     : !enabled
       ? <Chip label="Désactivé" size="small" sx={{ bgcolor: alpha(theme.palette.text.primary, 0.08) }} />
       : isProviderConfigured
-        ? <Chip icon={<CheckCircle size={14} />} label="Connecté" size="small" color="success" />
-        : <Chip icon={<ErrorOutline size={14} />} label="Configuration incomplète" size="small" color="warning" />;
+        ? <Badge variant="success"><CheckCircle size={14} />Connecté</Badge>
+        : <Badge variant="warning"><ErrorOutline size={14} />Configuration incomplète</Badge>;
 
   return (
     <div className="flex flex-col gap-4">

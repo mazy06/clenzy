@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Box, Card, CardContent, Chip, FormControl, Select, MenuItem, Tooltip, alpha, type SxProps, type Theme } from '@mui/material';
 import {
@@ -338,19 +339,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
             <p className="cn-text-body1 text-[0.75rem] font-bold uppercase tracking-[0.04em] text-muted-foreground">
               {isDevice ? 'Niveau sonore' : 'Monitoring sonore'}
             </p>
-            <Chip
-              label={isDevice ? 'Dernières 24 h' : `${data.properties.length} capteur${data.properties.length > 1 ? 's' : ''}`}
-              size="small"
-              variant="outlined"
-              sx={{
-                height: 18,
-                fontSize: '0.5625rem',
-                fontWeight: 600,
-                borderColor: 'primary.main',
-                color: 'primary.main',
-                '& .MuiChip-label': { px: 0.5 },
-              }}
-            />
+            <Badge variant="outline" className="h-[18px] text-[0.5625rem] font-semibold border-[primary.main] text-[primary.main] px-0.5">{isDevice ? 'Dernières 24 h' : `${data.properties.length} capteur${data.properties.length > 1 ? 's' : ''}`}</Badge>
           </div>
 
           {!isDevice && (

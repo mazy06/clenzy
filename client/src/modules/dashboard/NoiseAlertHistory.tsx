@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { Badge as BuiBadge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card, CardContent, Typography, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Chip, IconButton, Tooltip, FormControl, Select, MenuItem, Badge, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
 import {
@@ -40,12 +41,7 @@ function SeverityChip({ severity }: { severity: string }) {
 function SourceChip({ source }: { source: string }) {
   const label = source === 'WEBHOOK' ? 'Temps reel' : source === 'SCHEDULER' ? 'Poll' : source;
   return (
-    <Chip
-      label={label}
-      size="small"
-      variant="outlined"
-      sx={{ height: 20, fontSize: '0.625rem', '& .MuiChip-label': { px: 0.5 } }}
-    />
+    <BuiBadge variant="outline" className="h-[20px] text-[0.625rem] px-0.5">{label}</BuiBadge>
   );
 }
 

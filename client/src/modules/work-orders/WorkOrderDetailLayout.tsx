@@ -1,4 +1,5 @@
 import React from 'react';
+import { Badge } from '../../components/ui';
 import {
   Box,
   Typography,
@@ -667,12 +668,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                     <div className="flex items-center gap-1">
                       <Typography sx={INFO_VALUE_SX}>{vm.requestor.name}</Typography>
                       {vm.requestor.roleLabel && (
-                        <Chip
-                          label={vm.requestor.roleLabel}
-                          size="small"
-                          variant="outlined"
-                          sx={{ height: 18, fontSize: '0.5625rem', '& .MuiChip-label': { px: 0.5 } }}
-                        />
+                        <Badge variant="outline" className="h-[18px] text-[0.5625rem] px-0.5">{vm.requestor.roleLabel}</Badge>
                       )}
                     </div>
                     {vm.requestor.email && (

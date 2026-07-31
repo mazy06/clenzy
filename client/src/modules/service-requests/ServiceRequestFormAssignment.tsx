@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
+import { Badge } from '../../components/ui';
 import {
   Box,
   Grid,
@@ -287,11 +288,7 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                                   </p>
                                 </div>
                                 {matchingSet.has(user.id) && (
-                                  <Chip
-                                    label="Propose"
-                                    size="small"
-                                    sx={{ height: 18, fontSize: '9.5px', fontWeight: 700, color: 'var(--ok)', bgcolor: 'var(--ok-soft)', '& .MuiChip-label': { px: 0.75 } }}
-                                  />
+                                  <Badge variant="secondary" className="h-[18px] text-[9.5px] font-bold text-[var(--ok)] bg-[var(--ok-soft)] px-1">Propose</Badge>
                                 )}
                               </div>
                             </MenuItem>

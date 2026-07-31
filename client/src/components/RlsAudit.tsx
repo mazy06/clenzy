@@ -1,6 +1,7 @@
 import React from 'react';
+import { Badge } from './ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Alert, AlertTitle, Button, Card, CardContent, Chip, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip } from '@mui/material';
+import { Alert, AlertTitle, Button, Card, CardContent, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip } from '@mui/material';
 import { ShieldCheck, ShieldAlert, Layers, Clock, Check } from 'lucide-react';
 import { rlsAuditApi } from '../services/api/rlsAuditApi';
 import type { RlsAuditFinding } from '../services/api/rlsAuditApi';
@@ -229,15 +230,11 @@ const RlsAudit: React.FC = () => {
                             <span>{chemin.origin}</span>
                           </Tooltip>
                           {reapparu && (
-                            <Chip
-                              size="small"
-                              label="reapparu apres correction"
-                              sx={{ ml: 1, bgcolor: 'var(--warn-soft)', color: 'var(--warn)' }}
-                            />
+                            <Badge variant="secondary" className="ms-1.5 bg-[var(--warn-soft)] text-[var(--warn)]">reapparu apres correction</Badge>
                           )}
                         </TableCell>
                         <TableCell>
-                          <Chip size="small" label={chemin.tableName} variant="outlined" />
+                          <Badge variant="outline">{chemin.tableName}</Badge>
                         </TableCell>
                         <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
                           {chemin.occurrences.toLocaleString('fr-FR')}
@@ -250,11 +247,7 @@ const RlsAudit: React.FC = () => {
                         </TableCell>
                         <TableCell align="right">
                           {chemin.resolvedAt && !reapparu ? (
-                            <Chip
-                              size="small"
-                              label="traite"
-                              sx={{ bgcolor: 'var(--ok-soft)', color: 'var(--ok)' }}
-                            />
+                            <Badge variant="secondary" className="bg-[var(--ok-soft)] text-[var(--ok)]">traite</Badge>
                           ) : (
                             <Button
                               size="small"

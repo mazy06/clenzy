@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -539,8 +540,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
           <div className="flex flex-wrap gap-1">
             {roomNames.map((name, idx) => (
               validatedRooms.has(idx) && (
-                <Chip key={name} icon={<CheckCircleOutlineIcon size={18} strokeWidth={1.75} />} label={name} size="small"
-                  color="success" variant="filled" sx={{ height: 28, fontSize: '0.75rem' }} />
+                <Badge variant="success" className="h-[28px] text-[0.75rem]" key={name}><CheckCircleOutlineIcon size={18} strokeWidth={1.75} />{name}</Badge>
               )
             ))}
           </div>
@@ -596,17 +596,12 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                         {doc.fileName}
                       </p>
                       <div className="flex items-center gap-1 flex-wrap">
-                        <Chip label={doc.documentType.replace(/_/g, ' ')} size="small"
-                          sx={{ height: 22, fontSize: '0.675rem', fontWeight: 500, bgcolor: 'var(--hover)', color: 'var(--muted)' }} />
+                        <Badge variant="secondary" className="h-[22px] text-[0.675rem] font-medium bg-[var(--hover)] text-[var(--muted)]">{doc.documentType.replace(/_/g, ' ')}</Badge>
                         {doc.emailStatus === 'SENT' && (
-                          <Chip icon={<EmailSentIcon size={14} strokeWidth={1.75} />}
-                            label={doc.emailTo} size="small" color="info" variant="outlined"
-                            sx={{ height: 22, fontSize: '0.675rem' }} />
+                          <Badge variant="info" className="h-[22px] text-[0.675rem]"><EmailSentIcon size={14} strokeWidth={1.75} />{doc.emailTo}</Badge>
                         )}
                         {doc.emailStatus === 'FAILED' && (
-                          <Chip icon={<EmailFailedIcon size={14} strokeWidth={1.75} />}
-                            label={t('interventions.progressSteps.emailFailed')} size="small" color="error" variant="outlined"
-                            sx={{ height: 22, fontSize: '0.675rem' }} />
+                          <Badge variant="destructive" className="h-[22px] text-[0.675rem]"><EmailFailedIcon size={14} strokeWidth={1.75} />{t('interventions.progressSteps.emailFailed')}</Badge>
                         )}
                       </div>
                     </div>

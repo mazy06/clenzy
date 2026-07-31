@@ -9,7 +9,8 @@
  * timestamp formate "il y a Xm/Xh", erreur tronquee en monospace si FAIL.</p>
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { Box, IconButton, Collapse, Stack, Skeleton, Chip, Tooltip, Button } from '@mui/material';
+import { Badge } from '../../../components/ui';
+import { Box, IconButton, Collapse, Stack, Skeleton, Tooltip, Button } from '@mui/material';
 import {
   History,
   ChevronDown,
@@ -99,18 +100,7 @@ function LogRow({ log }: { log: ChannexSyncLogDto }) {
             {typeMeta.label}
           </span>
           {log.recordCount > 0 && (
-            <Chip
-              size="small"
-              label={`${log.recordCount}`}
-              sx={{
-                height: 16,
-                fontSize: '0.6rem',
-                fontWeight: 600,
-                bgcolor: 'var(--accent-soft)',
-                color: 'var(--accent)',
-                '& .MuiChip-label': { px: 0.6 },
-              }}
-            />
+            <Badge variant="secondary" className="h-[16px] text-[0.6rem] font-semibold bg-[var(--accent-soft)] text-[var(--accent)] px-1">{`${log.recordCount}`}</Badge>
           )}
           <span className="cn-text-caption text-muted-foreground opacity-60 text-[0.65rem] ms-auto">
             {formatDuration(log.durationMs)} · {formatRelative(log.startedAt)}

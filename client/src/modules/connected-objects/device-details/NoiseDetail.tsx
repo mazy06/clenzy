@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
+import { Badge } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Box, Button, Chip } from '@mui/material';
+import { Box, Button } from '@mui/material';
 import { Settings, History, Save, VolumeUp, Wifi, WifiOff, TrendingUp, ArrowUpward } from '../../../icons';
 import NoiseMonitorChart from '../../dashboard/NoiseMonitorChart';
 import NoiseAlertConfigPanel, {
@@ -122,11 +123,7 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
                 </Alert>
               )}
               {configStatus.isSaved && (
-                <Chip
-                  label="Sauvegardé"
-                  size="small"
-                  sx={{ fontSize: '0.6875rem', height: 22, fontWeight: 600, bgcolor: 'var(--ok-soft)', color: 'var(--ok)', borderRadius: 'var(--radius-pill)' }}
-                />
+                <Badge variant="secondary" className="text-[0.6875rem] h-[22px] font-semibold bg-[var(--ok-soft)] text-[var(--ok)] rounded-[var(--radius-pill)]">Sauvegardé</Badge>
               )}
               <Button
                 variant="contained"

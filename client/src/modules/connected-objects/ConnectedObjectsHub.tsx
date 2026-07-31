@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, X } from 'lucide-react';
 import { Card } from '../../components/ui';
@@ -262,7 +263,7 @@ export default function ConnectedObjectsHub({
                         <span className="text-muted-foreground opacity-60 inline-flex"><ChevronRight size={14} strokeWidth={1.75} /></span>
                       </>
                     ) : (
-                      <Chip size="small" label="Bientôt" sx={{ height: 18, fontSize: '0.65rem' }} />
+                      <Badge variant="secondary" className="h-[18px] text-[0.65rem]">Bientôt</Badge>
                     )}
                   </Paper>
                 </Tooltip>

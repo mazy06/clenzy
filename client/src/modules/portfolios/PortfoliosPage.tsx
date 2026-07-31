@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
 import { createPortal } from 'react-dom';
@@ -77,11 +78,7 @@ function SectionHeader({ icon, title, count, color = 'var(--accent)' }: SectionH
       <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem]">
         {title}
       </h6>
-      <Chip
-        label={count}
-        size="small"
-        sx={{ height: 22, fontSize: '0.7rem', fontWeight: 600, color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', fontVariantNumeric: 'tabular-nums' }}
-      />
+      <Badge variant="secondary" className="h-[22px] text-[0.7rem] font-semibold text-[var(--accent)] bg-[var(--accent-soft)] tabular-nums">{count}</Badge>
     </div>
   );
 }
@@ -394,11 +391,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                               <h6 className="cn-text-subtitle2 text-primary text-[0.82rem] font-semibold">
                                 {client.firstName} {client.lastName}
                               </h6>
-                              <Chip
-                                label={`${clientProperties.length} ${t('portfolios.fields.properties')}`}
-                                size="small"
-                                sx={{ height: 20, fontSize: '0.65rem', color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', fontVariantNumeric: 'tabular-nums' }}
-                              />
+                              <Badge variant="secondary" className="h-[20px] text-[0.65rem] text-[var(--accent)] bg-[var(--accent-soft)] tabular-nums">{`${clientProperties.length} ${t('portfolios.fields.properties')}`}</Badge>
                             </div>
                             <IconButton size="small" sx={{ color: 'var(--accent)', p: 0.25 }}>
                               {expandedClients.has(client.id) ? (
@@ -449,11 +442,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                           </Box>
                                         </Box>
                                         <Box display="flex" alignItems="center" gap={0.5} ml={0.5} flexWrap="wrap">
-                                          <Chip
-                                            label={property.type}
-                                            size="small"
-                                            sx={{ height: 20, fontSize: '0.6rem' }}
-                                          />
+                                          <Badge variant="secondary" className="h-[20px] text-[0.6rem]">{property.type}</Badge>
                                           {propertyTeamMap.get(property.id) ? (
                                             <Chip
                                               icon={<Group size={13} strokeWidth={1.75} />}
@@ -463,17 +452,10 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                               sx={{ height: 20, fontSize: '0.6rem', color: 'var(--ok)', backgroundColor: 'var(--ok-soft)', '& .MuiChip-icon': { color: 'var(--ok)' }, '& .MuiChip-deleteIcon': { color: 'var(--ok)' } }}
                                             />
                                           ) : (
-                                            <Chip
-                                              icon={<Group size={13} strokeWidth={1.75} />}
-                                              label={t('portfolios.fields.assignTeam')}
-                                              size="small"
-                                              variant="outlined"
-                                              onClick={(e) => {
+                                            <Badge variant="outline" className="h-[20px] text-[0.6rem] cursor-pointer" onClick={(e) => {
                                                 setTeamMenuAnchor(e.currentTarget);
                                                 teamMenuPropertyIdRef.current = property.id;
-                                              }}
-                                              sx={{ height: 20, fontSize: '0.6rem', cursor: 'pointer' }}
-                                            />
+                                              }}><Group size={13} strokeWidth={1.75} />{t('portfolios.fields.assignTeam')}</Badge>
                                           )}
                                           <Tooltip title={t('portfolios.fields.unassignProperty')}>
                                             <IconButton

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Box, Typography, Divider, Skeleton, Chip } from '@mui/material';
+import { Box, Typography, Divider, Skeleton } from '@mui/material';
 import {
   Receipt as ReceiptIcon,
 } from '../../icons';
@@ -73,15 +74,7 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
   const discountPercent = Math.round((1 - summary.billingPeriodDiscount) * 100);
 
   const periodChip = (
-    <Chip
-      label={BILLING_PERIOD_LABELS[summary.billingPeriod] || summary.billingPeriod}
-      size="small"
-      sx={{
-        backgroundColor: 'var(--accent-soft)',
-        color: 'var(--accent)',
-        '& .MuiChip-label': { px: 0.875 },
-      }}
-    />
+    <Badge variant="secondary" className="bg-[var(--accent-soft)] text-[var(--accent)] px-1.5">{BILLING_PERIOD_LABELS[summary.billingPeriod] || summary.billingPeriod}</Badge>
   );
 
   return (
@@ -138,18 +131,7 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
             <p className="cn-text-body1 text-[0.85rem] font-bold text-[var(--ok)]">
               {t('billing.effectiveMonthly')}
             </p>
-            <Chip
-              label={`-${discountPercent}%`}
-              size="small"
-              sx={{
-                height: 18,
-                fontSize: '0.65rem',
-                backgroundColor: 'var(--ok-soft)',
-                color: 'var(--ok)',
-                fontVariantNumeric: 'tabular-nums',
-                '& .MuiChip-label': { px: 0.625 },
-              }}
-            />
+            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--ok-soft)] text-[var(--ok)] tabular-nums px-1">{`-${discountPercent}%`}</Badge>
           </div>
           <p className="cn-text-body1 text-[0.95rem] font-bold text-[var(--ok)] tabular-nums tracking-[-0.01em]">
             <Money value={summary.effectiveMonthlyCents / 100} />

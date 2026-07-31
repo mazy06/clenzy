@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -221,12 +222,7 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
                 <TableRow key={config.id} hover>
                   <TableCell>
                     {config.propertyId == null ? (
-                      <Chip
-                        size="small"
-                        variant="outlined"
-                        color="primary"
-                        label={t('touristTax.baremes.orgDefault', 'Défaut organisation')}
-                      />
+                      <Badge variant="default">{t('touristTax.baremes.orgDefault', 'Défaut organisation')}</Badge>
                     ) : (
                       propertyNames.get(config.propertyId) ?? `#${config.propertyId}`
                     )}

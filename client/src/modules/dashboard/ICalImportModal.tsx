@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -602,11 +603,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
                   <TableCell>{formatDate(event.dtStart)}</TableCell>
                   <TableCell>{formatDate(event.dtEnd)}</TableCell>
                   <TableCell align="center">
-                    <Chip
-                      label={event.nights || '-'}
-                      size="small"
-                      sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 22, minWidth: 28 }}
-                    />
+                    <Badge variant="secondary" className="text-[0.6875rem] font-semibold h-[22px] min-w-[28px]">{event.nights || '-'}</Badge>
                   </TableCell>
                   <TableCell>
                     {event.type === 'blocked' ? (
@@ -706,37 +703,13 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         </h6>
 
         <div className="flex gap-1.5 justify-center flex-wrap">
-          <Chip
-            icon={<CheckCircleIcon size={14} strokeWidth={1.75} />}
-            label={`${importResult.imported} importée${importResult.imported > 1 ? 's' : ''}`}
-            color="success"
-            variant="outlined"
-            size="small"
-            sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 28, '& .MuiChip-icon': { fontSize: 14 } }}
-          />
-          <Chip
-            label={`${importResult.skipped} doublon${importResult.skipped > 1 ? 's' : ''} ignoré${importResult.skipped > 1 ? 's' : ''}`}
-            variant="outlined"
-            size="small"
-            sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 28, borderColor: 'divider', color: 'text.secondary' }}
-          />
+          <Badge variant="success" className="text-[0.6875rem] font-semibold h-[28px] [&>svg]:text-[14px]"><CheckCircleIcon size={14} strokeWidth={1.75} />{`${importResult.imported} importée${importResult.imported > 1 ? 's' : ''}`}</Badge>
+          <Badge variant="outline" className="text-[0.6875rem] font-semibold h-[28px] border-[divider] text-[text.secondary]">{`${importResult.skipped} doublon${importResult.skipped > 1 ? 's' : ''} ignoré${importResult.skipped > 1 ? 's' : ''}`}</Badge>
           {!!importResult.daysBlocked && importResult.daysBlocked > 0 && (
-            <Chip
-              label={`${importResult.daysBlocked} jour${importResult.daysBlocked > 1 ? 's' : ''} bloqué${importResult.daysBlocked > 1 ? 's' : ''}`}
-              variant="outlined"
-              size="small"
-              sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 28, borderColor: 'divider', color: 'text.secondary' }}
-            />
+            <Badge variant="outline" className="text-[0.6875rem] font-semibold h-[28px] border-[divider] text-[text.secondary]">{`${importResult.daysBlocked} jour${importResult.daysBlocked > 1 ? 's' : ''} bloqué${importResult.daysBlocked > 1 ? 's' : ''}`}</Badge>
           )}
           {hasErrors && (
-            <Chip
-              icon={<ErrorIcon size={14} strokeWidth={1.75} />}
-              label={`${importResult.errors.length} erreur${importResult.errors.length > 1 ? 's' : ''}`}
-              color="error"
-              variant="outlined"
-              size="small"
-              sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 28, '& .MuiChip-icon': { fontSize: 14 } }}
-            />
+            <Badge variant="destructive" className="text-[0.6875rem] font-semibold h-[28px] [&>svg]:text-[14px]"><ErrorIcon size={14} strokeWidth={1.75} />{`${importResult.errors.length} erreur${importResult.errors.length > 1 ? 's' : ''}`}</Badge>
           )}
         </div>
 

@@ -14,6 +14,7 @@
  *   5. Recap : N created, M skipped, K errors
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Badge } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
@@ -548,18 +549,7 @@ export default function ChannexImportDiscoveryDialog({
                           {existing ? `Re-detecter mes listings ${option.name}` : `Connecter ${option.name}`}
                         </p>
                         {existing && (
-                          <Chip
-                            size="small"
-                            icon={<CheckCircle2 size={11} />}
-                            label="OAuth fait"
-                            sx={{
-                              height: 18,
-                              fontSize: '0.65rem',
-                              bgcolor: 'var(--ok-soft)',
-                              color: 'var(--ok)',
-                              '& .MuiChip-icon': { color: 'var(--ok)', ml: 0.5 },
-                            }}
-                          />
+                          <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--ok-soft)] text-[var(--ok)] [&>svg]:text-[var(--ok)] [&>svg]:ms-0.5"><CheckCircle2 size={11} />OAuth fait</Badge>
                         )}
                       </Stack>
                       <span className="cn-text-caption text-muted-foreground block leading-[1.3]">
@@ -810,38 +800,14 @@ export default function ChannexImportDiscoveryDialog({
                             si room_type ou rate_plan manquent, on les creera automatiquement
                             (le user sait a quoi s'attendre avant de cliquer Importer). */}
                         {(!p.hasRoomType || !p.hasRatePlan) && (
-                          <Chip
-                            size="small"
-                            icon={<Sparkles size={11} />}
-                            label={
-                              !p.hasRoomType && !p.hasRatePlan
+                          <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--warn-soft)] text-[var(--warn)] [&>svg]:text-[var(--warn)] [&>svg]:ms-0.5"><Sparkles size={11} />{!p.hasRoomType && !p.hasRatePlan
                                 ? 'Room + Rate auto-crees'
-                                : !p.hasRoomType ? 'Room auto-cree' : 'Rate auto-cree'
-                            }
-                            sx={{
-                              height: 18,
-                              fontSize: '0.65rem',
-                              bgcolor: 'var(--warn-soft)',
-                              color: 'var(--warn)',
-                              '& .MuiChip-icon': { color: 'var(--warn)', ml: 0.5 },
-                            }}
-                          />
+                                : !p.hasRoomType ? 'Room auto-cree' : 'Rate auto-cree'}</Badge>
                         )}
                         {/* Contenu enrichi disponible (photos, description, address) :
                             visible quand le tier de distribution payant sync depuis Airbnb. */}
                         {p.photoCount > 0 && (
-                          <Chip
-                            size="small"
-                            icon={<ImageIcon size={11} />}
-                            label={`${p.photoCount} photo${p.photoCount > 1 ? 's' : ''}`}
-                            sx={{
-                              height: 18,
-                              fontSize: '0.65rem',
-                              bgcolor: 'var(--info-soft)',
-                              color: 'var(--info)',
-                              '& .MuiChip-icon': { color: 'var(--info)', ml: 0.5 },
-                            }}
-                          />
+                          <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--info-soft)] text-[var(--info)] [&>svg]:text-[var(--info)] [&>svg]:ms-0.5"><ImageIcon size={11} />{`${p.photoCount} photo${p.photoCount > 1 ? 's' : ''}`}</Badge>
                         )}
                       </Stack>
                       <span className="cn-text-caption text-muted-foreground block leading-[1.4]">
@@ -873,64 +839,50 @@ export default function ChannexImportDiscoveryDialog({
                           )}
                           {/* Tarifs */}
                           {p.otaNightlyPrice != null && (
-                            <Chip size="small" label={`${p.otaNightlyPrice} ${p.currency || 'EUR'} / nuit`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--ok-soft)', color: 'var(--ok)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--ok-soft)] text-[var(--ok)]">{`${p.otaNightlyPrice} ${p.currency || 'EUR'} / nuit`}</Badge>
                           )}
                           {p.otaWeekendPrice != null && p.otaWeekendPrice !== p.otaNightlyPrice && (
-                            <Chip size="small" label={`weekend : ${p.otaWeekendPrice} ${p.currency || 'EUR'}`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--ok-soft)', color: 'var(--ok)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--ok-soft)] text-[var(--ok)]">{`weekend : ${p.otaWeekendPrice} ${p.currency || 'EUR'}`}</Badge>
                           )}
                           {p.otaGuestsIncluded != null && (
-                            <Chip size="small" label={`${p.otaGuestsIncluded} voyageur${p.otaGuestsIncluded > 1 ? 's' : ''} inclus`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--info-soft)', color: 'var(--info)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--info-soft)] text-[var(--info)]">{`${p.otaGuestsIncluded} voyageur${p.otaGuestsIncluded > 1 ? 's' : ''} inclus`}</Badge>
                           )}
                           {p.otaPricePerExtraPerson != null && p.otaPricePerExtraPerson > 0 && (
-                            <Chip size="small" label={`+${p.otaPricePerExtraPerson} ${p.currency || 'EUR'} / voyageur supp.`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--info-soft)', color: 'var(--info)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--info-soft)] text-[var(--info)]">{`+${p.otaPricePerExtraPerson} ${p.currency || 'EUR'} / voyageur supp.`}</Badge>
                           )}
                           {p.otaMonthlyPriceFactor != null && p.otaMonthlyPriceFactor > 0 && (
-                            <Chip size="small" label={`-${p.otaMonthlyPriceFactor}% mensuel`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--field)', color: 'var(--muted)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--field)] text-[var(--muted)]">{`-${p.otaMonthlyPriceFactor}% mensuel`}</Badge>
                           )}
                           {/* Sejour */}
                           {p.otaMinNights != null && (
-                            <Chip size="small" label={`min ${p.otaMinNights} nuit${p.otaMinNights > 1 ? 's' : ''}`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--warn-soft)', color: 'var(--warn)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--warn-soft)] text-[var(--warn)]">{`min ${p.otaMinNights} nuit${p.otaMinNights > 1 ? 's' : ''}`}</Badge>
                           )}
                           {p.otaMaxNights != null && p.otaMaxNights < 365 && (
-                            <Chip size="small" label={`max ${p.otaMaxNights} nuits`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--warn-soft)', color: 'var(--warn)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--warn-soft)] text-[var(--warn)]">{`max ${p.otaMaxNights} nuits`}</Badge>
                           )}
                           {/* Check-in/out */}
                           {p.otaCheckOutTime != null && (
-                            <Chip size="small" label={`check-out ${p.otaCheckOutTime}h`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--info-soft)', color: 'var(--info)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--info-soft)] text-[var(--info)]">{`check-out ${p.otaCheckOutTime}h`}</Badge>
                           )}
                           {p.otaCheckInTimeStart && p.otaCheckInTimeStart !== 'FLEXIBLE' && (
-                            <Chip size="small" label={`check-in ${p.otaCheckInTimeStart}h`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--info-soft)', color: 'var(--info)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--info-soft)] text-[var(--info)]">{`check-in ${p.otaCheckInTimeStart}h`}</Badge>
                           )}
                           {/* Politiques */}
                           {p.otaCancellationPolicy && (
-                            <Chip size="small" label={`annulation : ${p.otaCancellationPolicy}`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--err-soft)', color: 'var(--err)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--err-soft)] text-[var(--err)]">{`annulation : ${p.otaCancellationPolicy}`}</Badge>
                           )}
                           {p.otaInstantBooking && (
-                            <Chip size="small" label={`booking : ${p.otaInstantBooking}`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--err-soft)', color: 'var(--err)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--err-soft)] text-[var(--err)]">{`booking : ${p.otaInstantBooking}`}</Badge>
                           )}
                           {/* Regles du logement (true uniquement = autorise par le host) */}
                           {p.otaAllowsPets === true && (
-                            <Chip size="small" label="animaux acceptes"
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--field)', color: 'var(--muted)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--field)] text-[var(--muted)]">animaux acceptes</Badge>
                           )}
                           {p.otaAllowsSmoking === true && (
-                            <Chip size="small" label="fumeurs acceptes"
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--field)', color: 'var(--muted)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--field)] text-[var(--muted)]">fumeurs acceptes</Badge>
                           )}
                           {p.otaAllowsEvents === true && (
-                            <Chip size="small" label="evenements acceptes"
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--field)', color: 'var(--muted)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--field)] text-[var(--muted)]">evenements acceptes</Badge>
                           )}
                         </Stack>
                       )}
@@ -944,18 +896,7 @@ export default function ChannexImportDiscoveryDialog({
                             <OtaSyncBadges otas={p.connectedOtas} size={22} />
                           )}
                           {p.hasActiveOta && (
-                            <Chip
-                              size="small"
-                              icon={<CheckCircle2 size={11} />}
-                              label="Actif"
-                              sx={{
-                                height: 20,
-                                fontSize: '0.7rem',
-                                bgcolor: 'var(--ok-soft)',
-                                color: 'var(--ok)',
-                                '& .MuiChip-icon': { color: 'var(--ok)', ml: 0.5 },
-                              }}
-                            />
+                            <Badge variant="secondary" className="h-[20px] text-[0.7rem] bg-[var(--ok-soft)] text-[var(--ok)] [&>svg]:text-[var(--ok)] [&>svg]:ms-0.5"><CheckCircle2 size={11} />Actif</Badge>
                           )}
                         </Stack>
                       )}

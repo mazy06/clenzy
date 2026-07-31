@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -115,11 +116,9 @@ export default function MyProPayoutsSettings() {
       sx={{ bgcolor: 'color-mix(in srgb, var(--ok, #4A9B8E) 12%, transparent)', color: 'var(--ok, #4A9B8E)', fontWeight: 700 }}
     />
   ) : data?.accountCreated ? (
-    <Chip size="small" label={t('settings.myProPayouts.statusInProgress')}
-      sx={{ bgcolor: 'var(--field)', color: 'var(--muted)', fontWeight: 700 }} />
+    <Badge variant="secondary" className="bg-[var(--field)] text-[var(--muted)] font-bold">{t('settings.myProPayouts.statusInProgress')}</Badge>
   ) : (
-    <Chip size="small" label={t('settings.myProPayouts.statusNotStarted')}
-      sx={{ bgcolor: 'var(--field)', color: 'var(--muted)', fontWeight: 700 }} />
+    <Badge variant="secondary" className="bg-[var(--field)] text-[var(--muted)] font-bold">{t('settings.myProPayouts.statusNotStarted')}</Badge>
   );
 
   return (

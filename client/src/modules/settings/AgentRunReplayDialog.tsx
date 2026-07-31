@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Box, Button, Chip, Dialog, DialogContent, DialogTitle, IconButton, Skeleton, TextField, useTheme } from '@mui/material';
@@ -92,11 +93,7 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
                 label={t(`agentReplay.status.${replay.status}`, replay.status)}
                 sx={{ bgcolor: statusColor(replay.status), color: '#fff' }}
               />
-              <Chip
-                size="small"
-                variant="outlined"
-                label={`${replay.steps.length} ${t('agentReplay.steps', 'étapes')}`}
-              />
+              <Badge variant="outline">{`${replay.steps.length} ${t('agentReplay.steps', 'étapes')}`}</Badge>
             </div>
             {replay.error && (
               <Alert variant="destructive" className="mb-2">

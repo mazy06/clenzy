@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -119,11 +120,7 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
           Readiness Score
         </h6>
         {criticalFailed && (
-          <Chip
-            label="KPI CRITIQUE EN ECHEC"
-            size="small"
-            sx={{ mt: 1, color: 'var(--err)', backgroundColor: 'var(--err-soft)' }}
-          />
+          <Badge variant="secondary" className="mt-1.5 text-[var(--err)] bg-[var(--err-soft)]">KPI CRITIQUE EN ECHEC</Badge>
         )}
       </CardContent>
     </Card>
@@ -172,18 +169,10 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
         </p>
         <div className="flex gap-0.5 shrink-0">
           {badgeCount !== undefined && badgeCount > 0 && (
-            <Chip
-              label={`${badgeCount} ouvert${badgeCount > 1 ? 's' : ''}`}
-              size="small"
-              sx={{ color: 'var(--err)', backgroundColor: 'var(--err-soft)' }}
-            />
+            <Badge variant="secondary" className="text-[var(--err)] bg-[var(--err-soft)]">{`${badgeCount} ouvert${badgeCount > 1 ? 's' : ''}`}</Badge>
           )}
           {kpi.critical && (
-            <Chip
-              label="Critical"
-              size="small"
-              sx={{ color: 'var(--err)', backgroundColor: 'var(--err-soft)' }}
-            />
+            <Badge variant="secondary" className="text-[var(--err)] bg-[var(--err-soft)]">Critical</Badge>
           )}
         </div>
       </div>

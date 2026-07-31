@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -475,11 +476,7 @@ const TeamEdit: React.FC = () => {
                       )}
                       <Grid item xs={12} md={2} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         {isFr && deptObj && (
-                          <Chip
-                            size="small"
-                            label={deptObj.code}
-                            sx={{ fontSize: '0.72rem' }}
-                          />
+                          <Badge variant="secondary" className="text-[0.72rem]">{deptObj.code}</Badge>
                         )}
                         <IconButton
                           size="small"

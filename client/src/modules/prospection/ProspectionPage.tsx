@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { createPortal } from 'react-dom';
@@ -160,11 +161,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
       >
         Importer CSV
       </Button>
-      <Chip
-        label={`${totalProspects} prospect${totalProspects > 1 ? 's' : ''}`}
-        size="small"
-        sx={{ fontWeight: 600, fontSize: '0.75rem' }}
-      />
+      <Badge variant="secondary" className="font-semibold text-[0.75rem]">{`${totalProspects} prospect${totalProspects > 1 ? 's' : ''}`}</Badge>
     </div>
   );
 

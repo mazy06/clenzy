@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useRef, useCallback } from 'react';
+import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import { Dialog, DialogTitle, DialogContent, Box, Typography, Chip, IconButton, Divider, TextField } from '@mui/material';
 import {
@@ -461,12 +462,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                 <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                   Code de confirmation :
                 </p>
-                <Chip
-                  label={reservation.confirmationCode}
-                  size="small"
-                  variant="outlined"
-                  sx={{ fontSize: '0.6875rem', fontWeight: 600 }}
-                />
+                <Badge variant="outline" className="text-[0.6875rem] font-semibold">{reservation.confirmationCode}</Badge>
               </div>
             </>
           )}

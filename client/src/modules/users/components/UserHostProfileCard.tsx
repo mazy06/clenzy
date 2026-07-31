@@ -1,4 +1,5 @@
 import React from 'react';
+import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import { Grid, Chip, Switch, FormControlLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, IconButton, Tooltip, Card, CardContent } from '@mui/material';
 import {
@@ -123,12 +124,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
       {user.forfait && (
         <Grid item xs={12} md={6}>
           <h6 className="cn-text-subtitle2 text-muted-foreground">Forfait souscrit</h6>
-          <Chip
-            icon={<Star />}
-            label={user.forfait.charAt(0).toUpperCase() + user.forfait.slice(1)}
-            size="small"
-            sx={{ mt: 0.5, mb: 2, color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', '& .MuiChip-icon': { color: 'var(--accent)' } }}
-          />
+          <Badge variant="secondary" className="mt-0.5 mb-3 text-[var(--accent)] bg-[var(--accent-soft)] [&>svg]:text-[var(--accent)]"><Star />{user.forfait.charAt(0).toUpperCase() + user.forfait.slice(1)}</Badge>
         </Grid>
       )}
 
@@ -212,12 +208,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
           <h6 className="cn-text-subtitle2 text-muted-foreground">Services forfait</h6>
           <div className="flex flex-wrap gap-0.5 mt-0.5 mb-3">
             {user.services.split(',').map((s) => (
-              <Chip
-                key={s}
-                label={SERVICE_LABELS[s.trim()] || s.trim()}
-                size="small"
-                sx={{ color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' }}
-              />
+              <Badge variant="secondary" className="text-[var(--accent)] bg-[var(--accent-soft)]" key={s}>{SERVICE_LABELS[s.trim()] || s.trim()}</Badge>
             ))}
           </div>
         </Grid>
@@ -228,12 +219,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
           <h6 className="cn-text-subtitle2 text-muted-foreground">Services sur devis</h6>
           <div className="flex flex-wrap gap-0.5 mt-0.5 mb-3">
             {user.servicesDevis.split(',').map((s) => (
-              <Chip
-                key={s}
-                label={SERVICE_DEVIS_LABELS[s.trim()] || s.trim()}
-                size="small"
-                sx={{ color: 'var(--warn)', backgroundColor: 'var(--warn-soft)' }}
-              />
+              <Badge variant="secondary" className="text-[var(--warn)] bg-[var(--warn-soft)]" key={s}>{SERVICE_DEVIS_LABELS[s.trim()] || s.trim()}</Badge>
             ))}
           </div>
         </Grid>
@@ -277,15 +263,10 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                 <p className="cn-text-body1 font-semibold">Solde impaye</p>
               </div>
               {balance && balance.totalUnpaid > 0 && (
-                <Chip
-                  icon={<Warning size={14} strokeWidth={1.75} />}
-                  label={`${balance.totalUnpaid.toFixed(2)} EUR`}
-                  size="small"
-                  sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--err)', backgroundColor: 'var(--err-soft)', '& .MuiChip-icon': { color: 'var(--err)' } }}
-                />
+                <Badge variant="secondary" className="font-bold tabular-nums text-[var(--err)] bg-[var(--err-soft)] [&>svg]:text-[var(--err)]"><Warning size={14} strokeWidth={1.75} />{`${balance.totalUnpaid.toFixed(2)} EUR`}</Badge>
               )}
               {balance && balance.totalUnpaid === 0 && (
-                <Chip label="Aucun impaye" size="small" sx={{ color: 'var(--ok)', backgroundColor: 'var(--ok-soft)' }} />
+                <Badge variant="secondary" className="text-[var(--ok)] bg-[var(--ok-soft)]">Aucun impaye</Badge>
               )}
             </div>
 

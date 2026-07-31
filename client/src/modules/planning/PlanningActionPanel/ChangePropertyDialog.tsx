@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Badge } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
@@ -148,12 +149,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
             <p className="cn-text-body2 font-semibold text-[0.8125rem]">
               {reservation.guestName}
             </p>
-            <Chip
-              label={`${reservation.guestCount} voyageur${reservation.guestCount > 1 ? 's' : ''}`}
-              size="small"
-              variant="outlined"
-              sx={{ fontSize: '0.625rem', height: 20 }}
-            />
+            <Badge variant="outline" className="text-[0.625rem] h-[20px]">{`${reservation.guestCount} voyageur${reservation.guestCount > 1 ? 's' : ''}`}</Badge>
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="inline-flex text-[var(--muted)]"><Home size={16} strokeWidth={1.75} /></span>
@@ -233,26 +229,11 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
                     )}
                   </div>
                   <div className="flex gap-1 mt-1 ms-5">
-                    <Chip
-                      label={property.city}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontSize: '0.625rem', height: 20 }}
-                    />
+                    <Badge variant="outline" className="text-[0.625rem] h-[20px]">{property.city}</Badge>
                     {typeLabel && (
-                      <Chip
-                        label={typeLabel}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontSize: '0.625rem', height: 20 }}
-                      />
+                      <Badge variant="outline" className="text-[0.625rem] h-[20px]">{typeLabel}</Badge>
                     )}
-                    <Chip
-                      label={`${property.maxGuests} pers. max`}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontSize: '0.625rem', height: 20 }}
-                    />
+                    <Badge variant="outline" className="text-[0.625rem] h-[20px]">{`${property.maxGuests} pers. max`}</Badge>
                   </div>
                 </Box>
               );

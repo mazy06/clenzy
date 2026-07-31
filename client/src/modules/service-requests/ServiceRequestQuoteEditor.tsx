@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
+import { Badge } from '../../components/ui';
 import { Box, Typography, TextField, IconButton, Chip } from '@mui/material';
 import { Add, Close, Receipt } from '../../icons';
 import type { QuoteLine } from '../../schemas/serviceRequestSchema';
@@ -195,23 +196,7 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
               }}
             />
             {PRESETS.map((preset) => (
-              <Chip
-                key={preset}
-                label={preset}
-                onClick={() => addLine(preset)}
-                size="small"
-                variant="outlined"
-                sx={{
-                  height: 26,
-                  fontSize: '11.5px',
-                  fontWeight: 500,
-                  color: 'var(--muted)',
-                  borderColor: 'var(--line-2)',
-                  bgcolor: 'var(--card)',
-                  '&:hover': { borderColor: 'var(--accent)', color: 'var(--accent)', bgcolor: 'var(--hover)' },
-                  cursor: 'pointer',
-                }}
-              />
+              <Badge variant="outline" className="h-[26px] text-[11.5px] font-medium text-[var(--muted)] border-[var(--line-2)] bg-[var(--card)] hover:border-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--hover)] cursor-pointer" key={preset} onClick={() => addLine(preset)}>{preset}</Badge>
             ))}
           </div>
         )}

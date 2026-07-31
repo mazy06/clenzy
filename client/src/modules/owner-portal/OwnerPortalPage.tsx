@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -559,11 +560,7 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                       <TableCell sx={CELL_SX}>{line.description}</TableCell>
                       <TableCell sx={CELL_SX}>{line.propertyName}</TableCell>
                       <TableCell sx={CELL_SX}>
-                        <Chip
-                          label={line.type}
-                          size="small"
-                          sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600 }}
-                        />
+                        <Badge variant="secondary" className="text-[0.625rem] h-[20px] font-semibold">{line.type}</Badge>
                       </TableCell>
                       <TableCell sx={CELL_SX} align="right">{fmtCurrency(line.amount)}</TableCell>
                       {statement.totalOtaFees > 0 && (

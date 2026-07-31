@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -443,11 +444,7 @@ const TeamForm: React.FC = () => {
                     <span className="inline-flex text-[var(--accent)]"><MapIcon size={18} strokeWidth={1.75} /></span>
                     {t('teams.coverageZones')}
                     {zoneFields.length > 0 && (
-                      <Chip
-                        label={zoneFields.length}
-                        size="small"
-                        sx={{ ml: 0.5, height: 20, fontSize: '0.65rem', fontWeight: 700, color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', fontVariantNumeric: 'tabular-nums', '& .MuiChip-label': { px: 0.75 } }}
-                      />
+                      <Badge variant="secondary" className="ms-0.5 h-[20px] text-[0.65rem] font-bold text-[var(--accent)] bg-[var(--accent-soft)] tabular-nums px-1">{zoneFields.length}</Badge>
                     )}
                   </h6>
                   <Button
@@ -634,11 +631,7 @@ const TeamForm: React.FC = () => {
                   <h6 className="cn-text-subtitle1 font-semibold">
                     {t('teams.sections.teamMembers')}
                     {fields.length > 0 && (
-                      <Chip
-                        label={fields.length}
-                        size="small"
-                        sx={{ ml: 1, height: 20, fontSize: '0.65rem', fontWeight: 700, color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', fontVariantNumeric: 'tabular-nums', '& .MuiChip-label': { px: 0.75 } }}
-                      />
+                      <Badge variant="secondary" className="ms-1.5 h-[20px] text-[0.65rem] font-bold text-[var(--accent)] bg-[var(--accent-soft)] tabular-nums px-1">{fields.length}</Badge>
                     )}
                   </h6>
                   {filteredUsers.length > fields.length && (

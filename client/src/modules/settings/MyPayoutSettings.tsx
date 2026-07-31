@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, Info, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useSearchParams } from 'react-router-dom';
 import { accountingApi } from '../../services/api/accountingApi';
-import { TextField, Button, Alert, Snackbar, Chip, Divider } from '@mui/material';
+import { TextField, Button, Alert, Snackbar, Divider } from '@mui/material';
 import {
   AccountBalance,
   Save,
@@ -171,21 +172,9 @@ export default function MyPayoutSettings() {
             {t('settings.myPayout.statusLabel', 'Statut')} :
           </p>
           {config.verified ? (
-            <Chip
-              icon={<VerifiedUser size={12} strokeWidth={1.75} />}
-              label={t('settings.myPayout.verified', 'Verifie')}
-              size="small"
-              color="success"
-              sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600 }}
-            />
+            <Badge variant="success" className="text-[0.625rem] h-[20px] font-semibold"><VerifiedUser size={12} strokeWidth={1.75} />{t('settings.myPayout.verified', 'Verifie')}</Badge>
           ) : (
-            <Chip
-              icon={<Warning size={12} strokeWidth={1.75} />}
-              label={t('settings.myPayout.pendingVerification', 'En attente de verification')}
-              size="small"
-              color="warning"
-              sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600 }}
-            />
+            <Badge variant="warning" className="text-[0.625rem] h-[20px] font-semibold"><Warning size={12} strokeWidth={1.75} />{t('settings.myPayout.pendingVerification', 'En attente de verification')}</Badge>
           )}
         </div>
       )}

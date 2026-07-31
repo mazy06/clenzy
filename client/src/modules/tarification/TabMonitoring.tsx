@@ -1,20 +1,6 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  Grid,
-  InputAdornment,
-  Divider,
-  Paper,
-  Chip,
-  Switch,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  ListItemSecondaryAction,
-} from '@mui/material';
+import { Badge } from '../../components/ui';
+import { Box, Typography, TextField, Grid, InputAdornment, Divider, Paper, Switch, List, ListItem, ListItemIcon, ListItemText, ListItemSecondaryAction } from '@mui/material';
 import {
   VolumeUp,
   Handshake,
@@ -105,13 +91,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
               <h6 className="cn-text-subtitle1 font-bold text-[1rem]">
                 {t('tarification.monitoring.minut.title')}
               </h6>
-              <Chip
-                label={t('tarification.monitoring.minut.badge')}
-                size="small"
-                color="primary"
-                variant="outlined"
-                sx={{ fontSize: '0.6875rem', height: 22 }}
-              />
+              <Badge variant="default" className="text-[0.6875rem] h-[22px]">{t('tarification.monitoring.minut.badge')}</Badge>
             </div>
 
             <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] mb-3 leading-[1.5]">
@@ -215,13 +195,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
               <h6 className="cn-text-subtitle1 font-bold text-[1rem]">
                 {t('tarification.monitoring.clenzy.title')}
               </h6>
-              <Chip
-                label={t('tarification.monitoring.clenzy.badge')}
-                size="small"
-                color="success"
-                variant="outlined"
-                sx={{ fontSize: '0.6875rem', height: 22 }}
-              />
+              <Badge variant="success" className="text-[0.6875rem] h-[22px]">{t('tarification.monitoring.clenzy.badge')}</Badge>
             </div>
 
             <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] mb-3 leading-[1.5]">

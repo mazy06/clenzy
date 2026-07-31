@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -527,9 +528,9 @@ const YieldRulesPanel: React.FC = () => {
                       <TableCell sx={NUM_SX}>{entry.targetDate ?? '—'}</TableCell>
                       <TableCell>
                         {entry.skipReason ? (
-                          <Chip size="small" variant="outlined" color="warning" label={entry.skipReason} />
+                          <Badge variant="warning">{entry.skipReason}</Badge>
                         ) : (
-                          <Chip size="small" variant="outlined" label={entry.mode} />
+                          <Badge variant="outline">{entry.mode}</Badge>
                         )}
                       </TableCell>
                       <TableCell align="right" sx={NUM_SX}>

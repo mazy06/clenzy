@@ -15,6 +15,7 @@
  * Header avec 4 KPI tuiles (À mapper / Aliases / Custom / Properties affectees).
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Badge } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Box, Typography, Stack, TextField, InputAdornment, Button, Chip, IconButton, Tooltip, Skeleton, Select, MenuItem, FormControl, Checkbox, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
@@ -499,8 +500,7 @@ export default function AmenityMappingPage() {
                       sx={{ height: 22, fontSize: '0.7rem', bgcolor: 'var(--ok-soft)', color: SUCCESS }}
                     />
                     {a.otaSource && (
-                      <Chip size="small" label={a.otaSource}
-                            sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--hover)', color: 'text.secondary' }} />
+                      <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--hover)] text-[text.secondary]">{a.otaSource}</Badge>
                     )}
                   </Stack>
                   <span className="cn-text-caption text-muted-foreground opacity-60 block mt-0.5">
@@ -635,8 +635,7 @@ export default function AmenityMappingPage() {
                     <Ban size={14} color="var(--faint)" />
                     <p className="cn-text-body1 font-mono text-[0.85rem]">{i.rawOtaName}</p>
                     {i.otaSource && (
-                      <Chip size="small" label={i.otaSource}
-                            sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--hover)', color: 'text.secondary' }} />
+                      <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--hover)] text-[text.secondary]">{i.otaSource}</Badge>
                     )}
                   </Stack>
                 </div>
@@ -986,11 +985,9 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
             {item.rawOtaName}
           </p>
           {item.otaSources[0] && item.otaSources[0] !== 'OTA' && (
-            <Chip size="small" label={item.otaSources[0]}
-                  sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--hover)', color: 'text.secondary' }} />
+            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--hover)] text-[text.secondary]">{item.otaSources[0]}</Badge>
           )}
-          <Chip size="small" label={`${item.occurrences} propriété${item.occurrences > 1 ? 's' : ''}`}
-                sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--warn-soft)', color: 'var(--warn)' }} />
+          <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--warn-soft)] text-[var(--warn)]">{`${item.occurrences} propriété${item.occurrences > 1 ? 's' : ''}`}</Badge>
         </Stack>
         {item.affectedProperties.length > 0 && (
           <span className="cn-text-caption text-muted-foreground truncate">

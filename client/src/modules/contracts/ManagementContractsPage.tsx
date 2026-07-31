@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Box, Paper, Button, Chip, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Alert, Snackbar, Stack } from '@mui/material';
 import {
@@ -506,15 +507,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                     <p className="cn-text-body2 text-[0.8125rem]">{CONTRACT_TYPE_LABELS[c.contractType]}</p>
                   </TableCell>
                   <TableCell align="center">
-                    <Chip
-                      label={`${(c.commissionRate * 100).toFixed(0)}%`}
-                      size="small"
-                      sx={{
-                        bgcolor: 'var(--accent-soft)',
-                        color: 'var(--accent)',
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    />
+                    <Badge variant="secondary" className="bg-[var(--accent-soft)] text-[var(--accent)] tabular-nums">{`${(c.commissionRate * 100).toFixed(0)}%`}</Badge>
                   </TableCell>
                   <TableCell>
                     <p className="cn-text-body2 text-[0.75rem] text-[var(--muted)] tabular-nums">

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -271,12 +272,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
             </h6>
             {overTargetCount > 0 && (
               <Tooltip title={`Cible KPI : < ${formatDuration(targetMinutes)}. Ces incidents tirent la moyenne au-dessus du seuil.`}>
-                <Chip
-                  label={`${overTargetCount} hors cible à nettoyer`}
-                  color="error"
-                  size="small"
-                  sx={{ height: 22, fontSize: '0.7rem', fontWeight: 600 }}
-                />
+                <Badge variant="destructive" className="h-[22px] text-[0.7rem] font-semibold">{`${overTargetCount} hors cible à nettoyer`}</Badge>
               </Tooltip>
             )}
           </div>
@@ -423,18 +419,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                               <Tooltip
                                 title={`Au-dessus de la cible (< ${formatDuration(targetMinutes)}) — pollue la moyenne KPI P1. Candidat à suppression pour purger le KPI.`}
                               >
-                                <Chip
-                                  label="hors cible"
-                                  size="small"
-                                  color="error"
-                                  variant="outlined"
-                                  sx={{
-                                    height: 18,
-                                    fontSize: '0.625rem',
-                                    fontWeight: 600,
-                                    letterSpacing: '0.03em',
-                                  }}
-                                />
+                                <Badge variant="destructive" className="h-[18px] text-[0.625rem] font-semibold tracking-[0.03em]">hors cible</Badge>
                               </Tooltip>
                             )}
                           </div>

@@ -14,6 +14,7 @@
  * Reference : docs/strategy/channex-integration-plan.md (Sprint 5)
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Badge } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
@@ -795,38 +796,11 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                               {otaOption?.name ?? ota.otaName} — {ota.title || 'Sans titre'}
                             </p>
                             {ota.isActive ? (
-                              <Chip
-                                size="small"
-                                label="Actif"
-                                sx={{
-                                  height: 18,
-                                  fontSize: '0.65rem',
-                                  bgcolor: 'var(--ok-soft)',
-                                  color: 'var(--ok)',
-                                }}
-                              />
+                              <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--ok-soft)] text-[var(--ok)]">Actif</Badge>
                             ) : ota.hasOauthToken ? (
-                              <Chip
-                                size="small"
-                                label="OAuth fait, mapping a finaliser"
-                                sx={{
-                                  height: 18,
-                                  fontSize: '0.65rem',
-                                  bgcolor: 'var(--warn-soft)',
-                                  color: 'var(--warn)',
-                                }}
-                              />
+                              <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--warn-soft)] text-[var(--warn)]">OAuth fait, mapping a finaliser</Badge>
                             ) : (
-                              <Chip
-                                size="small"
-                                label="Non authentifie"
-                                sx={{
-                                  height: 18,
-                                  fontSize: '0.65rem',
-                                  bgcolor: 'var(--err-soft)',
-                                  color: 'var(--err)',
-                                }}
-                              />
+                              <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--err-soft)] text-[var(--err)]">Non authentifie</Badge>
                             )}
                           </Stack>
                           <span className="cn-text-caption text-muted-foreground block leading-[1.3]">

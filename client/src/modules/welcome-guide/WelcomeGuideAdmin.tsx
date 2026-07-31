@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Button, Card, CardContent, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, IconButton, Menu, MenuItem, Snackbar, Alert, Stack, Switch, TextField, Tooltip, Typography } from '@mui/material';
@@ -1393,11 +1394,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             <span className="cn-text-caption text-muted-foreground">
               {t('welcomeGuide.welcomeNote.guestLabel', 'Voyageur (chargé depuis la réservation)')} :
             </span>
-            <Chip
-              size="small"
-              label={loadedGuestName || t('welcomeGuide.welcomeNote.guestPending', 'chargé à l’arrivée')}
-              sx={{ height: 24, '& .MuiChip-label': { px: 1, fontSize: 12.5, fontWeight: 600 } }}
-            />
+            <Badge variant="secondary" className="h-[24px] px-1.5 text-[12.5px] font-semibold">{loadedGuestName || t('welcomeGuide.welcomeNote.guestPending', 'chargé à l’arrivée')}</Badge>
             <Button
               size="small"
               variant="text"

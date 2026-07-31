@@ -1,4 +1,5 @@
 import React from 'react';
+import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Box, Typography, Paper, Chip, CircularProgress, Skeleton, Tooltip, Button } from '@mui/material';
@@ -147,12 +148,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
           <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
             {t('bookingEngine.ai.pricing.title')}
           </Typography>
-          <Chip
-            label={`${data.length}`}
-            size="small"
-            color="primary"
-            sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }}
-          />
+          <Badge variant="default" className="h-[20px] text-[0.65rem] font-bold">{`${data.length}`}</Badge>
         </Box>
 
         <div className="flex flex-col gap-1.5">

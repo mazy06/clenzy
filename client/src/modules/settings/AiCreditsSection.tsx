@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
 import { Card } from '../../components/ui';
-import { Button, Chip, Skeleton, Table, TableBody, TableCell, TableHead, TableRow, Typography, useTheme } from '@mui/material';
+import { Button, Skeleton, Table, TableBody, TableCell, TableHead, TableRow, Typography, useTheme } from '@mui/material';
 import { Coins, History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -123,16 +124,10 @@ export default function AiCreditsSection() {
           </div>
           <div className="flex gap-1 flex-wrap">
             {(balance?.pockets ?? []).map((pocket, idx) => (
-              <Chip
-                key={`${pocket.source}-${idx}`}
-                size="small"
-                variant="outlined"
-                label={t(`aiCredits.pocket.${pocket.source}`, pocket.source) + ' · '
+              <Badge variant="outline" className="tabular-nums" key={`${pocket.source}-${idx}`}>{t(`aiCredits.pocket.${pocket.source}`, pocket.source) + ' · '
                   + toCredits(pocket.remainingMillicredits) + ' · '
                   + t('aiCredits.expires', 'expire le') + ' '
-                  + new Date(pocket.expiresAt).toLocaleDateString()}
-                sx={{ fontVariantNumeric: 'tabular-nums' }}
-              />
+                  + new Date(pocket.expiresAt).toLocaleDateString()}</Badge>
             ))}
             {(balance?.pockets ?? []).length === 0 && (
               <span className="cn-text-caption text-muted-foreground">

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Button, Snackbar, Alert, Skeleton, Tooltip, Chip } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Button, Snackbar, Alert, Skeleton, Tooltip } from '@mui/material';
 import {
   Download,
   Delete,
@@ -171,11 +172,7 @@ const DatabaseAdminPage: React.FC = () => {
                           {backup.filename}
                         </p>
                         {backup.filename.endsWith('.gz') && (
-                          <Chip
-                            label="gzip"
-                            size="small"
-                            sx={{ color: 'var(--muted)', backgroundColor: 'var(--hover)' }}
-                          />
+                          <Badge variant="secondary" className="text-[var(--muted)] bg-[var(--hover)]">gzip</Badge>
                         )}
                       </div>
                     </TableCell>

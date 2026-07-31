@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { Badge } from '../../components/ui';
 import { Typography, TextField, Grid, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   AutoAwesome,
@@ -401,7 +402,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                           InputProps={{ endAdornment: <InputAdornment position="end">m²</InputAdornment> }}
                         />
                       ) : (
-                        <Chip label={t('tarification.forfaitSection.unlimited')} size="small" variant="outlined" color="default" sx={{ height: 24 }} />
+                        <Badge variant="secondary" className="h-[24px]">{t('tarification.forfaitSection.unlimited')}</Badge>
                       )}
                     </TableCell>
                     <TableCell align="right">

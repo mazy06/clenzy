@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { Badge } from '../../components/ui';
 import { Alert as UiAlert, AlertDescription, AlertAction, Button } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -274,11 +275,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
             </Menu>
           </>
         ) : (
-          <Chip
-            icon={<Public size={14} strokeWidth={1.75} />}
-            label={`${countryFlag} ${countryLabel} \u2014 ${standardName}`}
-            sx={{ color: 'var(--accent)', bgcolor: 'var(--accent-soft)', '& .MuiChip-icon': { color: 'var(--accent)' } }}
-          />
+          <Badge variant="secondary" className="text-[var(--accent)] bg-[var(--accent-soft)] [&>svg]:text-[var(--accent)]"><Public size={14} strokeWidth={1.75} />{`${countryFlag} ${countryLabel} \u2014 ${standardName}`}</Badge>
         )}
       </div>
 
@@ -338,9 +335,9 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
             <strong>Date :</strong> {formatDate(searchResult.createdAt)} &nbsp;|&nbsp;
             <strong>{t('documents.compliance.locked')} :</strong>{' '}
             {searchResult.locked ? (
-              <Chip icon={<Lock size={14} strokeWidth={1.75} />} label={t('common.yes')} size="small" sx={{ color: 'var(--warn)', bgcolor: 'var(--warn-soft)', '& .MuiChip-icon': { color: 'var(--warn)' } }} />
+              <Badge variant="secondary" className="text-[var(--warn)] bg-[var(--warn-soft)] [&>svg]:text-[var(--warn)]"><Lock size={14} strokeWidth={1.75} />{t('common.yes')}</Badge>
             ) : (
-              <Chip label={t('common.no')} size="small" sx={{ color: 'var(--muted)', bgcolor: 'var(--hover)' }} />
+              <Badge variant="secondary" className="text-[var(--muted)] bg-[var(--hover)]">{t('common.no')}</Badge>
             )}
           </p>
         </div>
@@ -448,7 +445,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                           <p className="cn-text-body2 font-medium">{tpl.name}</p>
                         </TableCell>
                         <TableCell>
-                          <Chip label={tpl.documentType} size="small" sx={{ color: 'var(--accent)', bgcolor: 'var(--accent-soft)' }} />
+                          <Badge variant="secondary" className="text-[var(--accent)] bg-[var(--accent-soft)]">{tpl.documentType}</Badge>
                         </TableCell>
                         <TableCell>
                           <Chip

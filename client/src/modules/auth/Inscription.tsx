@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -632,11 +633,11 @@ export default function Inscription() {
               </ToggleButton>
               <ToggleButton value="ANNUAL" sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600 }}>
                 {getBillingPeriodLabel(t, 'ANNUAL')}
-                <Chip label="-20%" size="small" color="success" sx={{ ml: 0.5, height: 18, fontSize: '0.65rem', fontWeight: 700 }} />
+                <Badge variant="success" className="ms-0.5 h-[18px] text-[0.65rem] font-bold">-20%</Badge>
               </ToggleButton>
               <ToggleButton value="BIENNIAL" sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600 }}>
                 {getBillingPeriodLabel(t, 'BIENNIAL')}
-                <Chip label="-35%" size="small" color="success" sx={{ ml: 0.5, height: 18, fontSize: '0.65rem', fontWeight: 700 }} />
+                <Badge variant="success" className="ms-0.5 h-[18px] text-[0.65rem] font-bold">-35%</Badge>
               </ToggleButton>
             </ToggleButtonGroup>
             <span className="cn-text-caption text-muted-foreground">
@@ -662,27 +663,21 @@ export default function Inscription() {
                 </span>
                 <div className="flex flex-wrap gap-1">
                   {prefill.propertyType && (
-                    <Chip size="small" variant="outlined" label={getPropertyTypeLabel(t, prefill.propertyType)} />
+                    <Badge variant="outline">{getPropertyTypeLabel(t, prefill.propertyType)}</Badge>
                   )}
                   {prefill.surface && (
-                    <Chip size="small" variant="outlined" label={t('auth.inscription.surfaceChip', `${prefill.surface} m²`, { value: prefill.surface })} />
+                    <Badge variant="outline">{t('auth.inscription.surfaceChip', `${prefill.surface} m²`, { value: prefill.surface })}</Badge>
                   )}
                   {prefill.guestCapacity && (
-                    <Chip size="small" variant="outlined" label={t('auth.inscription.guestCapacityChip', `${prefill.guestCapacity} voyageurs`, { value: prefill.guestCapacity })} />
+                    <Badge variant="outline">{t('auth.inscription.guestCapacityChip', `${prefill.guestCapacity} voyageurs`, { value: prefill.guestCapacity })}</Badge>
                   )}
                   {prefill.propertyCount && (
-                    <Chip size="small" variant="outlined" label={t('auth.inscription.propertyCountChip', `${prefill.propertyCount} logement(s)`, { value: prefill.propertyCount })} />
+                    <Badge variant="outline">{t('auth.inscription.propertyCountChip', `${prefill.propertyCount} logement(s)`, { value: prefill.propertyCount })}</Badge>
                   )}
                   {prefill.city && (
-                    <Chip
-                      size="small"
-                      variant="outlined"
-                      label={
-                        prefill.postalCode
+                    <Badge variant="outline">{prefill.postalCode
                           ? t('auth.inscription.cityPostalChip', `${prefill.city} (${prefill.postalCode})`, { city: prefill.city, postalCode: prefill.postalCode })
-                          : t('auth.inscription.cityChip', `${prefill.city}`, { city: prefill.city })
-                      }
-                    />
+                          : t('auth.inscription.cityChip', `${prefill.city}`, { city: prefill.city })}</Badge>
                   )}
                 </div>
               </>

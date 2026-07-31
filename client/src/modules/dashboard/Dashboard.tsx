@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Paper, Chip, Tooltip, useMediaQuery, useTheme } from '@mui/material';
+import { Badge } from '../../components/ui';
+import { Paper, Tooltip, useMediaQuery, useTheme } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
   Calculate as CalculateIcon,
@@ -174,17 +175,7 @@ const Dashboard: React.FC = () => {
             iconBadge={<DashboardIcon />}
             titleAdornment={
               activeTabKey === 'overview' && actionItemsCount > 0 ? (
-                <Chip
-                  label={`${actionItemsCount} ${t('dashboard.toHandle', 'à traiter')}`}
-                  size="small"
-                  sx={{
-                    height: 22,
-                    fontSize: '0.6875rem',
-                    fontWeight: 600,
-                    bgcolor: 'var(--warn-soft)',
-                    color: 'var(--warn-ink)',
-                  }}
-                />
+                <Badge variant="secondary" className="h-[22px] text-[0.6875rem] font-semibold bg-[var(--warn-soft)] text-[var(--warn-ink)]">{`${actionItemsCount} ${t('dashboard.toHandle', 'à traiter')}`}</Badge>
               ) : undefined
             }
             backPath="/"

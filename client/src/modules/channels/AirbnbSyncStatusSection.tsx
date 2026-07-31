@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Paper, Chip } from '@mui/material';
+import { Badge } from '../../components/ui';
+import { Box, Paper } from '@mui/material';
 import {
   Sync as SyncIcon,
   CheckCircle as CheckCircleIcon,
@@ -89,8 +90,8 @@ function SyncStatusCard({
         {listing.lastSyncAt && ` · ${t('channels.syncStatus.lastSync')}: ${new Date(listing.lastSyncAt).toLocaleString(dateLocale)}`}
       </p>
       <div className="flex gap-0.5 mt-0.5">
-        {listing.syncEnabled && <Chip label={<><SyncIcon size={'0.625rem'} strokeWidth={1.75} /> Sync</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="success" variant="outlined" />}
-        {listing.autoCreateInterventions && <Chip label={<><CleaningIcon size={'0.625rem'} strokeWidth={1.75} /> Auto</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="info" variant="outlined" />}
+        {listing.syncEnabled && <Badge variant="success" className="text-[0.5625rem] h-[18px]">{<><SyncIcon size={'0.625rem'} strokeWidth={1.75} /> Sync</>}</Badge>}
+        {listing.autoCreateInterventions && <Badge variant="info" className="text-[0.5625rem] h-[18px]">{<><CleaningIcon size={'0.625rem'} strokeWidth={1.75} /> Auto</>}</Badge>}
       </div>
     </Box>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -294,14 +295,12 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
                     {r.startDate} → {r.endDate}
                   </p>
                   <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
-                    {r.minStay != null && <Chip size="small" label={`min ${r.minStay}`} sx={{ fontSize: '0.68rem', height: 20 }} />}
-                    {r.maxStay != null && <Chip size="small" label={`max ${r.maxStay}`} sx={{ fontSize: '0.68rem', height: 20 }} />}
-                    {r.closedToArrival && <Chip size="small" color="warning" label="CTA" sx={{ fontSize: '0.68rem', height: 20 }} />}
-                    {r.closedToDeparture && <Chip size="small" color="warning" label="CTD" sx={{ fontSize: '0.68rem', height: 20 }} />}
+                    {r.minStay != null && <Badge variant="secondary" className="text-[0.68rem] h-[20px]">{`min ${r.minStay}`}</Badge>}
+                    {r.maxStay != null && <Badge variant="secondary" className="text-[0.68rem] h-[20px]">{`max ${r.maxStay}`}</Badge>}
+                    {r.closedToArrival && <Badge variant="warning" className="text-[0.68rem] h-[20px]">CTA</Badge>}
+                    {r.closedToDeparture && <Badge variant="warning" className="text-[0.68rem] h-[20px]">CTD</Badge>}
                     {!!r.daysOfWeek?.length && (
-                      <Chip size="small" variant="outlined"
-                        label={r.daysOfWeek.map((d) => DOW.find((x) => x.v === d)?.label).join(' ')}
-                        sx={{ fontSize: '0.68rem', height: 20 }} />
+                      <Badge variant="outline" className="text-[0.68rem] h-[20px]">{r.daysOfWeek.map((d) => DOW.find((x) => x.v === d)?.label).join(' ')}</Badge>
                     )}
                   </Stack>
                 </div>
