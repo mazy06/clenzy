@@ -9,7 +9,7 @@ import {
 import { getSourceLogo } from '../planning/utils/sourceLogos';
 import { getChannelChipTokens } from '../../utils/channelChipTokens';
 import { useTranslation } from '../../hooks/useTranslation';
-import { toneTokensSx } from '../../components/StatusChip';
+import StatusChip from '../../components/StatusChip';
 
 // ─── Statuts : couleurs VALIDÉES planning (constantes locales planning) ──────
 //
@@ -23,12 +23,6 @@ const STATUS_SOFT: Record<string, string> = {
   checked_out: `${PLANNING_DEPARTURE_VIOLET}1F`,
   cancelled: 'var(--hover)',
 };
-
-/** Pilule soft : tons partagés (toneTokensSx) + rayon pilule conservé. */
-const chipSx = (bg: string, color: string) => ({
-  ...toneTokensSx({ color, bg }),
-  borderRadius: 'var(--radius-pill)',
-});
 
 // ─── Status Chip ─────────────────────────────────────────────────────────────
 
@@ -46,19 +40,17 @@ export const ReservationStatusChip: React.FC<StatusChipProps> = ({ status }) => 
   const label = t(`reservations.status.${status}`) as string;
 
   return (
-    <Chip
+    <StatusChip
+      pill
+      tokens={{ color, bg: soft }}
+      label={label}
       icon={
-        <Box
-          component="span"
-          sx={{ width: 9, height: 9, borderRadius: '3px', backgroundColor: color, flexShrink: 0 }}
+        <span
+          aria-hidden
+          className="size-[9px] shrink-0 rounded-[3px]"
+          style={{ backgroundColor: color }}
         />
       }
-      label={label}
-      size="small"
-      sx={{
-        ...chipSx(soft, color),
-        '& .MuiChip-icon': { ml: 1, mr: -0.5 },
-      }}
     />
   );
 };
@@ -76,18 +68,15 @@ export const ReservationSourceBadge: React.FC<SourceBadgeProps> = ({ source }) =
   const logo = getSourceLogo(source);
 
   return (
-    <Chip
+    <StatusChip
+      pill
+      tokens={tokens}
+      label={label}
       icon={
         logo ? (
-          <img className="w-[13px] h-[13px] object-contain block" src={logo} alt="" />
+          <img className="block size-[13px] object-contain" src={logo} alt="" />
         ) : undefined
       }
-      label={label}
-      size="small"
-      sx={{
-        ...chipSx(tokens.bg, tokens.color),
-        '& .MuiChip-icon': { ml: 1, mr: -0.5 },
-      }}
     />
   );
 };

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Chip } from '@mui/material';
+import { Badge } from './ui';
+import { cn } from '../utils/cn';
 
 /**
  * Primitive unique des chips de statut « Signature » — source de vérité du look
@@ -10,6 +11,13 @@ import { Box, Chip } from '@mui/material';
  *
  * Note : override volontaire du chip global (pilule fw700) → look statut 6px/fw600.
  * (L'arbitrage pilule-vs-6px sur TOUTES les chips est consigné DESIGN_BASELINE §7.)
+ *
+ * <h3>Pourquoi les couleurs restent en style inline</h3>
+ * Le fond et l'encre viennent d'une valeur calculée à l'exécution : token du
+ * domaine, hex d'un canal, `color-mix` d'une couleur arbitraire. Tailwind émet
+ * ses classes à la COMPILATION en scannant les sources — une classe construite
+ * depuis une variable ne serait jamais generee. Seules les dimensions, connues
+ * d'avance, sont des classes.
  */
 
 export type StatusTone = 'ok' | 'warn' | 'err' | 'info' | 'accent' | 'neutral';
@@ -38,7 +46,18 @@ const DIMS: Record<ChipSize, { height: number; fontSize: string; px: number }> =
   md: { height: 22, fontSize: '0.6875rem', px: 1 },
 };
 
-/** sx d'une chip de statut à partir de tokens {color,bg} explicites. */
+/** Gabarits écrits en clair, sans quoi Tailwind ne les émettrait pas. */
+const SIZE_CLASS: Record<ChipSize, string> = {
+  sm: 'h-[18px] gap-1 px-[4.5px] text-[0.625rem]',
+  md: 'h-[22px] gap-1.5 px-1.5 text-[0.6875rem]',
+};
+
+/**
+ * sx d'une chip de statut à partir de tokens {color,bg} explicites.
+ *
+ * <p>Conservé pour les `<Chip>` MUI pas encore migrés. Les nouveaux usages
+ * passent par {@link StatusChip} ou {@link statusChipClasses}.</p>
+ */
 export function toneTokensSx(tokens: ToneTokens, size: ChipSize = 'md') {
   const d = DIMS[size];
   return {
@@ -54,16 +73,28 @@ export function toneTokensSx(tokens: ToneTokens, size: ChipSize = 'md') {
   } as const;
 }
 
+/** Fond doux d'une couleur arbitraire, hex comme `var(--…)`. */
+export const softBackground = (color: string) => `color-mix(in srgb, ${color} 12%, transparent)`;
+
 /**
  * sx d'une chip à partir d'une couleur ARBITRAIRE (hex OU var(--…)) — pour les
  * couleurs « data » hors palette sémantique (canaux, catégories, types). Utilise
  * `color-mix` → compatible hex ET var(), contrairement à l'ancien `${hex}18`.
  */
 export function softChipSx(color: string, size: ChipSize = 'md') {
-  return toneTokensSx(
-    { color, bg: `color-mix(in srgb, ${color} 12%, transparent)` },
-    size,
-  );
+  return toneTokensSx({ color, bg: softBackground(color) }, size);
+}
+
+/**
+ * Équivalent kit de {@link softChipSx} : classes + style d'une puce de statut, à
+ * poser sur un `Badge`. Permet de migrer un `<Chip sx={softChipSx(c)}>` isolé
+ * sans passer par le composant complet.
+ */
+export function statusChipClasses(tokens: ToneTokens, size: ChipSize = 'md', pill = false) {
+  return {
+    className: cn(SIZE_CLASS[size], 'border-none font-semibold', pill ? 'rounded-full' : 'rounded-md'),
+    style: { backgroundColor: tokens.bg, color: tokens.color } as React.CSSProperties,
+  };
 }
 
 export interface StatusChipProps {
@@ -79,7 +110,15 @@ export interface StatusChipProps {
   dot?: boolean;
   /** Icône custom (ex: logo canal). Prioritaire sur `dot`. */
   icon?: React.ReactElement;
-  sx?: object;
+  /**
+   * Rayon pilule au lieu du 6 px de statut. Cinq ecrans redefinissaient un
+   * `chipSx` local pour cela seul.
+   */
+  pill?: boolean;
+  /** Classes additionnelles. */
+  className?: string;
+  /** Conservé pour compatibilité d'appel ; appliqué en style inline. */
+  sx?: React.CSSProperties;
 }
 
 /**
@@ -96,29 +135,34 @@ export default function StatusChip({
   size = 'md',
   dot,
   icon,
+  pill,
+  className,
   sx,
 }: StatusChipProps) {
   const resolved: ToneTokens = color
-    ? { color, bg: `color-mix(in srgb, ${color} 12%, transparent)` }
+    ? { color, bg: softBackground(color) }
     : tokens ?? STATUS_TONES[tone];
 
-  const dotIcon = dot ? (
-    <Box
-      component="span"
-      sx={{ width: 8, height: 8, borderRadius: '2.5px', backgroundColor: resolved.color, flexShrink: 0 }}
+  const marque = icon ?? (dot ? (
+    <span
+      aria-hidden
+      className="size-2 shrink-0 rounded-[2.5px]"
+      style={{ backgroundColor: resolved.color }}
     />
-  ) : undefined;
+  ) : null);
+
+  const gabarit = statusChipClasses(resolved, size, pill);
 
   return (
-    <Chip
-      icon={icon ?? dotIcon}
-      label={label}
-      size="small"
-      sx={{
-        ...toneTokensSx(resolved, size),
-        ...(((icon ?? dotIcon)) ? { '& .MuiChip-icon': { ml: size === 'sm' ? 0.75 : 1, mr: -0.25, color: resolved.color } } : {}),
-        ...sx,
-      }}
-    />
+    <Badge
+      variant="secondary"
+      // L'encre se propage a l'icone : cote MUI c'etait la regle
+      // `& .MuiChip-icon`, ici le svg est un enfant direct du badge.
+      className={cn(gabarit.className, '[&>svg]:shrink-0 [&>svg]:text-current', className)}
+      style={{ ...gabarit.style, ...sx }}
+    >
+      {marque}
+      {label}
+    </Badge>
   );
 }
