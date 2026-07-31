@@ -1,4 +1,6 @@
 import React, { useCallback, useState } from 'react';
+import StatusChip from '../../components/StatusChip';
+import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
 import { Typography, TextField, Grid, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
@@ -26,16 +28,6 @@ const ALL_CLEANING_SERVICE_TYPE_KEYS = [
   'BATHROOM_CLEANING',
 ] as const;
 
-// ─── Shared SX ────────────────────────────────────────────────────────────────
-
-const CHIP_SX = {
-  height: 30,
-  fontSize: '0.75rem',
-  fontWeight: 500,
-  borderWidth: 1.5,
-  '& .MuiChip-label': { px: 0.75 },
-  transition: 'all 0.15s ease',
-} as const;
 
 const SECTION_TITLE_SX = {
   fontSize: '0.625rem',
@@ -219,30 +211,16 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
             {ALL_CLEANING_SERVICE_TYPE_KEYS.map((stKey) => {
               const isSelected = (forfait.serviceTypes || []).includes(stKey);
               return (
-                <Chip
+                <StatusChip
                   key={stKey}
+                  outlined
+                  selected={isSelected}
+                  pressed={isSelected}
+                  tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
                   icon={<AutoAwesome size={14} strokeWidth={1.75} />}
                   label={t(`tarification.forfaitSection.cleaningTypes.${stKey}`)}
                   onClick={canEdit ? () => toggleServiceType(stKey) : undefined}
-                  variant={isSelected ? 'filled' : 'outlined'}
-                  size="small"
-                  sx={{
-                    ...CHIP_SX,
-                    borderColor: isSelected ? 'var(--accent)' : 'var(--line-2)',
-                    bgcolor: isSelected ? 'var(--accent-soft)' : 'transparent',
-                    color: isSelected ? 'var(--accent)' : 'text.secondary',
-                    '& .MuiChip-icon': {
-                      fontSize: 14,
-                      ml: 0.5,
-                      color: isSelected ? 'var(--accent)' : 'primary.main',
-                    },
-                    '&:hover': canEdit ? {
-                      bgcolor: 'var(--hover)',
-                      borderColor: 'var(--accent)',
-                    } : {},
-                    cursor: canEdit ? 'pointer' : 'default',
-                    opacity: canEdit ? 1 : 0.6,
-                  }}
+                  className={cn('h-[30px] text-[0.75rem]', !canEdit && 'opacity-60')}
                 />
               );
             })}
@@ -262,20 +240,15 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                 {availablePrestations.map((p) => {
                   const isIncluded = includedPrestationSet.has(p.key);
                   return (
-                    <Chip
+                    <StatusChip
                       key={p.key}
+                      outlined
+                      selected={isIncluded}
+                      pressed={isIncluded}
+                      tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }}
                       label={t(`tarification.forfaitSection.prestationTypes.${p.key}`, p.label)}
                       onClick={canEdit ? () => togglePrestation(p.key, 'included') : undefined}
-                      variant={isIncluded ? 'filled' : 'outlined'}
-                      size="small"
-                      sx={{
-                        ...CHIP_SX,
-                        borderColor: isIncluded ? 'var(--ok)' : 'var(--line-2)',
-                        bgcolor: isIncluded ? 'var(--ok-soft)' : 'transparent',
-                        color: isIncluded ? 'var(--ok)' : 'text.disabled',
-                        cursor: canEdit ? 'pointer' : 'default',
-                        opacity: canEdit ? 1 : 0.6,
-                      }}
+                      className={cn('h-[30px] text-[0.75rem]', !canEdit && 'opacity-60')}
                     />
                   );
                 })}
@@ -290,20 +263,15 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                 {availablePrestations.map((p) => {
                   const isExtra = extraPrestationSet.has(p.key);
                   return (
-                    <Chip
+                    <StatusChip
                       key={p.key}
+                      outlined
+                      selected={isExtra}
+                      pressed={isExtra}
+                      tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }}
                       label={t(`tarification.forfaitSection.prestationTypes.${p.key}`, p.label)}
                       onClick={canEdit ? () => togglePrestation(p.key, 'extra') : undefined}
-                      variant={isExtra ? 'filled' : 'outlined'}
-                      size="small"
-                      sx={{
-                        ...CHIP_SX,
-                        borderColor: isExtra ? 'var(--warn)' : 'var(--line-2)',
-                        bgcolor: isExtra ? 'var(--warn-soft)' : 'transparent',
-                        color: isExtra ? 'var(--warn)' : 'text.disabled',
-                        cursor: canEdit ? 'pointer' : 'default',
-                        opacity: canEdit ? 1 : 0.6,
-                      }}
+                      className={cn('h-[30px] text-[0.75rem]', !canEdit && 'opacity-60')}
                     />
                   );
                 })}
@@ -343,30 +311,16 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
               teams.map((team) => {
                 const isSelected = eligibleTeamIdSet.has(team.id);
                 return (
-                  <Chip
+                  <StatusChip
                     key={team.id}
+                    outlined
+                    selected={isSelected}
+                    pressed={isSelected}
+                    tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
                     icon={<Group size={14} strokeWidth={1.75} />}
                     label={`${team.name} (${team.memberCount})`}
                     onClick={canEdit ? () => toggleTeam(team.id) : undefined}
-                    variant={isSelected ? 'filled' : 'outlined'}
-                    size="small"
-                    sx={{
-                      ...CHIP_SX,
-                      borderColor: isSelected ? 'var(--accent)' : 'var(--line-2)',
-                      bgcolor: isSelected ? 'var(--accent-soft)' : 'transparent',
-                      color: isSelected ? 'var(--accent)' : 'text.secondary',
-                      '& .MuiChip-icon': {
-                        fontSize: 14,
-                        ml: 0.5,
-                        color: isSelected ? 'var(--accent)' : 'primary.main',
-                      },
-                      '&:hover': canEdit ? {
-                        bgcolor: 'var(--hover)',
-                        borderColor: 'var(--accent)',
-                      } : {},
-                      cursor: canEdit ? 'pointer' : 'default',
-                      opacity: canEdit ? 1 : 0.6,
-                    }}
+                    className={cn('h-[30px] text-[0.75rem]', !canEdit && 'opacity-60')}
                   />
                 );
               })
@@ -431,13 +385,13 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
           </TableContainer>
           {canEdit && (
             <div className="mt-0.5">
-              <Chip
+              <StatusChip
+                outlined
+                tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
                 icon={<Add size={14} strokeWidth={1.75} />}
                 label={t('tarification.forfaitSection.addTier')}
                 onClick={addSurfaceTier}
-                variant="outlined"
-                size="small"
-                sx={{ ...CHIP_SX, cursor: 'pointer', borderStyle: 'dashed' }}
+                className="h-[30px] border-dashed text-[0.75rem]"
               />
             </div>
           )}

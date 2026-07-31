@@ -97,6 +97,20 @@ export function statusChipClasses(tokens: ToneTokens, size: ChipSize = 'md', pil
   };
 }
 
+/**
+ * Variante SELECTION : bordure visible, fond transparent au repos, teinte
+ * pleine une fois choisie. Rien a voir avec un statut, qui ne se choisit pas —
+ * d'ou une entree distincte plutot qu'un booleen de plus sur la meme recette.
+ */
+export function selectChipClasses(tokens: ToneTokens, selected: boolean, size: ChipSize = 'md', pill = false) {
+  return {
+    className: cn(SIZE_CLASS[size], 'border font-medium', pill ? 'rounded-full' : 'rounded-md'),
+    style: selected
+      ? { backgroundColor: tokens.bg, color: tokens.color, borderColor: tokens.color }
+      : { backgroundColor: 'transparent', color: 'var(--muted)', borderColor: 'var(--line-2)' },
+  } as { className: string; style: React.CSSProperties };
+}
+
 export interface StatusChipProps {
   /** Ton sémantique. Ignoré si `tokens` est fourni. */
   tone?: StatusTone;
@@ -127,6 +141,13 @@ export interface StatusChipProps {
   disabled?: boolean;
   /** Libelle accessible quand le contenu visible ne suffit pas. */
   ariaLabel?: string;
+  /**
+   * Puce de SELECTION : bordure au repos, teinte pleine une fois choisie.
+   * A combiner avec `onClick` — une puce qu'on choisit est un controle.
+   */
+  outlined?: boolean;
+  /** Etat choisi de la puce de selection. */
+  selected?: boolean;
   /** Classes additionnelles. */
   className?: string;
   /** Conservé pour compatibilité d'appel ; appliqué en style inline. */
@@ -148,6 +169,8 @@ export default function StatusChip({
   dot,
   icon,
   pill,
+  outlined,
+  selected,
   onClick,
   pressed,
   disabled,
@@ -167,7 +190,9 @@ export default function StatusChip({
     />
   ) : null);
 
-  const gabarit = statusChipClasses(resolved, size, pill);
+  const gabarit = outlined
+    ? selectChipClasses(resolved, Boolean(selected), size, pill)
+    : statusChipClasses(resolved, size, pill);
   const classes = cn(
     gabarit.className,
     '[&>svg]:shrink-0 [&>svg]:text-current',
