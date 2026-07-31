@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import StatusChip from './StatusChip';
 import { Alert as UiAlert, AlertDescription } from './ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from './ui';
-import { Box, Card, CardContent, Typography, Grid, Chip, Alert, Button, IconButton, Tooltip, LinearProgress } from '@mui/material';
+import { Box, Card, CardContent, Typography, Grid, Alert, Button, IconButton, Tooltip, LinearProgress } from '@mui/material';
 import {
   TrendingUp,
   Refresh,
@@ -16,11 +17,6 @@ import type { KeycloakMetricsResponse, TestCoverageMetrics } from '../services/a
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 
 /** Chip -soft : texte couleur + fond -soft (pilule/typo via theme global MuiChip) */
-const chipSx = (fg: string, bg: string) => ({
-  color: fg,
-  backgroundColor: bg,
-  '& .MuiChip-icon': { color: fg },
-});
 
 const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
 const INFO_TOKEN = { fg: 'var(--info)', bg: 'var(--info-soft)' };
@@ -172,17 +168,8 @@ const KeycloakMetrics: React.FC = () => {
                 </Grid>
                 <Grid item xs={12}>
                   <Box display="flex" gap={1} flexWrap="wrap">
-                    <Chip
-                      label={`${metrics.users.newThisWeek} nouveaux`}
-                      size="small"
-                      icon={<TrendingUp size={16} strokeWidth={1.75} />}
-                      sx={chipSx(INFO_TOKEN.fg, INFO_TOKEN.bg)}
-                    />
-                    <Chip
-                      label={`${metrics.users.inactive} inactifs`}
-                      size="small"
-                      sx={chipSx(NEUTRAL_TOKEN.fg, NEUTRAL_TOKEN.bg)}
-                    />
+                    <StatusChip tokens={{ color: INFO_TOKEN.fg, bg: INFO_TOKEN.bg }} label={`${metrics.users.newThisWeek} nouveaux`} icon={<TrendingUp size={16} strokeWidth={1.75} />} />
+                    <StatusChip tokens={{ color: NEUTRAL_TOKEN.fg, bg: NEUTRAL_TOKEN.bg }} label={`${metrics.users.inactive} inactifs`} />
                   </Box>
                 </Grid>
               </Grid>
@@ -221,16 +208,8 @@ const KeycloakMetrics: React.FC = () => {
                 </Grid>
                 <Grid item xs={12}>
                   <Box display="flex" gap={1} flexWrap="wrap">
-                    <Chip
-                      label={`${metrics.sessions.cacheHits} cache hits`}
-                      size="small"
-                      sx={chipSx(INFO_TOKEN.fg, INFO_TOKEN.bg)}
-                    />
-                    <Chip
-                      label={`${metrics.sessions.revokedTokens} révoqués`}
-                      size="small"
-                      sx={chipSx(NEUTRAL_TOKEN.fg, NEUTRAL_TOKEN.bg)}
-                    />
+                    <StatusChip tokens={{ color: INFO_TOKEN.fg, bg: INFO_TOKEN.bg }} label={`${metrics.sessions.cacheHits} cache hits`} />
+                    <StatusChip tokens={{ color: NEUTRAL_TOKEN.fg, bg: NEUTRAL_TOKEN.bg }} label={`${metrics.sessions.revokedTokens} révoqués`} />
                   </Box>
                 </Grid>
               </Grid>
@@ -269,16 +248,8 @@ const KeycloakMetrics: React.FC = () => {
                 </Grid>
                 <Grid item xs={12}>
                   <Box display="flex" gap={1} flexWrap="wrap">
-                    <Chip
-                      label={`${metrics.performance.totalRequests} requêtes`}
-                      size="small"
-                      sx={chipSx(INFO_TOKEN.fg, INFO_TOKEN.bg)}
-                    />
-                    <Chip
-                      label={`${metrics.performance.errorRate}% erreurs`}
-                      size="small"
-                      sx={chipSx(SEM_TOKEN[getPerformanceColor(100 - metrics.performance.errorRate)].fg, SEM_TOKEN[getPerformanceColor(100 - metrics.performance.errorRate)].bg)}
-                    />
+                    <StatusChip tokens={{ color: INFO_TOKEN.fg, bg: INFO_TOKEN.bg }} label={`${metrics.performance.totalRequests} requêtes`} />
+                    <StatusChip tokens={{ color: SEM_TOKEN[getPerformanceColor(100 - metrics.performance.errorRate)].fg, bg: SEM_TOKEN[getPerformanceColor(100 - metrics.performance.errorRate)].bg }} label={`${metrics.performance.errorRate}% erreurs`} />
                   </Box>
                 </Grid>
               </Grid>
@@ -317,17 +288,9 @@ const KeycloakMetrics: React.FC = () => {
                 </Grid>
                 <Grid item xs={12}>
                   <Box display="flex" gap={1} flexWrap="wrap">
-                    <Chip
-                      label={`${metrics.security.suspiciousActivity} activité suspecte`}
-                      size="small"
-                      sx={chipSx(SEM_TOKEN[metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'].fg, SEM_TOKEN[metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'].bg)}
-                    />
+                    <StatusChip tokens={{ color: SEM_TOKEN[metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'].fg, bg: SEM_TOKEN[metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'].bg }} label={`${metrics.security.suspiciousActivity} activité suspecte`} />
                     {metrics.security.lastIncident && (
-                      <Chip
-                        label={`Dernier incident: ${new Date(metrics.security.lastIncident).toLocaleString()}`}
-                        size="small"
-                        sx={chipSx(NEUTRAL_TOKEN.fg, NEUTRAL_TOKEN.bg)}
-                      />
+                      <StatusChip tokens={{ color: NEUTRAL_TOKEN.fg, bg: NEUTRAL_TOKEN.bg }} label={`Dernier incident: ${new Date(metrics.security.lastIncident).toLocaleString()}`} />
                     )}
                   </Box>
                 </Grid>
@@ -344,11 +307,7 @@ const KeycloakMetrics: React.FC = () => {
                   <span className="inline-flex me-1.5 text-[var(--accent)]"><BugReport size={20} strokeWidth={1.75} /></span>
                   Couverture de Tests
                   {coverage.reportDate && (
-                    <Chip
-                      label={`Rapport du ${new Date(coverage.reportDate).toLocaleDateString()}`}
-                      size="small"
-                      sx={{ ...chipSx(NEUTRAL_TOKEN.fg, NEUTRAL_TOKEN.bg), ml: 2 }}
-                    />
+                    <StatusChip tokens={{ color: NEUTRAL_TOKEN.fg, bg: NEUTRAL_TOKEN.bg }} label={`Rapport du ${new Date(coverage.reportDate).toLocaleDateString()}`} className="ms-3" />
                   )}
                 </h6>
                 <Grid container spacing={3}>

@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Skeleton, TextField, MenuItem, Chip, Tooltip } from '@mui/material';
+import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Skeleton, TextField, MenuItem, Tooltip } from '@mui/material';
 import { Refresh, CurrencyExchange, TrendingUp } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../../components/PageHeader';
@@ -235,18 +236,13 @@ export default function ExchangeRateHistoryPage() {
           {stats && (
             <div className="flex gap-1.5 ms-auto">
               <Tooltip title="Minimum sur la periode">
-                <Chip label={`Min: ${formatRate(stats.min)}`} size="small" sx={chipSx('var(--info)', 'var(--info-soft)')} />
+                <StatusChip tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={`Min: ${formatRate(stats.min)}`} />
               </Tooltip>
               <Tooltip title="Maximum sur la periode">
-                <Chip label={`Max: ${formatRate(stats.max)}`} size="small" sx={chipSx('var(--warn)', 'var(--warn-soft)')} />
+                <StatusChip tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label={`Max: ${formatRate(stats.max)}`} />
               </Tooltip>
               <Tooltip title="Moyenne sur la periode">
-                <Chip
-                  icon={<TrendingUp size={14} strokeWidth={1.75} />}
-                  label={`Moy: ${formatRate(stats.avg)}`}
-                  size="small"
-                  sx={chipSx('var(--accent)', 'var(--accent-soft)')}
-                />
+                <StatusChip tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={`Moy: ${formatRate(stats.avg)}`} icon={<TrendingUp size={14} strokeWidth={1.75} />} />
               </Tooltip>
             </div>
           )}
@@ -306,16 +302,16 @@ export default function ExchangeRateHistoryPage() {
                   <TableRow key={rate.id} hover>
                     <TableCell>{formatDate(rate.rateDate)}</TableCell>
                     <TableCell>
-                      <Chip label={rate.baseCurrency} size="small" sx={hexChipSx(currencyHex(rate.baseCurrency))} />
+                      <StatusChip color={currencyHex(rate.baseCurrency)} label={rate.baseCurrency} />
                     </TableCell>
                     <TableCell>
-                      <Chip label={rate.targetCurrency} size="small" sx={hexChipSx(currencyHex(rate.targetCurrency))} />
+                      <StatusChip color={currencyHex(rate.targetCurrency)} label={rate.targetCurrency} />
                     </TableCell>
                     <TableCell align="right" sx={{ fontFamily: 'monospace', fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>
                       {formatRate(rate.rate)}
                     </TableCell>
                     <TableCell>
-                      <Chip label={rate.source} size="small" sx={chipSx('var(--muted)', 'var(--hover)')} />
+                      <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={rate.source} />
                     </TableCell>
                   </TableRow>
                 ))}

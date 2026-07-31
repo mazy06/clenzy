@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Box, Paper, Typography, Button, Chip, IconButton, Tooltip, MenuItem, Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
@@ -424,19 +425,9 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                     {/* ─── Type (Commission / Reservation / Intervention) ─── */}
                     <TableCell>
                       {inv.invoiceType === 'COMMISSION' ? (
-                        <Chip
-                          label={t('invoices.type.commission', 'Commission')}
-                          size="small"
-                          icon={<span className="inline-flex me-0.5"><MoneyIcon size={14} strokeWidth={1.75} /></span>}
-                          sx={chipSoftSx(COMMISSION_COLOR, `${COMMISSION_COLOR}18`)}
-                        />
+                        <StatusChip tokens={{ color: COMMISSION_COLOR, bg: `${COMMISSION_COLOR}18` }} label={t('invoices.type.commission', 'Commission')} icon={<span className="inline-flex me-0.5"><MoneyIcon size={14} strokeWidth={1.75} /></span>} />
                       ) : source ? (
-                        <Chip
-                          label={source.label}
-                          size="small"
-                          icon={source.icon}
-                          sx={chipSoftSx(source.color, `${source.color}18`)}
-                        />
+                        <StatusChip tokens={{ color: source.color, bg: `${source.color}18` }} label={source.label} icon={source.icon} />
                       ) : (
                         <p className="cn-text-body2 text-[var(--muted)] text-[12.5px]">
                           —
@@ -454,11 +445,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
 
                     {/* ─── Statut (chip -soft sémantique) ─── */}
                     <TableCell>
-                      <Chip
-                        label={STATUS_LABELS[inv.status]}
-                        size="small"
-                        sx={chipSoftSx(statusToken.fg, statusToken.bg)}
-                      />
+                      <StatusChip tokens={{ color: statusToken.fg, bg: statusToken.bg }} label={STATUS_LABELS[inv.status]} />
                     </TableCell>
 
                     {/* ─── Actions ─── */}

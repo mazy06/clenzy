@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import StatusChip from './StatusChip';
 import { Alert as BuiAlert, AlertDescription } from './ui';
 import { Info as BuiInfo } from 'lucide-react';
 import { Spinner } from './ui';
-import { Box, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Chip, IconButton, Tooltip, TextField, FormControl, InputLabel, Select, MenuItem, Button, Grid, Divider, Alert } from '@mui/material';
+import { Box, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, IconButton, Tooltip, TextField, FormControl, InputLabel, Select, MenuItem, Button, Grid, Divider, Alert } from '@mui/material';
 import {
   Info,
   Warning,
@@ -23,11 +24,6 @@ import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 import PagePagination from './PagePagination';
 
 /** Chip -soft : texte couleur + fond -soft (pilule/typo via theme global MuiChip) */
-const chipSx = (fg: string, bg: string) => ({
-  color: fg,
-  backgroundColor: bg,
-  '& .MuiChip-icon': { color: fg },
-});
 
 const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
 
@@ -257,11 +253,7 @@ const AuditLogging: React.FC = () => {
               Logs d'audit ({totalElements} entrées)
             </h6>
             {totalPages > 1 && (
-              <Chip
-                label={`Page ${currentPage + 1} sur ${totalPages}`}
-                size="small"
-                sx={{ ...chipSx('var(--accent)', 'var(--accent-soft)'), fontVariantNumeric: 'tabular-nums' }}
-              />
+              <StatusChip tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={`Page ${currentPage + 1} sur ${totalPages}`} className="tabular-nums" />
             )}
           </Box>
 
@@ -284,17 +276,9 @@ const AuditLogging: React.FC = () => {
                           <span className="cn-text-subtitle2">
                             {log.action || formatEventType(log.eventType)}
                           </span>
-                          <Chip
-                            label={formatEventType(log.eventType)}
-                            size="small"
-                            sx={chipSx(eventToken(log.eventType).fg, eventToken(log.eventType).bg)}
-                          />
+                          <StatusChip tokens={{ color: eventToken(log.eventType).fg, bg: eventToken(log.eventType).bg }} label={formatEventType(log.eventType)} />
                           {log.result && (
-                            <Chip
-                              label={log.result}
-                              size="small"
-                              sx={chipSx(resultToken(log.result).fg, resultToken(log.result).bg)}
-                            />
+                            <StatusChip tokens={{ color: resultToken(log.result).fg, bg: resultToken(log.result).bg }} label={log.result} />
                           )}
                         </Box>
                       }

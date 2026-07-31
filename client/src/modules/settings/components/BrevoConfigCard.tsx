@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Box, Typography, Chip, TextField, Button, Switch, FormControlLabel, MenuItem, Alert, Divider } from '@mui/material';
+import { Box, Typography, TextField, Button, Switch, FormControlLabel, MenuItem, Alert, Divider } from '@mui/material';
 import { CheckCircle as CheckCircleIcon, ErrorOutline, Link as LinkIcon } from '../../../icons';
 import {
   useMarketingIntegration,
@@ -29,17 +30,6 @@ const labelSx = {
   letterSpacing: '0.04em',
 };
 
-const chipSx = (color: string) => ({
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  borderRadius: '6px',
-  backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
-  color,
-  border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-  '& .MuiChip-icon': { color: `${color} !important`, ml: '6px', mr: '-2px' },
-  '& .MuiChip-label': { px: 0.875 },
-});
 
 interface BrevoConfigCardProps {
   /** Notifie le parent de l'état "configuré" pour le badge sur la card de la liste. */
@@ -70,13 +60,13 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
 
   const statusChip =
     data.configured && data.status === 'ACTIVE' ? (
-      <Chip icon={<CheckCircleIcon size={11} strokeWidth={2} />} label="Connecté" size="small" sx={chipSx(ACCENT)} />
+      <StatusChip color={ACCENT} label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
     ) : data.status === 'ERROR' ? (
-      <Chip icon={<ErrorOutline size={11} strokeWidth={2} />} label="Erreur" size="small" sx={chipSx(DANGER)} />
+      <StatusChip color={DANGER} label="Erreur" icon={<ErrorOutline size={11} strokeWidth={2} />} />
     ) : data.configured ? (
-      <Chip label="À tester" size="small" sx={chipSx(WARM)} />
+      <StatusChip color={WARM} label="À tester" />
     ) : (
-      <Chip label="Non configuré" size="small" sx={chipSx(NEUTRAL)} />
+      <StatusChip color={NEUTRAL} label="Non configuré" />
     );
 
   const saveKey = () => {

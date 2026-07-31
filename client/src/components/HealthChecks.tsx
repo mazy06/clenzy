@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import StatusChip from './StatusChip';
 import { Spinner } from './ui';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Card, CardContent, Grid, Chip, Alert, Button, IconButton, Tooltip, LinearProgress, List, ListItem, ListItemText, ListItemIcon, Collapse, Divider } from '@mui/material';
+import { Box, Card, CardContent, Grid, Alert, Button, IconButton, Tooltip, LinearProgress, List, ListItem, ListItemText, ListItemIcon, Collapse, Divider } from '@mui/material';
 import {
   CheckCircle,
   Error as ErrorIcon,
@@ -23,11 +24,6 @@ import StatTile from './StatTile';
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 
 /** Chip -soft : texte couleur + fond -soft (pilule/typo via theme global MuiChip) */
-const chipSx = (fg: string, bg: string) => ({
-  color: fg,
-  backgroundColor: bg,
-  '& .MuiChip-icon': { color: fg },
-});
 
 const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
 
@@ -286,23 +282,10 @@ const HealthChecks: React.FC = () => {
                         <span className="cn-text-subtitle1">
                           {check.name}
                         </span>
-                        <Chip
-                          label={check.status}
-                          size="small"
-                          sx={chipSx(statusToken(check.status).fg, statusToken(check.status).bg)}
-                        />
-                        <Chip
-                          label={check.category}
-                          size="small"
-                          icon={getCategoryIcon(check.category)}
-                          sx={chipSx(NEUTRAL_TOKEN.fg, NEUTRAL_TOKEN.bg)}
-                        />
+                        <StatusChip tokens={{ color: statusToken(check.status).fg, bg: statusToken(check.status).bg }} label={check.status} />
+                        <StatusChip tokens={{ color: NEUTRAL_TOKEN.fg, bg: NEUTRAL_TOKEN.bg }} label={check.category} icon={getCategoryIcon(check.category)} />
                         {check.critical && (
-                          <Chip
-                            label="CRITIQUE"
-                            size="small"
-                            sx={chipSx('var(--err)', 'var(--err-soft)')}
-                          />
+                          <StatusChip tokens={{ color: 'var(--err)', bg: 'var(--err-soft)' }} label="CRITIQUE" />
                         )}
                       </Box>
                     }
@@ -311,11 +294,7 @@ const HealthChecks: React.FC = () => {
                         <Box display="flex" alignItems="center" gap={2} flexWrap="wrap" mb={1}>
                           <p className="cn-text-body2 text-muted-foreground">
                             <strong>Temps de réponse:</strong>
-                            <Chip
-                              label={`${check.responseTimeMs}ms`}
-                              size="small"
-                              sx={{ ...chipSx(responseTimeToken(check.responseTimeMs).fg, responseTimeToken(check.responseTimeMs).bg), ml: 1, fontVariantNumeric: 'tabular-nums' }}
-                            />
+                            <StatusChip tokens={{ color: responseTimeToken(check.responseTimeMs).fg, bg: responseTimeToken(check.responseTimeMs).bg }} label={`${check.responseTimeMs}ms`} className="ms-1.5 tabular-nums" />
                           </p>
                           {check.lastCheck && (
                             <p className="cn-text-body2 text-muted-foreground">
