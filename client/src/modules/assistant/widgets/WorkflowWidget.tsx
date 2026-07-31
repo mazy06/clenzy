@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { Box, Stepper, Step, StepLabel, Button, Chip } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { Box, Stepper, Step, StepLabel, Button } from '@mui/material';
 import { AssistantMarkdown } from '../components/AssistantMarkdown';
 
 interface StepDef {
@@ -108,22 +109,11 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
           </p>
         )}
         {data.status && data.status !== 'ACTIVE' && (
-          <Chip
-            label={data.status}
-            size="small"
-            sx={{
-              height: 18, fontSize: '10.5px', fontWeight: 700,
-              letterSpacing: '.04em', textTransform: 'uppercase',
-              bgcolor: data.status === 'COMPLETED'
-                ? 'var(--ok-soft)'
-                : 'var(--hover)',
-              color: data.status === 'COMPLETED'
+          <StatusChip size="sm" tokens={{ color: data.status === 'COMPLETED'
                 ? 'var(--ok)'
-                : 'var(--muted)',
-              border: 'none',
-              '& .MuiChip-label': { px: 0.75 },
-            }}
-          />
+                : 'var(--muted)', bg: data.status === 'COMPLETED'
+                ? 'var(--ok-soft)'
+                : 'var(--hover)' }} label={data.status} className="text-[10.5px] tracking-[.04em] uppercase" />
         )}
       </div>
 

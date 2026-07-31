@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, Chip, LinearProgress } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { Box, Typography, LinearProgress } from '@mui/material';
 import {
   TrendingUp as TrendUpIcon,
   TrendingDown as TrendDownIcon,
@@ -337,18 +338,7 @@ const PatternRow: React.FC<{ pattern: Pattern }> = ({ pattern }) => {
           <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)]">
             {pattern.title}
           </p>
-          <Chip
-            label={pattern.severity}
-            size="small"
-            sx={{
-              height: 18, fontSize: '10.5px', fontWeight: 700,
-              letterSpacing: '.04em', textTransform: 'uppercase',
-              bgcolor: 'var(--card)',
-              color: sevColor,
-              border: 'none',
-              '& .MuiChip-label': { px: 0.75 },
-            }}
-          />
+          <StatusChip size="sm" tokens={{ color: sevColor, bg: 'var(--card)' }} label={pattern.severity} className="text-[10.5px] tracking-[.04em] uppercase" />
         </div>
         <p className="cn-text-body1 block text-[var(--muted)] text-[11.5px]">
           {pattern.description}

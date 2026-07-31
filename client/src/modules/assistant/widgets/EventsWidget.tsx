@@ -1,5 +1,6 @@
 import React from 'react';
-import { Chip } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+
 
 interface EventItem {
   id?: string;
@@ -92,18 +93,7 @@ const EventRow: React.FC<{ item: EventItem }> = ({ item }) => {
             {item.title}
           </p>
           {item.type && (
-            <Chip
-              label={typeLabel(item.type)}
-              size="small"
-              sx={{
-                height: 18, fontSize: '10.5px', fontWeight: 700,
-                letterSpacing: '.04em', textTransform: 'uppercase',
-                bgcolor: typeSoft,
-                color: typeColor,
-                border: 'none',
-                '& .MuiChip-label': { px: 0.75 },
-              }}
-            />
+            <StatusChip size="sm" tokens={{ color: typeColor, bg: typeSoft }} label={typeLabel(item.type)} className="text-[10.5px] tracking-[.04em] uppercase" />
           )}
           {item.city && item.city !== '*' && (
             <p className="cn-text-body1 text-[11.5px] text-[var(--faint)]">

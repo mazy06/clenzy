@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Chip } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { Box } from '@mui/material';
 import {
   TrendingUp as TrendIcon,
   Warning as WarningIcon,
@@ -105,21 +106,7 @@ const InsightCard: React.FC<{ item: InsightItem }> = ({ item }) => {
             <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] leading-[1.3]">
               {item.title}
             </p>
-            <Chip
-              label={humanizeSeverity(item.severity)}
-              size="small"
-              sx={{
-                height: 18,
-                fontSize: '10.5px',
-                fontWeight: 700,
-                letterSpacing: '.04em',
-                textTransform: 'uppercase',
-                bgcolor: sevSoft,
-                color: sevColor,
-                border: 'none',
-                '& .MuiChip-label': { px: 0.75 },
-              }}
-            />
+            <StatusChip size="sm" tokens={{ color: sevColor, bg: sevSoft }} label={humanizeSeverity(item.severity)} className="text-[10.5px] tracking-[.04em] uppercase" />
           </div>
           <p className="cn-text-body1 text-[12.5px] leading-[1.5] text-[var(--muted)]">
             {item.description}

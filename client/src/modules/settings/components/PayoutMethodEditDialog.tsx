@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, CircleCheck, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, IconButton, Stack, Chip, MenuItem } from '@mui/material';
+import { Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, IconButton, Stack, MenuItem } from '@mui/material';
 import { Close as CloseIcon, Save } from '../../../icons';
 import { accountingApi } from '../../../services/api/accountingApi';
 import type {
@@ -418,20 +419,7 @@ export default function PayoutMethodEditDialog({
                           {opt.label}
                         </p>
                         {opt.badge && (
-                          <Chip
-                            label={opt.badge}
-                            size="small"
-                            sx={{
-                              height: 18,
-                              fontSize: '0.6rem',
-                              fontWeight: 700,
-                              letterSpacing: '0.04em',
-                              bgcolor: `${opt.badgeColor}14`,
-                              color: opt.badgeColor,
-                              border: `1px solid ${opt.badgeColor}33`,
-                              '& .MuiChip-label': { px: 0.75 },
-                            }}
-                          />
+                          <StatusChip size="sm" tokens={{ color: opt.badgeColor ?? 'var(--muted)', bg: `${opt.badgeColor ?? 'var(--muted)'}14` }} label={opt.badge} className="text-[0.6rem] tracking-[0.04em]" />
                         )}
                       </div>
                       <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4] mt-0.5">

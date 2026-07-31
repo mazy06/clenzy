@@ -1,7 +1,7 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Card } from '../../components/ui';
-import { Box, Typography, Chip, Button, IconButton, Divider } from '@mui/material';
+import { Box, Typography, Button, IconButton, Divider } from '@mui/material';
 import {
   Add,
   Remove,
@@ -70,20 +70,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         {/* Badge floating top-right */}
         {product.badge && badgeStyle && (
           <div className="absolute top-[10px] end-[10px] z-[1]">
-            <Chip
-              label={t(`shop.badges.${product.badge}`)}
-              size="small"
-              sx={{
-                height: 22,
-                fontSize: '10.5px',
-                fontWeight: 700,
-                letterSpacing: '0.02em',
-                backgroundColor: badgeStyle.bg,
-                color: badgeStyle.color,
-                border: 'none',
-                '& .MuiChip-label': { px: 0.875 },
-              }}
-            />
+            <StatusChip tokens={{ color: badgeStyle.color, bg: badgeStyle.bg }} label={t(`shop.badges.${product.badge}`)} className="text-[10.5px] tracking-[0.02em]" />
           </div>
         )}
 

@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Box, Typography, Chip, Tooltip, IconButton, alpha } from '@mui/material';
+import { Box, Typography, Tooltip, IconButton, alpha } from '@mui/material';
 import { PlayArrow, StopCircle, FiberManualRecord, Fullscreen, FullscreenExit, WifiOff, PhotoCamera, Delete } from '../../../icons';
 import type { CameraDto } from '../../../services/api/camerasApi';
 
@@ -92,9 +92,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
         {/* Pills haut */}
         <div className="absolute top-[8px] start-[8px] end-[8px] flex items-center justify-between z-[2]">
           {online ? (
-            <Chip size="small" icon={<FiberManualRecord size={9} />} label="EN DIRECT"
-              sx={{ height: 20, bgcolor: alpha('#4A9B8E', 0.92), color: '#fff', fontWeight: 700, fontSize: '0.6rem', letterSpacing: '0.06em',
-                '& .MuiChip-icon': { color: '#fff', ml: '5px' } }} />
+            <StatusChip tokens={{ color: '#fff', bg: alpha('#4A9B8E', 0.92) }} label="EN DIRECT" icon={<FiberManualRecord size={9} />} className="h-[20px] text-[0.6rem] tracking-[0.06em]" />
           ) : (
             <StatusChip tokens={{ color: '#fff', bg: alpha('#9CA3AF', 0.85) }} label="Hors ligne" className="h-[20px] text-[0.6rem]" />
           )}

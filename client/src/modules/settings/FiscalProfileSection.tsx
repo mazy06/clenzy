@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-import { Button, TextField, MenuItem, Switch, FormControlLabel, Grid, Alert, Snackbar, Chip } from '@mui/material';
+import { Button, TextField, MenuItem, Switch, FormControlLabel, Grid, Alert, Snackbar } from '@mui/material';
 import { Card } from '../../components/ui';
 import {
   AccountBalance, Info as InfoIcon, Verified,
@@ -223,29 +224,7 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                 {t('fiscal.profile.sectionFiscalInfo')}
               </h6>
               {!isFirstSetup && profile?.vatRegistered && (
-                <Chip
-                  icon={<Verified size={11} strokeWidth={2} />}
-                  label="TVA"
-                  size="small"
-                  sx={{
-                    ml: 'auto',
-                    height: 22,
-                    fontSize: '0.6875rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.04em',
-                    backgroundColor: 'var(--ok-soft)',
-                    color: 'var(--ok)',
-                    border: '1px solid color-mix(in srgb, var(--ok) 25%, transparent)',
-                    borderRadius: '6px',
-                    px: 0.25,
-                    '& .MuiChip-icon': {
-                      color: 'var(--ok) !important',
-                      ml: '6px',
-                      mr: '-2px',
-                    },
-                    '& .MuiChip-label': { px: 0.875 },
-                  }}
-                />
+                <StatusChip tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label="TVA" icon={<Verified size={11} strokeWidth={2} />} className="ms-auto tracking-[0.04em] px-0.5" />
               )}
             </div>
 
