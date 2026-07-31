@@ -115,6 +115,18 @@ export interface StatusChipProps {
    * `chipSx` local pour cela seul.
    */
   pill?: boolean;
+  /**
+   * Rend la puce ACTIONNABLE. Elle devient alors un vrai `<button>` : un span
+   * muni d'un `onClick` n'est ni focusable, ni declenchable au clavier, ni
+   * annonce comme actionnable par un lecteur d'ecran.
+   */
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+  /** Etat presse, pour une puce qui sert de filtre a bascule. */
+  pressed?: boolean;
+  /** Desactive la puce actionnable. */
+  disabled?: boolean;
+  /** Libelle accessible quand le contenu visible ne suffit pas. */
+  ariaLabel?: string;
   /** Classes additionnelles. */
   className?: string;
   /** Conservé pour compatibilité d'appel ; appliqué en style inline. */
@@ -136,6 +148,10 @@ export default function StatusChip({
   dot,
   icon,
   pill,
+  onClick,
+  pressed,
+  disabled,
+  ariaLabel,
   className,
   sx,
 }: StatusChipProps) {
@@ -152,14 +168,46 @@ export default function StatusChip({
   ) : null);
 
   const gabarit = statusChipClasses(resolved, size, pill);
+  const classes = cn(
+    gabarit.className,
+    '[&>svg]:shrink-0 [&>svg]:text-current',
+    onClick && [
+      'cursor-pointer transition-opacity duration-150 hover:opacity-80',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+      'disabled:pointer-events-none disabled:opacity-50',
+    ],
+    className,
+  );
+  const style = { ...gabarit.style, ...sx };
+
+  // Une puce actionnable est un BOUTON, pas un span decore d'un onClick : sans
+  // cela elle sort de l'ordre de tabulation, ne repond ni a Entree ni a Espace,
+  // et n'est pas annoncee comme actionnable.
+  if (onClick) {
+    return (
+      <Badge asChild variant="secondary" className={classes} style={style}>
+        <button
+          type="button"
+          onClick={onClick}
+          disabled={disabled}
+          aria-pressed={pressed}
+          aria-label={ariaLabel}
+        >
+          {marque}
+          {label}
+        </button>
+      </Badge>
+    );
+  }
 
   return (
     <Badge
       variant="secondary"
       // L'encre se propage a l'icone : cote MUI c'etait la regle
       // `& .MuiChip-icon`, ici le svg est un enfant direct du badge.
-      className={cn(gabarit.className, '[&>svg]:shrink-0 [&>svg]:text-current', className)}
-      style={{ ...gabarit.style, ...sx }}
+      className={classes}
+      style={style}
+      aria-label={ariaLabel}
     >
       {marque}
       {label}

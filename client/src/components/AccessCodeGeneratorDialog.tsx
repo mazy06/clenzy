@@ -1,3 +1,4 @@
+import StatusChip from './StatusChip';
 import React, { useEffect, useState } from 'react';
 import {
   Dialog,
@@ -51,13 +52,9 @@ const NEXT_TYPE: Record<CodeCharType, CodeCharType> = { digits: 'letters', lette
 
 export const DEFAULT_CODE_FORMAT: CodeFormat = { pattern: Array(6).fill('digits') };
 
-const chipSx = (on: boolean, color: string) => ({
-  fontFamily: 'monospace',
-  fontWeight: 700,
-  cursor: 'pointer',
-  minWidth: 34,
-  ...(on ? { bgcolor: color, color: '#fff', borderColor: color, '&:hover': { bgcolor: color, opacity: 0.85 } } : {}),
-});
+/** Bascule de caractere : tokens pleins a l'etat presse, neutres au repos. */
+const toggleTokens = (on: boolean, color: string) =>
+  (on ? { color: '#fff', bg: color } : { color: 'var(--muted)', bg: 'var(--hover)' });
 
 // ─── Generation (crypto.getRandomValues, repli Math.random) ───────────────────
 
@@ -317,7 +314,7 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
             <div className="flex flex-wrap gap-0.5">
               {LETTER_CHARS.map((ch) => {
                 const on = selectedLetters.includes(ch);
-                return <Chip key={ch} label={ch} size="small" variant={on ? 'filled' : 'outlined'} onClick={() => toggleLetter(ch)} sx={chipSx(on, TYPE_META.letters.color)} />;
+                return <StatusChip key={ch} label={ch} pressed={on} onClick={() => toggleLetter(ch)} tokens={toggleTokens(on, TYPE_META.letters.color)} className="min-w-[34px] font-mono font-bold" />;
               })}
             </div>
             <span className="cn-text-caption text-muted-foreground mt-1 block">
@@ -333,7 +330,7 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
             <div className="flex flex-wrap gap-0.5">
               {SYMBOL_CHARS.map((ch) => {
                 const on = selectedSymbols.includes(ch);
-                return <Chip key={ch} label={ch} size="small" variant={on ? 'filled' : 'outlined'} onClick={() => toggleSymbol(ch)} sx={chipSx(on, TYPE_META.symbols.color)} />;
+                return <StatusChip key={ch} label={ch} pressed={on} onClick={() => toggleSymbol(ch)} tokens={toggleTokens(on, TYPE_META.symbols.color)} className="min-w-[34px] font-mono font-bold" />;
               })}
             </div>
             <span className="cn-text-caption text-muted-foreground mt-1 block">
