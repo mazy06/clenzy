@@ -49,6 +49,13 @@ interface ScreenChromeValue {
   setSearchValue: (value: string) => void;
   mountSearch: (id: string, registration: SearchRegistration) => void;
   unmountSearch: (id: string) => void;
+  /**
+   * Emplacement où le `PageHeader` accueille les onglets, sur les largeurs qui
+   * ne peuvent pas s'offrir une bande dédiée. `null` tant qu'il n'est pas monté,
+   * ou au-dessus du seuil : `PageTabs` se rend alors à sa place habituelle.
+   */
+  tabsSlot: HTMLElement | null;
+  setTabsSlot: (element: HTMLElement | null) => void;
   /** Segments internes à l'écran (onglets actifs), du plus externe au plus interne. */
   trail: string[];
   mountTrail: (id: string, label: string) => void;
@@ -62,6 +69,8 @@ const FALLBACK: ScreenChromeValue = {
   setSearchValue: noop,
   mountSearch: noop,
   unmountSearch: noop,
+  tabsSlot: null,
+  setTabsSlot: noop,
   trail: [],
   mountTrail: noop,
   unmountTrail: noop,
@@ -81,6 +90,7 @@ export function ScreenChromeProvider({ children }: { children: React.ReactNode }
   const searchesRef = useRef(new Map<string, SearchRegistration>());
   const searchOrderRef = useRef<string[]>([]);
   const [search, setSearch] = useState<ScreenSearchSnapshot | null>(null);
+  const [tabsSlot, setTabsSlot] = useState<HTMLElement | null>(null);
 
   const syncSearch = useCallback(() => {
     const id = searchOrderRef.current[searchOrderRef.current.length - 1];
@@ -153,8 +163,12 @@ export function ScreenChromeProvider({ children }: { children: React.ReactNode }
   );
 
   const value = useMemo<ScreenChromeValue>(
-    () => ({ search, setSearchValue, mountSearch, unmountSearch, trail, mountTrail, unmountTrail }),
-    [search, setSearchValue, mountSearch, unmountSearch, trail, mountTrail, unmountTrail],
+    () => ({
+      search, setSearchValue, mountSearch, unmountSearch,
+      tabsSlot, setTabsSlot,
+      trail, mountTrail, unmountTrail,
+    }),
+    [search, setSearchValue, mountSearch, unmountSearch, tabsSlot, trail, mountTrail, unmountTrail],
   );
 
   return <ScreenChromeContext.Provider value={value}>{children}</ScreenChromeContext.Provider>;

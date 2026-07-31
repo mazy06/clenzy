@@ -41,12 +41,20 @@ const ICON_ONLY_SX = {
     minWidth: 32,
     minHeight: 32,
     padding: 0,
-    borderRadius: 'var(--radius-lg, 10px)',
+    // 0.625rem = le `rounded-lg` du kit (echelle shadcn de `baitly-ui.css`), pas
+    // `var(--radius-lg)` : cette variable-la est celle de `signature/tokens.css`,
+    // qui vaut 14 px et sert aux CARTES. Le fallback `10px` n'etait jamais
+    // atteint, et ces boutons s'arrondissaient 4 px de trop.
+    borderRadius: '0.625rem',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: 0,
     lineHeight: 0,
+    // `fontSize: 0` reduit le libelle a une largeur nulle, mais le `gap: 8px`
+    // du bouton MUI subsiste ENTRE l'icone et ce libelle vide : l'icone se
+    // retrouvait poussee de 4 px vers la gauche dans un bouton pourtant carre.
+    gap: 0,
     boxShadow: 'none',
     transition:
       'background-color .15s var(--ease-out), color .15s var(--ease-out), border-color .15s var(--ease-out)',

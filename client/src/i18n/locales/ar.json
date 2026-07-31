@@ -751,7 +751,9 @@
     "expandMenu": "فتح القائمة",
     "collapseMenu": "طي القائمة",
     "ratesAt": "الأسعار في",
-    "download": "تحميل"
+    "download": "تحميل",
+    "tabsMenu": "علامات التبويب",
+    "tabsMenuCount": "{{count}} علامات تبويب"
   },
   "connectedObjects": {
     "previewBadge": "معاينة",

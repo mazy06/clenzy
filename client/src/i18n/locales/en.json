@@ -751,7 +751,9 @@
     "expandMenu": "Expand menu",
     "collapseMenu": "Collapse menu",
     "ratesAt": "Rates as of",
-    "download": "Download"
+    "download": "Download",
+    "tabsMenu": "Tabs",
+    "tabsMenuCount": "{{count}} tabs"
   },
   "connectedObjects": {
     "previewBadge": "Preview",

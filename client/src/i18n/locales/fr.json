@@ -751,7 +751,9 @@
     "expandMenu": "Ouvrir le menu",
     "collapseMenu": "Réduire le menu",
     "ratesAt": "Taux au",
-    "download": "Télécharger"
+    "download": "Télécharger",
+    "tabsMenu": "Onglets",
+    "tabsMenuCount": "{{count}} onglets"
   },
   "connectedObjects": {
     "previewBadge": "Aperçu",

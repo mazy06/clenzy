@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, lazy, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Box } from '@mui/material';
 import { useLayoutState } from '../../hooks/useLayoutState';
+import { useScreenChrome } from '../../components/ScreenChrome';
 import { useNavigationMenu } from '../../hooks/useNavigationMenu';
 import { useSidebarState } from '../../hooks/useSidebarState';
 import { useFormsStats } from '../../hooks/useReceivedForms';
@@ -41,7 +42,13 @@ interface MainLayoutFullProps {
  */
 function MobileTopBar() {
   const { isMobile } = useSidebar();
-  if (!isMobile) return null;
+  const { tabsSlot } = useScreenChrome();
+  // Un `PageHeader` monte porte deja le bouton : lui laisser une bande a lui
+  // seul redonnerait la hauteur qu'on vient de rendre au contenu. `tabsSlot`
+  // n'est renseigne que par le header, il vaut donc presence. Les rares ecrans
+  // sans header gardent cette barre, sans quoi la navigation deviendrait
+  // inaccessible sous 1024 px.
+  if (!isMobile || tabsSlot) return null;
 
   return (
     <div className="flex h-12 shrink-0 items-center border-b border-border bg-background px-2">

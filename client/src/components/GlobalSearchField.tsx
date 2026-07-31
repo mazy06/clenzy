@@ -46,6 +46,15 @@ const normalize = (value: string) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
 
+/**
+ * Exception locale au kit, assumee : les champs portent normalement la hairline
+ * `--bui-input`, plus marquee que le `--bui-border` des boutons, pour signaler
+ * une zone de saisie. Dans la barre de titre, ce champ n'a pour voisins QUE des
+ * boutons \u2014 la nuance ne distinguait plus rien, elle se lisait comme un defaut
+ * d'alignement. Ailleurs dans l'app, les champs gardent leur bordure de champ.
+ */
+const HEADER_FIELD_BORDER = 'border-border';
+
 export default function GlobalSearchField({ className }: { className?: string }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -108,7 +117,9 @@ export default function GlobalSearchField({ className }: { className?: string })
       type="button"
       variant="outline"
       size="icon"
-      className="size-9 shrink-0 lg:hidden"
+      /* Pas de taille forcee : `size="icon"` porte le gabarit du kit (32 px,
+         rayon 10). Un `size-9` maison desalignait ce bouton de ses voisins. */
+      className="shrink-0 lg:hidden"
       aria-label={t('common.search', 'Rechercher…')}
       aria-expanded={false}
       onClick={() => setExpanded(true)}
@@ -138,11 +149,14 @@ export default function GlobalSearchField({ className }: { className?: string })
     </>
   );
 
+  // Aucune hauteur imposee sur les champs : `cn-input-group` pose deja 32 px,
+  // la meme que les boutons de la barre. Un `h-9` maison les faisait depasser
+  // de 4 px leurs voisins et cassait l'alignement du header.
   // ── Mode filtre d'écran ───────────────────────────────────────────────────
   if (search) {
     const value = search.value;
     return withCollapse(
-      <InputGroup className={cn('h-9 w-44 md:w-56 lg:w-64', className)}>
+      <InputGroup className={cn(HEADER_FIELD_BORDER, 'w-44 md:w-56 lg:w-64', className)}>
         <InputGroupAddon>
           <SearchIcon />
         </InputGroupAddon>
@@ -175,8 +189,8 @@ export default function GlobalSearchField({ className }: { className?: string })
       {/* L'ancre enveloppe un <div> (élément hôte) : Radix y pose sa ref de
           positionnement, qu'un composant fonction React 18 ne peut pas recevoir. */}
       <PopoverAnchor asChild>
-        <div className={cn('h-9 w-40 md:w-56 lg:w-64', className)}>
-        <InputGroup className="h-9 w-full">
+        <div className={cn('w-40 md:w-56 lg:w-64', className)}>
+        <InputGroup className={cn(HEADER_FIELD_BORDER, 'w-full')}>
           <InputGroupAddon>
             <SearchIcon />
           </InputGroupAddon>
