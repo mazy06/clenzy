@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Alert, CircularProgress, IconButton } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Alert, IconButton } from '@mui/material';
 import { Close, CheckCircle, Science } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useConnectChannel, useTestChannelConnection } from '../../hooks/useChannelConnections';
@@ -173,7 +174,7 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
         <Button
           variant="outlined"
           size="small"
-          startIcon={testMutation.isPending ? <CircularProgress size={14} color="inherit" /> : <Science />}
+          startIcon={testMutation.isPending ? <Spinner className="size-3.5" /> : <Science />}
           onClick={handleTest}
           disabled={!isFormValid || testMutation.isPending || connectMutation.isPending}
         >
@@ -194,7 +195,7 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
           disabled={!isFormValid || connectMutation.isPending}
         >
           {connectMutation.isPending
-            ? <CircularProgress size={16} color="inherit" />
+            ? <Spinner className="size-4" />
             : t('channels.connect.connectButton')}
         </Button>
       </DialogActions>

@@ -1,18 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import {
-  Box,
-  Typography,
-  Switch,
-  FormControlLabel,
-  Select,
-  MenuItem,
-  TextField,
-  Checkbox,
-  Button,
-  CircularProgress,
-  Alert,
-  Divider,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Typography, Switch, FormControlLabel, Select, MenuItem, TextField, Checkbox, Button, Alert, Divider } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import apiClient from '../../services/apiClient';
 import { useNotification } from '../../hooks/useNotification';
@@ -151,7 +139,7 @@ export const AssistantBriefingPrefs: React.FC = () => {
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" py={4}>
-        <CircularProgress size={24} />
+        <Spinner className="size-6" />
       </Box>
     );
   }

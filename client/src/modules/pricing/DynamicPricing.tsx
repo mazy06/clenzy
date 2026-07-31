@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Box, FormControl, InputLabel, Select, MenuItem, CircularProgress, Button, Tooltip } from '@mui/material';
+import { Box, FormControl, InputLabel, Select, MenuItem, Button, Tooltip } from '@mui/material';
 import {
   CloudUpload as PushIcon,
   TrendingUp,
@@ -187,7 +188,7 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
             </MenuItem>
             {propertiesLoading && (
               <MenuItem disabled>
-                <CircularProgress size={14} sx={{ mr: 1 }} /> {t('common.loading')}
+                <Spinner className="size-3.5 me-1.5" /> {t('common.loading')}
               </MenuItem>
             )}
             {owners.map((o) => (
@@ -212,7 +213,7 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
         >
           {propertiesLoading && (
             <MenuItem disabled>
-              <CircularProgress size={14} sx={{ mr: 1 }} /> {t('common.loading')}
+              <Spinner className="size-3.5 me-1.5" /> {t('common.loading')}
             </MenuItem>
           )}
           {filteredProperties.map((p) => (
@@ -235,7 +236,7 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
       <Button
         variant="outlined"
         size="small"
-        startIcon={pushLoading ? <CircularProgress size={14} /> : <PushIcon size={16} strokeWidth={1.75} />}
+        startIcon={pushLoading ? <Spinner className="size-3.5" /> : <PushIcon size={16} strokeWidth={1.75} />}
         onClick={handlePushPricing}
         disabled={pushLoading}
         color={pushResult?.includes('succes') || pushResult?.includes('success') ? 'success' : 'primary'}

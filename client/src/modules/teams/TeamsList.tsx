@@ -1,6 +1,7 @@
 import React from 'react';
+import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Grid, Button, Chip, Alert, CircularProgress, Menu, MenuItem, ListItemIcon, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Grid, Button, Chip, Alert, Menu, MenuItem, ListItemIcon, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Add,
   Edit,
@@ -72,7 +73,7 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[50vh]">
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </div>
     );
   }

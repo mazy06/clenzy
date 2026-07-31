@@ -1,7 +1,8 @@
 import { createElement, useEffect, useMemo, useRef, useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Box, CircularProgress } from '@mui/material';
+import { Box } from '@mui/material';
 import { AlertTriangle, Star } from 'lucide-react';
 import { BaitlyWidget } from '../sdk/BaitlyWidget';
 import BaitlyBooking from '../sdk';
@@ -237,7 +238,7 @@ export default function PublicBookingPage() {
   }
 
   if (!config) {
-    return <Centered><CircularProgress size={28} sx={{ color: 'var(--accent)' }} /></Centered>;
+    return <Centered><Spinner className="size-7 text-[var(--accent)]" /></Centered>;
   }
 
   return (

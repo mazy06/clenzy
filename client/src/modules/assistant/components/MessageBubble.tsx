@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Typography, CircularProgress, Dialog, DialogContent } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, Typography, Dialog, DialogContent } from '@mui/material';
 import BaitlyMarkLogo from '../../../components/BaitlyMarkLogo';
 import type { DisplayMessage } from '../../../hooks/useAgent';
 import { ToolCallCard } from './ToolCallCard';
@@ -208,7 +209,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         {/* Streaming indicator quand le contenu est encore vide */}
         {isStreaming && !message.content && !message.toolCalls?.length && (
           <div className="flex items-center gap-1.5 py-0.5">
-            <CircularProgress size={12} thickness={5} sx={{ color: 'var(--accent)' }} />
+            <Spinner className="size-3 text-[var(--accent)]" />
             <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">
               Reflechit...
             </p>

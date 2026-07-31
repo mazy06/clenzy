@@ -1,5 +1,6 @@
 import React from 'react';
-import { Alert, Snackbar, CircularProgress, Button } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Alert, Snackbar, Button } from '@mui/material';
 import {
   Save,
   Refresh,
@@ -112,7 +113,7 @@ export default function Tarification() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <CircularProgress />
+        <Spinner className="size-10" />
       </div>
     );
   }
@@ -143,7 +144,7 @@ export default function Tarification() {
                   <Button
                     variant="contained"
                     size="small"
-                    startIcon={isSaving ? <CircularProgress size={16} color="inherit" /> : <Save />}
+                    startIcon={isSaving ? <Spinner className="size-4" /> : <Save />}
                     onClick={saveConfig}
                     disabled={isSaving}
                     title={t('tarification.save')}

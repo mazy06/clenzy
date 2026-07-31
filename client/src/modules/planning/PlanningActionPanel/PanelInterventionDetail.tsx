@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Chip, Divider, Button, TextField, IconButton, LinearProgress, CircularProgress, Alert, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Chip, Divider, Button, TextField, IconButton, LinearProgress, Alert, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import {
   AutoAwesome,
   Handyman,
@@ -267,7 +268,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
               aria-label="Appliquer"
               sx={{ color: 'var(--accent)' }}
             >
-              {amountSaving ? <CircularProgress size={16} /> : <EnterKey size={16} strokeWidth={1.75} />}
+              {amountSaving ? <Spinner className="size-4" /> : <EnterKey size={16} strokeWidth={1.75} />}
             </IconButton>
           </div>
         </div>
@@ -327,7 +328,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
           variant="contained"
           fullWidth
           size="small"
-          startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <PlayArrow size={16} strokeWidth={1.75} />}
+          startIcon={loading ? <Spinner className="size-3.5" /> : <PlayArrow size={16} strokeWidth={1.75} />}
           onClick={handleStart}
           disabled={loading}
           sx={{ mb: 1, textTransform: 'none', fontSize: '0.75rem' }}
@@ -342,7 +343,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
           color="success"
           fullWidth
           size="small"
-          startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <CheckCircle size={14} strokeWidth={1.75} />}
+          startIcon={loading ? <Spinner className="size-3.5" /> : <CheckCircle size={14} strokeWidth={1.75} />}
           onClick={handleComplete}
           disabled={loading}
           sx={{ mb: 1, textTransform: 'none', fontSize: '0.75rem' }}

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Autocomplete, TextField, CircularProgress } from '@mui/material';
+import { Spinner } from './ui';
+import { Autocomplete, TextField } from '@mui/material';
 import { LocationCity as LocationCityIcon } from '../icons';
 import { useCityAutocomplete } from '../hooks/useCityAutocomplete';
 import type { GeocodedAddress } from '../services/geocoderApi';
@@ -99,7 +100,7 @@ export function CityAutocomplete({
             ...params.InputProps,
             endAdornment: (
               <>
-                {isLoading ? <CircularProgress color="inherit" size={18} /> : null}
+                {isLoading ? <Spinner className="size-[18px]" /> : null}
                 {params.InputProps.endAdornment}
               </>
             ),

@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Box, Paper, Alert, CircularProgress, alpha } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Box, Paper, Alert, alpha } from '@mui/material';
 import { ChevronRight } from '../../../icons';
 import { propertiesApi, type Property } from '../../../services/api/propertiesApi';
 import { smartLockApi, type SmartLockBrand, type SmartLockAccessCodeMode } from '../../../services/api/smartLockApi';
@@ -241,7 +242,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
             Continuer
           </Button>
         ) : (
-          <Button variant="contained" disabled={!canNext || submitting} startIcon={submitting ? <CircularProgress size={14} /> : undefined} onClick={submit}>
+          <Button variant="contained" disabled={!canNext || submitting} startIcon={submitting ? <Spinner className="size-3.5" /> : undefined} onClick={submit}>
             Ajouter
           </Button>
         )}

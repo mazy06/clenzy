@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Button, TextField, Grid, Alert, Snackbar, CircularProgress } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Button, TextField, Grid, Alert, Snackbar } from '@mui/material';
 import {
   Button as UiButton,
   Field,
@@ -394,7 +395,7 @@ export default function Settings() {
   if (!user) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
+        <Spinner className="size-10" />
       </Box>
     );
   }
@@ -565,7 +566,7 @@ export default function Settings() {
       disableElevation
       startIcon={
         notifRef.current?.isSaving ? (
-          <CircularProgress size={14} color="inherit" />
+          <Spinner className="size-3.5" />
         ) : (
           <Save size={14} strokeWidth={1.75} />
         )
@@ -584,7 +585,7 @@ export default function Settings() {
       disableElevation
       startIcon={
         fiscalRef.current?.isSaving ? (
-          <CircularProgress size={14} color="inherit" />
+          <Spinner className="size-3.5" />
         ) : (
           <Save size={14} strokeWidth={1.75} />
         )
@@ -605,7 +606,7 @@ export default function Settings() {
       disableElevation
       startIcon={
         reversementsIsSaving ? (
-          <CircularProgress size={14} color="inherit" />
+          <Spinner className="size-3.5" />
         ) : (
           <Save size={14} strokeWidth={1.75} />
         )

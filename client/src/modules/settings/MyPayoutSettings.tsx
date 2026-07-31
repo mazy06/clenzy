@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useSearchParams } from 'react-router-dom';
 import { accountingApi } from '../../services/api/accountingApi';
-import { TextField, Button, Alert, Snackbar, CircularProgress, Chip, Divider } from '@mui/material';
+import { TextField, Button, Alert, Snackbar, Chip, Divider } from '@mui/material';
 import {
   AccountBalance,
   Save,
@@ -129,7 +130,7 @@ export default function MyPayoutSettings() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-6">
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </div>
     );
   }
@@ -303,7 +304,7 @@ export default function MyPayoutSettings() {
               size="small"
               onClick={handleSaveSepa}
               disabled={updateSepaMutation.isPending || !sepaIban.trim() || !sepaHolder.trim()}
-              startIcon={updateSepaMutation.isPending ? <CircularProgress size={14} /> : <Save />}
+              startIcon={updateSepaMutation.isPending ? <Spinner className="size-3.5" /> : <Save />}
               sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
             >
               {t('settings.myPayout.saveSepa', 'Enregistrer')}
@@ -344,7 +345,7 @@ export default function MyPayoutSettings() {
               size="small"
               onClick={handleResumeOnboarding}
               disabled={onboardingLinkMutation.isPending}
-              startIcon={onboardingLinkMutation.isPending ? <CircularProgress size={14} /> : <OpenInNew />}
+              startIcon={onboardingLinkMutation.isPending ? <Spinner className="size-3.5" /> : <OpenInNew />}
               sx={{
                 textTransform: 'none',
                 fontSize: '0.8125rem',
@@ -365,7 +366,7 @@ export default function MyPayoutSettings() {
             size="small"
             onClick={handleInitStripeConnect}
             disabled={initStripeMutation.isPending}
-            startIcon={initStripeMutation.isPending ? <CircularProgress size={14} /> : <CreditCard />}
+            startIcon={initStripeMutation.isPending ? <Spinner className="size-3.5" /> : <CreditCard />}
             sx={{
               textTransform: 'none',
               fontSize: '0.8125rem',

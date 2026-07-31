@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { Spinner } from '../../components/ui';
 import {
   Box,
   Typography,
@@ -472,7 +473,7 @@ export default function PaymentSettings() {
         size="small"
         startIcon={
           saving ? (
-            <CircularProgress size={14} color="inherit" />
+            <Spinner className="size-3.5" />
           ) : (
             <Save size={14} strokeWidth={1.75} />
           )
@@ -495,7 +496,7 @@ export default function PaymentSettings() {
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" p={4}>
-        <CircularProgress />
+        <Spinner className="size-10" />
       </Box>
     );
   }

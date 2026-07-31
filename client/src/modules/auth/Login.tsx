@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
+import { Spinner } from '../../components/ui';
 import { useSearchParams, Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { TextField, Button, Typography, Stack, Alert, CircularProgress, IconButton, InputAdornment, Link } from '@mui/material';
+import { TextField, Button, Typography, Stack, Alert, IconButton, InputAdornment, Link } from '@mui/material';
 import { Visibility, VisibilityOff } from '../../icons';
 import keycloak, { decodeJwt } from '../../keycloak';
 import apiClient, { ApiError } from '../../services/apiClient';
@@ -293,7 +294,7 @@ export default function Login() {
               transition: 'background-color 150ms ease, border-color 150ms ease',
             }}
           >
-            {loading ? <CircularProgress size={22} color="inherit" /> : t('auth.login.submit', 'Se connecter')}
+            {loading ? <Spinner className="size-[22px]" /> : t('auth.login.submit', 'Se connecter')}
           </Button>
         </Stack>
       </form>

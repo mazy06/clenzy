@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Typography, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Typography, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -424,7 +425,7 @@ const ReservationsList: React.FC = () => {
             size="small"
             disabled={isCancelling}
           >
-            {isCancelling ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
+            {isCancelling ? <Spinner className="size-[18px] me-1.5" /> : null}
             Oui, annuler
           </Button>
         </DialogActions>

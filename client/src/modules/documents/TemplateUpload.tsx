@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Box, Alert, CircularProgress, Divider } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Box, Alert, Divider } from '@mui/material';
 import { CloudUpload } from '../../icons';
 import { useDocumentTypes, useUploadTemplate } from './hooks/useDocuments';
 
@@ -175,7 +176,7 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
           size="small"
           onClick={handleSubmit}
           disabled={loading || !file || !name || !documentType}
-          startIcon={loading ? <CircularProgress size={16} /> : <CloudUpload />}
+          startIcon={loading ? <Spinner className="size-4" /> : <CloudUpload />}
         >
           {loading ? 'Upload...' : 'Uploader & scanner'}
         </Button>

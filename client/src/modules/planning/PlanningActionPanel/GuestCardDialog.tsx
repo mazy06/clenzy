@@ -1,16 +1,6 @@
 import React, { useMemo, useState, useRef, useCallback } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  Box,
-  Typography,
-  Chip,
-  IconButton,
-  Divider,
-  CircularProgress,
-  TextField,
-} from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Dialog, DialogTitle, DialogContent, Box, Typography, Chip, IconButton, Divider, TextField } from '@mui/material';
 import {
   Close,
   Person,
@@ -195,7 +185,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     variant="standard"
                     sx={{ '& input': { fontSize: '1rem', fontWeight: 700 } }}
                   />
-                  {saving && <CircularProgress size={14} />}
+                  {saving && <Spinner className="size-3.5" />}
                 </div>
               ) : (
                 <Box
@@ -242,7 +232,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                       placeholder="email@exemple.com"
                       sx={{ '& input': { fontSize: '0.75rem' } }}
                     />
-                    {saving ? <CircularProgress size={12} /> : (
+                    {saving ? <Spinner className="size-3" /> : (
                       <IconButton size="small" onClick={commitEdit} sx={{ p: 0.25 }}>
                         <span className="inline-flex text-[var(--ok)]"><Check size={14} strokeWidth={1.75} /></span>
                       </IconButton>
@@ -294,7 +284,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                       placeholder="+33 6 12 34 56 78"
                       sx={{ '& input': { fontSize: '0.75rem' } }}
                     />
-                    {saving && <CircularProgress size={12} />}
+                    {saving && <Spinner className="size-3" />}
                   </div>
                 ) : (
                   <Box

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Box, Button, InputBase, Switch, Select, MenuItem, FormControl, CircularProgress, Collapse, Chip, Divider } from '@mui/material';
+import { Box, Button, InputBase, Switch, Select, MenuItem, FormControl, Collapse, Chip, Divider } from '@mui/material';
 import { ArrowLeft, ArrowRight, AlertTriangle, Sparkles, Upload, LayoutGrid } from 'lucide-react';
 import { designSystemsApi, type DesignSystem, type DesignSystemCreateRequest } from '../../../services/api/designSystemsApi';
 import { bookingEngineApi, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
@@ -157,7 +158,7 @@ export default function DesignSystemCreatePage() {
         <Box sx={{ justifySelf: 'center', display: 'grid', placeItems: 'center', width: 32, height: 32, color: 'var(--accent)' }}><LayoutGrid size={20} strokeWidth={2} /></Box>
         <Box sx={{ justifySelf: 'end' }}>
           <Button disableElevation onClick={handleCreate} disabled={!canCreate}
-            startIcon={busy ? <CircularProgress size={15} color="inherit" /> : <Sparkles size={16} strokeWidth={2} />}
+            startIcon={busy ? <Spinner className="size-[15px]" /> : <Sparkles size={16} strokeWidth={2} />}
             endIcon={!busy ? <ArrowRight size={16} strokeWidth={2} /> : undefined} sx={accentBtnSx}>
             {primaryLabel}
           </Button>
@@ -365,7 +366,7 @@ export default function DesignSystemCreatePage() {
 
           <div className="flex justify-end mt-4">
             <Button disableElevation onClick={handleCreate} disabled={!canCreate}
-              startIcon={busy ? <CircularProgress size={15} color="inherit" /> : <Sparkles size={16} strokeWidth={2} />} sx={accentBtnSx}>
+              startIcon={busy ? <Spinner className="size-[15px]" /> : <Sparkles size={16} strokeWidth={2} />} sx={accentBtnSx}>
               {primaryLabel}
             </Button>
           </div>

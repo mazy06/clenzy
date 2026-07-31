@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Button, TextField, MenuItem, CircularProgress, Alert, Snackbar, IconButton, Tooltip, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Dialog, DialogTitle, DialogContent, DialogActions, Chip } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Button, TextField, MenuItem, Alert, Snackbar, IconButton, Tooltip, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Dialog, DialogTitle, DialogContent, DialogActions, Chip } from '@mui/material';
 import { Card } from '../../components/ui';
 import {
   Add, Edit, Delete, Gavel, Info as InfoIcon,
@@ -175,7 +176,7 @@ const TaxRulesSection: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center py-6">
-        <CircularProgress />
+        <Spinner className="size-10" />
       </div>
     );
   }
@@ -460,7 +461,7 @@ const TaxRulesSection: React.FC = () => {
             onClick={handleSave}
             disabled={isSaving || !form.taxName || !form.effectiveFrom}
             size="small"
-            startIcon={isSaving ? <CircularProgress size={16} color="inherit" /> : undefined}
+            startIcon={isSaving ? <Spinner className="size-4" /> : undefined}
           >
             {isSaving ? t('fiscal.taxRules.saving') : t('fiscal.taxRules.save')}
           </Button>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, CircularProgress, FormControlLabel, Snackbar, Switch, TextField } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Alert, Button, FormControlLabel, Snackbar, Switch, TextField } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { activitiesApi, type ActivityProvider } from '../../../services/api/activitiesApi';
@@ -66,7 +67,7 @@ export default function ActivityProviderConfigForm({ provider }: { provider: Act
   if (loading) {
     return (
       <div className="flex justify-center py-3">
-        <CircularProgress size={22} />
+        <Spinner className="size-[22px]" />
       </div>
     );
   }
@@ -104,7 +105,7 @@ export default function ActivityProviderConfigForm({ provider }: { provider: Act
         variant="contained"
         onClick={handleSave}
         disabled={saving}
-        startIcon={saving ? <CircularProgress size={14} color="inherit" /> : undefined}
+        startIcon={saving ? <Spinner className="size-3.5" /> : undefined}
       >
         {t('welcomeGuide.actions.save', 'Enregistrer')}
       </Button>

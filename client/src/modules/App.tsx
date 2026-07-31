@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
-import { CircularProgress } from '@mui/material';
+import { Spinner } from '../components/ui';
+
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 import keycloak, { keycloakInitPromise } from '../keycloak';
@@ -287,7 +288,7 @@ const App: React.FC = () => {
   if ((!initialized || authLoading) && !isPublicRoute) {
     return (
       <div className="flex flex-col items-center justify-center h-[100vh] gap-3">
-        <CircularProgress size={60} />
+        <Spinner className="size-[60px]" />
         <h6 className="cn-text-h6 text-muted-foreground">
           Chargement de l'authentification...
         </h6>
@@ -386,7 +387,7 @@ const App: React.FC = () => {
               // Si authentifié, afficher soit le chargement soit l'app
               authLoading ? (
                 <div className="flex flex-col items-center justify-center h-[100vh] gap-3">
-                  <CircularProgress size={60} />
+                  <Spinner className="size-[60px]" />
                   <h6 className="cn-text-h6 text-muted-foreground">
                     Chargement de l'utilisateur...
                   </h6>
@@ -398,7 +399,7 @@ const App: React.FC = () => {
               ) : (
                 // Si pas d'utilisateur mais authentifié, afficher un chargement temporaire
                 <div className="flex flex-col items-center justify-center h-[100vh] gap-3">
-                  <CircularProgress size={60} />
+                  <Spinner className="size-[60px]" />
                   <h6 className="cn-text-h6 text-muted-foreground">
                     Chargement des données utilisateur...
                   </h6>

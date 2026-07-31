@@ -1,5 +1,6 @@
 import React, { useImperativeHandle, useMemo, useState, forwardRef } from 'react';
-import { Alert, Chip, CircularProgress, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Alert, Chip, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from '@mui/material';
 import { Edit } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useWhatsAppTemplatesList } from '../../hooks/useWhatsAppTemplates';
@@ -93,7 +94,7 @@ const WhatsAppTemplatesSection = forwardRef<WhatsAppTemplatesSectionRef>((_, ref
   if (isLoading) {
     return (
       <div className="flex justify-center p-6">
-        <CircularProgress />
+        <Spinner className="size-10" />
       </div>
     );
   }

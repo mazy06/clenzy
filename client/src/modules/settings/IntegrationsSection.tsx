@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Button, Chip, CircularProgress, Alert, Divider, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField } from '@mui/material';
+import { Box, Button, Chip, Alert, Divider, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField } from '@mui/material';
 import {
   Link as LinkIcon,
   LinkOff as LinkOffIcon,
@@ -494,7 +495,7 @@ export default function IntegrationsSection({
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" py={4}>
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </Box>
     );
   }
@@ -726,7 +727,7 @@ export default function IntegrationsSection({
                   size="small"
                   startIcon={
                     syncing ? (
-                      <CircularProgress size={14} color="inherit" />
+                      <Spinner className="size-3.5" />
                     ) : (
                       <ReceiptIcon size={14} strokeWidth={1.75} />
                     )
@@ -742,7 +743,7 @@ export default function IntegrationsSection({
                   size="small"
                   startIcon={
                     syncing ? (
-                      <CircularProgress size={14} color="inherit" />
+                      <Spinner className="size-3.5" />
                     ) : (
                       <ShoppingCartIcon size={14} strokeWidth={1.75} />
                     )
@@ -759,7 +760,7 @@ export default function IntegrationsSection({
                   size="small"
                   startIcon={
                     syncing ? (
-                      <CircularProgress size={14} color="inherit" />
+                      <Spinner className="size-3.5" />
                     ) : (
                       <SyncIcon size={14} strokeWidth={2} />
                     )
@@ -1352,7 +1353,7 @@ export default function IntegrationsSection({
             disabled={disconnecting}
             startIcon={
               disconnecting ? (
-                <CircularProgress size={14} color="inherit" />
+                <Spinner className="size-3.5" />
               ) : (
                 <LinkOffIcon size={14} strokeWidth={1.75} />
               )

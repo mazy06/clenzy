@@ -1,13 +1,6 @@
 import React, { useState, forwardRef, useImperativeHandle } from 'react';
-import {
-  Box,
-  Typography,
-  Chip,
-  IconButton,
-  Tooltip,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Typography, Chip, IconButton, Tooltip, Alert } from '@mui/material';
 import {
   Delete,
   CheckCircle,
@@ -69,7 +62,7 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
   if (isLoading) {
     return (
       <div className="flex justify-center p-6">
-        <CircularProgress />
+        <Spinner className="size-10" />
       </div>
     );
   }

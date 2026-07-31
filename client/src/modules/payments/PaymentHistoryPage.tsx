@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, TextField, Button, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, TextField, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
   CheckCircle as CheckCircleIcon,
@@ -593,7 +594,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                               }}
                             >
                               {sendingPaymentLink === payment.referenceId ? (
-                                <CircularProgress size={14} sx={{ color: 'var(--info)' }} />
+                                <Spinner className="size-3.5 text-[var(--info)]" />
                               ) : (
                                 <SendIcon size={16} strokeWidth={1.75} />
                               )}
@@ -618,7 +619,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                               }}
                             >
                               {processingPayment === payment.referenceId ? (
-                                <CircularProgress size={14} sx={{ color: 'var(--accent)' }} />
+                                <Spinner className="size-3.5 text-[var(--accent)]" />
                               ) : (
                                 <PaymentIcon size={16} strokeWidth={1.75} />
                               )}
@@ -643,7 +644,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                               }}
                             >
                               {refundingPayment === payment.referenceId ? (
-                                <CircularProgress size={14} sx={{ color: 'var(--err)' }} />
+                                <Spinner className="size-3.5 text-[var(--err)]" />
                               ) : (
                                 <MoneyOffIcon size={16} strokeWidth={1.75} />
                               )}
@@ -722,7 +723,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
             size="small"
             disabled={refundingPayment !== null}
           >
-            {refundingPayment !== null ? <CircularProgress size={18} /> : 'Rembourser'}
+            {refundingPayment !== null ? <Spinner className="size-[18px]" /> : 'Rembourser'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -768,7 +769,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
             size="small"
             disabled={sendingPaymentLink !== null}
           >
-            {sendingPaymentLink !== null ? <CircularProgress size={18} /> : 'Envoyer'}
+            {sendingPaymentLink !== null ? <Spinner className="size-[18px]" /> : 'Envoyer'}
           </Button>
         </DialogActions>
       </Dialog>

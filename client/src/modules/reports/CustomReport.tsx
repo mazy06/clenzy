@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Button, Card, Chip, CircularProgress, IconButton, MenuItem, Select, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Alert, Button, Card, Chip, IconButton, MenuItem, Select, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarChart as BarChartIcon, Delete as DeleteIcon } from '../../icons';
 import EmptyState from '../../components/EmptyState';
@@ -203,7 +204,7 @@ const CustomReport: React.FC = () => {
       )}
       {runMutation.isPending && (
         <div className="flex justify-center py-6">
-          <CircularProgress size={28} />
+          <Spinner className="size-7" />
         </div>
       )}
       {result && !runMutation.isPending && (

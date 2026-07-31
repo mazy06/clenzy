@@ -1,5 +1,6 @@
 import React from 'react';
-import { Grid, Chip, Switch, FormControlLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, IconButton, Tooltip, CircularProgress, Card, CardContent } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Grid, Chip, Switch, FormControlLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, IconButton, Tooltip, Card, CardContent } from '@mui/material';
 import {
   Star,
   Payment,
@@ -290,7 +291,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
 
             {balanceLoading && (
               <div className="flex justify-center py-3">
-                <CircularProgress size={24} />
+                <Spinner className="size-6" />
               </div>
             )}
 

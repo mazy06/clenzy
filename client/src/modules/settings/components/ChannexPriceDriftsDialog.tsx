@@ -15,21 +15,8 @@
  * Sans propertyId : montre TOUS les drifts actifs de l'organisation.</p>
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  Box,
-  Typography,
-  Button,
-  CircularProgress,
-  Alert,
-  Stack,
-  Skeleton,
-  Chip,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Dialog, DialogContent, DialogTitle, Box, Typography, Button, Alert, Stack, Skeleton, Chip, IconButton, Tooltip } from '@mui/material';
 import {
   X,
   TrendingDown,
@@ -169,7 +156,7 @@ function DriftRow({
               onClick={() => onResolve(r)}
               startIcon={
                 isBusy ? (
-                  <CircularProgress size={12} sx={{ color: 'inherit' }} />
+                  <Spinner className="size-3" />
                 ) : r === 'KEEP_CLENZY' || r === 'KEEP_OTA' ? (
                   <CheckCircle2 size={12} />
                 ) : (
@@ -292,7 +279,7 @@ export default function ChannexPriceDriftsDialog({
         <Tooltip title="Rafraichir" arrow placement="top">
           <span>
             <IconButton size="small" disabled={loading} onClick={() => void fetchDrifts()}>
-              {loading ? <CircularProgress size={14} /> : <RefreshCw size={14} />}
+              {loading ? <Spinner className="size-3.5" /> : <RefreshCw size={14} />}
             </IconButton>
           </span>
         </Tooltip>

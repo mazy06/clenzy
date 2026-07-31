@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
+import { Spinner } from '../components/ui';
 import { Card } from '../components/ui';
-import { TextField, Button, Alert, CircularProgress, Chip } from '@mui/material';
+import { TextField, Button, Alert, Chip } from '@mui/material';
 import {
   VpnKey,
   CheckCircle,
@@ -129,7 +130,7 @@ const PublicKeyVerification: React.FC = () => {
               fullWidth
               onClick={handleVerify}
               disabled={loading || code.trim().length < 4}
-              startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
+              startIcon={loading ? <Spinner className="size-4" /> : undefined}
               sx={{ mt: 1.5, textTransform: 'none', fontWeight: 600 }}
             >
               Vérifier

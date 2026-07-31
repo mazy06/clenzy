@@ -1,23 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Spinner } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { propertyDetailsKeys } from '../../hooks/usePropertyDetails';
-import {
-  Box,
-  Paper,
-  Typography,
-  TextField,
-  Button,
-  CircularProgress,
-  Alert,
-  Chip,
-  IconButton,
-  InputAdornment,
-  Tooltip,
-  LinearProgress,
-  Stack,
-  Switch,
-  FormControlLabel,
-} from '@mui/material';
+import { Box, Paper, Typography, TextField, Button, Alert, Chip, IconButton, InputAdornment, Tooltip, LinearProgress, Stack, Switch, FormControlLabel } from '@mui/material';
 import {
   VpnKey as KeyIcon,
   Wifi as WifiIcon,
@@ -408,7 +393,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
   if (loading) {
     return (
       <div className="flex justify-center py-9">
-        <CircularProgress size={28} />
+        <Spinner className="size-7" />
       </div>
     );
   }
@@ -770,7 +755,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                 disabled={uploadingPhoto}
                 sx={{ width: 140, height: 100, flexDirection: 'column', gap: 0.5, textTransform: 'none', fontSize: '0.75rem', borderStyle: 'dashed', color: 'text.secondary' }}
               >
-                {uploadingPhoto ? <CircularProgress size={18} /> : <PhotoIcon size={20} strokeWidth={1.75} />}
+                {uploadingPhoto ? <Spinner className="size-[18px]" /> : <PhotoIcon size={20} strokeWidth={1.75} />}
                 {t('channels.checkIn.addPhoto', 'Ajouter')}
                 <input
                   hidden
@@ -936,7 +921,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         </div>
         <Button
           variant="contained"
-          startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon size={16} strokeWidth={1.75} />}
+          startIcon={saving ? <Spinner className="size-3.5" /> : <SaveIcon size={16} strokeWidth={1.75} />}
           onClick={handleSave}
           disabled={saving || !dirty}
           sx={{

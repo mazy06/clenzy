@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Box, Grid, Card, CardActionArea, CardContent, Typography, Chip, Button, CircularProgress, Alert, Switch, FormControlLabel, Select, MenuItem, FormControl, InputLabel, Skeleton, Tooltip as MuiTooltip } from '@mui/material';
@@ -486,7 +487,7 @@ const KpiReadinessPage: React.FC = () => {
                     <Button
                       variant="contained"
                       size="small"
-                      startIcon={refreshing ? <CircularProgress size={16} color="inherit" /> : <Refresh />}
+                      startIcon={refreshing ? <Spinner className="size-4" /> : <Refresh />}
                       onClick={handleManualRefresh}
                       disabled={refreshing}
                     >

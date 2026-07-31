@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, CircularProgress, Alert, Avatar } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, Alert, Avatar } from '@mui/material';
 import {
   Edit as EditIcon,
   PersonRemove as PersonRemoveIcon,
@@ -94,7 +95,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
   if (loading) {
     return (
       <div className="flex justify-center py-4">
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </div>
     );
   }

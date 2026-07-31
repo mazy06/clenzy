@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Box, Paper, Button, CircularProgress, Alert, Chip, ThemeProvider, CssBaseline, TextField, Stack, InputAdornment, IconButton } from '@mui/material';
+import { Box, Paper, Button, Alert, Chip, ThemeProvider, CssBaseline, TextField, Stack, InputAdornment, IconButton } from '@mui/material';
 import {
   PersonAdd,
   CheckCircle,
@@ -334,7 +335,7 @@ export default function AcceptInvitationPage() {
           {/* Loading */}
           {state === 'loading' && (
             <div className="py-6">
-              <CircularProgress size={48} />
+              <Spinner className="size-12" />
               <p className="cn-text-body1 text-muted-foreground mt-3">
                 Chargement de l'invitation...
               </p>
@@ -590,7 +591,7 @@ export default function AcceptInvitationPage() {
                   fullWidth
                   onClick={handleSubmitRegister}
                   disabled={registering}
-                  startIcon={registering ? <CircularProgress size={16} color="inherit" /> : <PersonAdd />}
+                  startIcon={registering ? <Spinner className="size-4" /> : <PersonAdd />}
                   sx={{ py: 1.3, fontWeight: 600, borderRadius: 2 }}
                 >
                   {registering ? 'Creation en cours...' : 'Creer mon compte et accepter'}
@@ -612,7 +613,7 @@ export default function AcceptInvitationPage() {
           {/* Accepting */}
           {state === 'accepting' && (
             <div className="py-6">
-              <CircularProgress size={48} />
+              <Spinner className="size-12" />
               <p className="cn-text-body1 text-muted-foreground mt-3">
                 Acceptation en cours...
               </p>
@@ -674,7 +675,7 @@ export default function AcceptInvitationPage() {
                   disabled={savingProfile}
                   sx={{ py: 1.2, fontWeight: 600, borderRadius: 2 }}
                 >
-                  {savingProfile ? <CircularProgress size={20} /> : 'Continuer'}
+                  {savingProfile ? <Spinner className="size-5" /> : 'Continuer'}
                 </Button>
               </div>
             </div>

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from '@mui/material';
+import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -208,7 +209,7 @@ export default function ApiKeyConnectionCard<P extends string>({
         </div>
         <div className="shrink-0">
           {loading ? (
-            <CircularProgress size={18} />
+            <Spinner className="size-[18px]" />
           ) : connected ? (
             <Chip
               icon={<CheckCircleIcon size={11} strokeWidth={2} />}
@@ -233,7 +234,7 @@ export default function ApiKeyConnectionCard<P extends string>({
 
         {loading ? (
           <div className="flex justify-center py-3">
-            <CircularProgress size={24} />
+            <Spinner className="size-6" />
           </div>
         ) : connected ? (
           <div>
@@ -322,7 +323,7 @@ export default function ApiKeyConnectionCard<P extends string>({
                 variant="contained"
                 size="small"
                 disabled={submitting}
-                startIcon={submitting ? <CircularProgress size={12} color="inherit" /> : <LinkIcon size={14} strokeWidth={2} />}
+                startIcon={submitting ? <Spinner className="size-3" /> : <LinkIcon size={14} strokeWidth={2} />}
                 sx={{ textTransform: 'none', fontWeight: 600 }}
               >
                 {submitting ? 'Connexion...' : `Connecter ${meta.label}`}

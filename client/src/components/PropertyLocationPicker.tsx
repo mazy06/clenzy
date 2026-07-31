@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Box, Button, Alert, Tooltip, CircularProgress } from '@mui/material';
+import { Spinner } from './ui';
+import { Box, Button, Alert, Tooltip } from '@mui/material';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { LocationOn, DirectionsWalk } from '../icons';
@@ -251,7 +252,7 @@ export function PropertyLocationPicker({
               }}
             >
               {geoLoading ? (
-                <CircularProgress size={16} color="inherit" />
+                <Spinner className="size-4" />
               ) : (
                 <DirectionsWalk size={16} strokeWidth={1.75} />
               )}

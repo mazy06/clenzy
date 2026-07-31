@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Checkbox, Button, Divider, Chip, CircularProgress, Alert } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, Checkbox, Button, Divider, Chip, Alert } from '@mui/material';
 import {
   ShoppingCart,
   Payment,
@@ -119,7 +120,7 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
         variant="contained"
         fullWidth
         size="small"
-        startIcon={paying ? <CircularProgress size={14} color="inherit" /> : <Payment size={16} strokeWidth={1.75} />}
+        startIcon={paying ? <Spinner className="size-3.5" /> : <Payment size={16} strokeWidth={1.75} />}
         onClick={initiatePayment}
         disabled={paying || selectedIds.length === 0}
         sx={{ textTransform: 'none', fontSize: '0.75rem' }}

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { TextField, MenuItem, Alert, CircularProgress } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { TextField, MenuItem, Alert } from '@mui/material';
 import { tuyaApi } from '../../../services/api/noiseApi';
 import DevicePairingGuide from './DevicePairingGuide';
 
@@ -27,7 +28,7 @@ export default function TuyaDevicePicker({ category, selectedId, onSelect }: Tuy
   if (isLoading) {
     return (
       <div className="flex items-center gap-1.5 py-1.5">
-        <CircularProgress size={16} />
+        <Spinner className="size-4" />
         <p className="cn-text-body2 text-muted-foreground">Recherche des appareils Tuya…</p>
       </div>
     );

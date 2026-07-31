@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Spinner } from '../../../components/ui';
 import {
   Alert,
   Box,
@@ -414,7 +415,7 @@ export default function ServicesActivitiesPanel({
                             }}
                           >
                             {savingProvider === provider ? (
-                              <CircularProgress size={13} color="inherit" />
+                              <Spinner className="size-[13px]" />
                             ) : (
                               <Save size={13} strokeWidth={1.75} />
                             )}

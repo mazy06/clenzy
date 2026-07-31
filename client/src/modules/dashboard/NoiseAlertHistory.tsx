@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { Card, CardContent, Typography, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Chip, IconButton, Tooltip, FormControl, Select, MenuItem, Badge, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, CircularProgress } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Card, CardContent, Typography, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Chip, IconButton, Tooltip, FormControl, Select, MenuItem, Badge, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
 import {
   History,
   CheckCircle,
@@ -123,7 +124,7 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
 
         {alertsQuery.isLoading ? (
           <div className="flex justify-center py-4">
-            <CircularProgress size={24} />
+            <Spinner className="size-6" />
           </div>
         ) : alerts.length === 0 ? (
           <p className="cn-text-body1 py-4 text-center text-muted-foreground text-[0.8125rem]">

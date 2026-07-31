@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Grid, MenuItem, Paper, TextField, Typography } from '@mui/material';
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Grid, MenuItem, Paper, TextField, Typography } from '@mui/material';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -184,7 +185,7 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
       <DialogContent dividers>
         {isLoading && (
           <div className="flex justify-center p-6">
-            <CircularProgress />
+            <Spinner className="size-10" />
           </div>
         )}
 
@@ -355,7 +356,7 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
         </Button>
         <Button
           variant="contained"
-          startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <Save />}
+          startIcon={saving ? <Spinner className="size-4" /> : <Save />}
           onClick={handleSave}
           disabled={saving || !touched || !subject.trim() || !body.trim()}
         >

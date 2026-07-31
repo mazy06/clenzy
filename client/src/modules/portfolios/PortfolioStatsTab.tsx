@@ -1,6 +1,7 @@
 import React from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Grid, CircularProgress, List, ListItem, ListItemText, ListItemIcon, Divider, Avatar, Chip } from '@mui/material';
+import { Grid, List, ListItem, ListItemText, ListItemIcon, Divider, Avatar, Chip } from '@mui/material';
 import {
   Business,
   People,
@@ -51,7 +52,7 @@ const PortfolioStatsTab: React.FC = () => {
   if (statsQuery.isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[200px]">
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </div>
     );
   }

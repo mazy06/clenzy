@@ -9,7 +9,8 @@
    ============================================================ */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Box, Button, CircularProgress, TextField, Typography } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, Button, TextField, Typography } from '@mui/material';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { reviewsApi, type GuestReview } from '../../../services/api/reviewsApi';
 
@@ -63,7 +64,7 @@ export function SupervisionReviewDrafts({ propertyId }: { propertyId: number }) 
   if (loading) {
     return (
       <div className="flex justify-center py-3">
-        <CircularProgress size={18} />
+        <Spinner className="size-[18px]" />
       </div>
     );
   }
@@ -128,7 +129,7 @@ export function SupervisionReviewDrafts({ propertyId }: { propertyId: number }) 
               sx={{ textTransform: 'none', fontWeight: 700 }}
             >
               {publishing === review.id ? (
-                <CircularProgress size={13} sx={{ color: 'inherit' }} />
+                <Spinner className="size-[13px]" />
               ) : (
                 t('supervision.reviewDrafts.publish', 'Publier')
               )}

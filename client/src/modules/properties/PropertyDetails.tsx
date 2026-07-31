@@ -1,24 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Spinner } from '../../components/ui';
 import { useTabKeyParam } from '../../components/tabKeyParam';
-import {
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
-  Button,
-  Card,
-  CardContent,
-  Grid,
-  Chip,
-  Paper,
-  Divider,
-  Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Snackbar,
-} from '@mui/material';
+import { Box, Typography, Alert, Button, Card, CardContent, Grid, Chip, Paper, Divider, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar } from '@mui/material';
 import {  Edit,
   Home,
   LocationOn,
@@ -380,7 +363,7 @@ const PropertyDetails: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[50vh]">
-        <CircularProgress size={28} />
+        <Spinner className="size-7" />
       </div>
     );
   }
@@ -965,7 +948,7 @@ const PropertyDetails: React.FC = () => {
             variant="contained"
             onClick={handleSendCleaningQuote}
             disabled={cleaningQuoteSending}
-            startIcon={cleaningQuoteSending ? <CircularProgress size={14} color="inherit" /> : <Send size={14} strokeWidth={1.75} />}
+            startIcon={cleaningQuoteSending ? <Spinner className="size-3.5" /> : <Send size={14} strokeWidth={1.75} />}
           >
             {t('properties.cleaningQuote.confirmSend')}
           </Button>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Dialog, DialogContent, Box, Button, CircularProgress, IconButton } from '@mui/material';
+import { Spinner } from './ui';
+import { Dialog, DialogContent, Box, Button, IconButton } from '@mui/material';
 import { Sparkles, X, Wallet, AlertTriangle, ArrowRight, Check } from 'lucide-react';
 import { aiCreditsApi, toCredits, type CreditPack } from '../services/api/aiCreditsApi';
 
@@ -85,7 +86,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
         )}
 
         {packs === null ? (
-          <Box sx={{ display: 'grid', placeItems: 'center', py: 3 }}><CircularProgress size={22} sx={{ color: 'var(--accent)' }} /></Box>
+          <Box sx={{ display: 'grid', placeItems: 'center', py: 3 }}><Spinner className="size-[22px] text-[var(--accent)]" /></Box>
         ) : packs.length === 0 ? (
           <div className="text-[var(--text-sm)] text-[var(--muted)]">Aucun pack disponible pour le moment.</div>
         ) : (
@@ -120,7 +121,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
         <div className="flex justify-end gap-1.5 pt-0.5">
           <Button onClick={handleClose} disabled={busy} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Annuler</Button>
           <Button variant="contained" disableElevation onClick={handleBuy} disabled={!selected || busy}
-            startIcon={busy ? <CircularProgress size={15} color="inherit" /> : <Sparkles size={16} strokeWidth={2} />}
+            startIcon={busy ? <Spinner className="size-[15px]" /> : <Sparkles size={16} strokeWidth={2} />}
             endIcon={!busy ? <ArrowRight size={16} strokeWidth={2} /> : undefined}
             sx={{ textTransform: 'none' }}>
             {busy ? 'Ouverture du paiement…' : 'Recharger & continuer'}

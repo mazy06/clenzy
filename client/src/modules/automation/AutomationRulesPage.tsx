@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { Box, Button, Chip, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListSubheader, Select, FormControl, InputLabel, CircularProgress, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Card, CardContent, Grid, Skeleton } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Button, Chip, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListSubheader, Select, FormControl, InputLabel, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Card, CardContent, Grid, Skeleton } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -727,7 +728,7 @@ const AutomationRulesPage: React.FC = () => {
             onClick={handleSubmit}
             disabled={isMutating || !formData.name.trim()}
           >
-            {isMutating ? <CircularProgress size={16} /> : editingRule ? t('common.save', 'Enregistrer') : t('common.create', 'Creer')}
+            {isMutating ? <Spinner className="size-4" /> : editingRule ? t('common.save', 'Enregistrer') : t('common.create', 'Creer')}
           </Button>
         </DialogActions>
       </Dialog>

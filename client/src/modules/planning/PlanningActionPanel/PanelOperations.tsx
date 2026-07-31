@@ -1,30 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Divider,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
-  CircularProgress,
-  Alert,
-  IconButton,
-  Snackbar,
-  List,
-  ListItem,
-  ListItemText,
-  Checkbox,
-  Switch,
-  FormControlLabel,
-  Tooltip,
-  LinearProgress,
-  ListSubheader,
-} from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, Typography, Button, Divider, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, List, ListItem, ListItemText, Checkbox, Switch, FormControlLabel, Tooltip, LinearProgress, ListSubheader } from '@mui/material';
 import {
   Handyman,
   BroomFill,
@@ -829,7 +805,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 disabled={!hasChanges || saving}
                 sx={{ p: 0.25, color: 'var(--ok)' }}
               >
-                {saving ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}
+                {saving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
               </IconButton>
               <IconButton size="small" onClick={handleCancel} sx={{ p: 0.25, color: 'var(--err)' }}>
                 <Close size={16} strokeWidth={1.75} />
@@ -1161,7 +1137,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           <div className="flex items-center gap-0.5">
                             {sr.autoAssignStatus === 'searching' && (
                               <>
-                                <CircularProgress size={10} sx={{ color: 'text.secondary' }} />
+                                <Spinner className="size-2.5 text-[text.secondary]" />
                                 <span className="cn-text-caption text-[0.625rem] text-muted-foreground italic">
                                   Recherche en cours...
                                 </span>
@@ -1187,7 +1163,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         )}
                         {isPending && !assigneeName && canEditIntervention && sr.autoAssignStatus === 'searching' && (
                           <div className="flex items-center gap-0.5">
-                            <CircularProgress size={10} sx={{ color: 'text.secondary' }} />
+                            <Spinner className="size-2.5 text-[text.secondary]" />
                             <span className="cn-text-caption text-[0.6rem] text-muted-foreground italic">
                               Recherche auto...
                             </span>
@@ -1722,7 +1698,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
 
               {teamMembersLoading && (
                 <div className="flex items-center gap-1.5 py-1.5">
-                  <CircularProgress size={14} />
+                  <Spinner className="size-3.5" />
                   <span className="cn-text-caption text-muted-foreground text-[0.75rem]">
                     Vérification de la disponibilité...
                   </span>
@@ -1828,7 +1804,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             variant="contained"
             size="small"
             disabled={!assignValue || assignLoading}
-            startIcon={assignLoading ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}
+            startIcon={assignLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
             sx={{ fontSize: '0.75rem', textTransform: 'none' }}
           >
             Confirmer
@@ -1901,7 +1877,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             variant="contained"
             size="small"
             disabled={priorityLoading}
-            startIcon={priorityLoading ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}
+            startIcon={priorityLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
             sx={{ fontSize: '0.75rem', textTransform: 'none' }}
           >
             Confirmer
@@ -1967,7 +1943,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             variant="contained"
             size="small"
             disabled={checklistSaving}
-            startIcon={checklistSaving ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}
+            startIcon={checklistSaving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
             sx={{ fontSize: '0.75rem', textTransform: 'none' }}
           >
             Enregistrer
@@ -2038,7 +2014,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             variant="contained"
             size="small"
             disabled={!alertDate || !alertMessage.trim() || alertSaving}
-            startIcon={alertSaving ? <CircularProgress size={14} /> : <NotificationsActive size={16} strokeWidth={1.75} />}
+            startIcon={alertSaving ? <Spinner className="size-3.5" /> : <NotificationsActive size={16} strokeWidth={1.75} />}
             sx={{ fontSize: '0.75rem', textTransform: 'none' }}
           >
             Ajouter rappel
@@ -2072,7 +2048,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             color="error"
             onClick={handleDeleteSr}
             disabled={deleteSrLoading}
-            startIcon={deleteSrLoading ? <CircularProgress size={14} /> : <DeleteOutline size={16} strokeWidth={1.75} />}
+            startIcon={deleteSrLoading ? <Spinner className="size-3.5" /> : <DeleteOutline size={16} strokeWidth={1.75} />}
           >
             Supprimer
           </Button>

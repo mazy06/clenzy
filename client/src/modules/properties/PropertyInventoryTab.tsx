@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, CircularProgress } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box } from '@mui/material';
 import { Inventory2, LocalLaundryService, Receipt } from '../../icons';
 import { useTabKeyParam } from '../../components/tabKeyParam';
 import { usePropertyInventory } from '../../hooks/usePropertyInventory';
@@ -37,7 +38,7 @@ export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
   if (isLoading) {
     return (
       <div className="flex justify-center py-9">
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </div>
     );
   }

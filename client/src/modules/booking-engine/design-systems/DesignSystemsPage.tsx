@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, TextField, Skeleton, ToggleButtonGroup, ToggleButton, Chip, CircularProgress } from '@mui/material';
+import { Box, Button, TextField, Skeleton, ToggleButtonGroup, ToggleButton, Chip } from '@mui/material';
 import { Plus, Globe, FileText, Sparkles, SlidersHorizontal, AlertTriangle, Trash2 } from 'lucide-react';
 import PageHeader from '../../../components/PageHeader';
 import {
@@ -201,7 +202,7 @@ export default function DesignSystemsPage() {
 
               <div className="flex gap-1.5 mt-1.5">
                 <Button variant="contained" disableElevation onClick={handleCreate} disabled={!canCreate || busy}
-                  startIcon={busy ? <CircularProgress size={15} color="inherit" /> : <Sparkles size={16} strokeWidth={2} />} sx={{ textTransform: 'none' }}>
+                  startIcon={busy ? <Spinner className="size-[15px]" /> : <Sparkles size={16} strokeWidth={2} />} sx={{ textTransform: 'none' }}>
                   {busy ? (aiSource ? 'Génération…' : 'Création…') : aiSource ? 'Générer le système' : 'Créer'}
                 </Button>
                 <Button variant="text" onClick={() => setCreating(false)} disabled={busy} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Annuler</Button>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Box, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, CircularProgress } from '@mui/material';
+import { Box, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
 import { Settings2 } from 'lucide-react';
 import { Link as LinkIcon, LinkOff as LinkOffIcon } from '../../icons';
 import ServiceGridCard from './components/ServiceGridCard';
@@ -232,7 +233,7 @@ export default function IntegrationsWhatsAppConfig() {
             disabled={disconnect.isPending}
             sx={{ textTransform: 'none', boxShadow: 'none' }}
           >
-            {disconnect.isPending ? <CircularProgress size={14} color="inherit" /> : 'Déconnecter'}
+            {disconnect.isPending ? <Spinner className="size-3.5" /> : 'Déconnecter'}
           </Button>
         </DialogActions>
       </Dialog>

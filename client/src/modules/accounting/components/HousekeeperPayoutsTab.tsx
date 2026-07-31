@@ -9,7 +9,8 @@
    ============================================================ */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { Paper, Typography, Button, Chip, IconButton, Tooltip, Link, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, Skeleton, CircularProgress } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Paper, Typography, Button, Chip, IconButton, Tooltip, Link, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, Skeleton } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { Build as RetryIcon, AccountBalance as PayoutIcon } from '../../../icons';
 import FilterChipRow from '../../../components/FilterChipRow';
@@ -250,7 +251,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                               disabled={retryMutation.isPending}
                             >
                               {retryMutation.isPending && retryMutation.variables === r.id
-                                ? <CircularProgress size={14} />
+                                ? <Spinner className="size-3.5" />
                                 : <RetryIcon size={'1rem'} strokeWidth={1.75} />}
                             </IconButton>
                           </span>

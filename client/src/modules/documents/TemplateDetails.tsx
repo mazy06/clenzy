@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Chip, Button, Grid, CircularProgress, Alert, Divider, TextField, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
+import { Box, Chip, Button, Grid, Alert, Divider, TextField, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
 import {
   ArrowBack,
   Edit,
@@ -231,7 +232,7 @@ const TemplateDetails: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center p-6">
-        <CircularProgress />
+        <Spinner className="size-10" />
       </div>
     );
   }
@@ -441,7 +442,7 @@ const TemplateDetails: React.FC = () => {
                     backgroundColor: 'color-mix(in srgb, var(--card) 60%, transparent)',
                     zIndex: 1,
                   }}>
-                    <CircularProgress size={28} />
+                    <Spinner className="size-7" />
                     <span className="cn-text-caption text-muted-foreground">
                       Génération de l'aperçu en cours...
                     </span>
@@ -503,7 +504,7 @@ const TemplateDetails: React.FC = () => {
           sx={{ fontSize: '0.85rem', py: 0.75 }}
         >
           <span className="inline-flex me-1.5 text-muted-foreground">
-            {replacePending ? <CircularProgress size={16} /> : <Upload size={18} strokeWidth={1.75} />}
+            {replacePending ? <Spinner className="size-4" /> : <Upload size={18} strokeWidth={1.75} />}
           </span>
           {replacePending ? 'Remplacement…' : 'Remplacer le fichier (.odt)'}
         </MenuItem>
@@ -513,7 +514,7 @@ const TemplateDetails: React.FC = () => {
           sx={{ fontSize: '0.85rem', py: 0.75 }}
         >
           <span className="inline-flex me-1.5 text-muted-foreground">
-            {reparsePending ? <CircularProgress size={16} /> : <Refresh size={18} strokeWidth={1.75} />}
+            {reparsePending ? <Spinner className="size-4" /> : <Refresh size={18} strokeWidth={1.75} />}
           </span>
           Re-scanner les tags
         </MenuItem>

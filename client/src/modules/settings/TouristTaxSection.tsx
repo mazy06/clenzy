@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Button, Table, TableBody, TableCell, TableHead, TableRow, Chip, IconButton, TextField, Alert, CircularProgress, Tooltip } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Button, Table, TableBody, TableCell, TableHead, TableRow, Chip, IconButton, TextField, Alert, Tooltip } from '@mui/material';
 import { Card } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Gavel, Add, Edit, Delete, Download, Receipt } from '../../icons';
@@ -183,7 +184,7 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
 
       {configsQuery.isLoading ? (
         <div className="flex justify-center py-6">
-          <CircularProgress size={24} />
+          <Spinner className="size-6" />
         </div>
       ) : (configsQuery.data ?? []).length === 0 ? (
         <Alert severity="info" sx={{ mb: 3 }}>
@@ -302,7 +303,7 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
           InputLabelProps={{ shrink: true }}
         />
         <Button size="small" variant="contained" onClick={loadReport} disabled={!validRange || reportLoading}>
-          {reportLoading ? <CircularProgress size={16} color="inherit" /> : t('touristTax.report.generate', 'Générer')}
+          {reportLoading ? <Spinner className="size-4" /> : t('touristTax.report.generate', 'Générer')}
         </Button>
         <Button
           size="small"

@@ -1,4 +1,5 @@
-import { Box, Typography, Chip, Tooltip, IconButton, CircularProgress, alpha, useTheme } from '@mui/material';
+import { Box, Typography, Chip, Tooltip, IconButton, alpha, useTheme } from '@mui/material';
+import { Spinner } from '../../../components/ui';
 import { Thermostat, AcUnit, Wifi, WifiOff, Add, Remove, Delete } from '../../../icons';
 import type { ThermostatDto } from '../../../services/api/thermostatsApi';
 
@@ -99,7 +100,7 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
           <span><IconButton size="small" disabled={!canControl} onClick={() => adjust(-0.5)} sx={{ border: '1px solid', borderColor: 'divider' }}><Remove size={15} /></IconButton></span>
         </Tooltip>
         <span className="cn-text-caption flex-1 text-center text-muted-foreground font-semibold">
-          {acting ? <CircularProgress size={13} /> : (preset || 'Consigne')}
+          {acting ? <Spinner className="size-[13px]" /> : (preset || 'Consigne')}
         </span>
         <Tooltip title="Monter la consigne" arrow>
           <span><IconButton size="small" disabled={!canControl} onClick={() => adjust(0.5)} sx={{ border: '1px solid', borderColor: 'divider' }}><Add size={15} /></IconButton></span>

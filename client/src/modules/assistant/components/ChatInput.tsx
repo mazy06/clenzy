@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Box, IconButton, InputBase, CircularProgress, Tooltip } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, IconButton, InputBase, Tooltip } from '@mui/material';
 import {
   Send as SendIcon,
   Close as XIcon,
@@ -176,7 +177,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             </div>
           ))}
           {isUploading && (
-            <CircularProgress size={20} sx={{ ml: 0.5, color: 'var(--accent)' }} />
+            <Spinner className="size-5 ms-0.5 text-[var(--accent)]" />
           )}
         </div>
       )}
@@ -241,7 +242,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 }}
               >
                 {isUploading
-                  ? <CircularProgress size={15} sx={{ color: 'var(--accent)' }} />
+                  ? <Spinner className="size-[15px] text-[var(--accent)]" />
                   : <AttachFile size={15} strokeWidth={1.75} />}
               </IconButton>
             </span>
@@ -266,7 +267,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             }}
           >
             {status === 'sending'
-              ? <CircularProgress size={15} sx={{ color: 'var(--err)' }} />
+              ? <Spinner className="size-[15px] text-[var(--err)]" />
               : <XIcon size={15} strokeWidth={1.75} />}
           </IconButton>
         ) : (

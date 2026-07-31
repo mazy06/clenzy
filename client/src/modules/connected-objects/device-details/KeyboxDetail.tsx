@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Paper, Button, TextField, Chip, IconButton, Tooltip, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, CircularProgress, Skeleton, Snackbar, Alert } from '@mui/material';
+import { Paper, Button, TextField, Chip, IconButton, Tooltip, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Skeleton, Snackbar, Alert } from '@mui/material';
 import { VpnKey, History, Add, Delete as Trash, LocationOn } from '../../../icons';
 import EmptyState from '../../../components/EmptyState';
 import { keyExchangeApi, type KeyExchangeCodeDto } from '../../../services/api/keyExchangeApi';
@@ -136,7 +137,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                 <Button
                   variant="contained"
                   size="small"
-                  startIcon={generate.isPending ? <CircularProgress size={14} color="inherit" /> : <Add size={16} strokeWidth={2} />}
+                  startIcon={generate.isPending ? <Spinner className="size-3.5" /> : <Add size={16} strokeWidth={2} />}
                   onClick={() => generate.mutate()}
                   disabled={generate.isPending}
                 >

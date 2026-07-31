@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Spinner } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, CircularProgress } from '@mui/material';
+import { Button } from '@mui/material';
 import { Cancel, Save } from "../../icons";
 import InterventionForm from './InterventionForm';
 import PageHeader from '../../components/PageHeader';
@@ -41,7 +42,7 @@ const InterventionEdit: React.FC = () => {
                   submitButton.click();
                 }
               }}
-              startIcon={loading ? <CircularProgress size={16} /> : <Save size={18} strokeWidth={1.75} />}
+              startIcon={loading ? <Spinner className="size-4" /> : <Save size={18} strokeWidth={1.75} />}
               disabled={loading}
               title={t('common.save')}
             >

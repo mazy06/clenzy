@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Spinner } from '../../components/ui';
 import {
   Autocomplete,
   Box,
@@ -477,7 +478,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
               variant="outlined"
               disabled={!provider || catalogMutation.isPending}
               startIcon={catalogMutation.isPending
-                ? <CircularProgress size={14} />
+                ? <Spinner className="size-3.5" />
                 : <Refresh size={16} strokeWidth={1.75} />}
               onClick={() => catalogMutation.mutate(
                 { provider, apiKey: apiKey.trim() || undefined, baseUrl: baseUrl.trim() || undefined },
@@ -594,7 +595,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
         </Button>
         <Button
           onClick={handleTest}
-          startIcon={testMutation.isPending ? <CircularProgress size={14} /> : <Science />}
+          startIcon={testMutation.isPending ? <Spinner className="size-3.5" /> : <Science />}
           disabled={(!apiKey.trim() && !keyOptional) || !provider || !modelId || testMutation.isPending}
           size="small"
           sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5, color: accent }}
@@ -604,7 +605,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
         <Button
           onClick={handleSave}
           variant="contained"
-          startIcon={saveMutation.isPending ? <CircularProgress size={14} color="inherit" /> : undefined}
+          startIcon={saveMutation.isPending ? <Spinner className="size-3.5" /> : undefined}
           disabled={!canSave || saveMutation.isPending}
           size="small"
           sx={{
@@ -740,7 +741,7 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
         <Tooltip title={t('settings.ai.platform.recheck', 'Revérifier la disponibilité')}>
           <span>
             <IconButton size="small" onClick={() => recheck.mutate(model.id)} disabled={recheck.isPending}>
-              {recheck.isPending ? <CircularProgress size={14} /> : <Refresh size={16} strokeWidth={1.75} />}
+              {recheck.isPending ? <Spinner className="size-3.5" /> : <Refresh size={16} strokeWidth={1.75} />}
             </IconButton>
           </span>
         </Tooltip>
@@ -748,7 +749,7 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
           <Edit size={16} strokeWidth={1.75} />
         </IconButton>
         <IconButton size="small" onClick={() => onDelete(model.id)} disabled={isDeleting} color="error">
-          {isDeleting ? <CircularProgress size={14} /> : <Delete size={16} strokeWidth={1.75} />}
+          {isDeleting ? <Spinner className="size-3.5" /> : <Delete size={16} strokeWidth={1.75} />}
         </IconButton>
       </div>
     </Box>
@@ -1132,7 +1133,7 @@ export default function PlatformAiConfigSection() {
   if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" py={4}>
-        <CircularProgress />
+        <Spinner className="size-10" />
       </Box>
     );
   }
@@ -1367,7 +1368,7 @@ export default function PlatformAiConfigSection() {
         <Button
           size="small"
           variant="outlined"
-          startIcon={granting ? <CircularProgress size={14} color="inherit" /> : <AttachMoney />}
+          startIcon={granting ? <Spinner className="size-3.5" /> : <AttachMoney />}
           onClick={handleGrantInitial}
           disabled={granting}
           sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5, fontSize: '0.8125rem', flexShrink: 0 }}
@@ -1429,7 +1430,7 @@ export default function PlatformAiConfigSection() {
             color="error"
             disabled={deleteMutation.isPending}
             startIcon={deleteMutation.isPending
-              ? <CircularProgress size={14} color="inherit" />
+              ? <Spinner className="size-3.5" />
               : <Delete size={16} strokeWidth={1.75} />}
             sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5 }}
           >

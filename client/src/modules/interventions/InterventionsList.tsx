@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Box, MenuItem, Alert, CircularProgress, Menu, IconButton, Tooltip } from '@mui/material';
+import { Box, MenuItem, Alert, Menu, IconButton, Tooltip } from '@mui/material';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
@@ -207,7 +208,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
   if (!user) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </Box>
     );
   }
@@ -216,7 +217,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
   if (permissionsLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </Box>
     );
   }

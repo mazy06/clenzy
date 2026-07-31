@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
-import { Card, CardContent, Switch, FormControlLabel, Button, TextField, Slider, IconButton, Chip, CircularProgress, Divider, FormControl, Select, MenuItem, Grid } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Card, CardContent, Switch, FormControlLabel, Button, TextField, Slider, IconButton, Chip, Divider, FormControl, Select, MenuItem, Grid } from '@mui/material';
 import {
   Settings,
   Add,
@@ -322,7 +323,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
 
         {configQuery.isLoading ? (
           <div className="flex justify-center py-4">
-            <CircularProgress size={24} />
+            <Spinner className="size-6" />
           </div>
         ) : (
           <>

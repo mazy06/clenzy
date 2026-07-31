@@ -1,25 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  IconButton,
-  Alert,
-  CircularProgress,
-  Autocomplete,
-  Avatar,
-  FormHelperText,
-  Divider,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Card, CardContent, Typography, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Chip, IconButton, Alert, Autocomplete, Avatar, FormHelperText, Divider } from '@mui/material';
 import {
   Save,
   Add,
@@ -236,7 +217,7 @@ const TeamForm: React.FC = () => {
   if (loadingUsers) {
     return (
       <div className="flex justify-center items-center h-[50vh]">
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </div>
     );
   }
@@ -261,7 +242,7 @@ const TeamForm: React.FC = () => {
                 const submitButton = document.querySelector('[data-submit-team]') as HTMLButtonElement;
                 if (submitButton) submitButton.click();
               }}
-              startIcon={createMutation.isPending ? <CircularProgress size={16} /> : <Save size={16} strokeWidth={1.75} />}
+              startIcon={createMutation.isPending ? <Spinner className="size-4" /> : <Save size={16} strokeWidth={1.75} />}
               disabled={createMutation.isPending || filteredUsers.length === 0}
               size="small"
               title={t('teams.createTeam')}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, TextField, Button, CircularProgress, Alert } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, TextField, Button, Alert } from '@mui/material';
 import { reservationsApi, type Reservation } from '../../services/api/reservationsApi';
 import { useAttachToReservation } from '../../hooks/useConversations';
 import { formatPhoneNumber } from '../../utils/formatPhone';
@@ -100,7 +101,7 @@ export default function AttachReservationDialog({
                 ...params.InputProps,
                 endAdornment: (
                   <>
-                    {loading ? <CircularProgress size={16} /> : null}
+                    {loading ? <Spinner className="size-4" /> : null}
                     {params.InputProps.endAdornment}
                   </>
                 ),

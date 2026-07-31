@@ -1,16 +1,6 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Typography,
-  Chip,
-  Divider,
-  CircularProgress,
-  Button,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Alert,
-} from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, Typography, Chip, Divider, Button, Accordion, AccordionSummary, AccordionDetails, Alert } from '@mui/material';
 import {
   Apartment,
   Bed,
@@ -188,7 +178,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
   if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" py={4}>
-        <CircularProgress size={28} />
+        <Spinner className="size-7" />
       </Box>
     );
   }

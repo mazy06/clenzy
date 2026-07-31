@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, CircularProgress, Alert } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Alert } from '@mui/material';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
 
 interface Props {
@@ -64,7 +65,7 @@ export default function RemoveMemberDialog({ open, onClose, member, organization
           color="error"
           onClick={handleRemove}
           disabled={loading}
-          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
+          startIcon={loading ? <Spinner className="size-4" /> : undefined}
         >
           {loading ? 'Retrait...' : 'Retirer'}
         </Button>

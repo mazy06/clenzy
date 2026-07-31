@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Box, Button, CircularProgress, alpha, useTheme } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Alert, Box, Button, alpha, useTheme } from '@mui/material';
 import { CheckCircle, ErrorOutline } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -219,7 +220,7 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-1.5">
-        <CircularProgress size={16} />
+        <Spinner className="size-4" />
         <span className="cn-text-caption text-muted-foreground">
           {t('settings.whatsapp.meta.signup.loading', 'Initialisation du SDK Facebook…')}
         </span>
@@ -257,7 +258,7 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
           disabled={!sdkReady || signingIn}
           startIcon={
             signingIn ? (
-              <CircularProgress size={14} color="inherit" />
+              <Spinner className="size-3.5" />
             ) : (
               // Icone Facebook simple en SVG inline (pas besoin d'ajouter au barrel icons)
               <Box

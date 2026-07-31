@@ -14,6 +14,7 @@
  *   5. Recap : N created, M skipped, K errors
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { Dialog, DialogContent, DialogTitle, IconButton, Box, Stack, CircularProgress, Alert, Checkbox, FormControl, Select, MenuItem, Button, Divider, Chip, ButtonBase } from '@mui/material';
 import { X, Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Image as ImageIcon } from 'lucide-react';
 
@@ -433,7 +434,7 @@ export default function ChannexImportDiscoveryDialog({
         {/* Loading initial */}
         {loading && (
           <Stack alignItems="center" justifyContent="center" spacing={2} sx={{ py: 6 }}>
-            <CircularProgress size={24} thickness={4} />
+            <Spinner className="size-6" />
             <p className="cn-text-body2 text-muted-foreground">
               Recherche des proprietes en ligne...
             </p>
@@ -1089,7 +1090,7 @@ export default function ChannexImportDiscoveryDialog({
             size="small"
             onClick={handleApply}
             disabled={importing || !hasChanges}
-            startIcon={importing ? <CircularProgress size={12} color="inherit" /> : <Download size={14} />}
+            startIcon={importing ? <Spinner className="size-3" /> : <Download size={14} />}
             sx={{ textTransform: 'none' }}
           >
             {importing

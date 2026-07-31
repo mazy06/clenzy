@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Grid, Button, Alert, CircularProgress } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Grid, Button, Alert } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -355,7 +356,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </Box>
     );
   }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, IconButton, Button, InputBase, CircularProgress, Alert, Link, Stepper, Step, StepLabel, Chip } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box, IconButton, Button, InputBase, Alert, Link, Stepper, Step, StepLabel, Chip } from '@mui/material';
 import {
   Close,
   Send,
@@ -916,7 +917,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
         {/* ── Step Content ── */}
         {loadingData ? (
           <div className="flex justify-center py-6">
-            <CircularProgress size={28} />
+            <Spinner className="size-7" />
           </div>
         ) : (
           <div className="min-h-[250px]">
@@ -1015,7 +1016,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                 {/* ── Conflict detection panel ────────────────────────────── */}
                 {conflictLoading && (watchedAssignedToType === 'team' || watchedAssignedToType === 'user') && (
                   <div className="flex items-center gap-1.5 mt-2 py-1">
-                    <CircularProgress size={14} />
+                    <Spinner className="size-3.5" />
                     <span className="cn-text-caption text-muted-foreground text-[0.75rem]">
                       {watchedAssignedToType === 'team'
                         ? "Vérification de la disponibilité de l'équipe..."
@@ -1166,7 +1167,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
               variant="contained"
               size="small"
               disabled={saving || hasConflict || conflictLoading || loadingEdit}
-              startIcon={saving ? <CircularProgress size={14} /> : hasConflict ? <WarningIcon size={16} strokeWidth={1.75} /> : <Send size={16} strokeWidth={1.75} />}
+              startIcon={saving ? <Spinner className="size-3.5" /> : hasConflict ? <WarningIcon size={16} strokeWidth={1.75} /> : <Send size={16} strokeWidth={1.75} />}
               color={hasConflict ? 'error' : 'primary'}
               sx={{ fontSize: '0.75rem', textTransform: 'none' }}
             >

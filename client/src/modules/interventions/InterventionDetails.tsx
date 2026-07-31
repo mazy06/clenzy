@@ -1,12 +1,6 @@
 import React, { useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Alert,
-  CircularProgress,
-  Snackbar,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Typography, Button, Alert, Snackbar } from '@mui/material';
 import {
   Edit as EditIcon,
   Build as WrenchIcon,
@@ -83,7 +77,7 @@ export default function InterventionDetailsPage() {
   if (!permissionsLoaded || loading) {
     return (
       <div className="flex justify-center py-12">
-        <CircularProgress />
+        <Spinner className="size-10" />
       </div>
     );
   }

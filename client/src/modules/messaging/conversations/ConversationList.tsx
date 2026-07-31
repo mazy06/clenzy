@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Box, CircularProgress, InputBase, Tooltip, Typography, Alert } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, InputBase, Tooltip, Typography, Alert } from '@mui/material';
 import {
   Search as SearchIcon,
   Archive as ArchiveIcon,
@@ -347,7 +348,7 @@ export default function ConversationList({
       <div className="flex-1 overflow-y-auto min-h-0">
         {isLoading ? (
           <div className="flex justify-center py-6">
-            <CircularProgress size={22} />
+            <Spinner className="size-[22px]" />
           </div>
         ) : error ? (
           <Alert severity="error" sx={{ m: 1.5, fontSize: '0.8125rem' }}>

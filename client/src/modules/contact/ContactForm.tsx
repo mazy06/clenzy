@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
-import { Box, Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Chip, Alert, CircularProgress, Autocomplete, FormHelperText, Divider } from '@mui/material';
+import { Box, Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Chip, Alert, Autocomplete, FormHelperText, Divider } from '@mui/material';
 import {
   Send as SendIcon,
   AttachFile as AttachFileIcon,
@@ -460,7 +461,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                   <Button
                     type="submit"
                     variant="contained"
-                    startIcon={submitting ? <CircularProgress size={20} /> : <SendIcon />}
+                    startIcon={submitting ? <Spinner className="size-5" /> : <SendIcon />}
                     disabled={submitting || loading}
                   >
                     {submitting ? t('contact.sending') : t('contact.send')}

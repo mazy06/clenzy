@@ -1,5 +1,6 @@
 import React from 'react';
-import { CircularProgress, MenuItem, Select } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { MenuItem, Select } from '@mui/material';
 import { Bot, PenLine, Send, Gem } from 'lucide-react';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
@@ -44,7 +45,7 @@ const ConciergePlatformSection: React.FC = () => {
     >
       {isLoading ? (
         <div className="flex justify-center py-3">
-          <CircularProgress size={20} />
+          <Spinner className="size-5" />
         </div>
       ) : (
         <>

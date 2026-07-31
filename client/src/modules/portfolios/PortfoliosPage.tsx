@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Box, Typography, Button, Grid, Card, CardContent, Avatar, Chip, CircularProgress, IconButton, Tooltip, Divider, Menu, MenuItem } from '@mui/material';
+import { Box, Typography, Button, Grid, Card, CardContent, Avatar, Chip, IconButton, Tooltip, Divider, Menu, MenuItem } from '@mui/material';
 import {
   Business as BusinessIcon,
   People as PeopleIcon,
@@ -173,7 +174,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[50vh]">
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </div>
     );
   }

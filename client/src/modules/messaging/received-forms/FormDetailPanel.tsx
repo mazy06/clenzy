@@ -1,17 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField, Tooltip, Typography } from '@mui/material';
 import {
   Archive as ArchiveIcon,
   ArrowBack as ArrowBackIcon,
@@ -296,7 +285,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
               variant="contained"
               color="primary"
               startIcon={generateDocumentMutation.isPending
-                ? <CircularProgress size={13} color="inherit" />
+                ? <Spinner className="size-[13px]" />
                 : <FileTextIcon size={15} strokeWidth={1.75} />}
               onClick={() => handleGeneratePdf()}
               disabled={generateDocumentMutation.isPending}
@@ -514,7 +503,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           {resend.loading ? (
             <div className="flex justify-center py-6">
-              <CircularProgress size={22} sx={{ color: 'var(--accent)' }} />
+              <Spinner className="size-[22px] text-[var(--accent)]" />
             </div>
           ) : (
             <>

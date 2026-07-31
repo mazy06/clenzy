@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText, Chip, IconButton, Alert, CircularProgress, Box as MuiBox } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText, Chip, IconButton, Alert, Box as MuiBox } from '@mui/material';
 import {
   Save,
   Cancel,
@@ -201,7 +202,7 @@ const UserForm: React.FC = () => {
               variant="contained"
               size="small"
               onClick={handleSubmit(onSubmit)}
-              startIcon={saving ? <CircularProgress size={16} /> : <Save size={16} strokeWidth={1.75} />}
+              startIcon={saving ? <Spinner className="size-4" /> : <Save size={16} strokeWidth={1.75} />}
               disabled={saving}
               sx={{ fontSize: '0.8125rem' }}
               title="Créer l'utilisateur"

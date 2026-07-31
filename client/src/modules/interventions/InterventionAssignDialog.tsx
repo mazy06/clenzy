@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, ToggleButton, ToggleButtonGroup, FormControl, InputLabel, Select as MuiSelect, MenuItem } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, ToggleButton, ToggleButtonGroup, FormControl, InputLabel, Select as MuiSelect, MenuItem } from '@mui/material';
 import { Person as PersonIcon, Group as GroupIcon } from '../../icons';
 import type { Team } from '../../services/api';
 import type { User } from '../../services/api/usersApi';
@@ -105,7 +106,7 @@ const InterventionAssignDialog: React.FC<InterventionAssignDialogProps> = ({
         disabled={assignTargetId === '' || assignLoading}
         sx={{ textTransform: 'none' }}
       >
-        {assignLoading ? <CircularProgress size={18} /> : 'Assigner'}
+        {assignLoading ? <Spinner className="size-[18px]" /> : 'Assigner'}
       </Button>
     </DialogActions>
   </Dialog>

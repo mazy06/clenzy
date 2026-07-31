@@ -14,17 +14,8 @@
  * </ul>
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Box,
-  Typography,
-  IconButton,
-  CircularProgress,
-  Stack,
-  Skeleton,
-  Tooltip,
-  Chip,
-  Button,
-} from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, Typography, IconButton, Stack, Skeleton, Tooltip, Chip, Button } from '@mui/material';
 import {
   AlertCircle,
   AlertTriangle,
@@ -258,7 +249,7 @@ export default function ChannexHealthSummaryPanel({
               onClick={() => void fetchSummary()}
               sx={{ width: 24, height: 24, ml: 0.25 }}
             >
-              {loading ? <CircularProgress size={12} /> : <RefreshCw size={12} strokeWidth={2.2} />}
+              {loading ? <Spinner className="size-3" /> : <RefreshCw size={12} strokeWidth={2.2} />}
             </IconButton>
           </span>
         </Tooltip>

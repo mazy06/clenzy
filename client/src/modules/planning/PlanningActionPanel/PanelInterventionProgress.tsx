@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { LinearProgress, Stepper, Step, StepLabel, StepContent, Button, Checkbox, FormControlLabel, Chip, CircularProgress, Alert } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { LinearProgress, Stepper, Step, StepLabel, StepContent, Button, Checkbox, FormControlLabel, Chip, Alert } from '@mui/material';
 import {
   PlayArrow,
   CheckCircle,
@@ -144,7 +145,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
           variant="contained"
           fullWidth
           size="small"
-          startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <PlayArrow size={16} strokeWidth={1.75} />}
+          startIcon={loading ? <Spinner className="size-3.5" /> : <PlayArrow size={16} strokeWidth={1.75} />}
           onClick={handleStart}
           disabled={loading || !onStartIntervention}
           sx={{ mb: 2, textTransform: 'none', fontSize: '0.75rem' }}
@@ -261,7 +262,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
                 variant="contained"
                 size="small"
                 color="success"
-                startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <CheckCircle size={14} strokeWidth={1.75} />}
+                startIcon={loading ? <Spinner className="size-3.5" /> : <CheckCircle size={14} strokeWidth={1.75} />}
                 onClick={handleComplete}
                 disabled={loading || !onCompleteIntervention || isCompleted}
                 sx={{ textTransform: 'none', fontSize: '0.6875rem' }}

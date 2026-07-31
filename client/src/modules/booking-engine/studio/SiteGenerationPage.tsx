@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Box, Button, InputBase, ButtonBase, CircularProgress, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { Box, Button, InputBase, ButtonBase, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { Sparkles, AlertTriangle, Globe, FileText, SlidersHorizontal, Plus, ArrowRight, ArrowLeft, Check, LayoutGrid } from 'lucide-react';
 import { bookingEngineApi, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
 import { sitesApi, type SiteGenerationBrief } from '../../../services/api/sitesApi';
@@ -377,7 +378,7 @@ export default function SiteGenerationPage() {
                   <div className="flex justify-end gap-1.5">
                     <ButtonBase onClick={() => setDsCreating(false)} disabled={dsBusy} sx={ghostBtnSx}>{t('common.cancel', 'Annuler')}</ButtonBase>
                     <ButtonBase onClick={handleCreateDs} disabled={!canCreateDs || dsBusy} sx={primaryBtnSx}>
-                      {dsBusy ? <><CircularProgress size={15} thickness={5} sx={{ color: 'var(--on-accent)' }} /> {k('directionCreating', 'Création…')}</> : <><Sparkles size={16} strokeWidth={2} /> {k('directionDo', 'Créer')}</>}
+                      {dsBusy ? <><Spinner className="size-[15px] text-[var(--on-accent)]" /> {k('directionCreating', 'Création…')}</> : <><Sparkles size={16} strokeWidth={2} /> {k('directionDo', 'Créer')}</>}
                     </ButtonBase>
                   </div>
                 </div>

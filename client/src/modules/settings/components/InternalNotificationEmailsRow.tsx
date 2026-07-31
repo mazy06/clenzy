@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Autocomplete, Box, Chip, CircularProgress, TextField } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Autocomplete, Box, Chip, TextField } from '@mui/material';
 import { AlertTriangle, BellRing } from 'lucide-react';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -114,7 +115,7 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
 
       {saving && (
         <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 0.5, ml: { sm: '30px' } }}>
-          <CircularProgress size={11} />
+          <Spinner className="size-[11px]" />
           <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Enregistrement…</p>
         </Box>
       )}

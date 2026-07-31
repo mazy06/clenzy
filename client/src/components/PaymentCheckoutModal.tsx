@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, Box, IconButton, Button, CircularProgress, Alert } from '@mui/material';
+import { Spinner } from './ui';
+import { Dialog, DialogTitle, DialogContent, Box, IconButton, Button, Alert } from '@mui/material';
 import {
   Close as CloseIcon,
   Lock as LockIcon,
@@ -230,7 +231,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
             {/* Loading state */}
             {loading && (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
-                <CircularProgress size={32} thickness={3.5} sx={{ color: 'var(--accent)' }} />
+                <Spinner className="size-8 text-[var(--accent)]" />
                 <p className="cn-text-body2 text-[var(--muted)] text-[12.5px]">
                   Chargement du formulaire de paiement...
                 </p>

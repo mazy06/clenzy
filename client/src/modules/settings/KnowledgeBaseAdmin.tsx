@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Box, Button, CircularProgress, Alert, Chip, Divider, IconButton, Table, TableHead, TableRow, TableCell, TableBody, TextField, Tooltip } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Button, Alert, Chip, Divider, IconButton, Table, TableHead, TableRow, TableCell, TableBody, TextField, Tooltip } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { AttachFile, Delete } from '../../icons';
 import apiClient from '../../services/apiClient';
@@ -300,7 +301,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
             >
               {uploading ? 'Indexation...' : 'Uploader un document'}
             </Button>
-            {uploading && <CircularProgress size={20} />}
+            {uploading && <Spinner className="size-5" />}
           </>
         )}
         <div className="flex-1" />
@@ -319,7 +320,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
 
       {loading ? (
         <Box display="flex" justifyContent="center" py={4}>
-          <CircularProgress size={24} />
+          <Spinner className="size-6" />
         </Box>
       ) : docs.length === 0 ? (
         <Box sx={{
@@ -422,7 +423,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
           </div>
           {evaluating && (
             <div className="flex items-center gap-2 py-3">
-              <CircularProgress size={20} />
+              <Spinner className="size-5" />
               <span className="cn-text-caption text-muted-foreground">
                 {evalProgress && evalProgress.done < evalProgress.total
                   ? `${evalProgress.done} question(s) sur ${evalProgress.total} évaluée(s) — le rythme s'adapte aux limites de l'API (jusqu'à ~15 min si elle est bridée).`
@@ -531,7 +532,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
           </div>
           {testing && (
             <Box display="flex" justifyContent="center" py={2}>
-              <CircularProgress size={20} />
+              <Spinner className="size-5" />
             </Box>
           )}
           {testResult && testResult.items.length === 0 && (

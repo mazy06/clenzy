@@ -1,33 +1,10 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Spinner } from '../../../components/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
 import { serviceRequestsApi, type ServiceRequest } from '../../../services/api/serviceRequestsApi';
 import { reservationsApi } from '../../../services/api/reservationsApi';
-import {
-  Box,
-  Typography,
-  Button,
-  Divider,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
-  CircularProgress,
-  Alert,
-  IconButton,
-  Snackbar,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Collapse,
-  Tooltip,
-} from '@mui/material';
+import { Box, Typography, Button, Divider, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, Tooltip } from '@mui/material';
 import {
   Payment,
   Add,
@@ -923,7 +900,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               <Button
                 size="small"
                 variant="contained"
-                startIcon={sendingLink ? <CircularProgress size={14} color="inherit" /> : <Send size={14} strokeWidth={1.75} />}
+                startIcon={sendingLink ? <Spinner className="size-3.5" /> : <Send size={14} strokeWidth={1.75} />}
                 disabled={sendingLink || !onSendPaymentLink || !hasTotalPrice || reservation?.paymentStatus === 'PAID'}
                 onClick={() => {
                   if (reservation.guestEmail) {
@@ -956,7 +933,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={invoiceLoading ? <CircularProgress size={12} /> : <Receipt size={12} strokeWidth={1.75} />}
+                startIcon={invoiceLoading ? <Spinner className="size-3" /> : <Receipt size={12} strokeWidth={1.75} />}
                 disabled={invoiceLoading || !onGenerateInvoice || !reservation || !hasTotalPrice}
                 onClick={() => reservation && handleGenerateInvoice('RESERVATION', reservation.id)}
                 sx={{ flex: 1 }}
@@ -1125,7 +1102,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <Button
               size="small"
               variant="contained"
-              startIcon={payingSR ? <CircularProgress size={14} color="inherit" /> : <CreditCard size={14} strokeWidth={1.75} />}
+              startIcon={payingSR ? <Spinner className="size-3.5" /> : <CreditCard size={14} strokeWidth={1.75} />}
               disabled={payingSR || (payableServiceRequests.length === 0 && interventionCostTotal <= interventionPaid)}
               onClick={() => {
                 if (payableServiceRequests.length > 0) {
@@ -1144,7 +1121,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <Button
               size="small"
               variant="outlined"
-              startIcon={invoiceLoading ? <CircularProgress size={12} /> : <Receipt size={12} strokeWidth={1.75} />}
+              startIcon={invoiceLoading ? <Spinner className="size-3" /> : <Receipt size={12} strokeWidth={1.75} />}
               disabled={invoiceLoading || linkedInterventions.length === 0 || !onGenerateInvoice}
               onClick={() => {
                 if (linkedInterventions.length > 0) {
@@ -1245,7 +1222,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <Button
               size="small"
               variant="outlined"
-              startIcon={invoiceLoading ? <CircularProgress size={12} /> : <Receipt size={12} strokeWidth={1.75} />}
+              startIcon={invoiceLoading ? <Spinner className="size-3" /> : <Receipt size={12} strokeWidth={1.75} />}
               fullWidth
               disabled={invoiceLoading}
               onClick={() => handleGenerateInvoice('INTERVENTION', intervention.id)}
@@ -1395,7 +1372,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddPaymentOpen(false)} size="small">Annuler</Button>
-          <Button onClick={handleAddPayment} variant="contained" size="small" disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || paymentLoading} startIcon={paymentLoading ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}>
+          <Button onClick={handleAddPayment} variant="contained" size="small" disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || paymentLoading} startIcon={paymentLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}>
             Enregistrer
           </Button>
         </DialogActions>
@@ -1423,7 +1400,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddFeeOpen(false)} size="small">Annuler</Button>
-          <Button onClick={handleAddFee} variant="contained" size="small" disabled={!feeDescription.trim() || !feeAmount || parseFloat(feeAmount) <= 0 || feeLoading} startIcon={feeLoading ? <CircularProgress size={14} /> : <Add size={16} strokeWidth={1.75} />}>
+          <Button onClick={handleAddFee} variant="contained" size="small" disabled={!feeDescription.trim() || !feeAmount || parseFloat(feeAmount) <= 0 || feeLoading} startIcon={feeLoading ? <Spinner className="size-3.5" /> : <Add size={16} strokeWidth={1.75} />}>
             Ajouter
           </Button>
         </DialogActions>
@@ -1463,7 +1440,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setRefundDialogOpen(false)} size="small">Annuler</Button>
-          <Button onClick={handleRefund} variant="contained" color="warning" size="small" disabled={refundLoading} startIcon={refundLoading ? <CircularProgress size={14} /> : <MoneyOff size={16} strokeWidth={1.75} />}>
+          <Button onClick={handleRefund} variant="contained" color="warning" size="small" disabled={refundLoading} startIcon={refundLoading ? <Spinner className="size-3.5" /> : <MoneyOff size={16} strokeWidth={1.75} />}>
             Confirmer le remboursement
           </Button>
         </DialogActions>

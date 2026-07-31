@@ -1,18 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  Box,
-  Typography,
-  Chip,
-  CircularProgress,
-  Alert,
-  IconButton,
-  Divider,
-  TextField,
-  Button,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, Box, Typography, Chip, Alert, IconButton, Divider, TextField, Button } from '@mui/material';
 import {
   Close as CloseIcon,
   Person as PersonIcon,
@@ -89,7 +77,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
       <DialogContent sx={{ pt: 1 }}>
         {loading && (
           <div className="flex justify-center py-6">
-            <CircularProgress size={28} />
+            <Spinner className="size-7" />
           </div>
         )}
 
@@ -186,7 +174,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                       {t('common.cancel')}
                     </Button>
                     <Button size="small" variant="contained" onClick={handleSaveNotes} disabled={savingNotes} sx={{ fontSize: '0.6875rem' }}>
-                      {savingNotes ? <CircularProgress size={12} /> : t('common.save')}
+                      {savingNotes ? <Spinner className="size-3" /> : t('common.save')}
                     </Button>
                   </div>
                 </div>

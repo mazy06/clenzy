@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useCallback } from 'react';
-import { CircularProgress } from '@mui/material';
+import { Spinner } from './ui';
+
 
 interface TurnstileCaptchaProps {
   onVerified: (token: string) => void;
@@ -95,7 +96,7 @@ export default function TurnstileCaptcha({ onVerified, onError }: TurnstileCaptc
       <div ref={containerRef} />
       {!widgetIdRef.current && (
         <div className="flex items-center gap-1.5">
-          <CircularProgress size={20} sx={{ color: 'secondary.main' }} />
+          <Spinner className="size-5 text-[secondary.main]" />
           <p className="cn-text-body2 text-muted-foreground text-[0.8rem]">
             Chargement...
           </p>

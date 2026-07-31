@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
-import { Button, TextField, MenuItem, Switch, FormControlLabel, Grid, CircularProgress, Alert, Snackbar, Chip } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Button, TextField, MenuItem, Switch, FormControlLabel, Grid, Alert, Snackbar, Chip } from '@mui/material';
 import { Card } from '../../components/ui';
 import {
   AccountBalance, Info as InfoIcon, Verified,
@@ -166,7 +167,7 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
   if (isLoading) {
     return (
       <div className="flex justify-center py-6">
-        <CircularProgress />
+        <Spinner className="size-10" />
       </div>
     );
   }

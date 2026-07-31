@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Box, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, IconButton, MenuItem, Select, FormControl, InputLabel, Tooltip, useTheme, Button, CircularProgress, SelectChangeEvent } from '@mui/material';
+import { Box, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, IconButton, MenuItem, Select, FormControl, InputLabel, Tooltip, useTheme, Button, SelectChangeEvent } from '@mui/material';
 import {
   ExpandMore,
   ExpandLess,
@@ -171,7 +172,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
-        <CircularProgress />
+        <Spinner className="size-10" />
       </div>
     );
   }

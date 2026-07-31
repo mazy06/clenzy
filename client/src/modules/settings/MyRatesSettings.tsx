@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Typography, TextField, Button, Alert, Snackbar, CircularProgress, InputAdornment, Skeleton } from '@mui/material';
+import { Box, Typography, TextField, Button, Alert, Snackbar, InputAdornment, Skeleton } from '@mui/material';
 import { Euro, Save, CheckCircle } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -261,7 +262,7 @@ export default function MyRatesSettings() {
         <Button
           variant="contained"
           size="small"
-          startIcon={saveMutation.isPending ? <CircularProgress size={16} color="inherit" /> : <Save size={16} strokeWidth={1.75} />}
+          startIcon={saveMutation.isPending ? <Spinner className="size-4" /> : <Save size={16} strokeWidth={1.75} />}
           onClick={handleSave}
           disabled={saveMutation.isPending}
         >

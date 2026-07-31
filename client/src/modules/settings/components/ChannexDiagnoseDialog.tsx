@@ -21,19 +21,8 @@
  * </ul>
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  Box,
-  Typography,
-  Button,
-  CircularProgress,
-  Alert,
-  Stack,
-  Skeleton,
-  Chip,
-} from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Dialog, DialogContent, DialogTitle, Box, Typography, Button, Alert, Stack, Skeleton, Chip } from '@mui/material';
 import {
   CheckCircle2,
   AlertCircle,
@@ -204,7 +193,7 @@ function ActionButton({
         <Button
           size="small"
           variant={isPrimary ? 'contained' : 'outlined'}
-          startIcon={busy ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <Icon size={14} />}
+          startIcon={busy ? <Spinner className="size-3.5" /> : <Icon size={14} />}
           disabled={busy}
           onClick={onClick}
           sx={{ textTransform: 'none', fontSize: '0.78rem' }}

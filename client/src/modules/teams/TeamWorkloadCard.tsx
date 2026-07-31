@@ -1,13 +1,6 @@
 import React from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  LinearProgress,
-  CircularProgress,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Card, CardContent, Typography, Grid, LinearProgress } from '@mui/material';
 import {
   Assignment,
   CheckCircle,
@@ -59,7 +52,7 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
     return (
       <Card sx={{ height: '100%' }}>
         <CardContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
-          <CircularProgress size={28} />
+          <Spinner className="size-7" />
         </CardContent>
       </Card>
     );

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Typography, CircularProgress, Button, Collapse, Divider } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Typography, Button, Collapse, Divider } from '@mui/material';
 import { Mail, Rocket, Users, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
@@ -37,7 +38,7 @@ const LaunchSettingsSection: React.FC = () => {
     <SettingsSection title="Pré-lancement" icon={Rocket} accent="primary">
       {isLoading ? (
         <div className="flex justify-center py-3">
-          <CircularProgress size={20} />
+          <Spinner className="size-5" />
         </div>
       ) : (
         <>

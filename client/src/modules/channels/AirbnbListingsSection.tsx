@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Paper, Button, CircularProgress, Switch, FormControlLabel, Divider, IconButton, Tooltip, Collapse } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Paper, Button, Switch, FormControlLabel, Divider, IconButton, Tooltip, Collapse } from '@mui/material';
 import {
   LinkOff as LinkOffIcon,
   Link as LinkIcon,
@@ -74,7 +75,7 @@ const AirbnbListingsSection: React.FC<AirbnbListingsSectionProps> = ({
     <Collapse in={expanded}>
       {listingsLoading ? (
         <div className="flex justify-center py-3">
-          <CircularProgress size={24} />
+          <Spinner className="size-6" />
         </div>
       ) : listings.length === 0 ? (
         <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mt-1.5">
@@ -291,7 +292,7 @@ function LinkPropertyForm({
           disabled={loading || !form.airbnbListingId}
           sx={{ fontSize: '0.75rem' }}
         >
-          {loading ? <CircularProgress size={14} /> : t('channels.listings.link')}
+          {loading ? <Spinner className="size-3.5" /> : t('channels.listings.link')}
         </Button>
         <Button size="small" variant="outlined" onClick={onCancel} sx={{ fontSize: '0.75rem' }}>
           {t('common.cancel')}

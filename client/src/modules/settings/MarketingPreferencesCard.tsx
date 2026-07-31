@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Switch, CircularProgress, Alert, Snackbar } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Switch, Alert, Snackbar } from '@mui/material';
 import { Card } from '../../components/ui';
 import { Mail } from '../../icons';
 import { usersApi } from '../../services/api/usersApi';
@@ -95,7 +96,7 @@ export default function MarketingPreferencesCard() {
 
       {newsletterOptIn === null && !loadError ? (
         <div className="flex justify-center py-3">
-          <CircularProgress size={20} />
+          <Spinner className="size-5" />
         </div>
       ) : (
         <div className="flex items-center justify-between py-1.5 px-2 border border-[divider] rounded-[1.5px]">

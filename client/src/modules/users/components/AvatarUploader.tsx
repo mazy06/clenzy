@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { Alert, Avatar, Box, Button, CircularProgress } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Alert, Avatar, Box, Button } from '@mui/material';
 import { Upload, Delete } from '../../../icons';
 import { usersApi, type User } from '../../../services/api/usersApi';
 
@@ -125,7 +126,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
           </Avatar>
           {uploading && (
             <div className="absolute inset-[0px] rounded-[50%] bg-[rgba(15,23,42,0.45)] flex items-center justify-center">
-              <CircularProgress size={22} sx={{ color: 'common.white' }} />
+              <Spinner className="size-[22px] text-[common.white]" />
             </div>
           )}
         </div>

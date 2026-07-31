@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Button, Alert, Chip, CircularProgress, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Box, Button, Alert, Chip, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import { AccountBalance, CheckCircle, Refresh } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { loadConnectAndInitialize } from '@stripe/connect-js';
@@ -133,7 +134,7 @@ export default function MyProPayoutsSettings() {
               <Button
                 size="small"
                 variant="text"
-                startIcon={refreshMutation.isPending ? <CircularProgress size={14} /> : <Refresh size={14} strokeWidth={1.75} />}
+                startIcon={refreshMutation.isPending ? <Spinner className="size-3.5" /> : <Refresh size={14} strokeWidth={1.75} />}
                 onClick={() => refreshMutation.mutate()}
                 disabled={refreshMutation.isPending}
               >
@@ -146,7 +147,7 @@ export default function MyProPayoutsSettings() {
                 variant="contained"
                 onClick={startOnboarding}
                 disabled={initializing || onboardingOpen}
-                startIcon={initializing ? <CircularProgress size={14} color="inherit" /> : undefined}
+                startIcon={initializing ? <Spinner className="size-3.5" /> : undefined}
               >
                 {data?.accountCreated
                   ? t('settings.myProPayouts.resumeOnboarding')

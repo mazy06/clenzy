@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Alert, CircularProgress, Box, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Alert, Box, Divider } from '@mui/material';
 import { Send } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -103,7 +104,7 @@ export default function SendMessageDialog({
 
         {loading ? (
           <Box display="flex" justifyContent="center" py={4}>
-            <CircularProgress size={32} />
+            <Spinner className="size-8" />
           </Box>
         ) : (
           <>
@@ -169,7 +170,7 @@ export default function SendMessageDialog({
         <Button onClick={onClose}>{t('common.cancel')}</Button>
         <Button
           variant="contained"
-          startIcon={sending ? <CircularProgress size={16} color="inherit" /> : <Send />}
+          startIcon={sending ? <Spinner className="size-4" /> : <Send />}
           onClick={handleSend}
           disabled={sending || !selectedTemplateId || success}
         >

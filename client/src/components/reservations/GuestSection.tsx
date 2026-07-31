@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, TextField, MenuItem, Chip, Autocomplete, CircularProgress } from '@mui/material';
+import { Spinner } from '../ui';
+import { Box, Typography, TextField, MenuItem, Chip, Autocomplete } from '@mui/material';
 import { Person, PersonOutline, Search as SearchIcon, Group as GroupIcon, Remove as RemoveIcon, Add as AddIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { UseReservationFormResult } from './useReservationForm';
@@ -137,7 +138,7 @@ const GuestSection: React.FC<Props> = ({ form }) => {
             startAdornment: <AdornIcon><SearchIcon size={15} strokeWidth={1.75} /></AdornIcon>,
             endAdornment: (
               <>
-                {form.isSearching ? <CircularProgress size={16} sx={{ color: 'var(--accent)' }} /> : null}
+                {form.isSearching ? <Spinner className="size-4 text-[var(--accent)]" /> : null}
                 {params.InputProps.endAdornment}
               </>
             ),

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Card, CardContent, Grid, TextField, Button, FormControl, InputLabel, Select, MenuItem, Alert, CircularProgress, List, ListItem, ListItemAvatar, ListItemText, Avatar } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Card, CardContent, Grid, TextField, Button, FormControl, InputLabel, Select, MenuItem, Alert, List, ListItem, ListItemAvatar, ListItemText, Avatar } from '@mui/material';
 import {
   Autocomplete,
   IconButton,
@@ -237,7 +238,7 @@ const TeamEdit: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[50vh]">
-        <CircularProgress />
+        <Spinner className="size-10" />
       </div>
     );
   }

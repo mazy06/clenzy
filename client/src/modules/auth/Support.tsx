@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Box, TextField, Button, Stack, Alert, CircularProgress, MenuItem, ThemeProvider, CssBaseline } from '@mui/material';
+import { Box, TextField, Button, Stack, Alert, MenuItem, ThemeProvider, CssBaseline } from '@mui/material';
 import { ArrowBack, CheckCircle } from '../../icons';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
@@ -210,7 +211,7 @@ export default function Support() {
                 }}
               >
                 {loading ? (
-                  <CircularProgress size={20} color="inherit" />
+                  <Spinner className="size-5" />
                 ) : (
                   t('auth.support.submit', 'Envoyer')
                 )}

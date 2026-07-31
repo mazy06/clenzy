@@ -1,6 +1,7 @@
 import React from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Alert, CircularProgress, Grid, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import { Alert, Grid, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useVoucherAnalytics } from '../../hooks/useBookingVouchers';
 import type { VoucherStats } from '../../services/api/bookingVouchersApi';
@@ -46,7 +47,7 @@ export default function VoucherAnalyticsPanel() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-3">
-        <CircularProgress size={24} />
+        <Spinner className="size-6" />
       </div>
     );
   }

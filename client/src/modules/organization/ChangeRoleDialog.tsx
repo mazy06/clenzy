@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, CircularProgress, Alert } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Alert } from '@mui/material';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
 import { ASSIGNABLE_ORG_ROLES, getOrgRoleLabel } from '../../utils/orgRoleLabels';
 
@@ -82,7 +83,7 @@ export default function ChangeRoleDialog({ open, onClose, member, organizationId
           variant="contained"
           onClick={handleSubmit}
           disabled={loading || !role || role === member?.roleInOrg}
-          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
+          startIcon={loading ? <Spinner className="size-4" /> : undefined}
         >
           {loading ? 'Modification...' : 'Modifier'}
         </Button>

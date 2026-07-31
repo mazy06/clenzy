@@ -1,5 +1,6 @@
 import React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, CircularProgress } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 
 interface PropertyStatusToggleDialogProps {
@@ -45,7 +46,7 @@ const PropertyStatusToggleDialog: React.FC<PropertyStatusToggleDialogProps> = ({
           size="small"
           color={isActive ? 'warning' : 'primary'}
           disabled={pending}
-          startIcon={pending ? <CircularProgress size={14} color="inherit" /> : undefined}
+          startIcon={pending ? <Spinner className="size-3.5" /> : undefined}
         >
           {isActive ? 'Désactiver' : 'Réactiver'}
         </Button>

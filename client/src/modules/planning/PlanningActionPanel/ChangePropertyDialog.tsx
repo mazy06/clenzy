@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Chip, IconButton, Button, Divider, Alert, CircularProgress } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Chip, IconButton, Button, Divider, Alert } from '@mui/material';
 import {
   Close,
   Home,
@@ -286,7 +287,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
           variant="contained"
           size="small"
           disabled={!selectedProperty || loading}
-          startIcon={loading ? <CircularProgress size={14} /> : <SwapHoriz size={16} strokeWidth={1.75} />}
+          startIcon={loading ? <Spinner className="size-3.5" /> : <SwapHoriz size={16} strokeWidth={1.75} />}
           sx={{ fontSize: '0.75rem', textTransform: 'none' }}
         >
           Confirmer le changement

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Alert, MenuItem, Switch, FormControlLabel, IconButton, InputAdornment, CircularProgress } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Alert, MenuItem, Switch, FormControlLabel, IconButton, InputAdornment } from '@mui/material';
 import { Close as CloseIcon, Visibility, VisibilityOff } from '../../../icons';
 import type {
   PaymentMethodConfig,
@@ -505,7 +506,7 @@ export default function PaymentProviderConfigDialog({
           size="small"
           onClick={handleSave}
           disabled={saving || fields.length === 0}
-          startIcon={saving ? <CircularProgress size={14} color="inherit" /> : undefined}
+          startIcon={saving ? <Spinner className="size-3.5" /> : undefined}
           sx={{ textTransform: 'none', fontWeight: 600 }}
         >
           {saving ? 'Enregistrement…' : 'Enregistrer'}

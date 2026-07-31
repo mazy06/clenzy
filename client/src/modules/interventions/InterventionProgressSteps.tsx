@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Box, Typography, Button, Chip,
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  CircularProgress, Alert,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Typography, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Alert } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   RadioButtonUnchecked as UncheckedIcon,
@@ -785,7 +782,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           {pdfLoading ? (
             <div className="flex justify-center items-center flex-1">
-              <CircularProgress />
+              <Spinner className="size-10" />
             </div>
           ) : pdfUrl ? (
             <object

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Grid, Paper, CircularProgress, Alert, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Grid, Paper, Alert, Divider } from '@mui/material';
 import { Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -287,7 +288,7 @@ export default function MessageTemplateEditor({
         <Button onClick={onClose}>{t('common.cancel')}</Button>
         <Button
           variant="contained"
-          startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <Save />}
+          startIcon={saving ? <Spinner className="size-4" /> : <Save />}
           onClick={handleSave}
           disabled={saving || !name.trim() || !subject.trim() || !body.trim()}
         >

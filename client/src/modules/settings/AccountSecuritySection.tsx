@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Alert, Button, CircularProgress } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Alert, Button } from '@mui/material';
 import { Security } from '../../icons';
 import apiClient from '../../services/apiClient';
 import SettingsSection from './components/SettingsSection';
@@ -57,7 +58,7 @@ export default function AccountSecuritySection() {
           disabled={loading}
           sx={{ textTransform: 'none', fontWeight: 600, flexShrink: 0 }}
         >
-          {loading ? <CircularProgress size={18} color="inherit" /> : 'Changer mon mot de passe'}
+          {loading ? <Spinner className="size-[18px]" /> : 'Changer mon mot de passe'}
         </Button>
       </div>
       {feedback && (

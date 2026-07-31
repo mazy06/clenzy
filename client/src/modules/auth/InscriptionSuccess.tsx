@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Box, Paper, Button, CircularProgress, Alert, ThemeProvider, CssBaseline } from '@mui/material';
+import { Box, Paper, Button, Alert, ThemeProvider, CssBaseline } from '@mui/material';
 import { MarkEmailRead, ErrorOutline, Send as SendIcon } from '../../icons';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
@@ -85,7 +86,7 @@ export default function InscriptionSuccess() {
 
           {status === 'loading' && (
             <div className="py-6">
-              <CircularProgress sx={{ color: 'primary.main', mb: 2 }} />
+              <Spinner className="size-10 text-[primary.main] mb-3" />
               <p className="cn-text-body1 font-medium text-muted-foreground">
                 {t('auth.inscriptionSuccess.loading', 'Finalisation de votre paiement...')}
               </p>
@@ -134,7 +135,7 @@ export default function InscriptionSuccess() {
               <Button
                 variant="contained"
                 size="large"
-                startIcon={resending ? <CircularProgress size={18} color="inherit" /> : <SendIcon />}
+                startIcon={resending ? <Spinner className="size-[18px]" /> : <SendIcon />}
                 onClick={handleResend}
                 disabled={resending}
                 sx={{

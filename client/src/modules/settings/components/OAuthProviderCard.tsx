@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { Box, Button, Chip, CircularProgress, Alert, IconButton, Tooltip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
 import {
@@ -322,7 +323,7 @@ export default function OAuthProviderCard({
             disabled={actionLoading}
             sx={{ textTransform: 'none', boxShadow: 'none' }}
           >
-            {actionLoading ? <CircularProgress size={14} color="inherit" /> : (labels.confirm ?? 'Déconnecter')}
+            {actionLoading ? <Spinner className="size-3.5" /> : (labels.confirm ?? 'Déconnecter')}
           </Button>
         </DialogActions>
       </Dialog>

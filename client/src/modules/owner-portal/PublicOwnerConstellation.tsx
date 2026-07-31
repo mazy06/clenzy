@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
+import { Spinner } from '../../components/ui';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { CircularProgress, Container, Divider, Stack, Typography } from '@mui/material';
+import { Container, Divider, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { API_CONFIG } from '../../config/api';
 
@@ -106,7 +107,7 @@ export default function PublicOwnerConstellation() {
   if (state === 'loading') {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <CircularProgress />
+        <Spinner className="size-10" />
       </div>
     );
   }

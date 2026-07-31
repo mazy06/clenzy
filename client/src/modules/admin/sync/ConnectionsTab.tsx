@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, CircularProgress, Skeleton, Alert } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Skeleton, Alert } from '@mui/material';
 import { Refresh } from '../../../icons';
 import { syncAdminApi, ConnectionSummary } from '../../../services/api/syncAdminApi';
 
@@ -141,7 +142,7 @@ const ConnectionsTab: React.FC = () => {
                     <Button
                       size="small"
                       variant="outlined"
-                      startIcon={checkingId === conn.id ? <CircularProgress size={16} /> : <Refresh />}
+                      startIcon={checkingId === conn.id ? <Spinner className="size-4" /> : <Refresh />}
                       onClick={() => handleHealthCheck(conn.id)}
                       disabled={checkingId === conn.id}
                     >

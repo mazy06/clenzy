@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, TextField, Tooltip, CircularProgress } from '@mui/material';
+import { Spinner } from '../ui';
+import { Box, Typography, TextField, Tooltip } from '@mui/material';
 import { Edit as EditIcon, RemoveCircleOutline as MinusCircleIcon, Percent } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { UseReservationFormResult } from './useReservationForm';
@@ -43,7 +44,7 @@ const PricingSection: React.FC<Props> = ({ form }) => {
       InputProps={{
         startAdornment: <span className="text-[var(--faint)] text-[14px] font-semibold">€</span>,
         endAdornment: form.pricingLoading ? (
-          <CircularProgress size={14} sx={{ color: 'var(--accent)' }} />
+          <Spinner className="size-3.5 text-[var(--accent)]" />
         ) : form.priceVaries ? (
           <Box
             component="span"

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
-import { Box, Typography, Switch, List, ListItem, ListItemText, ListItemSecondaryAction, Accordion, AccordionSummary, AccordionDetails, CircularProgress, Alert, Snackbar, Chip, Tooltip } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Typography, Switch, List, ListItem, ListItemText, ListItemSecondaryAction, Accordion, AccordionSummary, AccordionDetails, Alert, Snackbar, Chip, Tooltip } from '@mui/material';
 import { Card } from '../../components/ui';
 import {
   ExpandMore,
@@ -323,7 +324,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
   if (loading) {
     return (
       <Card className="gap-0 py-0 p-4 flex justify-center items-center min-h-[200px]">
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </Card>
     );
   }

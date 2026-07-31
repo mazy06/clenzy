@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, Chip, CircularProgress, TextField } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Alert, Button, Chip, TextField } from '@mui/material';
 import {
   partnerConnectionApi,
   type PartnerServiceProvider,
@@ -84,7 +85,7 @@ export default function PartnerServiceConfigForm({
   if (loading) {
     return (
       <div className="flex justify-center py-3">
-        <CircularProgress size={22} />
+        <Spinner className="size-[22px]" />
       </div>
     );
   }
@@ -159,7 +160,7 @@ export default function PartnerServiceConfigForm({
             variant="contained"
             onClick={handleConnect}
             disabled={submitting || !form.serverUrl.trim() || form.apiKey.trim().length < 8}
-            startIcon={submitting ? <CircularProgress size={14} color="inherit" /> : undefined}
+            startIcon={submitting ? <Spinner className="size-3.5" /> : undefined}
             sx={{ textTransform: 'none', fontWeight: 600 }}
           >
             Enregistrer les accès

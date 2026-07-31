@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Spinner } from '../../components/ui';
 import { useParams } from 'react-router-dom';
-import { Box, CircularProgress, Dialog, DialogContent, DialogTitle } from '@mui/material';
+import { Box, Dialog, DialogContent, DialogTitle } from '@mui/material';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { Send, X, Star, Sparkles, ArrowUp, Info, Heart } from 'lucide-react';
@@ -430,7 +431,7 @@ const PublicGuide: React.FC = () => {
   if (status === 'loading') {
     return (
       <div className="flex h-[100vh] items-center justify-center bg-[#F2E9D9]">
-        <CircularProgress sx={{ color: '#BC5B36' }} />
+        <Spinner className="size-10 text-[#BC5B36]" />
       </div>
     );
   }
@@ -708,7 +709,7 @@ const PublicGuide: React.FC = () => {
                         ) : null}
                         {chatSending ? (
                           <div style={{ alignSelf: 'flex-start', padding: '8px 12px' }}>
-                            <CircularProgress size={16} sx={{ color: 'var(--terra)' }} />
+                            <Spinner className="size-4 text-[var(--terra)]" />
                           </div>
                         ) : null}
                       </div>
@@ -757,7 +758,7 @@ const PublicGuide: React.FC = () => {
             </EmbeddedCheckoutProvider>
           ) : (
             <div className="flex justify-center py-6">
-              <CircularProgress sx={{ color: '#BC5B36' }} />
+              <Spinner className="size-10 text-[#BC5B36]" />
             </div>
           )}
         </DialogContent>

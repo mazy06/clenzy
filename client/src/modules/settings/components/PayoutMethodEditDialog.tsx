@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Alert, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, CircularProgress, IconButton, Stack, Chip, MenuItem } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Alert, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, IconButton, Stack, Chip, MenuItem } from '@mui/material';
 import { Close as CloseIcon, Save } from '../../../icons';
 import { accountingApi } from '../../../services/api/accountingApi';
 import type {
@@ -612,7 +613,7 @@ export default function PayoutMethodEditDialog({
           onClick={handleSave}
           disabled={isSaveDisabled}
           startIcon={
-            saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />
+            saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />
           }
           sx={{ textTransform: 'none', fontWeight: 600 }}
         >

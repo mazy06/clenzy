@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions, Select, FormControl, InputLabel, MenuItem, Radio, RadioGroup, FormControlLabel, FormLabel, CircularProgress } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, Select, FormControl, InputLabel, MenuItem, Radio, RadioGroup, FormControlLabel, FormLabel } from '@mui/material';
 import {
   CheckCircle,
   Cancel,
@@ -216,7 +217,7 @@ export function AssignDialog({
 
         {loadingData && (
           <div className="flex justify-center py-3">
-            <CircularProgress size={24} />
+            <Spinner className="size-6" />
           </div>
         )}
       </DialogContent>

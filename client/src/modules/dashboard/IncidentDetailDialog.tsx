@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Typography, CircularProgress, IconButton, Tooltip, Snackbar, Alert, alpha } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Typography, IconButton, Tooltip, Snackbar, Alert, alpha } from '@mui/material';
 import { Close, Refresh, Delete } from '../../icons';
 import type { IncidentDto, IncidentStatus } from '../../services/api/incidentApi';
 import { incidentApi } from '../../services/api/incidentApi';
@@ -308,7 +309,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                     size="small"
                     color="error"
                     variant="contained"
-                    startIcon={bulkDeleting ? <CircularProgress size={14} color="inherit" /> : <Delete fontSize="small" />}
+                    startIcon={bulkDeleting ? <Spinner className="size-3.5" /> : <Delete fontSize="small" />}
                     onClick={() => setConfirmBulkOpen(true)}
                     disabled={bulkDeleting}
                   >
@@ -345,7 +346,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
 
           {loading ? (
             <div className="flex justify-center py-6">
-              <CircularProgress />
+              <Spinner className="size-10" />
             </div>
           ) : sortedIncidents.length === 0 ? (
             <div className="text-center py-6">
@@ -446,7 +447,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                                   disabled={isRetesting || deletingId === incident.id}
                                 >
                                   {isRetesting ? (
-                                    <CircularProgress size={18} />
+                                    <Spinner className="size-[18px]" />
                                   ) : (
                                     <Refresh fontSize="small" />
                                   )}
@@ -468,7 +469,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                                   disabled={deletingId === incident.id || isRetesting}
                                 >
                                   {deletingId === incident.id ? (
-                                    <CircularProgress size={18} />
+                                    <Spinner className="size-[18px]" />
                                   ) : (
                                     <Delete fontSize="small" />
                                   )}
@@ -559,7 +560,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
             variant="contained"
             onClick={handleBulkDelete}
             disabled={bulkDeleting}
-            startIcon={bulkDeleting ? <CircularProgress size={14} color="inherit" /> : <Delete fontSize="small" />}
+            startIcon={bulkDeleting ? <Spinner className="size-3.5" /> : <Delete fontSize="small" />}
           >
             Supprimer tout
           </Button>

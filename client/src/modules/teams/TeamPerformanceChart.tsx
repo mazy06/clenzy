@@ -1,5 +1,6 @@
 import React from 'react';
-import { Card, CardContent, Typography, Grid, CircularProgress } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Card, CardContent, Typography, Grid } from '@mui/material';
 import {
   TrendingUp,
   CalendarMonth,
@@ -41,7 +42,7 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
     return (
       <Card sx={{ height: '100%' }}>
         <CardContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
-          <CircularProgress size={28} />
+          <Spinner className="size-7" />
         </CardContent>
       </Card>
     );

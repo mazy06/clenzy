@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Button, Chip, CircularProgress, Snackbar, Alert } from '@mui/material';
+import { Button, Chip, Snackbar, Alert } from '@mui/material';
 import { Refresh } from '../../../icons';
 import { environmentSensorsApi, type EnvironmentSensorDto } from '../../../services/api/environmentSensorsApi';
 import { STATUS_TOKENS } from '../deviceRegistry';
@@ -89,7 +90,7 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
           <Button
             size="small"
             variant="outlined"
-            startIcon={refresh.isPending ? <CircularProgress size={13} color="inherit" /> : <Refresh size={15} strokeWidth={1.75} />}
+            startIcon={refresh.isPending ? <Spinner className="size-[13px]" /> : <Refresh size={15} strokeWidth={1.75} />}
             onClick={() => refresh.mutate()}
             disabled={refresh.isPending}
           >

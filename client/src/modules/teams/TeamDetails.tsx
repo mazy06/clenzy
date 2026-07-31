@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, Grid, Chip, Button, Alert, CircularProgress } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Card, CardContent, Grid, Chip, Button, Alert } from '@mui/material';
 import {
   Group,
   Edit,
@@ -79,7 +80,7 @@ const TeamDetails: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[50vh]">
-        <CircularProgress />
+        <Spinner className="size-10" />
       </div>
     );
   }

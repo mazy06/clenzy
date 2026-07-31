@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Spinner } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, InputAdornment, Menu, MenuItem, Snackbar, Stack, Switch, TextField } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, InputAdornment, Menu, MenuItem, Snackbar, Stack, Switch, TextField } from '@mui/material';
 import type { AlertColor, SxProps, Theme } from '@mui/material';
 import { Add, Save, Edit, Delete } from '../../icons';
 import {
@@ -875,7 +876,7 @@ const UpsellsAdmin: React.FC = () => {
             <Button onClick={() => setEdit(emptyEdit)}>{t('upsells.actions.cancel', 'Annuler')}</Button>
             <Button
               variant="contained"
-              startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
+              startIcon={saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
               onClick={handleSave}
               disabled={saving}
             >
@@ -891,7 +892,7 @@ const UpsellsAdmin: React.FC = () => {
         <DialogContent dividers>
           {ordersLoading ? (
             <div className="flex justify-center py-4">
-              <CircularProgress />
+              <Spinner className="size-10" />
             </div>
           ) : orders.length === 0 ? (
             <p className="cn-text-body2 text-muted-foreground">

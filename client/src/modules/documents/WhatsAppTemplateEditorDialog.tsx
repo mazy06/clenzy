@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Grid, MenuItem, Paper, TextField } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Grid, MenuItem, Paper, TextField } from '@mui/material';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -151,7 +152,7 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
       <DialogContent dividers>
         {isLoading && (
           <div className="flex justify-center p-6">
-            <CircularProgress />
+            <Spinner className="size-10" />
           </div>
         )}
 
@@ -293,7 +294,7 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
         </Button>
         <Button
           variant="contained"
-          startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <Save />}
+          startIcon={saving ? <Spinner className="size-4" /> : <Save />}
           onClick={handleSave}
           disabled={saving || !touched || !body.trim() || isOverLimit}
         >

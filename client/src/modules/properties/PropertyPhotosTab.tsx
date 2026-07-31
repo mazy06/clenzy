@@ -1,18 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  IconButton,
-  Paper,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  CircularProgress,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Typography, Button, IconButton, Paper, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import {
   CloudUpload,
   Delete,
@@ -283,7 +271,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
       {/* ── Loading state ────────────────────────────────────────────────── */}
       {loading && (
         <div className="flex justify-center py-6">
-          <CircularProgress size={28} />
+          <Spinner className="size-7" />
         </div>
       )}
 

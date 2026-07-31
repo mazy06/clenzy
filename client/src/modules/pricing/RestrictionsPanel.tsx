@@ -1,21 +1,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Box,
-  Paper,
-  Typography,
-  TextField,
-  Button,
-  IconButton,
-  Switch,
-  FormControlLabel,
-  Chip,
-  Stack,
-  CircularProgress,
-  Tooltip,
-  Divider,
-} from '@mui/material';
+import { Box, Paper, Typography, TextField, Button, IconButton, Switch, FormControlLabel, Chip, Stack, Tooltip, Divider } from '@mui/material';
 import { Plus, Pencil, Trash2, CalendarRange, X } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -270,7 +257,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
             )}
             <Button
               variant="contained" size="small" disableElevation
-              startIcon={saving ? <CircularProgress size={13} color="inherit" /> : <Plus size={14} />}
+              startIcon={saving ? <Spinner className="size-[13px]" /> : <Plus size={14} />}
               onClick={handleSubmit} disabled={saving}
               sx={{ textTransform: 'none' }}
             >
@@ -290,7 +277,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
         </p>
 
         {isLoading ? (
-          <div className="flex justify-center py-6"><CircularProgress size={22} /></div>
+          <div className="flex justify-center py-6"><Spinner className="size-[22px]" /></div>
         ) : restrictions.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <CalendarRange size={26} strokeWidth={1.5} style={{ opacity: 0.5 }} />

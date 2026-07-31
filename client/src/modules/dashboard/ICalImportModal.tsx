@@ -1,28 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  Box,
-  IconButton,
-  TextField,
-  MenuItem,
-  Alert,
-  Switch,
-  Tooltip,
-  CircularProgress,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, IconButton, TextField, MenuItem, Alert, Switch, Tooltip, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import {
   Close as CloseIcon,
   CalendarToday as CalendarIcon,
@@ -874,7 +852,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               color="primary"
               size="small"
               disabled={loading || !hasAccess || !url.trim() || !propertyId}
-              startIcon={loading ? <CircularProgress size={16} /> : <ArrowForwardIcon size={16} strokeWidth={1.75} />}
+              startIcon={loading ? <Spinner className="size-4" /> : <ArrowForwardIcon size={16} strokeWidth={1.75} />}
               sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, px: 2.5 }}
             >
               {loading ? 'Chargement...' : 'Prévisualiser'}
@@ -900,7 +878,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               color="primary"
               size="small"
               disabled={loading || !preview || totalPreviewEvents === 0}
-              startIcon={loading ? <CircularProgress size={16} /> : <ImportIcon size={16} strokeWidth={1.75} />}
+              startIcon={loading ? <Spinner className="size-4" /> : <ImportIcon size={16} strokeWidth={1.75} />}
               sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, px: 2.5 }}
             >
               {loading ? 'Import en cours...' : importButtonLabel}

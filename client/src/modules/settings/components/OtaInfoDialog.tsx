@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Box, Button, Chip, Alert, CircularProgress, TextField } from '@mui/material';
+import { Box, Button, Chip, Alert, TextField } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle as CheckCircleIcon,
@@ -355,7 +356,7 @@ export default function OtaInfoDialog({
                   <Button
                     variant="outlined"
                     size="small"
-                    startIcon={disconnectMutation.isPending ? <CircularProgress size={12} /> : <LinkOffIcon size={14} strokeWidth={2} />}
+                    startIcon={disconnectMutation.isPending ? <Spinner className="size-3" /> : <LinkOffIcon size={14} strokeWidth={2} />}
                     onClick={handleDisconnect}
                     disabled={disconnectMutation.isPending}
                     sx={{
@@ -400,7 +401,7 @@ export default function OtaInfoDialog({
                 <Button
                   variant="contained"
                   size="small"
-                  startIcon={airbnbConnectMutation.isPending ? <CircularProgress size={12} color="inherit" /> : <LinkIcon size={14} strokeWidth={2} />}
+                  startIcon={airbnbConnectMutation.isPending ? <Spinner className="size-3" /> : <LinkIcon size={14} strokeWidth={2} />}
                   onClick={handleAirbnbConnect}
                   disabled={airbnbConnectMutation.isPending}
                   sx={{ textTransform: 'none', fontWeight: 600 }}
@@ -468,7 +469,7 @@ export default function OtaInfoDialog({
                   type="button"
                   variant="outlined"
                   size="small"
-                  startIcon={testMutation.isPending ? <CircularProgress size={12} /> : <TestIcon size={14} strokeWidth={2} />}
+                  startIcon={testMutation.isPending ? <Spinner className="size-3" /> : <TestIcon size={14} strokeWidth={2} />}
                   onClick={handleTest}
                   disabled={!isFormValid || testMutation.isPending || connectMutation.isPending}
                   sx={{
@@ -487,7 +488,7 @@ export default function OtaInfoDialog({
                   type="submit"
                   variant="contained"
                   size="small"
-                  startIcon={connectMutation.isPending ? <CircularProgress size={12} color="inherit" /> : <LinkIcon size={14} strokeWidth={2} />}
+                  startIcon={connectMutation.isPending ? <Spinner className="size-3" /> : <LinkIcon size={14} strokeWidth={2} />}
                   disabled={!isFormValid || connectMutation.isPending}
                   sx={{ textTransform: 'none', fontWeight: 600 }}
                 >

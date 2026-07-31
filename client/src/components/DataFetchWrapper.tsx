@@ -1,4 +1,5 @@
 import React, { ReactNode } from 'react';
+import { Spinner } from './ui';
 import { Box, CircularProgress, Alert, Button, Skeleton, Card, CardContent } from '@mui/material';
 import { Refresh as RefreshIcon } from '../icons';
 
@@ -151,7 +152,7 @@ const DataFetchWrapper: React.FC<DataFetchWrapperProps> = ({
       case 'inline':
         return (
           <Box display="flex" alignItems="center" gap={1} py={1}>
-            <CircularProgress size={20} />
+            <Spinner className="size-5" />
             {loadingMessage && (
               <p className="cn-text-body2 text-muted-foreground">
                 {loadingMessage}

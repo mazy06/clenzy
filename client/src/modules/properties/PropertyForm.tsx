@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Paper, Button, Alert, CircularProgress } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Paper, Button, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import type { Property } from '../../services/api';
@@ -121,7 +122,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
   if (isLoadingProperty) {
     return (
       <div className="flex justify-center items-center h-[40vh]">
-        <CircularProgress size={28} />
+        <Spinner className="size-7" />
       </div>
     );
   }

@@ -9,7 +9,8 @@
    ============================================================ */
 
 import { useEffect, useState } from 'react';
-import { Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, useTheme } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, useTheme } from '@mui/material';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { guestMessagingApi } from '../../../services/api/guestMessagingApi';
 import { renderServerEmailPreview } from '../../../utils/emailMarkdown';
@@ -69,7 +70,7 @@ export function FeedMessageModal({ logId, onClose }: FeedMessageModalProps) {
       <DialogContent dividers>
         {loading ? (
           <div className="flex justify-center py-6">
-            <CircularProgress size={24} />
+            <Spinner className="size-6" />
           </div>
         ) : html ? (
           <>

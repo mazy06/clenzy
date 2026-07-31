@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Typography, TextField, MenuItem, CircularProgress } from '@mui/material';
+import { Spinner } from '../ui';
+import { Box, Typography, TextField, MenuItem } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { Lock, Build } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -150,7 +151,7 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
           disabled={saving || !canSubmit}
           sx={BTN_PRIMARY_SX}
         >
-          {saving ? <CircularProgress size={15} /> : <Lock size={15} strokeWidth={2} />}
+          {saving ? <Spinner className="size-[15px]" /> : <Lock size={15} strokeWidth={2} />}
           {saving ? t('reservations.dialog.blockSubmitting') : t('reservations.dialog.blockSubmit')}
         </Box>
       </Box>

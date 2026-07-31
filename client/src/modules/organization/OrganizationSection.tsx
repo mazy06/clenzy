@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Alert, Autocomplete, TextField, Chip, CircularProgress, Grid } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Button, Alert, Autocomplete, TextField, Chip, Grid } from '@mui/material';
 import {
   Business,
   PersonAdd,
@@ -194,7 +195,7 @@ export default function OrganizationSection({ organizationId }: Props) {
                     ...params.InputProps,
                     endAdornment: (
                       <>
-                        {orgsLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                        {orgsLoading ? <Spinner className="size-4" /> : null}
                         {params.InputProps.endAdornment}
                       </>
                     ),

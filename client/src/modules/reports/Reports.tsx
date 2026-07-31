@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, CircularProgress, Alert } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Alert } from '@mui/material';
 import {
   Euro as EuroIcon,
   Schedule as ScheduleIcon,
@@ -154,7 +155,7 @@ const Reports: React.FC = () => {
           showBackButton={false}
         />
         <div className="flex justify-center p-6">
-          <CircularProgress />
+          <Spinner className="size-10" />
         </div>
       </div>
     );

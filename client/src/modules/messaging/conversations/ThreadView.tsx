@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, CircularProgress, InputBase, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, InputBase, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -205,7 +206,7 @@ export default function ThreadView({
       <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-2 min-h-0" ref={scrollRef}>
         {loading ? (
           <div className="flex justify-center py-6">
-            <CircularProgress size={20} />
+            <Spinner className="size-5" />
           </div>
         ) : grouped.length === 0 ? (
           <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] text-center py-6">
@@ -341,7 +342,7 @@ export default function ThreadView({
                 '&:disabled': { opacity: 0.45, cursor: 'default' },
               }}
             >
-              {sending ? <CircularProgress size={15} sx={{ color: '#fff' }} /> : <SendIcon size={15} strokeWidth={1.75} />}
+              {sending ? <Spinner className="size-[15px] text-[#fff]" /> : <SendIcon size={15} strokeWidth={1.75} />}
             </Box>
           </Box>
         </Box>

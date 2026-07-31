@@ -1,24 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import {
-  Box,
-  Typography,
-  Chip,
-  Divider,
-  Button,
-  CircularProgress,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, Typography, Chip, Divider, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import {
   Payment,
   CheckCircle,
@@ -217,7 +199,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
 
       {payment.loadingHistory ? (
         <Box display="flex" justifyContent="center" py={2}>
-          <CircularProgress size={20} />
+          <Spinner className="size-5" />
         </Box>
       ) : payment.paymentHistory.length === 0 ? (
         <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] italic">
@@ -283,7 +265,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
             size="small"
             onClick={handleValidate}
             disabled={validating}
-            startIcon={validating ? <CircularProgress size={14} /> : undefined}
+            startIcon={validating ? <Spinner className="size-3.5" /> : undefined}
           >
             Valider
           </Button>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Alert, Box, Chip, IconButton, TextField, CircularProgress } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Alert, Box, Chip, IconButton, TextField } from '@mui/material';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -166,7 +167,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
                   disabled={nameSaving}
                   style={NAME_EDIT_INPUT_STYLE}
                 />
-                {nameSaving && <CircularProgress size={14} />}
+                {nameSaving && <Spinner className="size-3.5" />}
               </div>
             ) : (
               <Box
@@ -577,7 +578,7 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
         <Box component="span" sx={{ ...OVERLINE_SX, flex: 1 }}>
           Notes{items.length > 0 ? ` · ${items.length}` : ''}
         </Box>
-        {saving && <CircularProgress size={12} />}
+        {saving && <Spinner className="size-3" />}
         {saved && <span className="inline-flex text-[var(--ok)]"><Check size={14} strokeWidth={1.75} /></span>}
       </div>
 

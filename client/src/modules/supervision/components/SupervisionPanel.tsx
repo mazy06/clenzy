@@ -9,7 +9,8 @@
    ============================================================ */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Button, CircularProgress, IconButton, Tooltip } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, Button, IconButton, Tooltip } from '@mui/material';
 import { WifiOff, Replay, Radar } from '../../../icons';
 import { runSupervisionScan } from '../useSupervisionConfig';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -202,7 +203,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                 '&:hover': { bgcolor: 'var(--accent-soft)' },
               }}
             >
-              {scanning ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <Radar size={16} />}
+              {scanning ? <Spinner className="size-3.5" /> : <Radar size={16} />}
             </IconButton>
           </span>
         </Tooltip>

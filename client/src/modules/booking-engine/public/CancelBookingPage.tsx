@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
-import { Box, ButtonBase, CircularProgress, InputBase } from '@mui/material';
+import { Box, ButtonBase, InputBase } from '@mui/material';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { API_CONFIG } from '../../../config/api';
 
@@ -154,7 +155,7 @@ function PrimaryButton({ onClick, loading, label, danger = false }: {
         '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
       }}
     >
-      {loading ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : label}
+      {loading ? <Spinner className="size-5 text-[#fff]" /> : label}
     </ButtonBase>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, ImageList, ImageListItem, ImageListItemBar, IconButton, CircularProgress } from '@mui/material';
+import { Spinner } from './ui';
+import { Box, ImageList, ImageListItem, ImageListItemBar, IconButton } from '@mui/material';
 import {
   PhotoCamera as PhotoCameraIcon,
   Download as DownloadIcon,
@@ -115,7 +116,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
               {/* Loading overlay when deleting */}
               {isDeleting && (
                 <div className="absolute top-[0px] start-[0px] end-[0px] bottom-[0px] flex items-center justify-center bg-[rgba(255,255,255,0.6)]">
-                  <CircularProgress size={24} />
+                  <Spinner className="size-6" />
                 </div>
               )}
 

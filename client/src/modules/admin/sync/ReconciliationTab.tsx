@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, CircularProgress, Skeleton, Alert, Typography, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Skeleton, Alert, Typography, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   PlayArrow,
   CompareArrows,
@@ -335,7 +336,7 @@ const ReconciliationTab: React.FC = () => {
             variant="contained"
             onClick={handleTrigger}
             disabled={!triggerPropertyId || triggerLoading}
-            startIcon={triggerLoading ? <CircularProgress size={16} /> : <PlayArrow />}
+            startIcon={triggerLoading ? <Spinner className="size-4" /> : <PlayArrow />}
           >
             Lancer
           </Button>

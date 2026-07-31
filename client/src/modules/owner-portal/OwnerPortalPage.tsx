@@ -1,11 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Box, Paper, Typography, Button, Chip, CircularProgress, Alert,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  TextField, FormControl, InputLabel, Select, MenuItem,
-  Card, CardContent, Grid,
-  Dialog, DialogTitle, DialogContent, DialogActions,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Paper, Typography, Button, Chip, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Home as HomeIcon,
   EventAvailable as ReservationIcon,
@@ -282,7 +277,7 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
   if (isLoading) {
     return (
       <div className="flex justify-center py-6">
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </div>
     );
   }
@@ -463,7 +458,7 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
           variant="contained"
           onClick={handleGenerate}
           disabled={!from || !to || isLoading}
-          startIcon={isLoading ? <CircularProgress size={14} /> : <StatementIcon />}
+          startIcon={isLoading ? <Spinner className="size-3.5" /> : <StatementIcon />}
           sx={{ textTransform: 'none', fontSize: '0.75rem' }}
         >
           {t('ownerPortal.generate', 'Generer le releve')}

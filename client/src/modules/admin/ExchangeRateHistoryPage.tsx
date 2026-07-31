@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, CircularProgress, Skeleton, TextField, MenuItem, Chip, Tooltip, Alert } from '@mui/material';
+import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Skeleton, TextField, MenuItem, Chip, Tooltip, Alert } from '@mui/material';
 import { Refresh, CurrencyExchange, TrendingUp } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../../components/PageHeader';
@@ -140,7 +141,7 @@ export default function ExchangeRateHistoryPage() {
         actions={
           <Button
             variant="contained"
-            startIcon={refreshMutation.isPending ? <CircularProgress size={16} /> : <Refresh />}
+            startIcon={refreshMutation.isPending ? <Spinner className="size-4" /> : <Refresh />}
             onClick={() => refreshMutation.mutate()}
             disabled={refreshMutation.isPending}
           >

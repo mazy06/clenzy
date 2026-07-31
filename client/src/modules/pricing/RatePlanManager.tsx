@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Paper, Button, IconButton, Chip, Switch, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, CircularProgress, Divider } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Paper, Button, IconButton, Chip, Switch, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Divider } from '@mui/material';
 import { Add as AddIcon } from '../../icons';
 import { Edit as EditIcon } from '../../icons';
 import { Delete as DeleteIcon } from '../../icons';
@@ -80,7 +81,7 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
       {/* Loading */}
       {loading && (
         <div className="flex justify-center py-3">
-          <CircularProgress size={22} />
+          <Spinner className="size-[22px]" />
         </div>
       )}
 
@@ -176,7 +177,7 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
             size="small"
             onClick={handleDelete}
             disabled={deleteLoading}
-            startIcon={deleteLoading ? <CircularProgress size={14} /> : undefined}
+            startIcon={deleteLoading ? <Spinner className="size-3.5" /> : undefined}
             sx={{ textTransform: 'none' }}
           >
             {t('common.delete')}

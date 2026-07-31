@@ -1,30 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Spinner } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Checkbox,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  FormControlLabel,
-  IconButton,
-  Menu,
-  MenuItem,
-  Snackbar,
-  Alert,
-  Stack,
-  Switch,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Box, Button, Card, CardContent, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, IconButton, Menu, MenuItem, Snackbar, Alert, Stack, Switch, TextField, Tooltip, Typography } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 import { Add, Save, Edit, Delete, ContentCopy, Link as LinkIcon, OpenInNew } from '../../icons';
 import {
@@ -879,7 +856,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             </div>
 
             {isLoading ? (
-              <div className="flex justify-center py-9"><CircularProgress /></div>
+              <div className="flex justify-center py-9"><Spinner className="size-10" /></div>
             ) : guides.length === 0 ? (
               <EmptyState
                 icon={<LinkIcon />}
@@ -1168,7 +1145,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                 size="small"
                 onClick={() => handleSave()}
                 disabled={saving || !canCreate}
-                startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
+                startIcon={saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
               >
                 {t('welcomeGuide.actions.save', 'Enregistrer')}
               </Button>
@@ -1778,7 +1755,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                           <span>
                             <IconButton size="small" onClick={() => geocodePoi(idx)} disabled={geocoding === p.id}>
                               {geocoding === p.id ? (
-                                <CircularProgress size={16} />
+                                <Spinner className="size-4" />
                               ) : (
                                 <MapPin size={16} strokeWidth={1.75} />
                               )}
@@ -2174,7 +2151,7 @@ const WelcomeGuideAdmin: React.FC = () => {
         <DialogContent dividers>
           {guestbook.loading ? (
             <div className="flex justify-center py-4">
-              <CircularProgress />
+              <Spinner className="size-10" />
             </div>
           ) : guestbook.entries.length === 0 ? (
             <p className="cn-text-body2 text-muted-foreground">
@@ -2225,7 +2202,7 @@ const WelcomeGuideAdmin: React.FC = () => {
         <DialogContent dividers>
           {stats.loading ? (
             <div className="flex justify-center py-4">
-              <CircularProgress />
+              <Spinner className="size-10" />
             </div>
           ) : !stats.data ? (
             <p className="cn-text-body2 text-muted-foreground">
@@ -2315,7 +2292,7 @@ const WelcomeGuideAdmin: React.FC = () => {
         <DialogContent dividers>
           {suggest.loading ? (
             <div className="flex justify-center py-4">
-              <CircularProgress />
+              <Spinner className="size-10" />
             </div>
           ) : suggest.items.length === 0 ? (
             <p className="cn-text-body2 text-muted-foreground">

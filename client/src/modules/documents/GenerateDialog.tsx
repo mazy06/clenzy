@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Alert, CircularProgress, FormControlLabel, Switch } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Alert, FormControlLabel, Switch } from '@mui/material';
 import { Send } from '../../icons';
 import { useDocumentTypes, useGenerateDocument } from './hooks/useDocuments';
 
@@ -145,7 +146,7 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
           size="small"
           onClick={handleSubmit}
           disabled={loading || !documentType || !referenceId}
-          startIcon={loading ? <CircularProgress size={16} /> : <Send />}
+          startIcon={loading ? <Spinner className="size-4" /> : <Send />}
         >
           {loading ? 'Génération...' : 'Générer'}
         </Button>

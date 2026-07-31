@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, InputAdornment, TextField, Alert } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, InputAdornment, TextField, Alert } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -110,7 +111,7 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
       <DialogContent dividers>
         {ratesQuery.isPending && (
           <div className="flex justify-center py-6">
-            <CircularProgress size={26} />
+            <Spinner className="size-[26px]" />
           </div>
         )}
         {ratesQuery.isError && (

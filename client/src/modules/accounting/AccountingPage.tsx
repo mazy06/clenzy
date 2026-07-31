@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { Paper, Typography, Button, Chip, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, CircularProgress, Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Tab, Card, CardContent, Grid } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Paper, Typography, Button, Chip, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Tab, Card, CardContent, Grid } from '@mui/material';
 import {
   Add as AddIcon,
   CheckCircle as ApproveIcon,
@@ -292,7 +293,7 @@ export const PayoutsTab: React.FC = () => {
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={sepaDownloading ? <CircularProgress size={14} /> : <DownloadIcon />}
+                startIcon={sepaDownloading ? <Spinner className="size-3.5" /> : <DownloadIcon />}
                 onClick={() => handleDownloadSepaXml(processingSepaPayouts.map((p) => p.id))}
                 disabled={sepaDownloading}
                 sx={{ textTransform: 'none', fontSize: '0.75rem' }}
@@ -425,7 +426,7 @@ export const PayoutsTab: React.FC = () => {
                             disabled={executeMutation.isPending}
                           >
                             {executeMutation.isPending ? (
-                              <CircularProgress size={14} />
+                              <Spinner className="size-3.5" />
                             ) : (
                               <AccountIcon size={'1rem'} strokeWidth={1.75} />
                             )}
@@ -477,7 +478,7 @@ export const PayoutsTab: React.FC = () => {
                           disabled={retryMutation.isPending || payout.retryCount >= 3}
                         >
                           {retryMutation.isPending ? (
-                            <CircularProgress size={14} />
+                            <Spinner className="size-3.5" />
                           ) : (
                             <BuildIcon size={'1rem'} strokeWidth={1.75} />
                           )}
@@ -555,7 +556,7 @@ export const PayoutsTab: React.FC = () => {
             disabled={markPaidMutation.isPending || !payRef.trim()}
             sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
           >
-            {markPaidMutation.isPending ? <CircularProgress size={16} /> : t('accounting.confirmPaid', 'Confirmer paiement')}
+            {markPaidMutation.isPending ? <Spinner className="size-4" /> : t('accounting.confirmPaid', 'Confirmer paiement')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1222,7 +1223,7 @@ export const ExpensesTab: React.FC = () => {
             disabled={createMutation.isPending || !form.providerId || !form.propertyId || !form.description || !form.amountHt}
             sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
           >
-            {createMutation.isPending ? <CircularProgress size={16} /> : t('common.save', 'Enregistrer')}
+            {createMutation.isPending ? <Spinner className="size-4" /> : t('common.save', 'Enregistrer')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1268,7 +1269,7 @@ export const ExpensesTab: React.FC = () => {
             disabled={payMutation.isPending}
             sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
           >
-            {payMutation.isPending ? <CircularProgress size={16} /> : t('accounting.expenses.markPaid', 'Confirmer paiement')}
+            {payMutation.isPending ? <Spinner className="size-4" /> : t('accounting.expenses.markPaid', 'Confirmer paiement')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1469,7 +1470,7 @@ export const ExportsTab: React.FC = () => {
                   <Button
                     variant="outlined"
                     size="small"
-                    startIcon={loadingKey === card.key ? <CircularProgress size={14} /> : <DownloadIcon />}
+                    startIcon={loadingKey === card.key ? <Spinner className="size-3.5" /> : <DownloadIcon />}
                     disabled={!from || !to || loadingKey !== null}
                     onClick={() => handleDownload(card)}
                     sx={{ flex: 1 }}

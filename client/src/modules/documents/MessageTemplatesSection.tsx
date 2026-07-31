@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
-import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Alert, CircularProgress, IconButton, Tooltip, Button } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Alert, IconButton, Tooltip, Button } from '@mui/material';
 import {
   Add,
   Edit,
@@ -153,7 +154,7 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
   if (loading) {
     return (
       <div className="flex justify-center p-6">
-        <CircularProgress />
+        <Spinner className="size-10" />
       </div>
     );
   }

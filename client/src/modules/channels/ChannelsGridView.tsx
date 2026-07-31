@@ -1,11 +1,6 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Chip,
-  CircularProgress,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Typography, Button, Chip } from '@mui/material';
 import {
   LinkOff as LinkOffIcon,
   Link as LinkIcon,
@@ -171,7 +166,7 @@ function OtaChannelCard({
       >
         <OtaLogo channel={channel} />
         {connectionLoading && isAvailable ? (
-          <CircularProgress size={14} sx={{ color: 'var(--muted)' }} />
+          <Spinner className="size-3.5 text-[var(--muted)]" />
         ) : isAvailable && isConnected ? (
           <Chip
             label={connectionStatus?.status ?? 'ACTIVE'}
@@ -216,7 +211,7 @@ function OtaChannelCard({
               onClick={onConnect}
               disabled={connecting || connectionLoading}
             >
-              {connecting ? <CircularProgress size={12} color="inherit" /> : `Connecter ${channel.name}`}
+              {connecting ? <Spinner className="size-3" /> : `Connecter ${channel.name}`}
             </Button>
           )}
           {isAvailable && isConnected && (
@@ -228,7 +223,7 @@ function OtaChannelCard({
               onClick={onDisconnect}
               disabled={disconnecting}
             >
-              {disconnecting ? <CircularProgress size={12} /> : `Déconnecter ${channel.name}`}
+              {disconnecting ? <Spinner className="size-3" /> : `Déconnecter ${channel.name}`}
             </Button>
           )}
           {!isAvailable && (

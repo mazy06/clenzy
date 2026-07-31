@@ -1,20 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  CircularProgress,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Rating,
-  TextField,
-  Button,
-  Chip,
-  Collapse,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Paper, Typography, Alert, FormControl, InputLabel, Select, MenuItem, Rating, TextField, Button, Chip, Collapse } from '@mui/material';
 import {
   Star as StarIcon,
   Reply as ReplyIcon,
@@ -179,7 +165,7 @@ const ReviewsPage: React.FC = () => {
       {/* Reviews list */}
       {loading ? (
         <div className="flex justify-center py-6">
-          <CircularProgress size={28} />
+          <Spinner className="size-7" />
         </div>
       ) : reviews.length === 0 ? (
         <EmptyState
@@ -295,7 +281,7 @@ function ReviewCard({
                   disabled={replyLoading || !replyText.trim()}
                   sx={{ fontSize: '0.6875rem' }}
                 >
-                  {replyLoading ? <CircularProgress size={12} /> : t('channels.reviews.sendReply')}
+                  {replyLoading ? <Spinner className="size-3" /> : t('channels.reviews.sendReply')}
                 </Button>
               </div>
             </div>

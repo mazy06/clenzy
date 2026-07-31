@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, CircularProgress, Snackbar, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Switch, TextField, InputAdornment } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Button, Snackbar, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Switch, TextField, InputAdornment } from '@mui/material';
 import { Save, Build } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -106,7 +107,7 @@ export default function TechnicianTravaux() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <CircularProgress />
+        <Spinner className="size-10" />
       </div>
     );
   }
@@ -122,7 +123,7 @@ export default function TechnicianTravaux() {
           <Button
             variant="contained"
             size="small"
-            startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <Save />}
+            startIcon={saving ? <Spinner className="size-4" /> : <Save />}
             onClick={handleSave}
             disabled={saving}
           >

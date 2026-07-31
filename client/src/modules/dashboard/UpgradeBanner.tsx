@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Chip,
-  CircularProgress,
-  useTheme,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Typography, Button, Chip, useTheme } from '@mui/material';
 import {
   CalendarMonth as CalendarIcon,
   TrendingUp as TrendingIcon,
@@ -244,7 +238,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
           size="medium"
           disabled={loading}
           onClick={() => handleUpgrade('confort')}
-          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <CalendarIcon />}
+          startIcon={loading ? <Spinner className="size-4" /> : <CalendarIcon />}
           endIcon={!loading ? <ArrowIcon size={18} strokeWidth={1.75} /> : undefined}
           sx={{
             bgcolor: C.primary,

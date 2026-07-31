@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
-import { TextField, Alert, CircularProgress, Chip } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { TextField, Alert, Chip } from '@mui/material';
 import { AccountBalance, VerifiedUser } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountingApi } from '../../services/api/accountingApi';
@@ -105,7 +106,7 @@ const SepaDebtorSettings = forwardRef<SepaDebtorHandle, SepaDebtorSettingsProps>
         accent="primary"
       >
         <div className="flex justify-center py-3">
-          <CircularProgress size={24} />
+          <Spinner className="size-6" />
         </div>
       </SettingsSection>
     );

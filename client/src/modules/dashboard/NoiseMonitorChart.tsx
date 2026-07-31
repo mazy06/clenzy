@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Card, CardContent, Chip, FormControl, Select, MenuItem, Tooltip, CircularProgress, alpha, type SxProps, type Theme } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Card, CardContent, Chip, FormControl, Select, MenuItem, Tooltip, alpha, type SxProps, type Theme } from '@mui/material';
 import {
   VolumeUp,
   Warning,
@@ -506,7 +507,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
           {loading && (
             <Box sx={CHART_OVERLAY_SX}>
               <Box sx={CHART_OVERLAY_PILL_SX}>
-                <CircularProgress size={22} />
+                <Spinner className="size-[22px]" />
                 <span className="cn-text-caption text-muted-foreground font-semibold">
                   Chargement de l'historique…
                 </span>

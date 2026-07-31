@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
 import {
@@ -344,7 +345,7 @@ const ContractSignPage: React.FC = () => {
                     onClick={handleSign}
                     disabled={!formValid || signing}
                     startIcon={signing
-                      ? <CircularProgress size={16} color="inherit" />
+                      ? <Spinner className="size-4" />
                       : <CheckCircle size={18} strokeWidth={1.75} />}
                     sx={{
                       // Exception page publique : CTA de signature en aplat accent

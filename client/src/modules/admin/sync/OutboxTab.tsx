@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Checkbox, CircularProgress, Skeleton, Alert, Tooltip, Grid, TextField } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Checkbox, Skeleton, Alert, Tooltip, Grid, TextField } from '@mui/material';
 import {
   Replay,
   InfoOutlined,
@@ -274,7 +275,7 @@ const OutboxTab: React.FC = () => {
               size="small"
               variant="contained"
               color="warning"
-              startIcon={retrying ? <CircularProgress size={16} /> : <Replay />}
+              startIcon={retrying ? <Spinner className="size-4" /> : <Replay />}
               onClick={handleRetry}
               disabled={selectedIds.size === 0 || retrying}
             >

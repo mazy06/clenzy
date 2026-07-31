@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Button, Snackbar, Alert, CircularProgress, Skeleton, Tooltip, Chip } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Button, Snackbar, Alert, Skeleton, Tooltip, Chip } from '@mui/material';
 import {
   Download,
   Delete,
@@ -125,7 +126,7 @@ const DatabaseAdminPage: React.FC = () => {
             <Button
               variant="contained"
               size="small"
-              startIcon={creating ? <CircularProgress size={16} color="inherit" /> : <Storage />}
+              startIcon={creating ? <Spinner className="size-4" /> : <Storage />}
               onClick={handleCreate}
               disabled={creating}
             >
@@ -198,7 +199,7 @@ const DatabaseAdminPage: React.FC = () => {
                           disabled={deletingFile === backup.filename}
                         >
                           {deletingFile === backup.filename ? (
-                            <CircularProgress size={16} />
+                            <Spinner className="size-4" />
                           ) : (
                             <Delete fontSize="small" />
                           )}

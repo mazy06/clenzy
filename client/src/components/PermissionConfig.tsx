@@ -1,19 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Grid,
-  Chip,
-  Button,
-  CircularProgress,
-  Alert,
-  Snackbar,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-} from '@mui/material';
+import { Spinner } from './ui';
+import { Box, Typography, Card, CardContent, Grid, Chip, Button, Alert, Snackbar, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import {
   Settings as SettingsIcon,
   Refresh as RefreshIcon,
@@ -283,7 +270,7 @@ const PermissionConfig: React.FC = () => {
   if (loading || loadingPermissions) {
     return (
       <div className="flex justify-center">
-        <CircularProgress />
+        <Spinner className="size-10" />
       </div>
     );
   }

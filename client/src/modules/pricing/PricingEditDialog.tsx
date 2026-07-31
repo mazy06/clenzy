@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, CircularProgress } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -93,7 +94,7 @@ const PricingEditDialog: React.FC<PricingEditDialogProps> = ({
           variant="contained"
           onClick={handleApply}
           disabled={loading || !price}
-          startIcon={loading ? <CircularProgress size={16} /> : undefined}
+          startIcon={loading ? <Spinner className="size-4" /> : undefined}
         >
           {t('dynamicPricing.calendar.applyRange')}
         </Button>

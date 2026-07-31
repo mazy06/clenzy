@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogContent, IconButton, ButtonBase, CircularProgress } from '@mui/material';
+import { Dialog, DialogContent, IconButton, ButtonBase } from '@mui/material';
 import { X, Languages, AlertTriangle } from 'lucide-react';
 import type { AutoTranslateResult } from '../../../services/api/sitesApi';
 
@@ -123,7 +124,7 @@ export default function TranslateModal({ open, onClose, targetName, availableTar
           </ButtonBase>
           <ButtonBase onClick={handleSubmit} disabled={!canSubmit} sx={primaryBtnSx}>
             {translating
-              ? <><CircularProgress size={15} thickness={5} sx={{ color: 'var(--on-accent)' }} /> {k('translating', 'Traduction…')}</>
+              ? <><Spinner className="size-[15px] text-[var(--on-accent)]" /> {k('translating', 'Traduction…')}</>
               : <><Languages size={16} strokeWidth={2.2} /> {k('submit', 'Traduire')}</>}
           </ButtonBase>
         </div>

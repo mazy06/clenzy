@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
+import { Spinner } from '../../components/ui';
 import { ASSIGNABLE_ORG_ROLES } from '../../utils/orgRoleLabels';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Typography, Alert, CircularProgress, IconButton, InputAdornment, Tooltip, ToggleButtonGroup, ToggleButton, Autocomplete, Chip } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Typography, Alert, IconButton, InputAdornment, Tooltip, ToggleButtonGroup, ToggleButton, Autocomplete, Chip } from '@mui/material';
 import {
   Send,
   ContentCopy,
@@ -260,7 +261,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                         ...params.InputProps,
                         endAdornment: (
                           <>
-                            {userSearchLoading ? <CircularProgress size={18} /> : null}
+                            {userSearchLoading ? <Spinner className="size-[18px]" /> : null}
                             {params.InputProps.endAdornment}
                           </>
                         ),
@@ -356,7 +357,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                 variant="contained"
                 onClick={handleSend}
                 disabled={loading || !email.trim()}
-                startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <Send />}
+                startIcon={loading ? <Spinner className="size-4" /> : <Send />}
               >
                 {loading ? 'Envoi...' : 'Envoyer'}
               </Button>
@@ -365,7 +366,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                 variant="contained"
                 onClick={handleAddMember}
                 disabled={addingMember || !selectedUser}
-                startIcon={addingMember ? <CircularProgress size={16} color="inherit" /> : <PersonAdd />}
+                startIcon={addingMember ? <Spinner className="size-4" /> : <PersonAdd />}
               >
                 {addingMember ? 'Ajout...' : 'Ajouter'}
               </Button>

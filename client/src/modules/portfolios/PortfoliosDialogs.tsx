@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Avatar, IconButton, CircularProgress } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Avatar, IconButton } from '@mui/material';
 import {
   SwapHoriz as SwapHorizIcon,
   Close as CloseIcon,
@@ -151,7 +152,7 @@ export const ReassignmentDialog: React.FC<ReassignmentDialogProps> = ({
           variant="contained"
           size="small"
           disabled={!selectedManagerId || loading}
-          startIcon={loading ? <CircularProgress size={14} /> : <SwapHorizIcon size={16} strokeWidth={1.75} />}
+          startIcon={loading ? <Spinner className="size-3.5" /> : <SwapHorizIcon size={16} strokeWidth={1.75} />}
           sx={{ minWidth: 120, fontSize: '0.82rem' }}
         >
           {loading ? t('portfolios.dialogs.reassigning') : t('portfolios.dialogs.reassign')}

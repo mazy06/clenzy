@@ -1,12 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  IconButton,
-  Button,
-  CircularProgress,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Typography, Paper, IconButton, Button } from '@mui/material';
 import { ChevronLeft as ChevronLeftIcon } from '../../icons';
 import { ChevronRight as ChevronRightIcon } from '../../icons';
 import { CalendarMonth as CalendarMonthIcon, NightsStay } from '../../icons';
@@ -294,7 +288,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
                 borderRadius: '14px',
               }}
             >
-              <CircularProgress size={28} />
+              <Spinner className="size-7" />
             </Box>
           )}
 

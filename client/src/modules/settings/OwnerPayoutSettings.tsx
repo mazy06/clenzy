@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Box, TextField, Button, Alert, Snackbar, CircularProgress, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, TextField, Button, Alert, Snackbar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   AccountBalance,
   Save,
@@ -180,7 +181,7 @@ export default function OwnerPayoutSettings() {
         accent="accent"
       >
         <div className="flex justify-center py-3">
-          <CircularProgress size={24} />
+          <Spinner className="size-6" />
         </div>
       </SettingsSection>
     );
@@ -571,7 +572,7 @@ export default function OwnerPayoutSettings() {
             }
             startIcon={
               updateSepaMutation.isPending ? (
-                <CircularProgress size={14} color="inherit" />
+                <Spinner className="size-3.5" />
               ) : (
                 <Save size={14} strokeWidth={1.75} />
               )

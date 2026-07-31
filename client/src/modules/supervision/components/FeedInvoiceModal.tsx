@@ -10,7 +10,8 @@
    ============================================================ */
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { Alert, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { invoicesApi, INVOICE_STATUS_COLORS, type Invoice } from '../../../services/api/invoicesApi';
@@ -110,7 +111,7 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
       <DialogContent dividers>
         {loading ? (
           <div className="flex justify-center py-6">
-            <CircularProgress size={24} />
+            <Spinner className="size-6" />
           </div>
         ) : invoice ? (
           <>
@@ -193,7 +194,7 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
               variant="outlined"
               disabled={sending || sentTo != null}
               onClick={handleSendLink}
-              startIcon={sending ? <CircularProgress size={14} /> : undefined}
+              startIcon={sending ? <Spinner className="size-3.5" /> : undefined}
             >
               {t('supervision.invoiceModal.sendLink', 'Envoyer le lien de paiement')}
             </Button>
@@ -201,7 +202,7 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
               variant="contained"
               disabled={paying}
               onClick={handlePay}
-              startIcon={paying ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : undefined}
+              startIcon={paying ? <Spinner className="size-3.5" /> : undefined}
             >
               {t('supervision.invoiceModal.pay', 'Payer')}
             </Button>

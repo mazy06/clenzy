@@ -8,7 +8,8 @@
    ============================================================ */
 
 import { useEffect, useMemo, useState } from 'react';
-import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { Close } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Money } from '../../../components/Money';
@@ -370,7 +371,7 @@ export function PriceAdjustmentModal({
           onClick={runSimulate}
           variant="outlined"
           disabled={simulating || applying || segments.length === 0}
-          startIcon={simulating ? <CircularProgress size={14} /> : undefined}
+          startIcon={simulating ? <Spinner className="size-3.5" /> : undefined}
           sx={{ textTransform: 'none' }}
         >
           {t('supervision.price.simulate', 'Simuler')}
@@ -380,7 +381,7 @@ export function PriceAdjustmentModal({
           variant="contained"
           disableElevation
           disabled={applying || segments.length === 0}
-          startIcon={applying ? <CircularProgress size={14} color="inherit" /> : undefined}
+          startIcon={applying ? <Spinner className="size-3.5" /> : undefined}
           sx={{ textTransform: 'none', fontWeight: 600 }}
         >
           {t('supervision.price.apply', 'Appliquer les tarifs')}

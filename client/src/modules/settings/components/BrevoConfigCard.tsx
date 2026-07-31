@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Box, Typography, Chip, TextField, Button, Switch, FormControlLabel, MenuItem, Alert, CircularProgress, Divider } from '@mui/material';
+import { Box, Typography, Chip, TextField, Button, Switch, FormControlLabel, MenuItem, Alert, Divider } from '@mui/material';
 import { CheckCircle as CheckCircleIcon, ErrorOutline, Link as LinkIcon } from '../../../icons';
 import {
   useMarketingIntegration,
@@ -60,7 +61,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
   if (isLoading || !data) {
     return (
       <div className="p-4 flex justify-center">
-        <CircularProgress size={28} />
+        <Spinner className="size-7" />
       </div>
     );
   }
@@ -189,7 +190,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
               disabled={!keyInput.trim() || setApiKey.isPending}
               sx={{ textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}
             >
-              {setApiKey.isPending ? <CircularProgress size={16} color="inherit" /> : 'Enregistrer'}
+              {setApiKey.isPending ? <Spinner className="size-4" /> : 'Enregistrer'}
             </Button>
           </div>
           <p className="cn-text-body1 text-[0.68rem] text-muted-foreground mt-0.5">
@@ -204,7 +205,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
             size="small"
             onClick={() => test.mutate()}
             disabled={!data.configured || test.isPending}
-            startIcon={test.isPending ? <CircularProgress size={14} /> : <LinkIcon size={14} strokeWidth={2} />}
+            startIcon={test.isPending ? <Spinner className="size-3.5" /> : <LinkIcon size={14} strokeWidth={2} />}
             sx={{ textTransform: 'none', fontWeight: 600 }}
           >
             Tester la connexion

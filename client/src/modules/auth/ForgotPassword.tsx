@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { Spinner } from '../../components/ui';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { TextField, Button, Typography, Stack, Alert, CircularProgress, Link } from '@mui/material';
+import { TextField, Button, Typography, Stack, Alert, Link } from '@mui/material';
 import apiClient, { ApiError } from '../../services/apiClient';
 import AuthLayout from './AuthLayout';
 
@@ -145,7 +146,7 @@ export default function ForgotPassword() {
               }}
             >
               {loading
-                ? <CircularProgress size={22} color="inherit" />
+                ? <Spinner className="size-[22px]" />
                 : t('auth.forgotPassword.submit', 'Envoyer le lien de réinitialisation')}
             </Button>
           </Stack>

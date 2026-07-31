@@ -1,18 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  Chip,
-  CircularProgress,
-  Alert,
-  Button,
-  IconButton,
-  Tooltip,
-  LinearProgress,
-} from '@mui/material';
+import { Spinner } from './ui';
+import { Box, Card, CardContent, Typography, Grid, Chip, Alert, Button, IconButton, Tooltip, LinearProgress } from '@mui/material';
 import {
   TrendingUp,
   Refresh,
@@ -122,7 +110,7 @@ const KeycloakMetrics: React.FC = () => {
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
-        <CircularProgress />
+        <Spinner className="size-10" />
       </Box>
     );
   }

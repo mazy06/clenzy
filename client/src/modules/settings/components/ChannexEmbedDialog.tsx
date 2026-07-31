@@ -15,7 +15,8 @@
  * Ref Channex : docs.channex.io/api-v.1-documentation/channel-iframe
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { Dialog, DialogContent, DialogTitle, IconButton, Box, CircularProgress, Alert, Skeleton, Stack, Tooltip } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Dialog, DialogContent, DialogTitle, IconButton, Box, Alert, Skeleton, Stack, Tooltip } from '@mui/material';
 import { X, Link2, Info, RefreshCw } from 'lucide-react';
 
 import {
@@ -460,7 +461,7 @@ export default function ChannexEmbedDialog({
             spacing={2}
             sx={{ flex: 1, p: 4 }}
           >
-            <CircularProgress size={24} thickness={4} />
+            <Spinner className="size-6" />
             <p className="cn-text-body2 text-muted-foreground">
               Generation de la session de connexion...
             </p>

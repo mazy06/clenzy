@@ -1,29 +1,7 @@
 import React, { useState, useMemo } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Chip,
-  IconButton,
-  Tooltip,
-  MenuItem,
-  CircularProgress,
-  Alert,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
+import { Box, Paper, Typography, Button, Chip, IconButton, Tooltip, MenuItem, Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Receipt as ReceiptIcon,
   Download as DownloadIcon,
@@ -590,7 +568,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
         <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           {pdfLoading ? (
             <div className="flex justify-center items-center flex-1">
-              <CircularProgress thickness={3.5} sx={{ color: 'var(--accent)' }} />
+              <Spinner className="size-10 text-[var(--accent)]" />
             </div>
           ) : pdfUrl ? (
             <object

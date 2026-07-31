@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, ButtonBase, CircularProgress } from '@mui/material';
+import { Spinner } from '../../../../components/ui';
+import { Box, ButtonBase } from '@mui/material';
 import { AlertTriangle, Wand2 } from 'lucide-react';
 import { BaitlyWidget } from '../../sdk/BaitlyWidget';
 import { widgetThemeFromTokens } from '../../widgetTheme';
@@ -126,7 +127,7 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
       </Centered>
     );
   } else if (loading) {
-    body = <Centered><CircularProgress size={26} sx={{ color: 'var(--accent)' }} /></Centered>;
+    body = <Centered><Spinner className="size-[26px] text-[var(--accent)]" /></Centered>;
   } else if (error || !html) {
     body = (
       <Centered>

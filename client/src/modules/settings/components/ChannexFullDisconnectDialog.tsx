@@ -20,7 +20,8 @@
  * </ol>
  */
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogTitle, Box, Button, CircularProgress, Alert, Checkbox, FormControlLabel, Stack, Chip } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Dialog, DialogContent, DialogTitle, Box, Button, Alert, Checkbox, FormControlLabel, Stack, Chip } from '@mui/material';
 import {
   AlertCircle,
   CheckCircle2,
@@ -288,7 +289,7 @@ export default function ChannexFullDisconnectDialog({
       {phase === 'RUNNING' && (
         <DialogContent sx={{ py: 5 }}>
           <div className="flex flex-col items-center gap-3">
-            <CircularProgress size={42} sx={{ color: 'var(--err)' }} />
+            <Spinner className="size-[42px] text-[var(--err)]" />
             <div className="text-center">
               <h6 className="cn-text-subtitle1 font-semibold mb-0.5">
                 Deconnexion en cours…

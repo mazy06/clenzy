@@ -1,16 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Spinner } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  CircularProgress,
-  Alert,
-  Skeleton,
-  Divider,
-} from '@mui/material';
+import { Box, Typography, Grid, Card, CardContent, Alert, Skeleton, Divider } from '@mui/material';
 import {
   Euro as EuroIcon,
   Schedule as ScheduleIcon,
@@ -1292,7 +1283,7 @@ const ReportDetails: React.FC = () => {
           showBackButton={true}
         />
         <div className="flex justify-center p-6">
-          <CircularProgress />
+          <Spinner className="size-10" />
         </div>
       </div>
     );

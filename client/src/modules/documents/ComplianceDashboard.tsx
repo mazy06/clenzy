@@ -1,27 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  CircularProgress,
-  Alert,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  Tooltip,
-  IconButton,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  LinearProgress,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Typography, Card, CardContent, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, LinearProgress } from '@mui/material';
 import {
   Lock,
   GppGood,
@@ -213,7 +192,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
   if (loading) {
     return (
       <div className="flex justify-center p-6">
-        <CircularProgress />
+        <Spinner className="size-10" />
       </div>
     );
   }
@@ -457,7 +436,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                         <TableCell>
                           {isChecking ? (
                             <div className="flex items-center gap-1.5">
-                              <CircularProgress size={16} sx={{ color: 'var(--accent)' }} />
+                              <Spinner className="size-4 text-[var(--accent)]" />
                               <span className="cn-text-caption text-muted-foreground">Verification...</span>
                             </div>
                           ) : report ? (
@@ -498,7 +477,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                         </TableCell>
                         <TableCell>
                           {isChecking ? (
-                            <CircularProgress size={16} sx={{ color: 'var(--accent)' }} />
+                            <Spinner className="size-4 text-[var(--accent)]" />
                           ) : report ? (
                             <Typography
                               variant="body2"
@@ -529,7 +508,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                               )}
                             </Tooltip>
                           ) : isChecking ? (
-                            <CircularProgress size={18} sx={{ color: 'var(--accent)' }} />
+                            <Spinner className="size-[18px] text-[var(--accent)]" />
                           ) : (
                             <span className="inline-flex text-[var(--faint)]"><VerifiedUser size={20} strokeWidth={1.75} /></span>
                           )}

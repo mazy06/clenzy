@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Chip, IconButton, Tooltip, TextField, FormControl, InputLabel, Select, MenuItem, Button, Grid, Divider, Alert, CircularProgress } from '@mui/material';
+import { Spinner } from './ui';
+import { Box, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Chip, IconButton, Tooltip, TextField, FormControl, InputLabel, Select, MenuItem, Button, Grid, Divider, Alert } from '@mui/material';
 import {
   Info,
   Warning,
@@ -131,7 +132,7 @@ const AuditLogging: React.FC = () => {
   useEffect(() => {
     setHeaderActions(
       <Box display="flex" alignItems="center" gap={1}>
-        {loading && <CircularProgress size={16} />}
+        {loading && <Spinner className="size-4" />}
         <Tooltip title="Actualiser les logs">
           <IconButton onClick={handleRefresh} size="small">
             <Refresh size={20} strokeWidth={1.75} />
@@ -159,7 +160,7 @@ const AuditLogging: React.FC = () => {
   if (loading && !page) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
-        <CircularProgress />
+        <Spinner className="size-10" />
       </Box>
     );
   }

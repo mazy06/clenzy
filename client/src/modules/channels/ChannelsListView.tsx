@@ -1,12 +1,6 @@
 import React from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Chip,
-  CircularProgress,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Paper, Typography, Button, Chip } from '@mui/material';
 import {
   LinkOff as LinkOffIcon,
   Link as LinkIcon,
@@ -156,7 +150,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
           {/* Status — connecté --ok / à configurer --warn / bientôt muted */}
           <div>
             {(() => {
-              if (loading) return <CircularProgress size={14} />;
+              if (loading) return <Spinner className="size-3.5" />;
               if (connected) {
                 const statusLabel = otaStatus?.status ?? (isAirbnb ? connectionStatus?.status ?? 'ACTIVE' : 'ACTIVE');
                 const isError = String(statusLabel).toUpperCase() === 'ERROR';
@@ -199,7 +193,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
                 disabled={(isAirbnb && connectPending) || loading}
               >
                 {(isAirbnb && connectPending)
-                  ? <CircularProgress size={12} color="inherit" />
+                  ? <Spinner className="size-3" />
                   : `Connecter ${ota.name}`
                 }
               </Button>
@@ -214,7 +208,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
                 disabled={(isAirbnb && disconnectPending) || disconnectingChannelId === ota.id}
               >
                 {((isAirbnb && disconnectPending) || disconnectingChannelId === ota.id)
-                  ? <CircularProgress size={12} />
+                  ? <Spinner className="size-3" />
                   : `Déconnecter ${ota.name}`
                 }
               </Button>

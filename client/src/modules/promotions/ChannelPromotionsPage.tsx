@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Box, Paper, Button, Chip, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, CircularProgress, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Paper, Button, Chip, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -182,7 +183,7 @@ const ChannelPromotionsPage: React.FC = () => {
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={syncMutation.isPending ? <CircularProgress size={14} /> : <SyncIcon />}
+                startIcon={syncMutation.isPending ? <Spinner className="size-3.5" /> : <SyncIcon />}
                 onClick={handleSync}
                 disabled={syncMutation.isPending}
                 sx={{ textTransform: 'none', fontSize: '0.75rem' }}
@@ -237,7 +238,7 @@ const ChannelPromotionsPage: React.FC = () => {
       {/* ── Table ── */}
       {isLoading ? (
         <div className="flex justify-center py-6">
-          <CircularProgress size={32} />
+          <Spinner className="size-8" />
         </div>
       ) : isError ? (
         <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
@@ -460,7 +461,7 @@ const ChannelPromotionsPage: React.FC = () => {
             disabled={isMutating || !formData.propertyId}
             sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
           >
-            {isMutating ? <CircularProgress size={16} /> : editingPromo ? t('common.save', 'Enregistrer') : t('common.create', 'Creer')}
+            {isMutating ? <Spinner className="size-4" /> : editingPromo ? t('common.save', 'Enregistrer') : t('common.create', 'Creer')}
           </Button>
         </DialogActions>
       </Dialog>

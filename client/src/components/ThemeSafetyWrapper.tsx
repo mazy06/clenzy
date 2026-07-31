@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { CircularProgress, Alert } from '@mui/material';
+import { Spinner } from './ui';
+import { Alert } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
 interface ThemeSafetyWrapperProps {
@@ -70,7 +71,7 @@ export default function ThemeSafetyWrapper({ children }: ThemeSafetyWrapperProps
   if (!themeReady) {
     return (
       <div className="flex flex-col items-center justify-center h-[100vh]">
-        <CircularProgress size={60} sx={{ mb: 2 }} />
+        <Spinner className="size-[60px] mb-3" />
         <h6 className="cn-text-h6 text-muted-foreground">
           Chargement du thème...
         </h6>

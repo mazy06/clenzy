@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Typography, IconButton, Button, Tooltip, CircularProgress, Divider, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert } from '@mui/material';
+import { Typography, IconButton, Button, Tooltip, Divider, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert } from '@mui/material';
 import { VpnKey, ContentCopy, Visibility, VisibilityOff, Refresh } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useLockAccessCode } from '../useLockAccessCode';
@@ -123,7 +124,7 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
             </Tooltip>
             <Tooltip title="Régénérer le code" arrow>
               <IconButton size="small" onClick={() => setConfirmOpen(true)} disabled={rotating} sx={{ cursor: 'pointer', p: 0.25, ml: 'auto', color: 'text.secondary' }}>
-                {rotating ? <CircularProgress size={14} /> : <Refresh size={14} strokeWidth={1.75} />}
+                {rotating ? <Spinner className="size-3.5" /> : <Refresh size={14} strokeWidth={1.75} />}
               </IconButton>
             </Tooltip>
           </>
@@ -133,7 +134,7 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
             <Button
               size="small"
               variant="text"
-              startIcon={rotating ? <CircularProgress size={13} /> : <Refresh size={14} strokeWidth={1.75} />}
+              startIcon={rotating ? <Spinner className="size-[13px]" /> : <Refresh size={14} strokeWidth={1.75} />}
               onClick={() => setConfirmOpen(true)}
               disabled={rotating}
               sx={{ ml: 'auto' }}
@@ -182,7 +183,7 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
             onClick={() => { void handleRotate(); }}
             variant="contained"
             disabled={rotating}
-            startIcon={rotating ? <CircularProgress size={14} color="inherit" /> : undefined}
+            startIcon={rotating ? <Spinner className="size-3.5" /> : undefined}
           >
             {hasCode ? 'Régénérer' : 'Générer'}
           </Button>

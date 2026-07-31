@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Spinner } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Box, CircularProgress, Alert, Button, Tooltip, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Alert, Button, Tooltip, IconButton, useMediaQuery, useTheme } from '@mui/material';
 import { CalendarMonth, Add, CloudDownload, Fullscreen, FullscreenExit } from '../../icons';
 import EmptyState from '../../components/EmptyState';
 import PageHeader from '../../components/PageHeader';
@@ -735,7 +736,7 @@ const PlanningPage: React.FC = () => {
         </div>
       ) : loading ? (
         <div className="flex justify-center items-center flex-1 gap-2">
-          <CircularProgress size={28} />
+          <Spinner className="size-7" />
           <p className="cn-text-body2 text-muted-foreground">
             Chargement du planning...
           </p>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, CircularProgress, Alert, Button, Snackbar } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Alert, Button, Snackbar } from '@mui/material';
 import { Edit } from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
@@ -72,7 +73,7 @@ const UserDetails: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[50vh]">
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </div>
     );
   }

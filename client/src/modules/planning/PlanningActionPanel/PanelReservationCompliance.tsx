@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Chip, Button, CircularProgress } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, Chip, Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { VerifiedUser, Replay, HourglassEmpty, Check } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -162,7 +163,7 @@ const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({
                     onClick={() => handleRetry(d.id)}
                     disabled={row?.loading}
                     startIcon={
-                      row?.loading ? <CircularProgress size={12} /> : <Replay size={13} strokeWidth={1.75} />
+                      row?.loading ? <Spinner className="size-3" /> : <Replay size={13} strokeWidth={1.75} />
                     }
                     sx={{
                       fontSize: '0.6875rem',

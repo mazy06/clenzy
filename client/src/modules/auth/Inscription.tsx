@@ -1,30 +1,9 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import {
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Stack,
-  Alert,
-  CircularProgress,
-  Stepper,
-  Step,
-  StepLabel,
-  StepIconProps,
-  Chip,
-  Divider,
-  ToggleButtonGroup,
-  ToggleButton,
-  Card,
-  CardContent,
-  Checkbox,
-  FormControlLabel,
-  Link as MuiLink,
-  MenuItem,
-} from '@mui/material';
+import { Box, TextField, Button, Typography, Stack, Alert, Stepper, Step, StepLabel, StepIconProps, Chip, Divider, ToggleButtonGroup, ToggleButton, Card, CardContent, Checkbox, FormControlLabel, Link as MuiLink, MenuItem } from '@mui/material';
 import {
   ShoppingCart as CartIcon,
   CreditCard as CreditCardIcon,
@@ -963,7 +942,7 @@ export default function Inscription() {
                 borderRadius: 1.5,
               }}
             >
-              {loading ? <CircularProgress size={20} color="inherit" /> : t('auth.inscription.submit', 'Continuer vers le paiement')}
+              {loading ? <Spinner className="size-5" /> : t('auth.inscription.submit', 'Continuer vers le paiement')}
             </Button>
           </div>
         )}

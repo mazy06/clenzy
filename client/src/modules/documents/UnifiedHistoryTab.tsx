@@ -1,20 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  TextField,
-  Typography,
-  Chip,
-  IconButton,
-  Tooltip,
-  CircularProgress,
-  Alert,
-  useTheme,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, Chip, IconButton, Tooltip, Alert, useTheme } from '@mui/material';
 import {
   Download,
   Lock,
@@ -400,7 +386,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
 
       {isLoading ? (
         <div className="flex justify-center p-6">
-          <CircularProgress />
+          <Spinner className="size-10" />
         </div>
       ) : unifiedRows.length === 0 ? (
         <EmptyState
@@ -536,7 +522,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                                   }}
                                 >
                                   {resendingId === row.messageLog!.id
-                                    ? <CircularProgress size={16} />
+                                    ? <Spinner className="size-4" />
                                     : <Replay size={16} strokeWidth={1.75} />}
                                 </IconButton>
                               </span>
@@ -649,7 +635,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                   <h6 className="cn-text-subtitle2 mt-1.5">Contenu de l&apos;email</h6>
                   {previewLoading ? (
                     <div className="flex justify-center py-3">
-                      <CircularProgress size={24} />
+                      <Spinner className="size-6" />
                     </div>
                   ) : previewHtml ? (
                     <div className="mt-0.5 rounded-[1px] border border-[divider] overflow-hidden">
@@ -742,7 +728,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
             disabled={!editEmailValue.trim() || editEmailLoading}
             onClick={handleUpdateEmailAndResend}
           >
-            {editEmailLoading ? <CircularProgress size={20} /> : 'Enregistrer et renvoyer'}
+            {editEmailLoading ? <Spinner className="size-5" /> : 'Enregistrer et renvoyer'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -759,7 +745,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
         <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           {pdfLoading ? (
             <div className="flex justify-center items-center flex-1">
-              <CircularProgress thickness={3.5} sx={{ color: 'var(--accent)' }} />
+              <Spinner className="size-10 text-[var(--accent)]" />
             </div>
           ) : pdfUrl ? (
             <object data={pdfUrl} type="application/pdf" width="100%" style={{ flex: 1, border: 'none', minHeight: 0 }}>

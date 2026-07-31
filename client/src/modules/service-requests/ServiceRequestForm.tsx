@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Paper, Button, Alert, CircularProgress, Collapse } from '@mui/material';
+import { Box, Paper, Button, Alert, Collapse } from '@mui/material';
 import { ArrowBack } from "../../icons";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -596,7 +597,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   if (loadingData || loadingServiceRequest) {
     return (
       <div className="flex justify-center items-center h-[50vh]">
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </div>
     );
   }

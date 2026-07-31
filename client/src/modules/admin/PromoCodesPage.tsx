@@ -1,32 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Box,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Button,
-  Typography,
-  CircularProgress,
-  TextField,
-  MenuItem,
-  Chip,
-  Switch,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Snackbar,
-  Skeleton,
-  ToggleButtonGroup,
-  ToggleButton,
-  InputAdornment,
-  Tooltip,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Typography, TextField, MenuItem, Chip, Switch, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Skeleton, ToggleButtonGroup, ToggleButton, InputAdornment, Tooltip } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Add, Percent, LocalOffer, Refresh, CheckCircle, TrendingUp } from '../../icons';
 import PageHeader from '../../components/PageHeader';
@@ -254,7 +228,7 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
           variant="contained"
           onClick={handleSubmit}
           disabled={createMutation.isPending}
-          startIcon={createMutation.isPending ? <CircularProgress size={16} /> : <Add size={16} />}
+          startIcon={createMutation.isPending ? <Spinner className="size-4" /> : <Add size={16} />}
         >
           Créer
         </Button>

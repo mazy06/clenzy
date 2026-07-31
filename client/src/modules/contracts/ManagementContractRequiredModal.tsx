@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Spinner } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Alert, CircularProgress } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Alert } from '@mui/material';
 import { Handshake, Check } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -133,7 +134,7 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
           variant="contained"
           onClick={handleSubmit}
           disabled={!formValid || saving}
-          startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Check size={16} strokeWidth={2} />}
+          startIcon={saving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={2} />}
         >
           {saving
             ? t('contracts.required.saving', 'Enregistrement…')

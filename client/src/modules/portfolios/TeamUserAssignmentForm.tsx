@@ -1,6 +1,7 @@
 import React from 'react';
+import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
-import { Container, Stepper, Step, StepLabel, Button, FormControl, InputLabel, Select, MenuItem, Chip, CircularProgress, Grid, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, TextField, InputAdornment, Avatar } from '@mui/material';
+import { Container, Stepper, Step, StepLabel, Button, FormControl, InputLabel, Select, MenuItem, Chip, Grid, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, TextField, InputAdornment, Avatar } from '@mui/material';
 import {
   People,
   Group,
@@ -68,7 +69,7 @@ const TeamUserAssignmentForm: React.FC = () => {
           showBackButton={true}
         />
         <div className="flex justify-center items-center min-h-[300px]">
-          <CircularProgress size={32} />
+          <Spinner className="size-8" />
         </div>
       </Container>
     );
@@ -445,7 +446,7 @@ const TeamUserAssignmentForm: React.FC = () => {
               variant="contained"
               onClick={handleSubmit}
               disabled={submitting || !selectedManager || (selectedTeams.length === 0 && selectedUsers.length === 0)}
-              startIcon={submitting ? <CircularProgress size={16} /> : <CheckCircle size={16} strokeWidth={1.75} />}
+              startIcon={submitting ? <Spinner className="size-4" /> : <CheckCircle size={16} strokeWidth={1.75} />}
               size="small"
               sx={{ fontSize: '0.82rem' }}
             >

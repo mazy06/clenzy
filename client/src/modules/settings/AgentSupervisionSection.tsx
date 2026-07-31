@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Switch, Divider, Select, MenuItem, TextField, CircularProgress, Alert, Snackbar, useTheme, alpha } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Switch, Divider, Select, MenuItem, TextField, Alert, Snackbar, useTheme, alpha } from '@mui/material';
 import AiSettingsCard from './AiSettingsCard';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -94,7 +95,7 @@ export default function AgentSupervisionSection() {
     >
       {isLoading ? (
         <Box display="flex" justifyContent="center" py={3}>
-          <CircularProgress size={24} />
+          <Spinner className="size-6" />
         </Box>
       ) : error ? (
         <Alert severity="error">

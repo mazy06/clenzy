@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Spinner } from './ui';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Card, CardContent, Grid, Chip, CircularProgress, Alert, Button, IconButton, Tooltip, LinearProgress, List, ListItem, ListItemText, ListItemIcon, Collapse, Divider } from '@mui/material';
+import { Box, Card, CardContent, Grid, Chip, Alert, Button, IconButton, Tooltip, LinearProgress, List, ListItem, ListItemText, ListItemIcon, Collapse, Divider } from '@mui/material';
 import {
   CheckCircle,
   Error as ErrorIcon,
@@ -134,7 +135,7 @@ const HealthChecks: React.FC = () => {
   useEffect(() => {
     setHeaderActions(
       <Box display="flex" alignItems="center" gap={1}>
-        {loading && <CircularProgress size={16} />}
+        {loading && <Spinner className="size-4" />}
         <Tooltip title="Actualiser les vérifications">
           <IconButton onClick={handleRefresh} size="small">
             <Refresh size={20} strokeWidth={1.75} />
@@ -171,7 +172,7 @@ const HealthChecks: React.FC = () => {
   if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
-        <CircularProgress />
+        <Spinner className="size-10" />
       </Box>
     );
   }

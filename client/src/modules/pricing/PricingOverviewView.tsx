@@ -1,18 +1,6 @@
 import React, { useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  IconButton,
-  CircularProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tooltip,
-} from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Typography, Paper, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip } from '@mui/material';
 import { ChevronLeft as ChevronLeftIcon } from '../../icons';
 import { ChevronRight as ChevronRightIcon } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
@@ -124,7 +112,7 @@ const PropertyRow: React.FC<{
         if (isLoading) {
           return (
             <TableCell key={day} sx={{ textAlign: 'center', px: 0.5 }}>
-              <CircularProgress size={12} />
+              <Spinner className="size-3" />
             </TableCell>
           );
         }
@@ -200,7 +188,7 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
       {/* Loading */}
       {propertiesLoading && (
         <Paper sx={{ ...CARD_SX, display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={28} />
+          <Spinner className="size-7" />
         </Paper>
       )}
 

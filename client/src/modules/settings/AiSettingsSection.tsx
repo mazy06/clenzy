@@ -1,25 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { Spinner } from '../../components/ui';
 import { useTabValueParam } from '../../components/tabKeyParam';
-import {
-  Box,
-  Typography,
-  Button,
-  TextField,
-  Grid,
-  Chip,
-  Alert,
-  Autocomplete,
-  CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
-  Switch,
-  Divider,
-  useTheme,
-  alpha,
-} from '@mui/material';
+import { Box, Typography, Button, TextField, Grid, Chip, Alert, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Switch, Divider, useTheme, alpha } from '@mui/material';
 import { Card } from '../../components/ui';
 import {
   CheckCircle,
@@ -221,7 +203,7 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
               variant="outlined"
               size="small"
               color="error"
-              startIcon={isDisconnecting ? <CircularProgress size={14} color="inherit" /> : <LinkOff size={15} strokeWidth={1.75} />}
+              startIcon={isDisconnecting ? <Spinner className="size-3.5" /> : <LinkOff size={15} strokeWidth={1.75} />}
               onClick={onDisconnect}
               disabled={isDisconnecting}
               sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5 }}
@@ -395,7 +377,7 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
                         sx={{ textTransform: 'none', whiteSpace: 'nowrap', minWidth: 0, color: accent }}
                       >
                         {loadingModels ? (
-                          <CircularProgress size={16} />
+                          <Spinner className="size-4" />
                         ) : (
                           t('bookingEngine.ai.settings.loadModels', 'Charger les modèles')
                         )}
@@ -447,7 +429,7 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
         </Button>
         <Button
           onClick={handleTest}
-          startIcon={testMutation.isPending ? <CircularProgress size={16} /> : <Science />}
+          startIcon={testMutation.isPending ? <Spinner className="size-4" /> : <Science />}
           disabled={!apiKey.trim() || testMutation.isPending}
           sx={{
             textTransform: 'none',
@@ -460,7 +442,7 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
         <Button
           onClick={handleSave}
           variant="contained"
-          startIcon={saveMutation.isPending ? <CircularProgress size={16} color="inherit" /> : undefined}
+          startIcon={saveMutation.isPending ? <Spinner className="size-4" /> : undefined}
           disabled={!apiKey.trim() || saveMutation.isPending}
           sx={{
             textTransform: 'none',
@@ -550,7 +532,7 @@ function FeatureTogglesSection() {
       {/* ── Feature rows ── */}
       {isLoading ? (
         <Box display="flex" justifyContent="center" py={3}>
-          <CircularProgress size={24} />
+          <Spinner className="size-6" />
         </Box>
       ) : (
         AI_FEATURES.map((feat, index) => {
@@ -668,7 +650,7 @@ export default function AiSettingsSection() {
   if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" py={4}>
-        <CircularProgress />
+        <Spinner className="size-10" />
       </Box>
     );
   }

@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import { Spinner } from '../../../components/ui';
 import {
   Alert,
   Box,
@@ -238,7 +239,7 @@ export default function AffiliateImportDialog({
             size="small"
             onClick={handleImport}
             disabled={!file || busy}
-            startIcon={busy ? <CircularProgress size={14} color="inherit" /> : undefined}
+            startIcon={busy ? <Spinner className="size-3.5" /> : undefined}
           >
             {t("settings.services.importAction", "Importer")}
           </Button>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, TextField, Button, FormControl, InputLabel, Select, MenuItem, FormHelperText, Chip, IconButton, Alert, CircularProgress, Autocomplete } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, TextField, Button, FormControl, InputLabel, Select, MenuItem, FormHelperText, Chip, IconButton, Alert, Autocomplete } from '@mui/material';
 import {
   Save,
   Cancel,
@@ -238,7 +239,7 @@ const UserEdit: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[50vh]">
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </div>
     );
   }
@@ -287,7 +288,7 @@ const UserEdit: React.FC = () => {
               onClick={handleSubmit}
               startIcon={
                 saving ? (
-                  <CircularProgress size={14} color="inherit" />
+                  <Spinner className="size-3.5" />
                 ) : (
                   <Save size={16} strokeWidth={1.75} />
                 )
@@ -552,7 +553,7 @@ const UserEdit: React.FC = () => {
                       ...params.InputProps,
                       endAdornment: (
                         <>
-                          {orgsLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                          {orgsLoading ? <Spinner className="size-4" /> : null}
                           {params.InputProps.endAdornment}
                         </>
                       ),

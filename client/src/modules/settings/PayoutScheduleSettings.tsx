@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
-import { Box, Switch, TextField, Alert, Snackbar, CircularProgress } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Switch, TextField, Alert, Snackbar } from '@mui/material';
 import { CalendarMonth } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePayoutSchedule, useUpdatePayoutSchedule } from '../../hooks/usePayoutSchedule';
@@ -124,7 +125,7 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
           accent="info"
         >
           <div className="flex justify-center py-3">
-            <CircularProgress size={24} />
+            <Spinner className="size-6" />
           </div>
         </SettingsSection>
       );

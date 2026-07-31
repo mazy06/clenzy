@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Spinner } from '../../components/ui';
 import { getOrgRoleLabel, getOrgRoleHex, getOrgRoleIcon } from '../../utils/orgRoleLabels';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, CircularProgress, Alert } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, Alert } from '@mui/material';
 import {
   Refresh as RefreshIcon,
   Cancel as CancelIcon,
@@ -178,7 +179,7 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
   if (loading) {
     return (
       <div className="flex justify-center py-4">
-        <CircularProgress size={32} />
+        <Spinner className="size-8" />
       </div>
     );
   }
@@ -268,7 +269,7 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
                         sx={ACTION_BTN_PRIMARY_SX}
                       >
                         {actionLoading === inv.id ? (
-                          <CircularProgress size={13} color="inherit" />
+                          <Spinner className="size-[13px]" />
                         ) : (
                           <RefreshIcon size={13} strokeWidth={1.75} />
                         )}
@@ -298,7 +299,7 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
                         sx={ACTION_BTN_DANGER_SX}
                       >
                         {actionLoading === inv.id ? (
-                          <CircularProgress size={13} color="inherit" />
+                          <Spinner className="size-[13px]" />
                         ) : (
                           <DeleteIcon size={13} strokeWidth={1.75} />
                         )}

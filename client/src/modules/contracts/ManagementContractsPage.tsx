@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { Box, Paper, Button, Chip, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Alert, Snackbar, CircularProgress, Stack } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Paper, Button, Chip, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Alert, Snackbar, Stack } from '@mui/material';
 import {
   Add, Edit, CheckCircle, Pause, Cancel,
   Handshake, Home, Person, PictureAsPdf, Send,
@@ -265,7 +266,7 @@ const ManagementContractsPage: React.FC = () => {
       {/* ─── Body ──────────────────────────────────────────────────── */}
       {loading ? (
         <div className="flex justify-center py-9">
-          <CircularProgress />
+          <Spinner className="size-10" />
         </div>
       ) : contracts.length === 0 ? (
         <EmptyState

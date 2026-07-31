@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, alpha, useTheme } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, alpha, useTheme } from '@mui/material';
 import { CheckCircle, ErrorOutline, Close, Refresh } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -177,7 +178,7 @@ export default function OpenWaQrScanDialog({
     if (creating) {
       return (
         <Stack alignItems="center" spacing={2} sx={{ py: 4 }}>
-          <CircularProgress size={32} />
+          <Spinner className="size-8" />
           <p className="cn-text-body2 text-muted-foreground">
             {t('settings.whatsapp.qr.creating', 'Création de la session sur l\'instance OpenWA…')}
           </p>
@@ -251,7 +252,7 @@ export default function OpenWaQrScanDialog({
           </Box>
         ) : (
           <div className="w-[240px] h-[240px] flex items-center justify-center">
-            <CircularProgress size={28} />
+            <Spinner className="size-7" />
           </div>
         )}
         <Stack spacing={0.5} sx={{ textAlign: 'center', maxWidth: 360 }}>
@@ -267,7 +268,7 @@ export default function OpenWaQrScanDialog({
           display: 'flex', alignItems: 'center', gap: 1,
           color: status === 'qr_pending' ? 'warning.main' : 'text.secondary',
         }}>
-          <CircularProgress size={12} thickness={5} color={status === 'qr_pending' ? 'warning' : 'inherit'} />
+          <Spinner className="size-3" />
           <span className="cn-text-caption">
             {status === 'qr_pending'
               ? t('settings.whatsapp.qr.waiting', 'En attente du scan…')

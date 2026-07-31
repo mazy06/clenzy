@@ -1,5 +1,6 @@
 import React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, IconButton, CircularProgress } from '@mui/material';
+import { Spinner } from './ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, IconButton } from '@mui/material';
 import {
   Warning as WarningIcon,
   Close as CloseIcon,
@@ -132,7 +133,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           disabled={loading}
           startIcon={
             loading
-              ? <CircularProgress size={13} thickness={4} color="inherit" />
+              ? <Spinner className="size-[13px]" />
               : confirmIcon === null
                 ? undefined
                 : confirmIcon ?? <DeleteIcon size={13} strokeWidth={1.75} />

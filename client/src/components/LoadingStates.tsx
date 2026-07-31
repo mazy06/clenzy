@@ -1,10 +1,6 @@
 import React from 'react';
-import {
-  Box,
-  CircularProgress,
-  Typography,
-  Button
-} from '@mui/material';
+import { Spinner } from './ui';
+import { Box, Typography, Button } from '@mui/material';
 import { Refresh, Warning as WarningIcon } from '../icons';
 
 interface LoadingStatesProps {
@@ -106,7 +102,7 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
         </Box>
       ) : (
         <>
-          <CircularProgress size={32} thickness={3.5} sx={{ color: 'var(--accent)' }} />
+          <Spinner className="size-8 text-[var(--accent)]" />
           <Typography
             textAlign="center"
             sx={{

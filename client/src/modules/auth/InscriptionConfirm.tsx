@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Box, Paper, TextField, Button, Stack, Alert, CircularProgress, Chip, ThemeProvider, CssBaseline } from '@mui/material';
+import { Box, Paper, TextField, Button, Stack, Alert, Chip, ThemeProvider, CssBaseline } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -181,7 +182,7 @@ export default function InscriptionConfirm() {
           {/* Loading */}
           {status === 'loading' && (
             <div className="py-6">
-              <CircularProgress sx={{ color: 'primary.main', mb: 2 }} />
+              <Spinner className="size-10 text-[primary.main] mb-3" />
               <p className="cn-text-body1 font-medium text-muted-foreground">
                 {t('auth.inscriptionConfirm.loadingLink', 'Verification du lien...')}
               </p>
@@ -266,7 +267,7 @@ export default function InscriptionConfirm() {
                   fullWidth
                   startIcon={
                     status === 'submitting' ? (
-                      <CircularProgress size={18} color="inherit" />
+                      <Spinner className="size-[18px]" />
                     ) : (
                       <LockIcon />
                     )
@@ -316,7 +317,7 @@ export default function InscriptionConfirm() {
               <p className="cn-text-body2 text-muted-foreground mb-3">
                 {t('auth.inscriptionConfirm.successBody', 'Votre compte a ete cree avec succes. Redirection vers votre tableau de bord...')}
               </p>
-              <CircularProgress size={24} sx={{ color: 'primary.main' }} />
+              <Spinner className="size-6 text-[primary.main]" />
             </div>
           )}
 

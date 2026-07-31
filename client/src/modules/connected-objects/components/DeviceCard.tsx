@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Box, Typography, Button, CircularProgress, Tooltip, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert, alpha, useTheme } from '@mui/material';
+import { Box, Typography, Button, Tooltip, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert, alpha, useTheme } from '@mui/material';
 import { Wifi, WifiOff, ChevronRight, Lock, LockOpen, MoreVert, Delete } from '../../../icons';
 import { useIconSize } from '../../../hooks/useResponsiveSize';
 import StatusPill from './StatusPill';
@@ -141,7 +142,7 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
             size="small"
             variant="outlined"
             disabled={acting || !device.online}
-            startIcon={acting ? <CircularProgress size={13} /> : locked ? <LockOpen size={14} strokeWidth={1.75} /> : <Lock size={14} strokeWidth={1.75} />}
+            startIcon={acting ? <Spinner className="size-[13px]" /> : locked ? <LockOpen size={14} strokeWidth={1.75} /> : <Lock size={14} strokeWidth={1.75} />}
             onClick={() => onAction?.(device.uid, locked ? 'unlock' : 'lock')}
             sx={{ flex: 1, justifyContent: 'flex-start' }}
           >
@@ -170,7 +171,7 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
                 disabled={removing}
                 sx={{ flexShrink: 0, color: 'text.secondary', cursor: 'pointer' }}
               >
-                {removing ? <CircularProgress size={16} /> : <MoreVert size={16} strokeWidth={1.75} />}
+                {removing ? <Spinner className="size-4" /> : <MoreVert size={16} strokeWidth={1.75} />}
               </IconButton>
             </Tooltip>
             <Menu
@@ -212,7 +213,7 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
             color="error"
             variant="contained"
             disabled={removing}
-            startIcon={removing ? <CircularProgress size={14} color="inherit" /> : <Delete size={16} strokeWidth={1.75} />}
+            startIcon={removing ? <Spinner className="size-3.5" /> : <Delete size={16} strokeWidth={1.75} />}
           >
             Supprimer
           </Button>

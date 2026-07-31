@@ -15,7 +15,8 @@
    ============================================================ */
 
 import { useState } from 'react';
-import { Box, Button, Collapse, CircularProgress, IconButton } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Box, Button, Collapse, IconButton } from '@mui/material';
 import { Check, ChevronDown, Timer, HomeWork, VisibilityOff, CreditCard, Schedule } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Money } from '../../../components/Money';
@@ -176,7 +177,7 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
             onClick={isPriceAdjust ? () => onAdjustPrice!(action) : validate}
             startIcon={
               resolving ? (
-                <CircularProgress size={13} color="inherit" />
+                <Spinner className="size-[13px]" />
               ) : isPayment ? (
                 <CreditCard size={15} />
               ) : (

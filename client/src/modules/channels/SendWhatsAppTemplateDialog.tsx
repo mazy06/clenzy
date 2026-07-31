@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, RadioGroup, FormControlLabel, Radio, CircularProgress, Alert, Chip } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, RadioGroup, FormControlLabel, Radio, Alert, Chip } from '@mui/material';
 import { useWhatsAppTemplatesList } from '../../hooks/useWhatsAppTemplates';
 import type { WhatsAppTemplateGroup } from '../../services/api/whatsappTemplatesApi';
 
@@ -54,7 +55,7 @@ export default function SendWhatsAppTemplateDialog({
       <DialogContent>
         {isLoading ? (
           <div className="flex justify-center py-4">
-            <CircularProgress size={24} />
+            <Spinner className="size-6" />
           </div>
         ) : !groups || groups.length === 0 ? (
           <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground">

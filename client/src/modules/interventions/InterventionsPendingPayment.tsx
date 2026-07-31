@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Box, Card, CardContent, Button, Alert, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, IconButton, Tooltip } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Box, Card, CardContent, Button, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, IconButton, Tooltip } from '@mui/material';
 import {
   Payment as PaymentIcon,
   Refresh as RefreshIcon,
@@ -136,7 +137,7 @@ const InterventionsPendingPayment: React.FC = () => {
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress sx={{ color: 'var(--accent)' }} />
+        <Spinner className="size-10 text-[var(--accent)]" />
       </Box>
     );
   }
@@ -323,7 +324,7 @@ const InterventionsPendingPayment: React.FC = () => {
                       <Button
                         variant="contained"
                         size="small"
-                        startIcon={processingPayment === intervention.id ? <CircularProgress size={14} color="inherit" /> : <PaymentIcon size={16} strokeWidth={1.75} />}
+                        startIcon={processingPayment === intervention.id ? <Spinner className="size-3.5" /> : <PaymentIcon size={16} strokeWidth={1.75} />}
                         onClick={(e) => { e.stopPropagation(); handlePay(intervention); }}
                         disabled={processingPayment === intervention.id || !intervention.estimatedCost}
                         sx={{

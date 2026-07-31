@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Box, Button, Chip, CircularProgress, Divider, Stack, Switch, TextField, Tooltip, alpha, useTheme } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { Alert, Box, Button, Chip, Divider, Stack, Switch, TextField, Tooltip, alpha, useTheme } from '@mui/material';
 import { CheckCircle, ErrorOutline, InfoOutlined, Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -146,7 +147,7 @@ export default function WhatsAppProviderConfigSection() {
   if (loading) {
     return (
       <div className="flex justify-center py-9">
-        <CircularProgress size={28} />
+        <Spinner className="size-7" />
       </div>
     );
   }
@@ -433,7 +434,7 @@ export default function WhatsAppProviderConfigSection() {
         <Button
           variant="contained"
           disableElevation
-          startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
+          startIcon={saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
           onClick={handleSave}
           disabled={!hasChanges || saving}
           size="small"

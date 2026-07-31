@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Spinner } from './ui';
 import { Card } from '../components/ui';
 import { Box, Typography, Button, Chip, Alert, IconButton, Tooltip, Stack, LinearProgress, CircularProgress, Avatar } from '@mui/material';
 import {
@@ -132,7 +133,7 @@ const TokenMonitoring: React.FC = () => {
           disabled={isLoading}
           startIcon={
             isLoading ? (
-              <CircularProgress size={14} color="inherit" />
+              <Spinner className="size-3.5" />
             ) : (
               <Refresh size={16} strokeWidth={1.75} />
             )
