@@ -1,20 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Card } from '../../components/ui';
-import {
-  Box,
-  Typography,
-  Paper,
-  Grid,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  alpha,
-} from '@mui/material';
+import { Box, Typography, Paper, Grid, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, alpha } from '@mui/material';
 import {
   AccountBalanceWallet,
   TrendingUp,
@@ -287,18 +274,10 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                             </TableCell>
                             <TableCell>{entry.description}</TableCell>
                             <TableCell>
-                              <Chip
-                                label={entry.entryType}
-                                size="small"
-                                sx={softChipSx(ENTRY_TYPE_TOKENS[entry.entryType] ?? 'var(--muted)')}
-                              />
+                              <StatusChip color={ENTRY_TYPE_TOKENS[entry.entryType] ?? 'var(--muted)'} label={entry.entryType} />
                             </TableCell>
                             <TableCell>
-                              <Chip
-                                label={REF_TYPE_LABELS[entry.referenceType]?.label ?? entry.referenceType}
-                                size="small"
-                                sx={softChipSx(REF_TYPE_LABELS[entry.referenceType]?.color ?? 'var(--muted)')}
-                              />
+                              <StatusChip color={REF_TYPE_LABELS[entry.referenceType]?.color ?? 'var(--muted)'} label={REF_TYPE_LABELS[entry.referenceType]?.label ?? entry.referenceType} />
                             </TableCell>
                             <TableCell align="right">
                               {/* Montant signé : display tabular-nums, ok/err */}

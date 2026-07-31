@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Button, Card, CardContent, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, IconButton, Menu, MenuItem, Snackbar, Alert, Stack, Switch, TextField, Tooltip, Typography } from '@mui/material';
+import { Box, Button, Card, CardContent, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, IconButton, Menu, MenuItem, Snackbar, Alert, Stack, Switch, TextField, Tooltip, Typography } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 import { Add, Save, Edit, Delete, ContentCopy, Link as LinkIcon, OpenInNew } from '../../icons';
 import {
@@ -1230,16 +1231,9 @@ const WelcomeGuideAdmin: React.FC = () => {
           <h6 className="cn-text-subtitle2 font-semibold">
             {t('welcomeGuide.reservationLink.title', 'Réservation en cours / à venir')}
           </h6>
-          <Chip
-            size="small"
-            icon={linked ? <Link2 size={13} strokeWidth={1.9} /> : <Unlink size={13} strokeWidth={1.9} />}
-            label={
-              linked
+          <StatusChip color={semanticToHex(linked ? 'success' : 'default')} label={linked
                 ? t('welcomeGuide.reservationLink.linked', 'Lié')
-                : t('welcomeGuide.reservationLink.notLinked', 'Non lié')
-            }
-            sx={softChipSx(semanticToHex(linked ? 'success' : 'default'))}
-          />
+                : t('welcomeGuide.reservationLink.notLinked', 'Non lié')} icon={linked ? <Link2 size={13} strokeWidth={1.9} /> : <Unlink size={13} strokeWidth={1.9} />} />
         </div>
         {linked && linkedReservation ? (
           <Card variant="outlined">
@@ -2267,7 +2261,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                         <p className="cn-text-body2 truncate">
                           {a.label}
                         </p>
-                        <Chip size="small" label={a.count} sx={softChipSx(DEFAULT_COLOR)} />
+                        <StatusChip color={DEFAULT_COLOR} label={a.count} />
                       </div>
                     ))}
                   </Stack>

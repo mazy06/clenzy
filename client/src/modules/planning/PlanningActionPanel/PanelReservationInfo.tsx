@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
-import { Alert, Box, Chip, IconButton, TextField } from '@mui/material';
+import { Alert, Box, IconButton, TextField } from '@mui/material';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -135,10 +136,6 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
     setEditingName(false);
   };
 
-  const chipSx = (bg: string, color: string) => ({
-    ...toneTokensSx({ color, bg }),
-    borderRadius: 'var(--radius-pill)',
-  });
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -219,13 +216,9 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
 
         {/* Rangée de chips : statut / canal / voyageurs */}
         <div className="flex gap-1 flex-wrap mt-2">
-          <Chip label={statusLabel} size="small" sx={chipSx(statusSoft, statusColor)} />
-          <Chip label={channelLabel} size="small" sx={chipSx(channelTokens.bg, channelTokens.color)} />
-          <Chip
-            label={`${reservation.guestCount} voyageur${reservation.guestCount > 1 ? 's' : ''}`}
-            size="small"
-            sx={chipSx('var(--field)', 'var(--body)')}
-          />
+          <StatusChip pill tokens={{ color: statusColor, bg: statusSoft }} label={statusLabel} />
+          <StatusChip pill tokens={{ color: channelTokens.color, bg: channelTokens.bg }} label={channelLabel} />
+          <StatusChip pill tokens={{ color: 'var(--body)', bg: 'var(--field)' }} label={`${reservation.guestCount} voyageur${reservation.guestCount > 1 ? 's' : ''}`} />
         </div>
       </div>
 

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, InputAdornment, Menu, MenuItem, Snackbar, Stack, Switch, TextField } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, InputAdornment, Menu, MenuItem, Snackbar, Stack, Switch, TextField } from '@mui/material';
 import type { AlertColor, SxProps, Theme } from '@mui/material';
 import { Add, Save, Edit, Delete } from '../../icons';
 import {
@@ -909,11 +910,7 @@ const UpsellsAdmin: React.FC = () => {
                     <p className="cn-text-body2 font-semibold">
                       {order.title}
                     </p>
-                    <Chip
-                      size="small"
-                      label={orderStatusLabel(order.status)}
-                      sx={softChipSx(semanticToHex(order.status === 'PAID' ? 'success' : 'default'))}
-                    />
+                    <StatusChip color={semanticToHex(order.status === 'PAID' ? 'success' : 'default')} label={orderStatusLabel(order.status)} />
                   </div>
                   <div className="flex justify-between mt-0.5">
                     <span className="cn-text-caption text-muted-foreground">

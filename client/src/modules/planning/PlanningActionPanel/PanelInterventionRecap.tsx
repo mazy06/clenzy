@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info } from 'lucide-react';
-import { Box, Typography, Accordion, AccordionSummary, AccordionDetails, Chip, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
+import { Box, Typography, Accordion, AccordionSummary, AccordionDetails, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
 import {
   ExpandMore,
   Notes,
@@ -59,11 +60,6 @@ const SEVERITY_TOKENS: Record<string, ToneTokens> = {
 };
 
 /** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
-const chipSx = (bg: string, color: string) => ({
-  ...toneTokensSx({ color, bg }),
-  borderRadius: 'var(--radius-pill)',
-  fontVariantNumeric: 'tabular-nums',
-});
 
 const OVERLINE_SX = {
   fontSize: '0.625rem',
@@ -123,24 +119,14 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
               ? { bg: 'var(--info-soft)', color: 'var(--info)' }
               : { bg: 'var(--warn-soft)', color: 'var(--warn)' };
           return (
-            <Chip label={intervention.status} size="small" sx={chipSx(t.bg, t.color)} />
+            <StatusChip pill tokens={{ color: t.color, bg: t.bg }} label={intervention.status} />
           );
         })()}
         {intervention.estimatedDurationHours && (
-          <Chip
-            icon={<Schedule size={12} strokeWidth={1.75} />}
-            label={`${intervention.estimatedDurationHours}h estimées`}
-            size="small"
-            sx={chipSx('var(--info-soft)', 'var(--info)')}
-          />
+          <StatusChip pill tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={`${intervention.estimatedDurationHours}h estimées`} icon={<Schedule size={12} strokeWidth={1.75} />} />
         )}
         {intervention.estimatedDurationHours && (
-          <Chip
-            icon={<AttachMoney size={12} strokeWidth={1.75} />}
-            label={`${(intervention.estimatedDurationHours * 25).toFixed(0)} EUR`}
-            size="small"
-            sx={chipSx('var(--ok-soft)', 'var(--ok)')}
-          />
+          <StatusChip pill tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label={`${(intervention.estimatedDurationHours * 25).toFixed(0)} EUR`} icon={<AttachMoney size={12} strokeWidth={1.75} />} />
         )}
       </div>
 
@@ -232,11 +218,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
               <>
               <Box component="span" sx={{ display: 'inline-flex', color: t.color, mt: 0.25 }}><Warning size={16} strokeWidth={1.75} /></Box>
               <div className="flex-1 min-w-0">
-                <Chip
-                  label={s.severity.charAt(0).toUpperCase() + s.severity.slice(1)}
-                  size="small"
-                  sx={{ ...chipSx(t.bg, t.color), mb: 0.5 }}
-                />
+                <StatusChip pill tokens={{ color: t.color, bg: t.bg }} label={s.severity.charAt(0).toUpperCase() + s.severity.slice(1)} className="mb-0.5" />
                 <p className="cn-text-body1 text-[0.6875rem] text-[var(--body)]">{s.description}</p>
               </div>
               </>

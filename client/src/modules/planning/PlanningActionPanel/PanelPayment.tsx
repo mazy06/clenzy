@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, Typography, Chip, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Box, Typography, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import {
   Payment,
   CheckCircle,
@@ -41,10 +42,6 @@ const STATUS_TOKENS: Record<string, ToneTokens> = {
 const NEUTRAL_TOKENS = STATUS_TONES.neutral;
 
 /** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
-const chipSx = (bg: string, color: string) => ({
-  ...toneTokensSx({ color, bg }),
-  borderRadius: 'var(--radius-pill)',
-});
 
 const OVERLINE_SX = {
   fontSize: '0.625rem',
@@ -124,11 +121,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
         <span className="inline-flex text-[var(--accent)]"><Payment size={18} strokeWidth={1.75} /></span>
         <Typography sx={OVERLINE_SX}>Statut paiement</Typography>
         {(() => { const t = STATUS_TOKENS[(intervention.paymentStatus || intervention.status)?.toUpperCase()] || NEUTRAL_TOKENS; return (
-        <Chip
-          label={intervention.paymentStatus || intervention.status}
-          size="small"
-          sx={{ ...chipSx(t.bg, t.color), ml: 'auto' }}
-        />
+        <StatusChip pill tokens={{ color: t.color, bg: t.bg }} label={intervention.paymentStatus || intervention.status} className="ms-auto" />
         ); })()}
       </div>
 
@@ -230,11 +223,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
                   </TableCell>
                   <TableCell sx={{ p: 0.5 }}>
                     {(() => { const t = STATUS_TOKENS[record.status] || NEUTRAL_TOKENS; return (
-                    <Chip
-                      label={record.status}
-                      size="small"
-                      sx={{ ...chipSx(t.bg, t.color), height: 18, fontSize: '0.625rem' }}
-                    />
+                    <StatusChip pill tokens={{ color: t.color, bg: t.bg }} label={record.status} className="h-[18px] text-[0.625rem]" />
                     ); })()}
                   </TableCell>
                 </TableRow>

@@ -9,10 +9,11 @@
    ============================================================ */
 
 import React, { useCallback, useMemo, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Paper, Typography, Button, Chip, IconButton, Tooltip, Link, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Skeleton } from '@mui/material';
+import { Paper, Typography, Button, IconButton, Tooltip, Link, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Skeleton } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { Build as RetryIcon, AccountBalance as PayoutIcon } from '../../../icons';
 import FilterChipRow from '../../../components/FilterChipRow';
@@ -240,11 +241,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                     </TableCell>
                     <TableCell align="center">
                       <div className="inline-flex items-center gap-0.5">
-                        <Chip
-                          label={t(`accounting.housekeeperPayouts.statuses.${r.status}`, r.status)}
-                          size="small"
-                          sx={softChipSx(STATUS_COLORS[r.status])}
-                        />
+                        <StatusChip color={STATUS_COLORS[r.status]} label={t(`accounting.housekeeperPayouts.statuses.${r.status}`, r.status)} />
                         {showReason && (
                           <Tooltip title={reason as string}>
                             <Typography component="span" sx={{ fontSize: '0.6875rem', color: 'var(--warn)', cursor: 'help' }}>

@@ -167,7 +167,7 @@ const SectionCard: React.FC<{
       <Typography variant="body2" sx={{ ...OVERLINE_SX, flex: 1 }}>
         {title}
       </Typography>
-      <Chip label={badge} size="small" sx={chipSx(badgeTokens.bg, badgeTokens.color)} />
+      <StatusChip pill tokens={{ color: badgeTokens.color, bg: badgeTokens.bg }} label={badge} />
     </div>
     {children}
   </div>
@@ -797,11 +797,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               >
                 <Money value={Math.max(0, effectiveBalanceDue)} from="EUR" />
               </Typography>
-              <Chip
-                label={effectivePaymentStatus}
-                size="small"
-                sx={chipSx(effectivePaymentStatusTokens.bg, effectivePaymentStatusTokens.color)}
-              />
+              <StatusChip pill tokens={{ color: effectivePaymentStatusTokens.color, bg: effectivePaymentStatusTokens.bg }} label={effectivePaymentStatus} />
             </div>
           </div>
 

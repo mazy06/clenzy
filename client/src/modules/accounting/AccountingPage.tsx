@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Paper, Typography, Button, Chip, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Tab, Card, CardContent, Grid } from '@mui/material';
+import { Paper, Typography, Button, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Tab, Card, CardContent, Grid } from '@mui/material';
 import {
   Add as AddIcon,
   CheckCircle as ApproveIcon,
@@ -441,11 +442,7 @@ export const PayoutsTab: React.FC = () => {
                     {fmtCurrency(payout.netAmount)}
                   </TableCell>
                   <TableCell align="center">
-                    <Chip
-                      label={t(`accounting.payoutStatuses.${payout.status}`, payout.status)}
-                      size="small"
-                      sx={softChipSx(PAYOUT_STATUS_COLORS[payout.status] ?? 'var(--muted)')}
-                    />
+                    <StatusChip color={PAYOUT_STATUS_COLORS[payout.status] ?? 'var(--muted)'} label={t(`accounting.payoutStatuses.${payout.status}`, payout.status)} />
                   </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                     <div className="flex items-center justify-end gap-0.5">
@@ -640,11 +637,7 @@ export const PayoutsTab: React.FC = () => {
                   <TableRow>
                     <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Méthode</TableCell>
                     <TableCell>
-                      <Chip
-                        label={detailPayout.payoutMethod === 'SEPA_TRANSFER' ? 'Virement SEPA' : detailPayout.payoutMethod === 'STRIPE_CONNECT' ? 'Stripe Connect' : 'Manuel'}
-                        size="small"
-                        sx={softChipSx('var(--info)')}
-                      />
+                      <StatusChip color={'var(--info)'} label={detailPayout.payoutMethod === 'SEPA_TRANSFER' ? 'Virement SEPA' : detailPayout.payoutMethod === 'STRIPE_CONNECT' ? 'Stripe Connect' : 'Manuel'} />
                     </TableCell>
                   </TableRow>
                   <TableRow><TableCell colSpan={2} sx={{ pt: '12px !important' }}><div className="border-b border-[var(--line)]" /></TableCell></TableRow>
@@ -680,11 +673,7 @@ export const PayoutsTab: React.FC = () => {
                   <TableRow>
                     <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Statut</TableCell>
                     <TableCell>
-                      <Chip
-                        label={detailPayout.status}
-                        size="small"
-                        sx={softChipSx(PAYOUT_STATUS_COLORS[detailPayout.status] ?? 'var(--muted)')}
-                      />
+                      <StatusChip color={PAYOUT_STATUS_COLORS[detailPayout.status] ?? 'var(--muted)'} label={detailPayout.status} />
                     </TableCell>
                   </TableRow>
                 </TableBody>
@@ -1055,21 +1044,13 @@ export const ExpensesTab: React.FC = () => {
                     {expense.description}
                   </TableCell>
                   <TableCell align="center">
-                    <Chip
-                      label={t(`accounting.expenses.categories.${expense.category}`, expense.category)}
-                      size="small"
-                      sx={softChipSx(EXPENSE_CATEGORY_COLORS[expense.category] ?? '#666')}
-                    />
+                    <StatusChip color={EXPENSE_CATEGORY_COLORS[expense.category] ?? '#666'} label={t(`accounting.expenses.categories.${expense.category}`, expense.category)} />
                   </TableCell>
                   <TableCell sx={{ ...CELL_SX, fontWeight: 700 }} align="right">
                     {fmtCurrency(expense.amountTtc, expense.currency)}
                   </TableCell>
                   <TableCell align="center">
-                    <Chip
-                      label={t(`accounting.expenses.statuses.${expense.status}`, expense.status)}
-                      size="small"
-                      sx={softChipSx(EXPENSE_STATUS_COLORS[expense.status] ?? 'var(--muted)')}
-                    />
+                    <StatusChip color={EXPENSE_STATUS_COLORS[expense.status] ?? 'var(--muted)'} label={t(`accounting.expenses.statuses.${expense.status}`, expense.status)} />
                   </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                     {expense.status === 'DRAFT' && (
