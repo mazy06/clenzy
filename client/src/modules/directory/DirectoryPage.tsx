@@ -75,6 +75,10 @@ const DirectoryPage: React.FC = () => {
 
   // Portal container
   const [actionsContainer, setActionsContainer] = useState<HTMLDivElement | null>(null);
+  // Sans ce conteneur, les onglets montes en `embedded` n'avaient nulle part
+  // ou porter leur barre de filtres — et ne la rendaient donc pas du tout :
+  // Utilisateurs et Organisations s'affichaient sans recherche ni filtres.
+  const [filtersContainer, setFiltersContainer] = useState<HTMLDivElement | null>(null);
 
   // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
   // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
@@ -141,6 +145,7 @@ const DirectoryPage: React.FC = () => {
               <div ref={setActionsContainer} style={PORTAL_STYLE} />
             </div>
           }
+          filters={<div ref={setFiltersContainer} style={PORTAL_STYLE} />}
         />
         <PageTabs
           options={visibleTabs.map((tab) => ({
@@ -162,10 +167,10 @@ const DirectoryPage: React.FC = () => {
           <GuestsListPage embedded actionsContainer={actionsContainer} />
         )}
         {activeTabDef?.key === 'users' && (
-          <UsersList embedded actionsContainer={actionsContainer} />
+          <UsersList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
         )}
         {activeTabDef?.key === 'organizations' && (
-          <OrganizationsList embedded actionsContainer={actionsContainer} />
+          <OrganizationsList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
         )}
         {activeTabDef?.key === 'prospection' && (
           <ProspectionPage embedded actionsContainer={actionsContainer} />
