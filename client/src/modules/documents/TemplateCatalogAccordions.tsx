@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Accordion, AccordionSummary, AccordionDetails, Chip, Button, Divider } from '@mui/material';
+import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
+import { Box, Accordion, AccordionSummary, AccordionDetails, Button, Divider } from '@mui/material';
 import {
   ExpandMore,
   EventAvailable,
@@ -20,18 +21,7 @@ import type { DocumentTemplate } from '../../services/api/documentsApi';
 // ─── Tons sémantiques (tokens Signature) ─────────────────────────────────────
 // Mapping : étapes du parcours → ok/accent/warn ; documents PDF → err (pastille
 // type), admin → muted. Les -soft viennent des tokens (dark mode automatique).
-interface Tone { c: string; bg: string }
 
-const TONES: Record<'ok' | 'accent' | 'warn' | 'err' | 'info' | 'muted', Tone> = {
-  ok:     { c: 'var(--ok)',     bg: 'var(--ok-soft)' },
-  accent: { c: 'var(--accent)', bg: 'var(--accent-soft)' },
-  warn:   { c: 'var(--warn)',   bg: 'var(--warn-soft)' },
-  err:    { c: 'var(--err)',    bg: 'var(--err-soft)' },
-  info:   { c: 'var(--info)',   bg: 'var(--info-soft)' },
-  muted:  { c: 'var(--muted)',  bg: 'var(--hover)' },
-};
-
-const chipSx = (tone: Tone) => ({ color: tone.c, bgcolor: tone.bg, '& .MuiChip-icon': { color: tone.c } });
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -61,7 +51,7 @@ interface CatalogGroup {
   id: string;
   label: string;
   icon: React.ReactNode;
-  tone: Tone;
+  tone: ToneTokens;
   items: CatalogItem[];
 }
 
@@ -80,7 +70,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'pre-stay',
     label: 'Avant le sejour',
     icon: <EventAvailable />,
-    tone: TONES.ok,
+    tone: STATUS_TONES.ok,
     items: [
       {
         id: 'checkin-instructions',
@@ -134,7 +124,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'during-stay',
     label: 'Pendant le sejour',
     icon: <Hotel />,
-    tone: TONES.accent,
+    tone: STATUS_TONES.accent,
     items: [
       {
         id: 'noise-alert-owner',
@@ -182,7 +172,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'post-stay',
     label: 'Fin du sejour',
     icon: <ExitToApp />,
-    tone: TONES.warn,
+    tone: STATUS_TONES.warn,
     items: [
       {
         id: 'checkout-instructions',
@@ -207,7 +197,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'documents',
     label: 'Documents commerciaux',
     icon: <Description />,
-    tone: TONES.err,
+    tone: STATUS_TONES.err,
     items: [
       {
         id: 'doc-devis',
@@ -303,7 +293,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'admin',
     label: 'Administration',
     icon: <AdminPanelSettings />,
-    tone: TONES.muted,
+    tone: STATUS_TONES.neutral,
     items: [
       {
         id: 'invitation-org',
@@ -353,18 +343,18 @@ const CATALOG_GROUPS: CatalogGroup[] = [
 //   manual    = muted (action humaine)
 //   form      = warn (declenchement externe)
 //   document  = err (pastille type document, cf. pattern .fr-doc)
-const TRIGGER_CONFIG: Record<string, { label: string; tone: Tone }> = {
-  auto: { label: 'Automatique', tone: TONES.accent },
-  manual: { label: 'Manuel', tone: TONES.muted },
-  form: { label: 'Formulaire', tone: TONES.warn },
-  'auto+manual': { label: 'Auto / Manuel', tone: TONES.ok },
+const TRIGGER_CONFIG: Record<string, { label: string; tone: ToneTokens }> = {
+  auto: { label: 'Automatique', tone: STATUS_TONES.accent },
+  manual: { label: 'Manuel', tone: STATUS_TONES.neutral },
+  form: { label: 'Formulaire', tone: STATUS_TONES.warn },
+  'auto+manual': { label: 'Auto / Manuel', tone: STATUS_TONES.ok },
 };
 
-const CHANNEL_CONFIG: Record<string, { label: string; tone: Tone }> = {
-  email: { label: 'Email', tone: TONES.info },
-  'in-app': { label: 'In-app', tone: TONES.ok },
-  'email+in-app': { label: 'Email + In-app', tone: TONES.ok },
-  document: { label: 'Document .odt', tone: TONES.err },
+const CHANNEL_CONFIG: Record<string, { label: string; tone: ToneTokens }> = {
+  email: { label: 'Email', tone: STATUS_TONES.info },
+  'in-app': { label: 'In-app', tone: STATUS_TONES.ok },
+  'email+in-app': { label: 'Email + In-app', tone: STATUS_TONES.ok },
+  document: { label: 'Document .odt', tone: STATUS_TONES.err },
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -436,7 +426,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                   alignItems: 'center',
                   justifyContent: 'center',
                   bgcolor: group.tone.bg,
-                  color: group.tone.c,
+                  color: group.tone.color,
                   flexShrink: 0,
                 }}
               >
@@ -450,11 +440,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
               <p className="cn-text-body1 font-semibold text-[0.875rem] flex-1 text-foreground">
                 {group.label}
               </p>
-              <Chip
-                label={`${group.items.length} template${group.items.length > 1 ? 's' : ''}`}
-                size="small"
-                sx={chipSx(group.tone)}
-              />
+              <StatusChip tokens={group.tone} label={`${group.items.length} template${group.items.length > 1 ? 's' : ''}`} />
             </div>
           </AccordionSummary>
           <AccordionDetails sx={{ p: 0 }}>
@@ -472,9 +458,9 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                       <p className="cn-text-body1 font-semibold text-[0.8125rem] flex-1 min-w-0">
                         {item.name}
                       </p>
-                      <Chip label={trigger.label} size="small" sx={chipSx(trigger.tone)} />
-                      <Chip label={channel.label} size="small" sx={chipSx(channel.tone)} />
-                      <Chip label={item.recipient} size="small" sx={chipSx(TONES.muted)} />
+                      <StatusChip tokens={trigger.tone} label={trigger.label} />
+                      <StatusChip tokens={channel.tone} label={channel.label} />
+                      <StatusChip tokens={STATUS_TONES.neutral} label={item.recipient} />
                     </div>
 
                     {/* Description */}
@@ -529,12 +515,12 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                       // Etat = couleur d'accent + icone choisis selon le type de template
                       const status =
                         item.templateKind === 'document' && linkedTemplate
-                          ? { tone: TONES.ok, icon: <CheckCircle size={16} strokeWidth={1.75} /> }
+                          ? { tone: STATUS_TONES.ok, icon: <CheckCircle size={16} strokeWidth={1.75} /> }
                           : item.templateKind === 'document' && !linkedTemplate
-                          ? { tone: TONES.warn, icon: <Warning size={16} strokeWidth={1.75} /> }
+                          ? { tone: STATUS_TONES.warn, icon: <Warning size={16} strokeWidth={1.75} /> }
                           : item.templateKind === 'message'
-                          ? { tone: TONES.info, icon: <CheckCircle size={16} strokeWidth={1.75} /> }
-                          : { tone: TONES.muted, icon: <CheckCircle size={16} strokeWidth={1.75} /> };
+                          ? { tone: STATUS_TONES.info, icon: <CheckCircle size={16} strokeWidth={1.75} /> }
+                          : { tone: STATUS_TONES.neutral, icon: <CheckCircle size={16} strokeWidth={1.75} /> };
 
                       return (
                         <Box
@@ -545,13 +531,13 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                             borderRadius: 1.25,
                             backgroundColor: status.tone.bg,
                             border: '1px solid',
-                            borderColor: `color-mix(in srgb, ${status.tone.c} 24%, transparent)`,
+                            borderColor: `color-mix(in srgb, ${status.tone.color} 24%, transparent)`,
                             display: 'flex',
                             alignItems: 'center',
                             gap: 1,
                           }}
                         >
-                          <Box component="span" sx={{ display: 'inline-flex', color: status.tone.c, flexShrink: 0 }}>
+                          <Box component="span" sx={{ display: 'inline-flex', color: status.tone.color, flexShrink: 0 }}>
                             {status.icon}
                           </Box>
 
@@ -573,7 +559,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                                   fontSize: '0.6875rem',
                                   textTransform: 'none',
                                   fontWeight: 600,
-                                  color: status.tone.c,
+                                  color: status.tone.color,
                                   cursor: 'pointer',
                                   '&:hover': { backgroundColor: status.tone.bg },
                                 }}
@@ -597,10 +583,10 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                                   fontSize: '0.6875rem',
                                   textTransform: 'none',
                                   fontWeight: 600,
-                                  borderColor: `color-mix(in srgb, ${status.tone.c} 40%, transparent)`,
-                                  color: status.tone.c,
+                                  borderColor: `color-mix(in srgb, ${status.tone.color} 40%, transparent)`,
+                                  color: status.tone.color,
                                   cursor: 'pointer',
-                                  '&:hover': { borderColor: status.tone.c, backgroundColor: status.tone.bg },
+                                  '&:hover': { borderColor: status.tone.color, backgroundColor: status.tone.bg },
                                 }}
                               >
                                 Uploader un template .odt
@@ -622,7 +608,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                                     fontSize: '0.6875rem',
                                     textTransform: 'none',
                                     fontWeight: 600,
-                                    color: status.tone.c,
+                                    color: status.tone.color,
                                     cursor: 'pointer',
                                     '&:hover': { backgroundColor: status.tone.bg },
                                   }}
@@ -653,7 +639,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                                     fontSize: '0.6875rem',
                                     textTransform: 'none',
                                     fontWeight: 600,
-                                    color: status.tone.c,
+                                    color: status.tone.color,
                                     cursor: 'pointer',
                                     '&:hover': { backgroundColor: status.tone.bg },
                                   }}
