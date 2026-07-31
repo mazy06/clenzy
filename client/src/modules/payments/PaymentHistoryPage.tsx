@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, TextField, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, TextField, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
   CheckCircle as CheckCircleIcon,
@@ -299,7 +300,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
 
   const getStatusChip = (status: PaymentRecord['status']) => {
     const tk = STATUS_TOKEN[status] ?? STATUS_TOKEN.CANCELLED;
-    return <Chip label={STATUS_LABEL[status] || status} size="small" sx={chipSx(tk.fg, tk.bg)} />;
+    return <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={STATUS_LABEL[status] || status} />;
   };
 
   /** Type → accent palette Clenzy (fond soft dérivé du hex, sans border) */
@@ -308,31 +309,16 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
   const getTypeChip = (payment: PaymentRecord) => {
     if (payment.type === 'RESERVATION') {
       return (
-        <Chip
-          icon={<HotelIcon size={14} strokeWidth={1.75} />}
-          label="Reservation"
-          size="small"
-          sx={typeChipSx('#7BA3C2')}
-        />
+        <StatusChip color={'#7BA3C2'} label="Reservation" icon={<HotelIcon size={14} strokeWidth={1.75} />} />
       );
     }
     if (payment.type === 'SERVICE_REQUEST') {
       return (
-        <Chip
-          icon={<AssignmentIcon size={14} strokeWidth={1.75} />}
-          label="Demande"
-          size="small"
-          sx={typeChipSx('#D4A574')}
-        />
+        <StatusChip color={'#D4A574'} label="Demande" icon={<AssignmentIcon size={14} strokeWidth={1.75} />} />
       );
     }
     return (
-      <Chip
-        icon={<SparkleIcon size={14} strokeWidth={1.75} />}
-        label="Intervention"
-        size="small"
-        sx={typeChipSx('#6B8A9A')}
-      />
+      <StatusChip color={'#6B8A9A'} label="Intervention" icon={<SparkleIcon size={14} strokeWidth={1.75} />} />
     );
   };
 

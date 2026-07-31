@@ -48,6 +48,16 @@ export function srStatusChipSx(status: string) {
   return toneChipSx(SR_STATUS_TONE[status?.toLowerCase()] ?? 'neutral');
 }
 
+/** Tokens de statut d'une demande, pour la primitive StatusChip. */
+export function srStatusTokens(status: string) {
+  return STATUS_TONES[SR_STATUS_TONE[status?.toLowerCase()] ?? 'neutral'];
+}
+
+/** Tokens de priorité d'une demande, pour la primitive StatusChip. */
+export function srPriorityTokens(priority: string) {
+  return STATUS_TONES[SR_PRIORITY_TONE[priority?.toLowerCase()] ?? 'neutral'];
+}
+
 /** Sx d'un chip de priorité de demande (texte couleur + fond -soft). */
 export function srPriorityChipSx(priority: string) {
   return toneChipSx(SR_PRIORITY_TONE[priority?.toLowerCase()] ?? 'neutral');

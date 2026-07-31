@@ -1,15 +1,6 @@
 import React from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Box,
-  Typography,
-  Chip,
-  Divider,
-} from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, Divider } from '@mui/material';
 import {
   LocationOn as LocationIcon,
   Person as PersonIcon,
@@ -42,11 +33,12 @@ const pillSx = (bg: string, color: string) => ({
 });
 
 /** Couleur sémantique MUI → pilule soft (primary = accent thémable). */
-const chipColorSx = (color: ChipColor) => {
-  if (color === 'primary') return pillSx('var(--accent-soft)', 'var(--accent)');
-  if (color === 'default') return pillSx('var(--field)', 'var(--muted)');
+/** Tokens de la primitive pour une couleur semantique MUI historique. */
+const chipColorTokens = (color: ChipColor) => {
+  if (color === 'primary') return { color: 'var(--accent)', bg: 'var(--accent-soft)' };
+  if (color === 'default') return { color: 'var(--muted)', bg: 'var(--field)' };
   const hex = semanticToHex(color);
-  return pillSx(`${hex}1F`, hex);
+  return { color: hex, bg: `${hex}1F` };
 };
 
 interface CalendarEventDialogProps {
@@ -117,21 +109,9 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
       <DialogContent sx={{ pt: '16px !important' }}>
         {/* Chips: Status, Priority, Type — pilules soft (jamais d'aplat plein) */}
         <Box display="flex" gap={0.75} mb={2} flexWrap="wrap">
-          <Chip
-            label={getStatusLabel(intervention.status)}
-            size="small"
-            sx={chipColorSx(getStatusChipColor(intervention.status))}
-          />
-          <Chip
-            label={getPriorityLabel(intervention.priority)}
-            size="small"
-            sx={chipColorSx(getPriorityChipColor(intervention.priority))}
-          />
-          <Chip
-            label={getTypeLabel(intervention.type, t)}
-            size="small"
-            sx={chipColorSx('primary')}
-          />
+          <StatusChip pill tokens={chipColorTokens(getStatusChipColor(intervention.status))} label={getStatusLabel(intervention.status)} />
+          <StatusChip pill tokens={chipColorTokens(getPriorityChipColor(intervention.priority))} label={getPriorityLabel(intervention.priority)} />
+          <StatusChip pill tokens={chipColorTokens('primary')} label={getTypeLabel(intervention.type, t)} />
         </Box>
 
         <Divider sx={{ mb: 2 }} />

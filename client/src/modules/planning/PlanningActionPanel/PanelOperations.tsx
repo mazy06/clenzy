@@ -93,13 +93,6 @@ const CLOSE_BTN_SX = {
 };
 
 /** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
-const chipSx = (bg: string, color: string) => ({
-  ...toneTokensSx({ color, bg }, 'sm'),
-  height: 20,
-  borderRadius: 'var(--radius-pill)',
-  '& .MuiChip-label': { px: 0.75 },
-  '& .MuiChip-icon': { color: 'inherit', ml: 0.5 },
-});
 
 const PRIORITY_OPTIONS: { value: 'normale' | 'haute' | 'urgente'; label: string; tokens: SoftTokens }[] = [
   { value: 'normale', label: 'Normale', tokens: NEUTRAL_TOKENS },
@@ -952,12 +945,12 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               const t = INTERVENTION_STATUS_CONFIG[intervention.status]?.tokens
                 || (intervention.status === 'cancelled' ? ERR_TOKENS : WARN_TOKENS);
               return (
-                <Chip label={intervention.status} size="small" sx={chipSx(t.bg, t.color)} />
+                <StatusChip pill size="sm" tokens={{ color: t.color, bg: t.bg }} label={intervention.status} />
               );
             })()}
-            <Chip label={intervention.assigneeName} size="small" sx={chipSx('var(--hover)', 'var(--muted)')} />
+            <StatusChip pill size="sm" tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={intervention.assigneeName} />
             {intervention.estimatedDurationHours && (
-              <Chip label={`${intervention.estimatedDurationHours}h`} size="small" sx={{ ...chipSx(INFO_TOKENS.bg, INFO_TOKENS.color), fontVariantNumeric: 'tabular-nums' }} />
+              <StatusChip pill size="sm" tokens={{ color: INFO_TOKENS.color, bg: INFO_TOKENS.bg }} label={`${intervention.estimatedDurationHours}h`} className="tabular-nums" />
             )}
           </div>
           {intervention.notes && (

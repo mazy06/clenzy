@@ -1,6 +1,7 @@
 import React from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Card } from '../../components/ui';
-import { Paper, Chip, Tooltip, IconButton } from '@mui/material';
+import { Paper, Tooltip, IconButton } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, LocationOn, Build as BuildIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -12,7 +13,7 @@ import {
   getServiceRequestPriorityLabel,
 } from '../../utils/statusUtils';
 import { stripPropertySuffix } from './serviceRequestDisplayMapper';
-import { LIST_PAPER_SX, srStatusChipSx, srPriorityChipSx } from './serviceRequestsListConstants';
+import { LIST_PAPER_SX, srStatusTokens, srPriorityTokens } from './serviceRequestsListConstants';
 
 interface ServiceRequestsMapViewProps {
   mapMarkers: PropertyMarker[];
@@ -79,16 +80,8 @@ const ServiceRequestsMapView: React.FC<ServiceRequestsMapViewProps> = ({
                         </div>
                       </div>
                       <div className="flex items-center gap-0.5 shrink-0">
-                        <Chip
-                          label={getServiceRequestStatusLabel(request.status, t)}
-                          size="small"
-                          sx={srStatusChipSx(request.status)}
-                        />
-                        <Chip
-                          label={getServiceRequestPriorityLabel(request.priority, t)}
-                          size="small"
-                          sx={srPriorityChipSx(request.priority)}
-                        />
+                        <StatusChip pill tokens={srStatusTokens(request.status)} label={getServiceRequestStatusLabel(request.status, t)} />
+                        <StatusChip pill tokens={srPriorityTokens(request.priority)} label={getServiceRequestPriorityLabel(request.priority, t)} />
                         {request.assignedToName && (
                           <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] ms-0.5">
                             {request.assignedToName}

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Paper, Chip, Tooltip, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { Paper, Tooltip, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, MoreVert } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -9,7 +10,7 @@ import {
   getServiceRequestPriorityLabel,
 } from '../../utils/statusUtils';
 import { stripPropertySuffix, formatDateShort } from './serviceRequestDisplayMapper';
-import { LIST_PAPER_SX, srStatusChipSx, srPriorityChipSx } from './serviceRequestsListConstants';
+import { LIST_PAPER_SX, srStatusTokens, srPriorityTokens } from './serviceRequestsListConstants';
 import { Money } from '../../components/Money';
 import PagePagination from '../../components/PagePagination';
 
@@ -96,18 +97,10 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
                   </p>
                 </TableCell>
                 <TableCell align="center">
-                  <Chip
-                    label={getServiceRequestStatusLabel(request.status, t)}
-                    size="small"
-                    sx={srStatusChipSx(request.status)}
-                  />
+                  <StatusChip pill tokens={srStatusTokens(request.status)} label={getServiceRequestStatusLabel(request.status, t)} />
                 </TableCell>
                 <TableCell align="center">
-                  <Chip
-                    label={getServiceRequestPriorityLabel(request.priority, t)}
-                    size="small"
-                    sx={srPriorityChipSx(request.priority)}
-                  />
+                  <StatusChip pill tokens={srPriorityTokens(request.priority)} label={getServiceRequestPriorityLabel(request.priority, t)} />
                 </TableCell>
                 <TableCell align="right">
                   <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] font-[var(--font-display)] tabular-nums">
