@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
@@ -1079,32 +1080,11 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                       </Box>
                       {/* Méta : type + montant + statut (icône↔libellé espacés) */}
                       <div className="flex items-center gap-0.5 mt-1.5 mb-0.5 flex-wrap">
-                        <Chip
-                          icon={isCleaningSr ? <BroomFill size={11} /> : <WrenchFill size={11} />}
-                          label={typeLabel}
-                          size="small"
-                          sx={{
-                            fontSize: '0.5625rem', height: 21, fontWeight: 700,
-                            backgroundColor: `color-mix(in srgb, ${srTypeColor} 14%, transparent)`,
-                            color: srTypeColor,
-                            borderRadius: '6px',
-                            '& .MuiChip-icon': { fontSize: 11, ml: 0.5, mr: 0.125, color: srTypeColor },
-                            '& .MuiChip-label': { pl: 0.375, pr: 0.625 },
-                          }}
-                        />
+                        <StatusChip tokens={{ color: srTypeColor, bg: `color-mix(in srgb, ${srTypeColor} 14%, transparent)` }} label={typeLabel} icon={isCleaningSr ? <BroomFill size={11} /> : <WrenchFill size={11} />} className="text-[0.5625rem] h-[21px]" />
                         {typeof sr.estimatedCost === 'number' && sr.estimatedCost > 0 && (
                           <Badge variant="secondary" className="text-[0.5625rem] h-[21px] font-bold bg-[action.hover] text-[text.primary] rounded-[6px] tabular-nums px-1">{<Money value={sr.estimatedCost} from="EUR" decimals={0} />}</Badge>
                         )}
-                        <Chip
-                          label={statusCfg.label}
-                          size="small"
-                          sx={{
-                            fontSize: '0.5625rem', height: 21, fontWeight: 700, letterSpacing: '0.01em',
-                            backgroundColor: statusCfg.tokens.bg, color: statusCfg.tokens.color,
-                            borderRadius: '6px',
-                            '& .MuiChip-label': { px: 0.625 },
-                          }}
-                        />
+                        <StatusChip tokens={{ color: statusCfg.tokens.color, bg: statusCfg.tokens.bg }} label={statusCfg.label} className="text-[0.5625rem] h-[21px] tracking-[0.01em]" />
                       </div>
                       {/* Actions selon le statut */}
                       <div className="flex gap-0.5 mt-0.5 flex-wrap">
@@ -1317,36 +1297,14 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
 
                       {/* Méta : statut + montant/paiement ; indicateur planning à droite */}
                       <div className="flex items-center gap-0.5 mt-1.5 flex-wrap">
-                        <Chip
-                          label={statusCfg.label}
-                          size="small"
-                          sx={{
-                            fontSize: '0.5625rem', height: 21, fontWeight: 700, letterSpacing: '0.01em',
-                            backgroundColor: statusCfg.tokens.bg, color: statusCfg.tokens.color,
-                            borderRadius: '6px',
-                            '& .MuiChip-label': { px: 0.625 },
-                          }}
-                        />
+                        <StatusChip tokens={{ color: statusCfg.tokens.color, bg: statusCfg.tokens.bg }} label={statusCfg.label} className="text-[0.5625rem] h-[21px] tracking-[0.01em]" />
                         {/* Montant + paiement (montant mis en avant) */}
                         {cost > 0 && payStatusCfg && (
-                          <Chip
-                            icon={<Payment size={10} strokeWidth={1.75} />}
-                            label={
-                              <span className="inline-flex items-center gap-0.5">
+                          <StatusChip tokens={{ color: payStatusCfg.tokens.color, bg: payStatusCfg.tokens.bg }} label={<span className="inline-flex items-center gap-0.5">
                                 <span className="font-bold tabular-nums"><Money value={cost} from="EUR" decimals={0} /></span>
                                 <span className="opacity-50">·</span>
                                 <span>{payStatusCfg.label}</span>
-                              </span>
-                            }
-                            size="small"
-                            sx={{
-                              fontSize: '0.5625rem', height: 21, fontWeight: 600,
-                              backgroundColor: payStatusCfg.tokens.bg, color: payStatusCfg.tokens.color,
-                              borderRadius: '6px',
-                              '& .MuiChip-icon': { fontSize: 10, ml: 0.5, mr: 0.125, color: payStatusCfg.tokens.color },
-                              '& .MuiChip-label': { pl: 0.375, pr: 0.625 },
-                            }}
-                          />
+                              </span>} icon={<Payment size={10} strokeWidth={1.75} />} className="text-[0.5625rem] h-[21px]" />
                         )}
                         {/* Visibilité planning : icône seule, poussée à droite */}
                         <Tooltip title={isOnPlanning ? 'Visible sur le planning' : 'Non visible sur le planning (attribution et paiement requis)'}>

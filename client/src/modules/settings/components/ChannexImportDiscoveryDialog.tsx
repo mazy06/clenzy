@@ -14,11 +14,12 @@
  *   5. Recap : N created, M skipped, K errors
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, IconButton, Box, Stack, CircularProgress, Alert, Checkbox, FormControl, Select, MenuItem, Button, Divider, Chip, ButtonBase } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, IconButton, Box, Stack, CircularProgress, Alert, Checkbox, FormControl, Select, MenuItem, Button, Divider, ButtonBase } from '@mui/material';
 import { X, Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Image as ImageIcon } from 'lucide-react';
 
 import {
@@ -776,23 +777,9 @@ export default function ChannexImportDiscoveryDialog({
                           {p.title || 'Sans titre'}
                         </p>
                         {p.isImported && (
-                          <Chip
-                            size="small"
-                            icon={<CheckCircle2 size={11} />}
-                            label={row.selected
+                          <StatusChip size="sm" tokens={{ color: row.selected ? 'var(--ok)' : 'var(--err)', bg: row.selected ? 'var(--ok-soft)' : 'var(--err-soft)' }} label={row.selected
                               ? `Importee${p.clenzyPropertyName ? ` (${p.clenzyPropertyName})` : ''}`
-                              : 'Sera desimportee'}
-                            sx={{
-                              height: 18,
-                              fontSize: '0.65rem',
-                              bgcolor: row.selected ? 'var(--ok-soft)' : 'var(--err-soft)',
-                              color: row.selected ? 'var(--ok)' : 'var(--err)',
-                              '& .MuiChip-icon': {
-                                color: row.selected ? 'var(--ok)' : 'var(--err)',
-                                ml: 0.5,
-                              },
-                            }}
-                          />
+                              : 'Sera desimportee'} icon={<CheckCircle2 size={11} />} className="text-[0.65rem]" />
                         )}
                         {/* "Actif" est affiche dans la colonne droite (a cote des
                             logos OTA) — pas dans la rangee titre. */}
@@ -834,8 +821,7 @@ export default function ChannexImportDiscoveryDialog({
                         <Stack direction="row" spacing={0.5} flexWrap="wrap" alignItems="center" sx={{ mt: 0.5, gap: 0.5 }}>
                           {/* Type listing brut (donnee structuree primaire) */}
                           {p.otaListingType && (
-                            <Chip size="small" label={`Type OTA : ${p.otaListingType}`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--info-soft)', color: 'var(--info)', fontFamily: 'monospace' }} />
+                            <StatusChip size="sm" tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={`Type OTA : ${p.otaListingType}`} className="text-[0.65rem] font-mono" />
                           )}
                           {/* Tarifs */}
                           {p.otaNightlyPrice != null && (

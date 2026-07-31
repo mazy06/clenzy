@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Alert, Button, Chip, TextField } from '@mui/material';
+import { Alert, Button, TextField } from '@mui/material';
 import {
   partnerConnectionApi,
   type PartnerServiceProvider,
@@ -102,18 +103,7 @@ export default function PartnerServiceConfigForm({
 
       {connected ? (
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Chip
-            label="Accès enregistrés"
-            size="small"
-            sx={{
-              height: 20,
-              fontSize: '0.66rem',
-              fontWeight: 700,
-              color: 'var(--ok)',
-              backgroundColor: 'var(--ok-soft)',
-              border: '1px solid color-mix(in srgb, var(--ok) 25%, transparent)',
-            }}
-          />
+          <StatusChip tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label="Accès enregistrés" className="h-[20px] text-[0.66rem]" />
           {connectedServerUrl && (
             <span className="text-[0.72rem] text-muted-foreground">
               {connectedServerUrl}

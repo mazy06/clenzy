@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-import { Box, TextField, Button, Alert, Snackbar, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, TextField, Button, Alert, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   AccountBalance,
   Save,
@@ -297,21 +298,7 @@ export default function OwnerPayoutSettings() {
                         </p>
                       </TableCell>
                       <TableCell sx={CELL_SX}>
-                        <Chip
-                          label={PAYOUT_METHOD_LABELS[config.payoutMethod]}
-                          size="small"
-                          sx={{
-                            height: 22,
-                            fontSize: '0.6875rem',
-                            fontWeight: 600,
-                            letterSpacing: '0.01em',
-                            backgroundColor: `color-mix(in srgb, ${methodColor} 8%, transparent)`,
-                            color: methodColor,
-                            border: `1px solid color-mix(in srgb, ${methodColor} 20%, transparent)`,
-                            borderRadius: '6px',
-                            '& .MuiChip-label': { px: 0.875 },
-                          }}
-                        />
+                        <StatusChip tokens={{ color: methodColor, bg: `color-mix(in srgb, ${methodColor} 8%, transparent)` }} label={PAYOUT_METHOD_LABELS[config.payoutMethod]} className="tracking-[0.01em]" />
                       </TableCell>
                       <TableCell sx={CELL_SX}>
                         {config.payoutMethod === 'SEPA_TRANSFER' && config.maskedIban && (
@@ -335,51 +322,9 @@ export default function OwnerPayoutSettings() {
                       </TableCell>
                       <TableCell sx={CELL_SX} align="center">
                         {config.verified ? (
-                          <Chip
-                            icon={<VerifiedUser size={11} strokeWidth={2} />}
-                            label={t('settings.ownerPayout.verifiedLabel', 'Vérifié')}
-                            size="small"
-                            sx={{
-                              height: 22,
-                              fontSize: '0.6875rem',
-                              fontWeight: 600,
-                              letterSpacing: '0.01em',
-                              backgroundColor: 'var(--ok-soft)',
-                              color: 'var(--ok)',
-                              border: '1px solid color-mix(in srgb, var(--ok) 20%, transparent)',
-                              borderRadius: '6px',
-                              px: 0.25,
-                              '& .MuiChip-icon': {
-                                color: 'var(--ok) !important',
-                                ml: '6px',
-                                mr: '-2px',
-                              },
-                              '& .MuiChip-label': { px: 0.875 },
-                            }}
-                          />
+                          <StatusChip tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label={t('settings.ownerPayout.verifiedLabel', 'Vérifié')} icon={<VerifiedUser size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
                         ) : (
-                          <Chip
-                            icon={<Warning size={11} strokeWidth={2} />}
-                            label={t('settings.ownerPayout.pendingLabel', 'En attente')}
-                            size="small"
-                            sx={{
-                              height: 22,
-                              fontSize: '0.6875rem',
-                              fontWeight: 600,
-                              letterSpacing: '0.01em',
-                              backgroundColor: 'var(--warn-soft)',
-                              color: 'var(--warn)',
-                              border: '1px solid color-mix(in srgb, var(--warn) 20%, transparent)',
-                              borderRadius: '6px',
-                              px: 0.25,
-                              '& .MuiChip-icon': {
-                                color: 'var(--warn) !important',
-                                ml: '6px',
-                                mr: '-2px',
-                              },
-                              '& .MuiChip-label': { px: 0.875 },
-                            }}
-                          />
+                          <StatusChip tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label={t('settings.ownerPayout.pendingLabel', 'En attente')} icon={<Warning size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
                         )}
                       </TableCell>
                       <TableCell sx={{ ...CELL_SX, pr: 1.25 }} align="right">

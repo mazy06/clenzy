@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -430,19 +431,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
               <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Complétude
               </Typography>
-              <Chip
-                size="small"
-                label={`${stats.filled}/${stats.total}`}
-                sx={{
-                  height: 20,
-                  fontSize: '0.6875rem',
-                  fontWeight: 700,
-                  bgcolor: stats.filled === stats.total ? '#3E9C8015' : 'primary.main',
-                  color: stats.filled === stats.total ? '#3E9C80' : 'primary.contrastText',
-                  border: stats.filled === stats.total ? '1px solid #3E9C8040' : 'none',
-                  '& .MuiChip-label': { px: 1 },
-                }}
-              />
+              <StatusChip tokens={{ color: stats.filled === stats.total ? '#3E9C80' : 'primary.contrastText', bg: stats.filled === stats.total ? '#3E9C8015' : 'primary.main' }} label={`${stats.filled}/${stats.total}`} className="h-[20px]" />
             </div>
             <LinearProgress
               variant="determinate"

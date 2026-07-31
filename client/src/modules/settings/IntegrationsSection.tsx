@@ -542,19 +542,7 @@ export default function IntegrationsSection({
           <p className="cn-text-body1 text-[0.82rem] font-semibold">
             {t('settings.integrations.signatureProvider.title', 'Signature electronique')}
           </p>
-          <Chip
-            label="Opérationnel — à brancher"
-            size="small"
-            sx={{
-              height: 18,
-              fontSize: '0.6rem',
-              fontWeight: 700,
-              color: 'var(--warn)',
-              backgroundColor: 'var(--warn-soft)',
-              border: '1px solid color-mix(in srgb, var(--warn) 25%, transparent)',
-              '& .MuiChip-label': { px: 0.875 },
-            }}
-          />
+          <StatusChip size="sm" tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label="Opérationnel — à brancher" className="text-[0.6rem]" />
         </div>
         <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           {t(

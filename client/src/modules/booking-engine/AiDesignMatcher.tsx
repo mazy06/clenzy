@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { TextField, Button, LinearProgress, Alert, Typography, Chip, Stack } from '@mui/material';
+import { TextField, Button, LinearProgress, Alert, Typography, Stack } from '@mui/material';
 import { AutoFixHighRounded } from '../../icons';
 import { CheckCircleOutlineRounded } from '../../icons';
 import { SettingsRounded } from '../../icons';
@@ -138,17 +139,7 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
           {extractedColors.length > 0 && (
             <Stack direction="row" spacing={0.5} flexWrap="wrap">
               {extractedColors.map((color, idx) => (
-                <Chip
-                  key={idx}
-                  size="small"
-                  label={color}
-                  sx={{
-                    backgroundColor: color,
-                    color: isLightColor(color) ? '#000' : '#fff',
-                    fontFamily: 'monospace',
-                    fontSize: '0.75rem',
-                  }}
-                />
+                <StatusChip tokens={{ color: isLightColor(color) ? '#000' : '#fff', bg: color }} label={color} className="font-mono text-[0.75rem]" key={idx} />
               ))}
             </Stack>
           )}

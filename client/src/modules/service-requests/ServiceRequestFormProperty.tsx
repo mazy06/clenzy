@@ -1,4 +1,5 @@
 import React from 'react';
+import StatusChip from '../../components/StatusChip';
 import {
   Box,
   Typography,
@@ -338,19 +339,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                     {currentUser.name}
                   </p>
                   {currentUser.roleLabel && (
-                    <Chip
-                      label={currentUser.roleLabel}
-                      size="small"
-                      sx={{
-                        height: 20,
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        border: 'none',
-                        bgcolor: currentUser.role === 'ADMIN' ? 'var(--err-soft)' : currentUser.role === 'MANAGER' ? 'var(--warn-soft)' : 'var(--accent-soft)',
-                        color: currentUser.role === 'ADMIN' ? 'var(--err)' : currentUser.role === 'MANAGER' ? 'var(--warn)' : 'var(--accent)',
-                        '& .MuiChip-label': { px: 0.75 },
-                      }}
-                    />
+                    <StatusChip tokens={{ color: currentUser.role === 'ADMIN' ? 'var(--err)' : currentUser.role === 'MANAGER' ? 'var(--warn)' : 'var(--accent)', bg: currentUser.role === 'ADMIN' ? 'var(--err-soft)' : currentUser.role === 'MANAGER' ? 'var(--warn-soft)' : 'var(--accent-soft)' }} label={currentUser.roleLabel} className="h-[20px] text-[10px]" />
                   )}
                 </div>
               </div>

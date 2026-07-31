@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import StatusChip from './StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from './ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from './ui';
@@ -267,24 +268,9 @@ const TokenMonitoring: React.FC = () => {
                 <p className="cn-text-body1 text-[1.125rem] font-bold">
                   {currentToken.username || 'admin'}
                 </p>
-                <Chip
-                  size="small"
-                  icon={
-                    <span className="inline-flex text-inherit ms-0.5">
+                <StatusChip tokens={{ color: tokenStatus.fg, bg: tokenStatus.soft }} label={tokenStatus.label} icon={<span className="inline-flex text-inherit ms-0.5">
                       <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: tokenStatus.fg }} />
-                    </span>
-                  }
-                  label={tokenStatus.label}
-                  sx={{
-                    height: 22,
-                    fontSize: '0.6875rem',
-                    fontWeight: 600,
-                    bgcolor: tokenStatus.soft,
-                    color: tokenStatus.fg,
-                    '& .MuiChip-icon': { mr: -0.25 },
-                    '& .MuiChip-label': { px: 0.75 },
-                  }}
-                />
+                    </span>} />
               </div>
               <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', rowGap: 0.5, mb: 1 }}>
                 <div className="flex items-center gap-0.5">

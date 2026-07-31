@@ -1,4 +1,5 @@
-import { Box, Chip } from '@mui/material';
+import { Box } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
 import ServiceGridCard from './ServiceGridCard';
 import type { ProviderId } from './ProviderLogos';
 import type { SignatureProvider } from '../../../services/api/integrationsApi';
@@ -57,19 +58,7 @@ const qtspBadge = (
 
 /** Provider implémenté côté code mais pas encore branché (config/clé manquante). */
 const readyToWireBadge = (
-  <Chip
-    label="Prêt — à brancher"
-    size="small"
-    sx={{
-      height: 18,
-      fontSize: '0.6rem',
-      fontWeight: 700,
-      color: READY,
-      backgroundColor: 'var(--warn-soft)',
-      border: '1px solid color-mix(in srgb, var(--warn) 25%, transparent)',
-      '& .MuiChip-label': { px: 0.875 },
-    }}
-  />
+  <StatusChip size="sm" tokens={{ color: READY, bg: 'var(--warn-soft)' }} label="Prêt — à brancher" className="text-[0.6rem]" />
 );
 
 interface SignatureProviderCardsProps {

@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useTabValueParam } from '../../components/tabKeyParam';
-import { Box, Typography, Button, TextField, Grid, Chip, Alert, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Switch, Divider, useTheme, alpha } from '@mui/material';
+import { Box, Typography, Button, TextField, Grid, Alert, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Switch, Divider, useTheme, alpha } from '@mui/material';
 import { Card } from '../../components/ui';
 import {
   CheckCircle,
@@ -143,18 +144,7 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
             </div>
           </div>
 
-          <Chip
-            size="small"
-            label={isOrgKey ? t('bookingEngine.ai.settings.personalKey') : t('bookingEngine.ai.settings.sharedKey')}
-            sx={{
-              flexShrink: 0,
-              fontWeight: 600,
-              fontSize: '0.68rem',
-              height: 22,
-              bgcolor: 'action.hover',
-              color: 'text.secondary',
-            }}
-          />
+          <StatusChip tokens={{ color: 'text.secondary', bg: 'action.hover' }} label={isOrgKey ? t('bookingEngine.ai.settings.personalKey') : t('bookingEngine.ai.settings.sharedKey')} className="shrink-0 text-[0.68rem]" />
         </div>
 
         {/* ── Clé masquée + état (clé perso uniquement) — une seule ligne compacte ── */}
@@ -169,22 +159,9 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
             >
               {status.maskedApiKey}
             </Typography>
-            <Chip
-              size="small"
-              icon={status.valid ? <CheckCircle size={13} strokeWidth={2} /> : <ErrorIcon size={13} strokeWidth={2} />}
-              label={status.valid
+            <StatusChip tokens={{ color: status.valid ? ok : theme.palette.error.main, bg: alpha(status.valid ? ok : theme.palette.error.main, isDark ? 0.18 : 0.1) }} label={status.valid
                 ? t('bookingEngine.ai.settings.validated')
-                : t('bookingEngine.ai.settings.notValidated')}
-              sx={{
-                flexShrink: 0,
-                height: 22,
-                fontSize: '0.66rem',
-                fontWeight: 600,
-                bgcolor: alpha(status.valid ? ok : theme.palette.error.main, isDark ? 0.18 : 0.1),
-                color: status.valid ? ok : theme.palette.error.main,
-                '& .MuiChip-icon': { color: status.valid ? ok : theme.palette.error.main },
-              }}
-            />
+                : t('bookingEngine.ai.settings.notValidated')} icon={status.valid ? <CheckCircle size={13} strokeWidth={2} /> : <ErrorIcon size={13} strokeWidth={2} />} className="shrink-0 text-[0.66rem]" />
           </div>
         )}
 
@@ -585,19 +562,7 @@ function FeatureTogglesSection() {
                 </div>
 
                 {/* Menu chip */}
-                <Chip
-                  size="small"
-                  label={t(`bookingEngine.ai.features.${feat.key}.menu`)}
-                  sx={{
-                    mx: 1.5,
-                    height: 22,
-                    fontSize: '0.65rem',
-                    fontWeight: 600,
-                    bgcolor: alpha(feat.color, isDark ? 0.1 : 0.06),
-                    color: isDark ? alpha(feat.color, 0.85) : feat.color,
-                    flexShrink: 0,
-                  }}
-                />
+                <StatusChip tokens={{ color: isDark ? alpha(feat.color, 0.85) : feat.color, bg: alpha(feat.color, isDark ? 0.1 : 0.06) }} label={t(`bookingEngine.ai.features.${feat.key}.menu`)} className="mx-2 text-[0.65rem] shrink-0" />
 
                 {/* Toggle switch */}
                 <Switch

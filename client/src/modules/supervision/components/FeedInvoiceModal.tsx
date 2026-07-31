@@ -10,10 +10,11 @@
    ============================================================ */
 
 import { useEffect, useState, type ReactNode } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { CircleCheck, TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { invoicesApi, INVOICE_STATUS_COLORS, type Invoice } from '../../../services/api/invoicesApi';
@@ -119,15 +120,7 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
           <>
             <div className="flex items-center justify-between mb-1.5">
               <p className="cn-text-body1 font-bold">{invoice.invoiceNumber}</p>
-              <Chip
-                size="small"
-                label={t(`supervision.invoiceModal.status.${invoice.status}`, invoice.status)}
-                sx={{
-                  bgcolor: `color-mix(in srgb, ${INVOICE_STATUS_COLORS[invoice.status] ?? 'var(--muted)'} 18%, transparent)`,
-                  color: INVOICE_STATUS_COLORS[invoice.status] ?? 'var(--muted)',
-                  fontWeight: 700,
-                }}
-              />
+              <StatusChip tokens={{ color: INVOICE_STATUS_COLORS[invoice.status] ?? 'var(--muted)', bg: `color-mix(in srgb, ${INVOICE_STATUS_COLORS[invoice.status] ?? 'var(--muted)'} 18%, transparent)` }} label={t(`supervision.invoiceModal.status.${invoice.status}`, invoice.status)} />
             </div>
             {row(
               t('supervision.invoiceModal.amount', 'Montant TTC'),

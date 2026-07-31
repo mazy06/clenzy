@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, Box, Typography, Chip, IconButton, Divider, TextField, Button } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, Box, Typography, IconButton, Divider, TextField, Button } from '@mui/material';
 import {
   Close as CloseIcon,
   Person as PersonIcon,
@@ -210,15 +211,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                         </div>
                         <div className="flex items-center gap-1">
                           <p className="cn-text-body1 text-[0.75rem] font-semibold"><Money value={r.totalPrice} from="EUR" /></p>
-                          <Chip
-                            label={r.status}
-                            size="small"
-                            sx={{
-                              fontSize: '0.5625rem', height: 18,
-                              bgcolor: `${RESERVATION_STATUS_COLORS[r.status as keyof typeof RESERVATION_STATUS_COLORS] ?? '#757575'}20`,
-                              color: RESERVATION_STATUS_COLORS[r.status as keyof typeof RESERVATION_STATUS_COLORS] ?? '#757575',
-                            }}
-                          />
+                          <StatusChip size="sm" tokens={{ color: RESERVATION_STATUS_COLORS[r.status as keyof typeof RESERVATION_STATUS_COLORS] ?? '#757575', bg: `${RESERVATION_STATUS_COLORS[r.status as keyof typeof RESERVATION_STATUS_COLORS] ?? '#757575'}20` }} label={r.status} className="text-[0.5625rem]" />
                         </div>
                       </div>
                     ))}

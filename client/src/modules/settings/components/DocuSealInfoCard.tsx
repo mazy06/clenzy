@@ -1,4 +1,5 @@
-import { Alert, Chip } from '@mui/material';
+import { Alert } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
 import { Card } from '../../../components/ui';
 import ProviderLogo from './ProviderLogos';
 import { CheckCircle } from '../../../icons';
@@ -43,11 +44,11 @@ export default function DocuSealInfoCard({ available, active }: DocuSealInfoCard
           <div className="flex items-center gap-1.5 flex-wrap">
             <p className="cn-text-body1 text-[0.9rem] font-semibold">DocuSeal</p>
             {active ? (
-              <Chip label="Provider actif" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, color: 'var(--ok)', backgroundColor: 'var(--ok-soft)', border: '1px solid color-mix(in srgb, var(--ok) 25%, transparent)' }} />
+              <StatusChip size="sm" tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label="Provider actif" className="text-[0.6rem]" />
             ) : available ? (
-              <Chip label="Instance connectée — non activé" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, color: 'var(--ok)', backgroundColor: 'var(--ok-soft)', border: '1px solid color-mix(in srgb, var(--ok) 25%, transparent)' }} />
+              <StatusChip size="sm" tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label="Instance connectée — non activé" className="text-[0.6rem]" />
             ) : (
-              <Chip label="Prêt — à brancher" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, color: 'var(--warn)', backgroundColor: 'var(--warn-soft)', border: '1px solid color-mix(in srgb, var(--warn) 25%, transparent)' }} />
+              <StatusChip size="sm" tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label="Prêt — à brancher" className="text-[0.6rem]" />
             )}
           </div>
           <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-0.5">

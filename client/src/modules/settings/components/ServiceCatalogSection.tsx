@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Card } from '../../../components/ui';
@@ -164,19 +165,7 @@ export default function ServiceCatalogSection({
                 <div className="flex items-center gap-0.5 flex-wrap">
                   <p className="cn-text-body1 text-[0.92rem] font-semibold">{openService.name}</p>
                   {openService.region && (
-                    <Chip
-                      label={openService.region}
-                      size="small"
-                      sx={{
-                        height: 18,
-                        fontSize: '0.62rem',
-                        fontWeight: 600,
-                        bgcolor: 'var(--ok-soft)',
-                        color: ACCENT,
-                        border: '1px solid color-mix(in srgb, var(--ok) 20%, transparent)',
-                        '& .MuiChip-label': { px: 0.625 },
-                      }}
-                    />
+                    <StatusChip size="sm" tokens={{ color: ACCENT, bg: 'var(--ok-soft)' }} label={openService.region} className="text-[0.62rem]" />
                   )}
                 </div>
                 <p className="cn-text-body1 text-[0.74rem] text-muted-foreground mt-0.5">
@@ -184,24 +173,7 @@ export default function ServiceCatalogSection({
                 </p>
               </div>
               <div className="shrink-0">
-                <Chip
-                  icon={<ErrorOutline size={11} strokeWidth={2} />}
-                  label={openService.available ? 'Configurable' : 'Bientôt'}
-                  size="small"
-                  sx={{
-                    height: 22,
-                    fontSize: '0.6875rem',
-                    fontWeight: 600,
-                    letterSpacing: '0.01em',
-                    borderRadius: '6px',
-                    px: 0.25,
-                    backgroundColor: `color-mix(in srgb, ${NEUTRAL} 8%, transparent)`,
-                    color: NEUTRAL,
-                    border: `1px solid color-mix(in srgb, ${NEUTRAL} 20%, transparent)`,
-                    '& .MuiChip-icon': { color: `${NEUTRAL} !important`, ml: '6px', mr: '-2px' },
-                    '& .MuiChip-label': { px: 0.875 },
-                  }}
-                />
+                <StatusChip tokens={{ color: NEUTRAL, bg: `color-mix(in srgb, ${NEUTRAL} 8%, transparent)` }} label={openService.available ? 'Configurable' : 'Bientôt'} icon={<ErrorOutline size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
               </div>
             </div>
 

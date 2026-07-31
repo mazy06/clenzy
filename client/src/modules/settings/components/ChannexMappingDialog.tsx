@@ -14,11 +14,12 @@
  * Reference : docs/strategy/channex-integration-plan.md (Sprint 5)
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, IconButton, Box, Button, ButtonBase, TextField, Alert, Stack, Divider, Tooltip, Chip } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, IconButton, Box, Button, ButtonBase, TextField, Alert, Stack, Divider, Tooltip } from '@mui/material';
 import { X, Plus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Clock, PauseCircle, ExternalLink, Download, Link2, ArrowLeft, ChevronRight, Globe, Home, Sparkles, Settings as SettingsIcon } from 'lucide-react';
 
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -94,20 +95,7 @@ function StatusBadge({ status }: { status: ChannexSyncStatus }) {
 
   return (
     <Tooltip title={meta.description} placement="top" arrow>
-      <Chip
-        size="small"
-        icon={icon}
-        label={meta.label}
-        sx={{
-          backgroundColor: `${meta.color}1A`,
-          color: meta.color,
-          fontWeight: 600,
-          fontSize: '0.7rem',
-          height: 22,
-          '& .MuiChip-icon': { color: meta.color, marginLeft: '6px' },
-          '& .MuiChip-label': { paddingLeft: '6px', paddingRight: '8px' },
-        }}
-      />
+      <StatusChip tokens={{ color: meta.color, bg: `${meta.color}1A` }} label={meta.label} icon={icon} className="text-[0.7rem]" />
     </Tooltip>
   );
 }

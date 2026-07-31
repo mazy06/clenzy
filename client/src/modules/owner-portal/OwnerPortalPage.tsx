@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Typography, Button, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Paper, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, FormControl, InputLabel, Select, MenuItem, Card, CardContent, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Home as HomeIcon,
   EventAvailable as ReservationIcon,
@@ -382,17 +383,7 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                     {fmtCurrency(prop.revenue)}
                   </TableCell>
                   <TableCell sx={CELL_SX} align="center">
-                    <Chip
-                      label={fmtPercent(prop.occupancyRate)}
-                      size="small"
-                      sx={{
-                        fontSize: '0.625rem',
-                        height: 20,
-                        fontWeight: 600,
-                        backgroundColor: prop.occupancyRate > 0.7 ? '#4A9B8E' : prop.occupancyRate > 0.4 ? '#D4A574' : '#ef5350',
-                        color: '#fff',
-                      }}
-                    />
+                    <StatusChip size="sm" tokens={{ color: '#fff', bg: prop.occupancyRate > 0.7 ? '#4A9B8E' : prop.occupancyRate > 0.4 ? '#D4A574' : '#ef5350' }} label={fmtPercent(prop.occupancyRate)} className="h-[20px]" />
                   </TableCell>
                   <TableCell sx={CELL_SX} align="center">{prop.reservationCount}</TableCell>
                 </TableRow>

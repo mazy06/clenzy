@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Card, CardContent, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, IconButton, Tooltip } from '@mui/material';
+import { Box, Card, CardContent, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, Tooltip } from '@mui/material';
 import {
   Payment as PaymentIcon,
   Refresh as RefreshIcon,
@@ -292,19 +293,7 @@ const InterventionsPendingPayment: React.FC = () => {
                   </TableCell>
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
                     {(() => { const tk = getTypeTokens(intervention.type); return (
-                      <Chip
-                        label={getTypeLabel(intervention.type)}
-                        size="small"
-                        sx={{
-                          fontSize: '0.6875rem',
-                          height: 22,
-                          fontWeight: 600,
-                          backgroundColor: tk.bg,
-                          color: tk.color,
-                          borderRadius: '6px',
-                          '& .MuiChip-label': { px: 0.75 },
-                        }}
-                      />
+                      <StatusChip tokens={{ color: tk.color, bg: tk.bg }} label={getTypeLabel(intervention.type)} />
                     ); })()}
                   </TableCell>
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>

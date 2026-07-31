@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
@@ -249,11 +250,7 @@ const ReconciliationTab: React.FC = () => {
                     <TableRow key={run.id}>
                       <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.id}</TableCell>
                       <TableCell>
-                        <Chip
-                          label={run.channel}
-                          size="small"
-                          sx={{ color: NEUTRAL_TOKEN.fg, backgroundColor: NEUTRAL_TOKEN.bg }}
-                        />
+                        <StatusChip tokens={{ color: NEUTRAL_TOKEN.fg, bg: NEUTRAL_TOKEN.bg }} label={run.channel} />
                       </TableCell>
                       <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.propertyId}</TableCell>
                       <TableCell>

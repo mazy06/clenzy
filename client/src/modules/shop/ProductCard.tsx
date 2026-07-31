@@ -1,4 +1,5 @@
 import React from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Card } from '../../components/ui';
 import { Box, Typography, Chip, Button, IconButton, Divider } from '@mui/material';
 import {
@@ -133,43 +134,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
         {product.protocol && (
           <div className="flex gap-0.5 mb-2 flex-wrap">
             {(product.protocol === 'wifi' || product.protocol === 'both') && (
-              <Chip
-                icon={<Wifi size={11} strokeWidth={2} />}
-                label={t('shop.protocols.wifi')}
-                size="small"
-                sx={{
-                  height: 22,
-                  fontSize: '10.5px',
-                  fontWeight: 700,
-                  letterSpacing: '0.01em',
-                  backgroundColor: 'var(--info-soft)',
-                  color: 'var(--info)',
-                  border: 'none',
-                  px: 0.25,
-                  '& .MuiChip-icon': {
-                    color: 'var(--info) !important',
-                    ml: '6px',
-                    mr: '-2px',
-                  },
-                  '& .MuiChip-label': { px: 0.875 },
-                }}
-              />
+              <StatusChip tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={t('shop.protocols.wifi')} icon={<Wifi size={11} strokeWidth={2} />} className="text-[10.5px] tracking-[0.01em] px-0.5" />
             )}
             {(product.protocol === 'zigbee' || product.protocol === 'both') && (
-              <Chip
-                label={t('shop.protocols.zigbee')}
-                size="small"
-                sx={{
-                  height: 22,
-                  fontSize: '10.5px',
-                  fontWeight: 700,
-                  letterSpacing: '0.01em',
-                  backgroundColor: 'var(--field)',
-                  color: 'var(--muted)',
-                  border: 'none',
-                  '& .MuiChip-label': { px: 0.875 },
-                }}
-              />
+              <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--field)' }} label={t('shop.protocols.zigbee')} className="text-[10.5px] tracking-[0.01em]" />
             )}
           </div>
         )}

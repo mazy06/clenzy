@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, TextField, MenuItem, Alert, Snackbar, IconButton, Tooltip, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Dialog, DialogTitle, DialogContent, DialogActions, Chip } from '@mui/material';
+import { Button, TextField, MenuItem, Alert, Snackbar, IconButton, Tooltip, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Card } from '../../components/ui';
 import {
   Add, Edit, Delete, Gavel, Info as InfoIcon,
@@ -270,28 +271,7 @@ const TaxRulesSection: React.FC = () => {
                   return (
                   <TableRow key={rule.id} hover>
                     <TableCell>
-                      <Chip
-                        icon={<CategoryIcon size={11} strokeWidth={2} />}
-                        label={categoryLabel(catKey)}
-                        size="small"
-                        sx={{
-                          height: 22,
-                          fontSize: '0.6875rem',
-                          fontWeight: 600,
-                          letterSpacing: '0.01em',
-                          backgroundColor: `color-mix(in srgb, ${categoryColor} 8%, transparent)`,
-                          color: categoryColor,
-                          border: `1px solid color-mix(in srgb, ${categoryColor} 20%, transparent)`,
-                          borderRadius: '6px',
-                          px: 0.25,
-                          '& .MuiChip-icon': {
-                            color: `${categoryColor} !important`,
-                            ml: '6px',
-                            mr: '-2px',
-                          },
-                          '& .MuiChip-label': { px: 0.875 },
-                        }}
-                      />
+                      <StatusChip tokens={{ color: categoryColor, bg: `color-mix(in srgb, ${categoryColor} 8%, transparent)` }} label={categoryLabel(catKey)} icon={<CategoryIcon size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
                     </TableCell>
                     <TableCell>{rule.taxName}</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>

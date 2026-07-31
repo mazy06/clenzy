@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
@@ -898,18 +899,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                   {currentUserLabel}
                 </p>
                 {currentUserRole && (
-                  <Chip
-                    label={currentUserRole}
-                    size="small"
-                    sx={{
-                      height: 20,
-                      fontSize: '10.5px',
-                      fontWeight: 700,
-                      bgcolor: isAdmin() ? 'var(--err-soft)' : isManager() ? 'var(--warn-soft)' : 'var(--accent-soft)',
-                      color: isAdmin() ? 'var(--err)' : isManager() ? 'var(--warn)' : 'var(--accent)',
-                      '& .MuiChip-label': { px: 0.75 },
-                    }}
-                  />
+                  <StatusChip tokens={{ color: isAdmin() ? 'var(--err)' : isManager() ? 'var(--warn)' : 'var(--accent)', bg: isAdmin() ? 'var(--err-soft)' : isManager() ? 'var(--warn-soft)' : 'var(--accent-soft)' }} label={currentUserRole} className="h-[20px] text-[10.5px]" />
                 )}
               </div>
             </Box>

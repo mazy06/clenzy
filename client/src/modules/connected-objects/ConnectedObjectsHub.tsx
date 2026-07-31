@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, X } from 'lucide-react';
 import { Card } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, Skeleton, Paper, Chip, Tooltip, alpha, Snackbar } from '@mui/material';
+import { Box, Typography, Button, Skeleton, Paper, Tooltip, alpha, Snackbar } from '@mui/material';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, Warning, Home, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
@@ -133,11 +134,7 @@ export default function ConnectedObjectsHub({
               : { color: 'var(--warn)', soft: 'var(--warn-soft)' };
             return (
               <Tooltip key={p.provider} title={p.connected ? 'Connecté' : 'Déconnecté — à reconnecter dans les intégrations'} arrow>
-                <Chip
-                  size="small"
-                  label={`${PROVIDER_LABELS[p.provider] ?? p.provider} · ${p.deviceCount}`}
-                  sx={{ height: 24, bgcolor: tokens.soft, color: tokens.color, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}
-                />
+                <StatusChip tokens={{ color: tokens.color, bg: tokens.soft }} label={`${PROVIDER_LABELS[p.provider] ?? p.provider} · ${p.deviceCount}`} className="h-[24px] tabular-nums" />
               </Tooltip>
             );
           })
@@ -259,7 +256,7 @@ export default function ConnectedObjectsHub({
                     <p className="cn-text-body2 text-muted-foreground font-medium">{meta.label}</p>
                     {previewRoute ? (
                       <>
-                        <Chip size="small" label="Aperçu" sx={{ height: 18, fontSize: '0.65rem', bgcolor: alpha(meta.color, 0.15), color: meta.color, fontWeight: 700 }} />
+                        <StatusChip size="sm" tokens={{ color: meta.color, bg: alpha(meta.color, 0.15) }} label="Aperçu" className="text-[0.65rem]" />
                         <span className="text-muted-foreground opacity-60 inline-flex"><ChevronRight size={14} strokeWidth={1.75} /></span>
                       </>
                     ) : (

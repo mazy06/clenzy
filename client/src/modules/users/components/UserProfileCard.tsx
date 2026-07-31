@@ -1,12 +1,6 @@
 import React from 'react';
-import {
-  Avatar,
-  Box,
-  Card,
-  CardContent,
-  Chip,
-  Typography,
-} from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { Avatar, Box, Card, CardContent, Typography } from '@mui/material';
 import { Mail as MailIcon, Phone as PhoneIcon, Business } from '../../../icons';
 import { semanticToHex } from '../../../utils/statusUtils';
 import type { ChipColor } from '../../../types';
@@ -132,31 +126,13 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
 
           {/* Chips */}
           <div className="flex gap-1 flex-wrap shrink-0">
-            <Chip
-              icon={
-                <span className="inline-flex">
+            <StatusChip tokens={{ color: semanticToHex(roleInfo.color), bg: `${semanticToHex(roleInfo.color)}18` }} label={roleInfo.label} icon={<span className="inline-flex">
                   {React.cloneElement(roleInfo.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
                     size: 14,
                     strokeWidth: 1.75,
                   })}
-                </span>
-              }
-              label={roleInfo.label}
-              size="small"
-              sx={{
-                backgroundColor: `${semanticToHex(roleInfo.color)}18`,
-                color: semanticToHex(roleInfo.color),
-                '& .MuiChip-icon': { color: semanticToHex(roleInfo.color) },
-              }}
-            />
-            <Chip
-              label={statusInfo.label}
-              size="small"
-              sx={{
-                backgroundColor: (SEM_TOKEN[statusInfo.color] ?? NEUTRAL_TOKEN).bg,
-                color: (SEM_TOKEN[statusInfo.color] ?? NEUTRAL_TOKEN).fg,
-              }}
-            />
+                </span>} />
+            <StatusChip tokens={{ color: (SEM_TOKEN[statusInfo.color] ?? NEUTRAL_TOKEN).fg, bg: (SEM_TOKEN[statusInfo.color] ?? NEUTRAL_TOKEN).bg }} label={statusInfo.label} />
           </div>
         </Box>
 

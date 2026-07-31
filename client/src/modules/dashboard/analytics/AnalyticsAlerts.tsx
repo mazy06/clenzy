@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, Card, CardContent, Chip, Grid } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
 import {
   ErrorOutline, WarningAmber, InfoOutlined,
 } from '../../../icons';
@@ -126,18 +127,7 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
                         <p className="cn-text-body1 text-[0.75rem] font-bold text-foreground leading-[1.3] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                           {alert.title}
                         </p>
-                        <Chip
-                          label={SEVERITY_LABELS[alert.severity]}
-                          size="small"
-                          sx={{
-                            height: 16,
-                            fontSize: '0.5rem',
-                            fontWeight: 700,
-                            bgcolor: SEVERITY_BG[alert.severity],
-                            color: SEVERITY_COLORS[alert.severity],
-                            '& .MuiChip-label': { px: 0.5 },
-                          }}
-                        />
+                        <StatusChip tokens={{ color: SEVERITY_COLORS[alert.severity], bg: SEVERITY_BG[alert.severity] }} label={SEVERITY_LABELS[alert.severity]} className="h-[16px] text-[0.5rem]" />
                       </div>
                       <p className="cn-text-body1 text-[0.625rem] text-muted-foreground leading-[1.4]">
                         {alert.description}

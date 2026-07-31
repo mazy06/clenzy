@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Button, Alert, Autocomplete, TextField, Chip, Grid } from '@mui/material';
+import { Button, Alert, Autocomplete, TextField, Grid } from '@mui/material';
 import {
   Business,
   PersonAdd,
@@ -172,17 +173,7 @@ export default function OrganizationSection({ organizationId }: Props) {
                       <p className="cn-text-body1 font-medium flex-1 text-[0.85rem]">
                         {option.name}
                       </p>
-                      <Chip
-                        label={getOrgTypeLabel(option.type)}
-                        size="small"
-                        sx={{
-                          height: 20,
-                          fontSize: '0.65rem',
-                          backgroundColor: `${c}18`,
-                          color: c,
-                          '& .MuiChip-label': { px: 0.75 },
-                        }}
-                      />
+                      <StatusChip tokens={{ color: c, bg: `${c}18` }} label={getOrgTypeLabel(option.type)} className="h-[20px] text-[0.65rem]" />
                       <p className="cn-text-body1 text-[0.7rem] text-muted-foreground tabular-nums">
                         {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
                       </p>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Grid, Chip, Button } from '@mui/material';
+import { Card, CardContent, Grid, Button } from '@mui/material';
 import {
   Group,
   Edit,
@@ -143,11 +144,7 @@ const TeamDetails: React.FC = () => {
               </h5>
             </div>
             {(() => { const c = getInterventionTypeHex(team.interventionType); return (
-            <Chip
-              label={getInterventionTypeLabel(team.interventionType, t)}
-              size="medium"
-              sx={{ backgroundColor: `${c}18`, color: c, fontWeight: 600, '& .MuiChip-label': { px: 1 } }}
-            />
+            <StatusChip tokens={{ color: c, bg: `${c}18` }} label={getInterventionTypeLabel(team.interventionType, t)} />
             ); })()}
           </div>
 

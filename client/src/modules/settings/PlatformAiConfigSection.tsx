@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -663,18 +664,7 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
       </Typography>
 
       {/* Provider chip */}
-      <Chip
-        size="small"
-        label={PROVIDER_LABELS[model.provider] || model.provider}
-        sx={{
-          height: 22,
-          fontSize: '0.65rem',
-          fontWeight: 600,
-          bgcolor: alpha(providerColor, isDark ? 0.18 : 0.1),
-          color: providerColor,
-          flexShrink: 0,
-        }}
-      />
+      <StatusChip tokens={{ color: providerColor, bg: alpha(providerColor, isDark ? 0.18 : 0.1) }} label={PROVIDER_LABELS[model.provider] || model.provider} className="text-[0.65rem] shrink-0" />
 
       {/* Model ID */}
       <span className="cn-text-caption text-muted-foreground text-[0.7rem] font-mono flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -686,36 +676,14 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
         {model.assignedFeatures.map((feat) => {
           const featureConf = AI_FEATURES.find((f) => f.key === feat);
           return (
-            <Chip
-              key={feat}
-              size="small"
-              label={feat}
-              sx={{
-                height: 20,
-                fontSize: '0.6rem',
-                fontWeight: 600,
-                bgcolor: alpha(featureConf?.color || '#888', isDark ? 0.15 : 0.08),
-                color: featureConf?.color || 'text.secondary',
-              }}
-            />
+            <StatusChip tokens={{ color: featureConf?.color || 'text.secondary', bg: alpha(featureConf?.color || '#888', isDark ? 0.15 : 0.08) }} label={feat} className="h-[20px] text-[0.6rem]" key={feat} />
           );
         })}
       </div>
 
       {/* Availability (live) — vert / rouge / gris + tooltip (dernier contrôle + erreur) */}
       <Tooltip title={<span style={{ whiteSpace: 'pre-line' }}>{avTip}</span>}>
-        <Chip
-          size="small"
-          label={avLabel}
-          sx={{
-            height: 22,
-            fontSize: '0.65rem',
-            fontWeight: 600,
-            flexShrink: 0,
-            bgcolor: alpha(avColor, isDark ? 0.18 : 0.12),
-            color: avColor,
-          }}
-        />
+        <StatusChip tokens={{ color: avColor, bg: alpha(avColor, isDark ? 0.18 : 0.12) }} label={avLabel} className="text-[0.65rem] shrink-0" />
       </Tooltip>
 
       {/* Validated indicator */}

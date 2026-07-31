@@ -15,9 +15,10 @@
  * Sans propertyId : montre TOUS les drifts actifs de l'organisation.</p>
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, Box, Typography, Button, Alert, Stack, Skeleton, Chip, IconButton, Tooltip } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, Box, Typography, Button, Alert, Stack, Skeleton, IconButton, Tooltip } from '@mui/material';
 import {
   X,
   TrendingDown,
@@ -107,18 +108,7 @@ function DriftRow({
             <Badge variant="secondary" className="h-[22px] text-[0.72rem] bg-[var(--accent-soft)] text-[var(--accent)] font-semibold">{`Baitly ${drift.clenzyPrice}${drift.currency}`}</Badge>
             <span className="cn-text-caption text-muted-foreground opacity-60">vs</span>
             <Badge variant="secondary" className="h-[22px] text-[0.72rem] bg-[var(--warn-soft)] text-[var(--warn)] font-semibold">{`OTA ${drift.otaPrice}${drift.currency}`}</Badge>
-            <Chip
-              size="small"
-              label={formatPct(drift.diffPercent)}
-              sx={{
-                height: 22,
-                fontSize: '0.7rem',
-                fontFamily: 'monospace',
-                bgcolor: `${trendColor}22`,
-                color: trendColor,
-                fontWeight: 700,
-              }}
-            />
+            <StatusChip tokens={{ color: trendColor, bg: `${trendColor}22` }} label={formatPct(drift.diffPercent)} className="text-[0.7rem] font-mono" />
           </div>
         </div>
       </div>

@@ -1,10 +1,11 @@
 import React, { useMemo, useRef, useState } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Button, Chip, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Box, Button, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import { AccountBalance, CheckCircle, Refresh } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { loadConnectAndInitialize } from '@stripe/connect-js';
@@ -109,12 +110,7 @@ export default function MyProPayoutsSettings() {
   }
 
   const statusChip = data?.onboardingCompleted ? (
-    <Chip
-      size="small"
-      icon={<CheckCircle size={13} strokeWidth={2} />}
-      label={t('settings.myProPayouts.statusComplete')}
-      sx={{ bgcolor: 'color-mix(in srgb, var(--ok, #4A9B8E) 12%, transparent)', color: 'var(--ok, #4A9B8E)', fontWeight: 700 }}
-    />
+    <StatusChip tokens={{ color: 'var(--ok, #4A9B8E)', bg: 'color-mix(in srgb, var(--ok, #4A9B8E) 12%, transparent)' }} label={t('settings.myProPayouts.statusComplete')} icon={<CheckCircle size={13} strokeWidth={2} />} />
   ) : data?.accountCreated ? (
     <Badge variant="secondary" className="bg-[var(--field)] text-[var(--muted)] font-bold">{t('settings.myProPayouts.statusInProgress')}</Badge>
   ) : (

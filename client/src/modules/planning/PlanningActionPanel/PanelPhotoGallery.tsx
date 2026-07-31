@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Dialog, IconButton, Chip } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { Box, Dialog, IconButton } from '@mui/material';
 import {
   Close,
   ChevronLeft,
@@ -42,11 +43,7 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
         <p className="cn-text-body1 text-[0.6875rem] font-semibold text-[var(--ink)]">
           {label}
         </p>
-        <Chip
-          label={photos.length}
-          size="small"
-          sx={{ height: 18, ml: 'auto', backgroundColor: 'var(--field)', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', '& .MuiChip-label': { px: 0.75 } }}
-        />
+        <StatusChip size="sm" tokens={{ color: 'var(--muted)', bg: 'var(--field)' }} label={photos.length} className="ms-auto tabular-nums" />
       </div>
 
       <div className="grid grid-cols-2 gap-0.5 mb-1.5">

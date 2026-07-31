@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, MenuItem, Chip, Skeleton } from '@mui/material';
@@ -287,11 +288,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                         (() => {
                           const tk = CHANNEL_TOKEN[guest.channel] ?? CHANNEL_TOKEN.OTHER;
                           return (
-                            <Chip
-                              label={CHANNEL_LABELS[guest.channel] || guest.channel}
-                              size="small"
-                              sx={{ color: tk.fg, bgcolor: tk.bg, border: 'none' }}
-                            />
+                            <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={CHANNEL_LABELS[guest.channel] || guest.channel} />
                           );
                         })()
                       ) : (

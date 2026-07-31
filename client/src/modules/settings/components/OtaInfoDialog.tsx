@@ -4,7 +4,7 @@ import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Box, Button, Chip, Alert, TextField } from '@mui/material';
+import { Box, Button, Alert, TextField } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle as CheckCircleIcon,
@@ -219,19 +219,7 @@ export default function OtaInfoDialog({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-0.5 flex-wrap">
               <p className="cn-text-body1 text-[0.92rem] font-semibold">{ota.name}</p>
-              <Chip
-                label={ota.segment}
-                size="small"
-                sx={{
-                  height: 18,
-                  fontSize: '0.62rem',
-                  fontWeight: 600,
-                  bgcolor: 'var(--ok-soft)',
-                  color: ACCENT,
-                  border: '1px solid color-mix(in srgb, var(--ok) 20%, transparent)',
-                  '& .MuiChip-label': { px: 0.625 },
-                }}
-              />
+              <StatusChip size="sm" tokens={{ color: ACCENT, bg: 'var(--ok-soft)' }} label={ota.segment} className="text-[0.62rem]" />
             </div>
             <p className="cn-text-body1 text-[0.74rem] text-muted-foreground mt-0.5">
               {isAirbnb

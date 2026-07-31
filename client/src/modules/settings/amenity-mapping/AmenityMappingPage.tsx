@@ -15,10 +15,11 @@
  * Header avec 4 KPI tuiles (À mapper / Aliases / Custom / Properties affectees).
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
-import { Box, Typography, Stack, TextField, InputAdornment, Button, Chip, IconButton, Tooltip, Skeleton, Select, MenuItem, FormControl, Checkbox, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Typography, Stack, TextField, InputAdornment, Button, IconButton, Tooltip, Skeleton, Select, MenuItem, FormControl, Checkbox, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Search,
   Plus,
@@ -411,9 +412,7 @@ export default function AmenityMappingPage() {
                       <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.85rem' }}>
                         {opt.label}
                         {opt.isCustom && (
-                          <Chip size="small" label="custom"
-                                sx={{ ml: 0.75, height: 16, fontSize: '0.6rem',
-                                      bgcolor: 'var(--info-soft)', color: PRIMARY }} />
+                          <StatusChip tokens={{ color: PRIMARY, bg: 'var(--info-soft)' }} label="custom" className="ms-1 h-[16px] text-[0.6rem]" />
                         )}
                       </MenuItem>
                     ))}
@@ -494,11 +493,7 @@ export default function AmenityMappingPage() {
                       {a.rawOtaName}
                     </p>
                     <span className="cn-text-caption text-muted-foreground opacity-60">→</span>
-                    <Chip
-                      size="small"
-                      label={codeLabelOf(a.clenzyCode)}
-                      sx={{ height: 22, fontSize: '0.7rem', bgcolor: 'var(--ok-soft)', color: SUCCESS }}
-                    />
+                    <StatusChip tokens={{ color: SUCCESS, bg: 'var(--ok-soft)' }} label={codeLabelOf(a.clenzyCode)} className="text-[0.7rem]" />
                     {a.otaSource && (
                       <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--hover)] text-[text.secondary]">{a.otaSource}</Badge>
                     )}
@@ -575,10 +570,7 @@ export default function AmenityMappingPage() {
                       {c.labelEn && (
                         <span className="cn-text-caption text-muted-foreground">/ {c.labelEn}</span>
                       )}
-                      <Chip size="small"
-                            label={AMENITY_CATEGORY_LABELS[c.category as AmenityCategory] ?? c.category}
-                            sx={{ height: 18, fontSize: '0.65rem',
-                                  bgcolor: 'var(--info-soft)', color: PRIMARY }} />
+                      <StatusChip size="sm" tokens={{ color: PRIMARY, bg: 'var(--info-soft)' }} label={AMENITY_CATEGORY_LABELS[c.category as AmenityCategory] ?? c.category} className="text-[0.65rem]" />
                     </Stack>
                     <span className="cn-text-caption block font-mono text-muted-foreground opacity-60 mt-0.5">
                       {c.code}
@@ -671,18 +663,7 @@ export default function AmenityMappingPage() {
                   <p className="cn-text-body1 text-[0.78rem] font-semibold text-foreground">
                     {AMENITY_CATEGORY_LABELS[cat]}
                   </p>
-                  <Chip
-                    size="small"
-                    label={items.length}
-                    sx={{
-                      height: 18,
-                      fontSize: '0.65rem',
-                      fontWeight: 600,
-                      bgcolor: 'var(--info-soft)',
-                      color: PRIMARY,
-                      '& .MuiChip-label': { px: 0.75 },
-                    }}
-                  />
+                  <StatusChip size="sm" tokens={{ color: PRIMARY, bg: 'var(--info-soft)' }} label={items.length} className="text-[0.65rem]" />
                 </Stack>
                 <Box
                   sx={{
@@ -1015,9 +996,7 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
               <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.85rem' }}>
                 {opt.label}
                 {opt.isCustom && (
-                  <Chip size="small" label="custom"
-                        sx={{ ml: 0.75, height: 16, fontSize: '0.6rem',
-                              bgcolor: 'var(--info-soft)', color: PRIMARY }} />
+                  <StatusChip tokens={{ color: PRIMARY, bg: 'var(--info-soft)' }} label="custom" className="ms-1 h-[16px] text-[0.6rem]" />
                 )}
               </MenuItem>
             ))}

@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Chip, IconButton, Button, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box, IconButton, Button, Divider } from '@mui/material';
 import {
   Close,
   Home,
@@ -172,17 +173,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
           <h6 className="cn-text-subtitle2 font-bold text-[0.8125rem]">
             Logements disponibles
           </h6>
-          <Chip
-            label={`${compatibleProperties.length} disponible${compatibleProperties.length > 1 ? 's' : ''}`}
-            size="small"
-            sx={{
-              fontSize: '0.625rem',
-              height: 20,
-              fontWeight: 700,
-              backgroundColor: compatibleProperties.length > 0 ? 'var(--ok-soft)' : 'var(--hover)',
-              color: compatibleProperties.length > 0 ? 'var(--ok)' : 'var(--muted)',
-            }}
-          />
+          <StatusChip size="sm" tokens={{ color: compatibleProperties.length > 0 ? 'var(--ok)' : 'var(--muted)', bg: compatibleProperties.length > 0 ? 'var(--ok-soft)' : 'var(--hover)' }} label={`${compatibleProperties.length} disponible${compatibleProperties.length > 1 ? 's' : ''}`} className="h-[20px]" />
         </div>
 
         {compatibleProperties.length === 0 ? (

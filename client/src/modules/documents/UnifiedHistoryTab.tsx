@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -482,7 +483,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                   {/* Statut -soft + actions */}
                   <div className="flex items-center gap-1 shrink-0">
                     <Tooltip title={row.errorMessage || ''} arrow>
-                      <Chip label={row.status} size="small" sx={{ color: row.statusTone.c, bgcolor: row.statusTone.bg }} />
+                      <StatusChip tokens={{ color: row.statusTone.c, bg: row.statusTone.bg }} label={row.status} />
                     </Tooltip>
 
                     {/* ── Message : « Aperçu → » accent + actions d'échec ── */}

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription, AlertAction, Button } from '../../components/ui';
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { TextField, Chip } from '@mui/material';
+import { TextField } from '@mui/material';
 import { AccountBalance, VerifiedUser } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountingApi } from '../../services/api/accountingApi';
@@ -115,28 +116,7 @@ const SepaDebtorSettings = forwardRef<SepaDebtorHandle, SepaDebtorSettingsProps>
   }
 
   const configuredChip = config?.configured ? (
-    <Chip
-      icon={<VerifiedUser size={11} strokeWidth={2} />}
-      label={t('settings.sepaDebtor.configured', 'Configuré')}
-      size="small"
-      sx={{
-        height: 22,
-        fontSize: '0.6875rem',
-        fontWeight: 600,
-        letterSpacing: '0.01em',
-        backgroundColor: 'var(--ok-soft)',
-        color: 'var(--ok)',
-        border: '1px solid color-mix(in srgb, var(--ok) 20%, transparent)',
-        borderRadius: '6px',
-        px: 0.25,
-        '& .MuiChip-icon': {
-          color: 'var(--ok) !important',
-          ml: '6px',
-          mr: '-2px',
-        },
-        '& .MuiChip-label': { px: 0.875 },
-      }}
-    />
+    <StatusChip tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label={t('settings.sepaDebtor.configured', 'Configuré')} icon={<VerifiedUser size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
   ) : undefined;
 
   return (

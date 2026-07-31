@@ -1,7 +1,8 @@
 import React, { useMemo, useState, useRef, useCallback } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, Box, Typography, Chip, IconButton, Divider, TextField } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, Box, Typography, IconButton, Divider, TextField } from '@mui/material';
 import {
   Close,
   Person,
@@ -383,20 +384,8 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     )}
                   </div>
                   {/* Statut : texte couleur + fond soft (jamais d'aplat plein) */}
-                  <Chip
-                    label={
-                      RESERVATION_STATUS_LABELS[reservation.status as ReservationStatus] ||
-                      reservation.status
-                    }
-                    size="small"
-                    sx={{
-                      fontSize: '10.5px',
-                      height: 20,
-                      fontWeight: 700,
-                      bgcolor: `color-mix(in srgb, ${statusTokenColor(reservation.status)} 14%, transparent)`,
-                      color: statusTokenColor(reservation.status),
-                    }}
-                  />
+                  <StatusChip tokens={{ color: statusTokenColor(reservation.status), bg: `color-mix(in srgb, ${statusTokenColor(reservation.status)} 14%, transparent)` }} label={RESERVATION_STATUS_LABELS[reservation.status as ReservationStatus] ||
+                      reservation.status} className="text-[10.5px] h-[20px]" />
                 </div>
               </div>
               {reservation.notes && (
@@ -434,19 +423,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                           <p className="cn-text-body1 text-[0.75rem] font-semibold">
                             <Money value={r.totalPrice} from="EUR" decimals={0} />
                           </p>
-                          <Chip
-                            label={
-                              RESERVATION_STATUS_LABELS[r.status as ReservationStatus] || r.status
-                            }
-                            size="small"
-                            sx={{
-                              fontSize: '10.5px',
-                              height: 18,
-                              fontWeight: 700,
-                              bgcolor: `color-mix(in srgb, ${statusTokenColor(r.status)} 14%, transparent)`,
-                              color: statusTokenColor(r.status),
-                            }}
-                          />
+                          <StatusChip size="sm" tokens={{ color: statusTokenColor(r.status), bg: `color-mix(in srgb, ${statusTokenColor(r.status)} 14%, transparent)` }} label={RESERVATION_STATUS_LABELS[r.status as ReservationStatus] || r.status} className="text-[10.5px]" />
                         </div>
                       </div>
                     )] : []))}

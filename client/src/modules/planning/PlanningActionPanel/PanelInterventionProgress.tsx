@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useRef } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { LinearProgress, Stepper, Step, StepLabel, StepContent, Button, Checkbox, FormControlLabel, Chip } from '@mui/material';
+import { LinearProgress, Stepper, Step, StepLabel, StepContent, Button, Checkbox, FormControlLabel } from '@mui/material';
 import {
   PlayArrow,
   CheckCircle,
@@ -128,11 +129,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
         <div className="flex justify-between items-center mb-0.5">
           <p className="cn-text-body1 text-[0.75rem] font-bold">Progression</p>
           {(() => { const c = progress === 100 ? '#4A9B8E' : progress > 0 ? '#0288d1' : '#757575'; return (
-          <Chip
-            label={`${progress}%`}
-            size="small"
-            sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-          />
+          <StatusChip size="sm" tokens={{ color: c, bg: `${c}18` }} label={`${progress}%`} className="h-[20px]" />
           ); })()}
         </div>
         <LinearProgress
@@ -205,11 +202,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
             <div className="flex items-center gap-0.5">
               Validation pièces
               {(() => { const c = validatedRooms.size === totalRooms ? '#4A9B8E' : '#757575'; return (
-              <Chip
-                label={`${validatedRooms.size}/${totalRooms}`}
-                size="small"
-                sx={{ fontSize: '0.5625rem', height: 18, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-              />
+              <StatusChip size="sm" tokens={{ color: c, bg: `${c}18` }} label={`${validatedRooms.size}/${totalRooms}`} className="text-[0.5625rem]" />
               ); })()}
             </div>
           </StepLabel>

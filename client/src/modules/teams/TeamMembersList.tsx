@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent, List, ListItem, ListItemAvatar, ListItemText, Avatar, Chip, Divider, IconButton, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { Card, CardContent, List, ListItem, ListItemAvatar, ListItemText, Avatar, Divider, IconButton, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import {
   Delete,
   SortByAlpha,
@@ -178,18 +179,10 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
                             {member.firstName} {member.lastName}
                           </p>
                           {(() => { const c = getRoleHex(member.roleInTeam || member.role); return (
-                            <Chip
-                              label={getRoleLabel(member.roleInTeam || member.role)}
-                              size="small"
-                              sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, '& .MuiChip-label': { px: 0.75 } }}
-                            />
+                            <StatusChip tokens={{ color: c, bg: `${c}18` }} label={getRoleLabel(member.roleInTeam || member.role)} className="h-[24px] text-[0.7rem]" />
                           ); })()}
                           {(() => { const c = isAvailable ? '#4A9B8E' : '#D4A574'; return (
-                            <Chip
-                              label={isAvailable ? t('teams.workload.available') : t('teams.workload.busy')}
-                              size="small"
-                              sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, '& .MuiChip-label': { px: 0.75 } }}
-                            />
+                            <StatusChip tokens={{ color: c, bg: `${c}18` }} label={isAvailable ? t('teams.workload.available') : t('teams.workload.busy')} className="h-[24px] text-[0.7rem]" />
                           ); })()}
                         </div>
                       }

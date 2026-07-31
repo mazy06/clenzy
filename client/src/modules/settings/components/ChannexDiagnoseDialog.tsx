@@ -21,8 +21,9 @@
  * </ul>
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, Box, Typography, Button, Alert, Stack, Skeleton, Chip } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, Box, Typography, Button, Alert, Stack, Skeleton } from '@mui/material';
 import {
   CheckCircle2,
   AlertCircle,
@@ -95,18 +96,7 @@ function SyncSnapshotPanel({ snapshot }: { snapshot: ChannexSyncSnapshot }) {
           <span className="cn-text-caption text-muted-foreground min-w-[110px] font-medium">
             Statut sync
           </span>
-          <Chip
-            size="small"
-            label={meta.label}
-            sx={{
-              height: 20,
-              fontSize: '0.7rem',
-              fontWeight: 600,
-              bgcolor: `${meta.color}1A`,
-              color: meta.color,
-              border: `1px solid ${meta.color}40`,
-            }}
-          />
+          <StatusChip tokens={{ color: meta.color, bg: `${meta.color}1A` }} label={meta.label} className="h-[20px] text-[0.7rem]" />
         </div>
         <div className="flex items-center gap-2">
           <span className="cn-text-caption text-muted-foreground min-w-[110px] font-medium">

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -182,16 +183,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                   <TableCell sx={CELL_NOWRAP_SX}>
                     <div className="flex gap-0.5 flex-wrap">
                       <Tooltip title="Rôle dans l'organisation">
-                        <Chip
-                          icon={<RoleIcon size={11} strokeWidth={2} />}
-                          label={getOrgRoleLabel(member.roleInOrg)}
-                          size="small"
-                          sx={{
-                            backgroundColor: `${roleColor}18`,
-                            color: roleColor,
-                            '& .MuiChip-icon': { color: roleColor, ml: '6px', mr: '-2px' },
-                          }}
-                        />
+                        <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={getOrgRoleLabel(member.roleInOrg)} icon={<RoleIcon size={11} strokeWidth={2} />} />
                       </Tooltip>
                       {member.userRole && member.userRole !== member.roleInOrg && (() => {
                         const pHex = getPlatformRoleHex(member.userRole);

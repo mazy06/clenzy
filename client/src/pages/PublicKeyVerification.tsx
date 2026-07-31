@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
+import StatusChip from '../components/StatusChip';
 import { Alert, AlertDescription } from '../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../components/ui';
 import { Card } from '../components/ui';
-import { TextField, Button, Chip } from '@mui/material';
+import { TextField, Button } from '@mui/material';
 import {
   VpnKey,
   CheckCircle,
@@ -178,16 +179,7 @@ const PublicKeyVerification: React.FC = () => {
                   </div>
                   <div className="flex gap-1.5">
                     {(() => { const c = verifyResult.codeType === 'COLLECTION' ? '#0288d1' : '#4A9B8E'; return (
-                      <Chip
-                        label={verifyResult.codeType === 'COLLECTION' ? 'Collecte' : 'Dépôt'}
-                        size="small"
-                        sx={{
-                          fontSize: '0.6875rem', height: 22, fontWeight: 600,
-                          backgroundColor: `${c}18`, color: c,
-                          border: `1px solid ${c}40`, borderRadius: '6px',
-                          '& .MuiChip-label': { px: 0.75 },
-                        }}
-                      />
+                      <StatusChip tokens={{ color: c, bg: `${c}18` }} label={verifyResult.codeType === 'COLLECTION' ? 'Collecte' : 'Dépôt'} />
                     ); })()}
                     {verifyResult.validUntil && (
                       <p className="cn-text-body1 text-[0.75rem] text-muted-foreground self-center">

@@ -1,6 +1,7 @@
 import React from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Card } from '../../components/ui';
-import { Paper, Chip, Tooltip, IconButton, LinearProgress } from '@mui/material';
+import { Paper, Tooltip, IconButton, LinearProgress } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Build, LocationOn, Visibility as VisibilityIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -107,45 +108,9 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
 
                       {/* Type + Statut + Priorité chips */}
                       <div className="flex items-center gap-0.5 shrink-0">
-                        <Chip
-                          label={getInterventionTypeLabel(intervention.type, t)}
-                          size="small"
-                          sx={{
-                            backgroundColor: typeTokens.bg,
-                            color: typeTokens.color,
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.62rem',
-                            height: 22,
-                            '& .MuiChip-label': { px: 0.75 },
-                          }}
-                        />
-                        <Chip
-                          label={getInterventionStatusLabel(intervention.status, t)}
-                          size="small"
-                          sx={{
-                            backgroundColor: statusTokens.bg,
-                            color: statusTokens.color,
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.62rem',
-                            height: 22,
-                            '& .MuiChip-label': { px: 0.75 },
-                          }}
-                        />
-                        <Chip
-                          label={getInterventionPriorityLabel(intervention.priority, t)}
-                          size="small"
-                          sx={{
-                            backgroundColor: priorityTokens.bg,
-                            color: priorityTokens.color,
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.62rem',
-                            height: 22,
-                            '& .MuiChip-label': { px: 0.75 },
-                          }}
-                        />
+                        <StatusChip tokens={{ color: typeTokens.color, bg: typeTokens.bg }} label={getInterventionTypeLabel(intervention.type, t)} className="text-[0.62rem]" />
+                        <StatusChip tokens={{ color: statusTokens.color, bg: statusTokens.bg }} label={getInterventionStatusLabel(intervention.status, t)} className="text-[0.62rem]" />
+                        <StatusChip tokens={{ color: priorityTokens.color, bg: priorityTokens.bg }} label={getInterventionPriorityLabel(intervention.priority, t)} className="text-[0.62rem]" />
                       </div>
 
                       {/* Progression + Assigné + Action */}

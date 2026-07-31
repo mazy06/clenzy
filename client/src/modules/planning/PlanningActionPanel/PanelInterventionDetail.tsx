@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
@@ -187,27 +188,13 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
       {/* Chips row */}
       <div className="flex gap-0.5 flex-wrap mb-2">
         {(() => { const c = STATUS_HEX[intervention.status] ?? '#757575'; return (
-        <Chip
-          label={intervention.status}
-          size="small"
-          sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-        />
+        <StatusChip tokens={{ color: c, bg: `${c}18` }} label={intervention.status} className="text-[0.5625rem]" />
         ); })()}
         {intervention.assigneeName && (
-          <Chip
-            icon={<Person size={12} strokeWidth={1.75} color="#757575" />}
-            label={intervention.assigneeName}
-            size="small"
-            sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-          />
+          <StatusChip tokens={{ color: '#757575', bg: '#75757518' }} label={intervention.assigneeName} icon={<Person size={12} strokeWidth={1.75} color="#757575" />} className="text-[0.5625rem]" />
         )}
         {intervention.estimatedDurationHours && (
-          <Chip
-            icon={<Schedule size={12} strokeWidth={1.75} color="#0288d1" />}
-            label={`${intervention.estimatedDurationHours}h`}
-            size="small"
-            sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-          />
+          <StatusChip tokens={{ color: '#0288d1', bg: '#0288d118' }} label={`${intervention.estimatedDurationHours}h`} icon={<Schedule size={12} strokeWidth={1.75} color="#0288d1" />} className="text-[0.5625rem]" />
         )}
         <Chip
           icon={<AttachMoney size={12} strokeWidth={1.75} color="#4A9B8E" />}
@@ -302,7 +289,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
             Progression
           </p>
           {(() => { const c = progress === 100 ? '#4A9B8E' : '#757575'; return (
-          <Chip label={`${progress}%`} size="small" sx={{ fontSize: '0.5625rem', height: 18, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }} />
+          <StatusChip size="sm" tokens={{ color: c, bg: `${c}18` }} label={`${progress}%`} className="text-[0.5625rem]" />
           ); })()}
         </div>
         <LinearProgress variant="determinate" value={progress} sx={{ height: 6, borderRadius: 3 }} />
@@ -312,12 +299,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
             const labels: Record<string, string> = { inspection: 'Inspection', rooms: 'Pièces', after_photos: 'Photos' };
             const c = done ? '#4A9B8E' : '#757575';
             return (
-              <Chip
-                key={step}
-                label={labels[step]}
-                size="small"
-                sx={{ fontSize: '0.5rem', height: 18, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-              />
+              <StatusChip size="sm" tokens={{ color: c, bg: `${c}18` }} label={labels[step]} className="text-[0.5rem]" key={step} />
             );
           })}
         </div>

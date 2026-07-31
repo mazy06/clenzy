@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, Card, CardContent, Chip, Grid } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
 import {
   PriceChange, CalendarMonth, Savings, Warning,
 } from '../../../icons';
@@ -137,17 +138,7 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
                     <p className="cn-text-body1 text-[0.6875rem] font-bold text-[var(--bui-success-ink)] tabular-nums">
                       +<Money value={rec.estimatedImpact} from="EUR" decimals={0} />
                     </p>
-                    <Chip
-                      label={`${rec.confidence}%`}
-                      size="small"
-                      sx={{
-                        height: 18,
-                        fontSize: '0.5625rem',
-                        fontWeight: 600,
-                        bgcolor: 'rgba(107, 138, 154, 0.08)',
-                        color: 'text.secondary',
-                      }}
-                    />
+                    <StatusChip size="sm" tokens={{ color: 'text.secondary', bg: 'rgba(107, 138, 154, 0.08)' }} label={`${rec.confidence}%`} className="text-[0.5625rem]" />
                     <Box
                       sx={{
                         width: 6,

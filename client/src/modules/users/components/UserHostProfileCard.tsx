@@ -1,7 +1,8 @@
 import React from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
-import { Grid, Chip, Switch, FormControlLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, IconButton, Tooltip, Card, CardContent } from '@mui/material';
+import { Grid, Switch, FormControlLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, IconButton, Tooltip, Card, CardContent } from '@mui/material';
 import {
   Star,
   Payment,
@@ -190,16 +191,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
       {user.calendarSync && (
         <Grid item xs={12} md={6}>
           <h6 className="cn-text-subtitle2 text-muted-foreground">Synchronisation calendrier</h6>
-          <Chip
-            label={CALENDAR_SYNC_LABELS[user.calendarSync] || user.calendarSync}
-            size="small"
-            sx={{
-              mt: 0.5,
-              mb: 2,
-              color: (CALENDAR_SYNC_TOKEN[user.calendarSync] ?? CALENDAR_SYNC_TOKEN.non).fg,
-              backgroundColor: (CALENDAR_SYNC_TOKEN[user.calendarSync] ?? CALENDAR_SYNC_TOKEN.non).bg,
-            }}
-          />
+          <StatusChip tokens={{ color: (CALENDAR_SYNC_TOKEN[user.calendarSync] ?? CALENDAR_SYNC_TOKEN.non).fg, bg: (CALENDAR_SYNC_TOKEN[user.calendarSync] ?? CALENDAR_SYNC_TOKEN.non).bg }} label={CALENDAR_SYNC_LABELS[user.calendarSync] || user.calendarSync} className="mt-0.5 mb-3" />
         </Grid>
       )}
 
@@ -320,16 +312,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                                 {iv.estimatedCost.toFixed(2)} EUR
                               </TableCell>
                               <TableCell align="center">
-                                <Chip
-                                  label={iv.paymentStatus || 'N/A'}
-                                  size="small"
-                                  sx={{
-                                    height: 20,
-                                    fontSize: '0.65rem',
-                                    color: iv.paymentStatus === 'PAID' ? 'var(--ok)' : iv.paymentStatus === 'PROCESSING' ? 'var(--info)' : 'var(--muted)',
-                                    backgroundColor: iv.paymentStatus === 'PAID' ? 'var(--ok-soft)' : iv.paymentStatus === 'PROCESSING' ? 'var(--info-soft)' : 'var(--hover)',
-                                  }}
-                                />
+                                <StatusChip tokens={{ color: iv.paymentStatus === 'PAID' ? 'var(--ok)' : iv.paymentStatus === 'PROCESSING' ? 'var(--info)' : 'var(--muted)', bg: iv.paymentStatus === 'PAID' ? 'var(--ok-soft)' : iv.paymentStatus === 'PROCESSING' ? 'var(--info-soft)' : 'var(--hover)' }} label={iv.paymentStatus || 'N/A'} className="h-[20px] text-[0.65rem]" />
                               </TableCell>
                             </TableRow>
                           ))}

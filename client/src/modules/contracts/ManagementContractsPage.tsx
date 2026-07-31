@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Button, Chip, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Alert, Snackbar, Stack } from '@mui/material';
+import { Box, Paper, Button, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Alert, Snackbar, Stack } from '@mui/material';
 import {
   Add, Edit, CheckCircle, Pause, Cancel,
   Handshake, Home, Person, PictureAsPdf, Send,
@@ -516,11 +517,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                   </TableCell>
                   <TableCell align="center">
                     <div className="flex flex-col items-center gap-0.5">
-                      <Chip
-                        label={meta.label}
-                        size="small"
-                        sx={{ bgcolor: meta.soft, color: meta.color }}
-                      />
+                      <StatusChip tokens={{ color: meta.color, bg: meta.soft }} label={meta.label} />
                       {c.status === 'DRAFT' && c.signatureStatus === 'PENDING' && (
                         <p className="cn-text-body1 text-[0.625rem] font-semibold text-[var(--warn)]">
                           {t('contracts.signature.pending', 'En attente de signature')}

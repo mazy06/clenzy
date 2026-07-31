@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { getOrgRoleLabel, getOrgRoleHex, getOrgRoleIcon } from '../../utils/orgRoleLabels';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip } from '@mui/material';
 import {
   Refresh as RefreshIcon,
   Cancel as CancelIcon,
@@ -66,16 +67,7 @@ const getStatusChip = (status: string) => {
   const style = STATUS_STYLE[status] ?? { ...DEFAULT_STATUS_STYLE, label: status };
   const { Icon, fg, bg, label } = style;
   return (
-    <Chip
-      icon={Icon ? <Icon size={11} strokeWidth={2} /> : undefined}
-      label={label}
-      size="small"
-      sx={{
-        backgroundColor: bg,
-        color: fg,
-        '& .MuiChip-icon': { color: fg, ml: '6px', mr: '-2px' },
-      }}
-    />
+    <StatusChip tokens={{ color: fg, bg: bg }} label={label} icon={Icon ? <Icon size={11} strokeWidth={2} /> : undefined} />
   );
 };
 
@@ -234,16 +226,7 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
                   const roleColor = getOrgRoleHex(inv.roleInvited);
                   const RoleIcon = getOrgRoleIcon(inv.roleInvited);
                   return (
-                    <Chip
-                      icon={<RoleIcon size={11} strokeWidth={2} />}
-                      label={getRoleLabel(inv.roleInvited)}
-                      size="small"
-                      sx={{
-                        backgroundColor: `${roleColor}18`,
-                        color: roleColor,
-                        '& .MuiChip-icon': { color: roleColor, ml: '6px', mr: '-2px' },
-                      }}
-                    />
+                    <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={getRoleLabel(inv.roleInvited)} icon={<RoleIcon size={11} strokeWidth={2} />} />
                   );
                 })()}
               </TableCell>

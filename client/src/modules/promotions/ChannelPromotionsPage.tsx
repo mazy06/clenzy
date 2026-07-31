@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Button, Chip, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Box, Paper, Button, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -288,17 +289,7 @@ const ChannelPromotionsPage: React.FC = () => {
               {promotions.map((promo) => (
                 <TableRow key={promo.id} hover>
                   <TableCell sx={CELL_SX}>
-                    <Chip
-                      label={promo.channelName}
-                      size="small"
-                      sx={{
-                        fontSize: '0.6875rem',
-                        fontWeight: 700,
-                        backgroundColor: channelColor(promo.channelName),
-                        color: '#fff',
-                        height: 22,
-                      }}
-                    />
+                    <StatusChip tokens={{ color: '#fff', bg: channelColor(promo.channelName) }} label={promo.channelName} />
                   </TableCell>
                   <TableCell sx={CELL_SX}>
                     {propertyMap[promo.propertyId] ?? `#${promo.propertyId}`}
@@ -315,17 +306,7 @@ const ChannelPromotionsPage: React.FC = () => {
                       : '—'}
                   </TableCell>
                   <TableCell align="center">
-                    <Chip
-                      label={promo.status}
-                      size="small"
-                      sx={{
-                        fontSize: '0.625rem',
-                        height: 20,
-                        fontWeight: 700,
-                        backgroundColor: PROMOTION_STATUS_COLORS[promo.status] ?? '#9e9e9e',
-                        color: '#fff',
-                      }}
-                    />
+                    <StatusChip size="sm" tokens={{ color: '#fff', bg: PROMOTION_STATUS_COLORS[promo.status] ?? '#9e9e9e' }} label={promo.status} className="h-[20px]" />
                   </TableCell>
                   <TableCell align="center">
                     <Switch

@@ -1,17 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Card } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Paper,
-  Typography,
-  IconButton,
-  Chip,
-  Tooltip,
-  Button,
-  ToggleButton,
-  ToggleButtonGroup,
-} from '@mui/material';
+import { Box, Paper, Typography, IconButton, Tooltip, Button, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import {
   ChevronLeft,
   ChevronRight,
@@ -490,19 +481,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                         <p className="cn-text-body1 text-[0.8125rem] font-semibold leading-[1.3]">
                           {getInterventionTypeLabel(iv.type, t)}
                         </p>
-                        <Chip
-                          icon={statusIcon(iv.status, 12, tk.fg)}
-                          label={getInterventionStatusLabel(iv.status, t)}
-                          size="small"
-                          sx={{
-                            height: 20,
-                            bgcolor: tk.bg,
-                            color: tk.fg,
-                            border: 'none',
-                            '& .MuiChip-icon': { ml: 0.5, mr: -0.25, color: `${tk.fg} !important` },
-                            '& .MuiChip-label': { px: 1 },
-                          }}
-                        />
+                        <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={getInterventionStatusLabel(iv.status, t)} icon={statusIcon(iv.status, 12, tk.fg)} className="h-[20px]" />
                       </div>
                       {iv.description && (
                         <Typography
@@ -614,19 +593,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                             </p>
                           )}
                         </div>
-                        <Chip
-                          icon={statusIcon(iv.status, 12, tk.fg)}
-                          label={getInterventionStatusLabel(iv.status, t)}
-                          size="small"
-                          sx={{
-                            bgcolor: tk.bg,
-                            color: tk.fg,
-                            border: 'none',
-                            display: { xs: 'none', sm: 'inline-flex' },
-                            '& .MuiChip-icon': { ml: 0.5, mr: -0.25, color: `${tk.fg} !important` },
-                            '& .MuiChip-label': { px: 1 },
-                          }}
-                        />
+                        <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={getInterventionStatusLabel(iv.status, t)} icon={statusIcon(iv.status, 12, tk.fg)} />
                         <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 600, color: 'var(--ink)', textAlign: 'right', display: { xs: 'none', sm: 'block' }, fontVariantNumeric: 'tabular-nums' }}>
                           {iv.cost != null && iv.cost > 0 ? <Money value={iv.cost} from="EUR" decimals={0} /> : '—'}
                         </Typography>

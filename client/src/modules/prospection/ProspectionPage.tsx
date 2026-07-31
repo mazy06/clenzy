@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Box, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, IconButton, MenuItem, Select, FormControl, InputLabel, Tooltip, useTheme, Button, SelectChangeEvent } from '@mui/material';
+import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, IconButton, MenuItem, Select, FormControl, InputLabel, Tooltip, useTheme, Button, SelectChangeEvent } from '@mui/material';
 import {
   ExpandMore,
   ExpandLess,
@@ -288,18 +289,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                   <p className="cn-text-body1 font-bold text-[0.875rem] flex-1">
                     {cat.label}
                   </p>
-                  <Chip
-                    label={`${cat.prospects.length}`}
-                    size="small"
-                    sx={{
-                      fontWeight: 700,
-                      fontSize: '0.6875rem',
-                      height: 22,
-                      backgroundColor: `${cat.color}18`,
-                      color: cat.color,
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                  />
+                  <StatusChip tokens={{ color: cat.color, bg: `${cat.color}18` }} label={`${cat.prospects.length}`} className="tabular-nums" />
                   <IconButton size="small" sx={{ ml: 0.5 }}>
                     {isExpanded ? <ExpandLess size={18} strokeWidth={1.75} /> : <ExpandMore size={18} strokeWidth={1.75} />}
                   </IconButton>

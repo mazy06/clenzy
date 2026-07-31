@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -857,11 +858,7 @@ const PropertyDetails: React.FC = () => {
               <div className="flex items-center gap-1.5 mb-1.5">
                 <img className="w-[21px] h-[21px] rounded-[7px] object-contain" src={airbnbLogoSmall} alt="Airbnb" />
                 <Typography sx={{ ...SECTION_TITLE_SX, mb: 0 }}>Airbnb</Typography>
-                <Chip
-                  label={channelStatus?.airbnb?.linked ? t('channels.connected') : t('channels.notConnected')}
-                  size="small"
-                  sx={{ ml: 'auto', height: 20, bgcolor: channelStatus?.airbnb?.linked ? 'var(--ok-soft)' : 'var(--hover)', color: channelStatus?.airbnb?.linked ? 'var(--ok)' : 'var(--muted)', border: 'none', '& .MuiChip-label': { px: 1 } }}
-                />
+                <StatusChip tokens={{ color: channelStatus?.airbnb?.linked ? 'var(--ok)' : 'var(--muted)', bg: channelStatus?.airbnb?.linked ? 'var(--ok-soft)' : 'var(--hover)' }} label={channelStatus?.airbnb?.linked ? t('channels.connected') : t('channels.notConnected')} className="ms-auto h-[20px]" />
               </div>
               {channelStatus?.airbnb?.linked ? (
                 <div className="flex flex-col gap-0.5">
@@ -904,11 +901,7 @@ const PropertyDetails: React.FC = () => {
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <img className="w-[21px] h-[21px] rounded-[7px] object-contain" src={ch.logo} alt={ch.name} />
                   <Typography sx={{ ...SECTION_TITLE_SX, mb: 0 }}>{ch.name}</Typography>
-                  <Chip
-                    label={t('channels.notConnected')}
-                    size="small"
-                    sx={{ ml: 'auto', height: 20, bgcolor: 'var(--hover)', color: 'var(--muted)', border: 'none', '& .MuiChip-label': { px: 1 } }}
-                  />
+                  <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={t('channels.notConnected')} className="ms-auto h-[20px]" />
                 </div>
                 <Button size="small" variant="outlined" startIcon={<Hub size={14} strokeWidth={1.75} />} onClick={() => navigate('/channels')}>
                   {t('channels.listings.linkProperty')}

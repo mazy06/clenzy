@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Box, Grid, Card, CardActionArea, CardContent, Typography, Chip, Button, CircularProgress, Switch, FormControlLabel, Select, MenuItem, FormControl, InputLabel, Skeleton, Tooltip as MuiTooltip } from '@mui/material';
+import { Box, Grid, Card, CardActionArea, CardContent, Typography, Button, CircularProgress, Switch, FormControlLabel, Select, MenuItem, FormControl, InputLabel, Skeleton, Tooltip as MuiTooltip } from '@mui/material';
 import {
   Refresh,
   Warning,
@@ -191,16 +192,7 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
         <span className="cn-text-caption text-[var(--muted)]">
           Target: {displayedTarget}
         </span>
-        <Chip
-          icon={<StatusIcon size={13} strokeWidth={1.75} />}
-          label={kpi.status}
-          size="small"
-          sx={{
-            color: tk.fg,
-            backgroundColor: tk.bg,
-            '& .MuiChip-icon': { color: tk.fg, marginLeft: '6px' },
-          }}
-        />
+        <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={kpi.status} icon={<StatusIcon size={13} strokeWidth={1.75} />} />
       </div>
     </CardContent>
   );
@@ -497,12 +489,7 @@ const KpiReadinessPage: React.FC = () => {
                     if (count === 0) return null;
                     const tk = STATUS_TOKEN[status];
                     return (
-                      <Chip
-                        key={status}
-                        label={`${count} ${status}`}
-                        size="small"
-                        sx={{ color: tk.fg, backgroundColor: tk.bg }}
-                      />
+                      <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={`${count} ${status}`} key={status} />
                     );
                   })}
                 </div>

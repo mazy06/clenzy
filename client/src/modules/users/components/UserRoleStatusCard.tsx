@@ -1,5 +1,6 @@
 import React from 'react';
-import { Chip, alpha, useTheme } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { alpha, useTheme } from '@mui/material';
 import { Business, AdminPanelSettings } from '../../../icons';
 import { semanticToHex } from '../../../utils/statusUtils';
 import type { UserDetailsData, RoleInfo, StatusInfo } from './userDetailsTypes';
@@ -69,19 +70,12 @@ const UserRoleStatusCard: React.FC<UserRoleStatusCardProps> = ({ user, roles, st
           <span className="cn-text-caption text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-muted-foreground block mb-0.5">
             Rôle
           </span>
-          <Chip
-            icon={
-              <span className="inline-flex">
+          <StatusChip tokens={{ color: roleHex, bg: `${roleHex}18` }} label={roleInfo.label} icon={<span className="inline-flex">
                 {React.cloneElement(roleInfo.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
                   size: 14,
                   strokeWidth: 1.75,
                 })}
-              </span>
-            }
-            label={roleInfo.label}
-            size="small"
-            sx={{ backgroundColor: `${roleHex}18`, color: roleHex, '& .MuiChip-icon': { color: roleHex }, mb: 0.75 }}
-          />
+              </span>} className="mb-1" />
           <p className="cn-text-body1 text-[0.75rem] text-muted-foreground leading-[1.5]">
             {ROLE_DESCRIPTIONS[user.role] || ''}
           </p>
@@ -92,11 +86,7 @@ const UserRoleStatusCard: React.FC<UserRoleStatusCardProps> = ({ user, roles, st
           <span className="cn-text-caption text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-muted-foreground block mb-0.5">
             Statut
           </span>
-          <Chip
-            label={statusInfo.label}
-            size="small"
-            sx={{ backgroundColor: `${statusHex}18`, color: statusHex, mb: 0.75 }}
-          />
+          <StatusChip tokens={{ color: statusHex, bg: `${statusHex}18` }} label={statusInfo.label} className="mb-1" />
           <p className="cn-text-body1 text-[0.75rem] text-muted-foreground leading-[1.5]">
             {STATUS_DESCRIPTIONS[user.status] || ''}
           </p>

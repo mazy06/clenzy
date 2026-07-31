@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Card } from '../../../components/ui';
-import { Box, Button, IconButton, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Chip, ToggleButton, ToggleButtonGroup, Stack } from '@mui/material';
+import { Box, Button, IconButton, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, ToggleButton, ToggleButtonGroup, Stack } from '@mui/material';
 import {
   Add,
   Edit,
@@ -403,28 +404,14 @@ const renderCategoryChip = (categoryValue: string) => {
   if (!cat) {
     // Pilule -soft neutre (pattern baseline §2 : texte couleur + fond soft)
     return (
-      <Chip
-        label={categoryValue}
-        size="small"
-        sx={{ bgcolor: 'var(--hover)', color: 'var(--muted)', border: 'none' }}
-      />
+      <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={categoryValue} />
     );
   }
   return (
-    <Chip
-      icon={React.cloneElement(
+    <StatusChip tokens={{ color: cat.color, bg: `${cat.color}1F` }} label={cat.label} icon={React.cloneElement(
         cat.icon as React.ReactElement<{ size?: number; strokeWidth?: number; color?: string }>,
         { size: 14, strokeWidth: 1.75, color: cat.color },
-      )}
-      label={cat.label}
-      size="small"
-      sx={{
-        bgcolor: `${cat.color}1F`,
-        color: cat.color,
-        border: 'none',
-        '& .MuiChip-icon': { ml: 0.5 },
-      }}
-    />
+      )} />
   );
 };
 

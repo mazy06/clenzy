@@ -1,5 +1,6 @@
 import React from 'react';
-import { Chip } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+
 
 interface KnowledgeItem {
   documentId?: number;
@@ -75,17 +76,7 @@ const KbCard: React.FC<{ item: KnowledgeItem }> = ({ item }) => {
         <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)]">
           {item.title || item.sourcePath || 'Document'}
         </p>
-        <Chip
-          label={`${relevancePct}%`}
-          size="small"
-          sx={{
-            height: 18, fontSize: '10.5px', fontWeight: 700,
-            bgcolor: relevanceBg,
-            color: relevanceColor,
-            fontVariantNumeric: 'tabular-nums',
-            '& .MuiChip-label': { px: 0.75 },
-          }}
-        />
+        <StatusChip size="sm" tokens={{ color: relevanceColor, bg: relevanceBg }} label={`${relevancePct}%`} className="text-[10.5px] tabular-nums" />
       </div>
       {item.snippet && (
         <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] leading-[1.5]">

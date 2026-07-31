@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Card, CardContent, CardActions, Chip, IconButton, Avatar, AvatarGroup, Button } from '@mui/material';
+import StatusChip from './StatusChip';
+import { Box, Card, CardContent, CardActions, IconButton, Avatar, AvatarGroup, Button } from '@mui/material';
 import {
   MoreVert,
   Visibility,
@@ -191,36 +192,10 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
 
         {/* Type, statut, charge */}
         <div className="flex gap-0.5 mb-2 flex-wrap">
-          <Chip
-            icon={<TypeIcon size={11} strokeWidth={2} />}
-            label={typeLabel}
-            size="small"
-            sx={{
-              backgroundColor: `${accent}18`,
-              color: accent,
-              '& .MuiChip-icon': { color: accent, ml: '6px', mr: '-2px' },
-            }}
-          />
-          <Chip
-            label={getStatusLabel(status)}
-            size="small"
-            sx={{
-              backgroundColor: `${statusHex}18`,
-              color: statusHex,
-            }}
-          />
+          <StatusChip tokens={{ color: accent, bg: `${accent}18` }} label={typeLabel} icon={<TypeIcon size={11} strokeWidth={2} />} />
+          <StatusChip tokens={{ color: statusHex, bg: `${statusHex}18` }} label={getStatusLabel(status)} />
           {activeInterventionsCount > 0 && (
-            <Chip
-              icon={<Assignment size={11} strokeWidth={2} />}
-              label={`${activeInterventionsCount} active${activeInterventionsCount > 1 ? 's' : ''}`}
-              size="small"
-              sx={{
-                backgroundColor: `${workloadColor}18`,
-                color: workloadColor,
-                fontVariantNumeric: 'tabular-nums',
-                '& .MuiChip-icon': { color: workloadColor, ml: '6px', mr: '-2px' },
-              }}
-            />
+            <StatusChip tokens={{ color: workloadColor, bg: `${workloadColor}18` }} label={`${activeInterventionsCount} active${activeInterventionsCount > 1 ? 's' : ''}`} icon={<Assignment size={11} strokeWidth={2} />} className="tabular-nums" />
           )}
         </div>
 

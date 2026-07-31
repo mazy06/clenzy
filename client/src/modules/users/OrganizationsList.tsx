@@ -1,4 +1,5 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -378,16 +379,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
 
                     {/* Type et membres — chips -soft (pilule/typo via thème global MuiChip) */}
                     <div className="flex gap-0.5 mb-2 flex-wrap">
-                      <Chip
-                        icon={<TypeIcon size={11} strokeWidth={2} />}
-                        label={typeInfo.label}
-                        size="small"
-                        sx={{
-                          backgroundColor: `${typeColor}18`,
-                          color: typeColor,
-                          '& .MuiChip-icon': { color: typeColor, ml: '8px', mr: '-4px' },
-                        }}
-                      />
+                      <StatusChip tokens={{ color: typeColor, bg: `${typeColor}18` }} label={typeInfo.label} icon={<TypeIcon size={11} strokeWidth={2} />} />
                       <Chip
                         icon={<People size={11} strokeWidth={2} />}
                         label={`${org.memberCount} membre${org.memberCount !== 1 ? 's' : ''}`}
@@ -604,17 +596,9 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                   </h6>
                   <div className="flex gap-0.5 mt-0.5">
                     {(() => { const ti = getTypeInfo(membersDialogOrg.type); const c = ti.hex; return (
-                      <Chip
-                        label={ti.label}
-                        size="small"
-                        sx={{ backgroundColor: `${c}18`, color: c }}
-                      />
+                      <StatusChip tokens={{ color: c, bg: `${c}18` }} label={ti.label} />
                     ); })()}
-                    <Chip
-                      label={`${membersDialogOrg.memberCount} membre${membersDialogOrg.memberCount !== 1 ? 's' : ''}`}
-                      size="small"
-                      sx={{ backgroundColor: `${MEMBER_CHIP_COLOR}18`, color: MEMBER_CHIP_COLOR, fontVariantNumeric: 'tabular-nums' }}
-                    />
+                    <StatusChip tokens={{ color: MEMBER_CHIP_COLOR, bg: `${MEMBER_CHIP_COLOR}18` }} label={`${membersDialogOrg.memberCount} membre${membersDialogOrg.memberCount !== 1 ? 's' : ''}`} className="tabular-nums" />
                   </div>
                 </div>
               </div>

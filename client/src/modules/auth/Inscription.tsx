@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Box, TextField, Button, Typography, Stack, Alert, Stepper, Step, StepLabel, StepIconProps, Chip, Divider, ToggleButtonGroup, ToggleButton, Card, CardContent, Checkbox, FormControlLabel, Link as MuiLink, MenuItem } from '@mui/material';
+import { Box, TextField, Button, Typography, Stack, Alert, Stepper, Step, StepLabel, StepIconProps, Divider, ToggleButtonGroup, ToggleButton, Card, CardContent, Checkbox, FormControlLabel, Link as MuiLink, MenuItem } from '@mui/material';
 import {
   ShoppingCart as CartIcon,
   CreditCard as CreditCardIcon,
@@ -429,16 +430,7 @@ export default function Inscription() {
       {/* Badge forfait selectionne */}
         {prefill.forfait && (
           <div className="text-center mb-3">
-            <Chip
-              label={getForfaitLabel(t, prefill.forfait)}
-              sx={{
-                backgroundColor: FORFAIT_COLORS[prefill.forfait] || '#6B8A9A',
-                color: '#fff',
-                fontWeight: 600,
-                fontSize: '0.8rem',
-                px: 1,
-              }}
-            />
+            <StatusChip tokens={{ color: '#fff', bg: FORFAIT_COLORS[prefill.forfait] || '#6B8A9A' }} label={getForfaitLabel(t, prefill.forfait)} className="text-[0.8rem] px-1.5" />
             <span className="cn-text-caption block text-muted-foreground mt-0.5">
               {getInterventionPriceLabel(t, prefill.forfait, prefill.interventionPrice)} | {isSyncMode
                 ? t('auth.inscription.platformWithSync', 'Plateforme + Synchro')
@@ -836,16 +828,7 @@ export default function Inscription() {
                         {t('auth.inscription.summaryPlan', 'Forfait')}
                       </span>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <Chip
-                          label={getForfaitLabel(t, forfait)}
-                          size="small"
-                          sx={{
-                            backgroundColor: FORFAIT_COLORS[forfait] || '#6B8A9A',
-                            color: '#fff',
-                            fontWeight: 600,
-                            fontSize: '0.75rem',
-                          }}
-                        />
+                        <StatusChip tokens={{ color: '#fff', bg: FORFAIT_COLORS[forfait] || '#6B8A9A' }} label={getForfaitLabel(t, forfait)} className="text-[0.75rem]" />
                       </div>
                       <span className="cn-text-caption text-muted-foreground mt-0.5 block">
                         {getInterventionPriceLabel(t, forfait, prefill.interventionPrice)}

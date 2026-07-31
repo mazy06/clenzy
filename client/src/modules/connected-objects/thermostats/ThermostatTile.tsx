@@ -1,4 +1,5 @@
-import { Box, Typography, Chip, Tooltip, IconButton, alpha, useTheme } from '@mui/material';
+import { Box, Typography, Tooltip, IconButton, alpha, useTheme } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
 import { Thermostat, AcUnit, Wifi, WifiOff, Add, Remove, Delete } from '../../../icons';
 import type { ThermostatDto } from '../../../services/api/thermostatsApi';
@@ -83,12 +84,7 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
 
       {/* Mode + humidité */}
       <div className="flex items-center gap-1 flex-wrap">
-        <Chip
-          size="small"
-          icon={mode === 'cool' ? <AcUnit size={12} /> : undefined}
-          label={m.label}
-          sx={{ height: 22, bgcolor: alpha(m.color, 0.14), color: m.color, fontWeight: 700, fontSize: '0.65rem', '& .MuiChip-icon': { color: m.color } }}
-        />
+        <StatusChip tokens={{ color: m.color, bg: alpha(m.color, 0.14) }} label={m.label} icon={mode === 'cool' ? <AcUnit size={12} /> : undefined} className="text-[0.65rem]" />
         {humidity != null && (
           <span className="cn-text-caption text-muted-foreground tabular-nums">Humidité {humidity}%</span>
         )}

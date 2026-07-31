@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, IconButton, TextField, MenuItem, Switch, Tooltip, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, IconButton, TextField, MenuItem, Switch, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import {
   Close as CloseIcon,
   CalendarToday as CalendarIcon,
@@ -537,37 +538,9 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           <h6 className="cn-text-subtitle2 text-[0.875rem] font-bold">
             {preview.propertyName}
           </h6>
-          <Chip
-            icon={<EventIcon size={14} strokeWidth={1.75} />}
-            label={`${reservationCount} réservation${reservationCount > 1 ? 's' : ''}`}
-            size="small"
-            sx={{
-              backgroundColor: 'var(--accent-soft)',
-              color: 'var(--accent)',
-              border: '1px solid var(--field-line)',
-              borderRadius: '6px',
-              fontWeight: 600,
-              fontSize: '0.6875rem',
-              height: 24,
-              '& .MuiChip-icon': { fontSize: 14, color: 'var(--accent)' },
-              '& .MuiChip-label': { px: 0.75 },
-            }}
-          />
+          <StatusChip tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={`${reservationCount} réservation${reservationCount > 1 ? 's' : ''}`} icon={<EventIcon size={14} strokeWidth={1.75} />} className="h-[24px]" />
           {blockedCount > 0 && (
-            <Chip
-              label={`${blockedCount} période${blockedCount > 1 ? 's' : ''} bloquée${blockedCount > 1 ? 's' : ''}`}
-              size="small"
-              sx={{
-                backgroundColor: 'var(--field-bg)',
-                color: 'var(--muted)',
-                border: '1px solid var(--field-line)',
-                borderRadius: '6px',
-                fontWeight: 600,
-                fontSize: '0.6875rem',
-                height: 24,
-                '& .MuiChip-label': { px: 0.75 },
-              }}
-            />
+            <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--field-bg)' }} label={`${blockedCount} période${blockedCount > 1 ? 's' : ''} bloquée${blockedCount > 1 ? 's' : ''}`} className="h-[24px]" />
           )}
         </div>
 
@@ -608,20 +581,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
                   <TableCell>
                     {event.type === 'blocked' ? (
                       <div className="flex items-center gap-1">
-                        <Chip
-                          label="Bloqué"
-                          size="small"
-                          sx={{
-                            backgroundColor: 'var(--field-bg)',
-                            color: 'var(--muted)',
-                            border: '1px solid var(--field-line)',
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.625rem',
-                            height: 20,
-                            '& .MuiChip-label': { px: 0.5 },
-                          }}
-                        />
+                        <StatusChip size="sm" tokens={{ color: 'var(--muted)', bg: 'var(--field-bg)' }} label="Bloqué" className="h-[20px]" />
                         <p className="cn-text-body2 text-[0.8125rem] text-[var(--muted)]">
                           Période bloquée
                         </p>

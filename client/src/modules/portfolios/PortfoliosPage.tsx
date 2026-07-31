@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
@@ -289,11 +290,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                               </span>
                             </Box>
                             <Box display="flex" alignItems="center" gap={0.5} ml={1}>
-                              <Chip
-                                label={getRoleLabel(client.role)}
-                                size="small"
-                                sx={{ height: 22, fontSize: '0.65rem', fontWeight: 600, color: semChip(getRoleColor(client.role)).fg, backgroundColor: semChip(getRoleColor(client.role)).bg }}
-                              />
+                              <StatusChip tokens={{ color: semChip(getRoleColor(client.role)).fg, bg: semChip(getRoleColor(client.role)).bg }} label={getRoleLabel(client.role)} className="text-[0.65rem]" />
                               <Tooltip title={t('portfolios.fields.reassignClient')}>
                                 <IconButton
                                   size="small"
@@ -634,11 +631,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                             </span>
                           </Box>
                           <Box display="flex" alignItems="center" gap={0.5} ml={1}>
-                            <Chip
-                              label={getRoleLabel(portfolioUser.role)}
-                              size="small"
-                              sx={{ height: 22, fontSize: '0.65rem', fontWeight: 600, color: semChip(getRoleColor(portfolioUser.role)).fg, backgroundColor: semChip(getRoleColor(portfolioUser.role)).bg }}
-                            />
+                            <StatusChip tokens={{ color: semChip(getRoleColor(portfolioUser.role)).fg, bg: semChip(getRoleColor(portfolioUser.role)).bg }} label={getRoleLabel(portfolioUser.role)} className="text-[0.65rem]" />
                             <Tooltip title={t('portfolios.confirmations.unassignUserTitle')}>
                               <IconButton
                                 size="small"

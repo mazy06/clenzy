@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Button, Chip, Divider, IconButton, Table, TableHead, TableRow, TableCell, TableBody, TextField, Tooltip } from '@mui/material';
+import { Box, Button, Divider, IconButton, Table, TableHead, TableRow, TableCell, TableBody, TextField, Tooltip } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { AttachFile, Delete } from '../../icons';
 import apiClient from '../../services/apiClient';
@@ -360,21 +361,11 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                     {doc.sourcePath}
                   </TableCell>
                   <TableCell>
-                    <Chip
-                      label={doc.scope === 'global' ? 'Global Baitly' : 'Mon organisation'}
-                      size="small"
-                      sx={{
-                        bgcolor: doc.scope === 'global'
-                          ? alpha(theme.palette.info.main, 0.14)
-                          : alpha(theme.palette.success.main, 0.14),
-                        color: doc.scope === 'global'
+                    <StatusChip tokens={{ color: doc.scope === 'global'
                           ? theme.palette.info.dark
-                          : theme.palette.success.dark,
-                        height: 20,
-                        fontSize: '0.7rem',
-                        fontWeight: 600,
-                      }}
-                    />
+                          : theme.palette.success.dark, bg: doc.scope === 'global'
+                          ? alpha(theme.palette.info.main, 0.14)
+                          : alpha(theme.palette.success.main, 0.14) }} label={doc.scope === 'global' ? 'Global Baitly' : 'Mon organisation'} className="h-[20px] text-[0.7rem]" />
                   </TableCell>
                   <TableCell sx={{ fontSize: '0.75rem', color: theme.palette.text.secondary }}>
                     {new Date(doc.updatedAt).toLocaleDateString('fr-FR')}
@@ -567,22 +558,11 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                       <p className="cn-text-body2 font-semibold">
                         {hit.title || hit.sourcePath}
                       </p>
-                      <Chip
-                        label={`${Math.round(hit.relevance * 100)} %`}
-                        size="small"
-                        sx={{
-                          height: 20,
-                          fontSize: '0.7rem',
-                          fontWeight: 600,
-                          fontVariantNumeric: 'tabular-nums',
-                          bgcolor: aboveThreshold
-                            ? alpha(theme.palette.success.main, 0.14)
-                            : alpha(theme.palette.warning.main, 0.14),
-                          color: aboveThreshold
+                      <StatusChip tokens={{ color: aboveThreshold
                             ? theme.palette.success.dark
-                            : theme.palette.warning.dark,
-                        }}
-                      />
+                            : theme.palette.warning.dark, bg: aboveThreshold
+                            ? alpha(theme.palette.success.main, 0.14)
+                            : alpha(theme.palette.warning.main, 0.14) }} label={`${Math.round(hit.relevance * 100)} %`} className="h-[20px] text-[0.7rem] tabular-nums" />
                       {!aboveThreshold && (
                         <span className="cn-text-caption text-muted-foreground">
                           sous le seuil d'injection automatique

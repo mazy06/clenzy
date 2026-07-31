@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Box, Paper, TextField, Button, Stack, Chip, ThemeProvider, CssBaseline } from '@mui/material';
+import { Box, Paper, TextField, Button, Stack, ThemeProvider, CssBaseline } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -210,19 +211,9 @@ export default function InscriptionConfirm() {
                   {info.email}
                 </p>
                 {info.forfait && (
-                  <Chip
-                    label={t('auth.inscriptionConfirm.forfaitChip', `Forfait ${getForfaitShortLabel(t, info.forfait)}`, {
+                  <StatusChip tokens={{ color: '#fff', bg: FORFAIT_COLORS[info.forfait] || '#6B8A9A' }} label={t('auth.inscriptionConfirm.forfaitChip', `Forfait ${getForfaitShortLabel(t, info.forfait)}`, {
                       forfait: getForfaitShortLabel(t, info.forfait),
-                    })}
-                    size="small"
-                    sx={{
-                      mt: 1,
-                      backgroundColor: FORFAIT_COLORS[info.forfait] || '#6B8A9A',
-                      color: '#fff',
-                      fontWeight: 600,
-                      fontSize: '0.75rem',
-                    }}
-                  />
+                    })} className="mt-1.5 text-[0.75rem]" />
                 )}
               </div>
 

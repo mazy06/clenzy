@@ -1,4 +1,5 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -546,16 +547,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                   {/* Rôles (plateforme + org) et statut — chips -soft */}
                   <div className="flex gap-0.5 mb-2 flex-wrap">
                     <Tooltip title="Rôle sur la plateforme">
-                      <Chip
-                        icon={<PlatformIcon size={11} strokeWidth={2} />}
-                        label={platformRole.label}
-                        size="small"
-                        sx={{
-                          backgroundColor: `${roleColor}18`,
-                          color: roleColor,
-                          '& .MuiChip-icon': { color: roleColor, ml: '8px', mr: '-4px' },
-                        }}
-                      />
+                      <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={platformRole.label} icon={<PlatformIcon size={11} strokeWidth={2} />} />
                     </Tooltip>
                     {showOrgRole && orgRole && OrgIcon && (
                       <Tooltip title="Rôle dans l'organisation">
@@ -573,11 +565,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                         />
                       </Tooltip>
                     )}
-                    <Chip
-                      label={s.label}
-                      size="small"
-                      sx={{ backgroundColor: statusToken.bg, color: statusToken.fg }}
-                    />
+                    <StatusChip tokens={{ color: statusToken.fg, bg: statusToken.bg }} label={s.label} />
                   </div>
 
                   {/* Informations supplémentaires */}

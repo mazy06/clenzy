@@ -1,5 +1,6 @@
 import React from 'react';
-import { Chip, Tooltip, IconButton, LinearProgress, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { Tooltip, IconButton, LinearProgress, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility as VisibilityIcon, MoreVert } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -82,19 +83,7 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                   </TableCell>
                   <TableCell>
                     {(() => { const tk = getTypeTokens(intervention.type); return (
-                    <Chip
-                      label={getInterventionTypeLabel(intervention.type, t)}
-                      size="small"
-                      sx={{
-                        backgroundColor: tk.bg,
-                        color: tk.color,
-                        borderRadius: '6px',
-                        fontWeight: 600,
-                        fontSize: '0.62rem',
-                        height: 22,
-                        '& .MuiChip-label': { px: 0.75 },
-                      }}
-                    />
+                    <StatusChip tokens={{ color: tk.color, bg: tk.bg }} label={getInterventionTypeLabel(intervention.type, t)} className="text-[0.62rem]" />
                     ); })()}
                   </TableCell>
                   <TableCell>
@@ -117,36 +106,12 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                   </TableCell>
                   <TableCell align="center">
                     {(() => { const tk = getStatusTokens(intervention.status); return (
-                      <Chip
-                        label={getInterventionStatusLabel(intervention.status, t)}
-                        size="small"
-                        sx={{
-                          backgroundColor: tk.bg,
-                          color: tk.color,
-                          borderRadius: '6px',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
-                          height: 24,
-                          '& .MuiChip-label': { px: 1 },
-                        }}
-                      />
+                      <StatusChip tokens={{ color: tk.color, bg: tk.bg }} label={getInterventionStatusLabel(intervention.status, t)} className="text-[0.75rem] h-[24px]" />
                     ); })()}
                   </TableCell>
                   <TableCell align="center">
                     {(() => { const tk = getPriorityTokens(intervention.priority); return (
-                      <Chip
-                        label={getInterventionPriorityLabel(intervention.priority, t)}
-                        size="small"
-                        sx={{
-                          backgroundColor: tk.bg,
-                          color: tk.color,
-                          borderRadius: '6px',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
-                          height: 24,
-                          '& .MuiChip-label': { px: 1 },
-                        }}
-                      />
+                      <StatusChip tokens={{ color: tk.color, bg: tk.bg }} label={getInterventionPriorityLabel(intervention.priority, t)} className="text-[0.75rem] h-[24px]" />
                     ); })()}
                   </TableCell>
                   <TableCell align="center">

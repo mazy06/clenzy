@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import StatusChip from '../../components/StatusChip';
 import {
   Box,
   Typography,
@@ -425,9 +426,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                                   </p>
                                 </div>
                                 {isSelected && (
-                                  <Chip label="Sélectionné" size="small"
-                                    sx={{ height: 18, fontSize: '10px', fontWeight: 700, color: 'var(--accent)', bgcolor: 'var(--card)', border: '1px solid var(--accent)', '& .MuiChip-label': { px: 0.75 } }}
-                                  />
+                                  <StatusChip size="sm" tokens={{ color: 'var(--accent)', bg: 'var(--card)' }} label="Sélectionné" className="text-[10px]" />
                                 )}
                               </Box>
                             );

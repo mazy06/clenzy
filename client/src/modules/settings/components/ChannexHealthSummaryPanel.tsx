@@ -14,8 +14,9 @@
  * </ul>
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
-import { Box, Typography, IconButton, Stack, Skeleton, Tooltip, Chip, Button } from '@mui/material';
+import { Box, Typography, IconButton, Stack, Skeleton, Tooltip, Button } from '@mui/material';
 import {
   AlertCircle,
   AlertTriangle,
@@ -225,19 +226,7 @@ export default function ChannexHealthSummaryPanel({
             if (n === 0) return null;
             const meta = CHANNEX_STATUS_META[st];
             return (
-              <Chip
-                key={st}
-                size="small"
-                label={`${n} ${meta.label.toLowerCase()}`}
-                sx={{
-                  height: 20,
-                  fontSize: '0.65rem',
-                  fontWeight: 600,
-                  bgcolor: `color-mix(in srgb, ${meta.color} 10%, transparent)`,
-                  color: meta.color,
-                  border: `1px solid ${meta.color}40`,
-                }}
-              />
+              <StatusChip tokens={{ color: meta.color, bg: `color-mix(in srgb, ${meta.color} 10%, transparent)` }} label={`${n} ${meta.label.toLowerCase()}`} className="h-[20px] text-[0.65rem]" key={st} />
             );
           })}
         </div>
