@@ -1,26 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  Typography,
-  Box,
-  CircularProgress,
-  IconButton,
-  Tooltip,
-  Snackbar,
-  Alert,
-  alpha,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Typography, CircularProgress, IconButton, Tooltip, Snackbar, Alert, alpha } from '@mui/material';
 import { Close, Refresh, Delete } from '../../icons';
 import type { IncidentDto, IncidentStatus } from '../../services/api/incidentApi';
 import { incidentApi } from '../../services/api/incidentApi';
@@ -283,10 +262,10 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
     <>
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
         <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <h6 className="cn-text-h6 font-semibold">
               Détail des incidents P1
-            </Typography>
+            </h6>
             {overTargetCount > 0 && (
               <Tooltip title={`Cible KPI : < ${formatDuration(targetMinutes)}. Ces incidents tirent la moyenne au-dessus du seuil.`}>
                 <Chip
@@ -297,7 +276,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                 />
               </Tooltip>
             )}
-          </Box>
+          </div>
         </DialogTitle>
 
         <DialogContent dividers>
@@ -338,14 +317,14 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                 )
               }
             >
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              <div className="flex flex-col gap-0.5">
+                <p className="cn-text-body2 font-semibold">
                   Moyenne actuelle : {formatDuration(stats.currentAvg)}{' '}
-                  <Typography component="span" variant="caption" sx={{ color: 'text.secondary' }}>
+                  <span className="cn-text-caption text-muted-foreground">
                     (cible : &lt; {formatDuration(targetMinutes)})
-                  </Typography>
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  </span>
+                </p>
+                <span className="cn-text-caption text-muted-foreground">
                   En supprimant les {overTargetCount} hors cible →{' '}
                   <Typography
                     component="span"
@@ -359,21 +338,21 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                   </Typography>{' '}
                   sur {stats.projectedCount} incident{stats.projectedCount > 1 ? 's' : ''} restant
                   {stats.projectedCount > 1 ? 's' : ''}.
-                </Typography>
-              </Box>
+                </span>
+              </div>
             </Alert>
           )}
 
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <div className="flex justify-center py-6">
               <CircularProgress />
-            </Box>
+            </div>
           ) : sortedIncidents.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Typography color="text.secondary">
+            <div className="text-center py-6">
+              <p className="cn-text-body1 text-muted-foreground">
                 Aucun incident P1 récent.
-              </Typography>
-            </Box>
+              </p>
+            </div>
           ) : (
             <TableContainer>
               <Table size="small">
@@ -411,9 +390,9 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                           {incident.serviceName}
                         </TableCell>
                         <TableCell sx={{ fontSize: '0.8rem', maxWidth: 200 }}>
-                          <Typography variant="body2" noWrap title={incident.title}>
+                          <p className="cn-text-body2 truncate" title={incident.title}>
                             {incident.title}
-                          </Typography>
+                          </p>
                         </TableCell>
                         <TableCell>
                           <Chip
@@ -424,7 +403,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                           />
                         </TableCell>
                         <TableCell sx={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                          <div className="inline-flex items-center gap-0.5">
                             <Typography
                               component="span"
                               sx={{
@@ -454,10 +433,10 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                                 />
                               </Tooltip>
                             )}
-                          </Box>
+                          </div>
                         </TableCell>
                         <TableCell>
-                          <Box sx={{ display: 'inline-flex', gap: 0.25 }}>
+                          <div className="inline-flex gap-0.5">
                             {incident.status === 'OPEN' && (
                               <Tooltip title="Retester le service — si UP, l'incident sera auto-résolu">
                                 <IconButton
@@ -496,7 +475,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                                 </IconButton>
                               </Tooltip>
                             )}
-                          </Box>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -522,14 +501,14 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
       >
         <DialogTitle>Supprimer l'incident #{confirmDeleteId} ?</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" sx={{ mb: 1 }}>
+          <p className="cn-text-body2 mb-1.5">
             Cette action retire l'incident de la base. Conséquences :
-          </Typography>
-          <Typography variant="body2" component="ul" sx={{ pl: 2, color: 'text.secondary' }}>
+          </p>
+          <ul className="cn-text-body2 ps-3 text-muted-foreground">
             <li>Décrémente le compteur d'incidents ouverts (badge).</li>
             <li>Si l'incident était RÉSOLU, sa durée n'entre plus dans la moyenne KPI P1.</li>
             <li>Action irréversible — pas de soft-delete.</li>
-          </Typography>
+          </ul>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmDeleteId(null)}>Annuler</Button>
@@ -554,10 +533,10 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
           Supprimer {overTargetCount} incident{overTargetCount > 1 ? 's' : ''} hors cible ?
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body2" sx={{ mb: 1 }}>
+          <p className="cn-text-body2 mb-1.5">
             Tous les incidents RÉSOLUS dont la durée dépasse {formatDuration(targetMinutes)} seront supprimés :
-          </Typography>
-          <Typography variant="body2" component="ul" sx={{ pl: 2, color: 'text.secondary', mb: 1 }}>
+          </p>
+          <ul className="cn-text-body2 ps-3 text-muted-foreground mb-1.5">
             {overTargetIncidents.slice(0, 5).map((i) => (
               <li key={i.id}>
                 {i.serviceName} — {formatDuration(i.resolutionMinutes)}
@@ -566,10 +545,10 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
             {overTargetIncidents.length > 5 && (
               <li><i>+ {overTargetIncidents.length - 5} autre{overTargetIncidents.length - 5 > 1 ? 's' : ''}</i></li>
             )}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          </ul>
+          <span className="cn-text-caption text-muted-foreground">
             Action irréversible. Moyenne KPI P1 après suppression : <b>{formatDuration(stats.projectedAvg)}</b>.
-          </Typography>
+          </span>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmBulkOpen(false)} disabled={bulkDeleting}>

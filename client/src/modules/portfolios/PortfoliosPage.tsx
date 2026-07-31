@@ -58,7 +58,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`portfolios-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 2.5 }}>{children}</Box>}
+      {value === index && <div className="p-3.5">{children}</div>}
     </div>
   );
 }
@@ -86,17 +86,17 @@ interface SectionHeaderProps {
 
 function SectionHeader({ icon, title, count, color = 'var(--accent)' }: SectionHeaderProps) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+    <div className="flex items-center gap-1.5 mb-2">
       <Box sx={{ color, display: 'flex', alignItems: 'center' }}>{icon}</Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
+      <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem]">
         {title}
-      </Typography>
+      </h6>
       <Chip
         label={count}
         size="small"
         sx={{ height: 22, fontSize: '0.7rem', fontWeight: 600, color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', fontVariantNumeric: 'tabular-nums' }}
       />
-    </Box>
+    </div>
   );
 }
 
@@ -124,7 +124,7 @@ function EmptyState({ icon, message, action }: EmptyStateProps) {
         flex: 1,
       }}
     >
-      <Box sx={{ color: 'text.disabled', mb: 1 }}>{icon}</Box>
+      <div className="text-muted-foreground opacity-60 mb-1.5">{icon}</div>
       <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', mb: action ? 2 : 0 }}>
         {message}
       </Typography>
@@ -187,9 +187,9 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+      <div className="flex justify-center items-center h-[50vh]">
         <CircularProgress size={32} />
-      </Box>
+      </div>
     );
   }
 
@@ -219,7 +219,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
   );
 
   return (
-    <Box>
+    <div>
       {/* Portal actions into parent's PageHeader when embedded */}
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
 
@@ -255,9 +255,9 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
         {/* ─── Tab 0: My Portfolios ─────────────────────────────────────── */}
         <TabPanel value={tabValue} index={0}>
           {error ? (
-            <Typography color="error" sx={{ textAlign: 'center', py: 4, fontSize: '0.85rem' }}>
+            <p className="cn-text-body1 text-destructive text-center py-6 text-[0.85rem]">
               {error}
-            </Typography>
+            </p>
           ) : (
             <Grid container spacing={3}>
               {/* Clients */}
@@ -268,7 +268,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                   count={clients.length}
                 />
                 {clients.length > 0 ? (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <div className="flex flex-col gap-2">
                     {clients.map((client) => (
                       <Card
                         key={client.id}
@@ -298,12 +298,12 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                               {client.firstName.charAt(0)}{client.lastName.charAt(0)}
                             </Avatar>
                             <Box flex={1} minWidth={0}>
-                              <Typography variant="subtitle2" sx={{ fontSize: '0.85rem', fontWeight: 600 }} noWrap>
+                              <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold truncate">
                                 {client.firstName} {client.lastName}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }} noWrap>
+                              </h6>
+                              <span className="cn-text-caption text-muted-foreground text-[0.72rem] truncate">
                                 {client.email}
-                              </Typography>
+                              </span>
                             </Box>
                             <Box display="flex" alignItems="center" gap={0.5} ml={1}>
                               <Chip
@@ -333,19 +333,19 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                           </Box>
                           {client.phoneNumber && (
                             <Box display="flex" alignItems="center" mt={0.75} ml={5.5}>
-                              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><Phone size={14} strokeWidth={1.75} /></Box>
-                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                              <span className="inline-flex text-muted-foreground me-0.5"><Phone size={14} strokeWidth={1.75} /></span>
+                              <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
                                 {client.phoneNumber}
-                              </Typography>
+                              </span>
                             </Box>
                           )}
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, ml: 5.5, fontSize: '0.65rem' }}>
+                          <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-8 text-[0.65rem]">
                             {t('portfolios.fields.associatedOn')} {formatDate(client.associatedAt)}
-                          </Typography>
+                          </span>
                         </CardContent>
                       </Card>
                     ))}
-                  </Box>
+                  </div>
                 ) : (
                   <EmptyState
                     icon={<Person size={40} strokeWidth={1.75} />}
@@ -374,11 +374,11 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                   color="#7B68A8"
                 />
                 {clients.length > 0 ? (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div className="flex flex-col gap-3">
                     {clients.map((client) => {
                       const clientProperties = properties.filter(prop => prop.ownerId === client.id);
                       return (
-                        <Box key={client.id}>
+                        <div key={client.id}>
                           <Box
                             sx={{
                               display: 'flex',
@@ -390,7 +390,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                             }}
                             onClick={() => toggleClientExpansion(client.id)}
                           >
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                            <div className="flex items-center gap-1">
                               <Avatar
                                 sx={{
                                   width: 24,
@@ -405,15 +405,15 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                               >
                                 {client.firstName.charAt(0)}{client.lastName.charAt(0)}
                               </Avatar>
-                              <Typography variant="subtitle2" color="primary" sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                              <h6 className="cn-text-subtitle2 text-primary text-[0.82rem] font-semibold">
                                 {client.firstName} {client.lastName}
-                              </Typography>
+                              </h6>
                               <Chip
                                 label={`${clientProperties.length} ${t('portfolios.fields.properties')}`}
                                 size="small"
                                 sx={{ height: 20, fontSize: '0.65rem', color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', fontVariantNumeric: 'tabular-nums' }}
                               />
-                            </Box>
+                            </div>
                             <IconButton size="small" sx={{ color: 'var(--accent)', p: 0.25 }}>
                               {expandedClients.has(client.id) ? (
                                 <ExpandLessIcon size={18} strokeWidth={1.75} />
@@ -425,7 +425,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
 
                           {clientProperties.length > 0 ? (
                             expandedClients.has(client.id) ? (
-                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, ml: 1 }}>
+                              <div className="flex flex-col gap-1.5 ms-1.5">
                                 {clientProperties.map((property) => (
                                   <Card
                                     key={property.id}
@@ -452,14 +452,14 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                           <Home size={14} strokeWidth={1.75} />
                                         </Avatar>
                                         <Box flex={1} minWidth={0}>
-                                          <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', fontWeight: 600 }} noWrap>
+                                          <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold truncate">
                                             {property.name}
-                                          </Typography>
+                                          </h6>
                                           <Box display="flex" alignItems="center">
-                                            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
-                                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }} noWrap>
+                                            <span className="inline-flex text-muted-foreground me-0.5"><LocationOn size={13} strokeWidth={1.75} /></span>
+                                            <span className="cn-text-caption text-muted-foreground text-[0.7rem] truncate">
                                               {property.address}, {property.city}
-                                            </Typography>
+                                            </span>
                                           </Box>
                                         </Box>
                                         <Box display="flex" alignItems="center" gap={0.5} ml={0.5} flexWrap="wrap">
@@ -500,27 +500,27 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                           </Tooltip>
                                         </Box>
                                       </Box>
-                                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, ml: 4.5, fontSize: '0.62rem' }}>
+                                      <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-7 text-[0.62rem]">
                                         {t('portfolios.fields.createdOn')} {formatDate(property.createdAt)}
-                                      </Typography>
+                                      </span>
                                     </CardContent>
                                   </Card>
                                 ))}
-                              </Box>
+                              </div>
                             ) : (
-                              <Typography variant="caption" color="text.secondary" sx={{ ml: 4, fontStyle: 'italic', fontSize: '0.72rem' }}>
+                              <span className="cn-text-caption text-muted-foreground ms-6 italic text-[0.72rem]">
                                 {t('portfolios.fields.clickArrowToSee', { count: clientProperties.length })}
-                              </Typography>
+                              </span>
                             )
                           ) : (
-                            <Typography variant="caption" color="text.secondary" sx={{ ml: 4, fontStyle: 'italic', fontSize: '0.72rem' }}>
+                            <span className="cn-text-caption text-muted-foreground ms-6 italic text-[0.72rem]">
                               {t('portfolios.fields.noClientAssociated')}
-                            </Typography>
+                            </span>
                           )}
-                        </Box>
+                        </div>
                       );
                     })}
-                  </Box>
+                  </div>
                 ) : (
                   <EmptyState
                     icon={<Home size={40} strokeWidth={1.75} />}
@@ -544,7 +544,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                 color="var(--ok)"
               />
               {teams.length > 0 ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <div className="flex flex-col gap-2">
                   {teams.map((team) => (
                     <Card
                       key={team.id}
@@ -571,12 +571,12 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                             <Group size={16} strokeWidth={1.75} />
                           </Avatar>
                           <Box flex={1} minWidth={0}>
-                            <Typography variant="subtitle2" sx={{ fontSize: '0.85rem', fontWeight: 600 }} noWrap>
+                            <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold truncate">
                               {team.name}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+                            </h6>
+                            <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                               {team.memberCount} {t('portfolios.fields.members')}
-                            </Typography>
+                            </span>
                           </Box>
                           <Tooltip title={t('portfolios.confirmations.unassignTeamTitle')}>
                             <IconButton
@@ -589,17 +589,17 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                           </Tooltip>
                         </Box>
                         {team.description && (
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, ml: 5.5, fontSize: '0.72rem' }}>
+                          <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-8 text-[0.72rem]">
                             {team.description}
-                          </Typography>
+                          </span>
                         )}
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, ml: 5.5, fontSize: '0.62rem' }}>
+                        <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-8 text-[0.62rem]">
                           {t('portfolios.fields.createdOn')} {formatDate(team.assignedAt)}
-                        </Typography>
+                        </span>
                       </CardContent>
                     </Card>
                   ))}
-                </Box>
+                </div>
               ) : (
                 <EmptyState
                   icon={<Group size={40} strokeWidth={1.75} />}
@@ -628,7 +628,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                 color="var(--warn)"
               />
               {users.length > 0 ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <div className="flex flex-col gap-2">
                   {users.map((portfolioUser) => (
                     <Card
                       key={portfolioUser.id}
@@ -658,12 +658,12 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                             {portfolioUser.firstName.charAt(0)}{portfolioUser.lastName.charAt(0)}
                           </Avatar>
                           <Box flex={1} minWidth={0}>
-                            <Typography variant="subtitle2" sx={{ fontSize: '0.85rem', fontWeight: 600 }} noWrap>
+                            <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold truncate">
                               {portfolioUser.firstName} {portfolioUser.lastName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }} noWrap>
+                            </h6>
+                            <span className="cn-text-caption text-muted-foreground text-[0.72rem] truncate">
                               {portfolioUser.email}
-                            </Typography>
+                            </span>
                           </Box>
                           <Box display="flex" alignItems="center" gap={0.5} ml={1}>
                             <Chip
@@ -682,13 +682,13 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                             </Tooltip>
                           </Box>
                         </Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, ml: 5.5, fontSize: '0.62rem' }}>
+                        <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-8 text-[0.62rem]">
                           {t('portfolios.fields.associatedOn')} {formatDate(portfolioUser.assignedAt)}
-                        </Typography>
+                        </span>
                       </CardContent>
                     </Card>
                   ))}
-                </Box>
+                </div>
               ) : (
                 <EmptyState
                   icon={<Person size={40} strokeWidth={1.75} />}
@@ -725,9 +725,9 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
           paper: { sx: { borderRadius: 2, minWidth: 200 } },
         }}
       >
-        <Typography variant="caption" sx={{ px: 2, py: 0.5, fontWeight: 600, fontSize: '0.72rem', color: 'text.secondary', display: 'block' }}>
+        <span className="cn-text-caption px-3 py-0.5 font-semibold text-[0.72rem] text-muted-foreground block">
           {t('portfolios.fields.assignTeam')}
-        </Typography>
+        </span>
         <Divider sx={{ mb: 0.5 }} />
         {teams.length > 0 ? teams.map((team) => (
           <MenuItem
@@ -742,7 +742,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
             }}
             sx={{ fontSize: '0.82rem', py: 0.75 }}
           >
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)', mr: 1 }}><Group size={16} strokeWidth={1.75} /></Box>
+            <span className="inline-flex text-[var(--ok)] me-1.5"><Group size={16} strokeWidth={1.75} /></span>
             {team.name}
           </MenuItem>
         )) : (
@@ -773,7 +773,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
         confirmText={t('portfolios.fields.unassignClient')}
         cancelText={t('common.cancel')}
       />
-    </Box>
+    </div>
   );
 };
 

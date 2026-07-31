@@ -41,7 +41,7 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, emptyState }
   }, [messages]);
 
   if (messages.length === 0 && emptyState) {
-    return <Box sx={{ flex: 1, overflow: 'auto', bgcolor: 'var(--bg)' }}>{emptyState}</Box>;
+    return <div className="flex-1 overflow-auto bg-[var(--bg)]">{emptyState}</div>;
   }
 
   return (

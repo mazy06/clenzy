@@ -1,5 +1,5 @@
 import React from 'react';
-import { Paper, Box, Typography } from '@mui/material';
+import { Paper, Box } from '@mui/material';
 import { Lightbulb } from '../icons';
 import { useIconSize } from '../hooks/useResponsiveSize';
 
@@ -81,27 +81,27 @@ export default function EmptyState({
         ...(minHeight && { minHeight }),
       }}
     >
-      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mb: 0.5 }}>
+      <span className="inline-flex text-[var(--faint)] mb-0.5">
         {React.isValidElement(icon)
           ? React.cloneElement(icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
               size: heroSize,
               strokeWidth: 1.5,
             })
           : icon}
-      </Box>
-      <Typography variant="h6" sx={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
+      </span>
+      <h6 className="cn-text-h6 font-[var(--font-display)] text-[var(--ink)]">
         {title}
-      </Typography>
+      </h6>
       {description && (
-        <Typography variant="body2" sx={{ color: 'var(--muted)', maxWidth: 480 }}>
+        <p className="cn-text-body2 text-[var(--muted)] max-w-[480px]">
           {description}
-        </Typography>
+        </p>
       )}
       {(action || secondaryAction) && (
-        <Box sx={{ mt: 1.5, display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div className="mt-2 flex gap-1.5 items-center flex-wrap justify-center">
           {action}
           {secondaryAction}
-        </Box>
+        </div>
       )}
       {tip && (
         <Box
@@ -119,12 +119,12 @@ export default function EmptyState({
             borderColor: 'color-mix(in srgb, var(--warn) 30%, transparent)',
           }}
         >
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)', flexShrink: 0 }}>
+          <span className="inline-flex text-[var(--warn)] shrink-0">
             <Lightbulb size={12} strokeWidth={2} />
-          </Box>
-          <Typography variant="caption" sx={{ color: 'var(--warn)', textAlign: 'left', lineHeight: 1.35 }}>
+          </span>
+          <span className="cn-text-caption text-[var(--warn)] text-start leading-[1.35]">
             {tip}
-          </Typography>
+          </span>
         </Box>
       )}
     </Paper>

@@ -1,27 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControlLabel,
-  InputAdornment,
-  Menu,
-  MenuItem,
-  Snackbar,
-  Stack,
-  Switch,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, InputAdornment, Menu, MenuItem, Snackbar, Stack, Switch, TextField } from '@mui/material';
 import type { AlertColor, SxProps, Theme } from '@mui/material';
 import { Add, Save, Edit, Delete } from '../../icons';
 import {
@@ -664,7 +643,7 @@ const UpsellsAdmin: React.FC = () => {
   };
 
   return (
-    <Box>
+    <div>
       {headerActions}
       {headerFilters}
 
@@ -673,23 +652,23 @@ const UpsellsAdmin: React.FC = () => {
         <DialogTitle>{t('upsells.preview.title', 'Aperçu côté voyageur')}</DialogTitle>
         <DialogContent dividers>
           {previewOffer && (
-            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', maxWidth: 320, mx: 'auto' }}>
+            <div className="border border-[divider] rounded-[2px] overflow-hidden max-w-[320px] mx-auto">
               <Box sx={{
                 height: 150, bgcolor: 'action.hover',
                 backgroundImage: previewOffer.imageUrl ? `url(${previewOffer.imageUrl})` : 'none',
                 backgroundSize: 'cover', backgroundPosition: 'center',
               }} />
-              <Box sx={{ p: 2 }}>
-                <Box sx={{ fontWeight: 600 }}>{previewOffer.title}</Box>
+              <div className="p-3">
+                <div className="font-semibold">{previewOffer.title}</div>
                 {previewOffer.description ? (
-                  <Box sx={{ fontSize: 14, color: 'text.secondary', mt: 0.5 }}>{previewOffer.description}</Box>
+                  <div className="text-[14px] text-muted-foreground mt-0.5">{previewOffer.description}</div>
                 ) : null}
-                <Box sx={{ fontWeight: 700, mt: 1 }}><Money value={previewOffer.price} from={previewOffer.currency} /></Box>
+                <div className="font-bold mt-1.5"><Money value={previewOffer.price} from={previewOffer.currency} /></div>
                 <Button variant="contained" fullWidth sx={{ mt: 1.5 }} disabled>
                   {t('upsells.preview.add', 'Ajouter')}
                 </Button>
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
         </DialogContent>
         <DialogActions>
@@ -708,19 +687,19 @@ const UpsellsAdmin: React.FC = () => {
               icon={<Percent size={17} strokeWidth={1.75} />}
               title={t('upsells.commissions.title', 'Commissions activités')}
               actions={
-                <Box sx={{ textAlign: 'right' }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--ok)', lineHeight: 1.15 }}>
+                <div className="text-end">
+                  <h6 className="cn-text-subtitle1 font-bold tabular-nums text-[var(--ok)] leading-[1.15]">
                     <Money value={commissionSummary.totalHostShare} from={commissionSummary.currency} />
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  </h6>
+                  <span className="cn-text-caption text-muted-foreground block">
                     {commissionSummary.count} {t('upsells.commissions.bookings', 'réservation(s)')}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               }
             />
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+            <span className="cn-text-caption text-muted-foreground block">
               {t('upsells.commissions.note', "Votre part sur les réservations d'activités, reversée via vos paiements. Active dès qu'un fournisseur d'activités est connecté.")}
-            </Typography>
+            </span>
           </CardContent>
         </Card>
       ) : null}
@@ -742,11 +721,11 @@ const UpsellsAdmin: React.FC = () => {
       </Dialog>
 
       {/* ── Catalogue des services distribués aux canaux (liste ↔ détail) ──── */}
-      <Box className="be-home" data-accent="indigo">
+      <div className="be-home" data-accent="indigo">
         <div className="canvas" style={{ paddingTop: 8, maxWidth: 1160 }}>
           {selected ? renderDetail() : renderList()}
         </div>
-      </Box>
+      </div>
 
       {/* Éditeur d'offre */}
       <Dialog open={edit.open} onClose={() => setEdit(emptyEdit)} maxWidth="sm" fullWidth>
@@ -755,7 +734,7 @@ const UpsellsAdmin: React.FC = () => {
         </DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ mt: 0.5 }}>
-            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            <div className="flex gap-2 flex-wrap">
               <TextField
                 select
                 label={t('upsells.fields.type', 'Catégorie')}
@@ -777,8 +756,8 @@ const UpsellsAdmin: React.FC = () => {
                 size="small"
                 sx={{ flex: 1, minWidth: 200 }}
               />
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            </div>
+            <div className="flex gap-2 flex-wrap">
               <TextField
                 label={t('upsells.fields.price', 'Prix')}
                 value={edit.price}
@@ -811,7 +790,7 @@ const UpsellsAdmin: React.FC = () => {
                   </MenuItem>
                 ))}
               </TextField>
-            </Box>
+            </div>
             <TextField
               label={t('upsells.fields.description', 'Description (optionnel)')}
               value={edit.description}
@@ -822,7 +801,7 @@ const UpsellsAdmin: React.FC = () => {
               minRows={2}
             />
             {/* Productisation (2.10) : conditionnel + fenêtre horaire de commande. */}
-            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            <div className="flex gap-2 flex-wrap">
               <TextField
                 label={t('upsells.fields.minNights', 'Séjour min. (nuits)')}
                 helperText={t('upsells.fields.minNightsHelp', 'Proposé si le séjour atteint ce nb de nuits. Vide = toujours.')}
@@ -843,7 +822,7 @@ const UpsellsAdmin: React.FC = () => {
                 sx={{ flex: 1, minWidth: 220 }}
                 inputProps={{ min: 0, step: 1 }}
               />
-            </Box>
+            </div>
             <TextField
               select
               label={t('upsells.fields.bundle', 'Offres incluses (bundle)')}
@@ -861,18 +840,13 @@ const UpsellsAdmin: React.FC = () => {
                 o.id !== edit.id ? [<MenuItem key={o.id} value={String(o.id)}>{o.title}</MenuItem>] : [],
               )}
             </TextField>
-            <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
+            <div>
+              <span className="cn-text-caption text-muted-foreground block mb-1">
                 {t('upsells.fields.image', 'Image (optionnel)')}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+              </span>
+              <div className="flex items-center gap-2 flex-wrap">
                 {edit.imageUrl ? (
-                  <Box
-                    component="img"
-                    src={edit.imageUrl}
-                    alt=""
-                    sx={{ width: 72, height: 72, borderRadius: 1.5, objectFit: 'cover', display: 'block', border: '1px solid', borderColor: 'divider' }}
-                  />
+                  <img className="w-[72px] h-[72px] rounded-[1.5px] object-cover block border border-[divider]" src={edit.imageUrl} alt="" />
                 ) : null}
                 <Button component="label" variant="outlined" size="small" startIcon={<ImagePlus size={15} strokeWidth={1.75} />}>
                   {edit.imageUrl ? t('upsells.fields.imageChange', 'Changer') : t('upsells.fields.imageUpload', 'Choisir une image')}
@@ -883,8 +857,8 @@ const UpsellsAdmin: React.FC = () => {
                     {t('upsells.fields.imageRemove', 'Retirer')}
                   </Button>
                 ) : null}
-              </Box>
-            </Box>
+              </div>
+            </div>
             <FormControlLabel
               control={<Switch checked={edit.active} onChange={(e) => setEdit((s) => ({ ...s, active: e.target.checked }))} />}
               label={t('upsells.fields.active', 'Service actif (visible sur le livret)')}
@@ -897,7 +871,7 @@ const UpsellsAdmin: React.FC = () => {
               {t('upsells.actions.delete', 'Supprimer')}
             </Button>
           ) : <span />}
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <div className="flex gap-1.5">
             <Button onClick={() => setEdit(emptyEdit)}>{t('upsells.actions.cancel', 'Annuler')}</Button>
             <Button
               variant="contained"
@@ -907,7 +881,7 @@ const UpsellsAdmin: React.FC = () => {
             >
               {t('upsells.actions.save', 'Enregistrer')}
             </Button>
-          </Box>
+          </div>
         </DialogActions>
       </Dialog>
 
@@ -916,33 +890,33 @@ const UpsellsAdmin: React.FC = () => {
         <DialogTitle>{t('upsells.orders.title', 'Ventes de services')}</DialogTitle>
         <DialogContent dividers>
           {ordersLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+            <div className="flex justify-center py-4">
               <CircularProgress />
-            </Box>
+            </div>
           ) : orders.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
+            <p className="cn-text-body2 text-muted-foreground">
               {t('upsells.orders.empty', 'Aucune vente pour le moment.')}
-            </Typography>
+            </p>
           ) : (
             <Stack spacing={1.25}>
               {orders.map((order: UpsellOrder) => (
-                <Box key={order.id} sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                <div className="border-b border-[divider] pb-1.5" key={order.id}>
+                  <div className="flex justify-between items-center gap-1.5">
+                    <p className="cn-text-body2 font-semibold">
                       {order.title}
-                    </Typography>
+                    </p>
                     <Chip
                       size="small"
                       label={orderStatusLabel(order.status)}
                       sx={softChipSx(semanticToHex(order.status === 'PAID' ? 'success' : 'default'))}
                     />
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.25 }}>
-                    <Typography variant="caption" color="text.secondary">
+                  </div>
+                  <div className="flex justify-between mt-0.5">
+                    <span className="cn-text-caption text-muted-foreground">
                       {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}
                       {order.guestEmail ? ` · ${order.guestEmail}` : ''}
-                    </Typography>
-                    <Typography variant="caption" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    </span>
+                    <span className="cn-text-caption tabular-nums">
                       <Money value={order.amount} from={order.currency} />
                       {order.hostAmount != null ? (
                         <>
@@ -950,9 +924,9 @@ const UpsellsAdmin: React.FC = () => {
                           <Money value={order.hostAmount} from={order.currency} />
                         </>
                       ) : null}
-                    </Typography>
-                  </Box>
-                </Box>
+                    </span>
+                  </div>
+                </div>
               ))}
             </Stack>
           )}
@@ -989,7 +963,7 @@ const UpsellsAdmin: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 };
 

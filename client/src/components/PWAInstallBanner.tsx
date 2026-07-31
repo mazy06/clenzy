@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Paper, Typography, Button, Box, Slide, IconButton } from '@mui/material';
+import { Paper, Button, Slide, IconButton } from '@mui/material';
 import { Close as CloseIcon, GetApp as GetAppIcon } from '../icons';
 import { usePWA } from '../hooks/usePWA';
 import { useUserPreference } from '../hooks/useUserPreference';
@@ -96,25 +96,17 @@ export default function PWAInstallBanner() {
           mx: 'auto',
         }}
       >
-        <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0, color: 'var(--accent)' }}>
+        <span className="inline-flex shrink-0 text-[var(--accent)]">
           <GetAppIcon size={26} strokeWidth={1.75} />
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography
-            noWrap
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '13.5px',
-              fontWeight: 600,
-              color: 'var(--ink)',
-            }}
-          >
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="cn-text-body1 truncate font-[var(--font-display)] text-[13.5px] font-semibold text-[var(--ink)]">
             Installer Baitly PMS
-          </Typography>
-          <Typography sx={{ fontSize: '12px', color: 'var(--muted)' }}>
+          </p>
+          <p className="cn-text-body1 text-[12px] text-[var(--muted)]">
             Installez l'application sur votre appareil pour un acc&egrave;s rapide.
-          </Typography>
-        </Box>
+          </p>
+        </div>
         <Button
           variant="contained"
           size="small"

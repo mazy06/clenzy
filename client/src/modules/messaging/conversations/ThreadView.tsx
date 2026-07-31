@@ -1,15 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Box,
-  CircularProgress,
-  InputBase,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Box, CircularProgress, InputBase, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -156,45 +146,23 @@ export default function ThreadView({
   };
 
   return (
-    <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0, bgcolor: 'var(--bg)' }}>
+    <div className="flex-1 min-w-0 flex flex-col min-h-0 bg-[var(--bg)]">
       {/* ── Entête 62px ─────────────────────────────────────────────────── */}
-      <Box
-        sx={{
-          height: 62,
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.5,
-          px: 2.5,
-          bgcolor: 'var(--card)',
-          borderBottom: '1px solid var(--line)',
-        }}
-      >
+      <div className="h-[62px] shrink-0 flex items-center gap-2 px-3.5 bg-[var(--card)] border-b border-[var(--line)]">
         {showBack && (
           <Box component="button" onClick={onBack} aria-label="Retour" sx={{ ...mgIcoSx, width: 32, height: 32 }}>
             <ArrowBackIcon size={16} strokeWidth={1.75} />
           </Box>
         )}
-        <Box sx={{ minWidth: 0 }}>
-          <Typography
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 16,
-              fontWeight: 600,
-              color: 'var(--ink)',
-              lineHeight: 1.25,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
+        <div className="min-w-0">
+          <p className="cn-text-body1 font-[var(--font-display)] text-[16px] font-semibold text-[var(--ink)] leading-[1.25] whitespace-nowrap overflow-hidden text-ellipsis">
             {title}
-          </Typography>
-          <Box sx={{ fontSize: '11.5px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          </p>
+          <div className="text-[11.5px] text-[var(--muted)] flex items-center gap-1">
             {subtitle}
-          </Box>
-        </Box>
-        <Box sx={{ ml: 'auto', display: 'flex', gap: 1, alignItems: 'center' }}>
+          </div>
+        </div>
+        <div className="ms-auto flex gap-1.5 items-center">
           {actions.map((action) => (
             <Tooltip key={action.key} title={action.title} arrow>
               <Box component="button" onClick={action.onClick} aria-label={action.title} sx={mgIcoSx}>
@@ -212,7 +180,7 @@ export default function ThreadView({
               <MoreHorizIcon size={16} strokeWidth={1.75} />
             </Box>
           )}
-        </Box>
+        </div>
         <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
           {menuItems.map((item) => (
             <MenuItem
@@ -231,21 +199,18 @@ export default function ThreadView({
             </MenuItem>
           ))}
         </Menu>
-      </Box>
+      </div>
 
       {/* ── Messages ────────────────────────────────────────────────────── */}
-      <Box
-        ref={scrollRef}
-        sx={{ flex: 1, overflowY: 'auto', p: 2.5, display: 'flex', flexDirection: 'column', gap: 1.5, minHeight: 0 }}
-      >
+      <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-2 min-h-0" ref={scrollRef}>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <div className="flex justify-center py-6">
             <CircularProgress size={20} />
-          </Box>
+          </div>
         ) : grouped.length === 0 ? (
-          <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', textAlign: 'center', py: 4 }}>
+          <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] text-center py-6">
             Aucun message dans cette conversation
-          </Typography>
+          </p>
         ) : (
           grouped.map((group) => (
             <React.Fragment key={group.day}>
@@ -292,14 +257,14 @@ export default function ThreadView({
                 >
                   {msg.text}
                   {msg.attachments && msg.attachments.length > 0 && (
-                    <Box sx={{ mt: 0.75, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                    <div className="mt-1 flex flex-col gap-0.5">
                       {msg.attachments.map((name) => (
-                        <Box key={name} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '11px', opacity: 0.85 }}>
+                        <div className="flex items-center gap-0.5 text-[11px] opacity-85" key={name}>
                           <AttachFileIcon size={11} strokeWidth={1.75} />
                           {name}
-                        </Box>
+                        </div>
                       ))}
-                    </Box>
+                    </div>
                   )}
                   <Box
                     sx={{
@@ -317,10 +282,10 @@ export default function ThreadView({
             </React.Fragment>
           ))
         )}
-      </Box>
+      </div>
 
       {/* ── Compose ─────────────────────────────────────────────────────── */}
-      <Box sx={{ flexShrink: 0, bgcolor: 'var(--card)', borderTop: '1px solid var(--line)' }}>
+      <div className="shrink-0 bg-[var(--card)] border-t border-[var(--line)]">
         {composeNotice}
         <Box sx={{ p: '14px 20px' }}>
           {composeExtra}
@@ -380,7 +345,7 @@ export default function ThreadView({
             </Box>
           </Box>
         </Box>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

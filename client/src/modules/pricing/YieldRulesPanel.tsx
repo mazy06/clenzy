@@ -1,33 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  FormControlLabel,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Paper,
-  Select,
-  Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
-  ToggleButton,
-  ToggleButtonGroup,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Alert, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Paper, Select, Switch, Table, TableBody, TableCell, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
 import { Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -205,9 +177,9 @@ const YieldRulesPanel: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+      <div className="flex justify-center py-9">
         <CircularProgress size={28} />
-      </Box>
+      </div>
     );
   }
 
@@ -218,7 +190,7 @@ const YieldRulesPanel: React.FC = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <div className="flex flex-col gap-2">
       {error && (
         <Alert severity="error" onClose={() => setError(null)}>
           {error}
@@ -227,7 +199,7 @@ const YieldRulesPanel: React.FC = () => {
 
       {/* ── Config org : kill-switch + mode ── */}
       <Paper variant="outlined" sx={{ p: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+        <div className="flex items-center gap-3 flex-wrap">
           <FormControlLabel
             control={
               <Switch
@@ -249,24 +221,24 @@ const YieldRulesPanel: React.FC = () => {
             <ToggleButton value="SUGGEST">{t('yieldRules.mode.suggest', 'Suggestion')}</ToggleButton>
             <ToggleButton value="AUTO">{t('yieldRules.mode.auto', 'Automatique')}</ToggleButton>
           </ToggleButtonGroup>
-          <Typography variant="body2" sx={{ color: 'var(--muted)' }}>
+          <p className="cn-text-body2 text-[var(--muted)]">
             {modeHelp[(config?.mode ?? 'SIMULATION') as YieldMode]}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       </Paper>
 
       {/* ── Automatisations déterministes (R2) ── */}
       <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5 }}>
+        <h6 className="cn-text-subtitle1 font-bold mb-0.5">
           {t('yieldRules.automations.title', 'Automatisations')}
-        </Typography>
-        <Typography variant="body2" sx={{ color: 'var(--muted)', mb: 1.5 }}>
+        </h6>
+        <p className="cn-text-body2 text-[var(--muted)] mb-2">
           {t('yieldRules.automations.subtitle',
             'Ajustements déterministes appliqués chaque nuit, réversibles automatiquement.')}
-        </Typography>
+        </p>
 
         {/* Orphan gap pricing */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+        <div className="flex items-center gap-3 flex-wrap">
           <FormControlLabel
             control={
               <Switch
@@ -301,14 +273,14 @@ const YieldRulesPanel: React.FC = () => {
               />
             </>
           )}
-        </Box>
-        <Typography variant="caption" sx={{ color: 'var(--muted)', display: 'block', mt: 0.5, mb: 1.5 }}>
+        </div>
+        <span className="cn-text-caption text-[var(--muted)] block mt-0.5 mb-2">
           {t('yieldRules.automations.orphanGap.help',
             'Remise + séjour minimum abaissé sur les courts trous entre deux réservations (jamais sous le prix plancher).')}
-        </Typography>
+        </span>
 
         {/* Min-stay dynamique */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+        <div className="flex items-center gap-3 flex-wrap">
           <FormControlLabel
             control={
               <Switch
@@ -343,30 +315,30 @@ const YieldRulesPanel: React.FC = () => {
               />
             </>
           )}
-        </Box>
-        <Typography variant="caption" sx={{ color: 'var(--muted)', display: 'block', mt: 0.5 }}>
+        </div>
+        <span className="cn-text-caption text-[var(--muted)] block mt-0.5">
           {t('yieldRules.automations.minStay.help',
             'Abaisse le séjour minimum des nuits encore libres à l’approche de la date (last-minute).')}
-        </Typography>
+        </span>
       </Paper>
 
       {/* ── Règles ── */}
       <Paper variant="outlined" sx={{ p: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+        <div className="flex items-center justify-between mb-1.5">
+          <h6 className="cn-text-subtitle1 font-bold">
             {t('yieldRules.rulesTitle', 'Règles d’occupation')}
-          </Typography>
+          </h6>
           <Button size="small" variant="outlined" startIcon={<Plus size={16} />} onClick={openCreate}>
             {t('yieldRules.addRule', 'Ajouter une règle')}
           </Button>
-        </Box>
+        </div>
         {rules.length === 0 ? (
-          <Typography variant="body2" sx={{ color: 'var(--muted)', py: 2 }}>
+          <p className="cn-text-body2 text-[var(--muted)] py-3">
             {t(
               'yieldRules.noRules',
               'Aucune règle. Exemple : « si occupation < 40 % à 30 jours, baisser de 5 % ».',
             )}
-          </Typography>
+          </p>
         ) : (
           <Table size="small">
             <TableHead>
@@ -436,15 +408,15 @@ const YieldRulesPanel: React.FC = () => {
 
       {/* ── Bornes par bien ── */}
       <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5 }}>
+        <h6 className="cn-text-subtitle1 font-bold mb-0.5">
           {t('yieldRules.boundsTitle', 'Garde-fous par bien')}
-        </Typography>
-        <Typography variant="body2" sx={{ color: 'var(--muted)', mb: 1 }}>
+        </h6>
+        <p className="cn-text-body2 text-[var(--muted)] mb-1.5">
           {t(
             'yieldRules.boundsSubtitle',
             'Plancher et plafond obligatoires : sans les deux, le yield ignore le bien (journalisé NO_BOUNDS).',
           )}
-        </Typography>
+        </p>
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -512,16 +484,16 @@ const YieldRulesPanel: React.FC = () => {
 
       {/* ── Journal ── */}
       <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+        <h6 className="cn-text-subtitle1 font-bold mb-1.5">
           {t('yieldRules.journalTitle', 'Journal des ajustements')}
-        </Typography>
+        </h6>
         {!journal || journal.content.length === 0 ? (
-          <Typography variant="body2" sx={{ color: 'var(--muted)', py: 2 }}>
+          <p className="cn-text-body2 text-[var(--muted)] py-3">
             {t('yieldRules.journalEmpty', 'Aucun ajustement journalisé pour le moment.')}
-          </Typography>
+          </p>
         ) : (
           <>
-            <Box sx={{ overflowX: 'auto' }}>
+            <div className="overflow-x-auto">
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -560,15 +532,15 @@ const YieldRulesPanel: React.FC = () => {
                         {entry.occupancyPct != null ? `${entry.occupancyPct} %` : '—'}
                       </TableCell>
                       <TableCell sx={{ maxWidth: 320 }}>
-                        <Typography variant="body2" noWrap title={entry.reason ?? ''}>
+                        <p className="cn-text-body2 truncate" title={entry.reason ?? ''}>
                           {entry.reason ?? '—'}
-                        </Typography>
+                        </p>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </Box>
+            </div>
             <PagePagination
               count={journal.totalElements}
               page={journalPage}
@@ -614,7 +586,7 @@ const YieldRulesPanel: React.FC = () => {
               ))}
             </Select>
           </FormControl>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <div className="flex gap-3">
             <FormControl size="small" sx={{ flex: 1 }}>
               <InputLabel>{t('yieldRules.field.comparison', 'Si occupation')}</InputLabel>
               <Select
@@ -646,8 +618,8 @@ const YieldRulesPanel: React.FC = () => {
               inputProps={{ min: 1, max: 365 }}
               sx={{ width: 120 }}
             />
-          </Box>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          </div>
+          <div className="flex gap-3 items-center">
             <TextField
               label={t('yieldRules.field.adjustment', 'Ajustement (%)')}
               type="number"
@@ -680,7 +652,7 @@ const YieldRulesPanel: React.FC = () => {
               }
               label={t('yieldRules.field.active', 'Active')}
             />
-          </Box>
+          </div>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>{t('common.cancel', 'Annuler')}</Button>
@@ -689,7 +661,7 @@ const YieldRulesPanel: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

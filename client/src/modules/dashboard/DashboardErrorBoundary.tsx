@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Card, CardContent, Typography, Button, Box } from '@mui/material';
+import { Card, CardContent, Button } from '@mui/material';
 import { ErrorOutline, Refresh } from '../../icons';
 
 interface Props {
@@ -40,12 +40,12 @@ class DashboardErrorBoundary extends Component<Props, State> {
       return (
         <Card sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <CardContent sx={{ textAlign: 'center', py: 2 }}>
-            <Box component="span" sx={{ display: 'inline-flex', mb: 0.5, opacity: 0.6 }}><ErrorOutline color="error" size={28} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
+            <span className="inline-flex mb-0.5 opacity-60"><ErrorOutline color="error" size={28} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 text-muted-foreground text-[0.75rem] mb-1.5">
               {this.props.widgetName
                 ? `Erreur lors du chargement de "${this.props.widgetName}"`
                 : 'Erreur lors du chargement du widget'}
-            </Typography>
+            </p>
             <Button
               size="small"
               variant="outlined"

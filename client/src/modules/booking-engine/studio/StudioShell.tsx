@@ -63,7 +63,7 @@ export default function StudioShell({
   children,
 }: StudioShellProps) {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: 'var(--bg)', color: 'var(--ink)' }}>
+    <div className="flex flex-col h-[100vh] bg-[var(--bg)] text-[var(--ink)]">
       {/* ── Topbar ───────────────────────────────────────────────── */}
       <Box
         component="header"
@@ -87,9 +87,9 @@ export default function StudioShell({
             <ChevronLeft size={20} strokeWidth={2} />
           </ButtonBase>
         )}
-        <Box sx={{ fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-lg)', mr: 1, whiteSpace: 'nowrap' }}>
+        <div className="font-[var(--fw-semibold)] text-[var(--text-lg)] me-1.5 whitespace-nowrap">
           {projectName}
-        </Box>
+        </div>
 
         <ButtonBase
           onClick={onOpenCommand}
@@ -111,8 +111,8 @@ export default function StudioShell({
           }}
         >
           <CommandIcon size={14} strokeWidth={2} />
-          <Box component="span">Rechercher / actions</Box>
-          <Box component="span" sx={{ ml: 0.5, fontSize: 'var(--text-2xs)', opacity: 0.7 }}>⌘K</Box>
+          <span>Rechercher / actions</span>
+          <span className="ms-0.5 text-[var(--text-2xs)] opacity-70">⌘K</span>
         </ButtonBase>
 
         {onAnalyzeDesign && (
@@ -123,7 +123,7 @@ export default function StudioShell({
           </Tooltip>
         )}
 
-        <Box sx={{ flex: 1 }} />
+        <div className="flex-1" />
 
         {/* Bascule de vue : « Avancé » (éditeur courant) ↔ « Assistant » (studio immersif + chat) */}
         {onOpenAssistant && <ViewToggle onOpenAssistant={onOpenAssistant} />}
@@ -141,7 +141,7 @@ export default function StudioShell({
       </Box>
 
       {/* ── Body : rail + contenu ────────────────────────────────── */}
-      <Box sx={{ flex: 1, display: 'flex', minHeight: 0 }}>
+      <div className="flex-1 flex min-h-0">
         <Box
           component="nav"
           aria-label="Sections du Studio"
@@ -196,8 +196,8 @@ export default function StudioShell({
         <Box component="main" sx={{ flex: 1, minWidth: 0, overflowX: 'hidden', overflowY: 'auto' }}>
           {children}
         </Box>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
@@ -220,7 +220,7 @@ const items: { key: Breakpoint; icon: LucideIcon; label: string }[] = [
 
 function SegmentedBreakpoint({ value, onChange }: { value: Breakpoint; onChange: (b: Breakpoint) => void }) {
   return (
-    <Box sx={{ display: 'flex', gap: 0.25, p: 0.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--field)' }}>
+    <div className="flex gap-0.5 p-0.5 rounded-[var(--radius-md)] bg-[var(--field)]">
       {items.map(({ key, icon: Icon, label }) => {
         const active = key === value;
         return (
@@ -246,7 +246,7 @@ function SegmentedBreakpoint({ value, onChange }: { value: Breakpoint; onChange:
           </Tooltip>
         );
       })}
-    </Box>
+    </div>
   );
 }
 
@@ -264,16 +264,12 @@ const seg = {
 
 function ViewToggle({ onOpenAssistant }: { onOpenAssistant: () => void }) {
   return (
-    <Box
-      role="group"
-      aria-label="Vue du studio"
-      sx={{ display: 'flex', gap: 0.25, p: 0.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--field)' }}
-    >
+    <div className="flex gap-0.5 p-0.5 rounded-[var(--radius-md)] bg-[var(--field)]" role="group" aria-label="Vue du studio">
       {/* Avancé — vue courante (active) */}
       <Tooltip title="Éditeur complet : tous les blocs, calques, réglages et import de design.">
         <Box aria-pressed sx={{ ...seg, fontWeight: 'var(--fw-semibold)', color: 'var(--accent)', bgcolor: 'var(--card)', boxShadow: 'var(--shadow-card)' }}>
           <SlidersHorizontal size={15} strokeWidth={2} />
-          <Box component="span">Avancé</Box>
+          <span>Avancé</span>
         </Box>
       </Tooltip>
       {/* Assistant — bascule vers l'aperçu immersif + chat */}
@@ -283,10 +279,10 @@ function ViewToggle({ onOpenAssistant }: { onOpenAssistant: () => void }) {
           sx={{ ...seg, cursor: 'pointer', fontWeight: 'var(--fw-medium)', color: 'var(--muted)', '&:hover': { color: 'var(--ink)', bgcolor: 'var(--hover)' } }}
         >
           <Sparkles size={15} strokeWidth={2} />
-          <Box component="span">Assistant</Box>
+          <span>Assistant</span>
         </ButtonBase>
       </Tooltip>
-    </Box>
+    </div>
   );
 }
 
@@ -294,7 +290,7 @@ function PreviewSelect({
   value, onChange, options, ariaLabel, icon,
 }: { value: string; onChange: (v: string) => void; options: string[]; ariaLabel: string; icon?: ReactNode }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'var(--muted)' }}>
+    <div className="flex items-center gap-0.5 text-[var(--muted)]">
       {icon}
       <Box
         component="select"
@@ -316,6 +312,6 @@ function PreviewSelect({
       >
         {options.map((o) => <option key={o} value={o}>{o.toUpperCase()}</option>)}
       </Box>
-    </Box>
+    </div>
   );
 }

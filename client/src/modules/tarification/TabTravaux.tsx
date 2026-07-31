@@ -1,23 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  InputAdornment,
-  Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
+import { TextField, InputAdornment, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Build, Add, Delete } from '../../icons';
 import type { ServicePriceConfig, CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -93,16 +75,16 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
   }, [newItemName, newItemPrice, newItemDomain, items, onItemsChange]);
 
   return (
-    <Box sx={{ pt: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Build size={20} strokeWidth={1.75} /></Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+    <div className="pt-3">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="inline-flex text-[var(--bui-warning-ink)]"><Build size={20} strokeWidth={1.75} /></span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {title ?? t('tarification.travaux.title')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {subtitle ?? t('tarification.travaux.subtitle')}
-      </Typography>
+      </p>
 
       <TableContainer>
         <Table size="small">
@@ -123,9 +105,9 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
                     colSpan={canEdit ? 4 : 3}
                     sx={{ py: 0.75, borderBottom: '1px solid var(--line)', bgcolor: 'var(--field)' }}
                   >
-                    <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)' }}>
+                    <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
                       {domain}
-                    </Typography>
+                    </p>
                   </TableCell>
                 </TableRow>
                 {entries.map(({ item, index }) => (
@@ -171,7 +153,7 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
 
       {/* ─── Add button ────────────────────────────────────────────────── */}
       {canEdit && (
-        <Box sx={{ mt: 1.5 }}>
+        <div className="mt-2">
           <Button
             variant="outlined"
             size="small"
@@ -181,7 +163,7 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
           >
             {t('tarification.addPrestation')}
           </Button>
-        </Box>
+        </div>
       )}
 
       {/* ─── Add dialog ──────────────────────────────────────────────── */}
@@ -230,6 +212,6 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
           onChange={onCommissionChange}
         />
       )}
-    </Box>
+    </div>
   );
 }

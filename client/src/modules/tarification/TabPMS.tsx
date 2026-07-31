@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  Grid,
-  InputAdornment,
-  Divider,
-} from '@mui/material';
+import { TextField, Grid, InputAdornment, Divider } from '@mui/material';
 import { Devices, Computer, People, AutoAwesome } from '../../icons';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -25,17 +18,17 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
   const { currency } = useCurrency();
 
   return (
-    <Box sx={{ pt: 2 }}>
+    <div className="pt-3">
       {/* ─── Abonnement PMS ─────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><Devices size={20} strokeWidth={1.75} /></Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="inline-flex text-[info.main]"><Devices size={20} strokeWidth={1.75} /></span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('tarification.pms.title')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('tarification.pms.subtitle')}
-      </Typography>
+      </p>
 
       <Grid container spacing={1.5}>
         <Grid item xs={6}>
@@ -75,15 +68,15 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
       <Divider sx={{ my: 2.5 }} />
 
       {/* ─── Supplément IA par forfait (campagne X5) ─────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><AutoAwesome size={20} strokeWidth={1.75} /></Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="inline-flex text-[secondary.main]"><AutoAwesome size={20} strokeWidth={1.75} /></span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('tarification.pms.aiTitle')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('tarification.pms.aiSubtitle')}
-      </Typography>
+      </p>
 
       <Grid container spacing={1.5}>
         <Grid item xs={4}>
@@ -139,15 +132,15 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
       <Divider sx={{ my: 2.5 }} />
 
       {/* ─── Tarification par utilisateur ────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><People size={20} strokeWidth={1.75} /></Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="inline-flex text-[var(--bui-success-ink)]"><People size={20} strokeWidth={1.75} /></span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('tarification.pms.perSeatTitle')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('tarification.pms.perSeatSubtitle')}
-      </Typography>
+      </p>
 
       <Grid container spacing={1.5}>
         <Grid item xs={6}>
@@ -186,15 +179,15 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
       <Divider sx={{ my: 2.5 }} />
 
       {/* ─── Surcharges automatisation ──────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Computer size={20} strokeWidth={1.75} /></Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="inline-flex text-[var(--bui-warning-ink)]"><Computer size={20} strokeWidth={1.75} /></span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('tarification.automation.title')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('tarification.automation.subtitle')}
-      </Typography>
+      </p>
 
       <Grid container spacing={1.5}>
         <Grid item xs={6}>
@@ -230,6 +223,6 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
           />
         </Grid>
       </Grid>
-    </Box>
+    </div>
   );
 }

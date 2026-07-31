@@ -22,19 +22,19 @@ export default function ImportGallery({ onImportTemplate, onDone }: ImportGaller
 
   if (GALLERY_TEMPLATES.length === 0) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 6, textAlign: 'center', color: 'var(--muted)' }}>
+      <div className="flex flex-col items-center gap-1.5 py-9 text-center text-[var(--muted)]">
         <LayoutTemplate size={28} strokeWidth={1.75} style={{ color: 'var(--faint)' }} />
-        <Box sx={{ fontSize: 'var(--text-md)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>Galerie de templates</Box>
-        <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--faint)' }}>Catalogue en cours de constitution.</Box>
-      </Box>
+        <div className="text-[var(--text-md)] font-[var(--fw-semibold)] text-[var(--ink)]">Galerie de templates</div>
+        <div className="text-[var(--text-sm)] text-[var(--faint)]">Catalogue en cours de constitution.</div>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-      <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', lineHeight: 1.5 }}>
+    <div className="flex flex-col gap-2">
+      <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.5]">
         Choisissez un modèle de départ. Le canevas actuel sera remplacé ; vous pourrez tout éditer ensuite.
-      </Box>
+      </div>
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 1.5 }}>
         {GALLERY_TEMPLATES.map((tpl) => (
           <ButtonBase
@@ -50,13 +50,13 @@ export default function ImportGallery({ onImportTemplate, onDone }: ImportGaller
           >
             {/* Aperçu : vignette si fournie, sinon bande d'accent du template. */}
             <Box sx={{ height: 96, bgcolor: 'var(--field)', backgroundImage: tpl.thumbnail ? `url("${tpl.thumbnail}")` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }} />
-            <Box sx={{ p: 1.25, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-              <Box sx={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>{tpl.name}</Box>
-              {tpl.description ? <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>{tpl.description}</Box> : null}
-            </Box>
+            <div className="p-2 flex flex-col gap-0.5">
+              <div className="text-[var(--text-sm)] font-[var(--fw-semibold)] text-[var(--ink)]">{tpl.name}</div>
+              {tpl.description ? <div className="text-[var(--text-2xs)] text-[var(--muted)]">{tpl.description}</div> : null}
+            </div>
           </ButtonBase>
         ))}
       </Box>
-    </Box>
+    </div>
   );
 }

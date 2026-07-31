@@ -1,15 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import { SwapHoriz, OpenInNew, WhatsApp, Cancel, Warning } from '../../../icons';
 import type { PlanningEvent, PlanningProperty } from '../types';
 import GuestCardDialog from './GuestCardDialog';
@@ -195,20 +185,20 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
         PaperProps={{ sx: { borderRadius: 'var(--radius-lg)' } }}
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1, pt: 2, px: 2.5 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Warning size={22} strokeWidth={1.75} /></Box>
-          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+          <span className="inline-flex text-[var(--err)]"><Warning size={22} strokeWidth={1.75} /></span>
+          <h6 className="cn-text-h6 font-bold text-[1rem]">
             Annuler la reservation
-          </Typography>
+          </h6>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1 }}>
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem', mb: 1 }}>
+          <p className="cn-text-body2 text-[0.8125rem] mb-1.5">
             Etes-vous sur de vouloir annuler la reservation de{' '}
             <strong>{reservation.guestName}</strong> au{' '}
             <strong>{reservation.propertyName}</strong> ?
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem', mb: 1 }}>
+          </p>
+          <p className="cn-text-body2 text-[0.8125rem] mb-1.5">
             Du <strong>{reservation.checkIn}</strong> au <strong>{reservation.checkOut}</strong>
-          </Typography>
+          </p>
           <Alert severity="warning" sx={{ fontSize: '0.75rem' }}>
             Les interventions liees (menage) seront egalement annulees. Cette action est irreversible.
           </Alert>

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Box, IconButton, Dialog, Typography } from '@mui/material';
+import { Box, IconButton, Dialog } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
 import { ChevronLeft, ChevronRight, Close, Fullscreen, ImageNotSupported } from '../icons';
 import { API_CONFIG } from '../config/api';
@@ -97,42 +97,18 @@ export function PropertyImageCarousel({
         onClick={handleImageClick}
       >
         {showPlaceholder ? (
-          <Box
-            sx={{
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 0.5,
-              bgcolor: 'grey.100',
-              color: 'text.disabled',
-            }}
-          >
+          <div className="w-full h-full flex flex-col items-center justify-center gap-0.5 bg-[grey.100] text-muted-foreground opacity-60">
             <ImageNotSupported size={alwaysShowNav ? 48 : 24} strokeWidth={1.5} />
             {alwaysShowNav && (
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
+              <p className="cn-text-body1 text-[0.75rem] font-medium">
                 Aucune photo
-              </Typography>
+              </p>
             )}
-          </Box>
+          </div>
         ) : (
-          <Box
-            component="img"
-            src={currentUrl as string}
-            alt={alt}
-            loading="lazy"
-            onError={() => {
+          <img className="w-full h-full object-cover block" src={currentUrl as string} alt={alt} loading="lazy" onError={() => {
               setErrored((prev) => ({ ...prev, [index]: true }));
-            }}
-            sx={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              display: 'block',
-            }}
-          />
+            }} />
         )}
 
         {hasMultiple && (
@@ -205,23 +181,9 @@ export function PropertyImageCarousel({
         )}
 
         {showCounter && hasMultiple && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              px: 1,
-              py: 0.25,
-              borderRadius: 1,
-              bgcolor: 'rgba(0,0,0,0.6)',
-              color: '#fff',
-              fontSize: '0.7rem',
-              fontWeight: 600,
-              pointerEvents: 'none',
-            }}
-          >
+          <div className="absolute top-[8px] end-[8px] px-1.5 py-0.5 rounded-[1px] bg-[rgba(0,0,0,0.6)] text-[#fff] text-[0.7rem] font-semibold pointer-events-none">
             {index + 1} / {urls.length}
-          </Box>
+          </div>
         )}
 
         {canFullscreen && (
@@ -273,30 +235,10 @@ export function PropertyImageCarousel({
             <Close size={24} strokeWidth={1.75} />
           </IconButton>
 
-          <Box
-            sx={{
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-            }}
-            onClick={(e) => {
+          <div className="w-full h-full flex items-center justify-center relative" onClick={(e) => {
               if (e.target === e.currentTarget) setFullscreenOpen(false);
-            }}
-          >
-            <Box
-              component="img"
-              src={currentUrl ?? undefined}
-              alt={alt}
-              sx={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain',
-                display: 'block',
-              }}
-            />
+            }}>
+            <img className="max-w-full max-h-[100%] object-contain block" src={currentUrl ?? undefined} alt={alt} />
 
             {hasMultiple && (
               <>
@@ -351,7 +293,7 @@ export function PropertyImageCarousel({
                 </Box>
               </>
             )}
-          </Box>
+          </div>
         </Dialog>
       )}
     </>

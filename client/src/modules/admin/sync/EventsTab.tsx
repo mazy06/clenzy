@@ -1,22 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  Skeleton,
-  Alert,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  TextField,
-} from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Skeleton, Alert, Typography, Grid, Card, CardContent, TextField } from '@mui/material';
 import { syncAdminApi, SyncLog, SyncEventStats } from '../../../services/api/syncAdminApi';
 import FilterChipRow from '../../../components/FilterChipRow';
 import { useSyncAdminHeader } from '../SyncAdminPage';
@@ -118,7 +101,7 @@ const EventsTab: React.FC = () => {
   // Register filters (Channel + Status + Depuis) into the page header.
   useEffect(() => {
     setHeaderFilters(
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-2 flex-wrap">
         <FilterChipRow
           options={CHANNEL_OPTIONS}
           value={channel}
@@ -142,7 +125,7 @@ const EventsTab: React.FC = () => {
           InputLabelProps={{ shrink: true }}
           sx={{ width: 200 }}
         />
-      </Box>,
+      </div>,
     );
     return () => setHeaderFilters(null);
   }, [setHeaderFilters, channel, status, from]);
@@ -157,7 +140,7 @@ const EventsTab: React.FC = () => {
   };
 
   return (
-    <Box>
+    <div>
       {/* Stats Cards — label overline, valeurs display tabular-nums */}
       {stats && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -165,12 +148,9 @@ const EventsTab: React.FC = () => {
             <Card variant="outlined">
               <CardContent>
                 <Typography sx={OVERLINE_SX}>Total (24h)</Typography>
-                <Typography
-                  variant="h4"
-                  sx={{ color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}
-                >
+                <h4 className="cn-text-h4 text-[var(--ink)] tabular-nums">
                   {stats.totalLast24h}
-                </Typography>
+                </h4>
               </CardContent>
             </Card>
           </Grid>
@@ -179,12 +159,12 @@ const EventsTab: React.FC = () => {
               <CardContent>
                 <Typography sx={{ ...OVERLINE_SX, mb: 0.5 }}>Par Channel</Typography>
                 {Object.entries(stats.byChannel).map(([ch, count]) => (
-                  <Typography key={ch} variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  <p className="cn-text-body2 tabular-nums" key={ch}>
                     {ch}: {count}
-                  </Typography>
+                  </p>
                 ))}
                 {Object.keys(stats.byChannel).length === 0 && (
-                  <Typography variant="body2" sx={{ color: 'var(--muted)' }}>Aucune donnee</Typography>
+                  <p className="cn-text-body2 text-[var(--muted)]">Aucune donnee</p>
                 )}
               </CardContent>
             </Card>
@@ -194,12 +174,12 @@ const EventsTab: React.FC = () => {
               <CardContent>
                 <Typography sx={{ ...OVERLINE_SX, mb: 0.5 }}>Par Status</Typography>
                 {Object.entries(stats.byStatus).map(([s, count]) => (
-                  <Typography key={s} variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  <p className="cn-text-body2 tabular-nums" key={s}>
                     {s}: {count}
-                  </Typography>
+                  </p>
                 ))}
                 {Object.keys(stats.byStatus).length === 0 && (
-                  <Typography variant="body2" sx={{ color: 'var(--muted)' }}>Aucune donnee</Typography>
+                  <p className="cn-text-body2 text-[var(--muted)]">Aucune donnee</p>
                 )}
               </CardContent>
             </Card>
@@ -210,11 +190,11 @@ const EventsTab: React.FC = () => {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
           ))}
-        </Box>
+        </div>
       ) : (
         <>
           <TableContainer
@@ -271,13 +251,9 @@ const EventsTab: React.FC = () => {
                         ) : '—'}
                       </TableCell>
                       <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                          title={evt.errorMessage || undefined}
-                        >
+                        <p className="cn-text-body2 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title={evt.errorMessage || undefined}>
                           {evt.errorMessage || '—'}
-                        </Typography>
+                        </p>
                       </TableCell>
                       <TableCell>{evt.durationMs}</TableCell>
                       <TableCell>
@@ -299,7 +275,7 @@ const EventsTab: React.FC = () => {
           />
         </>
       )}
-    </Box>
+    </div>
   );
 };
 

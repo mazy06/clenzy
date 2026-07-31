@@ -1,24 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Grid,
-  Chip,
-  Switch,
-  FormControlLabel,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Button,
-  IconButton,
-  Tooltip,
-  CircularProgress,
-  Card,
-  CardContent,
-} from '@mui/material';
+import { Grid, Chip, Switch, FormControlLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, IconButton, Tooltip, CircularProgress, Card, CardContent } from '@mui/material';
 import {
   Star,
   Payment,
@@ -126,21 +107,21 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
       <CardContent sx={{ p: 2 }}>
         <Grid container spacing={2}>
       <Grid item xs={12}>
-        <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
+        <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
           Profil proprietaire
-        </Typography>
+        </h6>
       </Grid>
 
       {user.companyName && (
         <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Entreprise</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>{user.companyName}</Typography>
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Entreprise</h6>
+          <p className="cn-text-body1 mb-3">{user.companyName}</p>
         </Grid>
       )}
 
       {user.forfait && (
         <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Forfait souscrit</Typography>
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Forfait souscrit</h6>
           <Chip
             icon={<Star />}
             label={user.forfait.charAt(0).toUpperCase() + user.forfait.slice(1)}
@@ -152,66 +133,66 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
 
       {(user.city || user.postalCode) && (
         <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Localisation</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Localisation</h6>
+          <p className="cn-text-body1 mb-3">
             {[user.city, user.postalCode].filter(Boolean).join(' - ')}
-          </Typography>
+          </p>
         </Grid>
       )}
 
       {user.propertyType && (
         <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Type de propriete</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Type de propriete</h6>
+          <p className="cn-text-body1 mb-3">
             {PROPERTY_TYPE_LABELS[user.propertyType] || user.propertyType}
-          </Typography>
+          </p>
         </Grid>
       )}
 
       {user.propertyCount != null && (
         <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Nombre de proprietes</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>{user.propertyCount}</Typography>
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Nombre de proprietes</h6>
+          <p className="cn-text-body1 mb-3">{user.propertyCount}</p>
         </Grid>
       )}
 
       {user.surface != null && (
         <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Surface</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>{user.surface} m2</Typography>
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Surface</h6>
+          <p className="cn-text-body1 mb-3">{user.surface} m2</p>
         </Grid>
       )}
 
       {user.guestCapacity != null && (
         <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Capacite d'accueil</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Capacite d'accueil</h6>
+          <p className="cn-text-body1 mb-3">
             {user.guestCapacity} {user.guestCapacity > 1 ? 'personnes' : 'personne'}
-          </Typography>
+          </p>
         </Grid>
       )}
 
       {user.bookingFrequency && (
         <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Frequence de reservation</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Frequence de reservation</h6>
+          <p className="cn-text-body1 mb-3">
             {BOOKING_FREQUENCY_LABELS[user.bookingFrequency] || user.bookingFrequency}
-          </Typography>
+          </p>
         </Grid>
       )}
 
       {user.cleaningSchedule && (
         <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Planning menage</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Planning menage</h6>
+          <p className="cn-text-body1 mb-3">
             {CLEANING_SCHEDULE_LABELS[user.cleaningSchedule] || user.cleaningSchedule}
-          </Typography>
+          </p>
         </Grid>
       )}
 
       {user.calendarSync && (
         <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Synchronisation calendrier</Typography>
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Synchronisation calendrier</h6>
           <Chip
             label={CALENDAR_SYNC_LABELS[user.calendarSync] || user.calendarSync}
             size="small"
@@ -227,8 +208,8 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
 
       {user.services && (
         <Grid item xs={12}>
-          <Typography variant="subtitle2" color="text.secondary">Services forfait</Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5, mb: 2 }}>
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Services forfait</h6>
+          <div className="flex flex-wrap gap-0.5 mt-0.5 mb-3">
             {user.services.split(',').map((s) => (
               <Chip
                 key={s}
@@ -237,14 +218,14 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                 sx={{ color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' }}
               />
             ))}
-          </Box>
+          </div>
         </Grid>
       )}
 
       {user.servicesDevis && (
         <Grid item xs={12}>
-          <Typography variant="subtitle2" color="text.secondary">Services sur devis</Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5, mb: 2 }}>
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Services sur devis</h6>
+          <div className="flex flex-wrap gap-0.5 mt-0.5 mb-3">
             {user.servicesDevis.split(',').map((s) => (
               <Chip
                 key={s}
@@ -253,14 +234,14 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                 sx={{ color: 'var(--warn)', backgroundColor: 'var(--warn-soft)' }}
               />
             ))}
-          </Box>
+          </div>
         </Grid>
       )}
 
       {/* Toggle paiement differe (ADMIN/MANAGER uniquement) */}
       {isAdminOrManager && (
         <Grid item xs={12}>
-          <Box sx={{ border: '1px solid var(--line)', borderRadius: '12px', p: 2, mb: 1 }}>
+          <div className="border border-[var(--line)] rounded-[12px] p-3 mb-1.5">
             <FormControlLabel
               control={
                 <Switch
@@ -270,30 +251,30 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                 />
               }
               label={
-                <Box>
-                  <Typography variant="body2" fontWeight={500}>
+                <div>
+                  <p className="cn-text-body2 font-medium">
                     Paiement differe
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  </p>
+                  <span className="cn-text-caption text-muted-foreground">
                     Les interventions auto (iCal / Channel Manager) demarrent sans attente de paiement.
                     Le cumul impaye sera visible ci-dessous.
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               }
             />
-          </Box>
+          </div>
         </Grid>
       )}
 
       {/* Carte cumul impayes */}
       {isAdminOrManager && (
         <Grid item xs={12}>
-          <Box sx={{ border: '1px solid var(--line)', borderRadius: '12px', p: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Payment size={20} strokeWidth={1.75} /></Box>
-                <Typography variant="body1" fontWeight={600}>Solde impaye</Typography>
-              </Box>
+          <div className="border border-[var(--line)] rounded-[12px] p-3">
+            <div className="flex justify-between items-center mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex text-muted-foreground"><Payment size={20} strokeWidth={1.75} /></span>
+                <p className="cn-text-body1 font-semibold">Solde impaye</p>
+              </div>
               {balance && balance.totalUnpaid > 0 && (
                 <Chip
                   icon={<Warning size={14} strokeWidth={1.75} />}
@@ -305,12 +286,12 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
               {balance && balance.totalUnpaid === 0 && (
                 <Chip label="Aucun impaye" size="small" sx={{ color: 'var(--ok)', backgroundColor: 'var(--ok-soft)' }} />
               )}
-            </Box>
+            </div>
 
             {balanceLoading && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <div className="flex justify-center py-3">
                 <CircularProgress size={24} />
-              </Box>
+              </div>
             )}
 
             {!balanceLoading && balance && balance.properties.length > 0 && (
@@ -376,7 +357,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                   </Table>
                 </TableContainer>
 
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1.5 }}>
+                <div className="flex justify-end mt-2">
                   <Tooltip title="Cree un lien Stripe et le copie dans le presse-papier">
                     <Button
                       variant="contained"
@@ -389,16 +370,16 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                       {paymentLinkLoading ? 'Creation...' : 'Envoyer lien de paiement'}
                     </Button>
                   </Tooltip>
-                </Box>
+                </div>
               </>
             )}
 
             {!balanceLoading && (!balance || balance.properties.length === 0) && (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 1 }}>
+              <p className="cn-text-body2 text-muted-foreground text-center py-1.5">
                 Aucune intervention impayee pour ce proprietaire.
-              </Typography>
+              </p>
             )}
-          </Box>
+          </div>
         </Grid>
       )}
         </Grid>

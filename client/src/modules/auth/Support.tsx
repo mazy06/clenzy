@@ -1,19 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  Box,
-  Paper,
-  TextField,
-  Button,
-  Typography,
-  Stack,
-  Alert,
-  CircularProgress,
-  MenuItem,
-  ThemeProvider,
-  CssBaseline,
-} from '@mui/material';
+import { Box, Paper, TextField, Button, Stack, Alert, CircularProgress, MenuItem, ThemeProvider, CssBaseline } from '@mui/material';
 import { ArrowBack, CheckCircle } from '../../icons';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
@@ -98,29 +86,25 @@ export default function Support() {
         borderColor: 'divider',
       }}>
         {/* Header avec logo */}
-        <Box sx={{ textAlign: 'center', mb: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
+        <div className="text-center mb-3">
+          <div className="flex justify-center mb-2">
             <BaitlyMarkLogo variant="full" size={42} />
-          </Box>
-          <Typography variant="body2" sx={{
-            fontWeight: 500,
-            color: 'secondary.main',
-            fontSize: '0.85rem'
-          }}>
+          </div>
+          <p className="cn-text-body2 font-medium text-[secondary.main] text-[0.85rem]">
             {t('auth.support.headerSubtitle', 'Contactez notre support')}
-          </Typography>
-        </Box>
+          </p>
+        </div>
 
         {submitted ? (
           /* Message de confirmation */
-          <Box sx={{ textAlign: 'center', py: 3 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', mb: 1.5 }}><CheckCircle size={56} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, fontSize: '1rem' }}>
+          <div className="text-center py-4">
+            <span className="inline-flex text-[var(--bui-success-ink)] mb-2"><CheckCircle size={56} strokeWidth={1.75} /></span>
+            <h6 className="cn-text-h6 font-semibold mb-1.5 text-[1rem]">
               {t('auth.support.submittedTitle', 'Message envoyé !')}
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5, fontSize: '0.85rem' }}>
+            </h6>
+            <p className="cn-text-body2 text-muted-foreground mb-3.5 text-[0.85rem]">
               {t('auth.support.submittedBody', 'Notre équipe vous contactera dans les 24 heures.')}
-            </Typography>
+            </p>
             <Button
               variant="contained"
               size="medium"
@@ -137,7 +121,7 @@ export default function Support() {
             >
               {t('auth.support.backToLogin', 'Retour à la connexion')}
             </Button>
-          </Box>
+          </div>
         ) : (
           /* Formulaire de contact */
           <form onSubmit={handleSubmit}>
@@ -210,7 +194,7 @@ export default function Support() {
 
               {error && (
                 <Alert severity="error" sx={{ py: 0.75 }}>
-                  <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{error}</Typography>
+                  <p className="cn-text-body2 text-[0.85rem]">{error}</p>
                 </Alert>
               )}
 
@@ -244,7 +228,7 @@ export default function Support() {
 
         {/* Lien retour */}
         {!submitted && (
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <div className="mt-3 text-center">
             <Button
               variant="text"
               size="small"
@@ -260,7 +244,7 @@ export default function Support() {
             >
               {t('auth.support.backToLogin', 'Retour à la connexion')}
             </Button>
-          </Box>
+          </div>
         )}
       </Paper>
     </Box>

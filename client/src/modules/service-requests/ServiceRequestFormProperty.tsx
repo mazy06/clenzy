@@ -240,7 +240,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
     return (
       <>
         {/* Titre de la demande */}
-        <Box sx={{ mb: 2 }}>
+        <div className="mb-3">
           <Controller
             name="title"
             control={control}
@@ -265,15 +265,15 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
               </FormControl>
             )}
           />
-        </Box>
+        </div>
 
         {/* Propriete */}
-        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1.5 }}>
+        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-2">
           {t('serviceRequests.sections.property')}
-        </Typography>
+        </p>
 
         {/* Propriété et Demandeur sur la même ligne */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 1.5 }}>
+        <div className="flex gap-3 mb-2">
           {/* Propriété */}
           <Box sx={{ flex: 7 }}>
             <Controller
@@ -295,24 +295,24 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                       displayEmpty
                       notched
                       renderValue={() => (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <div className="flex items-center gap-1">
                           <Box component="span" sx={{ display: 'inline-flex', color: selectedProp ? 'var(--accent)' : 'var(--faint)' }}><Home size={16} strokeWidth={1.75} /></Box>
                           <Typography sx={{ fontSize: '12.5px', color: selectedProp ? 'var(--body)' : 'var(--faint)' }}>
                             {selectedProp
                               ? `${selectedProp.name} - ${selectedProp.address}, ${selectedProp.city}`
                               : t('serviceRequests.fields.selectProperty')}
                           </Typography>
-                        </Box>
+                        </div>
                       )}
                     >
                       {properties.map((property) => (
                         <MenuItem key={property.id} value={property.id}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Home size={16} strokeWidth={1.75} /></Box>
-                            <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                          <div className="flex items-center gap-1">
+                            <span className="inline-flex text-[var(--accent)]"><Home size={16} strokeWidth={1.75} /></span>
+                            <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                               {property.name} - {property.address}, {property.city}
-                            </Typography>
-                          </Box>
+                            </p>
+                          </div>
                         </MenuItem>
                       ))}
                     </Select>
@@ -328,25 +328,15 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
           {/* Demandeur — lecture seule, trace l'utilisateur connecté */}
           <Box sx={{ flex: 5 }}>
             {currentUser ? (
-              <Box>
-                <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 0.5, ml: 0.25 }}>
+              <div>
+                <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-0.5 ms-0.5">
                   {t('serviceRequests.fields.requestor')}
-                </Typography>
-                <Box sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.75,
-                  px: 1.25,
-                  py: 0.75,
-                  borderRadius: '11px',
-                  bgcolor: 'var(--field)',
-                  border: '1px solid var(--field-line)',
-                  minHeight: 40,
-                }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
-                  <Typography sx={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)', flex: 1 }}>
+                </p>
+                <div className="flex items-center gap-1 px-2 py-1 rounded-[11px] bg-[var(--field)] border border-[var(--field-line)] min-h-[40px]">
+                  <span className="inline-flex text-[var(--accent)]"><Person size={16} strokeWidth={1.75} /></span>
+                  <p className="cn-text-body1 text-[12.5px] font-medium text-[var(--ink)] flex-1">
                     {currentUser.name}
-                  </Typography>
+                  </p>
                   {currentUser.roleLabel && (
                     <Chip
                       label={currentUser.roleLabel}
@@ -362,8 +352,8 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                       }}
                     />
                   )}
-                </Box>
-              </Box>
+                </div>
+              </div>
             ) : (
               /* Fallback: ancien Select si currentUser pas fourni (compatibilité) */
               <Controller
@@ -387,24 +377,24 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                         displayEmpty
                         notched
                         renderValue={() => (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <div className="flex items-center gap-1">
                             <Box component="span" sx={{ display: 'inline-flex', color: hasValue ? 'var(--accent)' : 'var(--faint)' }}><Person size={16} strokeWidth={1.75} /></Box>
                             <Typography sx={{ fontSize: '12.5px', color: hasValue ? 'var(--body)' : 'var(--faint)' }}>
                               {hasValue
                                 ? `${selectedUser.firstName} ${selectedUser.lastName}`
                                 : t('serviceRequests.fields.selectRequestor')}
                             </Typography>
-                          </Box>
+                          </div>
                         )}
                       >
                         {users.map((u) => (
                           <MenuItem key={u.id} value={u.id}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
-                              <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                            <div className="flex items-center gap-1">
+                              <span className="inline-flex text-[var(--accent)]"><Person size={16} strokeWidth={1.75} /></span>
+                              <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                                 {u.firstName} {u.lastName}
-                              </Typography>
-                            </Box>
+                              </p>
+                            </div>
                           </MenuItem>
                         ))}
                       </Select>
@@ -417,7 +407,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
               />
             )}
           </Box>
-        </Box>
+        </div>
 
         {/* Chips caractéristiques du logement */}
         {propertyTags.length > 0 && (

@@ -127,7 +127,7 @@ const CreateWizard: React.FC<{
         {step === 4 && <FinalizeStep form={form} />}
 
         {form.error && (
-          <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--err)' }}>{form.error}</Typography>
+          <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--err)]">{form.error}</p>
         )}
       </Box>
 

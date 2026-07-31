@@ -8,7 +8,6 @@
      prix par nuit (replié au-delà de quelques nuits).
    ============================================================ */
 import React from 'react';
-import { Box, Typography } from '@mui/material';
 import { SurfaceCard, Overline, formatMoney } from './shared';
 
 interface PerNight {
@@ -41,49 +40,33 @@ export const QuoteResult: React.FC<{ data: QuoteData }> = ({ data }) => {
   return (
     <SurfaceCard sx={{ borderColor: 'var(--accent)' }}>
       {/* En-tête : libellé + total */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 1.5 }}>
-        <Box sx={{ minWidth: 0 }}>
+      <div className="flex items-end justify-between gap-2">
+        <div className="min-w-0">
           <Overline>Devis{data.propertyName ? ` · ${data.propertyName}` : ''}</Overline>
-          <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', mt: 0.25 }}>
+          <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums mt-0.5">
             {formatRange(data.from, data.to)}
             {nights > 0 && ` · ${nights} nuit${nights > 1 ? 's' : ''}`}
-          </Typography>
-        </Box>
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '1.5rem',
-            fontWeight: 600,
-            lineHeight: 1,
-            letterSpacing: '-0.02em',
-            color: 'var(--ink)',
-            fontVariantNumeric: 'tabular-nums',
-            whiteSpace: 'nowrap',
-          }}
-        >
+          </p>
+        </div>
+        <p className="cn-text-body1 font-[var(--font-display)] text-[1.5rem] font-semibold leading-[1] tracking-[-0.02em] text-[var(--ink)] tabular-nums whitespace-nowrap">
           {formatMoney(data.total, data.currency)}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {/* Détail par nuit */}
       {perNight.length > 0 && (
-        <Box sx={{ mt: 1.25, pt: 1, borderTop: '1px solid var(--line)' }}>
+        <div className="mt-2 pt-1.5 border-t border-[var(--line)]">
           {perNight.map((night) => (
-            <Box
-              key={night.date}
-              sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', py: 0.4 }}
-            >
-              <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+            <div className="flex justify-between items-baseline py-0.5" key={night.date}>
+              <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
                 {new Date(night.date).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' })}
-              </Typography>
-              <Typography
-                sx={{ fontSize: '12.5px', color: 'var(--body)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}
-              >
+              </p>
+              <p className="cn-text-body1 text-[12.5px] text-[var(--body)] font-medium tabular-nums">
                 {formatMoney(night.price, data.currency)}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           ))}
-        </Box>
+        </div>
       )}
     </SurfaceCard>
   );

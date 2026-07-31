@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, CircularProgress, Typography, Alert } from '@mui/material';
+import { CircularProgress, Alert } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
 interface ThemeSafetyWrapperProps {
@@ -51,43 +51,30 @@ export default function ThemeSafetyWrapper({ children }: ThemeSafetyWrapperProps
 
   if (themeError) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        height: '100vh',
-        p: 3
-      }}>
+      <div className="flex flex-col items-center justify-center h-[100vh] p-4">
         <Alert severity="error" sx={{ mb: 2, maxWidth: 600 }}>
-          <Typography variant="h6" gutterBottom>
+          <h6 className="cn-text-h6 mb-[0.35em]">
             Erreur de thème détectée
-          </Typography>
-          <Typography variant="body1">
+          </h6>
+          <p className="cn-text-body1">
             {themeError}
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 1 }}>
+          </p>
+          <p className="cn-text-body2 mt-1.5">
             Veuillez rafraîchir la page ou contacter l'administrateur.
-          </Typography>
+          </p>
         </Alert>
-      </Box>
+      </div>
     );
   }
 
   if (!themeReady) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        height: '100vh' 
-      }}>
+      <div className="flex flex-col items-center justify-center h-[100vh]">
         <CircularProgress size={60} sx={{ mb: 2 }} />
-        <Typography variant="h6" color="text.secondary">
+        <h6 className="cn-text-h6 text-muted-foreground">
           Chargement du thème...
-        </Typography>
-      </Box>
+        </h6>
+      </div>
     );
   }
 

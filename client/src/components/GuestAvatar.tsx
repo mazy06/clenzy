@@ -48,23 +48,9 @@ export default function GuestAvatar({ name, photoUrl, size = 26, sx }: GuestAvat
     >
       {getGuestInitials(name)}
       {photoUrl && (
-        <Box
-          component="img"
-          src={photoUrl}
-          alt=""
-          loading="lazy"
-          onError={(e) => {
+        <img className="absolute inset-[0px] w-full h-full object-cover rounded-[50%]" src={photoUrl} alt="" loading="lazy" onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = 'none';
-          }}
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            borderRadius: '50%',
-          }}
-        />
+          }} />
       )}
     </Box>
   );

@@ -134,9 +134,9 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+                <span className="inline-flex text-muted-foreground opacity-60">
                   <Search size={14} strokeWidth={1.75} />
-                </Box>
+                </span>
               </InputAdornment>
             ),
           }}
@@ -148,9 +148,9 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
 
       {/* Variables systeme (HTML-safe, non insertables) */}
       {systemVariablesUsed.length > 0 && (
-        <Box>
+        <div>
           <SectionHeading label="VARIABLES SYSTÈME" tone={TONES.err} />
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+          <div className="flex flex-wrap gap-0.5">
             {systemVariablesUsed.map((key) => (
               <Tooltip
                 key={key}
@@ -169,32 +169,32 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
                 />
               </Tooltip>
             ))}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* Groupes user-insertable, chacun avec sa couleur */}
       {groupedFiltered.length === 0 ? (
-        <Box sx={{ py: 3, textAlign: 'center', color: 'text.disabled' }}>
-          <Typography variant="caption">Aucune variable ne correspond à « {query} »</Typography>
-        </Box>
+        <div className="py-4 text-center text-muted-foreground opacity-60">
+          <span className="cn-text-caption">Aucune variable ne correspond à « {query} »</span>
+        </div>
       ) : (
         groupedFiltered.map((group) => (
-          <Box key={group.category}>
+          <div key={group.category}>
             <SectionHeading label={group.def.label} tone={group.def.tone} />
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+            <div className="flex flex-wrap gap-0.5">
               {group.items.map((v) => {
                 const isUsed = usedKeys.has(v.key);
                 return (
                   <Tooltip
                     key={v.key}
                     title={
-                      <Box>
-                        <Box sx={{ fontWeight: 600, mb: 0.5 }}>{v.description}</Box>
-                        <Box sx={{ fontFamily: 'monospace', fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)' }}>
+                      <div>
+                        <div className="font-semibold mb-0.5">{v.description}</div>
+                        <div className="font-mono text-[0.7rem] text-[rgba(255,255,255,0.7)]">
                           ex. « {v.example} »
-                        </Box>
-                      </Box>
+                        </div>
+                      </div>
                     }
                     arrow
                     placement="left"
@@ -220,21 +220,21 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
                   </Tooltip>
                 );
               })}
-            </Box>
-          </Box>
+            </div>
+          </div>
         ))
       )}
 
       {/* Detail des variables (optionnel — pattern MessageTemplateEditor) */}
       {showDetails && variables.length > 0 && (
-        <Box>
+        <div>
           <Divider sx={{ mb: 1.5 }} />
-          <Typography variant="caption" fontWeight={600} display="block" gutterBottom>
+          <span className="cn-text-caption font-semibold block mb-[0.35em]">
             Détail des variables
-          </Typography>
-          <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
+          </span>
+          <div className="max-h-[200px] overflow-y-auto">
             {variables.map((v) => (
-              <Box key={v.key} sx={{ mb: 0.5 }}>
+              <div className="mb-0.5" key={v.key}>
                 <Typography
                   variant="caption"
                   component="span"
@@ -243,13 +243,13 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
                 >
                   {`{${v.key}}`}
                 </Typography>
-                <Typography variant="caption" component="span" color="text.secondary">
+                <span className="cn-text-caption text-muted-foreground">
                   {' — '}{v.description}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             ))}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
     </Stack>
   );
@@ -263,21 +263,12 @@ interface SectionHeadingProps {
 }
 
 const SectionHeading: React.FC<SectionHeadingProps> = ({ label, tone }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+  <div className="flex items-center gap-1 mb-1">
     <Box sx={{ width: 12, height: 2, bgcolor: tone.c, borderRadius: 1 }} />
-    <Typography
-      variant="caption"
-      component="div"
-      sx={{
-        fontSize: '0.65rem',
-        fontWeight: 600,
-        letterSpacing: '0.08em',
-        color: 'text.secondary',
-      }}
-    >
+    <div className="cn-text-caption text-[0.65rem] font-semibold tracking-[0.08em] text-muted-foreground">
       {label}
-    </Typography>
-  </Box>
+    </div>
+  </div>
 );
 
 export default VariablePicker;

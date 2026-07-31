@@ -62,9 +62,9 @@ export function SupervisionReviewDrafts({ propertyId }: { propertyId: number }) 
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+      <div className="flex justify-center py-3">
         <CircularProgress size={18} />
-      </Box>
+      </div>
     );
   }
 
@@ -77,7 +77,7 @@ export function SupervisionReviewDrafts({ propertyId }: { propertyId: number }) 
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <div className="flex flex-col gap-2">
       <Typography
         sx={{
           fontSize: 11,
@@ -119,7 +119,7 @@ export function SupervisionReviewDrafts({ propertyId }: { propertyId: number }) 
             aria-label={t('supervision.reviewDrafts.title', 'Brouillon de réponse')}
             sx={{ mb: 1, '& .MuiInputBase-input': { fontSize: 12.5, lineHeight: 1.5 } }}
           />
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div className="flex justify-end">
             <Button
               size="small"
               variant="contained"
@@ -133,9 +133,9 @@ export function SupervisionReviewDrafts({ propertyId }: { propertyId: number }) 
                 t('supervision.reviewDrafts.publish', 'Publier')
               )}
             </Button>
-          </Box>
+          </div>
         </Box>
       ))}
-    </Box>
+    </div>
   );
 }

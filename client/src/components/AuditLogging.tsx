@@ -1,27 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Chip,
-  IconButton,
-  Tooltip,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
-  Grid,
-  Divider,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
+import { Box, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Chip, IconButton, Tooltip, TextField, FormControl, InputLabel, Select, MenuItem, Button, Grid, Divider, Alert, CircularProgress } from '@mui/material';
 import {
   Info,
   Warning,
@@ -79,21 +57,21 @@ const PAGE_SIZE = 15;
 const getEventTypeIcon = (eventType: string) => {
   switch (eventType) {
     case 'LOGIN_SUCCESS':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--ok)]"><CheckCircle size={20} strokeWidth={1.75} /></span>;
     case 'LOGIN_FAILURE':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Warning size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--warn)]"><Warning size={20} strokeWidth={1.75} /></span>;
     case 'PERMISSION_DENIED':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Lock size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--err)]"><Lock size={20} strokeWidth={1.75} /></span>;
     case 'DATA_ACCESS':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Visibility size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--info)]"><Visibility size={20} strokeWidth={1.75} /></span>;
     case 'ADMIN_ACTION':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><AdminPanelSettings size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--info)]"><AdminPanelSettings size={20} strokeWidth={1.75} /></span>;
     case 'SECRET_ROTATION':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><VpnKey size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--info)]"><VpnKey size={20} strokeWidth={1.75} /></span>;
     case 'SUSPICIOUS_ACTIVITY':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><ReportProblem size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--err)]"><ReportProblem size={20} strokeWidth={1.75} /></span>;
     default:
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Info size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--info)]"><Info size={20} strokeWidth={1.75} /></span>;
   }
 };
 
@@ -203,13 +181,13 @@ const AuditLogging: React.FC = () => {
   const totalElements = page?.totalElements ?? 0;
 
   return (
-    <Box>
+    <div>
       {/* Filtres */}
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom sx={{ color: 'var(--ink)' }}>
+          <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
             Filtres
-          </Typography>
+          </h6>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="small">
@@ -272,9 +250,9 @@ const AuditLogging: React.FC = () => {
       <Card variant="outlined">
         <CardContent>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6" sx={{ color: 'var(--ink)' }}>
+            <h6 className="cn-text-h6 text-[var(--ink)]">
               Logs d'audit ({totalElements} entrées)
-            </Typography>
+            </h6>
             {totalPages > 1 && (
               <Chip
                 label={`Page ${currentPage + 1} sur ${totalPages}`}
@@ -297,9 +275,9 @@ const AuditLogging: React.FC = () => {
                     <ListItemText
                       primary={
                         <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                          <Typography variant="subtitle2" component="span">
+                          <span className="cn-text-subtitle2">
                             {log.action || formatEventType(log.eventType)}
-                          </Typography>
+                          </span>
                           <Chip
                             label={formatEventType(log.eventType)}
                             size="small"
@@ -317,40 +295,28 @@ const AuditLogging: React.FC = () => {
                       secondary={
                         <Box mt={1}>
                           {log.details && (
-                            <Typography variant="body2" sx={{ color: 'var(--body)' }} gutterBottom>
+                            <p className="cn-text-body2 text-[var(--body)] mb-[0.35em]">
                               {log.details}
-                            </Typography>
+                            </p>
                           )}
                           {/* Meta technique : mono compact sur fond --field */}
-                          <Box
-                            sx={{
-                              display: 'inline-flex',
-                              gap: 2,
-                              flexWrap: 'wrap',
-                              mt: 0.5,
-                              px: 1,
-                              py: 0.5,
-                              bgcolor: 'var(--field)',
-                              border: '1px solid var(--field-line)',
-                              borderRadius: '8px',
-                            }}
-                          >
+                          <div className="inline-flex gap-3 flex-wrap mt-0.5 px-1.5 py-0.5 bg-[var(--field)] border border-[var(--field-line)] rounded-[8px]">
                             {log.actorEmail && (
-                              <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--muted)' }}>
+                              <span className="cn-text-caption font-mono text-[11px] text-[var(--muted)]">
                                 {log.actorEmail}
-                              </Typography>
+                              </span>
                             )}
                             {log.actorIp && (
-                              <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--muted)' }}>
+                              <span className="cn-text-caption font-mono text-[11px] text-[var(--muted)]">
                                 IP {log.actorIp}
-                              </Typography>
+                              </span>
                             )}
                             {log.timestamp && (
-                              <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                              <span className="cn-text-caption font-mono text-[11px] text-[var(--muted)] tabular-nums">
                                 {new Date(log.timestamp).toLocaleString()}
-                              </Typography>
+                              </span>
                             )}
-                          </Box>
+                          </div>
                         </Box>
                       }
                     />
@@ -372,7 +338,7 @@ const AuditLogging: React.FC = () => {
           )}
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

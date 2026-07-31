@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Box, Button, Typography, IconButton, Alert, CircularProgress, Tooltip,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, IconButton, Alert, CircularProgress, Tooltip } from '@mui/material';
 import { Handshake, Check, Close } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -140,28 +137,21 @@ const ManagementContractFormModal: React.FC<ManagementContractFormModalProps> = 
       fullWidth
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 3, pt: 2.5, pb: 2 }}>
-        <Box
-          component="span"
-          sx={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 32, height: 32, borderRadius: '10px', flexShrink: 0,
-            bgcolor: 'var(--accent-soft)', color: 'var(--accent)',
-          }}
-        >
+        <span className="inline-flex items-center justify-center w-[32px] h-[32px] rounded-[10px] shrink-0 bg-[var(--accent-soft)] text-[var(--accent)]">
           <Handshake size={18} strokeWidth={1.75} />
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
+        </span>
+        <div className="flex-1 min-w-0">
           <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 600, lineHeight: 1.25, textWrap: 'balance', color: 'var(--ink)' }}>
             {isEdit
               ? t('contracts.editTitle', 'Modifier le contrat')
               : t('contracts.createTitle', 'Créer un contrat de gestion')}
           </Typography>
-          <Typography sx={{ fontSize: '0.78rem', color: 'var(--muted)', mt: 0.25 }}>
+          <p className="cn-text-body1 text-[0.78rem] text-[var(--muted)] mt-0.5">
             {isEdit && contract
               ? contract.contractNumber
               : t('contracts.modalSubtitle', "L'encaissement et la commission pilotent la répartition automatique des revenus.")}
-          </Typography>
-        </Box>
+          </p>
+        </div>
         <Tooltip title={t('contracts.cancel', 'Annuler')}>
           <IconButton
             size="small"
@@ -180,9 +170,9 @@ const ManagementContractFormModal: React.FC<ManagementContractFormModalProps> = 
 
       <DialogContent dividers sx={{ px: 3, py: 3 }}>
         {loadingProperties && properties.length === 0 ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+          <div className="flex justify-center py-9">
             <CircularProgress size={28} />
-          </Box>
+          </div>
         ) : (
           <ManagementContractFormFields
             form={form}

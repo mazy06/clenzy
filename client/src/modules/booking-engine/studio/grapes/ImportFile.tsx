@@ -121,12 +121,12 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-      <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', lineHeight: 1.5 }}>
+    <div className="flex flex-col gap-2">
+      <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.5]">
         Déposez ou sélectionnez un fichier <strong>.html</strong>, <strong>.htm</strong>,{' '}
         <strong>.json</strong> (export de builder) ou <strong>.md</strong>. Le contenu est lu localement,
         converti en HTML + styles puis assaini avant d'être chargé. Le canevas actuel sera remplacé.
-      </Box>
+      </div>
 
       {/* Input fichier masqué, piloté par la zone de dépôt et le bouton. */}
       <Box
@@ -167,17 +167,17 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
         ) : (
           <FileUp size={28} strokeWidth={1.75} style={{ color: 'var(--faint)' }} />
         )}
-        <Box sx={{ fontSize: 'var(--text-md)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>
+        <div className="text-[var(--text-md)] font-[var(--fw-semibold)] text-[var(--ink)]">
           {loading
             ? 'Lecture du fichier…'
             : fileName
               ? fileName
               : 'Glissez un fichier ici, ou cliquez pour parcourir'}
-        </Box>
+        </div>
         {!loading && !fileName ? (
-          <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--faint)' }}>
+          <div className="text-[var(--text-sm)] text-[var(--faint)]">
             .html · .htm · .json · .md
-          </Box>
+          </div>
         ) : null}
       </ButtonBase>
 
@@ -188,24 +188,19 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
       ) : null}
 
       {warnings.length ? (
-        <Box
-          sx={{
-            fontSize: 'var(--text-sm)', color: 'var(--muted)', bgcolor: 'var(--field)',
-            border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', px: 1.5, py: 1.25,
-          }}
-        >
-          <Box sx={{ fontWeight: 'var(--fw-semibold)', color: 'var(--ink)', mb: 0.5 }}>
+        <div className="text-[var(--text-sm)] text-[var(--muted)] bg-[var(--field)] border border-[var(--line)] rounded-[var(--radius-md)] px-2 py-2">
+          <div className="font-[var(--fw-semibold)] text-[var(--ink)] mb-0.5">
             Conversion partielle — relecture conseillée
-          </Box>
-          <Box component="ul" sx={{ m: 0, pl: 2.25, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+          </div>
+          <ul className="m-0 ps-3.5 flex flex-col gap-0.5">
             {warnings.map((w, i) => (
               <li key={i}>{w}</li>
             ))}
-          </Box>
-        </Box>
+          </ul>
+        </div>
       ) : null}
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <div className="flex justify-end">
         <ButtonBase
           onClick={openPicker}
           disabled={loading}
@@ -225,7 +220,7 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
           )}
           {loading ? 'Lecture en cours…' : 'Choisir un fichier'}
         </ButtonBase>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

@@ -1,20 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  Button,
-  IconButton,
-  Chip,
-  Switch,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  CircularProgress,
-  Divider,
-} from '@mui/material';
+import { Box, Paper, Button, IconButton, Chip, Switch, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, CircularProgress, Divider } from '@mui/material';
 import { Add as AddIcon } from '../../icons';
 import { Edit as EditIcon } from '../../icons';
 import { Delete as DeleteIcon } from '../../icons';
@@ -88,22 +73,22 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
   return (
     <Paper sx={CARD_SX}>
       {/* Header — overline de section (pattern pcard) */}
-      <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1 }}>
+      <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em] mb-1.5">
         {t('dynamicPricing.ratePlan.title')}
-      </Typography>
+      </p>
 
       {/* Loading */}
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+        <div className="flex justify-center py-3">
           <CircularProgress size={22} />
-        </Box>
+        </div>
       )}
 
       {/* Empty state */}
       {!loading && ratePlans.length === 0 && (
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', py: 2, textAlign: 'center' }}>
+        <p className="cn-text-body2 text-muted-foreground text-[0.75rem] py-3 text-center">
           {t('dynamicPricing.ratePlan.empty')}
-        </Typography>
+        </p>
       )}
 
       {/* Plan list */}
@@ -140,21 +125,21 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
             ); })()}
 
             {/* Name + date range */}
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" fontWeight={600} noWrap sx={{ fontSize: '0.8125rem' }}>
+            <div className="flex-1 min-w-0">
+              <p className="cn-text-body2 font-semibold truncate text-[0.8125rem]">
                 {plan.name}
-              </Typography>
+              </p>
               {formatDateRange(plan) && (
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+                <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
                   {formatDateRange(plan)}
-                </Typography>
+                </span>
               )}
-            </Box>
+            </div>
 
             {/* Price — display tabular-nums */}
-            <Typography variant="body2" fontWeight={600} sx={{ minWidth: 60, textAlign: 'right', fontSize: '0.8125rem', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', color: 'var(--ink)' }}>
+            <p className="cn-text-body2 font-semibold min-w-[60px] text-end text-[0.8125rem] font-[var(--font-display)] tabular-nums text-[var(--ink)]">
               <Money value={plan.nightlyPrice} from={plan.currency || 'EUR'} />
-            </Typography>
+            </p>
 
             {/* Active toggle */}
             <Switch

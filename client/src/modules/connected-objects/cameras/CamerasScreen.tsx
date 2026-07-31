@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Box, Typography, Button, Paper, alpha, useTheme, Skeleton } from '@mui/material';
+import { Box, Button, Paper, alpha, useTheme, Skeleton } from '@mui/material';
 import { PhotoCamera, Add, Home } from '../../../icons';
 import PageHeader from '../../../components/PageHeader';
 import EmptyState from '../../../components/EmptyState';
@@ -78,7 +78,7 @@ export default function CamerasScreen() {
   );
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={t('connectedObjects.cameras.title', 'Caméras')}
         subtitle={t('connectedObjects.cameras.subtitle', 'Supervision vidéo des logements.')}
@@ -94,10 +94,10 @@ export default function CamerasScreen() {
         sx={{ p: 1.25, mb: 1.5, borderRadius: 'var(--radius-lg)', borderStyle: 'dashed', borderColor: alpha(ACCENT, 0.4),
           bgcolor: alpha(ACCENT, theme.palette.mode === 'dark' ? 0.08 : 0.04), display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}
       >
-        <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1, minWidth: 220 }}>
+        <p className="cn-text-body2 text-muted-foreground flex-1 min-w-[220px]">
           Cliquez sur une caméra pour lancer la <strong>lecture en direct</strong>. Une seule lecture à la fois
           (performances) : ouvrir une autre caméra arrête la précédente. <strong>RTSP recommandé</strong> pour une lecture fluide.
-        </Typography>
+        </p>
       </Paper>
 
       {isLoading ? (
@@ -113,12 +113,12 @@ export default function CamerasScreen() {
         />
       ) : (
         groups.map(([propertyName, items]) => (
-          <Box key={propertyName} sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.875 }}>
-              <Box component="span" sx={{ color: 'text.secondary', display: 'inline-flex' }}><Home size={15} strokeWidth={1.75} /></Box>
-              <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'text.primary' }}>{propertyName}</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>· {items.length} caméra{items.length > 1 ? 's' : ''}</Typography>
-            </Box>
+          <div className="mb-3" key={propertyName}>
+            <div className="flex items-center gap-1 mb-1.5">
+              <span className="text-muted-foreground inline-flex"><Home size={15} strokeWidth={1.75} /></span>
+              <p className="cn-text-body1 font-semibold text-[0.9375rem] text-foreground">{propertyName}</p>
+              <span className="cn-text-caption text-muted-foreground opacity-60">· {items.length} caméra{items.length > 1 ? 's' : ''}</span>
+            </div>
             <Box sx={GRID}>
               {items.map((c) => (
                 <CameraTile
@@ -131,7 +131,7 @@ export default function CamerasScreen() {
                 />
               ))}
             </Box>
-          </Box>
+          </div>
         ))
       )}
 
@@ -149,6 +149,6 @@ export default function CamerasScreen() {
         severity="error"
         loading={deleting}
       />
-    </Box>
+    </div>
   );
 }

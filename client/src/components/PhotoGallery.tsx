@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Typography,
-  ImageList,
-  ImageListItem,
-  ImageListItemBar,
-  IconButton,
-  CircularProgress,
-} from '@mui/material';
+import { Box, ImageList, ImageListItem, ImageListItemBar, IconButton, CircularProgress } from '@mui/material';
 import {
   PhotoCamera as PhotoCameraIcon,
   Download as DownloadIcon,
@@ -66,21 +58,12 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   // État vide
   if (photos.length === 0) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          py: 4,
-          color: 'text.secondary',
-        }}
-      >
-        <Box component="span" sx={{ display: 'inline-flex', mb: 1, opacity: 0.5 }}><PhotoCameraIcon size={48} strokeWidth={1.5} /></Box>
-        <Typography variant="body2" color="text.secondary">
+      <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
+        <span className="inline-flex mb-1.5 opacity-50"><PhotoCameraIcon size={48} strokeWidth={1.5} /></span>
+        <p className="cn-text-body2 text-muted-foreground">
           {emptyMessage}
-        </Typography>
-      </Box>
+        </p>
+      </div>
     );
   }
 
@@ -92,7 +75,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   const canDelete = onDelete && photoIds && photoIds.length === photos.length;
 
   return (
-    <Box>
+    <div>
       <ImageList cols={columns} gap={8} sx={{ width: '100%', height: 'auto' }}>
         {displayPhotos.map((photoUrl, index) => {
           const isLastWithOverflow = hasOverflow && index === displayPhotos.length - 1;
@@ -131,13 +114,9 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
 
               {/* Loading overlay when deleting */}
               {isDeleting && (
-                <Box sx={{
-                  position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  bgcolor: 'rgba(255,255,255,0.6)',
-                }}>
+                <div className="absolute top-[0px] start-[0px] end-[0px] bottom-[0px] flex items-center justify-center bg-[rgba(255,255,255,0.6)]">
                   <CircularProgress size={24} />
-                </Box>
+                </div>
               )}
 
               {/* Overlay "+N more" sur la dernière photo */}
@@ -152,9 +131,9 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                     justifyContent: 'center',
                   }}
                 >
-                  <Typography variant="h6" sx={{ color: 'white', fontWeight: 700 }}>
+                  <h6 className="cn-text-h6 text-[white] font-bold">
                     +{overflowCount}
-                  </Typography>
+                  </h6>
                 </Box>
               )}
 
@@ -170,7 +149,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                   position="top"
                   actionPosition="right"
                   actionIcon={
-                    <Box sx={{ display: 'flex', gap: 0.25 }}>
+                    <div className="flex gap-0.5">
                       {canDelete && photoId != null && (
                         <IconButton
                           size="small"
@@ -195,7 +174,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                           <DownloadIcon size={20} strokeWidth={1.75} />
                         </IconButton>
                       )}
-                    </Box>
+                    </div>
                   }
                 />
               )}
@@ -211,7 +190,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
         initialIndex={lightboxIndex}
         onClose={() => setLightboxOpen(false)}
       />
-    </Box>
+    </div>
   );
 };
 

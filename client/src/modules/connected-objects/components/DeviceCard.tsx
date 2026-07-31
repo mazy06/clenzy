@@ -78,7 +78,7 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
       }}
     >
       {/* En-tête : badge type + nom (+ pièce) | indicateur en ligne */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0 }}>
+      <div className="flex items-start gap-1.5 min-w-0">
         {device.kind === 'camera' ? (
           // Caméra : aperçu (snapshot) du flux. Repli sur l'icône (placée derrière) si hors
           // ligne, pas de snapshot, ou image en erreur (onError masque l'img → l'icône réapparaît).
@@ -92,14 +92,7 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
           >
             {meta.icon(iconSize)}
             {device.online && device.previewUrl && (
-              <Box
-                component="img"
-                src={device.previewUrl}
-                alt=""
-                loading="lazy"
-                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-              />
+              <img className="absolute inset-[0px] w-full h-full object-cover" src={device.previewUrl} alt="" loading="lazy" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
             )}
           </Box>
         ) : (
@@ -114,46 +107,46 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
             {meta.icon(iconSize)}
           </Box>
         )}
-        <Box sx={{ minWidth: 0, flex: 1 }}>
+        <div className="min-w-0 flex-1">
           <Typography
             onClick={() => onAction?.(device.uid, 'view')}
             sx={{ fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.25, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer', '&:hover': { color: 'var(--accent)' } }}
           >
             {device.name}
           </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span className="cn-text-caption text-muted-foreground block overflow-hidden text-ellipsis whitespace-nowrap">
             {device.roomName ? `${device.roomName} · ` : ''}{meta.singular}
-          </Typography>
-        </Box>
+          </span>
+        </div>
         <Tooltip title={device.online ? 'En ligne' : 'Hors ligne'} arrow>
           <Box component="span" sx={{ color: device.online ? 'success.main' : 'text.disabled', display: 'inline-flex', flexShrink: 0, mt: 0.25 }}>
             {device.online ? <Wifi size={14} strokeWidth={1.75} /> : <WifiOff size={14} strokeWidth={1.75} />}
           </Box>
         </Tooltip>
-      </Box>
+      </div>
 
       {/* État + métrique principale */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-1 flex-wrap">
         <StatusPill level={device.statusLevel} label={device.statusLabel} pulse={device.online} />
         {device.kind === 'lock' ? (
           <BatteryIndicator level={device.battery} />
         ) : (
           <>
             {device.primaryMetric && (
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+              <span className="cn-text-caption text-muted-foreground tabular-nums">
                 {device.primaryMetric.label} : <strong>{device.primaryMetric.value}</strong>
-              </Typography>
+              </span>
             )}
             {device.battery != null && <BatteryIndicator level={device.battery} />}
           </>
         )}
-      </Box>
+      </div>
 
       {/* Code d'accès (serrures uniquement) */}
       {device.kind === 'lock' && <AccessCodeSection deviceId={device.id} />}
 
       {/* Action rapide contextualisée */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 'auto', pt: 0.25 }}>
+      <div className="flex items-center gap-1 mt-auto pt-0.5">
         {device.kind === 'lock' ? (
           <Button
             size="small"
@@ -205,7 +198,7 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
             </Menu>
           </>
         )}
-      </Box>
+      </div>
 
       {/* Confirmation de suppression (geste destructif → dialog explicite). */}
       <Dialog

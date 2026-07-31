@@ -50,22 +50,9 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
           padding: '10px 16px',
         }}
       >
-        <Box
-          component="span"
-          sx={{
-            fontWeight: 700,
-            fontSize: '10.5px',
-            color: 'var(--faint)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
+        <span className="font-bold text-[10.5px] text-[var(--faint)] uppercase tracking-[0.05em] overflow-hidden text-ellipsis whitespace-nowrap tabular-nums">
           {propertyCount} {propertyCount > 1 ? 'logements' : 'logement'}
-        </Box>
+        </span>
       </Box>
 
       {/* Day row (spec .pl-day : padding 8px 0, hairlines, dernier sans) :

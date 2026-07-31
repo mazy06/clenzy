@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Box } from '@mui/material';
 import {
   Home,
   TrendingUp,
@@ -85,8 +84,8 @@ const PropertiesPage: React.FC = () => {
 
   return (
     <PageHeaderActionsProvider slot={headerActionsSlot}>
-      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-        <Box sx={{ flexShrink: 0 }}>
+      <div className="flex flex-col flex-1 min-h-0">
+        <div className="shrink-0">
           <PageHeader
             title={title}
             subtitle={subtitle}
@@ -94,10 +93,10 @@ const PropertiesPage: React.FC = () => {
             backPath="/dashboard"
             showBackButton={false}
             actions={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <div className="flex items-center gap-1.5">
                 {headerActionsPortal}
                 <div ref={setActionsContainer} style={PORTAL_STYLE} />
-              </Box>
+              </div>
             }
             filters={<div ref={setFiltersContainer} style={PORTAL_STYLE} />}
           />
@@ -107,7 +106,7 @@ const PropertiesPage: React.FC = () => {
             onChange={handleTabChange}
             inlineActions={<div ref={setTabInlineContainer} style={PORTAL_STYLE} />}
           />
-        </Box>
+        </div>
 
         {/* ── Tab content ── */}
         {activeTab === TAB_PROPERTIES && (
@@ -122,7 +121,7 @@ const PropertiesPage: React.FC = () => {
         {activeTab === TAB_CONNECTED_OBJECTS && (
           <ConnectedObjectsHub embedded actionsContainer={actionsContainer} />
         )}
-      </Box>
+      </div>
     </PageHeaderActionsProvider>
   );
 };

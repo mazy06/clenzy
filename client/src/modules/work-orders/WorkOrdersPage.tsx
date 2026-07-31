@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Box } from '@mui/material';
 import {
   Assignment,
   Build,
@@ -69,8 +68,8 @@ const WorkOrdersPage: React.FC = () => {
 
   // ── Both tabs visible ─────────────────────────────────────────────────────
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-      <Box sx={{ flexShrink: 0 }}>
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div className="shrink-0">
         <PageHeader
           /* Titre = libellé de l'onglet actif (Demandes de service / Interventions)
              pour lever l'ambiguïté : le header indique clairement où l'on se trouve. */
@@ -81,14 +80,14 @@ const WorkOrdersPage: React.FC = () => {
           actions={<div ref={setActionsContainer} style={PORTAL_STYLE} />}
           filters={<div ref={setFiltersContainer} style={PORTAL_STYLE} />}
         />
-      </Box>
-      <Box sx={{ flexShrink: 0 }}>
+      </div>
+      <div className="shrink-0">
         <PageTabs
           options={tabs}
           value={activeTab}
           onChange={handleTabChange}
         />
-      </Box>
+      </div>
 
       {/* ── Tab content — fills remaining space ── */}
       {activeTab === TAB_SERVICE_REQUESTS && (
@@ -100,7 +99,7 @@ const WorkOrdersPage: React.FC = () => {
       {activeTab === TAB_ISSUES && canViewIssues && (
         <IssuesList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
       )}
-    </Box>
+    </div>
   );
 };
 

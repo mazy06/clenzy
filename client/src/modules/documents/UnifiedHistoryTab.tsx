@@ -371,7 +371,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
   }, [highlightId, docsLoading, generations, openPdfPreview]);
 
   return (
-    <Box>
+    <div>
       {actionError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>{actionError}</Alert>}
       {verifyResult && (
         <Alert
@@ -384,7 +384,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
       )}
 
       {/* Filtres — primitive partagée FilterChipRow ('' = Tous) */}
-      <Box sx={{ mb: 2 }}>
+      <div className="mb-3">
         <FilterChipRow
           options={[
             { value: 'messages', label: t('documents.history.filterMessages'), color: 'var(--info)', count: messageLogs.length },
@@ -396,12 +396,12 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           allCount={messageLogs.length + docTotalElements}
           size="compact"
         />
-      </Box>
+      </div>
 
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+        <div className="flex justify-center p-6">
           <CircularProgress />
-        </Box>
+        </div>
       ) : unifiedRows.length === 0 ? (
         <EmptyState
           icon={<History />}
@@ -459,8 +459,8 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                   </Tooltip>
 
                   {/* Nom + méta */}
-                  <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
                       <Typography noWrap sx={{ fontSize: '13px', fontWeight: 600, color: isFailed ? 'var(--err)' : 'var(--ink)' }}>
                         {row.name}
                       </Typography>
@@ -477,14 +477,14 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                           }}
                         />
                       )}
-                    </Box>
+                    </div>
                     <Typography noWrap sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: '1px' }}>
                       {isFailed && row.errorMessage ? `${row.errorMessage} · ${meta}` : meta}
                     </Typography>
-                  </Box>
+                  </div>
 
                   {/* Statut -soft + actions */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+                  <div className="flex items-center gap-1 shrink-0">
                     <Tooltip title={row.errorMessage || ''} arrow>
                       <Chip label={row.status} size="small" sx={{ color: row.statusTone.c, bgcolor: row.statusTone.bg }} />
                     </Tooltip>
@@ -579,7 +579,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                         )}
                         {row.correctsId && (
                           <Tooltip title={`Correction du document #${row.correctsId}`}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><VerifiedUser size={16} strokeWidth={1.75} /></Box>
+                            <span className="inline-flex text-[var(--muted)]"><VerifiedUser size={16} strokeWidth={1.75} /></span>
                           </Tooltip>
                         )}
                         {['COMPLETED', 'SENT', 'LOCKED'].includes(row.documentGeneration.status) && (
@@ -602,7 +602,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                         )}
                       </>
                     )}
-                  </Box>
+                  </div>
                 </Box>
               );
             })}
@@ -627,40 +627,32 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
         <DialogTitle>Details du message</DialogTitle>
         <DialogContent>
           {detailLog && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 1 }}>
-              <Typography variant="body2"><strong>Template :</strong> {detailLog.templateName || '—'}</Typography>
-              <Typography variant="body2"><strong>Sujet :</strong> {detailLog.subject || '—'}</Typography>
-              <Typography variant="body2"><strong>Destinataire :</strong> {detailLog.recipient}</Typography>
-              <Typography variant="body2"><strong>Voyageur :</strong> {detailLog.guestName || '—'}</Typography>
-              <Typography variant="body2"><strong>Canal :</strong> {detailLog.channel}</Typography>
-              <Typography variant="body2"><strong>Statut :</strong> {detailLog.status}</Typography>
+            <div className="flex flex-col gap-2 pt-1.5">
+              <p className="cn-text-body2"><strong>Template :</strong> {detailLog.templateName || '—'}</p>
+              <p className="cn-text-body2"><strong>Sujet :</strong> {detailLog.subject || '—'}</p>
+              <p className="cn-text-body2"><strong>Destinataire :</strong> {detailLog.recipient}</p>
+              <p className="cn-text-body2"><strong>Voyageur :</strong> {detailLog.guestName || '—'}</p>
+              <p className="cn-text-body2"><strong>Canal :</strong> {detailLog.channel}</p>
+              <p className="cn-text-body2"><strong>Statut :</strong> {detailLog.status}</p>
               {detailLog.errorMessage && (
                 <Alert severity="error" sx={{ mt: 1 }}>{detailLog.errorMessage}</Alert>
               )}
-              <Typography variant="body2"><strong>Reservation :</strong> #{detailLog.reservationId}</Typography>
-              <Typography variant="body2" color="text.secondary">
+              <p className="cn-text-body2"><strong>Reservation :</strong> #{detailLog.reservationId}</p>
+              <p className="cn-text-body2 text-muted-foreground">
                 Cree le {formatDate(detailLog.createdAt)}
                 {detailLog.sentAt && ` — Envoye le ${formatDate(detailLog.sentAt)}`}
-              </Typography>
+              </p>
 
               {/* Apercu du contenu email */}
               {detailLog.channel === 'EMAIL' && detailLog.templateId && (
                 <>
-                  <Typography variant="subtitle2" sx={{ mt: 1 }}>Contenu de l&apos;email</Typography>
+                  <h6 className="cn-text-subtitle2 mt-1.5">Contenu de l&apos;email</h6>
                   {previewLoading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                    <div className="flex justify-center py-3">
                       <CircularProgress size={24} />
-                    </Box>
+                    </div>
                   ) : previewHtml ? (
-                    <Box
-                      sx={{
-                        mt: 0.5,
-                        borderRadius: 1,
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        overflow: 'hidden',
-                      }}
-                    >
+                    <div className="mt-0.5 rounded-[1px] border border-[divider] overflow-hidden">
                       <iframe
                         sandbox=""
                         srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.6;color:${isDark ? '#e0e0e0' : '#333'};background:${isDark ? '#1e1e1e' : '#fff'};padding:16px;margin:0;word-wrap:break-word;}a{color:${isDark ? '#90caf9' : '#1976d2'};}</style></head><body>${renderServerEmailPreview(previewHtml)}</body></html>`}
@@ -671,15 +663,15 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                           border: 'none',
                         }}
                       />
-                    </Box>
+                    </div>
                   ) : (
-                    <Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic' }}>
+                    <p className="cn-text-body2 text-muted-foreground opacity-60 italic">
                       Apercu indisponible
-                    </Typography>
+                    </p>
                   )}
                 </>
               )}
-            </Box>
+            </div>
           )}
         </DialogContent>
         <DialogActions>
@@ -726,10 +718,10 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
       <Dialog open={!!editEmailLog} onClose={() => setEditEmailLog(null)} maxWidth="xs" fullWidth>
         <DialogTitle>Modifier l&apos;email du voyageur</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <p className="cn-text-body2 text-muted-foreground mb-3">
             Saisissez l&apos;email du voyageur pour {editEmailLog?.guestName || 'ce voyageur'}.
             Le message sera automatiquement renvoye apres la mise a jour.
-          </Typography>
+          </p>
           <TextField
             autoFocus
             fullWidth
@@ -766,26 +758,26 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
         <DialogTitle>{t('documents.history.pdfPreview', 'Apercu du document')}</DialogTitle>
         <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           {pdfLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+            <div className="flex justify-center items-center flex-1">
               <CircularProgress thickness={3.5} sx={{ color: 'var(--accent)' }} />
-            </Box>
+            </div>
           ) : pdfUrl ? (
             <object data={pdfUrl} type="application/pdf" width="100%" style={{ flex: 1, border: 'none', minHeight: 0 }}>
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ color: 'var(--muted)', mb: 2 }}>
+              <div className="p-4 text-center">
+                <p className="cn-text-body2 text-[var(--muted)] mb-3">
                   {t('documents.history.pdfNotSupported', 'Votre navigateur ne supporte pas la visualisation PDF.')}
-                </Typography>
+                </p>
                 <Button variant="contained" href={pdfUrl} download="document.pdf" startIcon={<Download size={16} strokeWidth={1.75} />}>
                   {t('common.download', 'Telecharger')}
                 </Button>
-              </Box>
+              </div>
             </object>
           ) : (
-            <Box sx={{ p: 3, textAlign: 'center' }}>
-              <Typography variant="body2" sx={{ color: 'var(--muted)' }}>
+            <div className="p-4 text-center">
+              <p className="cn-text-body2 text-[var(--muted)]">
                 {t('documents.history.pdfLoadError', 'Erreur lors du chargement du document')}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
         </DialogContent>
         <DialogActions>
@@ -794,7 +786,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
       </Dialog>
 
       <GenerateDialog open={generateOpen} onClose={() => setGenerateOpen(false)} onSuccess={() => setGenerateOpen(false)} />
-    </Box>
+    </div>
   );
 });
 

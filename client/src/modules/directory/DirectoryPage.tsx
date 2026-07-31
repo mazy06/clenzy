@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { Box } from '@mui/material';
 import {
   People,
   Business,
@@ -129,7 +128,7 @@ const DirectoryPage: React.FC = () => {
 
   return (
     <PageHeaderActionsProvider slot={headerActionsSlot}>
-      <Box>
+      <div>
         <PageHeader
           title={title}
           subtitle={subtitle}
@@ -137,10 +136,10 @@ const DirectoryPage: React.FC = () => {
           backPath="/dashboard"
           showBackButton={false}
           actions={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <div className="flex items-center gap-1.5">
               {headerActionsPortal}
               <div ref={setActionsContainer} style={PORTAL_STYLE} />
-            </Box>
+            </div>
           }
         />
         <PageTabs
@@ -171,7 +170,7 @@ const DirectoryPage: React.FC = () => {
         {activeTabDef?.key === 'prospection' && (
           <ProspectionPage embedded actionsContainer={actionsContainer} />
         )}
-      </Box>
+      </div>
     </PageHeaderActionsProvider>
   );
 };

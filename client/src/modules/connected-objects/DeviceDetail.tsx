@@ -37,16 +37,16 @@ export default function DeviceDetail() {
 
   if (loading && !device) {
     return (
-      <Box>
+      <div>
         <Skeleton variant="rounded" height={64} sx={{ mb: 2, borderRadius: 'var(--radius-lg)' }} />
         <Skeleton variant="rounded" height={360} sx={{ borderRadius: 'var(--radius-lg)' }} />
-      </Box>
+      </div>
     );
   }
 
   if (!device) {
     return (
-      <Box>
+      <div>
         <PageHeader title="Objet introuvable" backPath={HUB_PATH} backLabel="Objets connectés" />
         <EmptyState
           icon={<ChevronRight />}
@@ -54,7 +54,7 @@ export default function DeviceDetail() {
           description="Cet objet connecté n'existe plus ou n'est pas accessible."
           action={<Button variant="outlined" onClick={() => navigate(HUB_PATH)}>Retour aux objets connectés</Button>}
         />
-      </Box>
+      </div>
     );
   }
 
@@ -62,7 +62,7 @@ export default function DeviceDetail() {
   const subtitle = [device.propertyName, device.roomName, meta.singular].filter(Boolean).join(' · ');
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={device.name}
         subtitle={subtitle}
@@ -114,6 +114,6 @@ export default function DeviceDetail() {
           }
         />
       )}
-    </Box>
+    </div>
   );
 }

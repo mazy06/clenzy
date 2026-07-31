@@ -71,37 +71,30 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
     );
 
     return (
-      <Box
-        sx={{
-          border: '1px solid var(--line)',
-          borderRadius: '11px',
-          bgcolor: 'var(--field)',
-          p: 1.5,
-        }}
-      >
+      <div className="border border-[var(--line)] rounded-[11px] bg-[var(--field)] p-2">
         {/* En-tête : titre + total */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.25 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1">
+            <span className="inline-flex text-[var(--accent)]">
               <Receipt size={16} strokeWidth={1.75} />
-            </Box>
-            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)' }}>
+            </span>
+            <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
               Devis
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-            <Typography sx={{ fontSize: '10px', fontWeight: 600, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+            </p>
+          </div>
+          <div className="flex items-baseline gap-0.5">
+            <p className="cn-text-body1 text-[10px] font-semibold text-[var(--faint)] uppercase tracking-[.04em]">
               Total estimé
-            </Typography>
-            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 700, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+            </p>
+            <p className="cn-text-body1 font-[var(--font-display)] text-[0.9375rem] font-bold text-[var(--ink)] tabular-nums">
               {convertAndFormat(total, 'EUR')}
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
 
         {/* Lignes */}
         {value.length > 0 && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 1 }}>
+          <div className="flex flex-col gap-0.5 mb-1.5">
             {/* En-têtes de colonnes */}
             <Box
               sx={{
@@ -164,18 +157,9 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
                   size="small"
                   sx={NUM_INPUT_SX}
                 />
-                <Typography
-                  sx={{
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: 'var(--ink)',
-                    textAlign: 'right',
-                    fontVariantNumeric: 'tabular-nums',
-                    pr: 0.25,
-                  }}
-                >
+                <p className="cn-text-body1 text-[12px] font-semibold text-[var(--ink)] text-end tabular-nums pe-0.5">
                   {convertAndFormat(lineTotal(line), 'EUR')}
-                </Typography>
+                </p>
                 <IconButton
                   size="small"
                   onClick={() => removeLine(index)}
@@ -187,12 +171,12 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
                 </IconButton>
               </Box>
             ))}
-          </Box>
+          </div>
         )}
 
         {/* Ajouts : raccourcis + ligne vierge */}
         {!disabled && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+          <div className="flex items-center gap-1 flex-wrap">
             <Chip
               icon={<Add size={14} strokeWidth={1.75} />}
               label="Ligne"
@@ -229,15 +213,15 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
                 }}
               />
             ))}
-          </Box>
+          </div>
         )}
 
         {value.length === 0 && disabled && (
-          <Typography sx={{ fontSize: '11.5px', color: 'var(--faint)', fontStyle: 'italic' }}>
+          <p className="cn-text-body1 text-[11.5px] text-[var(--faint)] italic">
             Aucune ligne de devis
-          </Typography>
+          </p>
         )}
-      </Box>
+      </div>
     );
   },
 );

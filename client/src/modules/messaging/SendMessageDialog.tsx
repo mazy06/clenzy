@@ -1,19 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  Typography,
-  Alert,
-  CircularProgress,
-  Box,
-  Paper,
-  Divider,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Alert, CircularProgress, Box, Paper, Divider } from '@mui/material';
 import { Send } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -97,9 +83,9 @@ export default function SendMessageDialog({
       <DialogTitle>{t('messaging.send.title')}</DialogTitle>
       <DialogContent>
         {guestName && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <p className="cn-text-body2 text-muted-foreground mb-3">
             {t('messaging.send.sendTo')}: <strong>{guestName}</strong>
-          </Typography>
+          </p>
         )}
 
         {error && (
@@ -160,18 +146,18 @@ export default function SendMessageDialog({
 
             {selectedTemplate && (
               <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
-                <Typography variant="caption" color="text.secondary">
+                <span className="cn-text-caption text-muted-foreground">
                   {t('messaging.send.preview')}
-                </Typography>
-                <Typography variant="subtitle2" gutterBottom>
+                </span>
+                <h6 className="cn-text-subtitle2 mb-[0.35em]">
                   {selectedTemplate.subject}
-                </Typography>
+                </h6>
                 <Divider sx={{ my: 1 }} />
-                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                <p className="cn-text-body2 whitespace-pre-wrap">
                   {selectedTemplate.body.length > 300
                     ? selectedTemplate.body.substring(0, 300) + '...'
                     : selectedTemplate.body}
-                </Typography>
+                </p>
               </Paper>
             )}
           </>

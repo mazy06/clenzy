@@ -232,7 +232,7 @@ export default function VouchersPage({
         <VoucherAnalyticsPanel />
 
         {/* Mode standalone : filter inline sous l'analytics panel. */}
-        {!embedded && <Box sx={{ mb: 2 }}>{filterBar}</Box>}
+        {!embedded && <div className="mb-3">{filterBar}</div>}
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -241,9 +241,9 @@ export default function VouchersPage({
         )}
 
         {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
+          <div className="flex justify-center p-9">
             <CircularProgress />
-          </Box>
+          </div>
         ) : sortedVouchers.length === 0 ? (
           <EmptyState
             icon={<LocalOffer />}
@@ -369,11 +369,11 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
     <TableRow hover>
       <TableCell>
         <Stack spacing={0.25}>
-          <Typography variant="body2" fontWeight={600}>{v.name}</Typography>
+          <p className="cn-text-body2 font-semibold">{v.name}</p>
           {v.description && (
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+            <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
               {v.description.slice(0, 80)}{v.description.length > 80 ? '…' : ''}
-            </Typography>
+            </span>
           )}
         </Stack>
       </TableCell>
@@ -399,22 +399,22 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
         />
       </TableCell>
       <TableCell>
-        <Typography variant="body2" fontWeight={500} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+        <p className="cn-text-body2 font-medium tabular-nums">
           {formatDiscount(v.discountType, v.discountValue)}
-        </Typography>
+        </p>
       </TableCell>
       <TableCell>
-        <Typography variant="caption" color="text.secondary">
+        <span className="cn-text-caption text-muted-foreground">
           {formatValidity(v.validFrom, v.validUntil, locale)}
-        </Typography>
+        </span>
       </TableCell>
       <TableCell align="center">
-        <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+        <p className="cn-text-body2 tabular-nums">
           {v.usageCount}
           {v.maxUsesTotal !== null && (
-            <Typography component="span" variant="caption" color="text.secondary"> / {v.maxUsesTotal}</Typography>
+            <span className="cn-text-caption text-muted-foreground"> / {v.maxUsesTotal}</span>
           )}
-        </Typography>
+        </p>
       </TableCell>
       <TableCell align="center">
         <Chip

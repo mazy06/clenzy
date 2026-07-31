@@ -32,6 +32,23 @@
   @apply text-destructive bg-card *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current;
 }
 
+/* Tons de statut. Le kit shadcn n'expose que `default` et `destructive`, alors
+   que les ecrans en ont besoin de trois autres (une config absente, desactivee
+   ou active ne se disent pas de la meme couleur). Encre `-ink` et non la teinte
+   vive : sur fond pastel, #14B8A6 en texte plafonne a ~2,2:1, tres loin du
+   seuil AA — c'est la regle deja posee pour les pastilles de statut. */
+.cn-alert-variant-info {
+  @apply border-transparent bg-[var(--bui-info-soft)] text-[var(--bui-info-ink)] *:data-[slot=alert-description]:text-[var(--bui-info-ink)]/85 *:[svg]:text-current;
+}
+
+.cn-alert-variant-success {
+  @apply border-transparent bg-[var(--bui-success-soft)] text-[var(--bui-success-ink)] *:data-[slot=alert-description]:text-[var(--bui-success-ink)]/85 *:[svg]:text-current;
+}
+
+.cn-alert-variant-warning {
+  @apply border-transparent bg-[var(--bui-warning-soft)] text-[var(--bui-warning-ink)] *:data-[slot=alert-description]:text-[var(--bui-warning-ink)]/85 *:[svg]:text-current;
+}
+
 .cn-alert-title {
   @apply font-medium group-has-[>svg]/alert:col-start-2;
 }
@@ -1683,4 +1700,75 @@
 
 .cn-dropdown-menu-sub-content-aria {
   @apply ring-foreground/10 bg-popover text-popover-foreground min-w-[96px] rounded-lg p-1 shadow-lg ring-1 duration-100;
+}
+
+/* ---- Échelle typographique Baitly (remplace <Typography variant="…">) -----
+   Report EXACT des variantes `typography` de `theme.ts`, palier responsive
+   compris. Sans ces classes, la sortie de MUI (11 px, puis 12 px au-delà de
+   1200 px) devrait être recopiée sur chacune des ~2900 occurrences et la
+   moindre évolution de l'échelle deviendrait introuvable.
+
+   Le palier est celui du thème — 1200 px — et NON le `xl` de Tailwind
+   (1280 px) : le même écart entre seuils JS et seuils CSS avait déjà fait
+   disparaître la rangée d'onglets entre 1024 et 1199 px.
+
+   `margin: 0` est indispensable : `Typography` neutralisait les marges du
+   navigateur, que des <p>/<h6> natifs récupèrent sinon (le projet n'active
+   pas le preflight complet, cf. baitly-ui.css).
+
+   Ce fichier est importé en `layer(base)` : les classes s'appliquent, mais
+   tout utilitaire explicite (`text-[0.9rem]`, `font-semibold`) les bat — ce
+   qui est exactement le comportement voulu quand un `sx` précisait déjà la
+   valeur.
+   ------------------------------------------------------------------------ */
+.cn-text-h4,
+.cn-text-h5,
+.cn-text-h6,
+.cn-text-subtitle1,
+.cn-text-subtitle2,
+.cn-text-body1,
+.cn-text-body2,
+.cn-text-caption,
+.cn-text-overline {
+  margin: 0;
+}
+
+.cn-text-h4 {
+  @apply text-[0.9375rem] font-semibold leading-[1.3] tracking-[-0.01em] text-balance;
+}
+.cn-text-h5 {
+  @apply text-[0.875rem] font-semibold leading-[1.35] tracking-[-0.005em];
+}
+.cn-text-h6 {
+  @apply text-[0.8125rem] font-semibold leading-[1.4];
+}
+.cn-text-subtitle1 {
+  @apply text-[0.75rem] font-medium leading-[1.5];
+}
+.cn-text-subtitle2 {
+  @apply text-[0.6875rem] font-medium leading-[1.5];
+}
+.cn-text-body1 {
+  @apply text-[0.75rem] leading-[1.5];
+}
+.cn-text-body2 {
+  @apply text-[0.6875rem] leading-[1.5];
+}
+.cn-text-caption {
+  @apply text-[0.625rem] leading-[1.4];
+}
+/* Seule variante que `theme.ts` ne redéfinit pas : défauts MUI, sans palier. */
+.cn-text-overline {
+  @apply text-[0.75rem] uppercase leading-[2.66] tracking-[0.08333em];
+}
+
+@media (min-width: 1200px) {
+  .cn-text-h4 { font-size: 1rem; }
+  .cn-text-h5 { font-size: 0.9375rem; }
+  .cn-text-h6 { font-size: 0.875rem; }
+  .cn-text-subtitle1 { font-size: 0.8125rem; }
+  .cn-text-subtitle2 { font-size: 0.75rem; }
+  .cn-text-body1 { font-size: 0.8125rem; }
+  .cn-text-body2 { font-size: 0.75rem; }
+  .cn-text-caption { font-size: 0.6875rem; }
 }

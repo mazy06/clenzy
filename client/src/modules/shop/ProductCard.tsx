@@ -88,19 +88,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
       }}
     >
       {/* Hero image */}
-      <Box sx={{ position: 'relative' }}>
+      <div className="relative">
         <ProductHero product={product} height={172} />
 
         {/* Badge floating top-right */}
         {product.badge && badgeStyle && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 10,
-              right: 10,
-              zIndex: 1,
-            }}
-          >
+          <div className="absolute top-[10px] end-[10px] z-[1]">
             <Chip
               label={t(`shop.badges.${product.badge}`)}
               size="small"
@@ -115,35 +108,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 '& .MuiChip-label': { px: 0.875 },
               }}
             />
-          </Box>
+          </div>
         )}
 
         {/* Savings badge floating top-left for promos */}
         {savingsPct !== null && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 10,
-              left: 10,
-              zIndex: 1,
-              px: 0.875,
-              py: 0.25,
-              borderRadius: '6px',
-              backgroundColor: 'var(--ok)',
-              color: 'var(--on-accent)',
-              fontSize: '0.6875rem',
-              fontWeight: 700,
-              letterSpacing: '0.02em',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
+          <div className="absolute top-[10px] start-[10px] z-[1] px-1.5 py-0.5 rounded-[6px] bg-[var(--ok)] text-[var(--on-accent)] text-[0.6875rem] font-bold tracking-[0.02em] tabular-nums">
             -{savingsPct}%
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
 
       {/* Body */}
-      <Box sx={{ p: 2, pb: 1.5, display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <div className="p-3 pb-2 flex flex-col flex-1">
         {/* Title + SKU */}
         <Typography
           fontWeight={700}
@@ -156,64 +133,30 @@ const ProductCard: React.FC<ProductCardProps> = ({
         >
           {product.name}
         </Typography>
-        <Typography
-          sx={{
-            color: 'text.disabled',
-            fontSize: '0.6875rem',
-            fontWeight: 500,
-            letterSpacing: '0.04em',
-            mt: 0.25,
-            mb: 1,
-            fontVariantNumeric: 'tabular-nums',
-            textTransform: 'uppercase',
-          }}
-        >
+        <p className="cn-text-body1 text-muted-foreground opacity-60 text-[0.6875rem] font-medium tracking-[0.04em] mt-0.5 mb-1.5 tabular-nums uppercase">
           {product.sku}
-        </Typography>
+        </p>
 
         {/* Description */}
-        <Typography
-          sx={{
-            fontSize: '0.78rem',
-            color: 'text.secondary',
-            lineHeight: 1.45,
-            mb: 1.25,
-          }}
-        >
+        <p className="cn-text-body1 text-[0.78rem] text-muted-foreground leading-[1.45] mb-2">
           {product.shortDescription}
-        </Typography>
+        </p>
 
         {/* Price row */}
-        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1.25 }}>
-          <Typography
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '1.15rem',
-              fontWeight: 600,
-              color: 'var(--ink)',
-              fontVariantNumeric: 'tabular-nums',
-              letterSpacing: '-0.01em',
-            }}
-          >
+        <div className="flex items-baseline gap-1.5 mb-2">
+          <p className="cn-text-body1 font-[var(--font-display)] text-[1.15rem] font-semibold text-[var(--ink)] tabular-nums tracking-[-0.01em]">
             {formatPrice(product.price)}
-          </Typography>
+          </p>
           {product.originalPrice && (
-            <Typography
-              sx={{
-                textDecoration: 'line-through',
-                color: 'var(--faint)',
-                fontSize: '0.8rem',
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
+            <p className="cn-text-body1 line-through text-[var(--faint)] text-[0.8rem] tabular-nums">
               {formatPrice(product.originalPrice)}
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
 
         {/* Protocol chips */}
         {product.protocol && (
-          <Box sx={{ display: 'flex', gap: 0.5, mb: 1.25, flexWrap: 'wrap' }}>
+          <div className="flex gap-0.5 mb-2 flex-wrap">
             {(product.protocol === 'wifi' || product.protocol === 'both') && (
               <Chip
                 icon={<Wifi size={11} strokeWidth={2} />}
@@ -253,7 +196,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 }}
               />
             )}
-          </Box>
+          </div>
         )}
 
         {/* Features (kit contents grouped as features for kits) */}
@@ -285,10 +228,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </Typography>
           )}
           {displayedFeatures.slice(0, 5).map((feature) => (
-            <Box
-              key={feature}
-              sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, py: 0.2 }}
-            >
+            <div className="flex items-start gap-1 py-0.5" key={feature}>
               <Box
                 sx={{
                   display: 'inline-flex',
@@ -299,29 +239,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
               >
                 <CheckCircleOutline size={13} strokeWidth={1.75} />
               </Box>
-              <Typography
-                sx={{
-                  fontSize: '0.74rem',
-                  color: 'text.secondary',
-                  lineHeight: 1.4,
-                }}
-              >
+              <p className="cn-text-body1 text-[0.74rem] text-muted-foreground leading-[1.4]">
                 {feature}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           ))}
           {displayedFeatures.length > 5 && (
-            <Typography
-              sx={{
-                color: 'text.disabled',
-                fontSize: '0.6875rem',
-                pl: 2.25,
-                pt: 0.25,
-                fontStyle: 'italic',
-              }}
-            >
+            <p className="cn-text-body1 text-muted-foreground opacity-60 text-[0.6875rem] ps-3.5 pt-0.5 italic">
               +{displayedFeatures.length - 5} {t('shop.perUnit')}
-            </Typography>
+            </p>
           )}
         </Box>
 
@@ -366,19 +292,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
             >
               <Remove size={14} strokeWidth={2} />
             </IconButton>
-            <Typography
-              sx={{
-                fontFamily: 'var(--font-display)',
-                fontWeight: 600,
-                fontSize: '15px',
-                color: 'var(--ink)',
-                fontVariantNumeric: 'tabular-nums',
-                minWidth: 24,
-                textAlign: 'center',
-              }}
-            >
+            <p className="cn-text-body1 font-[var(--font-display)] font-semibold text-[15px] text-[var(--ink)] tabular-nums min-w-[24px] text-center">
               {quantity}
-            </Typography>
+            </p>
             <IconButton
               size="small"
               onClick={onAddToCart}
@@ -396,7 +312,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </IconButton>
           </Box>
         )}
-      </Box>
+      </div>
     </Paper>
   );
 };

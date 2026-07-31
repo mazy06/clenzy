@@ -1,5 +1,5 @@
 import React from 'react';
-import { Autocomplete, Box, Chip, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { Autocomplete, Chip, MenuItem, Stack, TextField } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import {
@@ -43,28 +43,11 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
   );
 
   return (
-    <Box
-      sx={{
-        border: '1px solid var(--line)',
-        borderRadius: '12px',
-        p: 1.5,
-      }}
-    >
+    <div className="border border-[var(--line)] rounded-[12px] p-2">
       {/* Section overline (pattern .rm-sec des modales) */}
-      <Typography
-        variant="caption"
-        sx={{
-          color: 'var(--faint)',
-          fontWeight: 700,
-          fontSize: '10.5px',
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          display: 'block',
-          mb: 1.25,
-        }}
-      >
+      <span className="cn-text-caption text-[var(--faint)] font-bold text-[10.5px] uppercase tracking-[0.06em] block mb-2">
         {t('automation.form.conditionsSection', 'Conditions (optionnel)')}
-      </Typography>
+      </span>
 
       <Stack spacing={1.5}>
         <Autocomplete
@@ -142,7 +125,7 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
           ))}
         </TextField>
       </Stack>
-    </Box>
+    </div>
   );
 };
 

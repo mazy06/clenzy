@@ -38,20 +38,9 @@ const renderStepper = (
     <Box component="button" type="button" aria-label={`${ariaLabel} −`} onClick={onDec} disabled={decDisabled} sx={STEP_BTN_SX}>
       <RemoveIcon size={15} strokeWidth={1.75} />
     </Box>
-    <Box
-      sx={{
-        fontFamily: 'var(--font-display)',
-        fontSize: '15px',
-        fontWeight: 600,
-        color: 'var(--ink)',
-        minWidth: 28,
-        textAlign: 'center',
-        userSelect: 'none',
-        fontVariantNumeric: 'tabular-nums',
-      }}
-    >
+    <div className="font-[var(--font-display)] text-[15px] font-semibold text-[var(--ink)] min-w-[28px] text-center select-none tabular-nums">
       {value}
-    </Box>
+    </div>
     <Box component="button" type="button" aria-label={`${ariaLabel} +`} onClick={onInc} disabled={incDisabled} sx={STEP_BTN_SX}>
       <AddIcon size={15} strokeWidth={1.75} />
     </Box>
@@ -108,10 +97,10 @@ const GuestSection: React.FC<Props> = ({ form }) => {
         const { key, ...optionProps } = props;
         return (
           <Box component="li" key={key} {...optionProps}>
-            <Box>
-              <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>{option.fullName}</Typography>
-              {option.email && <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>{option.email}</Typography>}
-            </Box>
+            <div>
+              <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)]">{option.fullName}</p>
+              {option.email && <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">{option.email}</p>}
+            </div>
           </Box>
         );
       }}
@@ -165,7 +154,7 @@ const GuestSection: React.FC<Props> = ({ form }) => {
         <Typography sx={{ ...SEC_SX, whiteSpace: 'nowrap' }}>
           {form.selectedGuest ? t('reservations.dialog.editGuest') : t('reservations.dialog.newGuest')}
         </Typography>
-        <Box sx={{ flex: 1, height: '1px', backgroundColor: 'var(--line)' }} />
+        <div className="flex-1 h-[1px] bg-[var(--line)]" />
       </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -256,9 +245,9 @@ const GuestSection: React.FC<Props> = ({ form }) => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
               {guestChip}
               {form.selectedGuest.email && (
-                <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] overflow-hidden text-ellipsis whitespace-nowrap">
                   {form.selectedGuest.email}
-                </Typography>
+                </p>
               )}
             </Box>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -291,15 +280,15 @@ const GuestSection: React.FC<Props> = ({ form }) => {
       )}
 
       {/* Occupation — voyageurs + dont enfants, regroupés (steppers cohérents). */}
-      <Box sx={{ border: '1px solid var(--line)', borderRadius: '12px', overflow: 'hidden', backgroundColor: 'var(--card)' }}>
+      <div className="border border-[var(--line)] rounded-[12px] overflow-hidden bg-[var(--card)]">
         {/* Voyageurs */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 14px' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', flexShrink: 0 }}>
+          <span className="inline-flex text-[var(--accent)] shrink-0">
             <GroupIcon size={18} strokeWidth={1.75} />
-          </Box>
-          <Typography sx={{ flex: 1, minWidth: 0, fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>
+          </span>
+          <p className="cn-text-body1 flex-1 min-w-0 text-[13.5px] font-semibold text-[var(--ink)]">
             {t('reservations.dialog.travelers')}
-          </Typography>
+          </p>
           {renderStepper(
             form.guestCount,
             () => form.setGuestCount((c) => Math.max(1, c - 1)),
@@ -310,21 +299,21 @@ const GuestSection: React.FC<Props> = ({ form }) => {
           )}
         </Box>
 
-        <Box sx={{ height: '1px', backgroundColor: 'var(--line)' }} />
+        <div className="h-[1px] bg-[var(--line)]" />
 
         {/* dont enfants (mineurs) — exonérés de la taxe de séjour */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 14px' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', flexShrink: 0 }}>
+          <span className="inline-flex text-[var(--accent)] shrink-0">
             <PersonOutline size={18} strokeWidth={1.75} />
-          </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3 }}>
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] leading-[1.3]">
               {t('reservations.fields.childrenCount')}
-            </Typography>
-            <Typography sx={{ fontSize: '11px', color: 'var(--muted)', lineHeight: 1.3 }}>
+            </p>
+            <p className="cn-text-body1 text-[11px] text-[var(--muted)] leading-[1.3]">
               {t('reservations.fields.childrenCountHelp')}
-            </Typography>
-          </Box>
+            </p>
+          </div>
           {renderStepper(
             form.childrenCount,
             () => form.setChildrenCount(Math.max(0, form.childrenCount - 1)),
@@ -334,7 +323,7 @@ const GuestSection: React.FC<Props> = ({ form }) => {
             t('reservations.fields.childrenCount'),
           )}
         </Box>
-      </Box>
+      </div>
     </>
   );
 };

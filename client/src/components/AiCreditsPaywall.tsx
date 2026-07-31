@@ -63,31 +63,31 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
   return (
     <Dialog open={open} onClose={busy ? undefined : handleClose} maxWidth="sm" fullWidth
       PaperProps={{ sx: { borderRadius: 'var(--radius-lg)' } }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 3, pt: 2.5, pb: 1 }}>
+      <div className="flex items-center gap-2 px-4 pt-3.5 pb-1.5">
         <Box sx={{ display: 'grid', placeItems: 'center', width: 34, height: 34, borderRadius: '10px', bgcolor: 'var(--accent-soft)', color: 'var(--accent)', flexShrink: 0 }}>
           <Wallet size={18} strokeWidth={2} />
         </Box>
-        <Box sx={{ flex: 1, fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-bold)', color: 'var(--ink)' }}>
+        <div className="flex-1 font-[var(--font-display)] text-[var(--text-lg)] font-[var(--fw-bold)] text-[var(--ink)]">
           {title ?? 'Crédits IA insuffisants'}
-        </Box>
+        </div>
         <IconButton onClick={handleClose} size="small" aria-label="Fermer" disabled={busy} sx={{ color: 'var(--muted)' }}><X size={18} /></IconButton>
-      </Box>
+      </div>
 
       <DialogContent sx={{ pt: 0.5, px: 3, pb: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', lineHeight: 1.55 }}>
+        <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.55]">
           {message ?? "Cette génération dépasse votre solde de crédits IA. Rechargez pour continuer — le surplus consommé est facturé au réel."}
-        </Box>
+        </div>
 
         {balance != null && (
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, alignSelf: 'flex-start', px: 1.25, py: 0.75, borderRadius: 'var(--radius-md)', bgcolor: 'var(--field)', border: '1px solid var(--line)', fontSize: 'var(--text-2xs)', color: 'var(--body)' }}>
+          <div className="inline-flex items-center gap-1 self-start px-2 py-1 rounded-[var(--radius-md)] bg-[var(--field)] border border-[var(--line)] text-[var(--text-2xs)] text-[var(--body)]">
             Solde actuel : <b style={{ fontVariantNumeric: 'tabular-nums' }}>{toCredits(balance)} crédits</b>
-          </Box>
+          </div>
         )}
 
         {packs === null ? (
           <Box sx={{ display: 'grid', placeItems: 'center', py: 3 }}><CircularProgress size={22} sx={{ color: 'var(--accent)' }} /></Box>
         ) : packs.length === 0 ? (
-          <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)' }}>Aucun pack disponible pour le moment.</Box>
+          <div className="text-[var(--text-sm)] text-[var(--muted)]">Aucun pack disponible pour le moment.</div>
         ) : (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: `repeat(${Math.min(packs.length, 3)}, 1fr)` }, gap: 1.25 }}>
             {packs.map((p) => {
@@ -102,8 +102,8 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
                     '&:hover': { borderColor: 'var(--accent)' },
                   }}>
                   {active && <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'grid', placeItems: 'center', width: 18, height: 18, borderRadius: '50%', bgcolor: 'var(--accent)', color: 'var(--on-accent)' }}><Check size={12} strokeWidth={3} /></Box>}
-                  <Box sx={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{toCredits(p.millicredits)}</Box>
-                  <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', mb: 1 }}>crédits IA</Box>
+                  <div className="text-[var(--text-lg)] font-bold text-[var(--ink)] tabular-nums">{toCredits(p.millicredits)}</div>
+                  <div className="text-[var(--text-2xs)] text-[var(--muted)] mb-1.5">crédits IA</div>
                   <Box sx={{ fontSize: 'var(--text-md)', fontWeight: 700, color: active ? 'var(--accent)' : 'var(--body)', fontVariantNumeric: 'tabular-nums' }}>{euro(p.priceCents)}</Box>
                 </Box>
               );
@@ -112,12 +112,12 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
         )}
 
         {error && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
+          <div className="flex items-center gap-1.5 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
             <AlertTriangle size={16} strokeWidth={2} style={{ flexShrink: 0 }} /> {error}
-          </Box>
+          </div>
         )}
 
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, pt: 0.5 }}>
+        <div className="flex justify-end gap-1.5 pt-0.5">
           <Button onClick={handleClose} disabled={busy} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Annuler</Button>
           <Button variant="contained" disableElevation onClick={handleBuy} disabled={!selected || busy}
             startIcon={busy ? <CircularProgress size={15} color="inherit" /> : <Sparkles size={16} strokeWidth={2} />}
@@ -125,7 +125,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
             sx={{ textTransform: 'none' }}>
             {busy ? 'Ouverture du paiement…' : 'Recharger & continuer'}
           </Button>
-        </Box>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -1,22 +1,5 @@
 import React, { useMemo } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Skeleton,
-  Alert,
-  Box,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Skeleton, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton } from '@mui/material';
 import { Close as CloseIcon } from '../../icons';
 import { useTranslation } from 'react-i18next';
 
@@ -132,7 +115,7 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
       PaperProps={{ sx: { height: '85vh', display: 'flex', flexDirection: 'column' } }}
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</Box>
+        <span className="flex-1 min-w-0 overflow-hidden text-ellipsis">{title}</span>
         <IconButton size="small" onClick={onClose} sx={{ ml: 1 }}>
           <CloseIcon size={18} strokeWidth={1.75} />
         </IconButton>
@@ -140,26 +123,26 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
 
       <DialogContent sx={{ p: 0, flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {loading && (
-          <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <div className="p-3 flex flex-col gap-1.5">
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <Skeleton key={i} variant="rounded" height={28} sx={{ borderRadius: 'var(--radius-sm)' }} />
             ))}
-          </Box>
+          </div>
         )}
 
         {error && (
-          <Box sx={{ p: 2 }}>
+          <div className="p-3">
             <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>{error}</Alert>
-          </Box>
+          </div>
         )}
 
         {!loading && !error && parsed?.type === 'table' && (
           <>
-            <Box sx={{ px: 2, py: 0.75, borderBottom: '1px solid', borderColor: 'var(--line)', bgcolor: 'var(--surface-2)' }}>
-              <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+            <div className="px-3 py-1 border-b border-[var(--line)] bg-[var(--surface-2)]">
+              <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums">
                 {parsed.rows.length} {t('common.lines')} · {parsed.headers.length} {t('common.columns')}
-              </Typography>
-            </Box>
+              </p>
+            </div>
             <TableContainer sx={{ flex: 1, overflow: 'auto' }}>
               <Table size="small" stickyHeader>
                 <TableHead>
@@ -184,19 +167,19 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
         )}
 
         {!loading && !error && parsed?.type === 'xml' && (
-          <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+          <div className="flex-1 overflow-auto p-3">
             <pre style={{ margin: 0, fontSize: '12px', fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'var(--body)' }}>
               {parsed.text}
             </pre>
-          </Box>
+          </div>
         )}
 
         {!loading && !error && !parsed && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
-            <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+          <div className="flex justify-center items-center flex-1">
+            <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
               {t('common.noData')}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
       </DialogContent>
 

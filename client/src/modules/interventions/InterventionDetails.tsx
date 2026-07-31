@@ -82,23 +82,23 @@ export default function InterventionDetailsPage() {
 
   if (!permissionsLoaded || loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+      <div className="flex justify-center py-12">
         <CircularProgress />
-      </Box>
+      </div>
     );
   }
 
   if (!canViewInterventions) {
     return (
-      <Box sx={{ p: 2 }}>
+      <div className="p-3">
         <Alert severity="info" sx={{ py: 1 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>{t('interventions.detail.unauthorized')}</Typography>
-          <Typography variant="body2">
+          <h6 className="cn-text-subtitle1 font-semibold mb-[0.35em]">{t('interventions.detail.unauthorized')}</h6>
+          <p className="cn-text-body2">
             {t('interventions.detail.unauthorizedMessage')}
             <br />{t('interventions.detail.unauthorizedContact')}
-          </Typography>
+          </p>
         </Alert>
-      </Box>
+      </div>
     );
   }
 
@@ -185,9 +185,9 @@ export default function InterventionDetailsPage() {
   const vm = buildViewModel();
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div className="flex flex-col h-full min-h-0">
       {/* ─── Header ──────────────────────────────────────────────────────── */}
-      <Box sx={{ flexShrink: 0 }}>
+      <div className="shrink-0">
         <PageHeader
           title={intervention?.title || t('interventions.detail.title')}
           subtitle={intervention
@@ -214,7 +214,7 @@ export default function InterventionDetailsPage() {
             ) : undefined
           }
         />
-      </Box>
+      </div>
 
       {error && <Alert severity="error" sx={{ mb: 1.5, py: 0.75, fontSize: '0.8125rem' }} onClose={() => setError(null)}>{error}</Alert>}
 
@@ -292,7 +292,7 @@ export default function InterventionDetailsPage() {
           {startSuccessMessage}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 }
 

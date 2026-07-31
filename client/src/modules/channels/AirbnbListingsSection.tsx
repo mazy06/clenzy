@@ -1,17 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  CircularProgress,
-  Switch,
-  FormControlLabel,
-  Divider,
-  IconButton,
-  Tooltip,
-  Collapse,
-} from '@mui/material';
+import { Box, Paper, Button, CircularProgress, Switch, FormControlLabel, Divider, IconButton, Tooltip, Collapse } from '@mui/material';
 import {
   LinkOff as LinkOffIcon,
   Link as LinkIcon,
@@ -74,29 +62,26 @@ const AirbnbListingsSection: React.FC<AirbnbListingsSectionProps> = ({
   t,
 }) => (
   <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
-    <Box
-      sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
-      onClick={onToggleExpand}
-    >
-      <Typography sx={{ fontSize: '0.875rem', fontWeight: 700 }}>
+    <div className="flex items-center justify-between cursor-pointer" onClick={onToggleExpand}>
+      <p className="cn-text-body1 text-[0.875rem] font-bold">
         {t('channels.listings.title')} ({listings.length})
-      </Typography>
+      </p>
       <IconButton size="small">
         {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
       </IconButton>
-    </Box>
+    </div>
 
     <Collapse in={expanded}>
       {listingsLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+        <div className="flex justify-center py-3">
           <CircularProgress size={24} />
-        </Box>
+        </div>
       ) : listings.length === 0 ? (
-        <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 1 }}>
+        <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mt-1.5">
           {t('channels.listings.noListings')}
-        </Typography>
+        </p>
       ) : (
-        <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="mt-1.5 flex flex-col gap-1.5">
           {listings.map((listing) => (
             <ListingCard
               key={listing.id}
@@ -108,12 +93,12 @@ const AirbnbListingsSection: React.FC<AirbnbListingsSectionProps> = ({
               t={t}
             />
           ))}
-        </Box>
+        </div>
       )}
 
       {/* Link new property */}
       {unlinkableProperties.length > 0 && (
-        <Box sx={{ mt: 1.5 }}>
+        <div className="mt-2">
           <Divider sx={{ mb: 1.5 }} />
           {linkingPropertyId === null ? (
             <Button
@@ -138,7 +123,7 @@ const AirbnbListingsSection: React.FC<AirbnbListingsSectionProps> = ({
               t={t}
             />
           )}
-        </Box>
+        </div>
       )}
     </Collapse>
   </Paper>
@@ -164,21 +149,9 @@ function ListingCard({
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   return (
-    <Box
-      sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        p: 1.5,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 1,
-      }}
-    >
-      <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+    <div className="border border-[divider] rounded-[1px] p-2 flex items-center justify-between flex-wrap gap-1.5">
+      <div className="min-w-0 flex-1">
+        <p className="cn-text-body1 text-[0.8125rem] font-semibold flex items-center gap-0.5">
           {listing.airbnbListingTitle || `Listing ${listing.airbnbListingId}`}
           {listing.airbnbListingUrl && (
             <Tooltip title={t('channels.listings.viewOnAirbnb')}>
@@ -194,13 +167,13 @@ function ListingCard({
               </IconButton>
             </Tooltip>
           )}
-        </Typography>
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+        </p>
+        <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
           ID: {listing.airbnbListingId} · Propriété #{listing.propertyId}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <div className="flex items-center gap-2">
         <FormControlLabel
           control={
             <Switch
@@ -209,7 +182,7 @@ function ListingCard({
               onChange={(_, checked) => onToggleSync(listing.propertyId, checked)}
             />
           }
-          label={<Typography sx={{ fontSize: '0.6875rem' }}>{t('channels.listings.sync')}</Typography>}
+          label={<p className="cn-text-body1 text-[0.6875rem]">{t('channels.listings.sync')}</p>}
         />
         <FormControlLabel
           control={
@@ -220,9 +193,9 @@ function ListingCard({
             />
           }
           label={
-            <Typography sx={{ fontSize: '0.6875rem', display: 'flex', alignItems: 'center', gap: 0.25 }}>
+            <p className="cn-text-body1 text-[0.6875rem] flex items-center gap-0.5">
               <CleaningIcon size={'0.75rem'} strokeWidth={1.75} /> {t('channels.listings.autoClean')}
-            </Typography>
+            </p>
           }
         />
         <FormControlLabel
@@ -234,9 +207,9 @@ function ListingCard({
             />
           }
           label={
-            <Typography sx={{ fontSize: '0.6875rem', display: 'flex', alignItems: 'center', gap: 0.25 }}>
+            <p className="cn-text-body1 text-[0.6875rem] flex items-center gap-0.5">
               <PricingIcon size={'0.75rem'} strokeWidth={1.75} /> {t('channels.listings.autoPushPricing')}
-            </Typography>
+            </p>
           }
         />
         <Tooltip title={t('channels.listings.unlink')}>
@@ -244,8 +217,8 @@ function ListingCard({
             <LinkOffIcon size={'1rem'} strokeWidth={1.75} />
           </IconButton>
         </Tooltip>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
@@ -271,11 +244,11 @@ function LinkPropertyForm({
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-      <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
+    <div className="flex flex-col gap-1.5">
+      <p className="cn-text-body1 text-[0.75rem] font-semibold">
         {t('channels.listings.linkNewProperty')}
-      </Typography>
-      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+      </p>
+      <div className="flex gap-1.5 flex-wrap items-end">
         <Box component="select"
           value={selectedPropertyId}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onPropertyChange(Number(e.target.value))}
@@ -323,7 +296,7 @@ function LinkPropertyForm({
         <Button size="small" variant="outlined" onClick={onCancel} sx={{ fontSize: '0.75rem' }}>
           {t('common.cancel')}
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

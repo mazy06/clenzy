@@ -1,18 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useSearchParams, Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Stack,
-  Alert,
-  CircularProgress,
-  IconButton,
-  InputAdornment,
-  Link,
-} from '@mui/material';
+import { TextField, Button, Typography, Stack, Alert, CircularProgress, IconButton, InputAdornment, Link } from '@mui/material';
 import { Visibility, VisibilityOff } from '../../icons';
 import keycloak, { decodeJwt } from '../../keycloak';
 import apiClient, { ApiError } from '../../services/apiClient';
@@ -159,7 +148,7 @@ export default function Login() {
   return (
     <AuthLayout>
       {/* ── Header form ── */}
-      <Box sx={{ mb: 4 }}>
+      <div className="mb-6">
         <Typography
           variant="h4"
           sx={{
@@ -172,39 +161,27 @@ export default function Login() {
         >
           {t('auth.login.title', 'Bon retour parmi nous')}
         </Typography>
-        <Typography
-          variant="body1"
-          sx={{
-            color: 'text.secondary',
-            fontSize: '0.95rem',
-            lineHeight: 1.5,
-          }}
-        >
+        <p className="cn-text-body1 text-muted-foreground text-[0.95rem] leading-[1.5]">
           {t('auth.login.subtitle', 'Connecte-toi pour accéder à ton tableau de bord.')}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {/* Message succes inscription */}
       {inscriptionSuccess && (
         <Alert severity="success" sx={{ mb: 3, borderRadius: 1.5 }}>
-          <Typography variant="body2" sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
+          <p className="cn-text-body2 text-[0.875rem] font-medium">
             {t('auth.login.inscriptionSuccess', 'Votre compte a été créé avec succès. Connectez-vous pour accéder à votre espace.')}
-          </Typography>
+          </p>
         </Alert>
       )}
 
       {/* ── Form ── */}
       <form onSubmit={handleSubmit} noValidate>
         <Stack spacing={2.5}>
-          <Box>
-            <Typography
-              component="label"
-              htmlFor="login-email"
-              variant="body2"
-              sx={{ fontWeight: 600, mb: 0.75, display: 'block', fontSize: '0.8125rem' }}
-            >
+          <div>
+            <label className="cn-text-body2 font-semibold mb-1 block text-[0.8125rem]" htmlFor="login-email">
               {t('auth.login.emailLabel', "Email ou nom d'utilisateur")}
-            </Typography>
+            </label>
             <TextField
               id="login-email"
               fullWidth
@@ -218,18 +195,13 @@ export default function Login() {
               autoComplete="username"
               autoFocus
             />
-          </Box>
+          </div>
 
-          <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.75 }}>
-              <Typography
-                component="label"
-                htmlFor="login-password"
-                variant="body2"
-                sx={{ fontWeight: 600, fontSize: '0.8125rem' }}
-              >
+          <div>
+            <div className="flex justify-between items-baseline mb-1">
+              <label className="cn-text-body2 font-semibold text-[0.8125rem]" htmlFor="login-password">
                 {t('auth.login.passwordLabel', 'Mot de passe')}
-              </Typography>
+              </label>
               <Link
                 component={RouterLink}
                 to="/forgot-password"
@@ -243,7 +215,7 @@ export default function Login() {
               >
                 {t('auth.login.forgotPassword', 'Mot de passe oublié ?')}
               </Link>
-            </Box>
+            </div>
             <TextField
               id="login-password"
               fullWidth
@@ -276,24 +248,24 @@ export default function Login() {
                 ),
               }}
             />
-          </Box>
+          </div>
 
           {error && (
             <Alert
               severity={isLocked ? 'warning' : captchaRequired ? 'info' : 'error'}
               sx={{ borderRadius: 1.5 }}
             >
-              <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>{error}</Typography>
+              <p className="cn-text-body2 text-[0.875rem]">{error}</p>
             </Alert>
           )}
 
           {captchaRequired && (
-            <Box>
+            <div>
               <TurnstileCaptcha
                 onVerified={handleCaptchaVerified}
                 onError={(msg) => setError(msg)}
               />
-            </Box>
+            </div>
           )}
 
           <Button
@@ -327,16 +299,8 @@ export default function Login() {
       </form>
 
       {/* ── Footer : signup + support ── */}
-      <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
-        <Typography
-          variant="body2"
-          sx={{
-            color: 'text.secondary',
-            fontSize: '0.875rem',
-            textAlign: 'center',
-            mb: 1.5,
-          }}
-        >
+      <div className="mt-6 pt-4 border-t border-[divider]">
+        <p className="cn-text-body2 text-muted-foreground text-[0.875rem] text-center mb-2">
           {t('auth.login.noAccount', 'Pas encore de compte ?')}{' '}
           <Link
             component={RouterLink}
@@ -350,16 +314,8 @@ export default function Login() {
           >
             {t('auth.login.createAccount', 'Crée le tien')}
           </Link>
-        </Typography>
-        <Typography
-          variant="caption"
-          sx={{
-            color: 'text.secondary',
-            display: 'block',
-            textAlign: 'center',
-            fontSize: '0.75rem',
-          }}
-        >
+        </p>
+        <span className="cn-text-caption text-muted-foreground block text-center text-[0.75rem]">
           {t('auth.login.needHelp', "Besoin d'aide ?")}{' '}
           <Link
             component={RouterLink}
@@ -373,8 +329,8 @@ export default function Login() {
           >
             {t('auth.login.contactSupport', 'Contactez le support')}
           </Link>
-        </Typography>
-      </Box>
+        </span>
+      </div>
     </AuthLayout>
   );
 }

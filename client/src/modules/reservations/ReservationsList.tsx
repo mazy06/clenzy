@@ -1,24 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Tooltip,
-  CircularProgress,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
+import { Typography, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Tooltip, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -243,9 +224,9 @@ const ReservationsList: React.FC = () => {
 
   // ─── Render ──────────────────────────────────────────────────────
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Header + Filters */}
-      <Box sx={{ flexShrink: 0 }}>
+      <div className="shrink-0">
         <PageHeader
           title={t('reservations.title')}
           subtitle={t('reservations.subtitle')}
@@ -255,7 +236,7 @@ const ReservationsList: React.FC = () => {
           actions={actionButtons}
           filters={filterBar}
         />
-      </Box>
+      </div>
 
       {/* Error */}
       {isError && (
@@ -306,9 +287,9 @@ const ReservationsList: React.FC = () => {
                     sx={{ '&:last-child td': { borderBottom: 0 } }}
                   >
                     <TableCell>
-                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.82rem' }}>
+                      <p className="cn-text-body2 font-medium text-[0.82rem]">
                         {r.propertyName}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell>
                       <Typography
@@ -325,28 +306,28 @@ const ReservationsList: React.FC = () => {
                       >
                         {r.guestName}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <span className="cn-text-caption text-muted-foreground">
                         {r.guestCount} {r.guestCount > 1 ? 'voyageurs' : 'voyageur'}
-                      </Typography>
+                      </span>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: '0.82rem', fontVariantNumeric: 'tabular-nums' }}>
+                      <p className="cn-text-body2 text-[0.82rem] tabular-nums">
                         {formatDate(r.checkIn)}
-                      </Typography>
+                      </p>
                       {r.checkInTime && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                        <span className="cn-text-caption text-muted-foreground tabular-nums">
                           {r.checkInTime}
-                        </Typography>
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: '0.82rem', fontVariantNumeric: 'tabular-nums' }}>
+                      <p className="cn-text-body2 text-[0.82rem] tabular-nums">
                         {formatDate(r.checkOut)}
-                      </Typography>
+                      </p>
                       {r.checkOutTime && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                        <span className="cn-text-caption text-muted-foreground tabular-nums">
                           {r.checkOutTime}
-                        </Typography>
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -357,18 +338,9 @@ const ReservationsList: React.FC = () => {
                     </TableCell>
                     <TableCell align="right">
                       {/* Montant : display (Space Grotesk) + tabular-nums (baseline §1 typo) */}
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontSize: '0.82rem',
-                          fontWeight: 600,
-                          fontFamily: 'var(--font-display)',
-                          fontVariantNumeric: 'tabular-nums',
-                          color: 'var(--ink)',
-                        }}
-                      >
+                      <p className="cn-text-body2 text-[0.82rem] font-semibold font-[var(--font-display)] tabular-nums text-[var(--ink)]">
                         {formatPrice(r.totalPrice)}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
                       <Tooltip title={t('reservations.edit')}>
@@ -428,13 +400,13 @@ const ReservationsList: React.FC = () => {
         {/* Peau modale portée par le thème global (titre display + filets + pied surface-2) */}
         <DialogTitle>{t('reservations.cancel')}</DialogTitle>
         <DialogContent>
-          <Typography variant="body2">
+          <p className="cn-text-body2">
             {t('reservations.cancelConfirm')}
-          </Typography>
+          </p>
           {cancelTarget && (
-            <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
+            <p className="cn-text-body2 mt-1.5 font-semibold">
               {cancelTarget.guestName} · {cancelTarget.propertyName}
-            </Typography>
+            </p>
           )}
         </DialogContent>
         <DialogActions>
@@ -457,7 +429,7 @@ const ReservationsList: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

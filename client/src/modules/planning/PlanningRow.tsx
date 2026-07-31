@@ -679,31 +679,12 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
               </Box>
             )}
             {minNights != null && dayWidth >= 38 && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  bottom: 2,
-                  right: 3,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.125,
-                  color: 'var(--faint)',
-                  opacity: 0.85,
-                }}
-              >
+              <div className="absolute bottom-[2px] end-[3px] flex items-center gap-0 text-[var(--faint)] opacity-85">
                 <NightsStay size={8} strokeWidth={1.75} />
-                <Box
-                  component="span"
-                  sx={{
-                    fontSize: '0.5rem',
-                    fontWeight: 600,
-                    lineHeight: 1,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
+                <span className="text-[0.5rem] font-semibold leading-[1] tabular-nums">
                   {minNights}
-                </Box>
-              </Box>
+                </span>
+              </div>
             )}
           </Box>
         );

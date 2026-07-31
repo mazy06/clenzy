@@ -99,9 +99,9 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
 
   if (error) {
     return (
-      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1, color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
+      <div className="p-4 flex items-center gap-1.5 text-[var(--err)] text-[var(--text-sm)]">
         <AlertTriangle size={16} strokeWidth={2} /> {error}
-      </Box>
+      </div>
     );
   }
 
@@ -118,36 +118,36 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
 
   return (
     <Box sx={{ maxWidth: 1080, mx: 'auto', px: { xs: 2, md: 3 }, py: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 2, mb: 3 }}>
-        <Box>
-          <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-bold)' }}>Articles de blog</Box>
-          <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', mt: 0.25 }}>Rédige ou génère des articles ; les articles publiés apparaissent sur ton site.</Box>
-        </Box>
-        <Box sx={{ flex: 1 }} />
+      <div className="flex items-end gap-3 mb-4">
+        <div>
+          <div className="font-[var(--font-display)] text-[var(--text-xl)] font-[var(--fw-bold)]">Articles de blog</div>
+          <div className="text-[var(--text-sm)] text-[var(--muted)] mt-0.5">Rédige ou génère des articles ; les articles publiés apparaissent sur ton site.</div>
+        </div>
+        <div className="flex-1" />
         <ButtonBase onClick={() => setEditing('new')} disabled={siteId == null} sx={primaryBtnSx}>
           <Plus size={16} strokeWidth={2.2} /> Nouvel article
         </ButtonBase>
-      </Box>
+      </div>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, p: 1.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 'var(--text-2xs)', lineHeight: 1.4 }}>
+      <div className="flex items-center gap-1.5 mb-3 p-2 rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--accent)] text-[var(--text-2xs)] leading-[1.4]">
         <AlertTriangle size={15} strokeWidth={2} style={{ flexShrink: 0 }} />
         La publication est soumise à <strong>validation manuelle</strong> : un article (surtout s'il est généré par IA) doit être relu puis approuvé. Les relecteurs de l'organisation sont alertés à chaque soumission.
-      </Box>
+      </div>
 
       {posts === null && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {[0, 1, 2].map((i) => <Skeleton key={i} variant="rounded" height={64} sx={{ borderRadius: 'var(--radius-md)', bgcolor: 'var(--hover)' }} />)}
-        </Box>
+        </div>
       )}
 
       {posts?.length === 0 && (
-        <Box sx={{ textAlign: 'center', py: 7, color: 'var(--muted)' }}>
-          <Box sx={{ width: 52, height: 52, mx: 'auto', mb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-lg)', bgcolor: 'var(--accent-soft)', color: 'var(--accent)' }}>
+        <div className="text-center py-10 text-[var(--muted)]">
+          <div className="w-[52px] h-[52px] mx-auto mb-2 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--accent-soft)] text-[var(--accent)]">
             <FileText size={24} strokeWidth={1.8} />
-          </Box>
-          <Box sx={{ fontSize: 'var(--text-md)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)', mb: 0.5 }}>Aucun article</Box>
-          <Box sx={{ fontSize: 'var(--text-sm)' }}>Crée ton premier article ou laisse l'IA t'en proposer un.</Box>
-        </Box>
+          </div>
+          <div className="text-[var(--text-md)] font-[var(--fw-semibold)] text-[var(--ink)] mb-0.5">Aucun article</div>
+          <div className="text-[var(--text-sm)]">Crée ton premier article ou laisse l'IA t'en proposer un.</div>
+        </div>
       )}
 
       {posts && posts.length > 0 && (
@@ -156,17 +156,17 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
             const meta = STATUS_META[p.status] ?? STATUS_META.DRAFT;
             const pending = p.status === 'PENDING_REVIEW';
             return (
-              <Box key={p.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
-                    <Box sx={{ fontSize: 'var(--text-md)', fontWeight: 'var(--fw-semibold)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.title || '(sans titre)'}</Box>
+              <div className="flex items-center gap-1.5 p-2 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--card)]" key={p.id}>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1 min-w-0">
+                    <div className="text-[var(--text-md)] font-[var(--fw-semibold)] whitespace-nowrap overflow-hidden text-ellipsis">{p.title || '(sans titre)'}</div>
                     {p.aiGenerated && <Box component="span" sx={aiChipSx}>IA</Box>}
-                  </Box>
+                  </div>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25, fontSize: 'var(--text-2xs)', color: meta.color }}>
                     <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: meta.color, flexShrink: 0 }} />
                     {meta.label} · /{p.slug}
                   </Box>
-                </Box>
+                </div>
                 {pending && (
                   <>
                     <ButtonBase onClick={async () => { if (siteId != null) { await sitesApi.approvePost(siteId, p.id); reload(); } }} sx={{ ...primaryBtnSx, height: 32, px: 1.25 }}>
@@ -189,7 +189,7 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
                   aria-label="Supprimer" sx={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', color: 'var(--muted)', cursor: 'pointer', flexShrink: 0, '&:hover': { bgcolor: 'var(--err-soft)', color: 'var(--err)' } }}>
                   <Trash2 size={15} strokeWidth={2} />
                 </ButtonBase>
-              </Box>
+              </div>
             );
           })}
         </Box>
@@ -265,18 +265,18 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
 
   return (
     <Box sx={{ maxWidth: 760, mx: 'auto', px: { xs: 2, md: 3 }, py: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <div className="flex items-center gap-1.5">
         <ButtonBase onClick={onClose} aria-label="Retour" sx={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', color: 'var(--muted)', cursor: 'pointer', '&:hover': { bgcolor: 'var(--hover)', color: 'var(--ink)' } }}>
           <ArrowLeft size={17} strokeWidth={2} />
         </ButtonBase>
-        <Box sx={{ flex: 1, fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-bold)' }}>{post ? "Éditer l'article" : 'Nouvel article'}</Box>
+        <div className="flex-1 font-[var(--font-display)] text-[var(--text-lg)] font-[var(--fw-bold)]">{post ? "Éditer l'article" : 'Nouvel article'}</div>
         <ButtonBase onClick={save} disabled={saving || !draft.title.trim()} sx={primaryBtnSx}>
           <Check size={15} strokeWidth={2.4} /> {saving ? 'Enregistrement…' : 'Enregistrer'}
         </ButtonBase>
-      </Box>
+      </div>
 
       {/* Génération IA */}
-      <Box sx={{ p: 1.5, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--accent-soft)', display: 'flex', gap: 1, alignItems: 'center' }}>
+      <div className="p-2 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--accent-soft)] flex gap-1.5 items-center">
         <Wand2 size={16} strokeWidth={2} style={{ color: 'var(--accent)', flexShrink: 0 }} />
         <InputBase value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Sujet de l'article (ex. « Que faire à Lyon en hiver »)"
           onKeyDown={(e) => { if (e.key === 'Enter') generate(); }}
@@ -284,12 +284,12 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
         <ButtonBase onClick={generate} disabled={generating || !topic.trim()} sx={{ ...ghostBtnSx, color: 'var(--accent)', borderColor: 'var(--accent)' }}>
           {generating ? 'Génération…' : 'Générer (IA)'}
         </ButtonBase>
-      </Box>
+      </div>
 
-      {err && <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--err)' }}>{err}</Box>}
+      {err && <div className="text-[var(--text-sm)] text-[var(--err)]">{err}</div>}
 
       <Field label="Titre"><InputBase value={draft.title} onChange={(e) => set('title', e.target.value)} sx={inputSx} placeholder="Titre de l'article" /></Field>
-      <Box sx={{ display: 'flex', gap: 1.5 }}>
+      <div className="flex gap-2">
         <Field label="Chemin (slug)"><InputBase value={draft.slug} onChange={(e) => set('slug', e.target.value)} sx={inputSx} placeholder="auto depuis le titre" /></Field>
         <Field label="Statut">
           <Box component="select" value={draft.status} onChange={(e) => set('status', (e.target as HTMLSelectElement).value)} sx={selectSx}>
@@ -299,7 +299,7 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
           </Box>
         </Field>
         <Field label="Langue"><InputBase value={draft.locale} onChange={(e) => set('locale', e.target.value)} sx={inputSx} placeholder="fr, en… (vide = toutes)" /></Field>
-      </Box>
+      </div>
       {draft.status === 'PUBLISHED' && (
         <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--warn, #B26B00)' }}>
           Toute modification enregistrée repassera par la validation avant une nouvelle mise en ligne.
@@ -316,10 +316,10 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <Box sx={{ flex: 1, minWidth: 0 }}>
-      <Box component="label" sx={{ display: 'block', mb: 0.5, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--body)' }}>{label}</Box>
+    <div className="flex-1 min-w-0">
+      <label className="block mb-0.5 text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--body)]">{label}</label>
       {children}
-    </Box>
+    </div>
   );
 }
 

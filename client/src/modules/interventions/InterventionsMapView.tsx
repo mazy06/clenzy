@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, Typography, Chip, Tooltip, IconButton, LinearProgress } from '@mui/material';
+import { Paper, Chip, Tooltip, IconButton, LinearProgress } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Build, LocationOn, Visibility as VisibilityIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -29,7 +29,7 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
 
   return (
     /* ─── Vue carte (sticky) + liste viewport (scrollable) ─── */
-    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Carte fixe en haut */}
       <Paper sx={{ ...LIST_PAPER_SX, p: 0, overflow: 'hidden', flexShrink: 0 }}>
         {mapMarkers.length > 0 ? (
@@ -42,33 +42,30 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
             onBoundsChange={onBoundsChange}
           />
         ) : (
-          <Box sx={{ height: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", opacity: 0.5 }}><Build size={36} strokeWidth={1.5} /></Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+          <div className="h-[400px] flex flex-col items-center justify-center gap-1.5">
+            <span className="inline-flex text-muted-foreground opacity-50"><Build size={36} strokeWidth={1.5} /></span>
+            <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
               Aucune intervention avec coordonnées GPS
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
       </Paper>
 
       {/* Liste scrollable en dessous */}
       {mapMarkers.length > 0 && (
-        <Box sx={{ mt: 1.5, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-          <Typography
-            variant="subtitle2"
-            sx={{ mb: 1, fontSize: '0.8125rem', fontWeight: 600, color: 'text.secondary', flexShrink: 0 }}
-          >
+        <div className="mt-2 flex-1 min-h-0 flex flex-col">
+          <h6 className="cn-text-subtitle2 mb-1.5 text-[0.8125rem] font-semibold text-muted-foreground shrink-0">
             {viewportInterventions.length} {viewportInterventions.length > 1 ? 'interventions' : 'intervention'} dans la zone visible
-          </Typography>
+          </h6>
 
           {viewportInterventions.length === 0 ? (
             <Paper sx={{ border: '1px solid', borderColor: 'var(--line)', boxShadow: 'none', borderRadius: '14px', p: 2, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+              <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
                 Aucune intervention dans cette zone. Déplacez ou dézoomez la carte.
-              </Typography>
+              </p>
             </Paper>
           ) : (
-            <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1, pr: 0.5 }}>
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 pe-0.5">
               {viewportInterventions.map((intervention) => {
                 const statusTokens = getStatusTokens(intervention.status);
                 const typeTokens = getTypeTokens(intervention.type);
@@ -93,30 +90,22 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                     }}
                     onClick={() => navigate(`/interventions/${intervention.id}`)}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <div className="flex items-center gap-2">
                       {/* Titre + adresse */}
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                          variant="body2"
-                          fontWeight={600}
-                          sx={{ fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                        >
+                      <div className="flex-1 min-w-0">
+                        <p className="cn-text-body2 font-semibold text-[0.84rem] overflow-hidden text-ellipsis whitespace-nowrap">
                           {stripPropertySuffix(intervention.title, intervention.propertyName)}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                          <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", flexShrink: 0 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ fontSize: '0.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                          >
+                        </p>
+                        <div className="flex items-center gap-0.5 mt-0.5">
+                          <span className="inline-flex text-muted-foreground shrink-0"><LocationOn size={13} strokeWidth={1.75} /></span>
+                          <span className="cn-text-caption text-muted-foreground text-[0.72rem] overflow-hidden text-ellipsis whitespace-nowrap">
                             {intervention.propertyName} — {intervention.propertyAddress}
-                          </Typography>
-                        </Box>
-                      </Box>
+                          </span>
+                        </div>
+                      </div>
 
                       {/* Type + Statut + Priorité chips */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                      <div className="flex items-center gap-0.5 shrink-0">
                         <Chip
                           label={getInterventionTypeLabel(intervention.type, t)}
                           size="small"
@@ -156,11 +145,11 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                             '& .MuiChip-label': { px: 0.75 },
                           }}
                         />
-                      </Box>
+                      </div>
 
                       {/* Progression + Assigné + Action */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 70 }}>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1 min-w-[70px]">
                           <LinearProgress
                             variant="determinate"
                             value={getProgress(intervention)}
@@ -176,14 +165,14 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                               },
                             }}
                           />
-                          <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.68rem', minWidth: 24, fontVariantNumeric: 'tabular-nums' }}>
+                          <span className="cn-text-caption font-semibold text-[0.68rem] min-w-[24px] tabular-nums">
                             {getProgress(intervention)}%
-                          </Typography>
-                        </Box>
+                          </span>
+                        </div>
                         {intervention.assignedToName && (
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span className="cn-text-caption text-muted-foreground text-[0.72rem] max-w-[90px] overflow-hidden text-ellipsis whitespace-nowrap">
                             {intervention.assignedToName}
-                          </Typography>
+                          </span>
                         )}
                         <Tooltip title="Détails">
                           <IconButton
@@ -194,16 +183,16 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                             <VisibilityIcon size={16} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
                   </Paper>
                 );
               })}
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

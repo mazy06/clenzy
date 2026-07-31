@@ -1,9 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  ToggleButtonGroup,
-  ToggleButton,
-} from '@mui/material';
+import { ToggleButtonGroup, ToggleButton } from '@mui/material';
 import {
   Payment,
   Receipt,
@@ -41,7 +37,7 @@ const ReportsExportsTab: React.FC = () => {
   const [view, setView] = useState<'fiscal' | 'exports'>('fiscal');
 
   return (
-    <Box>
+    <div>
       {/* Segmented (bascule de vue) — stylé par le thème global MuiToggleButtonGroup */}
       <ToggleButtonGroup
         value={view}
@@ -60,7 +56,7 @@ const ReportsExportsTab: React.FC = () => {
 
       {view === 'fiscal' && <FiscalReportSection />}
       {view === 'exports' && <ExportsTab />}
-    </Box>
+    </div>
   );
 };
 
@@ -130,7 +126,7 @@ const BillingPage: React.FC = () => {
 
   return (
     <PageHeaderActionsProvider slot={headerActionsSlot}>
-      <Box>
+      <div>
         <PageHeader
           title={title}
           subtitle={subtitle}
@@ -153,7 +149,7 @@ const BillingPage: React.FC = () => {
         {activeKey === 'expenses' && canViewAccounting && <ExpensesTab />}
         {activeKey === 'housekeeper-payouts' && canViewAccounting && <HousekeeperPayoutsTab />}
         {activeKey === 'reports' && canViewAccounting && <ReportsExportsTab />}
-      </Box>
+      </div>
     </PageHeaderActionsProvider>
   );
 };

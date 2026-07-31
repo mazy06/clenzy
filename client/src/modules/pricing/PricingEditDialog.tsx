@@ -1,15 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Typography,
-  Box,
-  CircularProgress,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, CircularProgress } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -69,15 +59,15 @@ const PricingEditDialog: React.FC<PricingEditDialogProps> = ({
     <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
       <DialogTitle>{t('dynamicPricing.calendar.editPrice')}</DialogTitle>
       <DialogContent>
-        <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Typography variant="body2" color="text.secondary">
+        <div className="pt-1.5 flex flex-col gap-3">
+          <p className="cn-text-body2 text-muted-foreground">
             {formatDateRange(selectedDates)}
             {selectedDates.length > 1 && (
-              <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+              <span className="cn-text-body2 text-muted-foreground ms-1.5">
                 ({selectedDates.length} {t('common.date')}s)
-              </Typography>
+              </span>
             )}
-          </Typography>
+          </p>
 
           <TextField
             label={t('dynamicPricing.calendar.pricePerNight')}
@@ -89,11 +79,11 @@ const PricingEditDialog: React.FC<PricingEditDialogProps> = ({
             fullWidth
             autoFocus
             InputProps={{
-              endAdornment: <Typography color="text.secondary">{currency}</Typography>,
+              endAdornment: <p className="cn-text-body1 text-muted-foreground">{currency}</p>,
             }}
             inputProps={{ min: 0, step: 1 }}
           />
-        </Box>
+        </div>
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} disabled={loading}>

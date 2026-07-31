@@ -1,19 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Chip,
-  FormControl,
-  Select,
-  MenuItem,
-  Tooltip,
-  CircularProgress,
-  alpha,
-  type SxProps,
-  type Theme,
-} from '@mui/material';
+import { Box, Card, CardContent, Chip, FormControl, Select, MenuItem, Tooltip, CircularProgress, alpha, type SxProps, type Theme } from '@mui/material';
 import {
   VolumeUp,
   Warning,
@@ -116,15 +102,15 @@ const NoiseTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) 
         minWidth: 140,
       }}
     >
-      <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>
+      <p className="cn-text-body1 text-[0.6875rem] font-semibold text-muted-foreground mb-0.5">
         {label}
-      </Typography>
+      </p>
       {payload.map((entry) => {
         const status = getNoiseStatus(entry.value);
         return (
-          <Box key={entry.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
+          <div className="flex items-center gap-0.5 mb-0.5" key={entry.name}>
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: entry.color, flexShrink: 0 }} />
-            <Typography sx={{ fontSize: '0.6875rem', flex: 1 }}>{entry.name}</Typography>
+            <p className="cn-text-body1 text-[0.6875rem] flex-1">{entry.name}</p>
             <Chip
               label={`${entry.value} dB`}
               size="small"
@@ -132,7 +118,7 @@ const NoiseTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) 
               variant="outlined"
               sx={{ height: 18, fontSize: '0.625rem', '& .MuiChip-label': { px: 0.5 } }}
             />
-          </Box>
+          </div>
         );
       })}
     </Box>
@@ -345,20 +331,12 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
         }}
       >
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75, flexShrink: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><VolumeUp size={16} strokeWidth={1.75} /></Box>
-            <Typography
-              sx={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-                color: 'text.secondary',
-              }}
-            >
+        <div className="flex items-center justify-between mb-1 shrink-0">
+          <div className="flex items-center gap-1">
+            <span className="inline-flex text-primary"><VolumeUp size={16} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 text-[0.75rem] font-bold uppercase tracking-[0.04em] text-muted-foreground">
               {isDevice ? 'Niveau sonore' : 'Monitoring sonore'}
-            </Typography>
+            </p>
             <Chip
               label={isDevice ? 'Dernières 24 h' : `${data.properties.length} capteur${data.properties.length > 1 ? 's' : ''}`}
               size="small"
@@ -372,7 +350,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
                 '& .MuiChip-label': { px: 0.5 },
               }}
             />
-          </Box>
+          </div>
 
           {!isDevice && (
             <FormControl size="small" sx={{ minWidth: 130 }}>
@@ -392,11 +370,11 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
               </Select>
             </FormControl>
           )}
-        </Box>
+        </div>
 
         {/* Current levels indicators — masqués en mode device (lecture live portée par le bandeau au-dessus) */}
         {!isDevice && (
-        <Box sx={{ display: 'flex', gap: 0.75, mb: 0.75, flexShrink: 0, flexWrap: 'wrap' }}>
+        <div className="flex gap-1 mb-1 shrink-0 flex-wrap">
           {data.properties.map((prop, idx) => {
             const status = getNoiseStatus(prop.currentLevel);
             return (
@@ -426,9 +404,9 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
                       bgcolor: PROPERTY_COLORS[idx % PROPERTY_COLORS.length],
                     }}
                   />
-                  <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'text.secondary' }}>
+                  <p className="cn-text-body1 text-[0.625rem] font-semibold text-muted-foreground">
                     {prop.propertyName}
-                  </Typography>
+                  </p>
                   <Chip
                     icon={status.icon}
                     label={`${prop.currentLevel} dB`}
@@ -446,7 +424,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
               </Tooltip>
             );
           })}
-        </Box>
+        </div>
         )}
 
         {/*
@@ -455,7 +433,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
           translucides PAR-DESSUS la zone de tracé (jamais un remplacement du graphe),
           pour que la structure du graphique soit lisible d'emblée.
         */}
-        <Box sx={{ flex: 1, minHeight: 0, position: 'relative' }}>
+        <div className="flex-1 min-h-0 relative">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={displayData} margin={{ top: 8, right: 12, left: -10, bottom: 8 }}>
               <defs>
@@ -529,9 +507,9 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
             <Box sx={CHART_OVERLAY_SX}>
               <Box sx={CHART_OVERLAY_PILL_SX}>
                 <CircularProgress size={22} />
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                <span className="cn-text-caption text-muted-foreground font-semibold">
                   Chargement de l'historique…
-                </Typography>
+                </span>
               </Box>
             </Box>
           )}
@@ -540,19 +518,19 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
           {!loading && combinedChartData.length === 0 && (
             <Box sx={CHART_OVERLAY_SX}>
               <Box sx={CHART_OVERLAY_PILL_SX}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}>
+                <span className="inline-flex text-primary">
                   <VolumeUp size={24} strokeWidth={1.5} />
-                </Box>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                </span>
+                <p className="cn-text-body2 font-bold">
                   En attente des premières mesures
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.4 }}>
+                </p>
+                <span className="cn-text-caption text-muted-foreground leading-[1.4]">
                   Les courbes s'afficheront ici dès que le capteur remontera ses relevés.
-                </Typography>
+                </span>
               </Box>
             </Box>
           )}
-        </Box>
+        </div>
 
         {/* Recent alerts strip */}
         {recentAlerts.length > 0 && (

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Button } from '@mui/material';
 import { Lock, LockOpen } from '../../../icons';
 import type { LockoutStatus } from '../../../services/api';
 
@@ -27,26 +27,26 @@ const UserActionsCard: React.FC<UserActionsCardProps> = ({
       p: 2,
       bgcolor: lockoutStatus.isLocked ? 'var(--err-soft)' : 'var(--warn-soft)',
     }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-1.5">
             <Box component="span" sx={{ display: 'inline-flex', color: lockoutStatus.isLocked ? 'var(--err)' : 'var(--warn)' }}><Lock size={20} strokeWidth={1.75} /></Box>
-            <Box>
-              <Typography variant="body2" fontWeight={600}>
+            <div>
+              <p className="cn-text-body2 font-semibold">
                 {lockoutStatus.isLocked
                   ? 'Compte temporairement bloque'
                   : `${lockoutStatus.failedAttempts} tentative${lockoutStatus.failedAttempts > 1 ? 's' : ''} de connexion echouee${lockoutStatus.failedAttempts > 1 ? 's' : ''}`
                 }
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
+              </p>
+              <span className="cn-text-caption text-muted-foreground">
                 {lockoutStatus.isLocked
                   ? `Bloque pendant encore ${Math.ceil(lockoutStatus.remainingSeconds / 60)} minute${Math.ceil(lockoutStatus.remainingSeconds / 60) > 1 ? 's' : ''} (deblocage automatique)`
                   : lockoutStatus.captchaRequired
                     ? 'CAPTCHA requis a la prochaine connexion'
                     : 'Le verrouillage se declenche apres 5 tentatives'
                 }
-              </Typography>
-            </Box>
-          </Box>
+              </span>
+            </div>
+          </div>
           <Button
             variant="contained"
             size="small"
@@ -58,7 +58,7 @@ const UserActionsCard: React.FC<UserActionsCardProps> = ({
           >
             {unlocking ? 'Deblocage...' : 'Debloquer'}
           </Button>
-        </Box>
+        </div>
     </Box>
   );
 };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, Typography, Chip, Tooltip, IconButton } from '@mui/material';
+import { Box, Paper, Chip, Tooltip, IconButton } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Home, LocationOn, Visibility } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -51,36 +51,33 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
             onBoundsChange={onBoundsChange}
           />
         ) : (
-          <Box sx={{ height: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', opacity: 0.5 }}><Home size={36} strokeWidth={1.5} /></Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+          <div className="h-[400px] flex flex-col items-center justify-center gap-1.5">
+            <span className="inline-flex text-muted-foreground opacity-50"><Home size={36} strokeWidth={1.5} /></span>
+            <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
               Aucune propriété avec coordonnées GPS
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+            </p>
+            <span className="cn-text-caption text-muted-foreground text-[0.6875rem]">
               Les coordonnées sont ajoutées automatiquement lors de la saisie de l'adresse
-            </Typography>
-          </Box>
+            </span>
+          </div>
         )}
       </Paper>
 
       {/* Liste scrollable en dessous */}
       {mapMarkers.length > 0 && (
-        <Box sx={{ mt: 1.5, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-          <Typography
-            variant="subtitle2"
-            sx={{ mb: 1, fontSize: '12.5px', fontWeight: 600, color: 'var(--muted)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
-          >
+        <div className="mt-2 flex-1 min-h-0 flex flex-col">
+          <h6 className="cn-text-subtitle2 mb-1.5 text-[12.5px] font-semibold text-[var(--muted)] shrink-0 tabular-nums">
             {viewportProperties.length} {viewportProperties.length > 1 ? 'propriétés' : 'propriété'} dans la zone visible
-          </Typography>
+          </h6>
 
           {viewportProperties.length === 0 ? (
             <Paper sx={{ ...LIST_PAPER_SX, p: 2, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+              <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
                 Aucune propriété dans cette zone. Déplacez ou dézoomez la carte.
-              </Typography>
+              </p>
             </Paper>
           ) : (
-            <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1, pr: 0.5 }}>
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 pe-0.5">
               {viewportProperties.map((property) => {
                 const typeColor = getPropertyTypeHex(property.type);
                 return (
@@ -99,17 +96,13 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
                     }}
                     onClick={() => navigate(`/properties/${property.id}`)}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <div className="flex items-center gap-2">
                       {/* Nom + adresse */}
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
-                          <Typography
-                            variant="body2"
-                            fontWeight={600}
-                            sx={{ fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}
-                          >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <p className="cn-text-body2 font-semibold text-[0.84rem] overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
                             {property.name}
-                          </Typography>
+                          </p>
                           {/* Quick Win #4 : badge sante Channex */}
                           {channexMappings.get(Number(property.id)) && (
                             <ChannexHealthBadge
@@ -124,21 +117,17 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
                               onClick={(e) => { e.stopPropagation(); onMissingContractClick(Number(property.id)); }}
                             />
                           )}
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ fontSize: '0.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                          >
+                        </div>
+                        <div className="flex items-center gap-0.5 mt-0.5">
+                          <span className="inline-flex text-muted-foreground shrink-0"><LocationOn size={13} strokeWidth={1.75} /></span>
+                          <span className="cn-text-caption text-muted-foreground text-[0.72rem] overflow-hidden text-ellipsis whitespace-nowrap">
                             {property.address}, {property.city}
-                          </Typography>
-                        </Box>
-                      </Box>
+                          </span>
+                        </div>
+                      </div>
 
                       {/* Type + Statut chips */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                      <div className="flex items-center gap-0.5 shrink-0">
                         <Chip
                           label={getPropertyTypeLabel(property.type, t)}
                           size="small"
@@ -149,17 +138,17 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
                           size="small"
                           sx={{ ...propertyStatusChipSx(property.status), '& .MuiChip-label': { px: 1 } }}
                         />
-                      </Box>
+                      </div>
 
                       {/* Prix + Action */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
+                      <div className="flex items-center gap-2 shrink-0">
                         {property.nightlyPrice > 0 && (
-                          <Typography variant="body2" sx={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '13.5px', whiteSpace: 'nowrap', color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+                          <p className="cn-text-body2 font-[var(--font-display)] font-semibold text-[13.5px] whitespace-nowrap text-[var(--ink)] tabular-nums">
                             <Money value={property.nightlyPrice} from="EUR" decimals={0} />
-                            <Typography component="span" variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                            <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
                               /nuit
-                            </Typography>
-                          </Typography>
+                            </span>
+                          </p>
                         )}
                         <Tooltip title="Détails">
                           <IconButton
@@ -170,14 +159,14 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
                             <Visibility size={16} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
                   </Paper>
                 );
               })}
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
       )}
     </Box>
   );

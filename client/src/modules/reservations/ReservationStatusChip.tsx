@@ -79,12 +79,7 @@ export const ReservationSourceBadge: React.FC<SourceBadgeProps> = ({ source }) =
     <Chip
       icon={
         logo ? (
-          <Box
-            component="img"
-            src={logo}
-            alt=""
-            sx={{ width: 13, height: 13, objectFit: 'contain', display: 'block' }}
-          />
+          <img className="w-[13px] h-[13px] object-contain block" src={logo} alt="" />
         ) : undefined
       }
       label={label}

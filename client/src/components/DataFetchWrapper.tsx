@@ -1,14 +1,5 @@
 import React, { ReactNode } from 'react';
-import {
-  Box,
-  CircularProgress,
-  Typography,
-  Alert,
-  Button,
-  Skeleton,
-  Card,
-  CardContent,
-} from '@mui/material';
+import { Box, CircularProgress, Alert, Button, Skeleton, Card, CardContent } from '@mui/material';
 import { Refresh as RefreshIcon } from '../icons';
 
 /**
@@ -62,10 +53,10 @@ const CardSkeleton: React.FC = () => (
       <Skeleton variant="text" width="60%" height={28} sx={{ mb: 1 }} />
       <Skeleton variant="text" width="100%" height={20} />
       <Skeleton variant="text" width="80%" height={20} />
-      <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+      <div className="flex gap-1.5 mt-2">
         <Skeleton variant="rounded" width={80} height={24} />
         <Skeleton variant="rounded" width={60} height={24} />
-      </Box>
+      </div>
     </CardContent>
   </Card>
 );
@@ -86,9 +77,9 @@ const CenteredSpinner: React.FC<{ size: number; message?: string; minHeight: str
   >
     <CircularProgress size={size} thickness={3.5} sx={{ color: 'var(--accent)' }} />
     {message && (
-      <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+      <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
         {message}
-      </Typography>
+      </p>
     )}
   </Box>
 );
@@ -151,20 +142,20 @@ const DataFetchWrapper: React.FC<DataFetchWrapperProps> = ({
     switch (variant) {
       case 'skeleton':
         return (
-          <Box>
+          <div>
             {Array.from({ length: skeletonCount }).map((_, i) => (
               <CardSkeleton key={i} />
             ))}
-          </Box>
+          </div>
         );
       case 'inline':
         return (
           <Box display="flex" alignItems="center" gap={1} py={1}>
             <CircularProgress size={20} />
             {loadingMessage && (
-              <Typography variant="body2" color="text.secondary">
+              <p className="cn-text-body2 text-muted-foreground">
                 {loadingMessage}
-              </Typography>
+              </p>
             )}
           </Box>
         );

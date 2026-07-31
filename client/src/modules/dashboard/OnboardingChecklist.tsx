@@ -239,10 +239,10 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
             '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)' },
           }}
         >
-          <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><Replay size={12} strokeWidth={1.75} /></Box>
-          <Typography component="span" sx={{ fontSize: '0.65rem', fontWeight: 600 }}>
+          <span className="inline-flex me-0.5"><Replay size={12} strokeWidth={1.75} /></span>
+          <span className="text-[0.65rem] font-semibold">
             {t('dashboard.onboarding.reshowShort')}
-          </Typography>
+          </span>
         </IconButton>
       </Tooltip>
     );
@@ -281,32 +281,13 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
         }}
       >
         {/* ── Header row: title + progress + bar + dismiss ────────── */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-          <Typography
-            sx={{
-              fontSize: '10.5px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              color: 'var(--faint)',
-              lineHeight: 1,
-              whiteSpace: 'nowrap',
-            }}
-          >
+        <div className="flex items-center gap-2 mb-1.5">
+          <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] leading-[1] whitespace-nowrap">
             {t('dashboard.onboarding.title')}
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{
-              fontSize: '0.625rem',
-              color: 'text.disabled',
-              fontWeight: 600,
-              fontVariantNumeric: 'tabular-nums',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          </p>
+          <span className="cn-text-caption text-[0.625rem] text-muted-foreground opacity-60 font-semibold tabular-nums whitespace-nowrap">
             {t('dashboard.onboarding.progress', { completed: completedCount, total: totalCount })}
-          </Typography>
+          </span>
           <LinearProgress
             variant="determinate"
             value={progressPercent}
@@ -329,10 +310,10 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
           >
             <Close size={14} strokeWidth={1.75} />
           </IconButton>
-        </Box>
+        </div>
 
         {/* ── Steps: horizontal row with wrapping ─────────────────── */}
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        <div className="flex gap-1.5 flex-wrap">
           {steps.map((step) => {
             const isActive = step === activeStep;
             const visual = STEP_VISUALS[step.key] ?? DEFAULT_VISUAL;
@@ -416,16 +397,16 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
 
                 {/* Status */}
                 {step.completed ? (
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)', flexShrink: 0 }}><CheckCircle size={14} strokeWidth={1.75} /></Box>
+                  <span className="inline-flex text-[var(--ok)] shrink-0"><CheckCircle size={14} strokeWidth={1.75} /></span>
                 ) : step.locked ? (
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', flexShrink: 0 }}><Lock size={12} strokeWidth={1.75} /></Box>
+                  <span className="inline-flex text-muted-foreground opacity-60 shrink-0"><Lock size={12} strokeWidth={1.75} /></span>
                 ) : (
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', flexShrink: 0 }}><RadioButtonUnchecked size={14} strokeWidth={1.75} /></Box>
+                  <span className="inline-flex text-muted-foreground opacity-60 shrink-0"><RadioButtonUnchecked size={14} strokeWidth={1.75} /></span>
                 )}
               </Box>
             );
           })}
-        </Box>
+        </div>
 
         {/* ── CTA: always show for the current active step ─────────── */}
         {activeStep && activeVisual && (
@@ -513,15 +494,15 @@ const CtaSection: React.FC<CtaSectionProps> = ({
     >
       {icon}
     </Box>
-    <Box sx={{ flex: 1, minWidth: 0 }}>
-      <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'text.primary', lineHeight: 1.3 }}>
+    <div className="flex-1 min-w-0">
+      <p className="cn-text-body1 text-[0.85rem] font-bold text-foreground leading-[1.3]">
         {title}
-      </Typography>
-      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.5, mt: 0.25 }}>
+      </p>
+      <p className="cn-text-body1 text-[0.75rem] text-muted-foreground leading-[1.5] mt-0.5">
         {description}
-      </Typography>
-    </Box>
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+      </p>
+    </div>
+    <div className="flex items-center gap-1.5 shrink-0">
       {skippable && onSkip && (
         <Button
           variant="text"
@@ -567,6 +548,6 @@ const CtaSection: React.FC<CtaSectionProps> = ({
       >
         {actionLabel}
       </Button>
-    </Box>
+    </div>
   </Box>
 );

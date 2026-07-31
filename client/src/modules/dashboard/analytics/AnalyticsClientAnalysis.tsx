@@ -59,12 +59,12 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
                 {t('dashboard.analytics.bookingsBySource')}
               </Typography>
               {loading || !data ? (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                  <Box sx={{ flex: 1, minHeight: 0 }}>
+                <div className="flex-1 min-h-0 flex flex-col">
+                  <div className="flex-1 min-h-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -81,18 +81,18 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
                         <Tooltip contentStyle={TOOLTIP_STYLE} />
                       </PieChart>
                     </ResponsiveContainer>
-                  </Box>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 0.5 }}>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-0.5">
                     {data.bySource.map((ch) => (
-                      <Box key={ch.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.375 }}>
+                      <div className="flex items-center gap-0.5" key={ch.name}>
                         <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: ch.color, flexShrink: 0 }} />
-                        <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary' }}>
+                        <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground">
                           {ch.name} ({ch.value})
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
                     ))}
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -106,11 +106,11 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
                 {t('dashboard.analytics.topByPopularity')}
               </Typography>
               {loading || !data ? (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0 }}>
+                <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.topProperties} layout="vertical" margin={{ top: 4, right: 6, left: 0, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} horizontal={false} />
@@ -120,7 +120,7 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
                       <Bar dataKey="bookings" name={t('dashboard.analytics.bookings')} fill="#7BA3C2" radius={[0, 3, 3, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
-                </Box>
+                </div>
               )}
             </CardContent>
           </Card>

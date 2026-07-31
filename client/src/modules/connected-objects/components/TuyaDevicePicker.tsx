@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Box, TextField, MenuItem, Alert, CircularProgress, Typography } from '@mui/material';
+import { TextField, MenuItem, Alert, CircularProgress } from '@mui/material';
 import { tuyaApi } from '../../../services/api/noiseApi';
 import DevicePairingGuide from './DevicePairingGuide';
 
@@ -26,10 +26,10 @@ export default function TuyaDevicePicker({ category, selectedId, onSelect }: Tuy
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}>
+      <div className="flex items-center gap-1.5 py-1.5">
         <CircularProgress size={16} />
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>Recherche des appareils Tuya…</Typography>
-      </Box>
+        <p className="cn-text-body2 text-muted-foreground">Recherche des appareils Tuya…</p>
+      </div>
     );
   }
   if (isError) {
@@ -45,10 +45,10 @@ export default function TuyaDevicePicker({ category, selectedId, onSelect }: Tuy
 
   if (list.length === 0) {
     return (
-      <Box>
+      <div>
         <Alert severity="info" sx={{ py: 0.25 }}>Aucun appareil trouvé sur le compte Tuya relié.</Alert>
         <DevicePairingGuide onRefresh={() => { void refetch(); }} refreshing={isFetching} />
-      </Box>
+      </div>
     );
   }
 

@@ -111,7 +111,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                   onClick={() => navigate(`/properties/${property.id}`)}
                 >
                   <TableCell sx={{ py: 1, pr: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, gap: 1.25 }}>
+                    <div className="flex items-center min-w-0 gap-2">
                       {/* .pr-lthumb — vignette dégradé déterministe + icône immeuble (photo en overlay si dispo) */}
                       <Box
                         sx={{
@@ -135,24 +135,11 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                       >
                         <Business size={20} strokeWidth={1.75} />
                       </Box>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, gap: 0.75 }}>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontFamily: 'var(--font-display)',
-                              fontWeight: 600,
-                              fontSize: '14px',
-                              color: 'var(--ink)',
-                              letterSpacing: '-.01em',
-                              minWidth: 0,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
+                      <div className="min-w-0">
+                        <div className="flex items-center min-w-0 gap-1">
+                          <p className="cn-text-body2 font-[var(--font-display)] font-semibold text-[14px] text-[var(--ink)] tracking-[-.01em] min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                             {property.name}
-                          </Typography>
+                          </p>
                           {/* Quick Win #4 : badge sante Channex (visible si mapping present) */}
                           {channexMappings.get(Number(property.id)) && (
                             <ChannexHealthBadge
@@ -167,7 +154,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                               onClick={(e) => { e.stopPropagation(); onMissingContractClick(Number(property.id)); }}
                             />
                           )}
-                        </Box>
+                        </div>
                         {/* .pr-lci — localisation (ville) sous le nom */}
                         <Typography
                           sx={{
@@ -181,8 +168,8 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                         >
                           {property.city}
                         </Typography>
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell>
                     {(() => { const c = getPropertyTypeHex(property.type); return (
@@ -194,22 +181,13 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                     ); })()}
                   </TableCell>
                   <TableCell>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{
-                        fontSize: '0.78rem',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
+                    <p className="cn-text-body2 text-muted-foreground text-[0.78rem] overflow-hidden text-ellipsis whitespace-nowrap">
                       {property.bedrooms} ch. · {property.bathrooms} sdb · {property.squareMeters ?? 0} m² · {property.guests} voy.
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell>
                     {property.amenities && property.amenities.length > 0 ? (
-                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', alignItems: 'center', minWidth: 0 }}>
+                      <div className="flex gap-0.5 flex-nowrap items-center min-w-0">
                         {property.amenities.slice(0, 2).map((amenity) => (
                           <Chip
                             key={amenity}
@@ -232,7 +210,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                         {property.amenities.length > 2 && (
                           <ThemedTooltip
                             title={
-                              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              <div className="flex flex-wrap gap-0.5">
                                 {property.amenities.map((a) => (
                                   <Chip
                                     key={a}
@@ -241,7 +219,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                                     sx={{ ...FIELD_CHIP_SX, height: 20, '& .MuiChip-label': { px: 1 } }}
                                   />
                                 ))}
-                              </Box>
+                              </div>
                             }
                             arrow
                             placement="top"
@@ -253,13 +231,13 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                             />
                           </ThemedTooltip>
                         )}
-                      </Box>
+                      </div>
                     ) : (
-                      <Typography variant="body2" color="text.secondary">—</Typography>
+                      <p className="cn-text-body2 text-muted-foreground">—</p>
                     )}
                   </TableCell>
                   <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    <div className="flex items-center gap-1">
                       {(() => { const freq = property.cleaningFrequency || 'ON_DEMAND'; return (
                         <Tooltip title={`Ménage auto : ${getCleaningFrequencyLabel(freq, t)}`}>
                           <Box component="span" sx={{ display: 'inline-flex', color: getCleaningFrequencyHex(freq), flexShrink: 0 }}>
@@ -268,20 +246,20 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                         </Tooltip>
                       ); })()}
                       {price != null ? (
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography variant="body2" sx={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '13px', lineHeight: 1.2, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+                        <div className="min-w-0">
+                          <p className="cn-text-body2 font-[var(--font-display)] font-semibold text-[13px] leading-[1.2] text-[var(--ink)] tabular-nums">
                             <Money value={price} from="EUR" decimals={0} />
-                          </Typography>
+                          </p>
                           {duration != null && (
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                            <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
                               ~{formatDuration(duration)}
-                            </Typography>
+                            </span>
                           )}
-                        </Box>
+                        </div>
                       ) : (
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.82rem' }}>—</Typography>
+                        <p className="cn-text-body2 text-muted-foreground text-[0.82rem]">—</p>
                       )}
-                    </Box>
+                    </div>
                   </TableCell>
                   <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
                     {(() => { const sc = getPropertyStatusHex(property.status); return (

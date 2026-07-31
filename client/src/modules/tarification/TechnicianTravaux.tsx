@@ -1,9 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Box, Button, CircularProgress, Snackbar, Alert, Typography,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Switch, TextField, InputAdornment,
-} from '@mui/material';
+import { Button, CircularProgress, Snackbar, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Switch, TextField, InputAdornment } from '@mui/material';
 import { Save, Build } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -109,14 +105,14 @@ export default function TechnicianTravaux() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+      <div className="flex justify-center items-center min-h-[400px]">
         <CircularProgress />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={t('technicianPrestations.title', 'Mes tarifs travaux')}
         subtitle={t('technicianPrestations.subtitle', 'Cochez les prestations que vous proposez et fixez vos prix — visibles de vous seul.')}
@@ -149,9 +145,9 @@ export default function TechnicianTravaux() {
               <React.Fragment key={domain}>
                 <TableRow>
                   <TableCell colSpan={3} sx={{ py: 0.75, borderBottom: '1px solid var(--line)', bgcolor: 'var(--field)' }}>
-                    <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)' }}>
+                    <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
                       {domain}
-                    </Typography>
+                    </p>
                   </TableCell>
                 </TableRow>
                 {entries.map(({ row, index }) => (
@@ -197,6 +193,6 @@ export default function TechnicianTravaux() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 }

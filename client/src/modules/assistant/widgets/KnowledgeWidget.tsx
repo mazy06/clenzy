@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Chip } from '@mui/material';
+import { Chip } from '@mui/material';
 
 interface KnowledgeItem {
   documentId?: number;
@@ -32,40 +32,31 @@ export const KnowledgeWidget: React.FC<KnowledgeWidgetProps> = ({ data }) => {
 
   if (items.length === 0) {
     return (
-      <Box sx={{ mt: 1, mb: 1.5 }}>
-        <Box sx={{
-          p: 2, borderRadius: '12px',
-          border: '1px solid var(--line)',
-          bgcolor: 'var(--card)',
-          textAlign: 'center',
-        }}>
-          <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+      <div className="mt-1.5 mb-2">
+        <div className="p-3 rounded-[12px] border border-[var(--line)] bg-[var(--card)] text-center">
+          <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
             Aucun resultat dans la documentation
             {data.query ? ` pour « ${data.query} »` : ''}.
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
+    <div className="mt-1.5 mb-2">
       {data.title && (
-        <Typography sx={{
-          display: 'block', mb: 0.75, fontSize: '10.5px', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '.05em',
-          color: 'var(--faint)',
-        }}>
+        <p className="cn-text-body1 block mb-1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
           {data.title}{data.query ? ` · « ${data.query} »` : ''}
-        </Typography>
+        </p>
       )}
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+      <div className="flex flex-col gap-1">
         {items.map((item, idx) => (
           <KbCard key={`${item.documentId}-${idx}`} item={item} />
         ))}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 
@@ -79,24 +70,11 @@ const KbCard: React.FC<{ item: KnowledgeItem }> = ({ item }) => {
       : ['var(--faint)', 'var(--hover)'];
 
   return (
-    <Box
-      sx={{
-        px: 1.25, py: 1,
-        borderRadius: '10px',
-        border: '1px solid var(--line)',
-        bgcolor: 'var(--card)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 0.5,
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap' }}>
-        <Typography sx={{
-          fontSize: '12.5px', fontWeight: 600,
-          color: 'var(--ink)',
-        }}>
+    <div className="px-2 py-1.5 rounded-[10px] border border-[var(--line)] bg-[var(--card)] flex flex-col gap-0.5">
+      <div className="flex items-baseline gap-1.5 flex-wrap">
+        <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)]">
           {item.title || item.sourcePath || 'Document'}
-        </Typography>
+        </p>
         <Chip
           label={`${relevancePct}%`}
           size="small"
@@ -108,25 +86,17 @@ const KbCard: React.FC<{ item: KnowledgeItem }> = ({ item }) => {
             '& .MuiChip-label': { px: 0.75 },
           }}
         />
-      </Box>
+      </div>
       {item.snippet && (
-        <Typography sx={{
-          fontSize: '11.5px',
-          color: 'var(--muted)',
-          lineHeight: 1.5,
-        }}>
+        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] leading-[1.5]">
           {item.snippet}
-        </Typography>
+        </p>
       )}
       {item.sourcePath && (
-        <Typography sx={{
-          fontSize: '10.5px',
-          color: 'var(--faint)',
-          fontStyle: 'italic',
-        }}>
+        <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] italic">
           {item.sourcePath}
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   );
 };

@@ -1,23 +1,6 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Alert,
-  AlertTitle,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Grid,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Alert, AlertTitle, Button, Card, CardContent, Chip, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip } from '@mui/material';
 import { ShieldCheck, ShieldAlert, Layers, Clock, Check } from 'lucide-react';
 import { rlsAuditApi } from '../services/api/rlsAuditApi';
 import type { RlsAuditFinding } from '../services/api/rlsAuditApi';
@@ -103,7 +86,7 @@ const RlsAudit: React.FC = () => {
     : null;
 
   return (
-    <Box>
+    <div>
       {/* Le drapeau le plus important de l'ecran : sans lui, on lirait un inventaire
           trompeur comme un vrai constat. */}
       {data && data.auditActif && !data.mesureExploitable && (
@@ -203,14 +186,14 @@ const RlsAudit: React.FC = () => {
 
       <Card variant="outlined">
         <CardContent>
-          <Typography variant="h6" sx={{ color: 'var(--ink)', mb: 0.5 }}>
+          <h6 className="cn-text-h6 text-[var(--ink)] mb-0.5">
             Chemins sans contexte tenant
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'var(--ink-muted)', mb: 2 }}>
+          </h6>
+          <p className="cn-text-body2 text-[var(--ink-muted)] mb-3">
             Une fois la RLS active, ces requetes renverront zero ligne — sans lever
             d'erreur. Le nombre d'occurrences indique l'urgence : un chemin tres emprunte
             casserait plus d'ecrans qu'un chemin marginal.
-          </Typography>
+          </p>
 
           {!isLoading && ouverts.length === 0 && traites.length === 0 && enAttente === 0 ? (
             <EmptyState
@@ -293,7 +276,7 @@ const RlsAudit: React.FC = () => {
           )}
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

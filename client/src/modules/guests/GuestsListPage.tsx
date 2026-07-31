@@ -1,20 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  MenuItem,
-  Chip,
-  Skeleton,
-  Alert,
-} from '@mui/material';
+import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, MenuItem, Chip, Skeleton, Alert } from '@mui/material';
 import {
   People as PeopleIcon,
 } from '../../icons';
@@ -170,7 +155,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
 
       {/* Filters */}
       <Paper sx={{ ...CARD_SX, p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        <div className="flex gap-3 flex-wrap">
           <TextField
             label="Rechercher"
             placeholder="Nom, email..."
@@ -196,21 +181,21 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
               </MenuItem>
             ))}
           </TextField>
-        </Box>
+        </div>
       </Paper>
 
       {/* Loading skeletons */}
       {isLoading && (
         <Paper sx={{ ...CARD_SX, p: 2 }}>
           {[...Array(6)].map((_, i) => (
-            <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
+            <div className="flex items-center gap-2 py-1.5" key={i}>
               <Skeleton variant="rounded" width={34} height={34} sx={{ borderRadius: '13px' }} />
-              <Box sx={{ flex: 1 }}>
+              <div className="flex-1">
                 <Skeleton variant="text" width="32%" height={18} />
                 <Skeleton variant="text" width="48%" height={14} />
-              </Box>
+              </div>
               <Skeleton variant="rounded" width={64} height={22} sx={{ borderRadius: 999 }} />
-            </Box>
+            </div>
           ))}
         </Paper>
       )}
@@ -260,7 +245,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                   >
                     <TableCell>
                       {/* Avatar initiales display r13 (densité table → 34) + nom */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                      <div className="flex items-center gap-2">
                         <Box
                           sx={{
                             width: 34,
@@ -279,20 +264,20 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                         >
                           {initialsOf(guest.fullName || '?')}
                         </Box>
-                        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+                        <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)]">
                           {guest.fullName}
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
                     </TableCell>
                     <TableCell>
-                      <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+                      <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
                         {guest.email || '-'}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell>
-                      <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                      <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] tabular-nums">
                         {guest.phone || '-'}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell>
                       {guest.channel ? (
@@ -307,9 +292,9 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                           );
                         })()
                       ) : (
-                        <Typography sx={{ fontSize: '12.5px', color: 'var(--faint)' }}>
+                        <p className="cn-text-body1 text-[12.5px] text-[var(--faint)]">
                           -
-                        </Typography>
+                        </p>
                       )}
                     </TableCell>
                     <TableCell align="center">
@@ -327,20 +312,20 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                       />
                     </TableCell>
                     <TableCell align="right">
-                      <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
+                      <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] font-[var(--font-display)] tabular-nums">
                         {guest.totalSpent ? <Money value={guest.totalSpent} from="EUR" /> : '-'}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell>
-                      <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                      <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
                         {formatDate(guest.createdAt)}
-                      </Typography>
+                      </p>
                     </TableCell>
                     {isSuperAdmin && (
                       <TableCell>
-                        <Typography sx={{ fontSize: '12px', color: 'var(--muted)' }}>
+                        <p className="cn-text-body1 text-[12px] text-[var(--muted)]">
                           {guest.organizationName || '-'}
-                        </Typography>
+                        </p>
                       </TableCell>
                     )}
                   </TableRow>

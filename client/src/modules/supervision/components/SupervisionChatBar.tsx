@@ -77,24 +77,12 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
     >
       {/* Transcription */}
       {hasTranscript && (
-        <Box
-          ref={transcriptRef}
-          sx={{
-            maxHeight: 220,
-            overflowY: 'auto',
-            px: 1.75,
-            pt: 1.5,
-            pb: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-          }}
-        >
+        <div className="max-h-[220px] overflow-y-auto px-2.5 pt-2 pb-1.5 flex flex-col gap-1.5" ref={transcriptRef}>
           {conversation.map((turn) => (
             <ConversationBubble key={turn.id} turn={turn} />
           ))}
           {busy && <ThinkingRow label={t('supervision.chat.thinking', 'Les agents travaillent…')} />}
-        </Box>
+        </div>
       )}
 
       {/* Champ de saisie */}
@@ -203,16 +191,9 @@ function ConversationBubble({ turn }: { turn: ConversationTurn }) {
         {turn.text || '…'}
       </Box>
       {turn.at && (
-        <Box
-          sx={{
-            mt: 0.25,
-            fontSize: 10.5,
-            color: 'text.disabled',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
+        <div className="mt-0.5 text-[10.5px] text-muted-foreground opacity-60 tabular-nums">
           {formatTime(turn.at)}
-        </Box>
+        </div>
       )}
     </Box>
   );

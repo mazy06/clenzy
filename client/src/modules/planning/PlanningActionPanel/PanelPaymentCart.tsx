@@ -1,14 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Checkbox,
-  Button,
-  Divider,
-  Chip,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
+import { Box, Checkbox, Button, Divider, Chip, CircularProgress, Alert } from '@mui/material';
 import {
   ShoppingCart,
   Payment,
@@ -37,36 +28,36 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
 
   if (cartItems.length === 0) {
     return (
-      <Box sx={{ py: 1 }}>
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontStyle: 'italic' }}>
+      <div className="py-1.5">
+        <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground italic">
           Aucune intervention en attente de paiement
-        </Typography>
-      </Box>
+        </p>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><ShoppingCart size={16} strokeWidth={1.75} /></Box>
-          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-0.5">
+          <span className="inline-flex text-primary"><ShoppingCart size={16} strokeWidth={1.75} /></span>
+          <p className="cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-muted-foreground">
             Panier ({cartItems.length})
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          </p>
+        </div>
+        <div className="flex gap-0.5">
           <Button size="small" onClick={selectAll} sx={{ fontSize: '0.5625rem', textTransform: 'none', minWidth: 0, p: '2px 6px' }}>
             Tout
           </Button>
           <Button size="small" onClick={deselectAll} sx={{ fontSize: '0.5625rem', textTransform: 'none', minWidth: 0, p: '2px 6px' }}>
             Aucun
           </Button>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Cart items */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 1.5 }}>
+      <div className="flex flex-col gap-0.5 mb-2">
         {cartItems.map((item) => (
           <Box
             key={item.interventionId}
@@ -91,27 +82,27 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
               onClick={(e) => e.stopPropagation()}
               onChange={() => toggleCartItem(item.interventionId)}
             />
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ fontSize: '0.6875rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div className="flex-1 min-w-0">
+              <p className="cn-text-body1 text-[0.6875rem] font-medium overflow-hidden text-ellipsis whitespace-nowrap">
                 {item.title}
-              </Typography>
-            </Box>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>
+              </p>
+            </div>
+            <p className="cn-text-body1 text-[0.75rem] font-bold">
               <Money value={item.cost} decimals={0} />
-            </Typography>
+            </p>
           </Box>
         ))}
-      </Box>
+      </div>
 
       <Divider sx={{ mb: 1.5 }} />
 
       {/* Total */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-        <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>Total sélectionné</Typography>
-        <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'primary.main' }}>
+      <div className="flex justify-between items-center mb-2">
+        <p className="cn-text-body1 text-[0.75rem] font-semibold">Total sélectionné</p>
+        <p className="cn-text-body1 text-[1rem] font-bold text-primary">
           <Money value={selectedTotal} />
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {/* Errors / Success */}
       {paymentError && (
@@ -135,7 +126,7 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
       >
         {paying ? 'Paiement en cours...' : <>Payer <Money value={selectedTotal} /></>}
       </Button>
-    </Box>
+    </div>
   );
 };
 

@@ -211,7 +211,7 @@ const TokenMonitoring: React.FC = () => {
   }, [tokenStats]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+    <div className="flex flex-col gap-3.5">
       {error && (
         <Alert severity="error" onClose={() => setError(null)}>
           {error}
@@ -231,9 +231,9 @@ const TokenMonitoring: React.FC = () => {
         }}
       >
         {currentToken.isAuthenticated ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+          <div className="flex items-center gap-4 flex-wrap">
             {/* Countdown ring + avatar */}
-            <Box sx={{ position: 'relative', width: 96, height: 96, flexShrink: 0 }}>
+            <div className="relative w-[96px] h-[96px] shrink-0">
               <CircularProgress
                 variant="determinate"
                 value={100}
@@ -272,20 +272,20 @@ const TokenMonitoring: React.FC = () => {
               >
                 {getInitials(currentToken.username || currentToken.email)}
               </Avatar>
-            </Box>
+            </div>
 
             {/* User info */}
-            <Box sx={{ flex: 1, minWidth: 220 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
-                <Typography sx={{ fontSize: '1.125rem', fontWeight: 700 }}>
+            <div className="flex-1 min-w-[220px]">
+              <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                <p className="cn-text-body1 text-[1.125rem] font-bold">
                   {currentToken.username || 'admin'}
-                </Typography>
+                </p>
                 <Chip
                   size="small"
                   icon={
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'inherit', ml: 0.5 }}>
+                    <span className="inline-flex text-inherit ms-0.5">
                       <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: tokenStatus.fg }} />
-                    </Box>
+                    </span>
                   }
                   label={tokenStatus.label}
                   sx={{
@@ -298,25 +298,23 @@ const TokenMonitoring: React.FC = () => {
                     '& .MuiChip-label': { px: 0.75 },
                   }}
                 />
-              </Box>
+              </div>
               <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', rowGap: 0.5, mb: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+                <div className="flex items-center gap-0.5">
+                  <span className="inline-flex text-muted-foreground opacity-60">
                     <Email size={13} strokeWidth={1.75} />
-                  </Box>
-                  <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+                  </span>
+                  <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground">
                     {currentToken.email || 'N/A'}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+                  </p>
+                </div>
+                <div className="flex items-center gap-0.5">
+                  <span className="inline-flex text-muted-foreground opacity-60">
                     <Person size={13} strokeWidth={1.75} />
-                  </Box>
-                  <Typography
-                    sx={{ fontSize: '0.75rem', color: 'text.disabled', fontFamily: 'monospace' }}
-                  >
+                  </span>
+                  <p className="cn-text-body1 text-[0.75rem] text-muted-foreground opacity-60 font-mono">
                     {currentToken.userId?.slice(0, 8) ?? '—'}
-                  </Typography>
+                  </p>
                   {currentToken.userId && (
                     <Tooltip title={copied ? 'Copié !' : 'Copier l\'ID complet'}>
                       <IconButton size="small" onClick={copyUserId} sx={{ p: 0.25 }}>
@@ -328,9 +326,9 @@ const TokenMonitoring: React.FC = () => {
                       </IconButton>
                     </Tooltip>
                   )}
-                </Box>
+                </div>
               </Stack>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              <div className="flex flex-wrap gap-0.5">
                 {currentToken.roles?.length ? (
                   currentToken.roles.map((role) => (
                     <Chip
@@ -350,12 +348,12 @@ const TokenMonitoring: React.FC = () => {
                     />
                   ))
                 ) : (
-                  <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', fontStyle: 'italic' }}>
+                  <p className="cn-text-body1 text-[0.75rem] text-muted-foreground opacity-60 italic">
                     Aucun rôle assigné
-                  </Typography>
+                  </p>
                 )}
-              </Box>
-            </Box>
+              </div>
+            </div>
 
             {/* Countdown */}
             <Box
@@ -393,14 +391,14 @@ const TokenMonitoring: React.FC = () => {
                 {formatDuration(timeUntilExpiry)}
               </Typography>
               {currentToken.expiresAt && (
-                <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', mt: 0.25 }}>
+                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60 mt-0.5">
                   {new Date(currentToken.expiresAt).toLocaleString('fr-FR', {
                     day: '2-digit',
                     month: 'short',
                     hour: '2-digit',
                     minute: '2-digit',
                   })}
-                </Typography>
+                </p>
               )}
               <LinearProgress
                 variant="determinate"
@@ -417,7 +415,7 @@ const TokenMonitoring: React.FC = () => {
                 }}
               />
             </Box>
-          </Box>
+          </div>
         ) : (
           <Alert severity="warning" sx={{ borderRadius: 1.5 }}>
             Aucun token actif détecté. Veuillez vous authentifier.
@@ -477,34 +475,25 @@ const TokenMonitoring: React.FC = () => {
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1.4fr' }, gap: 2 }}>
         {/* Donut */}
         <Paper variant="outlined" sx={{ p: 2.5, borderRadius: '14px', bgcolor: 'var(--card)', borderColor: 'var(--line)' }}>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, mb: 0.25 }}>
+          <p className="cn-text-body1 text-[0.875rem] font-bold mb-0.5">
             Distribution des tokens
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mb: 2 }}>
+          </p>
+          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mb-3">
             Répartition entre tokens actifs et expirés
-          </Typography>
+          </p>
 
           {donutData.length === 0 ? (
-            <Box
-              sx={{
-                height: 180,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'text.disabled',
-              }}
-            >
-              <Box component="span" sx={{ display: 'inline-flex', mb: 1 }}>
+            <div className="h-[180px] flex flex-col items-center justify-center text-muted-foreground opacity-60">
+              <span className="inline-flex mb-1.5">
                 <HourglassEmpty size={32} strokeWidth={1.5} />
-              </Box>
-              <Typography sx={{ fontSize: '0.75rem' }}>
+              </span>
+              <p className="cn-text-body1 text-[0.75rem]">
                 En attente de données
-              </Typography>
-            </Box>
+              </p>
+            </div>
           ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Box sx={{ width: 160, height: 160, position: 'relative' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-[160px] h-[160px] relative">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -530,60 +519,50 @@ const TokenMonitoring: React.FC = () => {
                     />
                   </PieChart>
                 </ResponsiveContainer>
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, lineHeight: 1 }}>
+                <div className="absolute inset-[0px] flex flex-col items-center justify-center pointer-events-none">
+                  <p className="cn-text-body1 text-[1.5rem] font-bold leading-[1]">
                     {tokenStats?.totalTokens ?? 0}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', mt: 0.25 }}>
+                  </p>
+                  <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mt-0.5">
                     Total
-                  </Typography>
-                </Box>
-              </Box>
+                  </p>
+                </div>
+              </div>
               <Stack spacing={1.25} sx={{ flex: 1 }}>
                 {donutData.map((entry) => (
-                  <Box key={entry.name} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <div className="flex items-center gap-1.5" key={entry.name}>
                     <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: entry.color }} />
-                    <Typography sx={{ fontSize: '0.8125rem', flex: 1 }}>{entry.name}</Typography>
-                    <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }}>
+                    <p className="cn-text-body1 text-[0.8125rem] flex-1">{entry.name}</p>
+                    <p className="cn-text-body1 text-[0.8125rem] font-bold">
                       {entry.value}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                 ))}
               </Stack>
-            </Box>
+            </div>
           )}
         </Paper>
 
         {/* Refresh metrics */}
         <Paper variant="outlined" sx={{ p: 2.5, borderRadius: '14px', bgcolor: 'var(--card)', borderColor: 'var(--line)' }}>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, mb: 0.25 }}>
+          <p className="cn-text-body1 text-[0.875rem] font-bold mb-0.5">
             Métriques de rafraîchissement
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mb: 2 }}>
+          </p>
+          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mb-3">
             Indicateurs de performance du service de tokens
-          </Typography>
+          </p>
 
           {/* Success rate bar */}
           {successRateNum !== null && (
-            <Box sx={{ mb: 2.5 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+            <div className="mb-3.5">
+              <div className="flex justify-between items-center mb-0.5">
                 <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>
                   Fiabilité globale
                 </Typography>
                 <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: successRateNum >= 95 ? 'var(--ok)' : 'var(--warn)' }}>
                   {successRateNum.toFixed(1)}%
                 </Typography>
-              </Box>
+              </div>
               <LinearProgress
                 variant="determinate"
                 value={successRateNum}
@@ -597,10 +576,10 @@ const TokenMonitoring: React.FC = () => {
                   },
                 }}
               />
-            </Box>
+            </div>
           )}
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+          <div className="grid grid-cols-2 gap-3">
             <MetricRow
               icon={<Refresh size={14} strokeWidth={1.75} />}
               label="Rafraîchissements"
@@ -629,7 +608,7 @@ const TokenMonitoring: React.FC = () => {
               fg="var(--warn)"
               bg="var(--warn-soft)"
             />
-          </Box>
+          </div>
         </Paper>
       </Box>
 
@@ -647,7 +626,7 @@ const TokenMonitoring: React.FC = () => {
         propagation événementielle des changements de session (renouvellement, expiration, échec
         d'authentification).
       </Alert>
-    </Box>
+    </div>
   );
 };
 
@@ -667,7 +646,7 @@ function MetricRow({
   bg: string;
 }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+    <div className="flex items-center gap-2">
       <Box
         sx={{
           width: 28,
@@ -683,15 +662,15 @@ function MetricRow({
       >
         {icon}
       </Box>
-      <Box sx={{ minWidth: 0 }}>
+      <div className="min-w-0">
         <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 1.2 }}>
           {label}
         </Typography>
-        <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, lineHeight: 1.2, mt: 0.25, fontVariantNumeric: 'tabular-nums' }}>
+        <p className="cn-text-body1 text-[0.875rem] font-bold leading-[1.2] mt-0.5 tabular-nums">
           {value}
-        </Typography>
-      </Box>
-    </Box>
+        </p>
+      </div>
+    </div>
   );
 }
 

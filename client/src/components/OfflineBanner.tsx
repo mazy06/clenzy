@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Slide } from '@mui/material';
+import { Box, Slide } from '@mui/material';
 import { WifiOff as WifiOffIcon } from '../icons';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { useTranslation } from 'react-i18next';
@@ -35,12 +35,12 @@ export default function OfflineBanner() {
           gap: 1,
         }}
       >
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}>
+        <span className="inline-flex text-[var(--warn)]">
           <WifiOffIcon size={17} strokeWidth={1.75} />
-        </Box>
-        <Typography variant="body2" fontWeight={600} sx={{ fontSize: '12.5px' }}>
+        </span>
+        <p className="cn-text-body2 font-semibold text-[12.5px]">
           {t('offline.banner', 'Vous \u00eates hors ligne. Certaines fonctionnalit\u00e9s peuvent ne pas \u00eatre disponibles.')}
-        </Typography>
+        </p>
       </Box>
     </Slide>
   );

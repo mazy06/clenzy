@@ -43,7 +43,7 @@ export function SupervisionReportStrip() {
       </Typography>
       <Box sx={{ display: 'flex', p: '2px 8px 14px' }}>
         {stats.map((s) => (
-          <Box key={s.label} sx={{ flex: 1, textAlign: 'center', px: 0.5, minWidth: 0 }}>
+          <div className="flex-1 text-center px-0.5 min-w-0" key={s.label}>
             <Box
               sx={{
                 fontSize: 17,
@@ -60,7 +60,7 @@ export function SupervisionReportStrip() {
               {s.value}
             </Box>
             <Box sx={{ fontSize: 10.5, color: 'var(--muted, #6b7280)', mt: 0.5, fontWeight: 600 }}>{s.label}</Box>
-          </Box>
+          </div>
         ))}
       </Box>
 
@@ -82,10 +82,7 @@ export function SupervisionReportStrip() {
           {byType.map((row) => {
             const decided = row.applied + row.dismissed;
             return (
-              <Box
-                key={`${row.moduleKey}:${row.actionType}`}
-                sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.375, minWidth: 0 }}
-              >
+              <div className="flex items-center gap-1.5 py-0.5 min-w-0" key={`${row.moduleKey}:${row.actionType}`}>
                 <Typography
                   noWrap
                   sx={{ flex: 1, minWidth: 0, fontSize: 11.5, color: 'var(--ink, #1b2240)', fontWeight: 600 }}
@@ -114,7 +111,7 @@ export function SupervisionReportStrip() {
                 >
                   {decided === 0 ? '—' : `${Math.round(row.acceptanceRate * 100)} %`}
                 </Box>
-              </Box>
+              </div>
             );
           })}
         </Box>

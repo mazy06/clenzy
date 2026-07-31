@@ -126,14 +126,14 @@ function StatCard({ icon, label, value, fg, bg }: StatCardProps) {
       >
         {icon}
       </Box>
-      <Box sx={{ minWidth: 0 }}>
-        <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', lineHeight: 1.2 }}>
+      <div className="min-w-0">
+        <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] font-bold uppercase tracking-[.04em] leading-[1.2]">
           {label}
-        </Typography>
-        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 600, lineHeight: 1.2, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-.01em' }}>
+        </p>
+        <p className="cn-text-body1 font-[var(--font-display)] text-[18px] font-semibold leading-[1.2] text-[var(--ink)] tabular-nums tracking-[-.01em]">
           {value}
-        </Typography>
-      </Box>
+        </p>
+      </div>
     </Paper>
   );
 }
@@ -217,9 +217,9 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="flex flex-col gap-3">
       {/* ─── Stats ───────────────────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+      <div className="flex gap-2 flex-wrap">
         <StatCard
           icon={<Build size={18} strokeWidth={1.75} />}
           label="Total"
@@ -250,10 +250,10 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
           value={<Money value={stats.revenue} from="EUR" decimals={0} />}
           fg="var(--accent)" bg="var(--accent-soft)"
         />
-      </Box>
+      </div>
 
       {/* ─── View toggle ─────────────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+      <div className="flex justify-between items-center flex-wrap gap-1.5">
         <ToggleButtonGroup
           value={view}
           exclusive
@@ -295,7 +295,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
           </ToggleButton>
         </ToggleButtonGroup>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <div className="flex items-center gap-1.5">
           {view === 'calendar' && (
             <>
               <Button
@@ -308,16 +308,16 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
               <IconButton size="small" onClick={prevMonth}>
                 <ChevronLeft size={18} strokeWidth={1.75} />
               </IconButton>
-              <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, minWidth: 130, textAlign: 'center', textTransform: 'capitalize' }}>
+              <p className="cn-text-body1 text-[0.875rem] font-semibold min-w-[130px] text-center capitalize">
                 {MONTH_NAMES_FR[monthAnchor.getMonth()]} {monthAnchor.getFullYear()}
-              </Typography>
+              </p>
               <IconButton size="small" onClick={nextMonth}>
                 <ChevronRight size={18} strokeWidth={1.75} />
               </IconButton>
             </>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* ─── Calendar view ───────────────────────────────────────────────── */}
       {view === 'calendar' && (
@@ -325,26 +325,16 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
           {/* Calendar grid */}
           <Paper sx={{ p: 2, borderRadius: '14px', border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none' }}>
             {/* Weekday header */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 1 }}>
+            <div className="grid grid-cols-7 mb-1.5">
               {DAY_LABELS_FR.map((d) => (
-                <Typography
-                  key={d}
-                  sx={{
-                    fontSize: '10.5px',
-                    fontWeight: 700,
-                    color: 'var(--faint)',
-                    textAlign: 'center',
-                    textTransform: 'uppercase',
-                    letterSpacing: '.05em',
-                  }}
-                >
+                <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] text-center uppercase tracking-[.05em]" key={d}>
                   {d}
-                </Typography>
+                </p>
               ))}
-            </Box>
+            </div>
 
             {/* Day cells */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5 }}>
+            <div className="grid grid-cols-7 gap-0.5">
               {cells.map((d) => {
                 const inMonth = d.getMonth() === monthAnchor.getMonth();
                 const isToday = isSameDay(d, today);
@@ -392,7 +382,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                       {d.getDate()}
                     </Typography>
                     {hasItems && (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.25, mt: 'auto' }}>
+                      <div className="flex flex-wrap gap-0.5 mt-auto">
                         {items.slice(0, 3).map((iv) => (
                           <Box
                             key={iv.id}
@@ -416,32 +406,32 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                             +{items.length - 3}
                           </Typography>
                         )}
-                      </Box>
+                      </div>
                     )}
                   </Box>
                 );
               })}
-            </Box>
+            </div>
 
             {/* Legend */}
-            <Box sx={{ display: 'flex', gap: 1.5, mt: 2, pt: 1.5, borderTop: '1px solid var(--line)', flexWrap: 'wrap' }}>
+            <div className="flex gap-2 mt-3 pt-2 border-t border-[var(--line)] flex-wrap">
               {[
                 { label: 'En attente', color: 'var(--warn)' },
                 { label: 'En cours', color: 'var(--info)' },
                 { label: 'Terminée', color: 'var(--ok)' },
                 { label: 'Annulée', color: 'var(--muted)' },
               ].map((leg) => (
-                <Box key={leg.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <div className="flex items-center gap-0.5" key={leg.label}>
                   <Box sx={{ width: 9, height: 9, borderRadius: '3px', bgcolor: leg.color }} />
-                  <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>{leg.label}</Typography>
-                </Box>
+                  <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">{leg.label}</p>
+                </div>
               ))}
-            </Box>
+            </div>
           </Paper>
 
           {/* Selected day details */}
           <Paper sx={{ p: 2, borderRadius: '14px', border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+            <div className="flex items-center gap-1.5 mb-2">
               <Box
                 sx={{
                   width: 32,
@@ -456,37 +446,27 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
               >
                 <CalendarMonth size={16} strokeWidth={1.75} />
               </Box>
-              <Box>
-                <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, textTransform: 'capitalize', lineHeight: 1.2 }}>
+              <div>
+                <p className="cn-text-body1 text-[0.9375rem] font-bold capitalize leading-[1.2]">
                   {selectedDay.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                </Typography>
-                <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                </p>
+                <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
                   {selectedDayItems.length === 0
                     ? 'Aucune intervention'
                     : `${selectedDayItems.length} intervention${selectedDayItems.length > 1 ? 's' : ''}`}
-                </Typography>
-              </Box>
-            </Box>
+                </p>
+              </div>
+            </div>
 
             {selectedDayItems.length === 0 ? (
-              <Box
-                sx={{
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  py: 3,
-                  color: 'text.disabled',
-                }}
-              >
+              <div className="flex-1 flex flex-col items-center justify-center py-4 text-muted-foreground opacity-60">
                 <CalendarMonth size={28} strokeWidth={1.5} />
-                <Typography sx={{ fontSize: '0.75rem', mt: 1 }}>
+                <p className="cn-text-body1 text-[0.75rem] mt-1.5">
                   Sélectionnez un jour avec un point coloré
-                </Typography>
-              </Box>
+                </p>
+              </div>
             ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <div className="flex flex-col gap-1.5">
                 {selectedDayItems.map((iv) => {
                   const tk = interventionStatusTokens(iv.status);
                   return (
@@ -505,10 +485,10 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                         },
                       }}
                     >
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.5, gap: 1 }}>
-                        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, lineHeight: 1.3 }}>
+                      <div className="flex justify-between items-start mb-0.5 gap-1.5">
+                        <p className="cn-text-body1 text-[0.8125rem] font-semibold leading-[1.3]">
                           {getInterventionTypeLabel(iv.type, t)}
-                        </Typography>
+                        </p>
                         <Chip
                           icon={statusIcon(iv.status, 12, tk.fg)}
                           label={getInterventionStatusLabel(iv.status, t)}
@@ -522,7 +502,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                             '& .MuiChip-label': { px: 1 },
                           }}
                         />
-                      </Box>
+                      </div>
                       {iv.description && (
                         <Typography
                           sx={{
@@ -539,29 +519,29 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                           {iv.description}
                         </Typography>
                       )}
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div className="flex justify-between items-center">
                         {iv.cost != null && iv.cost > 0 ? (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
+                          <div className="flex items-center gap-0.5">
+                            <span className="inline-flex text-[var(--accent)]">
                               <Euro size={12} strokeWidth={1.75} />
-                            </Box>
-                            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+                            </span>
+                            <p className="cn-text-body1 font-[var(--font-display)] text-[12.5px] font-semibold text-[var(--ink)] tabular-nums">
                               <Money value={iv.cost} from="EUR" decimals={0} />
-                            </Typography>
-                          </Box>
+                            </p>
+                          </div>
                         ) : (
-                          <Box />
+                          <div />
                         )}
                         <Tooltip title="Voir le détail">
-                          <Box sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+                          <div className="inline-flex text-muted-foreground opacity-60">
                             <ChevronRight size={14} strokeWidth={1.75} />
-                          </Box>
+                          </div>
                         </Tooltip>
-                      </Box>
+                      </div>
                     </Box>
                   );
                 })}
-              </Box>
+              </div>
             )}
           </Paper>
         </Box>
@@ -586,28 +566,15 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
             return Array.from(groups.entries()).map(([key, items]) => {
               const [y, m] = key.split('-').map(Number);
               return (
-                <Box key={key}>
-                  <Box
-                    sx={{
-                      px: 2,
-                      py: 1,
-                      bgcolor: 'var(--surface-2)',
-                      borderBottom: '1px solid var(--line)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      position: 'sticky',
-                      top: 0,
-                      zIndex: 1,
-                    }}
-                  >
-                    <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)' }}>
+                <div key={key}>
+                  <div className="px-3 py-1.5 bg-[var(--surface-2)] border-b border-[var(--line)] flex items-center justify-between sticky top-[0px] z-[1]">
+                    <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
                       {MONTH_NAMES_FR[m]} {y}
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>
+                    </p>
+                    <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60">
                       {items.length} intervention{items.length > 1 ? 's' : ''}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                   {items.map((iv) => {
                     const tk = interventionStatusTokens(iv.status);
                     return (
@@ -628,24 +595,24 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                           transition: 'background-color .14s',
                         }}
                       >
-                        <Box sx={{ textAlign: 'center' }}>
-                          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 600, lineHeight: 1, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+                        <div className="text-center">
+                          <p className="cn-text-body1 font-[var(--font-display)] text-[17px] font-semibold leading-[1] text-[var(--ink)] tabular-nums">
                             {new Date(iv.scheduledDate).getDate()}
-                          </Typography>
-                          <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                          </p>
+                          <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[.06em]">
                             {new Date(iv.scheduledDate).toLocaleDateString('fr-FR', { weekday: 'short' })}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                          </p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="cn-text-body1 text-[0.8125rem] font-semibold">
                             {getInterventionTypeLabel(iv.type, t)}
-                          </Typography>
+                          </p>
                           {iv.description && (
-                            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', mt: 0.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap">
                               {iv.description}
-                            </Typography>
+                            </p>
                           )}
-                        </Box>
+                        </div>
                         <Chip
                           icon={statusIcon(iv.status, 12, tk.fg)}
                           label={getInterventionStatusLabel(iv.status, t)}
@@ -668,12 +635,12 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                       </Box>
                     );
                   })}
-                </Box>
+                </div>
               );
             });
           })()}
         </Paper>
       )}
-    </Box>
+    </div>
   );
 }

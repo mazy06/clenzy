@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Chip } from '@mui/material';
+import { Box, Chip } from '@mui/material';
 import {
   TrendingUp as TrendIcon,
   Warning as WarningIcon,
@@ -49,36 +49,28 @@ export const InsightsWidget: React.FC<InsightsWidgetProps> = ({ data }) => {
 
   if (items.length === 0) {
     return (
-      <Box sx={{ mt: 1, mb: 1.5 }}>
-        <Box sx={{
-          p: 3, borderRadius: '12px',
-          bgcolor: 'var(--ok-soft)',
-          textAlign: 'center',
-        }}>
-          <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ok)' }}>
+      <div className="mt-1.5 mb-2">
+        <div className="p-4 rounded-[12px] bg-[var(--ok-soft)] text-center">
+          <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ok)]">
             Aucun insight detecte — tout va bien sur cette propriete.
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+    <div className="mt-1.5 mb-2 flex flex-col gap-1.5">
       {data.title && (
-        <Typography sx={{
-          display: 'block', mb: 0.5, fontSize: '10.5px', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '.05em',
-          color: 'var(--faint)',
-        }}>
+        <p className="cn-text-body1 block mb-0.5 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
           {data.title}
-        </Typography>
+        </p>
       )}
 
       {items.map((item, idx) => (
         <InsightCard key={`insight-${idx}`} item={item} />
       ))}
-    </Box>
+    </div>
   );
 };
 
@@ -89,15 +81,8 @@ const InsightCard: React.FC<{ item: InsightItem }> = ({ item }) => {
   const TypeIcon = typeIcon(item.type);
 
   return (
-    <Box
-      sx={{
-        p: 1.5,
-        borderRadius: '12px',
-        border: '1px solid var(--line)',
-        bgcolor: 'var(--card)',
-      }}
-    >
-      <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', mb: 0.75 }}>
+    <div className="p-2 rounded-[12px] border border-[var(--line)] bg-[var(--card)]">
+      <div className="flex gap-1.5 items-start mb-1">
         <Box
           sx={{
             width: 28,
@@ -115,14 +100,11 @@ const InsightCard: React.FC<{ item: InsightItem }> = ({ item }) => {
           <TypeIcon size={16} strokeWidth={2} />
         </Box>
 
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25, flexWrap: 'wrap' }}>
-            <Typography sx={{
-              fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)',
-              lineHeight: 1.3,
-            }}>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1 mb-0.5 flex-wrap">
+            <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] leading-[1.3]">
               {item.title}
-            </Typography>
+            </p>
             <Chip
               label={humanizeSeverity(item.severity)}
               size="small"
@@ -138,47 +120,25 @@ const InsightCard: React.FC<{ item: InsightItem }> = ({ item }) => {
                 '& .MuiChip-label': { px: 0.75 },
               }}
             />
-          </Box>
-          <Typography sx={{
-            fontSize: '12.5px',
-            lineHeight: 1.5,
-            color: 'var(--muted)',
-          }}>
+          </div>
+          <p className="cn-text-body1 text-[12.5px] leading-[1.5] text-[var(--muted)]">
             {item.description}
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
 
       {/* Recommandation actionnable */}
       {item.recommendation && (
-        <Box sx={{
-          ml: 4.5, // align avec le texte (icone 28px + gap 1)
-          mt: 0.75,
-          px: 1.25, py: 0.75,
-          borderRadius: '9px',
-          bgcolor: 'var(--field)',
-        }}>
-          <Typography sx={{
-            display: 'block',
-            fontSize: '10.5px',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '.05em',
-            color: 'var(--faint)',
-            mb: 0.25,
-          }}>
+        <div className="ms-7 mt-1 px-2 py-1 rounded-[9px] bg-[var(--field)]">
+          <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-0.5">
             Action recommandee
-          </Typography>
-          <Typography sx={{
-            fontSize: '12.5px',
-            lineHeight: 1.45,
-            color: 'var(--body)',
-          }}>
+          </p>
+          <p className="cn-text-body1 text-[12.5px] leading-[1.45] text-[var(--body)]">
             {item.recommendation}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

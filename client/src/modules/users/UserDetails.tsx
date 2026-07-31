@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  CircularProgress,
-  Alert,
-  Button,
-  Typography,
-  Snackbar,
-} from '@mui/material';
+import { Box, CircularProgress, Alert, Button, Snackbar } from '@mui/material';
 import { Edit } from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
@@ -61,47 +54,47 @@ const UserDetails: React.FC = () => {
 
   if (!canManageUsers) {
     return (
-      <Box sx={{ p: 2 }}>
+      <div className="p-3">
         <Alert severity="info" sx={{ p: 2, py: 1 }}>
-          <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}>
+          <h6 className="cn-text-subtitle1 mb-[0.35em] mb-1.5">
             Acces non autorise
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+          </h6>
+          <p className="cn-text-body2 text-[0.85rem]">
             Vous n'avez pas les permissions necessaires pour visualiser les details des utilisateurs.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </Typography>
+          </p>
         </Alert>
-      </Box>
+      </div>
     );
   }
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+      <div className="flex justify-center items-center h-[50vh]">
         <CircularProgress size={32} />
-      </Box>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 2 }}>
+      <div className="p-3">
         <Alert severity="error" sx={{ p: 2, py: 1 }}>{error}</Alert>
-      </Box>
+      </div>
     );
   }
 
   if (!user) {
     return (
-      <Box sx={{ p: 2 }}>
+      <div className="p-3">
         <Alert severity="warning" sx={{ p: 2, py: 1 }}>Utilisateur non trouve</Alert>
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 2 }}>
+    <div className="p-3">
       <PageHeader
         title="Détails de l'utilisateur"
         subtitle={`${user.firstName} ${user.lastName}`}
@@ -132,7 +125,7 @@ const UserDetails: React.FC = () => {
           alignItems: 'start',
         }}
       >
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0 }}>
+        <div className="flex flex-col gap-2 min-w-0">
           {/* Personal + Contact + System dates */}
           <UserSystemInfoCard user={user} />
 
@@ -149,9 +142,9 @@ const UserDetails: React.FC = () => {
             paymentLinkLoading={paymentLinkLoading}
             onSendPaymentLink={handleSendPaymentLink}
           />
-        </Box>
+        </div>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0 }}>
+        <div className="flex flex-col gap-2 min-w-0">
           {/* Organisation + Role & Status */}
           <UserRoleStatusCard user={user} roles={userRoles} statuses={userStatuses} />
 
@@ -162,7 +155,7 @@ const UserDetails: React.FC = () => {
             unlocking={unlocking}
             onUnlockUser={handleUnlockUser}
           />
-        </Box>
+        </div>
       </Box>
 
       <Snackbar
@@ -172,7 +165,7 @@ const UserDetails: React.FC = () => {
         message={snackMessage}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
-    </Box>
+    </div>
   );
 };
 

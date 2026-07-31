@@ -1,5 +1,5 @@
 import React from 'react';
-import { Autocomplete, TextField, CircularProgress, Typography, Box } from '@mui/material';
+import { Autocomplete, TextField, CircularProgress } from '@mui/material';
 import { LocationCity as LocationCityIcon } from '../icons';
 import { useCityAutocomplete } from '../hooks/useCityAutocomplete';
 import type { GeocodedAddress } from '../services/geocoderApi';
@@ -69,19 +69,19 @@ export function CityAutocomplete({
         const { key, ...optionProps } = props;
         return (
           <li key={key} {...optionProps}>
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mt: 0.3 }}><LocationCityIcon size={18} strokeWidth={1.75} /></Box>
-              <Box>
-                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+            <div className="flex items-start gap-1.5">
+              <span className="inline-flex text-muted-foreground mt-0.5"><LocationCityIcon size={18} strokeWidth={1.75} /></span>
+              <div>
+                <p className="cn-text-body2 text-[0.85rem]">
                   {option.city || option.label}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+                </p>
+                <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                   {option.postcode && `${option.postcode} · `}
                   {option.department && `(${option.department}) · `}
                   {option.country || option.countryCode}
-                </Typography>
-              </Box>
-            </Box>
+                </span>
+              </div>
+            </div>
           </li>
         );
       }}

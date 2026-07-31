@@ -1,23 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  InputAdornment,
-  Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
+import { TextField, InputAdornment, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Yard, Add, Delete } from '../../icons';
 import type { PricingConfig, ServicePriceConfig, CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -81,16 +63,16 @@ export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol
   }, [config.commissionConfigs, onUpdate]);
 
   return (
-    <Box sx={{ pt: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'purple' }}><Yard size={20} strokeWidth={1.75} /></Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+    <div className="pt-3">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="inline-flex text-[purple]"><Yard size={20} strokeWidth={1.75} /></span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('tarification.exterieur.title')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('tarification.exterieur.subtitle')}
-      </Typography>
+      </p>
 
       <TableContainer>
         <Table size="small">
@@ -146,7 +128,7 @@ export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol
 
       {/* ─── Add button ────────────────────────────────────────────────── */}
       {canEdit && (
-        <Box sx={{ mt: 1.5 }}>
+        <div className="mt-2">
           <Button
             variant="outlined"
             size="small"
@@ -156,7 +138,7 @@ export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol
           >
             {t('tarification.addPrestation')}
           </Button>
-        </Box>
+        </div>
       )}
 
       {/* ─── Add dialog ──────────────────────────────────────────────── */}
@@ -197,6 +179,6 @@ export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol
           onChange={handleCommissionChange}
         />
       )}
-    </Box>
+    </div>
   );
 }

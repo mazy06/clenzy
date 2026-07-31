@@ -1,5 +1,4 @@
 import React from 'react';
-import { Box } from '@mui/material';
 import { Person, Mail as MailIcon, Phone as PhoneIcon, Schedule } from '../../../icons';
 import type { UserDetailsData } from './userDetailsTypes';
 import { formatDate } from './userDetailsTypes';
@@ -16,7 +15,7 @@ interface UserSystemInfoCardProps {
  * (Impeccable absolute ban).
  */
 const UserSystemInfoCard: React.FC<UserSystemInfoCardProps> = ({ user }) => (
-  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+  <div className="flex flex-col gap-2">
     {/* Personnel — primary slate */}
     <DetailSection
       title="Informations personnelles"
@@ -78,7 +77,7 @@ const UserSystemInfoCard: React.FC<UserSystemInfoCardProps> = ({ user }) => (
         />
       )}
     </DetailSection>
-  </Box>
+  </div>
 );
 
 export default UserSystemInfoCard;

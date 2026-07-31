@@ -1,15 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-} from '@mui/material';
+import { Box, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import {
   PhotoCamera as PhotoCameraIcon,
 } from '../../icons';
@@ -59,11 +49,11 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
       </DialogTitle>
       <DialogContent>
         <Alert severity="info" sx={{ mb: 2, mt: 1 }}>
-          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+          <p className="cn-text-body2 text-[0.85rem]">
             {currentStep === 'inspection' && t('interventions.dialogs.notesInspectionAlert')}
             {currentStep === 'rooms' && t('interventions.dialogs.notesRoomsAlert')}
             {currentStep === 'after_photos' && t('interventions.dialogs.notesAfterAlert')}
-          </Typography>
+          </p>
         </Alert>
         <TextField
           multiline
@@ -95,9 +85,9 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
           sx={{ mt: 1 }}
         />
         <Alert severity="info" sx={{ mt: 1, py: 0.5 }}>
-          <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
+          <span className="cn-text-caption text-[0.75rem]">
             {t('interventions.dialogs.notesAutoSave')}
-          </Typography>
+          </span>
         </Alert>
       </DialogContent>
       <DialogActions>
@@ -150,22 +140,22 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
       <DialogTitle>
         <Box display="flex" alignItems="center" gap={1}>
           <Box component="span" sx={{ display: 'inline-flex', color: photoType === 'before' ? 'var(--accent)' : 'var(--ok)' }}><PhotoCameraIcon size={20} strokeWidth={1.75} /></Box>
-          <Typography variant="h6">
+          <h6 className="cn-text-h6">
             {photoType === 'before' ? t('interventions.dialogs.photosBeforeTitle') : t('interventions.dialogs.photosAfterTitle')}
-          </Typography>
+          </h6>
         </Box>
       </DialogTitle>
       <DialogContent>
-        <Box sx={{ pt: 2 }}>
+        <div className="pt-3">
           <Alert
             severity={photoType === 'before' ? 'info' : 'success'}
             sx={{ mb: 2 }}
           >
-            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+            <p className="cn-text-body2 text-[0.85rem]">
               {photoType === 'before'
                 ? t('interventions.dialogs.photosBeforeAlert')
                 : t('interventions.dialogs.photosAfterAlert')}
-            </Typography>
+            </p>
           </Alert>
           <PhotoUploader
             photos={selectedPhotos}
@@ -180,7 +170,7 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
             }
             columns={2}
           />
-        </Box>
+        </div>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>

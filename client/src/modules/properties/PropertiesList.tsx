@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Box, Alert, Button, Tooltip, IconButton, Fab } from '@mui/material';
+import { Alert, Button, Tooltip, IconButton, Fab } from '@mui/material';
 import { Add, Home } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -280,7 +280,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
   // ─── Render ───────────────────────────────────────────────────────
 
   const actionButtons = (
-    <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
+    <div className="flex gap-1 items-center">
       <ExportButton
         data={filteredProperties}
         columns={exportColumns}
@@ -302,7 +302,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           <Add size={20} strokeWidth={1.75} />
         </IconButton>
       </Tooltip>
-    </Box>
+    </div>
   );
 
   const filterBar = (
@@ -339,7 +339,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Portal actions into parent's PageHeader when embedded.
           Ternaires explicites (au lieu de &&) pour eviter de passer le
           booleen false en children — MUI Box.propTypes rale sinon. */}
@@ -347,7 +347,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
       {embedded && filtersContainer ? createPortal(filterBar, filtersContainer) : null}
 
       {!embedded ? (
-        <Box sx={{ flexShrink: 0 }}>
+        <div className="shrink-0">
           <PageHeader
             title={t('properties.title')}
             subtitle={t('properties.subtitle')}
@@ -357,7 +357,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
             actions={actionButtons}
             filters={filterBar}
           />
-        </Box>
+        </div>
       ) : null}
 
       {/* Gate de rattrapage : rappel des logements sans contrat de gestion actif. */}
@@ -532,6 +532,6 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           onSuccess={() => { void refreshChannexMappings(); }}
         />
       )}
-    </Box>
+    </div>
   );
 }

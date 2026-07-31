@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, alpha } from '@mui/material';
+import { Box, Card, CardContent, alpha } from '@mui/material';
 
 interface DetailSectionProps {
   /** Overline title — uppercase, short. */
@@ -59,7 +59,7 @@ const DetailSection: React.FC<DetailSectionProps> = ({
     >
       <CardContent sx={{ p: 2.25, '&:last-child': { pb: 2.25 } }}>
         {/* Section header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <div className="flex items-center gap-1.5 mb-3">
           {icon && (
             <Box
               sx={{
@@ -77,22 +77,13 @@ const DetailSection: React.FC<DetailSectionProps> = ({
               {icon}
             </Box>
           )}
-          <Typography
-            sx={{
-              fontSize: '10.5px',
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              color: 'var(--faint)',
-              flex: 1,
-            }}
-          >
+          <p className="cn-text-body1 text-[10.5px] font-bold tracking-[0.06em] uppercase text-[var(--faint)] flex-1">
             {title}
-          </Typography>
+          </p>
           {action && (
-            <Box sx={{ display: 'inline-flex', flexShrink: 0 }}>{action}</Box>
+            <div className="inline-flex shrink-0">{action}</div>
           )}
-        </Box>
+        </div>
 
         {/* Fields — single column on mobile, 2 cols on >=sm (unless caller opts out) */}
         {disableGrid ? (

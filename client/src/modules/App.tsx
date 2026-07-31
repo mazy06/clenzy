@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { CircularProgress } from '@mui/material';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 import keycloak, { keycloakInitPromise } from '../keycloak';
@@ -286,19 +286,12 @@ const App: React.FC = () => {
   // Les routes publiques (/login, /inscription) ne doivent pas être bloquées par le loading
   if ((!initialized || authLoading) && !isPublicRoute) {
     return (
-      <Box sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        gap: 2
-      }}>
+      <div className="flex flex-col items-center justify-center h-[100vh] gap-3">
         <CircularProgress size={60} />
-        <Typography variant="h6" color="text.secondary">
+        <h6 className="cn-text-h6 text-muted-foreground">
           Chargement de l'authentification...
-        </Typography>
-      </Box>
+        </h6>
+      </div>
     );
   }
 
@@ -392,38 +385,24 @@ const App: React.FC = () => {
             ) : (
               // Si authentifié, afficher soit le chargement soit l'app
               authLoading ? (
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  height: '100vh', 
-                  gap: 2 
-                }}>
+                <div className="flex flex-col items-center justify-center h-[100vh] gap-3">
                   <CircularProgress size={60} />
-                  <Typography variant="h6" color="text.secondary">
+                  <h6 className="cn-text-h6 text-muted-foreground">
                     Chargement de l'utilisateur...
-                  </Typography>
-                </Box>
+                  </h6>
+                </div>
               ) : user ? (
                 <MainLayoutFull>
                   <AuthenticatedApp />
                 </MainLayoutFull>
               ) : (
                 // Si pas d'utilisateur mais authentifié, afficher un chargement temporaire
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  height: '100vh', 
-                  gap: 2 
-                }}>
+                <div className="flex flex-col items-center justify-center h-[100vh] gap-3">
                   <CircularProgress size={60} />
-                  <Typography variant="h6" color="text.secondary">
+                  <h6 className="cn-text-h6 text-muted-foreground">
                     Chargement des données utilisateur...
-                  </Typography>
-                </Box>
+                  </h6>
+                </div>
               )
             )
           } 

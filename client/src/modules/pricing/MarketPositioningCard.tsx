@@ -62,11 +62,11 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
 
   return (
     <Paper variant="outlined" sx={{ p: 1.75, borderRadius: '12px' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25, flexWrap: 'wrap' }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+      <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+        <h6 className="cn-text-subtitle2 font-bold">
           {t('marketPositioning.title', 'Positionnement marché')}
           {data.area ? ` — ${data.area}` : ''}
-        </Typography>
+        </h6>
         <Chip
           size="small"
           icon={<Icon size={14} />}
@@ -94,7 +94,7 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
             />
           </Tooltip>
         )}
-      </Box>
+      </div>
 
       {/* Double signal : votre bien vs marché */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
@@ -115,9 +115,9 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
         />
       </Box>
 
-      <Typography variant="caption" sx={{ color: 'var(--muted)', display: 'block', mt: 1 }}>
+      <span className="cn-text-caption text-[var(--muted)] block mt-1.5">
         {data.headline}
-      </Typography>
+      </span>
     </Paper>
   );
 };
@@ -138,19 +138,19 @@ const SignalBlock: React.FC<{
       border: '1px solid var(--line)',
     }}
   >
-    <Typography variant="caption" sx={{ color: 'var(--muted)', display: 'block', mb: 0.5 }}>
+    <span className="cn-text-caption text-[var(--muted)] block mb-0.5">
       {label}
-    </Typography>
-    <Box sx={{ display: 'flex', gap: 2 }}>
-      <Box>
-        <Typography variant="caption" sx={{ color: 'var(--muted)' }}>{adrLabel}</Typography>
+    </span>
+    <div className="flex gap-3">
+      <div>
+        <span className="cn-text-caption text-[var(--muted)]">{adrLabel}</span>
         <Typography sx={{ ...NUM_SX, fontWeight: 700 }}>{adr}</Typography>
-      </Box>
-      <Box>
-        <Typography variant="caption" sx={{ color: 'var(--muted)' }}>{occLabel}</Typography>
+      </div>
+      <div>
+        <span className="cn-text-caption text-[var(--muted)]">{occLabel}</span>
         <Typography sx={{ ...NUM_SX, fontWeight: 700 }}>{occ}</Typography>
-      </Box>
-    </Box>
+      </div>
+    </div>
   </Box>
 );
 

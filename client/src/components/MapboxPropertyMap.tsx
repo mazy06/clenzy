@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import { MapIcon } from '../icons';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -176,10 +176,10 @@ export function MapboxPropertyMap({
           gap: 1,
         }}
       >
-        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><MapIcon size={48} strokeWidth={1.5} /></Box>
-        <Typography variant="body2" color="text.secondary">
+        <span className="inline-flex text-muted-foreground opacity-60"><MapIcon size={48} strokeWidth={1.5} /></span>
+        <p className="cn-text-body2 text-muted-foreground">
           Carte indisponible : token Mapbox non configure (VITE_MAPBOX_TOKEN)
-        </Typography>
+        </p>
       </Box>
     );
   }

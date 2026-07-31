@@ -127,16 +127,11 @@ export const ChannelLegendChips: React.FC<{
             sx={chipSxFor(variant, selected)}
           >
             {ch.logo ? (
-              <Box
-                component="img"
-                src={ch.logo}
-                alt=""
-                sx={{ width: 15, height: 15, objectFit: 'contain', display: 'block', flexShrink: 0 }}
-              />
+              <img className="w-[15px] h-[15px] object-contain block shrink-0" src={ch.logo} alt="" />
             ) : (
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
+              <span className="inline-flex text-[var(--accent)]">
                 <GlobeIcon size={15} strokeWidth={1.75} />
-              </Box>
+              </span>
             )}
             {ch.label}
           </Box>

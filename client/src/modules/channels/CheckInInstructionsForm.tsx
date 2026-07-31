@@ -117,7 +117,7 @@ function SectionCard({ icon, accentColor, title, description, children, filledCo
         },
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 2 }}>
+      <div className="flex items-start gap-2 mb-3">
         <Box
           sx={{
             width: 36,
@@ -136,11 +136,11 @@ function SectionCard({ icon, accentColor, title, description, children, filledCo
             strokeWidth: 1.75,
           })}
         </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography sx={{ fontSize: '0.9375rem', fontWeight: 600, lineHeight: 1.2 }}>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="cn-text-body1 text-[0.9375rem] font-semibold leading-[1.2]">
               {title}
-            </Typography>
+            </p>
             {showProgress && (
               <Chip
                 size="small"
@@ -159,14 +159,14 @@ function SectionCard({ icon, accentColor, title, description, children, filledCo
                 }}
               />
             )}
-          </Box>
+          </div>
           {description && (
-            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.25 }}>
+            <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mt-0.5">
               {description}
-            </Typography>
+            </p>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
       {children}
     </Paper>
   );
@@ -407,14 +407,14 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+      <div className="flex justify-center py-9">
         <CircularProgress size={28} />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ pb: 10 /* room for the sticky save bar */ }}>
+    <div className="pb-14">
       {/* ─── Header with progress ─────────────────────────────────────── */}
       <Box
         sx={{
@@ -429,17 +429,17 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           borderColor: 'divider',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography sx={{ fontSize: '1rem', fontWeight: 700, mb: 0.25 }}>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0 flex-1">
+            <p className="cn-text-body1 text-[1rem] font-bold mb-0.5">
               {t('channels.checkIn.title')}
-            </Typography>
-            <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+            </p>
+            <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground">
               Informations partagées avec les voyageurs avant et pendant leur séjour
-            </Typography>
-          </Box>
+            </p>
+          </div>
           <Stack spacing={0.75} alignItems="flex-end" sx={{ minWidth: 200 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <div className="flex items-center gap-1.5">
               <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Complétude
               </Typography>
@@ -456,7 +456,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                   '& .MuiChip-label': { px: 1 },
                 }}
               />
-            </Box>
+            </div>
             <LinearProgress
               variant="determinate"
               value={stats.percentage}
@@ -472,12 +472,12 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
               }}
             />
             {instructions?.updatedAt && (
-              <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>
+              <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60">
                 {t('channels.checkIn.lastUpdated')} : {new Date(instructions.updatedAt).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-              </Typography>
+              </p>
             )}
           </Stack>
-        </Box>
+        </div>
       </Box>
 
       {/* ─── Section cards grid ────────────────────────────────────────── */}
@@ -546,9 +546,9 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+                      <span className="inline-flex text-muted-foreground">
                         <WifiIcon size={16} strokeWidth={1.75} />
-                      </Box>
+                      </span>
                     </InputAdornment>
                   ),
                 }}
@@ -593,9 +593,9 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
               />
             </Box>
             {hasSmartLock ? (
-              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1, maxWidth: 560 }}>
+              <span className="cn-text-caption text-muted-foreground block mt-1.5 max-w-[560px]">
                 {t('channels.checkIn.smartLockManaged', 'Serrure connectée détectée : le code du séjour est généré et géré par la serrure (un code par réservation). Ce champ sert de secours (boîte à clé).')}
-              </Typography>
+              </span>
             ) : (
               <FormControlLabel
                 sx={{ mt: 1.5, ml: 0, alignItems: 'flex-start' }}
@@ -607,14 +607,14 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                   />
                 }
                 label={
-                  <Box sx={{ ml: 0.5, mt: 0.25 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  <div className="ms-0.5 mt-0.5">
+                    <p className="cn-text-body2 font-semibold">
                       {t('channels.checkIn.autoRotate', 'Régénérer le code après chaque départ')}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', maxWidth: 520 }}>
+                    </p>
+                    <span className="cn-text-caption text-muted-foreground block max-w-[520px]">
                       {t('channels.checkIn.autoRotateHint', 'Un nouveau code (même format) est généré après le checkout — pensez à mettre à jour le code de la boîte à clé. Les serrures connectées tournent déjà automatiquement.')}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 }
               />
             )}
@@ -629,26 +629,26 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                   />
                 }
                 label={
-                  <Box sx={{ ml: 0.5, mt: 0.25 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  <div className="ms-0.5 mt-0.5">
+                    <p className="cn-text-body2 font-semibold">
                       {t('channels.checkIn.guestUnlock', "Autoriser l'ouverture de la porte depuis le livret")}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', maxWidth: 520 }}>
+                    </p>
+                    <span className="cn-text-caption text-muted-foreground block max-w-[520px]">
                       {t('channels.checkIn.guestUnlockHint', "Le voyageur voit un bouton « Ouvrir la porte » dans son livret, actif uniquement pendant son séjour (à partir de l'heure de check-in). Chaque ouverture vous est notifiée.")}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 }
               />
             ) : null}
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+            <div className="mt-3">
+              <p className="cn-text-body2 font-semibold mb-1.5">
                 {t('channels.checkIn.extraCodes', 'Codes additionnels')}
-              </Typography>
+              </p>
               <Stack spacing={1}>
                 {extraCodes.map((ec, i) => {
                   const slug = slugify(ec.label);
                   return (
-                    <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div className="flex gap-1.5 items-center flex-wrap" key={i}>
                       <TextField
                         size="small" label={t('channels.checkIn.extraCodeLabel', 'Libellé')}
                         value={ec.label} onChange={(e) => updateExtraCode(i, 'label', e.target.value)}
@@ -671,17 +671,17 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                       <IconButton size="small" onClick={() => removeExtraCode(i)} aria-label="Supprimer">
                         <CloseIcon size={16} strokeWidth={1.8} />
                       </IconButton>
-                    </Box>
+                    </div>
                   );
                 })}
               </Stack>
               <Button size="small" onClick={addExtraCode} sx={{ mt: 1, textTransform: 'none' }}>
                 + {t('channels.checkIn.extraCodeAdd', 'Ajouter un code')}
               </Button>
-              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+              <span className="cn-text-caption text-muted-foreground block mt-0.5">
                 {t('channels.checkIn.extraCodesHint', 'Affichés dans le livret. Chaque code fournit un tag à coller dans vos emails.')}
-              </Typography>
-            </Box>
+              </span>
+            </div>
           </SectionCard>
         </Box>
 
@@ -739,16 +739,11 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             filledCount={accessPhotos.length > 0 ? 1 : 0}
             totalCount={1}
           >
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+            <div className="flex flex-wrap gap-2">
               {accessPhotos.map((p) => (
-                <Box key={p.key} sx={{ width: 140 }}>
-                  <Box sx={{ position: 'relative', width: 140, height: 100, borderRadius: 1.5, overflow: 'hidden', border: '1px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
-                    <Box
-                      component="img"
-                      src={p.preview ?? `/api/properties/${propertyId}/check-in-instructions/access-photos?key=${encodeURIComponent(p.key)}`}
-                      alt={p.caption || 'photo'}
-                      sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    />
+                <div className="w-[140px]" key={p.key}>
+                  <div className="relative w-[140px] h-[100px] rounded-[1.5px] overflow-hidden border border-[divider] bg-[action.hover]">
+                    <img className="w-full h-full object-cover block" src={p.preview ?? `/api/properties/${propertyId}/check-in-instructions/access-photos?key=${encodeURIComponent(p.key)}`} alt={p.caption || 'photo'} />
                     <IconButton
                       size="small"
                       onClick={() => handleRemovePhoto(p.key)}
@@ -757,7 +752,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                     >
                       <CloseIcon size={14} strokeWidth={2} />
                     </IconButton>
-                  </Box>
+                  </div>
                   <TextField
                     value={p.caption}
                     onChange={(e) => handlePhotoCaption(p.key, e.target.value)}
@@ -767,7 +762,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                     placeholder={t('channels.checkIn.photoCaption', 'Légende…')}
                     sx={{ mt: 0.5, '& .MuiInputBase-input': { fontSize: '0.75rem' } }}
                   />
-                </Box>
+                </div>
               ))}
               <Button
                 component="label"
@@ -788,7 +783,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                   }}
                 />
               </Button>
-            </Box>
+            </div>
           </SectionCard>
         </Box>
 
@@ -857,9 +852,9 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Box component="span" sx={{ display: 'inline-flex', color: '#E5484D' }}>
+                    <span className="inline-flex text-[#E5484D]">
                       <PhoneIcon size={16} strokeWidth={1.75} />
-                    </Box>
+                    </span>
                   </InputAdornment>
                 ),
               }}
@@ -913,7 +908,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           zIndex: 2,
         }}
       >
-        <Box sx={{ minWidth: 0, flex: 1 }}>
+        <div className="min-w-0 flex-1">
           {error && (
             <Alert severity="error" sx={{ fontSize: '0.75rem', py: 0.5 }}>
               {error}
@@ -929,16 +924,16 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             </Alert>
           )}
           {!error && !success && dirty && (
-            <Typography sx={{ fontSize: '0.75rem', color: 'warning.main', fontWeight: 600 }}>
+            <p className="cn-text-body1 text-[0.75rem] text-[var(--bui-warning-ink)] font-semibold">
               ● Modifications non enregistrées
-            </Typography>
+            </p>
           )}
           {!error && !success && !dirty && instructions?.updatedAt && (
-            <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled' }}>
+            <p className="cn-text-body1 text-[0.75rem] text-muted-foreground opacity-60">
               Aucune modification en cours
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
         <Button
           variant="contained"
           startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon size={16} strokeWidth={1.75} />}
@@ -963,7 +958,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         onClose={() => setGenOpen(false)}
         onApply={(code, format) => { handleChange('accessCode', code); setCodeFormat(format); setGenOpen(false); }}
       />
-    </Box>
+    </div>
   );
 };
 

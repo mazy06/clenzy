@@ -811,18 +811,18 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
     };
 
     return (
-      <Box sx={{ mt: 1.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CalendarMonth size={18} strokeWidth={1.75} /></Box>
-          <Typography variant="body2" sx={{ fontWeight: 600, flex: 1, fontSize: '0.8125rem' }}>
+      <div className="mt-2">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <span className="inline-flex text-muted-foreground"><CalendarMonth size={18} strokeWidth={1.75} /></span>
+          <p className="cn-text-body2 font-semibold flex-1 text-[0.8125rem]">
             Dates & Horaires
-          </Typography>
+          </p>
           {!editing ? (
             <IconButton size="small" onClick={() => setEditing(true)} sx={{ p: 0.25 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Edit size={14} strokeWidth={1.75} /></Box>
+              <span className="inline-flex text-muted-foreground"><Edit size={14} strokeWidth={1.75} /></span>
             </IconButton>
           ) : (
-            <Box sx={{ display: 'flex', gap: 0.25 }}>
+            <div className="flex gap-0.5">
               <IconButton
                 size="small"
                 onClick={handleSave}
@@ -834,51 +834,51 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               <IconButton size="small" onClick={handleCancel} sx={{ p: 0.25, color: 'var(--err)' }}>
                 <Close size={16} strokeWidth={1.75} />
               </IconButton>
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
 
         {!editing ? (
           /* Display mode */
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box>
-              <Typography variant="caption" color="text.secondary">Debut</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+          <div className="flex justify-between items-center">
+            <div>
+              <span className="cn-text-caption text-muted-foreground">Debut</span>
+              <p className="cn-text-body2 font-semibold text-[0.8125rem]">
                 {intv.startDate}
-              </Typography>
+              </p>
               {intv.startTime && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={12} strokeWidth={1.75} /></Box>
-                  <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                <div className="flex items-center gap-0.5 mt-0.5">
+                  <span className="inline-flex text-muted-foreground"><Schedule size={12} strokeWidth={1.75} /></span>
+                  <span className="cn-text-caption font-medium">
                     {intv.startTime}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               )}
-            </Box>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><SwapHoriz  /></Box>
-            <Box sx={{ textAlign: 'right' }}>
-              <Typography variant="caption" color="text.secondary">Fin</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+            </div>
+            <span className="inline-flex text-muted-foreground opacity-60"><SwapHoriz  /></span>
+            <div className="text-end">
+              <span className="cn-text-caption text-muted-foreground">Fin</span>
+              <p className="cn-text-body2 font-semibold text-[0.8125rem]">
                 {intv.endDate}
-              </Typography>
+              </p>
               {intv.endTime && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25, justifyContent: 'flex-end' }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={12} strokeWidth={1.75} /></Box>
-                  <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                <div className="flex items-center gap-0.5 mt-0.5 justify-end">
+                  <span className="inline-flex text-muted-foreground"><Schedule size={12} strokeWidth={1.75} /></span>
+                  <span className="cn-text-caption font-medium">
                     {intv.endTime}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               )}
-            </Box>
-          </Box>
+            </div>
+          </div>
         ) : (
           /* Edit mode */
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.25, display: 'block' }}>
+          <div className="flex flex-col gap-2">
+            <div>
+              <span className="cn-text-caption text-muted-foreground mb-0.5 block">
                 Debut
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              </span>
+              <div className="flex gap-1.5">
                 <TextField
                   type="date"
                   size="small"
@@ -896,14 +896,14 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   sx={{ width: 100, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
                   inputProps={{ style: { padding: '6px 8px' } }}
                 />
-              </Box>
-            </Box>
+              </div>
+            </div>
 
-            <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.25, display: 'block' }}>
+            <div>
+              <span className="cn-text-caption text-muted-foreground mb-0.5 block">
                 Fin
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              </span>
+              <div className="flex gap-1.5">
                 <TextField
                   type="date"
                   size="small"
@@ -921,8 +921,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   sx={{ width: 100, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
                   inputProps={{ style: { padding: '6px 8px' } }}
                 />
-              </Box>
-            </Box>
+              </div>
+            </div>
 
             {validationError && (
               <Alert
@@ -940,22 +940,22 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             )}
 
             {hasChanges && intv.linkedReservationId && !validationError && (
-              <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'var(--warn)' }}>
+              <span className="cn-text-caption text-[0.625rem] text-[var(--warn)]">
                 L'intervention sera deliee de sa reservation si les dates sont modifiees.
-              </Typography>
+              </span>
             )}
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
     );
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="flex flex-col gap-3">
       {/* Intervention info (if clicking on an intervention) */}
       {intervention && (
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <div>
+          <div className="flex items-center gap-1.5 mb-1.5">
             <Box component="span" sx={{ display: 'inline-flex', color: intervention.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
               {intervention.type === 'cleaning' ? (
                 <BroomFill size={20} />
@@ -963,11 +963,11 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 <WrenchFill size={19} />
               )}
             </Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            <h6 className="cn-text-subtitle2 font-bold">
               {intervention.title}
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+            </h6>
+          </div>
+          <div className="flex gap-1.5 mb-1.5 flex-wrap">
             {(() => {
               const t = INTERVENTION_STATUS_CONFIG[intervention.status]?.tokens
                 || (intervention.status === 'cancelled' ? ERR_TOKENS : WARN_TOKENS);
@@ -979,37 +979,26 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             {intervention.estimatedDurationHours && (
               <Chip label={`${intervention.estimatedDurationHours}h`} size="small" sx={{ ...chipSx(INFO_TOKENS.bg, INFO_TOKENS.color), fontVariantNumeric: 'tabular-nums' }} />
             )}
-          </Box>
+          </div>
           {intervention.notes && (
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', whiteSpace: 'pre-line' }}>
+            <p className="cn-text-body2 text-muted-foreground text-[0.75rem] whitespace-pre-line">
               {intervention.notes}
-            </Typography>
+            </p>
           )}
           {canEditIntervention && <EditableInterventionDatesSection />}
           <Divider sx={{ my: 1 }} />
-        </Box>
+        </div>
       )}
 
       {/* ── Reservation view: Full operations lifecycle ─────────────────────── */}
       {isReservation && (
         <>
           {/* Service request creation buttons */}
-          <Box>
-            <Typography
-              component="span"
-              sx={{
-                display: 'block',
-                fontSize: '0.625rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                color: 'var(--faint)',
-                mb: 1,
-              }}
-            >
+          <div>
+            <span className="block text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)] mb-1.5">
               Demandes de service
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            </span>
+            <div className="flex flex-col gap-1">
               <Button
                 size="small"
                 variant="outlined"
@@ -1040,28 +1029,17 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               >
                 Nouvelle demande de service
               </Button>
-            </Box>
-          </Box>
+            </div>
+          </div>
 
           {/* Linked service requests with full lifecycle */}
           {(serviceRequests && serviceRequests.length > 0) && (
             <>
               <Divider />
-              <Box>
-                <Typography
-                  component="span"
-                  sx={{
-                    display: 'block',
-                    fontSize: '0.625rem',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    color: 'var(--faint)',
-                    mb: 0.75,
-                  }}
-                >
+              <div>
+                <span className="block text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)] mb-1">
                   Demandes liees · {serviceRequests.length}
-                </Typography>
+                </span>
                 {serviceRequests.map((sr) => {
                   const statusCfg = SR_STATUS_CONFIG[sr.status] || { label: sr.status, tokens: NEUTRAL_TOKENS };
                   const typeLabel = SERVICE_TYPE_LABELS[sr.serviceType] || sr.serviceType;
@@ -1097,21 +1075,21 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         <Box component="span" sx={{ display: 'inline-flex', mt: '2px', color: srTypeColor }}>
                           {isCleaningSr ? <BroomFill size={14} /> : <WrenchFill size={13} />}
                         </Box>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div className="flex-1 min-w-0">
+                          <p className="cn-text-body1 text-[0.75rem] font-semibold text-[var(--ink)] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap">
                             {sr.title}
-                          </Typography>
+                          </p>
                           {assigneeName && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.125 }}>
-                              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}>
+                            <div className="flex items-center gap-0.5 mt-0">
+                              <span className="inline-flex text-[var(--muted)]">
                                 <Groups size={11} strokeWidth={1.75} />
-                              </Box>
-                              <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              </span>
+                              <p className="cn-text-body1 text-[0.625rem] font-medium text-[var(--muted)] overflow-hidden text-ellipsis whitespace-nowrap">
                                 {assigneeName}
-                              </Typography>
-                            </Box>
+                              </p>
+                            </div>
                           )}
-                        </Box>
+                        </div>
                         <Box
                           component="span"
                           className="sr-arrow"
@@ -1121,7 +1099,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         </Box>
                       </Box>
                       {/* Méta : type + montant + statut (icône↔libellé espacés) */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.875, mb: 0.25, flexWrap: 'wrap' }}>
+                      <div className="flex items-center gap-0.5 mt-1.5 mb-0.5 flex-wrap">
                         <Chip
                           icon={isCleaningSr ? <BroomFill size={11} /> : <WrenchFill size={11} />}
                           label={typeLabel}
@@ -1157,9 +1135,9 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             '& .MuiChip-label': { px: 0.625 },
                           }}
                         />
-                      </Box>
+                      </div>
                       {/* Actions selon le statut */}
-                      <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                      <div className="flex gap-0.5 mt-0.5 flex-wrap">
                         {/* PENDING sans assigné: Bouton assignation manuelle (admin/manager) ou message d'attente */}
                         {isPending && !assigneeName && canEditIntervention && (
                           <Button
@@ -1180,26 +1158,26 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           </Button>
                         )}
                         {isPending && !assigneeName && !canEditIntervention && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <div className="flex items-center gap-0.5">
                             {sr.autoAssignStatus === 'searching' && (
                               <>
                                 <CircularProgress size={10} sx={{ color: 'text.secondary' }} />
-                                <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'text.secondary', fontStyle: 'italic' }}>
+                                <span className="cn-text-caption text-[0.625rem] text-muted-foreground italic">
                                   Recherche en cours...
-                                </Typography>
+                                </span>
                               </>
                             )}
                             {sr.autoAssignStatus === 'exhausted' && (
-                              <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'var(--warn)', fontStyle: 'italic' }}>
+                              <span className="cn-text-caption text-[0.625rem] text-[var(--warn)] italic">
                                 Aucune equipe disponible — assignation manuelle requise
-                              </Typography>
+                              </span>
                             )}
                             {(!sr.autoAssignStatus || sr.autoAssignStatus === 'found') && (
-                              <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'text.secondary', fontStyle: 'italic' }}>
+                              <span className="cn-text-caption text-[0.625rem] text-muted-foreground italic">
                                 En attente d&apos;assignation
-                              </Typography>
+                              </span>
                             )}
-                          </Box>
+                          </div>
                         )}
                         {/* Admin indicator for auto-assign status */}
                         {isPending && !assigneeName && canEditIntervention && sr.autoAssignStatus === 'exhausted' && (
@@ -1208,12 +1186,12 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           </Alert>
                         )}
                         {isPending && !assigneeName && canEditIntervention && sr.autoAssignStatus === 'searching' && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <div className="flex items-center gap-0.5">
                             <CircularProgress size={10} sx={{ color: 'text.secondary' }} />
-                            <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', fontStyle: 'italic' }}>
+                            <span className="cn-text-caption text-[0.6rem] text-muted-foreground italic">
                               Recherche auto...
-                            </Typography>
-                          </Box>
+                            </span>
+                          </div>
                         )}
                         {/* PENDING avec assigné: bouton Reassigner (admin/manager) */}
                         {isPending && assigneeName && canEditIntervention && (
@@ -1285,11 +1263,11 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             <DeleteOutline size={16} strokeWidth={1.75} />
                           </IconButton>
                         )}
-                      </Box>
+                      </div>
                     </Box>
                   );
                 })}
-              </Box>
+              </div>
             </>
           )}
 
@@ -1297,21 +1275,10 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           {linkedInterventions.length > 0 && (
             <>
               <Divider />
-              <Box>
-                <Typography
-                  component="span"
-                  sx={{
-                    display: 'block',
-                    fontSize: '0.625rem',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    color: 'var(--faint)',
-                    mb: 0.75,
-                  }}
-                >
+              <div>
+                <span className="block text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)] mb-1">
                   Interventions · {linkedInterventions.length}
-                </Typography>
+                </span>
                 {linkedInterventions.map((li) => {
                   const isAssigned = !!li.assigneeName;
                   const cost = li.actualCost || li.estimatedCost || 0;
@@ -1355,20 +1322,20 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         <Box component="span" sx={{ display: 'inline-flex', mt: '2px', color: li.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
                           {li.type === 'cleaning' ? <BroomFill size={15} /> : <WrenchFill size={14} />}
                         </Box>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div className="flex-1 min-w-0">
+                          <p className="cn-text-body1 text-[0.75rem] font-semibold text-[var(--ink)] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap">
                             {li.title}
-                          </Typography>
+                          </p>
                           {/* Assigné : sous-ligne discrète (libère la place, plus de chip vert) */}
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.125 }}>
+                          <div className="flex items-center gap-0.5 mt-0">
                             <Box component="span" sx={{ display: 'inline-flex', color: isAssigned ? 'var(--muted)' : 'var(--warn)' }}>
                               {isAssigned ? <Groups size={11} strokeWidth={1.75} /> : <HourglassEmpty size={11} strokeWidth={1.75} />}
                             </Box>
                             <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: isAssigned ? 'var(--muted)' : 'var(--warn)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {isAssigned ? li.assigneeName : 'Non assigné'}
                             </Typography>
-                          </Box>
-                        </Box>
+                          </div>
+                        </div>
                         <Box
                           component="span"
                           className="drill-arrow"
@@ -1379,7 +1346,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                       </Box>
 
                       {/* Méta : statut + montant/paiement ; indicateur planning à droite */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.875, flexWrap: 'wrap' }}>
+                      <div className="flex items-center gap-0.5 mt-1.5 flex-wrap">
                         <Chip
                           label={statusCfg.label}
                           size="small"
@@ -1395,11 +1362,11 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           <Chip
                             icon={<Payment size={10} strokeWidth={1.75} />}
                             label={
-                              <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.375 }}>
-                                <Box component="span" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}><Money value={cost} from="EUR" decimals={0} /></Box>
-                                <Box component="span" sx={{ opacity: 0.5 }}>·</Box>
+                              <span className="inline-flex items-center gap-0.5">
+                                <span className="font-bold tabular-nums"><Money value={cost} from="EUR" decimals={0} /></span>
+                                <span className="opacity-50">·</span>
                                 <span>{payStatusCfg.label}</span>
-                              </Box>
+                              </span>
                             }
                             size="small"
                             sx={{
@@ -1420,11 +1387,11 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             {isOnPlanning ? <Visibility size={13} strokeWidth={1.75} /> : <VisibilityOff size={13} strokeWidth={1.75} />}
                           </Box>
                         </Tooltip>
-                      </Box>
+                      </div>
 
                       {/* Progress bar (if in progress) */}
                       {isInProgress && (
-                        <Box sx={{ mb: 0.5 }}>
+                        <div className="mb-0.5">
                           <LinearProgress
                             variant="determinate"
                             value={progress}
@@ -1436,7 +1403,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                               },
                             }}
                           />
-                        </Box>
+                        </div>
                       )}
 
                       {/* Action: Assign button if not assigned */}
@@ -1460,7 +1427,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                     </Box>
                   );
                 })}
-              </Box>
+              </div>
             </>
           )}
 
@@ -1486,11 +1453,11 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           <Divider />
 
           {/* Assignment */}
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
+          <div>
+            <p className="cn-text-body2 font-bold text-[0.8125rem] mb-1.5">
               Assignation
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            </p>
+            <div className="flex flex-col gap-1">
               <Button
                 size="small"
                 variant="outlined"
@@ -1511,17 +1478,17 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               >
                 Definir priorite
               </Button>
-            </Box>
-          </Box>
+            </div>
+          </div>
 
           <Divider />
 
           {/* Checklist & alerts */}
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
+          <div>
+            <p className="cn-text-body2 font-bold text-[0.8125rem] mb-1.5">
               Suivi
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            </p>
+            <div className="flex flex-col gap-1">
               <Button
                 size="small"
                 variant="outlined"
@@ -1568,8 +1535,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               >
                 Ajouter alerte / rappel
               </Button>
-            </Box>
-          </Box>
+            </div>
+          </div>
         </>
       )}
 
@@ -1604,29 +1571,29 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         PaperProps={{ sx: { borderRadius: 2 } }}
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <div className="flex items-center gap-1.5">
             {assignMode === 'service_request'
-              ? <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><PersonAdd size={20} strokeWidth={1.75} /></Box>
-              : <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Groups size={20} strokeWidth={1.75} /></Box>}
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+              ? <span className="inline-flex text-[var(--accent)]"><PersonAdd size={20} strokeWidth={1.75} /></span>
+              : <span className="inline-flex text-[var(--accent)]"><Groups size={20} strokeWidth={1.75} /></span>}
+            <h6 className="cn-text-h6 font-bold text-[1rem]">
               {assignMode === 'service_request' ? 'Assigner la demande' : 'Assigner intervention'}
-            </Typography>
-          </Box>
+            </h6>
+          </div>
           <IconButton size="small" onClick={() => setAssignDialogOpen(false)}>
             <Close size={18} strokeWidth={1.75} />
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
           {assignMode === 'intervention' && assignTarget && (
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', mb: 1.5, display: 'block' }}>
+            <span className="cn-text-caption text-muted-foreground text-[0.6875rem] mb-2 block">
               Intervention : <strong>{assignTarget.title}</strong>
-            </Typography>
+            </span>
           )}
           {assignMode === 'service_request' && assignSrTargetId && (
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', mb: 1.5, display: 'block' }}>
+            <span className="cn-text-caption text-muted-foreground text-[0.6875rem] mb-2 block">
               Demande de service #{assignSrTargetId}
               {assignSrDesiredDate && <> — Date souhaitée : <strong>{assignSrDesiredDate}</strong></>}
-            </Typography>
+            </span>
           )}
 
           {/* Auto-assign toggle (only visible if feature enabled in settings) */}
@@ -1645,17 +1612,17 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 transition: 'all 0.2s ease',
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <div className="flex items-center gap-1.5">
                 <Box component="span" sx={{ display: 'inline-flex', color: assignAutoMode ? 'var(--accent)' : 'var(--muted)' }}><AutoFixHigh size={18} strokeWidth={1.75} /></Box>
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem', lineHeight: 1.2 }}>
+                <div>
+                  <p className="cn-text-body2 font-semibold text-[0.8125rem] leading-[1.2]">
                     Assignation automatique
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+                  </p>
+                  <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
                     Selectionne le membre le moins charge
-                  </Typography>
-                </Box>
-              </Box>
+                  </span>
+                </div>
+              </div>
               <Switch
                 size="small"
                 checked={assignAutoMode}
@@ -1700,19 +1667,19 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             {assigneeOptions
               .flatMap((opt) => (opt.type === 'user' ? [(
                 <MenuItem key={assigneeKey(opt)} value={assigneeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={16} strokeWidth={1.75} /></Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.3 }}>
+                  <div className="flex items-center gap-1.5 w-full">
+                    <span className="inline-flex text-muted-foreground"><Person size={16} strokeWidth={1.75} /></span>
+                    <div className="flex-1">
+                      <p className="cn-text-body2 text-[0.8125rem] leading-[1.3]">
                         {opt.label}
-                      </Typography>
+                      </p>
                       {opt.sublabel && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+                        <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
                           {opt.sublabel}
-                        </Typography>
+                        </span>
                       )}
-                    </Box>
-                  </Box>
+                    </div>
+                  </div>
                 </MenuItem>
               )] : []))}
             {/* Teams section */}
@@ -1724,19 +1691,19 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             {assigneeOptions
               .flatMap((opt) => (opt.type === 'team' ? [(
                 <MenuItem key={assigneeKey(opt)} value={assigneeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Groups size={16} strokeWidth={1.75} /></Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.3 }}>
+                  <div className="flex items-center gap-1.5 w-full">
+                    <span className="inline-flex text-[var(--accent)]"><Groups size={16} strokeWidth={1.75} /></span>
+                    <div className="flex-1">
+                      <p className="cn-text-body2 text-[0.8125rem] leading-[1.3]">
                         {opt.label}
-                      </Typography>
+                      </p>
                       {opt.sublabel && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+                        <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
                           {opt.sublabel}
-                        </Typography>
+                        </span>
                       )}
-                    </Box>
-                  </Box>
+                    </div>
+                  </div>
                 </MenuItem>
               )] : []))}
             {assigneeOptions.length === 0 && (
@@ -1748,29 +1715,18 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
 
           {/* ── Team member availability panel ────────────────────────── */}
           {assignValue.startsWith('team-') && (
-            <Box sx={{ mt: 2 }}>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 700,
-                  fontSize: '0.6875rem',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  mb: 0.75,
-                  display: 'block',
-                }}
-              >
+            <div className="mt-3">
+              <span className="cn-text-caption font-bold text-[0.6875rem] text-muted-foreground uppercase tracking-[0.04em] mb-1 block">
                 Membres de l'équipe
-              </Typography>
+              </span>
 
               {teamMembersLoading && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}>
+                <div className="flex items-center gap-1.5 py-1.5">
                   <CircularProgress size={14} />
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                  <span className="cn-text-caption text-muted-foreground text-[0.75rem]">
                     Vérification de la disponibilité...
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               )}
 
               {!teamMembersLoading && teamAvailabilityError && (
@@ -1780,9 +1736,9 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               )}
 
               {!teamMembersLoading && !teamAvailabilityError && teamMembers.length === 0 && teamAvailabilityInfo && (
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
+                <span className="cn-text-caption text-muted-foreground text-[0.75rem] italic">
                   Aucun membre dans cette équipe
-                </Typography>
+                </span>
               )}
 
               {!teamMembersLoading && teamMembers.length > 0 && (
@@ -1797,14 +1753,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         : 'Certains membres ont des interventions sur ce créneau'}
                     </Alert>
                   )}
-                  <Box
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 1.5,
-                      overflow: 'hidden',
-                    }}
-                  >
+                  <div className="border border-[divider] rounded-[1.5px] overflow-hidden">
                     {teamMembers.map((member, idx) => (
                       <Box
                         key={member.userId}
@@ -1819,9 +1768,9 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           backgroundColor: member.available ? 'transparent' : 'var(--hover)',
                         }}
                       >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <div className="flex items-center gap-1.5">
                           <Box component="span" sx={{ display: 'inline-flex', color: member.available ? 'var(--ok)' : 'var(--faint)' }}><Person size={15} strokeWidth={1.75} /></Box>
-                          <Box>
+                          <div>
                             <Typography
                               variant="body2"
                               sx={{
@@ -1833,11 +1782,11 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             >
                               {member.firstName} {member.lastName}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
+                            <span className="cn-text-caption text-muted-foreground text-[0.6rem]">
                               {member.role}
-                            </Typography>
-                          </Box>
-                        </Box>
+                            </span>
+                          </div>
+                        </div>
                         <Chip
                           size="small"
                           label={
@@ -1858,10 +1807,10 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         />
                       </Box>
                     ))}
-                  </Box>
+                  </div>
                 </>
               )}
-            </Box>
+            </div>
           )}
 
           {assignError && (
@@ -1896,23 +1845,23 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         PaperProps={{ sx: { borderRadius: 2 } }}
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><PriorityHigh size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--warn)]"><PriorityHigh size={20} strokeWidth={1.75} /></span>
+            <h6 className="cn-text-h6 font-bold text-[1rem]">
               Definir la priorite
-            </Typography>
-          </Box>
+            </h6>
+          </div>
           <IconButton size="small" onClick={() => setPriorityDialogOpen(false)}>
             <Close size={18} strokeWidth={1.75} />
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
           {priorityTarget && (
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', mb: 2, display: 'block' }}>
+            <span className="cn-text-caption text-muted-foreground text-[0.6875rem] mb-3 block">
               Intervention : <strong>{priorityTarget.title}</strong>
-            </Typography>
+            </span>
           )}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+          <div className="flex flex-col gap-1.5 mt-1.5">
             {PRIORITY_OPTIONS.map((opt) => (
               <Button
                 key={opt.value}
@@ -1936,7 +1885,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 {opt.label}
               </Button>
             ))}
-          </Box>
+          </div>
           {priorityError && (
             <Alert severity="error" sx={{ fontSize: '0.75rem', mt: 1.5 }}>
               {priorityError}
@@ -1969,12 +1918,12 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         PaperProps={{ sx: { borderRadius: 2 } }}
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircleOutline size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--ok)]"><CheckCircleOutline size={20} strokeWidth={1.75} /></span>
+            <h6 className="cn-text-h6 font-bold text-[1rem]">
               Checklist operationnelle
-            </Typography>
-          </Box>
+            </h6>
+          </div>
           <IconButton size="small" onClick={() => setChecklistOpen(false)}>
             <Close size={18} strokeWidth={1.75} />
           </IconButton>
@@ -2035,18 +1984,18 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         PaperProps={{ sx: { borderRadius: 2 } }}
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><NotificationsActive size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--info)]"><NotificationsActive size={20} strokeWidth={1.75} /></span>
+            <h6 className="cn-text-h6 font-bold text-[1rem]">
               Ajouter un rappel
-            </Typography>
-          </Box>
+            </h6>
+          </div>
           <IconButton size="small" onClick={() => setAlertDialogOpen(false)}>
             <Close size={18} strokeWidth={1.75} />
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
-          <Box sx={{ display: 'flex', gap: 1.5, mb: 2 }}>
+          <div className="flex gap-2 mb-3">
             <TextField
               type="date"
               label="Date du rappel"
@@ -2067,7 +2016,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               InputLabelProps={{ shrink: true }}
               sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
             />
-          </Box>
+          </div>
           <TextField
             label="Message du rappel"
             value={alertMessage}
@@ -2107,9 +2056,9 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       >
         <DialogTitle sx={{ pb: 1 }}>Supprimer la demande</DialogTitle>
         <DialogContent>
-          <Typography variant="body2">
+          <p className="cn-text-body2">
             Êtes-vous sûr de vouloir supprimer la demande « {deleteSrTarget?.title} » ? Cette action est irréversible.
-          </Typography>
+          </p>
         </DialogContent>
         <DialogActions>
           <Button
@@ -2144,7 +2093,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 };
 

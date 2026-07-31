@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  IconButton,
-  Chip,
-  ToggleButtonGroup,
-  ToggleButton,
-  Tooltip,
-} from '@mui/material';
+import { IconButton, Chip, ToggleButtonGroup, ToggleButton, Tooltip } from '@mui/material';
 import {
   ChevronLeft,
   ChevronRight,
@@ -67,27 +59,17 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   onToggleStatus,
 }) => {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 1,
-        py: 0.875,
-        px: 1.25,
-        backgroundColor: 'transparent',
-        flexShrink: 0,
-      }}
-    >
+    <div className="flex flex-col gap-1.5 py-1.5 px-2 bg-[transparent] shrink-0">
       {/* ── Rangée 1 : navigation + mois + segmented + recherche + actions ── */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.875 }}>
+      <div className="flex flex-wrap items-center gap-1.5">
         {/* Spacer de tête flex:1 — centre le groupe nav+mois+Aujourd'hui+zoom
             dans la zone planning. Symétrique au spacer de queue → centrage qui
             s'adapte à la largeur de contenu (donc à l'écran ET à l'état de la
             sidebar, le contenu étant un flex-sibling de la sidebar). */}
-        <Box sx={{ flex: 1, minWidth: 8 }} aria-hidden />
+        <div className="flex-1 min-w-[8px]" aria-hidden />
 
         {/* Navigation */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <div className="flex items-center gap-0.5">
           <IconButton
             size="small"
             onClick={onGoPrev}
@@ -107,21 +89,9 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
           </IconButton>
 
           {/* Month title : info principale (display, encre) */}
-          <Typography
-            variant="subtitle2"
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '0.9375rem',
-              fontWeight: 600,
-              textTransform: 'capitalize',
-              color: 'var(--ink)',
-              letterSpacing: '-0.01em',
-              minWidth: 110,
-              textAlign: 'center',
-            }}
-          >
+          <h6 className="cn-text-subtitle2 font-[var(--font-display)] text-[0.9375rem] font-semibold capitalize text-[var(--ink)] tracking-[-0.01em] min-w-[110px] text-center">
             {formatMonthYear(currentDate)}
-          </Typography>
+          </h6>
 
           <IconButton
             size="small"
@@ -140,7 +110,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
           >
             <ChevronRight size={15} strokeWidth={1.75} />
           </IconButton>
-        </Box>
+        </div>
 
         <Chip
           icon={<TodayOutlined size={13} strokeWidth={1.75} />}
@@ -206,7 +176,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
           ))}
         </ToggleButtonGroup>
 
-        <Box sx={{ flex: 1, minWidth: 8 }} />
+        <div className="flex-1 min-w-[8px]" />
 
         {/* Plein écran — escape hatch : seul moment où le PageHeader (qui porte
             désormais le toggle) est masqué, donc on le réaffiche ici pour
@@ -228,14 +198,14 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
             </IconButton>
           </Tooltip>
         )}
-      </Box>
+      </div>
 
       {/* ── Rangée 2 (desktop) : filtres togglables fusionnés — canaux,
           statuts puis Interventions, sans libellés de rangée. Migrée dans la
           modale de filtres quand `legendInModal` (viewport compact OU
           constellation d'agents déployée) pour ne jamais dupliquer les chips. */}
       {!legendInModal && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+        <div className="flex items-center gap-1.5 flex-wrap">
           {/* Canaux : LOGO de canal (la pastille des briques), toggle masque/affiche */}
           <ChannelLegendChips activeChannels={activeChannels} onToggleChannel={onToggleChannel}
             presentChannels={presentChannels} />
@@ -246,9 +216,9 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
             active={filters.showInterventions}
             onToggle={() => onShowInterventionsChange(!filters.showInterventions)}
           />
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 });
 

@@ -146,17 +146,17 @@ const Reports: React.FC = () => {
 
   if (!permissionsLoaded) {
     return (
-      <Box>
+      <div>
         <PageHeader
           title={t('reports.title')}
           subtitle={t('reports.subtitle')}
           backPath="/dashboard"
           showBackButton={false}
         />
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+        <div className="flex justify-center p-6">
           <CircularProgress />
-        </Box>
-      </Box>
+        </div>
+      </div>
     );
   }
 
@@ -164,7 +164,7 @@ const Reports: React.FC = () => {
   const hasAnyAccess = allowedTabs.some(Boolean);
   if (!hasAnyAccess) {
     return (
-      <Box>
+      <div>
         <PageHeader
           title={t('reports.title')}
           subtitle={t('reports.subtitle')}
@@ -174,7 +174,7 @@ const Reports: React.FC = () => {
         <Alert severity="info" sx={{ mt: 1 }}>
           {t('reports.noPermissions')}
         </Alert>
-      </Box>
+      </div>
     );
   }
 
@@ -222,7 +222,7 @@ const Reports: React.FC = () => {
 
   return (
     <PageHeaderActionsProvider slot={headerActionsSlot}>
-      <Box>
+      <div>
         <PageHeader
           title={title}
           subtitle={subtitle}
@@ -261,7 +261,7 @@ const Reports: React.FC = () => {
             </Alert>
           )}
         </Box>
-      </Box>
+      </div>
     </PageHeaderActionsProvider>
   );
 };

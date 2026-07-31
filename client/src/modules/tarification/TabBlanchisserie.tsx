@@ -1,23 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  InputAdornment,
-  Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
+import { TextField, InputAdornment, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { LocalLaundryService, Add, Delete } from '../../icons';
 import type { PricingConfig, BlanchisserieItem, CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -82,16 +64,16 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
   }, [config.commissionConfigs, onUpdate]);
 
   return (
-    <Box sx={{ pt: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+    <div className="pt-3">
+      <div className="flex items-center gap-1.5 mb-1.5">
         <LocalLaundryService size={20} strokeWidth={1.75} color='var(--accent)' />
-        <Typography variant="subtitle1" fontWeight={600}>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('tarification.blanchisserie.title')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('tarification.blanchisserie.subtitle')}
-      </Typography>
+      </p>
 
       <TableContainer>
         <Table size="small">
@@ -147,7 +129,7 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
 
       {/* ─── Add button ────────────────────────────────────────────────── */}
       {canEdit && (
-        <Box sx={{ mt: 1.5 }}>
+        <div className="mt-2">
           <Button
             variant="outlined"
             size="small"
@@ -157,7 +139,7 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
           >
             {t('tarification.addArticle')}
           </Button>
-        </Box>
+        </div>
       )}
 
       {/* ─── Add dialog ──────────────────────────────────────────────── */}
@@ -198,6 +180,6 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
           onChange={handleCommissionChange}
         />
       )}
-    </Box>
+    </div>
   );
 }

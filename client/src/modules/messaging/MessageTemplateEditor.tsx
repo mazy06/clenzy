@@ -1,20 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  Grid,
-  Box,
-  Typography,
-  Paper,
-  CircularProgress,
-  Alert,
-  Divider,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Grid, Paper, CircularProgress, Alert, Divider } from '@mui/material';
 import { Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -254,25 +239,25 @@ export default function MessageTemplateEditor({
             </Grid>
 
             {/* Preview */}
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+            <div className="mt-4">
+              <h6 className="cn-text-subtitle2 text-muted-foreground mb-[0.35em]">
                 {t('messaging.templates.editor.preview')}
-              </Typography>
+              </h6>
               <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
-                <Typography variant="subtitle2" gutterBottom>
+                <h6 className="cn-text-subtitle2 mb-[0.35em]">
                   {t('messaging.templates.editor.previewSubject')}: {getPreviewText(subject) || '—'}
-                </Typography>
+                </h6>
                 <Divider sx={{ my: 1 }} />
                 {body ? (
-                  <Typography variant="body2" component="div" sx={{ fontFamily: 'inherit' }}>
+                  <div className="cn-text-body2 font-[inherit]">
                     {/* Rendu identique à l'email envoyé (gras, puces, paragraphes) */}
                     <EmailMarkdownPreview text={getPreviewText(body)} />
-                  </Typography>
+                  </div>
                 ) : (
-                  <Typography variant="body2">—</Typography>
+                  <p className="cn-text-body2">—</p>
                 )}
               </Paper>
-            </Box>
+            </div>
           </Grid>
 
           {/* Variables sidebar — refactor sur VariablePicker (chips colorees
@@ -280,12 +265,12 @@ export default function MessageTemplateEditor({
               SystemTemplateEditDialog pour coherence visuelle. */}
           <Grid item xs={12} md={5}>
             <Paper variant="outlined" sx={{ p: 2, position: 'sticky', top: 16 }}>
-              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+              <h6 className="cn-text-subtitle2 font-semibold mb-[0.35em]">
                 {t('messaging.templates.editor.variables')}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+              </h6>
+              <span className="cn-text-caption text-muted-foreground block mb-2">
                 {t('messaging.templates.editor.variablesDesc')}
-              </Typography>
+              </span>
               <VariablePicker
                 variables={variables}
                 usedKeys={usedVariables}

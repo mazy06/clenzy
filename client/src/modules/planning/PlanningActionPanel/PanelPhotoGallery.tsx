@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Typography,
-  Dialog,
-  IconButton,
-  Chip,
-} from '@mui/material';
+import { Box, Dialog, IconButton, Chip } from '@mui/material';
 import {
   Close,
   ChevronLeft,
@@ -29,12 +23,12 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
 
   if (photos.length === 0) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, py: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><PhotoLibrary size={14} strokeWidth={1.75} /></Box>
-        <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)', fontStyle: 'italic' }}>
+      <div className="flex items-center gap-0.5 py-1.5">
+        <span className="inline-flex text-[var(--faint)]"><PhotoLibrary size={14} strokeWidth={1.75} /></span>
+        <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] italic">
           Aucune photo — {label}
-        </Typography>
-      </Box>
+        </p>
+      </div>
     );
   }
 
@@ -43,26 +37,19 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
 
   return (
     <>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><PhotoLibrary size={14} strokeWidth={1.75} /></Box>
-        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--ink)' }}>
+      <div className="flex items-center gap-0.5 mb-1">
+        <span className="inline-flex text-[var(--accent)]"><PhotoLibrary size={14} strokeWidth={1.75} /></span>
+        <p className="cn-text-body1 text-[0.6875rem] font-semibold text-[var(--ink)]">
           {label}
-        </Typography>
+        </p>
         <Chip
           label={photos.length}
           size="small"
           sx={{ height: 18, ml: 'auto', backgroundColor: 'var(--field)', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', '& .MuiChip-label': { px: 0.75 } }}
         />
-      </Box>
+      </div>
 
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: 0.5,
-          mb: 1,
-        }}
-      >
+      <div className="grid grid-cols-2 gap-0.5 mb-1.5">
         {visible.map((url, i) => (
           <Box
             key={url}
@@ -80,39 +67,18 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
               '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
             }}
           >
-            <Box
-              component="img"
-              src={url}
-              alt={`${label} ${i + 1}`}
-              sx={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-              }}
-            />
+            <img className="absolute top-[0px] start-[0px] w-full h-full object-cover" src={url} alt={`${label} ${i + 1}`} />
             {/* "+N" overlay on last visible */}
             {i === maxVisible - 1 && extra > 0 && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: 'rgba(21,36,45,.55)',
-                }}
-              >
-                <Typography sx={{ color: 'var(--on-accent)', fontWeight: 600, fontSize: '1rem', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
+              <div className="absolute inset-[0px] flex items-center justify-center bg-[rgba(21,36,45,.55)]">
+                <p className="cn-text-body1 text-[var(--on-accent)] font-semibold text-[1rem] font-[var(--font-display)] tabular-nums">
                   +{extra}
-                </Typography>
-              </Box>
+                </p>
+              </div>
             )}
           </Box>
         ))}
-      </Box>
+      </div>
 
       {/* Lightbox dialog */}
       <Dialog
@@ -129,7 +95,7 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
           },
         }}
       >
-        <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 400, minHeight: 300 }}>
+        <div className="relative flex items-center justify-center min-w-[400px] min-h-[300px]">
           <IconButton
             onClick={() => setLightboxOpen(false)}
             aria-label="Fermer"
@@ -157,17 +123,12 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
             </>
           )}
 
-          <Box
-            component="img"
-            src={photos[lightboxIndex]}
-            alt={`${label} ${lightboxIndex + 1}`}
-            sx={{ maxWidth: '85vw', maxHeight: '85vh', objectFit: 'contain' }}
-          />
+          <img className="max-w-[85vw] max-h-[85vh] object-contain" src={photos[lightboxIndex]} alt={`${label} ${lightboxIndex + 1}`} />
 
-          <Typography sx={{ position: 'absolute', bottom: 12, color: 'var(--on-accent)', fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums' }}>
+          <p className="cn-text-body1 absolute bottom-[12px] text-[var(--on-accent)] text-[0.75rem] tabular-nums">
             {lightboxIndex + 1} / {photos.length}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       </Dialog>
     </>
   );

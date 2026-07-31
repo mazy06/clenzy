@@ -1,22 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import {
-  Box,
-  Grid,
-  Typography,
-  Button,
-  Chip,
-  Alert,
-  CircularProgress,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
+import { Grid, Button, Chip, Alert, CircularProgress, Menu, MenuItem, ListItemIcon, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Add,
   Edit,
@@ -87,9 +71,9 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+      <div className="flex justify-center items-center h-[50vh]">
         <CircularProgress size={32} />
-      </Box>
+      </div>
     );
   }
 
@@ -109,7 +93,7 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
   ) : null;
 
   return (
-    <Box>
+    <div>
       {/* Portal actions into parent's PageHeader when embedded */}
       {embedded && actionsContainer && actionButtons && createPortal(actionButtons, actionsContainer)}
 
@@ -132,10 +116,10 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
       )}
 
       {/* ─── Barre de recherche + filtres ─── */}
-      <Box sx={{ mb: 2 }}>
+      <div className="mb-3">
 
         {/* Filtres par catégorie de service */}
-        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
+        <div className="flex gap-1 flex-wrap mb-2">
           <Chip
             label={t('teams.allTypes')}
             onClick={() => setSelectedType('all')}
@@ -174,16 +158,16 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
               }}
             />
           ))}
-        </Box>
+        </div>
 
         {/* Compteur d'équipes */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <div className="flex items-center gap-2">
           <Divider sx={{ flex: 1 }} />
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+          <span className="cn-text-caption text-muted-foreground text-[0.75rem]">
             {filteredTeams.length} {filteredTeams.length > 1 ? t('teams.teams') : t('teams.team')} {t('teams.available')}
-          </Typography>
-        </Box>
-      </Box>
+          </span>
+        </div>
+      </div>
 
       {/* ─── Liste des équipes ─── */}
       {filteredTeams.length === 0 ? (
@@ -219,13 +203,13 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+            <div className="flex justify-center mt-4">
               <PagePagination
                 totalPages={totalPages}
                 page={page}
                 onPageChange={(newPage) => setPage(newPage)}
               />
-            </Box>
+            </div>
           )}
         </>
       )}
@@ -255,7 +239,7 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
         {canDeleteTeams && (
           <MenuItem onClick={handleDelete} sx={{ color: 'var(--err)', fontSize: '0.85rem', py: 0.75 }}>
             <ListItemIcon>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Delete fontSize="small" size={18} strokeWidth={1.75} /></Box>
+              <span className="inline-flex text-[var(--err)]"><Delete fontSize="small" size={18} strokeWidth={1.75} /></span>
             </ListItemIcon>
             Supprimer
           </MenuItem>
@@ -266,9 +250,9 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
       <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog}>
         <DialogTitle sx={{ pb: 1 }}>{t('teams.confirmDelete')}</DialogTitle>
         <DialogContent sx={{ pt: 1.5 }}>
-          <Typography variant="body2">
+          <p className="cn-text-body2">
             {t('teams.confirmDeleteMessage', { name: selectedTeam?.name })}
-          </Typography>
+          </p>
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 1.5 }}>
           <Button onClick={handleCloseDeleteDialog} size="small">{t('teams.cancel')}</Button>
@@ -277,7 +261,7 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

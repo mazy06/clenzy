@@ -1,18 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Card,
-  MenuItem,
-  Select,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, Card, MenuItem, Select, Skeleton, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import {
   CartesianGrid,
@@ -94,7 +81,7 @@ const PaceReport: React.FC = () => {
   const loading = summaryQuery.isLoading;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <div className="flex flex-col gap-2">
       {/* ── Tuiles de synthèse ── */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(3, 1fr)' }, gap: 1.5 }}>
         <StatTile
@@ -121,9 +108,9 @@ const PaceReport: React.FC = () => {
 
       {/* ── Tableau mensuel ── */}
       <Card variant="outlined" sx={{ p: 1.5 }}>
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+        <h6 className="cn-text-subtitle2 mb-1.5">
           {t('reports.pace.byMonth', 'On-the-books par mois de séjour')}
-        </Typography>
+        </h6>
         {loading ? (
           <Skeleton variant="rounded" height={220} />
         ) : months.length === 0 ? (
@@ -175,10 +162,10 @@ const PaceReport: React.FC = () => {
 
       {/* ── Booking curve ── */}
       <Card variant="outlined" sx={{ p: 1.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-          <Typography variant="subtitle2">
+        <div className="flex items-center justify-between mb-1.5">
+          <h6 className="cn-text-subtitle2">
             {t('reports.pace.bookingCurve', 'Montée des réservations (booking curve)')}
-          </Typography>
+          </h6>
           {months.length > 0 && (
             <Select
               size="small"
@@ -190,7 +177,7 @@ const PaceReport: React.FC = () => {
               ))}
             </Select>
           )}
-        </Box>
+        </div>
         {curveQuery.isLoading ? (
           <Skeleton variant="rounded" height={240} />
         ) : curveData.length === 0 ? (
@@ -200,7 +187,7 @@ const PaceReport: React.FC = () => {
             variant="plain"
           />
         ) : (
-          <Box sx={{ height: 240 }}>
+          <div className="h-[240px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={curveData} margin={{ top: 4, right: 6, left: -18, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
@@ -230,10 +217,10 @@ const PaceReport: React.FC = () => {
                 />
               </LineChart>
             </ResponsiveContainer>
-          </Box>
+          </div>
         )}
       </Card>
-    </Box>
+    </div>
   );
 };
 

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Box, Typography, Button, Skeleton } from '@mui/material';
+import { Box, Button, Skeleton } from '@mui/material';
 import { Thermostat, Add, Home } from '../../../icons';
 import PageHeader from '../../../components/PageHeader';
 import EmptyState from '../../../components/EmptyState';
@@ -74,7 +74,7 @@ export default function ThermostatsScreen() {
   );
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={t('connectedObjects.thermostats.title', 'Thermostats')}
         subtitle={t('connectedObjects.thermostats.subtitle', 'Confort thermique des logements — pilotage Tuya.')}
@@ -98,18 +98,18 @@ export default function ThermostatsScreen() {
         />
       ) : (
         groups.map(([propertyName, items]) => (
-          <Box key={propertyName} sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.875 }}>
-              <Box component="span" sx={{ color: 'text.secondary', display: 'inline-flex' }}><Home size={15} strokeWidth={1.75} /></Box>
-              <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'text.primary' }}>{propertyName}</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>· {items.length} thermostat{items.length > 1 ? 's' : ''}</Typography>
-            </Box>
+          <div className="mb-3" key={propertyName}>
+            <div className="flex items-center gap-1 mb-1.5">
+              <span className="text-muted-foreground inline-flex"><Home size={15} strokeWidth={1.75} /></span>
+              <p className="cn-text-body1 font-semibold text-[0.9375rem] text-foreground">{propertyName}</p>
+              <span className="cn-text-caption text-muted-foreground opacity-60">· {items.length} thermostat{items.length > 1 ? 's' : ''}</span>
+            </div>
             <Box sx={GRID}>
               {items.map((th) => (
                 <ThermostatTile key={th.id} thermostat={th} onSetTarget={handleSetTarget} onDelete={requestDelete} acting={actingId === th.id || (deleting && pendingDeleteId === th.id)} />
               ))}
             </Box>
-          </Box>
+          </div>
         ))
       )}
 
@@ -127,6 +127,6 @@ export default function ThermostatsScreen() {
         severity="error"
         loading={deleting}
       />
-    </Box>
+    </div>
   );
 }

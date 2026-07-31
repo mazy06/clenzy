@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import {
   ResponsiveContainer,
   PieChart,
@@ -54,21 +54,11 @@ export const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data }) => {
   }
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
+    <div className="mt-1.5 mb-2">
       {data.title && (
-        <Typography
-          sx={{
-            display: 'block',
-            mb: 1,
-            fontSize: '10.5px',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '.05em',
-            color: 'var(--faint)',
-          }}
-        >
+        <p className="cn-text-body1 block mb-1.5 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
           {data.title}
-        </Typography>
+        </p>
       )}
 
       <Box
@@ -115,49 +105,40 @@ export const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data }) => {
         </Box>
 
         {/* Legend custom avec pourcentages + progress bars */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+        <div className="flex flex-col gap-0.5">
           {items.map((entry) => {
             const pct = total > 0 ? (entry.value / total) * 100 : 0;
             return (
-              <Box key={entry.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <div className="flex items-center gap-1" key={entry.name}>
                 <Box
                   sx={{
                     width: 8, height: 8, borderRadius: '2px',
                     bgcolor: entry.color, flexShrink: 0,
                   }}
                 />
-                <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', flex: 1, lineHeight: 1.2 }}>
+                <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] flex-1 leading-[1.2]">
                   {humanizeStatus(entry.name)}
-                </Typography>
-                <Typography sx={{
-                  fontSize: '11.5px', fontWeight: 700, color: 'var(--ink)',
-                  minWidth: 20, textAlign: 'right', fontVariantNumeric: 'tabular-nums',
-                }}>
+                </p>
+                <p className="cn-text-body1 text-[11.5px] font-bold text-[var(--ink)] min-w-[20px] text-end tabular-nums">
                   {entry.value}
-                </Typography>
-                <Box sx={{
-                  width: 40, height: 4, bgcolor: 'var(--hover)',
-                  borderRadius: 2, overflow: 'hidden', flexShrink: 0,
-                }}>
+                </p>
+                <div className="w-[40px] h-[4px] bg-[var(--hover)] rounded-[2px] overflow-hidden shrink-0">
                   <Box sx={{
                     height: '100%', width: `${pct}%`,
                     bgcolor: entry.color, borderRadius: 2,
                     transition: 'width 0.4s ease',
                     '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                   }} />
-                </Box>
-                <Typography sx={{
-                  fontSize: '10.5px', color: 'var(--faint)',
-                  minWidth: 28, textAlign: 'right', fontVariantNumeric: 'tabular-nums',
-                }}>
+                </div>
+                <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] min-w-[28px] text-end tabular-nums">
                   {pct.toFixed(0)}%
-                </Typography>
-              </Box>
+                </p>
+              </div>
             );
           })}
-        </Box>
+        </div>
       </Box>
-    </Box>
+    </div>
   );
 };
 
@@ -198,20 +179,20 @@ const PieCustomTooltip: React.FC<{ active?: boolean; payload?: PieTooltipPayload
         boxShadow: 'var(--shadow-pop)',
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+      <div className="flex items-center gap-1">
         <Box sx={{
           width: 10, height: 10, borderRadius: '3px',
           bgcolor: entry.payload.color || CHART_PRIMARY, flexShrink: 0,
         }} />
-        <Box>
-          <Typography sx={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--ink)', lineHeight: 1.2 }}>
+        <div>
+          <p className="cn-text-body1 text-[12.5px] font-bold text-[var(--ink)] leading-[1.2]">
             {humanizeStatus(entry.name)}
-          </Typography>
-          <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+          </p>
+          <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums">
             {entry.value}
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
     </Box>
   );
 };

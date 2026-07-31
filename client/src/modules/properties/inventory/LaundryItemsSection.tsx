@@ -1,9 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Box, Typography, Button, IconButton, TextField, Select, MenuItem,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, Chip,
-} from '@mui/material';
+import { Button, IconButton, TextField, Select, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, Chip } from '@mui/material';
 import { Add, DeleteOutline, LocalLaundryService, Save, Close } from '../../../icons';
 import type { PropertyLaundryItem, BlanchisserieCatalogItem } from '../../../services/api/propertyInventoryApi';
 
@@ -60,17 +56,17 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
   }, 0);
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><LocalLaundryService size={22} strokeWidth={1.75} /></Box>
-          <Box>
-            <Typography variant="subtitle1" fontWeight={600}>Linge de maison</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex text-[info.main]"><LocalLaundryService size={22} strokeWidth={1.75} /></span>
+          <div>
+            <h6 className="cn-text-subtitle1 font-semibold">Linge de maison</h6>
+            <p className="cn-text-body2 text-muted-foreground text-[0.8rem]">
               Articles de linge a preparer apres chaque sejour
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
         {canEdit && (
           <Button
             size="small"
@@ -82,16 +78,16 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
             Ajouter
           </Button>
         )}
-      </Box>
+      </div>
 
       {items.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><LocalLaundryService size={40} strokeWidth={1.5} /></Box>
-          <Typography color="text.secondary">Aucun article de linge configure</Typography>
+          <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><LocalLaundryService size={40} strokeWidth={1.5} /></span>
+          <p className="cn-text-body1 text-muted-foreground">Aucun article de linge configure</p>
           {catalog.length === 0 && (
-            <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
+            <p className="cn-text-body2 text-muted-foreground opacity-60 mt-0.5">
               Configurez d'abord le catalogue blanchisserie dans Configuration tarifaire
-            </Typography>
+            </p>
           )}
           {canEdit && catalog.length > 0 && (
             <Button size="small" startIcon={<Add size={18} strokeWidth={1.75} />} onClick={openAdd} sx={{ mt: 1 }}>
@@ -202,6 +198,6 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 }

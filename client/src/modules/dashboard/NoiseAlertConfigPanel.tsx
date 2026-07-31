@@ -1,23 +1,5 @@
 import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Switch,
-  FormControlLabel,
-  Button,
-  TextField,
-  Slider,
-  IconButton,
-  Chip,
-  CircularProgress,
-  Divider,
-  FormControl,
-  Select,
-  MenuItem,
-  Grid,
-} from '@mui/material';
+import { Card, CardContent, Switch, FormControlLabel, Button, TextField, Slider, IconButton, Chip, CircularProgress, Divider, FormControl, Select, MenuItem, Grid } from '@mui/material';
 import {
   Settings,
   Add,
@@ -294,13 +276,13 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
     <Card>
       <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
         {/* Header : titre + sélecteur propriété + toggle — sur une seule ligne */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5, flexWrap: 'wrap' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Settings size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <div className="flex items-center gap-1">
+            <span className="inline-flex text-primary"><Settings size={18} strokeWidth={1.75} /></span>
+            <h6 className="cn-text-subtitle1 font-bold text-[0.875rem] whitespace-nowrap">
               Configuration des alertes bruit
-            </Typography>
-          </Box>
+            </h6>
+          </div>
 
           {!embedded && (
             <FormControl size="small" sx={{ minWidth: 180 }}>
@@ -329,19 +311,19 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                 />
               }
               label={
-                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                <p className="cn-text-body1 text-[0.8125rem] font-semibold">
                   Alertes activées
-                </Typography>
+                </p>
               }
               sx={{ ml: 'auto', mr: 0 }}
             />
           )}
-        </Box>
+        </div>
 
         {configQuery.isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+          <div className="flex justify-center py-4">
             <CircularProgress size={24} />
-          </Box>
+          </div>
         ) : (
           <>
 
@@ -352,10 +334,10 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                 <Grid container spacing={3}>
                   {/* ── Colonne gauche : Créneaux horaires ── */}
                   <Grid item xs={12} md={7}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'text.secondary', letterSpacing: '0.04em' }}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="cn-text-body1 text-[0.75rem] font-bold uppercase text-muted-foreground tracking-[0.04em]">
                         Créneaux horaires
-                      </Typography>
+                      </p>
                       <Button
                         size="small"
                         startIcon={<Add size={14} strokeWidth={1.75} />}
@@ -364,21 +346,11 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                       >
                         Ajouter
                       </Button>
-                    </Box>
+                    </div>
 
                     {form.timeWindows.map((tw, idx) => (
-                      <Box
-                        key={idx}
-                        sx={{
-                          p: 1.5,
-                          mb: 1,
-                          borderRadius: 1,
-                          bgcolor: 'grey.50',
-                          border: '1px solid',
-                          borderColor: 'divider',
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <div className="p-2 mb-1.5 rounded-[1px] bg-[grey.50] border border-[divider]" key={idx}>
+                        <div className="flex items-center gap-1.5 mb-1.5">
                           <TextField
                             size="small"
                             label="Label"
@@ -413,13 +385,13 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                               <Delete size={16} strokeWidth={1.75} />
                             </IconButton>
                           )}
-                        </Box>
+                        </div>
 
                         <Grid container spacing={2}>
                           <Grid item xs={6}>
-                            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', mb: 0.5 }}>
+                            <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mb-0.5">
                               Seuil avertissement : {tw.warningThresholdDb} dB
-                            </Typography>
+                            </p>
                             <Slider
                               size="small"
                               value={tw.warningThresholdDb}
@@ -430,9 +402,9 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                             />
                           </Grid>
                           <Grid item xs={6}>
-                            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', mb: 0.5 }}>
+                            <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mb-0.5">
                               Seuil critique : {tw.criticalThresholdDb} dB
-                            </Typography>
+                            </p>
                             <Slider
                               size="small"
                               value={tw.criticalThresholdDb}
@@ -443,17 +415,17 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                             />
                           </Grid>
                         </Grid>
-                      </Box>
+                      </div>
                     ))}
                   </Grid>
 
                   {/* ── Colonne droite : Canaux de notification ── */}
                   <Grid item xs={12} md={5}>
-                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'text.secondary', letterSpacing: '0.04em', mb: 1 }}>
+                    <p className="cn-text-body1 text-[0.75rem] font-bold uppercase text-muted-foreground tracking-[0.04em] mb-1.5">
                       Canaux de notification
-                    </Typography>
+                    </p>
 
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 1.5 }}>
+                    <div className="flex flex-col gap-0.5 mb-2">
                       <FormControlLabel
                         control={
                           <Switch
@@ -463,10 +435,10 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                           />
                         }
                         label={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <div className="flex items-center gap-0.5">
                             <NotificationsActive size={14} strokeWidth={1.75} />
-                            <Typography sx={{ fontSize: '0.75rem' }}>In-app</Typography>
-                          </Box>
+                            <p className="cn-text-body1 text-[0.75rem]">In-app</p>
+                          </div>
                         }
                       />
                       <FormControlLabel
@@ -478,10 +450,10 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                           />
                         }
                         label={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <div className="flex items-center gap-0.5">
                             <Email size={14} strokeWidth={1.75} />
-                            <Typography sx={{ fontSize: '0.75rem' }}>Email</Typography>
-                          </Box>
+                            <p className="cn-text-body1 text-[0.75rem]">Email</p>
+                          </div>
                         }
                       />
                       <FormControlLabel
@@ -493,13 +465,13 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                           />
                         }
                         label={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <div className="flex items-center gap-0.5">
                             <Chat size={14} strokeWidth={1.75} />
-                            <Typography sx={{ fontSize: '0.75rem' }}>Message voyageur</Typography>
-                          </Box>
+                            <p className="cn-text-body1 text-[0.75rem]">Message voyageur</p>
+                          </div>
                         }
                       />
-                    </Box>
+                    </div>
 
                     {form.notifyEmail && (
                       <TextField
@@ -514,10 +486,10 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                     )}
 
                     {/* Cooldown */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                    <div className="flex items-center gap-1.5">
+                      <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
                         Cooldown entre alertes :
-                      </Typography>
+                      </p>
                       <FormControl size="small" sx={{ minWidth: 100 }}>
                         <Select
                           value={form.cooldownMinutes}
@@ -531,7 +503,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                           ))}
                         </Select>
                       </FormControl>
-                    </Box>
+                    </div>
                   </Grid>
                 </Grid>
 

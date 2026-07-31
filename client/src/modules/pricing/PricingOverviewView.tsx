@@ -112,9 +112,9 @@ const PropertyRow: React.FC<{
           minWidth: 150,
         }}
       >
-        <Typography variant="body2" fontWeight={600} noWrap sx={{ fontSize: '0.8125rem' }}>
+        <p className="cn-text-body2 font-semibold truncate text-[0.8125rem]">
           {property.name}
-        </Typography>
+        </p>
       </TableCell>
       {days.map((day) => {
         const dateStr = toISO(year, month, day);
@@ -152,9 +152,9 @@ const PropertyRow: React.FC<{
                 </Typography>
               </Tooltip>
             ) : (
-              <Typography variant="caption" color="text.disabled">
+              <span className="cn-text-caption text-muted-foreground opacity-60">
                 -
-              </Typography>
+              </span>
             )}
           </TableCell>
         );
@@ -181,24 +181,20 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
   const month = currentMonth.getMonth();
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <div className="flex flex-col gap-2">
       {/* Month navigation */}
       <Paper sx={CARD_SX}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+        <div className="flex items-center justify-center gap-0.5">
           <IconButton onClick={onPrevMonth} size="small">
             <ChevronLeftIcon size={20} strokeWidth={1.75} />
           </IconButton>
-          <Typography
-            variant="body2"
-            fontWeight={600}
-            sx={{ minWidth: 140, textAlign: 'center', textTransform: 'capitalize', fontSize: '0.8125rem' }}
-          >
+          <p className="cn-text-body2 font-semibold min-w-[140px] text-center capitalize text-[0.8125rem]">
             {formatMonth(currentMonth, isFrench)}
-          </Typography>
+          </p>
           <IconButton onClick={onNextMonth} size="small">
             <ChevronRightIcon size={20} strokeWidth={1.75} />
           </IconButton>
-        </Box>
+        </div>
       </Paper>
 
       {/* Loading */}
@@ -211,9 +207,9 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
       {/* Empty state */}
       {!propertiesLoading && properties.length === 0 && (
         <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+          <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
             {t('dynamicPricing.calendar.noProperty')}
-          </Typography>
+          </p>
         </Paper>
       )}
 
@@ -241,15 +237,15 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
                     minWidth: 150,
                   }}
                 >
-                  <Typography variant="caption" sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <span className="cn-text-caption text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em]">
                     {t('common.name')}
-                  </Typography>
+                  </span>
                 </TableCell>
                 {days.map((day) => (
                   <TableCell key={day} sx={{ textAlign: 'center', px: 0.5, minWidth: 40 }}>
-                    <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.6875rem', color: 'var(--faint)', fontVariantNumeric: 'tabular-nums' }}>
+                    <span className="cn-text-caption font-semibold text-[0.6875rem] text-[var(--faint)] tabular-nums">
                       {day}
-                    </Typography>
+                    </span>
                   </TableCell>
                 ))}
               </TableRow>
@@ -274,19 +270,19 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
       {/* Legend */}
       {!propertiesLoading && properties.length > 0 && (
         <Paper sx={CARD_SX}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+          <div className="flex flex-wrap gap-2">
             {Object.entries(SOURCE_COLORS).map(([key, color]) => (
-              <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <div className="flex items-center gap-0.5" key={key}>
                 <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: color }} />
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+                <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
                   {t(`dynamicPricing.priceSource.${key}`)}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             ))}
-          </Box>
+          </div>
         </Paper>
       )}
-    </Box>
+    </div>
   );
 };
 

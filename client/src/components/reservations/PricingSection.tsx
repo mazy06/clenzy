@@ -41,7 +41,7 @@ const PricingSection: React.FC<Props> = ({ form }) => {
       fullWidth
       disabled
       InputProps={{
-        startAdornment: <Box component="span" sx={{ color: 'var(--faint)', fontSize: '14px', fontWeight: 600 }}>€</Box>,
+        startAdornment: <span className="text-[var(--faint)] text-[14px] font-semibold">€</span>,
         endAdornment: form.pricingLoading ? (
           <CircularProgress size={14} sx={{ color: 'var(--accent)' }} />
         ) : form.priceVaries ? (
@@ -76,7 +76,7 @@ const PricingSection: React.FC<Props> = ({ form }) => {
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
         {form.priceVaries ? (
           <Tooltip title={nightBreakdown} arrow placement="top">
-            <Box>{baseField}</Box>
+            <div>{baseField}</div>
           </Tooltip>
         ) : (
           baseField
@@ -129,13 +129,13 @@ const PricingSection: React.FC<Props> = ({ form }) => {
       {/* Récap (.rm-recap) */}
       {form.numberOfNights > 0 && (
         <Box sx={{ backgroundColor: 'var(--accent-soft)', borderRadius: '12px', padding: '14px 16px' }}>
-          <Typography sx={{ fontSize: '13px', color: 'var(--body)', fontVariantNumeric: 'tabular-nums' }}>
+          <p className="cn-text-body1 text-[13px] text-[var(--body)] tabular-nums">
             {form.nightsText} · {t('reservations.dialog.accommodation')} :{' '}
-            <Box component="b" sx={{ color: 'var(--ink)' }}>{form.baseAccommodationTotal.toFixed(2)} €</Box>
+            <b className="text-[var(--ink)]">{form.baseAccommodationTotal.toFixed(2)} €</b>
             {form.priceVaries && (
-              <Box component="span" sx={{ color: 'var(--accent)', fontWeight: 600 }}> · {t('reservations.dialog.priceVariable')}</Box>
+              <span className="text-[var(--accent)] font-semibold"> · {t('reservations.dialog.priceVariable')}</span>
             )}
-          </Typography>
+          </p>
           {overrideActive && (
             <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
               {form.pricingLabel} → {t('reservations.dialog.accommodation')} : {form.accommodationTotal.toFixed(2)} €

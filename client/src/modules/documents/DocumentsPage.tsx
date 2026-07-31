@@ -1,10 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import {
-  Box,
-  Button,
-  TextField,
-  InputAdornment,
-} from '@mui/material';
+import { Button, TextField, InputAdornment } from '@mui/material';
 import {
   ViewList,
   ChatBubbleOutline,
@@ -198,7 +193,7 @@ const DocumentsPage: React.FC = () => {
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={14} strokeWidth={1.75} /></Box>
+                <span className="inline-flex text-muted-foreground"><Search size={14} strokeWidth={1.75} /></span>
               </InputAdornment>
             ),
           }}
@@ -221,7 +216,7 @@ const DocumentsPage: React.FC = () => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={14} strokeWidth={1.75} /></Box>
+                  <span className="inline-flex text-muted-foreground"><Search size={14} strokeWidth={1.75} /></span>
                 </InputAdornment>
               ),
             }}
@@ -234,7 +229,7 @@ const DocumentsPage: React.FC = () => {
 
   return (
     <PageHeaderActionsProvider slot={headerActionsSlot}>
-      <Box>
+      <div>
         <PageHeader
           title={title}
           subtitle={subtitle}
@@ -272,7 +267,7 @@ const DocumentsPage: React.FC = () => {
         {activeTab === TAB_HISTORY && <UnifiedHistoryTab ref={historyRef} />}
         {activeTab === TAB_VARIABLES && <AvailableTagsReference search={tagsSearch} />}
         {activeTab === TAB_COMPLIANCE && <ComplianceDashboard ref={complianceRef} />}
-      </Box>
+      </div>
     </PageHeaderActionsProvider>
   );
 };

@@ -165,9 +165,9 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
   if (propertyId == null) {
     return (
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, textAlign: 'center' }}>
-        <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
+        <p className="cn-text-body1 text-[0.85rem] text-muted-foreground">
           {t('restrictions.selectProperty', 'Sélectionnez un logement pour gérer ses restrictions de séjour.')}
-        </Typography>
+        </p>
       </Paper>
     );
   }
@@ -176,21 +176,21 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
     <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', flexWrap: { xs: 'wrap', lg: 'nowrap' } }}>
       {/* ── Formulaire (création / édition) ── */}
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 5, minWidth: 300 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-          <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.01em' }}>
+        <div className="flex items-center justify-between mb-2">
+          <p className="cn-text-body1 text-[0.8rem] font-bold tracking-[0.01em]">
             {editingId != null
               ? t('restrictions.editTitle', 'Modifier la restriction')
               : t('restrictions.newTitle', 'Nouvelle restriction')}
-          </Typography>
+          </p>
           {editingId != null && (
             <Tooltip title={t('common.cancel', 'Annuler')}>
               <IconButton size="small" onClick={resetForm}><X size={15} /></IconButton>
             </Tooltip>
           )}
-        </Box>
+        </div>
 
         <Stack spacing={1.5}>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <div className="flex gap-1.5">
             <TextField
               label={t('restrictions.start', 'Début')} type="date" size="small" fullWidth
               InputLabelProps={{ shrink: true }} sx={inputSx}
@@ -203,9 +203,9 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
               value={form.endDate}
               onChange={(e) => setForm((s) => ({ ...s, endDate: e.target.value }))}
             />
-          </Box>
+          </div>
 
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <div className="flex gap-1.5">
             <TextField
               label={t('restrictions.minStay', 'Séjour min (nuits)')} type="number" size="small" fullWidth
               InputLabelProps={{ shrink: true }} inputProps={{ min: 1 }} sx={inputSx}
@@ -218,25 +218,25 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
               value={form.maxStay}
               onChange={(e) => setForm((s) => ({ ...s, maxStay: e.target.value }))}
             />
-          </Box>
+          </div>
 
           <Stack direction="row" spacing={2}>
             <FormControlLabel
               control={<Switch size="small" checked={form.closedToArrival}
                 onChange={(e) => setForm((s) => ({ ...s, closedToArrival: e.target.checked }))} />}
-              label={<Typography sx={{ fontSize: '0.78rem' }}>{t('restrictions.cta', 'Arrivée fermée (CTA)')}</Typography>}
+              label={<p className="cn-text-body1 text-[0.78rem]">{t('restrictions.cta', 'Arrivée fermée (CTA)')}</p>}
             />
             <FormControlLabel
               control={<Switch size="small" checked={form.closedToDeparture}
                 onChange={(e) => setForm((s) => ({ ...s, closedToDeparture: e.target.checked }))} />}
-              label={<Typography sx={{ fontSize: '0.78rem' }}>{t('restrictions.ctd', 'Départ fermé (CTD)')}</Typography>}
+              label={<p className="cn-text-body1 text-[0.78rem]">{t('restrictions.ctd', 'Départ fermé (CTD)')}</p>}
             />
           </Stack>
 
-          <Box>
-            <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+          <div>
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
               {t('restrictions.daysOfWeek', 'Jours concernés (vide = tous)')}
-            </Typography>
+            </p>
             <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
               {DOW.map((d) => (
                 <Chip
@@ -248,7 +248,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
                 />
               ))}
             </Stack>
-          </Box>
+          </div>
 
           <TextField
             label={t('restrictions.priority', 'Priorité (optionnel)')} type="number" size="small"
@@ -261,7 +261,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
             <Typography sx={{ fontSize: '0.75rem', color: 'var(--err, #C97A7A)' }}>{error}</Typography>
           )}
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+          <div className="flex justify-end gap-1.5">
             {editingId != null && (
               <Button size="small" onClick={resetForm} sx={{ textTransform: 'none' }}>
                 {t('common.cancel', 'Annuler')}
@@ -275,36 +275,36 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
             >
               {editingId != null ? t('common.save', 'Enregistrer') : t('restrictions.add', 'Ajouter')}
             </Button>
-          </Box>
+          </div>
         </Stack>
       </Paper>
 
       {/* ── Liste des restrictions ── */}
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 7, minWidth: 320 }}>
-        <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, mb: 1.5 }}>
+        <p className="cn-text-body1 text-[0.8rem] font-bold mb-2">
           {t('restrictions.listTitle', 'Restrictions actives')}{' '}
-          <Typography component="span" sx={{ fontSize: '0.72rem', color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+          <span className="text-[0.72rem] text-muted-foreground tabular-nums">
             ({restrictions.length})
-          </Typography>
-        </Typography>
+          </span>
+        </p>
 
         {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={22} /></Box>
+          <div className="flex justify-center py-6"><CircularProgress size={22} /></div>
         ) : restrictions.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+          <div className="text-center py-6 text-muted-foreground">
             <CalendarRange size={26} strokeWidth={1.5} style={{ opacity: 0.5 }} />
-            <Typography sx={{ fontSize: '0.78rem', mt: 1 }}>
+            <p className="cn-text-body1 text-[0.78rem] mt-1.5">
               {t('restrictions.empty', 'Aucune restriction pour ce logement.')}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         ) : (
           <Stack divider={<Divider flexItem />} spacing={0}>
             {restrictions.map((r) => (
-              <Box key={r.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+              <div className="flex items-center gap-1.5 py-1.5" key={r.id}>
+                <div className="flex-1 min-w-0">
+                  <p className="cn-text-body1 text-[0.8rem] font-semibold tabular-nums">
                     {r.startDate} → {r.endDate}
-                  </Typography>
+                  </p>
                   <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
                     {r.minStay != null && <Chip size="small" label={`min ${r.minStay}`} sx={{ fontSize: '0.68rem', height: 20 }} />}
                     {r.maxStay != null && <Chip size="small" label={`max ${r.maxStay}`} sx={{ fontSize: '0.68rem', height: 20 }} />}
@@ -316,7 +316,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
                         sx={{ fontSize: '0.68rem', height: 20 }} />
                     )}
                   </Stack>
-                </Box>
+                </div>
                 <Tooltip title={t('common.edit', 'Modifier')}>
                   <IconButton size="small" onClick={() => handleEdit(r)}><Pencil size={14} /></IconButton>
                 </Tooltip>
@@ -328,7 +328,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
                     </IconButton>
                   </span>
                 </Tooltip>
-              </Box>
+              </div>
             ))}
           </Stack>
         )}

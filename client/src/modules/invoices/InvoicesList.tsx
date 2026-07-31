@@ -135,8 +135,8 @@ const handleDownloadPdf = async (id: number, invoiceNumber: string) => {
 
 /** Determine le type de source : Reservation ou Intervention (accents palette Clenzy) */
 const getSourceType = (inv: Invoice) => {
-  if (inv.reservationId) return { label: 'Reservation', icon: <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><HomeIcon size={14} strokeWidth={1.75} /></Box>, color: '#7BA3C2' };
-  if (inv.interventionId) return { label: 'Intervention', icon: <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><BuildIcon size={14} strokeWidth={1.75} /></Box>, color: '#D4A574' };
+  if (inv.reservationId) return { label: 'Reservation', icon: <span className="inline-flex me-0.5"><HomeIcon size={14} strokeWidth={1.75} /></span>, color: '#7BA3C2' };
+  if (inv.interventionId) return { label: 'Intervention', icon: <span className="inline-flex me-0.5"><BuildIcon size={14} strokeWidth={1.75} /></span>, color: '#D4A574' };
   return null;
 };
 
@@ -246,7 +246,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
     : [];
 
   return (
-    <Box>
+    <div>
       {!embedded && (
         <PageHeader
           title={t('invoices.title', 'Factures')}
@@ -438,7 +438,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                   <TableRow key={inv.id} data-highlight-id={String(inv.id)}>
                     {/* ─── N° + DUPLICATA badge ─── */}
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      <div className="flex items-center gap-1">
                         <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '12.5px', color: 'var(--ink)', ...moneySx }}>
                           {inv.invoiceNumber}
                         </Typography>
@@ -453,7 +453,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                             }}
                           />
                         )}
-                      </Box>
+                      </div>
                     </TableCell>
 
                     {/* ─── Date ─── */}
@@ -465,7 +465,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                         <Chip
                           label={t('invoices.type.commission', 'Commission')}
                           size="small"
-                          icon={<Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><MoneyIcon size={14} strokeWidth={1.75} /></Box>}
+                          icon={<span className="inline-flex me-0.5"><MoneyIcon size={14} strokeWidth={1.75} /></span>}
                           sx={chipSoftSx(COMMISSION_COLOR, `${COMMISSION_COLOR}18`)}
                         />
                       ) : source ? (
@@ -476,9 +476,9 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                           sx={chipSoftSx(source.color, `${source.color}18`)}
                         />
                       ) : (
-                        <Typography variant="body2" sx={{ color: 'var(--muted)', fontSize: '12.5px' }}>
+                        <p className="cn-text-body2 text-[var(--muted)] text-[12.5px]">
                           —
-                        </Typography>
+                        </p>
                       )}
                     </TableCell>
 
@@ -501,7 +501,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
 
                     {/* ─── Actions ─── */}
                     <TableCell align="right">
-                      <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                      <div className="flex gap-0.5 justify-end">
                         {/* Voir PDF (document genere) */}
                         {inv.documentGenerationId && (
                           <Tooltip title={t('invoices.actions.viewPdf', 'Voir PDF')}>
@@ -580,7 +580,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                             <DownloadIcon size={18} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
-                      </Box>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -605,9 +605,9 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
         </DialogTitle>
         <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           {pdfLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+            <div className="flex justify-center items-center flex-1">
               <CircularProgress thickness={3.5} sx={{ color: 'var(--accent)' }} />
-            </Box>
+            </div>
           ) : pdfUrl ? (
             <object
               data={pdfUrl}
@@ -615,10 +615,10 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
               width="100%"
               style={{ flex: 1, border: 'none', minHeight: 0 }}
             >
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ color: 'var(--muted)', mb: 2 }}>
+              <div className="p-4 text-center">
+                <p className="cn-text-body2 text-[var(--muted)] mb-3">
                   {t('invoices.pdfNotSupported', 'Votre navigateur ne supporte pas la visualisation PDF.')}
-                </Typography>
+                </p>
                 <Button
                   variant="contained"
                   href={pdfUrl}
@@ -627,10 +627,10 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                 >
                   {t('invoices.actions.downloadPdf', 'Telecharger PDF')}
                 </Button>
-              </Box>
+              </div>
             </object>
           ) : (
-            <Box sx={{ p: 3, textAlign: 'center' }}>
+            <div className="p-4 text-center">
               <Alert
                 severity="error"
                 sx={{
@@ -644,7 +644,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
               >
                 {t('invoices.pdfLoadError', 'Erreur lors du chargement du PDF')}
               </Alert>
-            </Box>
+            </div>
           )}
         </DialogContent>
         <DialogActions>
@@ -653,7 +653,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

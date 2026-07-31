@@ -1,5 +1,4 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
 
 interface EmptyChartProps {
   label?: string;
@@ -20,34 +19,17 @@ export const EmptyChart: React.FC<EmptyChartProps> = ({
   message = 'Aucune donnee a afficher',
 }) => {
   return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
+    <div className="mt-1.5 mb-2">
       {label && (
-        <Typography
-          sx={{
-            display: 'block',
-            mb: 1,
-            fontSize: '10.5px',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '.05em',
-            color: 'var(--faint)',
-          }}
-        >
+        <p className="cn-text-body1 block mb-1.5 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
           {label}
-        </Typography>
+        </p>
       )}
-      <Box
-        sx={{
-          p: 3,
-          borderRadius: '12px',
-          bgcolor: 'var(--field)',
-          textAlign: 'center',
-        }}
-      >
-        <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+      <div className="p-4 rounded-[12px] bg-[var(--field)] text-center">
+        <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
           {message}
-        </Typography>
-      </Box>
-    </Box>
+        </p>
+      </div>
+    </div>
   );
 };

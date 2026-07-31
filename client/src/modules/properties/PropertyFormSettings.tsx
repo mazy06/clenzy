@@ -72,9 +72,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
     const { t } = useTranslation();
 
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <div className="flex flex-col gap-4">
         {/* ── Configuration ────────────────────────────────────────────── */}
-        <Box>
+        <div>
           <Typography sx={SECTION_TITLE_SX}>
             {t('properties.configuration')}
           </Typography>
@@ -95,12 +95,12 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                     >
                       {users.map((user) => (
                         <MenuItem key={user.id} value={user.id}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={14} strokeWidth={1.75} /></Box>
-                            <Typography sx={{ fontSize: '0.8125rem' }}>
+                          <div className="flex items-center gap-1">
+                            <span className="inline-flex text-muted-foreground"><Person size={14} strokeWidth={1.75} /></span>
+                            <p className="cn-text-body1 text-[0.8125rem]">
                               {user.firstName} {user.lastName} ({user.role})
-                            </Typography>
-                          </Box>
+                            </p>
+                          </div>
                         </MenuItem>
                       ))}
                     </Select>
@@ -151,14 +151,14 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                     }}
                   >
                     <Box component="span" sx={{ display: 'inline-flex', color: field.value ? 'var(--ok)' : 'var(--muted)' }}><Language size={18} strokeWidth={1.75} /></Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                    <div className="flex-1">
+                      <p className="cn-text-body1 text-[0.8125rem] font-semibold">
                         {t('properties.bookingEngineVisible')}
-                      </Typography>
-                      <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                      </p>
+                      <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                         {t('properties.bookingEngineVisibleHelper')}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                     <Switch
                       checked={field.value ?? false}
                       onChange={(e) => field.onChange(e.target.checked)}
@@ -195,14 +195,14 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                     <Box component="span" sx={{ display: 'inline-flex', color: field.value ? 'var(--ok)' : 'var(--muted)' }}>
                       <Language size={18} strokeWidth={1.75} />
                     </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                    <div className="flex-1">
+                      <p className="cn-text-body1 text-[0.8125rem] font-semibold">
                         {t('properties.orgCanCreateVouchers')}
-                      </Typography>
-                      <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                      </p>
+                      <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                         {t('properties.orgCanCreateVouchersHelper')}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                     <Switch
                       checked={field.value ?? false}
                       onChange={(e) => field.onChange(e.target.checked)}
@@ -260,12 +260,12 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
               />
             </Grid>
           </Grid>
-        </Box>
+        </div>
 
         <Divider />
 
         {/* ── Tarification ménage ──────────────────────────────────────── */}
-        <Box>
+        <div>
           <Typography sx={SECTION_TITLE_ICON_SX}>
             <CleaningServices size={14} strokeWidth={1.75} />
             {t('properties.cleaningPricing')}
@@ -354,9 +354,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                       />
                     }
                     label={
-                      <Typography sx={{ fontSize: '0.8125rem' }}>
+                      <p className="cn-text-body1 text-[0.8125rem]">
                         {t('properties.hasExterior')}
-                      </Typography>
+                      </p>
                     }
                   />
                 )}
@@ -377,9 +377,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                       />
                     }
                     label={
-                      <Typography sx={{ fontSize: '0.8125rem' }}>
+                      <p className="cn-text-body1 text-[0.8125rem]">
                         {t('properties.hasLaundry')}
-                      </Typography>
+                      </p>
                     }
                   />
                 )}
@@ -403,11 +403,11 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                     minHeight: 80,
                     transition: 'border-color 0.15s ease',
                   }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mt: 0.125, flexShrink: 0 }}><Checklist size={16} strokeWidth={1.75} /></Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--accent)', mb: 0.5 }}>
+                    <span className="inline-flex text-[var(--accent)] mt-0 shrink-0"><Checklist size={16} strokeWidth={1.75} /></span>
+                    <div className="flex-1">
+                      <p className="cn-text-body1 text-[0.625rem] font-bold uppercase tracking-[0.05em] text-[var(--accent)] mb-0.5">
                         {t('properties.cleaningNotes')}
-                      </Typography>
+                      </p>
                       <TextField
                         {...field}
                         value={field.value ?? ''}
@@ -427,18 +427,18 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                       {fieldState.error && (
                         <FormHelperText error sx={{ mx: 0, mt: 0.5 }}>{fieldState.error.message}</FormHelperText>
                       )}
-                    </Box>
+                    </div>
                   </Box>
                 )}
               />
             </Grid>
           </Grid>
-        </Box>
+        </div>
 
         <Divider />
 
         {/* ── Prestations à la carte ─────────────────────────────────────── */}
-        <Box>
+        <div>
           <Typography sx={SECTION_TITLE_ICON_SX}>
             <Window width={14} />
             {t('properties.addOnServices.title')}
@@ -524,9 +524,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                       />
                     }
                     label={
-                      <Typography sx={{ fontSize: '0.8125rem' }}>
+                      <p className="cn-text-body1 text-[0.8125rem]">
                         {t('properties.addOnServices.hasIroning')}
-                      </Typography>
+                      </p>
                     }
                   />
                 )}
@@ -547,9 +547,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                       />
                     }
                     label={
-                      <Typography sx={{ fontSize: '0.8125rem' }}>
+                      <p className="cn-text-body1 text-[0.8125rem]">
                         {t('properties.addOnServices.hasDeepKitchen')}
-                      </Typography>
+                      </p>
                     }
                   />
                 )}
@@ -570,17 +570,17 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                       />
                     }
                     label={
-                      <Typography sx={{ fontSize: '0.8125rem' }}>
+                      <p className="cn-text-body1 text-[0.8125rem]">
                         {t('properties.addOnServices.hasDisinfection')}
-                      </Typography>
+                      </p>
                     }
                   />
                 )}
               />
             </Grid>
           </Grid>
-        </Box>
-      </Box>
+        </div>
+      </div>
     );
   }
 );

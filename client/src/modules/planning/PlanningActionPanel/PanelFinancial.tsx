@@ -182,23 +182,16 @@ const SectionCard: React.FC<{
   badgeTokens: SoftTokens;
   children: React.ReactNode;
 }> = ({ icon, title, badge, badgeTokens, children }) => (
-  <Box
-    sx={{
-      border: '1px solid var(--line)',
-      backgroundColor: 'var(--card)',
-      borderRadius: '12px',
-      p: 1.5,
-    }}
-  >
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25 }}>
+  <div className="border border-[var(--line)] bg-[var(--card)] rounded-[12px] p-2">
+    <div className="flex items-center gap-1.5 mb-2">
       {icon}
       <Typography variant="body2" sx={{ ...OVERLINE_SX, flex: 1 }}>
         {title}
       </Typography>
       <Chip label={badge} size="small" sx={chipSx(badgeTokens.bg, badgeTokens.color)} />
-    </Box>
+    </div>
     {children}
-  </Box>
+  </div>
 );
 
 // ── Status chip helper — résout le ton via la map domaine puis délègue au
@@ -225,7 +218,7 @@ const FinRow: React.FC<{
   secondary?: boolean;
   children?: React.ReactNode;
 }> = ({ label, value, bold, color, secondary, children }) => (
-  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+  <div className="flex justify-between items-center mb-0.5">
     <Typography
       variant="body2"
       color={secondary !== false ? 'text.secondary' : undefined}
@@ -233,7 +226,7 @@ const FinRow: React.FC<{
     >
       {label}
     </Typography>
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+    <div className="flex items-center gap-1.5">
       <Typography
         variant="body2"
         sx={{
@@ -247,8 +240,8 @@ const FinRow: React.FC<{
         {value}
       </Typography>
       {children}
-    </Box>
-  </Box>
+    </div>
+  </div>
 );
 
 // ── Props ──────────────────────────────────────────────────────────────────
@@ -720,39 +713,18 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
 
   // ── Render ─────────────────────────────────────────────────────────────
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="flex flex-col gap-3">
 
       {/* ─── MONTANT (hero) ─────────────────────────────────────────────── */}
       {reservation && (
-        <Box>
-          <Box
-            component="span"
-            sx={{
-              display: 'block',
-              fontSize: '0.625rem',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              color: 'var(--faint)',
-              mb: 0.5,
-            }}
-          >
+        <div>
+          <span className="block text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)] mb-0.5">
             Montant
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.25, flexWrap: 'wrap' }}>
-            <Box
-              component="span"
-              sx={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '1.75rem',
-                fontWeight: 700,
-                color: 'var(--ink)',
-                lineHeight: 1.1,
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
+          </span>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="font-[var(--font-display)] text-[1.75rem] font-bold text-[var(--ink)] leading-[1.1] tabular-nums">
               {isICalImport && !hasTotalPrice ? 'Non communiqué' : fmtCurrency(grandTotal)}
-            </Box>
+            </span>
             {(hasTotalPrice || isOTABooking) && (
               <Box
                 component="span"
@@ -770,8 +742,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 {isOTABooking ? `Réglé · ${otaChannelLabel}` : isSettled ? 'Réglé' : 'En attente'}
               </Box>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════
@@ -779,7 +751,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       {reservation && (
         <SectionCard
-          icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Person size={18} strokeWidth={1.75} /></Box>}
+          icon={<span className="inline-flex text-[var(--info)]"><Person size={18} strokeWidth={1.75} /></span>}
           title="Paiement reservation"
           badge="Voyageur"
           badgeTokens={INFO_TOKENS}
@@ -806,14 +778,14 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {extraFees.length > 0 && (
             <>
               {extraFees.map((fee) => (
-                <Box key={fee.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.25 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                <div className="flex justify-between items-center mb-0.5" key={fee.id}>
+                  <span className="cn-text-caption text-muted-foreground text-[0.75rem]">
                     + {fee.description}
-                  </Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>
+                  </span>
+                  <span className="cn-text-caption font-semibold text-[0.75rem]">
                     {fmtCurrency(fee.amount)}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               ))}
               <Divider sx={{ my: 0.5 }} />
               <FinRow label="Total" value={fmtCurrency(grandTotal)} bold />
@@ -830,11 +802,11 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <FinRow label="Rembourse" value={<>-{fmtCurrency(totalRefunded)}</>} color="var(--err)" />
           )}
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+          <div className="flex justify-between items-center mb-1.5">
+            <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
               Reste a payer
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            </p>
+            <div className="flex items-center gap-1.5">
               <Typography
                 variant="body2"
                 sx={{
@@ -851,23 +823,23 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 size="small"
                 sx={chipSx(effectivePaymentStatusTokens.bg, effectivePaymentStatusTokens.color)}
               />
-            </Box>
-          </Box>
+            </div>
+          </div>
 
           {/* Invoices */}
           {invoices.length > 0 && (
-            <Box sx={{ mb: 1 }}>
-              <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.6875rem', color: 'text.secondary' }}>
+            <div className="mb-1.5">
+              <span className="cn-text-caption font-semibold text-[0.6875rem] text-muted-foreground">
                 Factures ({invoices.length})
-              </Typography>
+              </span>
               {invoices.map((inv) => (
-                <Box key={inv.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Receipt size={14} strokeWidth={1.75} /></Box>
-                  <Typography variant="caption" sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>
+                <div className="flex items-center gap-1 mt-0.5" key={inv.id}>
+                  <span className="inline-flex text-muted-foreground"><Receipt size={14} strokeWidth={1.75} /></span>
+                  <span className="cn-text-caption text-[0.6875rem] font-semibold">
                     {inv.legalNumber || inv.fileName}
-                  </Typography>
+                  </span>
                   <DomainStatusChip status={inv.status} />
-                  <Box sx={{ ml: 'auto', display: 'flex', gap: 0.25 }}>
+                  <div className="ms-auto flex gap-0.5">
                     <Tooltip title="Telecharger">
                       <IconButton
                         size="small"
@@ -892,29 +864,29 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                         <Receipt size={14} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               ))}
-            </Box>
+            </div>
           )}
 
           <Divider sx={{ my: 0.75 }} />
 
           {/* ── Confirmation lien envoye ──────────────────────────── */}
           {lastSentAt && (
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 0.5 }}>
-              <Box component="span" sx={{ display: 'inline-flex', mt: 0.25, color: 'var(--ok)' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'var(--ok)', fontWeight: 600 }}>
+            <div className="flex items-start gap-1.5 mb-0.5">
+              <span className="inline-flex mt-0.5 text-[var(--ok)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
+              <div className="flex-1">
+                <span className="cn-text-caption text-[0.6875rem] text-[var(--ok)] font-semibold">
                   Lien envoye le {fmtDate(lastSentAt)}
-                </Typography>
+                </span>
                 {lastSentEmail && (
-                  <Typography variant="caption" sx={{ display: 'block', fontSize: '0.625rem', color: 'text.secondary' }}>
+                  <span className="cn-text-caption block text-[0.625rem] text-muted-foreground">
                     a {lastSentEmail}
-                  </Typography>
+                  </span>
                 )}
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
           {linkSent && (
@@ -924,7 +896,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           )}
 
           {/* ── Action buttons (same row) ──────────────────────────── */}
-          <Box sx={{ display: 'flex', gap: 0.75, mt: 1 }}>
+          <div className="flex gap-1 mt-1.5">
             {isOTABooking ? (
               // OTA : paiement deja regle sur le canal externe → pas de bouton
               // d'envoi de lien, juste une note d'information.
@@ -942,10 +914,10 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   border: '1px solid color-mix(in srgb, var(--ok) 30%, transparent)',
                 }}
               >
-                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={14} strokeWidth={1.75} /></Box>
-                <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'var(--ok)', fontWeight: 500 }}>
+                <span className="inline-flex text-[var(--ok)]"><CheckCircle size={14} strokeWidth={1.75} /></span>
+                <span className="cn-text-caption text-[0.6875rem] text-[var(--ok)] font-medium">
                   Reglement effectue sur {otaChannelLabel}
-                </Typography>
+                </span>
               </Box>
             ) : (
               <Button
@@ -992,11 +964,11 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 Facture
               </Button>
             )}
-          </Box>
+          </div>
 
           {/* Email input (si pas d'email guest) */}
           <Collapse in={showEmailInput}>
-            <Box sx={{ display: 'flex', gap: 0.5, mt: 0.75 }}>
+            <div className="flex gap-0.5 mt-1">
               <TextField
                 size="small"
                 placeholder="Email du voyageur"
@@ -1006,7 +978,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 fullWidth
                 sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
                 InputProps={{
-                  startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><Email size={14} strokeWidth={1.75} /></Box>,
+                  startAdornment: <span className="inline-flex text-muted-foreground me-0.5"><Email size={14} strokeWidth={1.75} /></span>,
                 }}
               />
               <Button
@@ -1018,7 +990,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               >
                 Envoyer
               </Button>
-            </Box>
+            </div>
           </Collapse>
 
         </SectionCard>
@@ -1029,7 +1001,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       {reservation && (linkedInterventions.length > 0 || payableServiceRequests.length > 0) && (
         <SectionCard
-          icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Business size={18} strokeWidth={1.75} /></Box>}
+          icon={<span className="inline-flex text-[var(--warn)]"><Business size={18} strokeWidth={1.75} /></span>}
           title="Paiement interventions"
           badge="Proprietaire"
           badgeTokens={WARN_TOKENS}
@@ -1037,19 +1009,19 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {/* ── Interventions proposees (SR assignees, en attente de paiement) ── */}
           {payableServiceRequests.length > 0 && (
             <>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.6875rem', color: 'var(--warn)' }}>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="cn-text-caption font-semibold text-[0.6875rem] text-[var(--warn)]">
                   Interventions proposees ({payableServiceRequests.length})
-                </Typography>
-              </Box>
+                </span>
+              </div>
               {payableServiceRequests.map((sr) => {
                 const cost = sr.estimatedCost || (sr.estimatedDurationHours ? sr.estimatedDurationHours * 25 : 0);
                 const typeIcon = (
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}>
+                  <span className="inline-flex text-[var(--warn)]">
                     {sr.serviceType === 'CLEANING' || sr.serviceType === 'EXPRESS_CLEANING'
                       ? <CleaningServices size={14} strokeWidth={1.75} />
                       : <Handyman size={14} strokeWidth={1.75} />}
-                  </Box>
+                  </span>
                 );
                 return (
                   <Box
@@ -1063,20 +1035,18 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   >
                     {typeIcon}
                     <Tooltip title={sr.title} placement="top">
-                      <Typography
-                        sx={{ fontSize: '0.6875rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                      >
+                      <p className="cn-text-body1 text-[0.6875rem] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                         {sr.title}
-                      </Typography>
+                      </p>
                     </Tooltip>
                     {sr.estimatedDurationHours > 0 && (
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+                      <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
                         {sr.estimatedDurationHours}h
-                      </Typography>
+                      </span>
                     )}
-                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, minWidth: 50, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                    <p className="cn-text-body1 text-[0.75rem] font-semibold min-w-[50px] text-end tabular-nums">
                       {cost > 0 ? <Money value={cost} from="EUR" decimals={0} /> : '\u2014'}
-                    </Typography>
+                    </p>
                     <Chip
                       label="A payer"
                       size="small"
@@ -1092,52 +1062,43 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {/* ── Interventions existantes (deja creees et payees) ── */}
           {linkedInterventions.length > 0 && (
             <>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.6875rem', color: 'text.secondary' }}>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="cn-text-caption font-semibold text-[0.6875rem] text-muted-foreground">
                   Prestations liees ({linkedInterventions.length})
-                </Typography>
+                </span>
                 <IconButton size="small" onClick={() => setInterventionsExpanded(!interventionsExpanded)} sx={{ p: 0.25 }}>
                   {interventionsExpanded ? <ExpandLess size={16} strokeWidth={1.75} /> : <ExpandMore size={16} strokeWidth={1.75} />}
                 </IconButton>
-              </Box>
+              </div>
 
               <Collapse in={interventionsExpanded}>
                 {linkedInterventions.map((intv) => {
                   const cost = intv.actualCost || intv.estimatedCost || (intv.estimatedDurationHours ? intv.estimatedDurationHours * 25 : 0);
                   const typeIcon = intv.type === 'cleaning'
-                    ? <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CleaningServices size={14} strokeWidth={1.75} /></Box>
-                    : <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Handyman size={14} strokeWidth={1.75} /></Box>;
+                    ? <span className="inline-flex text-muted-foreground"><CleaningServices size={14} strokeWidth={1.75} /></span>
+                    : <span className="inline-flex text-muted-foreground"><Handyman size={14} strokeWidth={1.75} /></span>;
                   return (
-                    <Box
-                      key={intv.id}
-                      sx={{
-                        display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5,
-                        p: 0.75, borderRadius: '9px', border: '1px solid var(--line)',
-                        backgroundColor: 'var(--card)',
-                      }}
-                    >
+                    <div className="flex items-center gap-1 mb-0.5 p-1 rounded-[9px] border border-[var(--line)] bg-[var(--card)]" key={intv.id}>
                       {typeIcon}
                       <Tooltip title={intv.title} placement="top">
-                        <Typography
-                          sx={{ fontSize: '0.6875rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                        >
+                        <p className="cn-text-body1 text-[0.6875rem] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                           {intv.title}
-                        </Typography>
+                        </p>
                       </Tooltip>
                       {intv.estimatedDurationHours > 0 && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+                        <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
                           {intv.estimatedDurationHours}h
-                        </Typography>
+                        </span>
                       )}
-                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, minWidth: 50, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      <p className="cn-text-body1 text-[0.75rem] font-semibold min-w-[50px] text-end tabular-nums">
                         {cost > 0 ? <Money value={cost} from="EUR" /> : '—'}
-                      </Typography>
+                      </p>
                       <DomainStatusChip
                         status={intv.paymentStatus || intv.status}
                         map={{ ...STATUS_LABELS, ...INTERVENTION_STATUS_LABELS }}
                         tokenMap={{ ...STATUS_TOKENS, ...INTERVENTION_STATUS_TOKENS }}
                       />
-                    </Box>
+                    </div>
                   );
                 })}
               </Collapse>
@@ -1159,7 +1120,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           )}
 
           {/* Action buttons */}
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mt: 1 }}>
+          <div className="flex gap-1 flex-wrap mt-1.5">
             {/* Pay button — SR proposees first, then unpaid interventions */}
             <Button
               size="small"
@@ -1208,21 +1169,21 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             >
               Remboursement
             </Button>
-          </Box>
+          </div>
         </SectionCard>
       )}
 
       {/* ── No interventions message ───────────────────────────────────── */}
       {reservation && linkedInterventions.length === 0 && payableServiceRequests.length === 0 && (
         <SectionCard
-          icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Business size={18} strokeWidth={1.75} /></Box>}
+          icon={<span className="inline-flex text-[var(--warn)]"><Business size={18} strokeWidth={1.75} /></span>}
           title="Paiement interventions"
           badge="Proprietaire"
           badgeTokens={WARN_TOKENS}
         >
-          <Typography variant="body2" sx={{ fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--muted)' }}>
+          <p className="cn-text-body2 text-[0.75rem] italic text-[var(--muted)]">
             Aucune intervention liee a cette reservation.
-          </Typography>
+          </p>
         </SectionCard>
       )}
 
@@ -1231,7 +1192,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       {!reservation && intervention && (
         <SectionCard
-          icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Business size={18} strokeWidth={1.75} /></Box>}
+          icon={<span className="inline-flex text-[var(--warn)]"><Business size={18} strokeWidth={1.75} /></span>}
           title="Cout intervention"
           badge="Proprietaire"
           badgeTokens={WARN_TOKENS}
@@ -1297,18 +1258,18 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
 
           {/* Standalone intervention invoices */}
           {invoices.length > 0 && (
-            <Box sx={{ mt: 1 }}>
-              <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.6875rem', color: 'text.secondary' }}>
+            <div className="mt-1.5">
+              <span className="cn-text-caption font-semibold text-[0.6875rem] text-muted-foreground">
                 Factures ({invoices.length})
-              </Typography>
+              </span>
               {invoices.map((inv) => (
-                <Box key={inv.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Receipt size={14} strokeWidth={1.75} /></Box>
-                  <Typography variant="caption" sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>
+                <div className="flex items-center gap-1 mt-0.5" key={inv.id}>
+                  <span className="inline-flex text-muted-foreground"><Receipt size={14} strokeWidth={1.75} /></span>
+                  <span className="cn-text-caption text-[0.6875rem] font-semibold">
                     {inv.legalNumber || inv.fileName}
-                  </Typography>
+                  </span>
                   <DomainStatusChip status={inv.status} />
-                  <Box sx={{ ml: 'auto', display: 'flex', gap: 0.25 }}>
+                  <div className="ms-auto flex gap-0.5">
                     <Tooltip title="Telecharger">
                       <IconButton
                         size="small"
@@ -1333,10 +1294,10 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                         <Receipt size={14} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               ))}
-            </Box>
+            </div>
           )}
         </SectionCard>
       )}
@@ -1348,10 +1309,10 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       {/* View Payments Dialog */}
       <Dialog open={paymentsDialogOpen} onClose={() => setPaymentsDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Payment size={20} strokeWidth={1.75} /></Box>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--accent)]"><Payment size={20} strokeWidth={1.75} /></span>
             <Typography component="span" variant="inherit">Historique des paiements</Typography>
-          </Box>
+          </div>
           <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setPaymentsDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
         <DialogContent>
@@ -1386,24 +1347,24 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             </TableContainer>
           )}
           {payments.length > 0 && (
-            <Box sx={{ mt: 1.5, pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Total paye</Typography>
-                <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ok)' }}>{fmtCurrency(totalPaid)}</Typography>
-              </Box>
+            <div className="mt-2 pt-1.5 border-t border-[divider]">
+              <div className="flex justify-between mb-0.5">
+                <span className="cn-text-caption font-semibold text-[0.75rem]">Total paye</span>
+                <span className="cn-text-caption font-bold text-[0.75rem] text-[var(--ok)]">{fmtCurrency(totalPaid)}</span>
+              </div>
               {totalRefunded > 0 && (
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Total rembourse</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--err)' }}>-{fmtCurrency(totalRefunded)}</Typography>
-                </Box>
+                <div className="flex justify-between mb-0.5">
+                  <span className="cn-text-caption font-semibold text-[0.75rem]">Total rembourse</span>
+                  <span className="cn-text-caption font-bold text-[0.75rem] text-[var(--err)]">-{fmtCurrency(totalRefunded)}</span>
+                </div>
               )}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Reste a payer</Typography>
+              <div className="flex justify-between">
+                <span className="cn-text-caption font-semibold text-[0.75rem]">Reste a payer</span>
                 <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums', color: balanceDue > 0 ? 'var(--warn)' : 'var(--ok)' }}>
                   <Money value={Math.max(0, balanceDue)} from="EUR" />
                 </Typography>
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
@@ -1411,26 +1372,26 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       {/* Add Payment Dialog */}
       <Dialog open={addPaymentOpen} onClose={() => setAddPaymentOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Add size={20} strokeWidth={1.75} /></Box>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--accent)]"><Add size={20} strokeWidth={1.75} /></span>
             <Typography component="span" variant="inherit">Ajouter un paiement</Typography>
-          </Box>
+          </div>
           <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setAddPaymentOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
         <DialogContent>
           {reservation && (
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', mb: 1.5, display: 'block' }}>
+            <span className="cn-text-caption text-muted-foreground text-[0.6875rem] mb-2 block">
               Reservation : <strong>{reservation.guestName}</strong> — Reste a payer : <strong><Money value={Math.max(0, balanceDue)} from="EUR" /></strong>
-            </Typography>
+            </span>
           )}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div className="flex flex-col gap-3">
             <TextField type="number" label="Montant (EUR)" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} size="small" fullWidth required inputProps={{ min: 0.01, step: 0.01 }} sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
             <TextField select label="Methode de paiement" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} size="small" fullWidth sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}>
               {PAYMENT_METHODS.map((m) => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
             </TextField>
             <TextField type="date" label="Date du paiement" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} size="small" fullWidth InputLabelProps={{ shrink: true }} sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
             <TextField label="Reference (optionnel)" value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} size="small" fullWidth placeholder="N° transaction, cheque..." sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
-          </Box>
+          </div>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddPaymentOpen(false)} size="small">Annuler</Button>
@@ -1443,17 +1404,17 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       {/* Add Extra Fee Dialog */}
       <Dialog open={addFeeOpen} onClose={() => setAddFeeOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><AttachMoney size={20} strokeWidth={1.75} /></Box>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--accent)]"><AttachMoney size={20} strokeWidth={1.75} /></span>
             <Typography component="span" variant="inherit">Frais supplementaires</Typography>
-          </Box>
+          </div>
           <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setAddFeeOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div className="flex flex-col gap-3">
             <TextField label="Description" value={feeDescription} onChange={(e) => setFeeDescription(e.target.value)} size="small" fullWidth required placeholder="Ex: Menage supplementaire, cle perdue..." sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
             <TextField type="number" label="Montant (EUR)" value={feeAmount} onChange={(e) => setFeeAmount(e.target.value)} size="small" fullWidth required inputProps={{ min: 0.01, step: 0.01 }} sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
-          </Box>
+          </div>
           {grandTotal > 0 && (
             <Alert severity="info" sx={{ fontSize: '0.75rem', mt: 2, '& .MuiAlert-message': { py: 0.25 } }}>
               Nouveau total : <Money value={grandTotal + (parseFloat(feeAmount) || 0)} from="EUR" />
@@ -1471,34 +1432,34 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       {/* Refund Confirmation Dialog */}
       <Dialog open={refundDialogOpen} onClose={() => setRefundDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><MoneyOff size={20} strokeWidth={1.75} /></Box>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--warn)]"><MoneyOff size={20} strokeWidth={1.75} /></span>
             <Typography component="span" variant="inherit">Confirmer le remboursement</Typography>
-          </Box>
+          </div>
           <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setRefundDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
         <DialogContent>
           <Alert severity="warning" icon={<Warning size={18} strokeWidth={1.75} />} sx={{ fontSize: '0.8125rem', mb: 2 }}>
             Cette action est irreversible. Le remboursement sera traite via le mode de paiement d'origine.
           </Alert>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 1.5, borderRadius: '10px', bgcolor: 'var(--field)' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>Montant total paye</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', fontVariantNumeric: 'tabular-nums' }}>{fmtCurrency(totalPaid)}</Typography>
-            </Box>
+          <div className="flex flex-col gap-0.5 p-2 rounded-[10px] bg-[var(--field)]">
+            <div className="flex justify-between">
+              <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">Montant total paye</p>
+              <p className="cn-text-body2 font-bold text-[0.8125rem] tabular-nums">{fmtCurrency(totalPaid)}</p>
+            </div>
             {reservation && (
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>Client</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>{reservation.guestName}</Typography>
-              </Box>
+              <div className="flex justify-between">
+                <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">Client</p>
+                <p className="cn-text-body2 font-semibold text-[0.8125rem]">{reservation.guestName}</p>
+              </div>
             )}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>Montant rembourse</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', color: 'var(--err)', fontVariantNumeric: 'tabular-nums' }}>
+            <div className="flex justify-between">
+              <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">Montant rembourse</p>
+              <p className="cn-text-body2 font-bold text-[0.8125rem] text-[var(--err)] tabular-nums">
                 -{fmtCurrency(totalPaid)}
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setRefundDialogOpen(false)} size="small">Annuler</Button>
@@ -1527,7 +1488,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 };
 

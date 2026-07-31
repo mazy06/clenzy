@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Button, useTheme, alpha } from '@mui/material';
+import { Box, Button, useTheme, alpha } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home as HomeIcon, ArrowBack as ArrowLeftIcon } from '../icons';
 
@@ -15,19 +15,7 @@ const NotFoundPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 3,
-        py: 8,
-        px: 3,
-        minHeight: 480,
-        textAlign: 'center',
-      }}
-    >
+    <div className="flex flex-col items-center justify-center gap-4 py-12 px-4 min-h-[480px] text-center">
       <Box
         sx={{
           fontSize: '5rem',
@@ -40,11 +28,11 @@ const NotFoundPage: React.FC = () => {
         404
       </Box>
 
-      <Box>
-        <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+      <div>
+        <h6 className="cn-text-h6 mb-1.5 font-semibold">
           Page introuvable
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 480 }}>
+        </h6>
+        <p className="cn-text-body2 text-muted-foreground max-w-[480px]">
           L&apos;adresse{' '}
           <Box component="code" sx={{
             px: 0.75,
@@ -57,10 +45,10 @@ const NotFoundPage: React.FC = () => {
             {location.pathname}
           </Box>{' '}
           ne correspond a aucune page. Verifie l&apos;orthographe ou retourne au dashboard.
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
-      <Box sx={{ display: 'flex', gap: 1.5, mt: 1 }}>
+      <div className="flex gap-2 mt-1.5">
         <Button
           variant="outlined"
           startIcon={<ArrowLeftIcon size={16} />}
@@ -77,8 +65,8 @@ const NotFoundPage: React.FC = () => {
         >
           Aller au dashboard
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

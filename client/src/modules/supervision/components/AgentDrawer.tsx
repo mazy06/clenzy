@@ -41,8 +41,8 @@ export function AgentDrawer({
   return (
     <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: 360, maxWidth: '90vw', p: 2.5 } }}>
       {detail && meta && (
-        <Box data-agent-drawer>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+        <div data-agent-drawer>
+          <div className="flex items-center gap-2 mb-3">
             <Box
               sx={{
                 width: 40,
@@ -58,21 +58,21 @@ export function AgentDrawer({
             >
               <AgentIcon token={meta.icon} size={20} />
             </Box>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+            <div className="flex-1 min-w-0">
               <Typography sx={{ fontSize: 15, fontWeight: 800, color: 'var(--ink, #1b2240)' }}>{t(meta.nameKey)}</Typography>
               <Typography sx={{ fontSize: 12, color: 'var(--muted, #6b7196)' }}>{t(meta.roleKey)}</Typography>
-            </Box>
+            </div>
             <IconButton onClick={onClose} size="small" aria-label={t('supervision.states.retry')}>
               <Close size={18} />
             </IconButton>
-          </Box>
+          </div>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1.5 }}>
+          <div className="flex items-center gap-1 mb-2">
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', background: STATUS[detail.status].color }} />
             <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink, #1b2240)' }}>
               {t(STATUS[detail.status].labelKey)}
             </Typography>
-          </Box>
+          </div>
 
           {detail.task && (
             <Typography sx={{ fontSize: 13, color: 'var(--body, #3a3f5a)', lineHeight: 1.5, mb: 2 }}>{detail.task}</Typography>
@@ -83,7 +83,7 @@ export function AgentDrawer({
               <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--muted, #6b7196)', mb: 1 }}>
                 {t('supervision.drawer.ventilation')}
               </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <div className="flex flex-col gap-1.5">
                 {detail.items.map((item) => (
                   <Box
                     key={`${item.propertyId}-${item.task}`}
@@ -92,20 +92,20 @@ export function AgentDrawer({
                     <Box sx={{ color: 'var(--muted, #6b7196)', mt: '2px' }}>
                       <HomeWork size={15} />
                     </Box>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1">
                         <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink, #1b2240)' }}>{item.propertyName}</Typography>
                         <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: STATUS[item.status].color }} />
                         <Typography sx={{ fontSize: 11, color: 'var(--muted, #6b7196)' }}>{t(STATUS[item.status].labelKey)}</Typography>
-                      </Box>
+                      </div>
                       <Typography sx={{ fontSize: 12, color: 'var(--body, #3a3f5a)', lineHeight: 1.4 }}>{item.task}</Typography>
-                    </Box>
+                    </div>
                   </Box>
                 ))}
-              </Box>
+              </div>
             </>
           ) : detail.metrics && detail.metrics.length > 0 ? (
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+            <div className="grid grid-cols-2 gap-1.5">
               {detail.metrics.map((metric) => (
                 <Box key={metric.label} sx={{ p: 1.25, borderRadius: '10px', bgcolor: 'var(--surface-2, #f6f7fb)' }}>
                   <Typography sx={{ fontSize: 16, fontWeight: 800, color: 'var(--ink, #1b2240)', fontVariantNumeric: 'tabular-nums' }}>
@@ -114,7 +114,7 @@ export function AgentDrawer({
                   <Typography sx={{ fontSize: 11, color: 'var(--muted, #6b7196)' }}>{metric.label}</Typography>
                 </Box>
               ))}
-            </Box>
+            </div>
           ) : (
             <Typography sx={{ fontSize: 12.5, color: 'var(--muted, #6b7196)' }}>{t('supervision.drawer.noActivity')}</Typography>
           )}
@@ -125,7 +125,7 @@ export function AgentDrawer({
               <SupervisionReviewDrafts propertyId={Number(propertyId)} />
             </Box>
           )}
-        </Box>
+        </div>
       )}
     </Drawer>
   );

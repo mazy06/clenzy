@@ -1,9 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import {
-  Box, Typography, Paper, Button, Chip, IconButton, Tooltip,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  TextField, Alert, Snackbar, CircularProgress, Stack,
-} from '@mui/material';
+import { Box, Paper, Button, Chip, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Alert, Snackbar, CircularProgress, Stack } from '@mui/material';
 import {
   Add, Edit, CheckCircle, Pause, Cancel,
   Handshake, Home, Person, PictureAsPdf, Send,
@@ -229,7 +225,7 @@ const ManagementContractsPage: React.FC = () => {
   }));
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <div className="flex flex-col gap-2">
       {/* ─── Header standardise (PageHeader) ──────────────────────────── */}
       <PageHeader
         title={t('contracts.title')}
@@ -268,9 +264,9 @@ const ManagementContractsPage: React.FC = () => {
 
       {/* ─── Body ──────────────────────────────────────────────────── */}
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+        <div className="flex justify-center py-9">
           <CircularProgress />
-        </Box>
+        </div>
       ) : contracts.length === 0 ? (
         <EmptyState
           icon={<Handshake />}
@@ -290,7 +286,7 @@ const ManagementContractsPage: React.FC = () => {
           )}
         />
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="flex flex-col gap-3">
           {activeContracts.length > 0 && (
             <ContractsTableSection
               title="Contrats en vigueur"
@@ -334,7 +330,7 @@ const ManagementContractsPage: React.FC = () => {
               muted
             />
           )}
-        </Box>
+        </div>
       )}
 
       {/* Modal de création / édition */}
@@ -355,7 +351,7 @@ const ManagementContractsPage: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 };
 
@@ -394,11 +390,11 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
   const { t } = useTranslation();
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
+    <div>
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
           {title}
-        </Typography>
+        </p>
         <Box
           component="span"
           sx={{
@@ -414,7 +410,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
         >
           {contracts.length}
         </Box>
-      </Box>
+      </div>
       <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', opacity: muted ? 0.85 : 1 }}>
         <Table size="small">
           <TableHead>
@@ -438,16 +434,16 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                 return (
                   <TableRow key={c.id}>
                     <TableCell colSpan={8} sx={{ p: 2, bgcolor: 'var(--err-soft)' }}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--err)' }}>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-1.5 text-[var(--err)]">
                           <Cancel size={18} strokeWidth={2} />
-                          <Typography variant="subtitle2" fontWeight={700} sx={{ color: 'var(--err)' }}>
+                          <h6 className="cn-text-subtitle2 font-bold text-[var(--err)]">
                             Résilier le contrat {c.contractNumber} ?
-                          </Typography>
-                        </Box>
-                        <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'var(--body)' }}>
+                          </h6>
+                        </div>
+                        <p className="cn-text-body2 text-[0.8125rem] text-[var(--body)]">
                           {t('contracts.terminateWarning')}
-                        </Typography>
+                        </p>
                         <TextField
                           label={t('contracts.terminateReason')}
                           value={terminateReason}
@@ -476,7 +472,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                             {t('contracts.confirmTerminate')}
                           </Button>
                         </Stack>
-                      </Box>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -485,28 +481,28 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
               return (
                 <TableRow key={c.id} hover>
                   <TableCell>
-                    <Typography variant="body2" fontWeight={600} sx={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: 'var(--ink)' }}>
+                    <p className="cn-text-body2 font-semibold font-mono text-[0.8125rem] text-[var(--ink)]">
                       {c.contractNumber}
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}>
+                    <div className="flex items-center gap-1">
+                      <span className="inline-flex text-[var(--faint)]">
                         <Home size={14} strokeWidth={1.75} />
-                      </Box>
-                      <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{getPropertyName(c.propertyId)}</Typography>
-                    </Box>
+                      </span>
+                      <p className="cn-text-body2 text-[0.8125rem]">{getPropertyName(c.propertyId)}</p>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}>
+                    <div className="flex items-center gap-1">
+                      <span className="inline-flex text-[var(--faint)]">
                         <Person size={14} strokeWidth={1.75} />
-                      </Box>
-                      <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{getOwnerName(c.ownerId)}</Typography>
-                    </Box>
+                      </span>
+                      <p className="cn-text-body2 text-[0.8125rem]">{getOwnerName(c.ownerId)}</p>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{CONTRACT_TYPE_LABELS[c.contractType]}</Typography>
+                    <p className="cn-text-body2 text-[0.8125rem]">{CONTRACT_TYPE_LABELS[c.contractType]}</p>
                   </TableCell>
                   <TableCell align="center">
                     <Chip
@@ -520,31 +516,31 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                     />
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                    <p className="cn-text-body2 text-[0.75rem] text-[var(--muted)] tabular-nums">
                       {c.startDate}{c.endDate ? ` → ${c.endDate}` : ' → ∞'}
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell align="center">
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.375 }}>
+                    <div className="flex flex-col items-center gap-0.5">
                       <Chip
                         label={meta.label}
                         size="small"
                         sx={{ bgcolor: meta.soft, color: meta.color }}
                       />
                       {c.status === 'DRAFT' && c.signatureStatus === 'PENDING' && (
-                        <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'var(--warn)' }}>
+                        <p className="cn-text-body1 text-[0.625rem] font-semibold text-[var(--warn)]">
                           {t('contracts.signature.pending', 'En attente de signature')}
-                        </Typography>
+                        </p>
                       )}
                       {c.status === 'DRAFT' && c.signatureStatus === 'EXPIRED' && (
-                        <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'var(--err)' }}>
+                        <p className="cn-text-body1 text-[0.625rem] font-semibold text-[var(--err)]">
                           {t('contracts.signature.expired', 'Lien de signature expiré')}
-                        </Typography>
+                        </p>
                       )}
-                    </Box>
+                    </div>
                   </TableCell>
                   <TableCell align="right">
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.25 }}>
+                    <div className="flex justify-end gap-0.5">
                       <Tooltip title="Voir le mandat de gestion">
                         <IconButton size="small" color="primary" onClick={() => onViewMandate(c.id)}>
                           <PictureAsPdf size={16} strokeWidth={1.75} />
@@ -585,7 +581,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                           </IconButton>
                         </Tooltip>
                       )}
-                    </Box>
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -593,7 +589,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
           </TableBody>
         </Table>
       </TableContainer>
-    </Box>
+    </div>
   );
 };
 

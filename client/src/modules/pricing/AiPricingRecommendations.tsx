@@ -79,16 +79,16 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
       return (
         <Paper sx={CARD_SX}>
           <Box sx={HEADER_SX}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
+            <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
             <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
               {t('bookingEngine.ai.pricing.title')}
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <div className="flex flex-col gap-1.5">
             {[1, 2, 3].map((i) => (
               <Skeleton key={i} variant="rounded" height={48} />
             ))}
-          </Box>
+          </div>
         </Paper>
       );
     }
@@ -100,7 +100,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
       return (
         <Paper sx={CARD_SX}>
           <Box sx={HEADER_SX}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
+            <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
             <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
               {t('bookingEngine.ai.pricing.title')}
             </Typography>
@@ -134,7 +134,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
       return (
         <Paper sx={CARD_SX}>
           <Box sx={HEADER_SX}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
+            <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
             <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
               {t('bookingEngine.ai.pricing.title')}
             </Typography>
@@ -150,7 +150,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
     return (
       <Paper sx={CARD_SX}>
         <Box sx={HEADER_SX}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
+          <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
           <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
             {t('bookingEngine.ai.pricing.title')}
           </Typography>
@@ -162,32 +162,22 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
           />
         </Box>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {data.map((rec) => (
-            <Box
-              key={rec.date}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                p: 1,
-                borderRadius: 1,
-                bgcolor: 'action.hover',
-              }}
-            >
+            <div className="flex items-center gap-2 p-1.5 rounded-[1px] bg-[action.hover]" key={rec.date}>
               {/* Date */}
-              <Box sx={{ minWidth: 60 }}>
+              <div className="min-w-[60px]">
                 <Typography variant="caption" fontWeight={600} fontSize="0.7rem">
                   {rec.date}
                 </Typography>
-              </Box>
+              </div>
 
               {/* Suggested Price */}
-              <Box sx={{ minWidth: 70, textAlign: 'right' }}>
+              <div className="min-w-[70px] text-end">
                 <Typography variant="body2" fontWeight={700} fontSize="0.85rem" color="primary.main">
                   {rec.suggestedPrice.toFixed(0)} €
                 </Typography>
-              </Box>
+              </div>
 
               {/* Confidence */}
               <Tooltip title={`${t('bookingEngine.ai.pricing.confidence')}: ${(rec.confidence * 100).toFixed(0)}%`}>
@@ -208,24 +198,17 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
               >
                 {rec.explanation}
               </Typography>
-            </Box>
+            </div>
           ))}
-        </Box>
+        </div>
 
         {/* Market comparison from first recommendation */}
         {data[0]?.marketComparison && (
-          <Box
-            sx={{
-              mt: 1.5,
-              pt: 1,
-              borderTop: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
+          <div className="mt-2 pt-1.5 border-t border-[divider]">
             <Typography variant="caption" color="text.secondary" fontSize="0.7rem">
               {t('bookingEngine.ai.pricing.marketComparison')}: {data[0].marketComparison}
             </Typography>
-          </Box>
+          </div>
         )}
       </Paper>
     );

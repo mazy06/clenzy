@@ -1,20 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Avatar,
-  Chip,
-  Divider,
-  IconButton,
-  ToggleButton,
-  ToggleButtonGroup,
-} from '@mui/material';
+import { Card, CardContent, List, ListItem, ListItemAvatar, ListItemText, Avatar, Chip, Divider, IconButton, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import {
   Delete,
   SortByAlpha,
@@ -145,21 +130,21 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
   return (
     <Card>
       <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6" sx={{ color: 'var(--ink)', fontWeight: 600 }}>
+        <div className="flex justify-between items-center mb-3">
+          <h6 className="cn-text-h6 text-[var(--ink)] font-semibold">
             {t('teams.members.title')} ({members.length})
-          </Typography>
+          </h6>
           <ToggleButtonGroup value={sortBy} exclusive onChange={handleSortChange} size="small">
             <ToggleButton value="name" sx={{ px: 1.5, py: 0.5 }}>
-              <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><SortByAlpha size={16} strokeWidth={1.75} /></Box>
-              <Typography variant="caption">{t('teams.members.sortByName')}</Typography>
+              <span className="inline-flex me-0.5"><SortByAlpha size={16} strokeWidth={1.75} /></span>
+              <span className="cn-text-caption">{t('teams.members.sortByName')}</span>
             </ToggleButton>
             <ToggleButton value="role" sx={{ px: 1.5, py: 0.5 }}>
-              <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><Badge size={16} strokeWidth={1.75} /></Box>
-              <Typography variant="caption">{t('teams.members.sortByRole')}</Typography>
+              <span className="inline-flex me-0.5"><Badge size={16} strokeWidth={1.75} /></span>
+              <span className="cn-text-caption">{t('teams.members.sortByRole')}</span>
             </ToggleButton>
           </ToggleButtonGroup>
-        </Box>
+        </div>
 
         {sortedMembers.length > 0 ? (
           <List>
@@ -188,10 +173,10 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
                     </ListItemAvatar>
                     <ListItemText
                       primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          <Typography variant="body1" fontWeight={500}>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="cn-text-body1 font-medium">
                             {member.firstName} {member.lastName}
-                          </Typography>
+                          </p>
                           {(() => { const c = getRoleHex(member.roleInTeam || member.role); return (
                             <Chip
                               label={getRoleLabel(member.roleInTeam || member.role)}
@@ -206,17 +191,17 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
                               sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, '& .MuiChip-label': { px: 0.75 } }}
                             />
                           ); })()}
-                        </Box>
+                        </div>
                       }
                       secondary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                          <Typography variant="body2" color="text.secondary">
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <p className="cn-text-body2 text-muted-foreground">
                             {member.email || member.userEmail}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          </p>
+                          <span className="cn-text-caption text-muted-foreground">
                             - {interventionCount} {t('teams.members.interventionCount')}
-                          </Typography>
-                        </Box>
+                          </span>
+                        </div>
                       }
                     />
                   </ListItem>
@@ -226,11 +211,11 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
             })}
           </List>
         ) : (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography variant="body1" color="text.secondary">
+          <div className="text-center py-6">
+            <p className="cn-text-body1 text-muted-foreground">
               {t('teams.members.noMembers')}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
       </CardContent>
     </Card>

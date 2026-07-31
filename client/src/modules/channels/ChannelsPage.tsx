@@ -1,10 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import {
-  Box,
-  Button,
-  Alert,
-  Snackbar,
-} from '@mui/material';
+import { Button, Alert, Snackbar } from '@mui/material';
 import {
   Link as LinkIcon,
   Refresh as RefreshIcon,
@@ -221,7 +216,7 @@ const ChannelsPage: React.FC = () => {
   );
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={t('channels.title')}
         subtitle={t('channels.subtitle')}
@@ -230,7 +225,7 @@ const ChannelsPage: React.FC = () => {
         showBackButton={false}
         filters={filterBar}
         actions={
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <div className="flex gap-1.5 items-center">
             <Button
               size="small"
               variant="outlined"
@@ -247,7 +242,7 @@ const ChannelsPage: React.FC = () => {
             >
               {t('common.refresh')}
             </Button>
-          </Box>
+          </div>
         }
       />
 
@@ -406,7 +401,7 @@ const ChannelsPage: React.FC = () => {
         onConfirm={handleOtaDisconnectConfirm}
         t={t}
       />
-    </Box>
+    </div>
   );
 };
 

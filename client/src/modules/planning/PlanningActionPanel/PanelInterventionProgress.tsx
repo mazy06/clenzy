@@ -1,19 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import {
-  Box,
-  Typography,
-  LinearProgress,
-  Stepper,
-  Step,
-  StepLabel,
-  StepContent,
-  Button,
-  Checkbox,
-  FormControlLabel,
-  Chip,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
+import { LinearProgress, Stepper, Step, StepLabel, StepContent, Button, Checkbox, FormControlLabel, Chip, CircularProgress, Alert } from '@mui/material';
 import {
   PlayArrow,
   CheckCircle,
@@ -132,11 +118,11 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
   );
 
   return (
-    <Box>
+    <div>
       {/* Progress bar */}
-      <Box sx={{ mb: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>Progression</Typography>
+      <div className="mb-3">
+        <div className="flex justify-between items-center mb-0.5">
+          <p className="cn-text-body1 text-[0.75rem] font-bold">Progression</p>
           {(() => { const c = progress === 100 ? '#4A9B8E' : progress > 0 ? '#0288d1' : '#757575'; return (
           <Chip
             label={`${progress}%`}
@@ -144,13 +130,13 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
             sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
           />
           ); })()}
-        </Box>
+        </div>
         <LinearProgress
           variant="determinate"
           value={progress}
           sx={{ height: 6, borderRadius: 3 }}
         />
-      </Box>
+      </div>
 
       {/* Start button */}
       {!isStarted && (
@@ -175,14 +161,14 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
         <Step completed={inspectionDone}>
           <StepLabel
             StepIconProps={{ sx: { fontSize: 20 } }}
-            icon={inspectionDone ? <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={20} strokeWidth={1.75} /></Box> : <InspectIcon size={20} strokeWidth={1.75} />}
+            icon={inspectionDone ? <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={20} strokeWidth={1.75} /></span> : <InspectIcon size={20} strokeWidth={1.75} />}
           >
             Inspection
           </StepLabel>
           <StepContent>
-            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', mb: 1 }}>
+            <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mb-1.5">
               Prenez les photos avant intervention et notez les observations.
-            </Typography>
+            </p>
             <input
               ref={beforeInputRef}
               type="file"
@@ -207,9 +193,9 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
         {/* Step 2: Room validation */}
         <Step completed={roomsDone}>
           <StepLabel
-            icon={roomsDone ? <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={20} strokeWidth={1.75} /></Box> : <MeetingRoom size={20} strokeWidth={1.75} />}
+            icon={roomsDone ? <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={20} strokeWidth={1.75} /></span> : <MeetingRoom size={20} strokeWidth={1.75} />}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <div className="flex items-center gap-0.5">
               Validation pièces
               {(() => { const c = validatedRooms.size === totalRooms ? '#4A9B8E' : '#757575'; return (
               <Chip
@@ -218,10 +204,10 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
                 sx={{ fontSize: '0.5625rem', height: 18, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
               />
               ); })()}
-            </Box>
+            </div>
           </StepLabel>
           <StepContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <div className="flex flex-col gap-0">
               {roomNames.map((name, i) => (
                 <FormControlLabel
                   key={i}
@@ -233,25 +219,25 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
                       sx={{ p: 0.25 }}
                     />
                   }
-                  label={<Typography sx={{ fontSize: '0.6875rem' }}>{name}</Typography>}
+                  label={<p className="cn-text-body1 text-[0.6875rem]">{name}</p>}
                   sx={{ ml: 0, mr: 0 }}
                 />
               ))}
-            </Box>
+            </div>
           </StepContent>
         </Step>
 
         {/* Step 3: After photos */}
         <Step completed={photosDone}>
           <StepLabel
-            icon={photosDone ? <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={20} strokeWidth={1.75} /></Box> : <CameraAlt size={20} strokeWidth={1.75} />}
+            icon={photosDone ? <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={20} strokeWidth={1.75} /></span> : <CameraAlt size={20} strokeWidth={1.75} />}
           >
             Photos après & finalisation
           </StepLabel>
           <StepContent>
-            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', mb: 1 }}>
+            <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mb-1.5">
               Prenez les photos après intervention, puis finalisez.
-            </Typography>
+            </p>
             <input
               ref={afterInputRef}
               type="file"
@@ -260,7 +246,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
               hidden
               onChange={(e) => handleFileUpload(e, 'after')}
             />
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <div className="flex gap-1.5">
               <Button
                 variant="outlined"
                 size="small"
@@ -282,7 +268,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
               >
                 Terminer
               </Button>
-            </Box>
+            </div>
           </StepContent>
         </Step>
       </Stepper>
@@ -293,7 +279,7 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
           Intervention terminée — en attente de validation
         </Alert>
       )}
-    </Box>
+    </div>
   );
 };
 

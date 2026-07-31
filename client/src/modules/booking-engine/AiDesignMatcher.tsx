@@ -1,14 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  TextField,
-  Button,
-  LinearProgress,
-  Alert,
-  Typography,
-  Chip,
-  Stack,
-} from '@mui/material';
+import { TextField, Button, LinearProgress, Alert, Typography, Chip, Stack } from '@mui/material';
 import { AutoFixHighRounded } from '../../icons';
 import { CheckCircleOutlineRounded } from '../../icons';
 import { SettingsRounded } from '../../icons';
@@ -97,7 +88,7 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
   const isLoading = analyzeMutation.isPending;
 
   return (
-    <Box sx={{ mb: 3 }}>
+    <div className="mb-4">
       {/* URL input + button */}
       <Stack direction="row" spacing={1.5} alignItems="flex-start">
         <TextField
@@ -124,12 +115,12 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
 
       {/* Loading state */}
       {isLoading && (
-        <Box sx={{ mt: 2 }}>
+        <div className="mt-3">
           <LinearProgress />
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          <p className="cn-text-body2 text-muted-foreground mt-1.5">
             {t('bookingEngine.ai.analyzing')}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
 
       {/* Success state */}
@@ -179,12 +170,12 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
             </Button>
           }
         >
-          <Typography variant="body2" fontWeight={600}>
+          <p className="cn-text-body2 font-semibold">
             {t('bookingEngine.ai.aiNotConfiguredTitle')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
+          </p>
+          <p className="cn-text-body2 text-muted-foreground">
             {t('bookingEngine.ai.aiNotConfiguredMessage', { provider: aiNotConfigured })}
-          </Typography>
+          </p>
         </Alert>
       )}
 
@@ -205,12 +196,12 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
             </Button>
           }
         >
-          <Typography variant="body2" fontWeight={600}>
+          <p className="cn-text-body2 font-semibold">
             {t('bookingEngine.ai.budgetExceededTitle')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
+          </p>
+          <p className="cn-text-body2 text-muted-foreground">
             {t('bookingEngine.ai.budgetExceededMessage')}
-          </Typography>
+          </p>
         </Alert>
       )}
 
@@ -220,7 +211,7 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
           {t('bookingEngine.ai.analyzeError')}
         </Alert>
       )}
-    </Box>
+    </div>
   );
 }
 

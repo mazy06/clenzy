@@ -1,14 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Box,
-  Skeleton,
-  Alert,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  Divider,
-} from '@mui/material';
+import { Skeleton, Alert, Typography, Grid, Card, CardContent, Divider } from '@mui/material';
 import {
   Hub,
   CheckCircle,
@@ -72,13 +63,13 @@ const DiagnosticsTab: React.FC = () => {
   }
 
   return (
-    <Box>
+    <div>
       {/* Diagnostics Summary — StatTile (carte plate hairline, valeur display) */}
       {diagnostics && (
         <>
-          <Typography variant="h6" gutterBottom sx={{ color: 'var(--ink)' }}>
+          <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
             Vue d'ensemble
-          </Typography>
+          </h6>
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={6} sm={4} md={2}>
               <StatTile icon={<Hub />} label="Total Connexions" value={diagnostics.totalConnections} color="#6B8A9A" />
@@ -119,9 +110,9 @@ const DiagnosticsTab: React.FC = () => {
                 <Grid container spacing={1}>
                   {Object.entries(diagnostics.syncLogsByStatus).map(([status, count]) => (
                     <Grid item xs={6} sm={3} key={status}>
-                      <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                      <p className="cn-text-body2 tabular-nums">
                         <strong>{status}:</strong> {count}
-                      </Typography>
+                      </p>
                     </Grid>
                   ))}
                 </Grid>
@@ -136,9 +127,9 @@ const DiagnosticsTab: React.FC = () => {
       {/* Metrics */}
       {metrics && (
         <>
-          <Typography variant="h6" gutterBottom sx={{ color: 'var(--ink)' }}>
+          <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
             Metriques
-          </Typography>
+          </h6>
           <Grid container spacing={2}>
             {/* Latency P95 */}
             <Grid item xs={12} md={4}>
@@ -149,12 +140,12 @@ const DiagnosticsTab: React.FC = () => {
                   </Typography>
                   {Object.keys(metrics.syncLatencyP95).length > 0 ? (
                     Object.entries(metrics.syncLatencyP95).map(([channel, latency]) => (
-                      <Typography key={channel} variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                      <p className="cn-text-body2 tabular-nums" key={channel}>
                         {channel}: <strong>{latency}ms</strong>
-                      </Typography>
+                      </p>
                     ))
                   ) : (
-                    <Typography variant="body2" sx={{ color: 'var(--muted)' }}>Aucune donnee</Typography>
+                    <p className="cn-text-body2 text-[var(--muted)]">Aucune donnee</p>
                   )}
                 </CardContent>
               </Card>
@@ -170,18 +161,18 @@ const DiagnosticsTab: React.FC = () => {
                   {Object.keys(metrics.syncSuccessCount).length > 0 || Object.keys(metrics.syncFailureCount).length > 0 ? (
                     <>
                       {Object.entries(metrics.syncSuccessCount).map(([channel, count]) => (
-                        <Typography key={`s-${channel}`} variant="body2" sx={{ color: 'var(--ok)', fontVariantNumeric: 'tabular-nums' }}>
+                        <p className="cn-text-body2 text-[var(--ok)] tabular-nums" key={`s-${channel}`}>
                           {channel} success: {count}
-                        </Typography>
+                        </p>
                       ))}
                       {Object.entries(metrics.syncFailureCount).map(([channel, count]) => (
-                        <Typography key={`f-${channel}`} variant="body2" sx={{ color: 'var(--err)', fontVariantNumeric: 'tabular-nums' }}>
+                        <p className="cn-text-body2 text-[var(--err)] tabular-nums" key={`f-${channel}`}>
                           {channel} failure: {count}
-                        </Typography>
+                        </p>
                       ))}
                     </>
                   ) : (
-                    <Typography variant="body2" sx={{ color: 'var(--muted)' }}>Aucune donnee</Typography>
+                    <p className="cn-text-body2 text-[var(--muted)]">Aucune donnee</p>
                   )}
                 </CardContent>
               </Card>
@@ -194,19 +185,19 @@ const DiagnosticsTab: React.FC = () => {
                   <Typography sx={{ ...OVERLINE_SX, mb: 1 }}>
                     Calendrier
                   </Typography>
-                  <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  <p className="cn-text-body2 tabular-nums">
                     Conflits: <strong>{metrics.calendarConflicts}</strong>
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  </p>
+                  <p className="cn-text-body2 tabular-nums">
                     Double bookings bloques: <strong>{metrics.doubleBookingsPrevented}</strong>
-                  </Typography>
+                  </p>
                 </CardContent>
               </Card>
             </Grid>
           </Grid>
         </>
       )}
-    </Box>
+    </div>
   );
 };
 

@@ -1,21 +1,5 @@
 import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  Alert,
-  CircularProgress,
-  IconButton,
-  Tooltip,
-  Button,
-} from '@mui/material';
+import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Alert, CircularProgress, IconButton, Tooltip, Button } from '@mui/material';
 import {
   Add,
   Edit,
@@ -168,14 +152,14 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+      <div className="flex justify-center p-6">
         <CircularProgress />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
@@ -254,7 +238,7 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
           onClose={handleSystemDialogClose}
         />
       )}
-    </Box>
+    </div>
   );
 });
 
@@ -274,7 +258,7 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
     <TableRow hover>
       <TableCell>
         <Stack0Spaced>
-          <Typography variant="body2" fontWeight={600} sx={{ color: 'var(--ink)' }}>{template.name}</Typography>
+          <p className="cn-text-body2 font-semibold text-[var(--ink)]">{template.name}</p>
           <Chip
             label={TYPE_LABELS[template.type] || template.type}
             size="small"
@@ -290,9 +274,9 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
         />
       </TableCell>
       <TableCell>
-        <Typography variant="body2" noWrap sx={{ maxWidth: 280, fontSize: '0.8125rem' }}>
+        <p className="cn-text-body2 truncate max-w-[280px] text-[0.8125rem]">
           {template.subject}
-        </Typography>
+        </p>
       </TableCell>
       <TableCell>
         <Chip label={template.language?.toUpperCase()} size="small" sx={TONE.muted} />
@@ -305,12 +289,12 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
         />
       </TableCell>
       <TableCell align="center">
-        <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>v1</Typography>
+        <span className="cn-text-caption font-mono text-muted-foreground">v1</span>
       </TableCell>
       <TableCell>
         {/* Pas de createdBy dans le DTO actuel pour les user templates.
             Affiche un dash pour ne pas mentir et garder la colonne alignee. */}
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>—</Typography>
+        <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">—</p>
       </TableCell>
       <TableCell align="right">
         <Tooltip title={t('common.edit')} arrow>
@@ -359,9 +343,9 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
     <TableRow hover>
       <TableCell>
         <Stack0Spaced>
-          <Typography variant="body2" fontWeight={600} sx={{ color: 'var(--ink)' }}>
+          <p className="cn-text-body2 font-semibold text-[var(--ink)]">
             {t(`systemEmailTemplates.keys.${group.templateKey}`)}
-          </Typography>
+          </p>
           <Chip
             label={t(`systemEmailTemplates.recipientShort.${group.recipientType}`)}
             size="small"
@@ -379,9 +363,9 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
         />
       </TableCell>
       <TableCell>
-        <Typography variant="body2" noWrap sx={{ maxWidth: 280, fontSize: '0.8125rem' }}>
+        <p className="cn-text-body2 truncate max-w-[280px] text-[0.8125rem]">
           {firstLang?.subject ?? '—'}
-        </Typography>
+        </p>
       </TableCell>
       <TableCell>
         {/* Chip langue identique a UserRow pour coherence (1ere langue dispo —
@@ -401,12 +385,12 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
         />
       </TableCell>
       <TableCell align="center">
-        <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>v1</Typography>
+        <span className="cn-text-caption font-mono text-muted-foreground">v1</span>
       </TableCell>
       <TableCell>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+        <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
           {t('messaging.templates.systemAuthor')}
-        </Typography>
+        </p>
       </TableCell>
       <TableCell align="right">
         <Tooltip title={t('common.edit')} arrow>
@@ -426,7 +410,7 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
 
 // Petit helper layout : inline-flex stack horizontale avec gap.
 const Stack0Spaced: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>{children}</Box>
+  <div className="inline-flex items-center gap-1.5">{children}</div>
 );
 
 export default MessageTemplatesSection;

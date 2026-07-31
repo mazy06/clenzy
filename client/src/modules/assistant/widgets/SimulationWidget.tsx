@@ -84,15 +84,11 @@ const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) =
   const negative = data.pctRevenueChange < -0.005;
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+    <div className="mt-1.5 mb-2 flex flex-col gap-2">
       {data.title && (
-        <Typography sx={{
-          display: 'block', fontSize: '10.5px', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '.05em',
-          color: 'var(--faint)',
-        }}>
+        <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
           {data.title}
-        </Typography>
+        </p>
       )}
 
       {/* Bandeau verdict — couleur selon delta */}
@@ -107,7 +103,7 @@ const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) =
               : 'var(--field)',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, flexWrap: 'wrap' }}>
+        <div className="flex items-baseline gap-2 flex-wrap">
           <Typography sx={{
             fontFamily: 'var(--font-display)',
             fontSize: '1.5rem', fontWeight: 600,
@@ -117,13 +113,9 @@ const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) =
           }}>
             {formatPctSigned(data.pctRevenueChange)}
           </Typography>
-          <Typography sx={{
-            fontSize: '10.5px', fontWeight: 700,
-            color: 'var(--faint)',
-            textTransform: 'uppercase', letterSpacing: '.05em',
-          }}>
+          <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[.05em]">
             Revenue projete
-          </Typography>
+          </p>
           <Typography sx={{
             fontFamily: 'var(--font-display)',
             fontSize: '0.85rem', fontWeight: 600,
@@ -133,7 +125,7 @@ const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) =
           }}>
             {formatCurrencySigned(data.deltaRevenue)}
           </Typography>
-        </Box>
+        </div>
       </Box>
 
       {/* Side-by-side baseline / scenario */}
@@ -167,28 +159,16 @@ const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) =
       />
 
       {data.recommendation && (
-        <Box sx={{
-          px: 1.5, py: 1.25,
-          borderRadius: '12px',
-          bgcolor: 'var(--accent-soft)',
-        }}>
-          <Typography sx={{
-            display: 'block', fontSize: '10.5px', fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '.05em',
-            color: 'var(--accent)', mb: 0.25,
-          }}>
+        <div className="px-2 py-2 rounded-[12px] bg-[var(--accent-soft)]">
+          <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--accent)] mb-0.5">
             Recommandation
-          </Typography>
-          <Typography sx={{
-            fontSize: '12.5px',
-            color: 'var(--body)',
-            lineHeight: 1.45,
-          }}>
+          </p>
+          <p className="cn-text-body1 text-[12.5px] text-[var(--body)] leading-[1.45]">
             {data.recommendation}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 
@@ -210,97 +190,54 @@ const ScenarioCard: React.FC<{
         bgcolor: bg,
       }}
     >
-      <Typography sx={{
-        display: 'block', fontSize: '10.5px', fontWeight: 700,
-        textTransform: 'uppercase', letterSpacing: '.05em',
-        color: 'var(--faint)', mb: 0.5,
-      }}>
+      <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-0.5">
         {label}
-      </Typography>
-      <Typography sx={{
-        fontFamily: 'var(--font-display)',
-        fontSize: '1.35rem', fontWeight: 600,
-        color: 'var(--ink)',
-        fontVariantNumeric: 'tabular-nums',
-        letterSpacing: '-0.01em',
-        lineHeight: 1.1,
-      }}>
+      </p>
+      <p className="cn-text-body1 font-[var(--font-display)] text-[1.35rem] font-semibold text-[var(--ink)] tabular-nums tracking-[-0.01em] leading-[1.1]">
         {formatCurrency(scenario.revenue)}
-      </Typography>
-      <Box sx={{
-        display: 'flex', gap: 1.5, mt: 0.5, flexWrap: 'wrap',
-        color: 'var(--muted)',
-      }}>
+      </p>
+      <div className="flex gap-2 mt-0.5 flex-wrap text-[var(--muted)]">
         <MetricInline label="ADR" value={`${Math.round(scenario.adr)} €`} />
         <MetricInline label="Occ." value={`${Math.round(scenario.occupancyRate * 100)}%`} />
         <MetricInline label="Nuits" value={String(scenario.bookedNights)} />
-      </Box>
+      </div>
     </Box>
   );
 };
 
 const MetricInline: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <Box sx={{ display: 'inline-flex', alignItems: 'baseline', gap: 0.4 }}>
-    <Typography sx={{
-      fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)',
-      textTransform: 'uppercase', letterSpacing: '.04em',
-    }}>
+  <div className="inline-flex items-baseline gap-0.5">
+    <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[.04em]">
       {label}
-    </Typography>
-    <Typography sx={{
-      fontSize: '12.5px', fontWeight: 600,
-      color: 'var(--ink)',
-      fontVariantNumeric: 'tabular-nums',
-    }}>
+    </p>
+    <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] tabular-nums">
       {value}
-    </Typography>
-  </Box>
+    </p>
+  </div>
 );
 
 // ─── Calendar block ──────────────────────────────────────────────────────────
 
 const CalendarBlockView: React.FC<{ data: CalendarBlockPayload }> = ({ data }) => {
   return (
-    <Box sx={{ mt: 1, mb: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+    <div className="mt-1.5 mb-2 flex flex-col gap-2">
       {data.title && (
-        <Typography sx={{
-          display: 'block', fontSize: '10.5px', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '.05em',
-          color: 'var(--faint)',
-        }}>
+        <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
           {data.title}
-        </Typography>
+        </p>
       )}
 
-      <Box sx={{
-        px: 1.5, py: 1.25,
-        borderRadius: '12px',
-        bgcolor: 'var(--warn-soft)',
-        display: 'flex', flexDirection: 'column', gap: 0.5,
-      }}>
-        <Typography sx={{
-          fontSize: '10.5px', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '.05em',
-          color: 'var(--warn)',
-        }}>
+      <div className="px-2 py-2 rounded-[12px] bg-[var(--warn-soft)] flex flex-col gap-0.5">
+        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--warn)]">
           Perte estimee de revenue
-        </Typography>
-        <Typography sx={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '1.75rem', fontWeight: 600,
-          color: 'var(--warn)',
-          fontVariantNumeric: 'tabular-nums',
-          letterSpacing: '-0.02em',
-          lineHeight: 1,
-        }}>
+        </p>
+        <p className="cn-text-body1 font-[var(--font-display)] text-[1.75rem] font-semibold text-[var(--warn)] tabular-nums tracking-[-0.02em] leading-[1]">
           {formatCurrency(data.estimatedLostRevenue)}
-        </Typography>
-        <Typography sx={{
-          fontSize: '11.5px', color: 'var(--muted)', mt: 0.25,
-        }}>
+        </p>
+        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mt-0.5">
           sur {data.daysBlocked} jour(s){data.reference ? ` · base sur ${data.reference}` : ''}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       <Box sx={{
         display: 'grid',
@@ -314,74 +251,44 @@ const CalendarBlockView: React.FC<{ data: CalendarBlockPayload }> = ({ data }) =
       </Box>
 
       {data.alternativeSuggestions && data.alternativeSuggestions.length > 0 && (
-        <Box sx={{
-          px: 1.5, py: 1.25,
-          borderRadius: '12px',
-          bgcolor: 'var(--accent-soft)',
-        }}>
-          <Typography sx={{
-            display: 'block', fontSize: '10.5px', fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '.05em',
-            color: 'var(--accent)', mb: 0.5,
-          }}>
+        <div className="px-2 py-2 rounded-[12px] bg-[var(--accent-soft)]">
+          <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--accent)] mb-0.5">
             Alternatives suggerees
-          </Typography>
-          <Box component="ul" sx={{ pl: 2.5, m: 0, my: 0.25 }}>
+          </p>
+          <ul className="ps-3.5 m-0 my-0.5">
             {data.alternativeSuggestions.map((s, i) => (
-              <Box component="li" key={i} sx={{
-                fontSize: '12.5px',
-                color: 'var(--body)',
-                lineHeight: 1.45,
-                mb: 0.25,
-              }}>
+              <li className="text-[12.5px] text-[var(--body)] leading-[1.45] mb-0.5" key={i}>
                 {s}
-              </Box>
+              </li>
             ))}
-          </Box>
-        </Box>
+          </ul>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 
 const KpiTile: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <Box sx={{
-    px: 1.25, py: 1,
-    borderRadius: '10px',
-    bgcolor: 'var(--field)',
-  }}>
-    <Typography sx={{
-      display: 'block', fontSize: '10.5px', fontWeight: 700,
-      textTransform: 'uppercase', letterSpacing: '.05em',
-      color: 'var(--faint)', mb: 0.25,
-    }}>
+  <div className="px-2 py-1.5 rounded-[10px] bg-[var(--field)]">
+    <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-0.5">
       {label}
-    </Typography>
-    <Typography sx={{
-      fontFamily: 'var(--font-display)',
-      fontSize: '1rem', fontWeight: 600,
-      color: 'var(--ink)',
-      fontVariantNumeric: 'tabular-nums',
-    }}>
+    </p>
+    <p className="cn-text-body1 font-[var(--font-display)] text-[1rem] font-semibold text-[var(--ink)] tabular-nums">
       {value}
-    </Typography>
-  </Box>
+    </p>
+  </div>
 );
 
 // ─── Fallback ────────────────────────────────────────────────────────────────
 
 const FallbackUnknown: React.FC = () => (
-  <Box sx={{ mt: 1, mb: 1.5 }}>
-    <Box sx={{
-      p: 2, borderRadius: '12px',
-      bgcolor: 'var(--field)',
-      textAlign: 'center',
-    }}>
-      <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+  <div className="mt-1.5 mb-2">
+    <div className="p-3 rounded-[12px] bg-[var(--field)] text-center">
+      <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
         Simulation non interpretable.
-      </Typography>
-    </Box>
-  </Box>
+      </p>
+    </div>
+  </div>
 );
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

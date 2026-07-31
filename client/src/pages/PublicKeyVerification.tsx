@@ -1,14 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  Paper,
-  Alert,
-  CircularProgress,
-  Chip,
-} from '@mui/material';
+import { TextField, Button, Paper, Alert, CircularProgress, Chip } from '@mui/material';
 import {
   VpnKey,
   CheckCircle,
@@ -97,23 +88,14 @@ const PublicKeyVerification: React.FC = () => {
 
   if (!token) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#f5f5f5' }}>
+      <div className="flex justify-center items-center min-h-[100vh] bg-[#f5f5f5]">
         <Alert severity="error">Lien de vérification invalide</Alert>
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        bgcolor: '#f5f5f5',
-        p: 2,
-      }}
-    >
+    <div className="flex justify-center items-center min-h-[100vh] bg-[#f5f5f5] p-3">
       <Paper
         elevation={2}
         sx={{
@@ -124,19 +106,19 @@ const PublicKeyVerification: React.FC = () => {
         }}
       >
         {/* Header */}
-        <Box sx={{ textAlign: 'center', mb: 3 }}>
-          <Box component="span" sx={{ display: 'inline-flex', mb: 1 }}><VpnKey size={40} strokeWidth={1.75} color='#6B8A9A' /></Box>
-          <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem' }}>
+        <div className="text-center mb-4">
+          <span className="inline-flex mb-1.5"><VpnKey size={40} strokeWidth={1.75} color='#6B8A9A' /></span>
+          <h6 className="cn-text-h6 font-bold text-[1.1rem]">
             Vérification de code
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+          </h6>
+          <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
             Entrez le code présenté par le voyageur
-          </Typography>
-        </Box>
+          </p>
+        </div>
 
         {/* Code input */}
         {!confirmed && (
-          <Box sx={{ mb: 2 }}>
+          <div className="mb-3">
             <TextField
               fullWidth
               size="medium"
@@ -159,7 +141,7 @@ const PublicKeyVerification: React.FC = () => {
             >
               Vérifier
             </Button>
-          </Box>
+          </div>
         )}
 
         {/* Error */}
@@ -169,29 +151,29 @@ const PublicKeyVerification: React.FC = () => {
 
         {/* Verify result */}
         {verifyResult && !confirmed && (
-          <Box sx={{ mt: 2 }}>
+          <div className="mt-3">
             {verifyResult.valid ? (
               <>
                 <Alert severity="success" sx={{ fontSize: '0.8125rem', mb: 2 }}>
                   Code valide
                 </Alert>
 
-                <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, mb: 2 }}>
+                <div className="p-3 border border-[divider] rounded-[1.5px] mb-3">
                   {verifyResult.guestName && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><PersonOutline size={18} strokeWidth={1.75} /></Box>
-                      <Typography sx={{ fontSize: '0.875rem' }}>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="inline-flex text-muted-foreground"><PersonOutline size={18} strokeWidth={1.75} /></span>
+                      <p className="cn-text-body1 text-[0.875rem]">
                         <strong>Voyageur :</strong> {verifyResult.guestName}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                   )}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><StoreIcon size={18} strokeWidth={1.75} /></Box>
-                    <Typography sx={{ fontSize: '0.875rem' }}>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span className="inline-flex text-muted-foreground"><StoreIcon size={18} strokeWidth={1.75} /></span>
+                    <p className="cn-text-body1 text-[0.875rem]">
                       <strong>Point :</strong> {verifyResult.storeName}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    </p>
+                  </div>
+                  <div className="flex gap-1.5">
                     {(() => { const c = verifyResult.codeType === 'COLLECTION' ? '#0288d1' : '#4A9B8E'; return (
                       <Chip
                         label={verifyResult.codeType === 'COLLECTION' ? 'Collecte' : 'Dépôt'}
@@ -205,15 +187,15 @@ const PublicKeyVerification: React.FC = () => {
                       />
                     ); })()}
                     {verifyResult.validUntil && (
-                      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', alignSelf: 'center' }}>
+                      <p className="cn-text-body1 text-[0.75rem] text-muted-foreground self-center">
                         Valide jusqu'au {new Date(verifyResult.validUntil).toLocaleDateString('fr-FR')}
-                      </Typography>
+                      </p>
                     )}
-                  </Box>
-                </Box>
+                  </div>
+                </div>
 
                 {/* Action buttons */}
-                <Box sx={{ display: 'flex', gap: 1 }}>
+                <div className="flex gap-1.5">
                   <Button
                     variant="contained"
                     fullWidth
@@ -233,26 +215,26 @@ const PublicKeyVerification: React.FC = () => {
                   >
                     Clé récupérée
                   </Button>
-                </Box>
+                </div>
               </>
             ) : (
               <Alert severity="warning" sx={{ fontSize: '0.8125rem' }}>
                 Code invalide ou expiré. Statut : {verifyResult.status}
               </Alert>
             )}
-          </Box>
+          </div>
         )}
 
         {/* Confirmation */}
         {confirmed && (
-          <Box sx={{ textAlign: 'center', py: 2 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', mb: 1 }}><CheckCircle size={48} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1rem', mb: 1 }}>
+          <div className="text-center py-3">
+            <span className="inline-flex text-[var(--bui-success-ink)] mb-1.5"><CheckCircle size={48} strokeWidth={1.75} /></span>
+            <h6 className="cn-text-h6 font-bold text-[1rem] mb-1.5">
               Mouvement confirmé
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', mb: 2 }}>
+            </h6>
+            <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] mb-3">
               Le mouvement de clé a été enregistré avec succès.
-            </Typography>
+            </p>
             <Button
               variant="outlined"
               onClick={() => {
@@ -265,17 +247,17 @@ const PublicKeyVerification: React.FC = () => {
             >
               Vérifier un autre code
             </Button>
-          </Box>
+          </div>
         )}
 
         {/* Footer */}
-        <Box sx={{ textAlign: 'center', mt: 3, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-          <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>
+        <div className="text-center mt-4 pt-3 border-t border-[divider]">
+          <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60">
             Propulsé par Baitly — Gestion immobilière
-          </Typography>
-        </Box>
+          </p>
+        </div>
       </Paper>
-    </Box>
+    </div>
   );
 };
 

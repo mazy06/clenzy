@@ -1,20 +1,5 @@
 import React, { useImperativeHandle, useMemo, useState, forwardRef } from 'react';
-import {
-  Alert,
-  Box,
-  Chip,
-  CircularProgress,
-  IconButton,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Alert, Chip, CircularProgress, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from '@mui/material';
 import { Edit } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useWhatsAppTemplatesList } from '../../hooks/useWhatsAppTemplates';
@@ -107,14 +92,14 @@ const WhatsAppTemplatesSection = forwardRef<WhatsAppTemplatesSectionRef>((_, ref
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+      <div className="flex justify-center p-6">
         <CircularProgress />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {t('whatsappTemplates.loadError')}
@@ -160,7 +145,7 @@ const WhatsAppTemplatesSection = forwardRef<WhatsAppTemplatesSectionRef>((_, ref
           onClose={() => setEditingKey(null)}
         />
       )}
-    </Box>
+    </div>
   );
 });
 
@@ -195,16 +180,16 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
   return (
     <TableRow hover>
       <TableCell>
-        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="body2" fontWeight={600} sx={{ color: 'var(--ink)' }}>
+        <div className="inline-flex items-center gap-1.5">
+          <p className="cn-text-body2 font-semibold text-[var(--ink)]">
             {friendlyName}
-          </Typography>
+          </p>
           <Chip
             label={group.category}
             size="small"
             sx={categoryTone}
           />
-        </Box>
+        </div>
       </TableCell>
       <TableCell>
         <Chip
@@ -246,12 +231,12 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
         />
       </TableCell>
       <TableCell align="center">
-        <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>v1</Typography>
+        <span className="cn-text-caption font-mono text-muted-foreground">v1</span>
       </TableCell>
       <TableCell>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+        <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
           {group.isCustomized ? '—' : t('messaging.templates.systemAuthor')}
-        </Typography>
+        </p>
       </TableCell>
       <TableCell align="right">
         <Tooltip title={t('common.edit')} arrow>

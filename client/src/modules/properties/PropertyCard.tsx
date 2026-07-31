@@ -514,14 +514,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
         {/* ─── Zone info ─── */}
         <CardContent sx={styles.infoContent}>
           {/* Nom + prix/nuit (si renseigné) */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.75,
-              minWidth: 0,
-            }}
-          >
+          <div className="flex items-center gap-1 min-w-0">
             <Typography
               variant="subtitle1"
               fontWeight={700}
@@ -538,11 +531,11 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                 sx={{ ...styles.priceChip, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
               />
             )}
-          </Box>
+          </div>
 
           {/* Adresse */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.25 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}><LocationOn size={14} strokeWidth={1.75} /></Box>
+          <div className="flex items-center gap-0.5 mb-2">
+            <span className="inline-flex text-muted-foreground shrink-0"><LocationOn size={14} strokeWidth={1.75} /></span>
             <Typography
               variant="caption"
               color="text.secondary"
@@ -551,7 +544,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             >
               {property.address}, {property.postalCode} {property.city}
             </Typography>
-          </Box>
+          </div>
 
           {/* Bande de KPI opérationnels (.pr-stats) — occupation / ADR / revenu */}
           <Box sx={styles.statsBand}>
@@ -571,9 +564,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                 <Box component="span" sx={{ ...styles.footIcon, color: ops.color }}>{ops.icon}</Box>
                 <Box component="span" sx={styles.footStrong}>{ops.strong}</Box>
                 {ops.rest && (
-                  <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                  <span className="overflow-hidden text-ellipsis whitespace-nowrap tabular-nums">
                     {ops.rest}
-                  </Box>
+                  </span>
                 )}
               </>
             )}
@@ -615,7 +608,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
       >
         <DialogTitle sx={{ pb: 1 }}>
           <Box sx={styles.dialogTitleBox}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <div className="flex items-center gap-2">
               <Box
                 sx={{
                   ...styles.dialogIconBox,
@@ -624,15 +617,15 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               >
                 {getPropertyTypeIcon(property.propertyType, 22)}
               </Box>
-              <Box>
-                <Typography variant="h6" component="h2" sx={{ lineHeight: 1.2 }}>
+              <div>
+                <h2 className="cn-text-h6 leading-[1.2]">
                   {property.name}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </h2>
+                <span className="cn-text-caption text-muted-foreground">
                   {getPropertyTypeLabel(property.propertyType, t)} • {getPropertyStatusLabel(property.status, t)}
-                </Typography>
-              </Box>
-            </Box>
+                </span>
+              </div>
+            </div>
             <IconButton onClick={() => setDetailsOpen(false)} size="small">
               <Close size={18} strokeWidth={1.75} />
             </IconButton>
@@ -646,9 +639,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               <Typography sx={styles.dialogSectionTitle}>
                 Adresse
               </Typography>
-              <Typography variant="body2">
+              <p className="cn-text-body2">
                 {property.address}, {property.postalCode} {property.city}, {property.country}
-              </Typography>
+              </p>
             </Grid>
 
             <Grid item xs={12}>
@@ -671,11 +664,11 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                     key={item.label}
                     sx={styles.dialogMetricBox}
                   >
-                    <Box sx={{ color: 'var(--accent)', display: 'flex' }}>{item.icon}</Box>
-                    <Box>
-                      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{item.value}</Typography>
-                      <Typography sx={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--faint)' }}>{item.label}</Typography>
-                    </Box>
+                    <div className="text-[var(--accent)] flex">{item.icon}</div>
+                    <div>
+                      <p className="cn-text-body1 font-[var(--font-display)] text-[15px] font-semibold text-[var(--ink)] tabular-nums">{item.value}</p>
+                      <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.04em] uppercase text-[var(--faint)]">{item.label}</p>
+                    </div>
                   </Box>
                 ))}
               </Box>
@@ -691,26 +684,26 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                 {t('properties.cleaningEstimate')}
               </Typography>
               {cleaningPrice != null ? (
-                <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-.01em' }}>
-                  <Money value={cleaningPrice} from="EUR" decimals={0} /> <Typography component="span" variant="caption" color="text.secondary">{t('properties.priceEstimation.perIntervention')}</Typography>
-                </Typography>
+                <p className="cn-text-body1 font-[var(--font-display)] text-[22px] font-semibold text-[var(--ink)] tabular-nums tracking-[-.01em]">
+                  <Money value={cleaningPrice} from="EUR" decimals={0} /> <span className="cn-text-caption text-muted-foreground">{t('properties.priceEstimation.perIntervention')}</span>
+                </p>
               ) : (
-                <Typography variant="body2" color="text.secondary">—</Typography>
+                <p className="cn-text-body2 text-muted-foreground">—</p>
               )}
               {property.nightlyPrice > 0 && (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                <p className="cn-text-body2 text-muted-foreground mt-0.5">
                   <Money value={property.nightlyPrice} from="EUR" decimals={0} /> / {t('properties.perNight')}
-                </Typography>
+                </p>
               )}
             </Grid>
             <Grid item xs={12} md={6}>
               <Typography sx={styles.dialogSectionTitle}>
                 Nettoyage
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><BroomFill size={18} /></Box>
-                <Typography variant="body2">{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Typography>
-              </Box>
+              <div className="flex items-center gap-1">
+                <span className="inline-flex text-muted-foreground"><BroomFill size={18} /></span>
+                <p className="cn-text-body2">{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</p>
+              </div>
             </Grid>
 
             {/* Commodités */}
@@ -723,7 +716,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                   <Typography sx={{ ...styles.dialogSectionTitle, mb: 1 }}>
                     Commodités
                   </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                  <div className="flex flex-wrap gap-1">
                     {property.amenities.map((amenity) => (
                       <Chip
                         key={amenity}
@@ -732,7 +725,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                         sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}
                       />
                     ))}
-                  </Box>
+                  </div>
                 </Grid>
               </>
             )}
@@ -745,12 +738,12 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               <Typography sx={styles.dialogSectionTitle}>
                 Contact
               </Typography>
-              <Typography variant="body2" sx={{ mb: 0.25 }}>
+              <p className="cn-text-body2 mb-0.5">
                 {property.contactPhone || 'Téléphone non renseigné'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              </p>
+              <p className="cn-text-body2 text-muted-foreground">
                 {property.contactEmail || 'Email non renseigné'}
-              </Typography>
+              </p>
             </Grid>
 
             {/* Description */}
@@ -783,7 +776,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               Supprimer
             </Button>
           )}
-          <Box sx={{ flex: 1 }} />
+          <div className="flex-1" />
           <Button onClick={() => setDetailsOpen(false)} size="small" variant="outlined">
             Fermer
           </Button>

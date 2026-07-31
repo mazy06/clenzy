@@ -1,18 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  Box,
-  Alert,
-  CircularProgress,
-  FormControlLabel,
-  Switch,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Alert, CircularProgress, FormControlLabel, Switch } from '@mui/material';
 import { Send } from '../../icons';
 import { useDocumentTypes, useGenerateDocument } from './hooks/useDocuments';
 
@@ -95,7 +82,7 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
       <DialogContent>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-        <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="mt-1.5 flex flex-col gap-3">
           <TextField
             label="Type de document *"
             select
@@ -149,7 +136,7 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
               placeholder="client@example.com"
             />
           )}
-        </Box>
+        </div>
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} disabled={loading} size="small">Annuler</Button>

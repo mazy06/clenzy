@@ -150,7 +150,7 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
         Nouveau code promo
       </DialogTitle>
       <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+        <div className="flex flex-col gap-3 mt-1.5">
           {error && (
             <Alert severity="error" onClose={() => setError(null)}>
               {error}
@@ -169,7 +169,7 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
             size="small"
           />
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+          <div className="grid grid-cols-2 gap-3">
             <TextField
               select
               label="Type de réduction *"
@@ -200,7 +200,7 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
                 ),
               }}
             />
-          </Box>
+          </div>
 
           <TextField
             label="Nombre maximum d'utilisations"
@@ -212,7 +212,7 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
             fullWidth
           />
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+          <div className="grid grid-cols-2 gap-3">
             <TextField
               label="Valide à partir du"
               type="date"
@@ -231,7 +231,7 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
               size="small"
               helperText="Optionnel"
             />
-          </Box>
+          </div>
 
           <TextField
             label="Description (interne)"
@@ -244,7 +244,7 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
             size="small"
             fullWidth
           />
-        </Box>
+        </div>
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} disabled={createMutation.isPending}>
@@ -333,14 +333,14 @@ export default function PromoCodesPage() {
   }, [promoCodes]);
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title="Codes promo"
         subtitle="Gestion centralisée des codes promo / cooptation utilisés à l'inscription"
         iconBadge={<LocalOffer />}
         showBackButton={false}
         actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <div className="flex gap-1.5">
             <Button
               variant="outlined"
               startIcon={<Refresh size={16} />}
@@ -356,7 +356,7 @@ export default function PromoCodesPage() {
             >
               Créer un code
             </Button>
-          </Box>
+          </div>
         }
       />
 
@@ -384,18 +384,10 @@ export default function PromoCodesPage() {
       )}
 
       {/* Filtre — segmented stylé par le thème global MuiToggleButtonGroup */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Typography
-          sx={{
-            fontSize: '10.5px',
-            fontWeight: 700,
-            letterSpacing: '.05em',
-            textTransform: 'uppercase',
-            color: 'var(--faint)',
-          }}
-        >
+      <div className="flex items-center gap-1.5 mb-3">
+        <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]">
           Filtre
-        </Typography>
+        </p>
         <ToggleButtonGroup
           value={filterMode}
           exclusive
@@ -407,7 +399,7 @@ export default function PromoCodesPage() {
           <ToggleButton value="inactive">Inactifs</ToggleButton>
           <ToggleButton value="expired">Expirés</ToggleButton>
         </ToggleButtonGroup>
-      </Box>
+      </div>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -416,11 +408,11 @@ export default function PromoCodesPage() {
       )}
 
       {isLoading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} variant="rounded" height={44} sx={{ borderRadius: '9px' }} />
           ))}
-        </Box>
+        </div>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<LocalOffer />}
@@ -452,12 +444,9 @@ export default function PromoCodesPage() {
                 return (
                   <TableRow key={promo.id} hover>
                     <TableCell>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontFamily: 'monospace', fontWeight: 600 }}
-                      >
+                      <p className="cn-text-body2 font-mono font-semibold">
                         {promo.code}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell>
                       {/* Chip -soft : actif = accent, sinon neutre muted */}
@@ -485,17 +474,14 @@ export default function PromoCodesPage() {
                       />
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                      <p className="cn-text-body2 tabular-nums">
                         {usageLabel(promo)}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell>
-                      <Typography
-                        variant="caption"
-                        sx={{ display: 'block', color: 'text.secondary' }}
-                      >
+                      <span className="cn-text-caption block text-muted-foreground">
                         Du {formatDate(promo.validFrom)}
-                      </Typography>
+                      </span>
                       <Typography
                         variant="caption"
                         sx={{
@@ -523,9 +509,9 @@ export default function PromoCodesPage() {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      <span className="cn-text-caption text-muted-foreground">
                         {formatDate(promo.createdAt)}
-                      </Typography>
+                      </span>
                     </TableCell>
                     <TableCell align="center">
                       <Tooltip
@@ -579,6 +565,6 @@ export default function PromoCodesPage() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 }

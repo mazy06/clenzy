@@ -135,7 +135,7 @@ const SWITCH_SX = {
 // ─── Step indicator component ────────────────────────────────────────────────
 
 const StepIndicator: React.FC<{ steps: string[]; activeStep: number }> = ({ steps, activeStep }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, py: 1.5 }}>
+  <div className="flex items-center justify-center gap-0 py-2">
     {steps.map((label, idx) => {
       const isActive = idx === activeStep;
       const isDone = idx < activeStep;
@@ -153,7 +153,7 @@ const StepIndicator: React.FC<{ steps: string[]; activeStep: number }> = ({ step
               }}
             />
           )}
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+          <div className="flex flex-col items-center gap-0.5">
             <Box
               sx={{
                 width: 28,
@@ -195,11 +195,11 @@ const StepIndicator: React.FC<{ steps: string[]; activeStep: number }> = ({ step
             >
               {label}
             </Typography>
-          </Box>
+          </div>
         </React.Fragment>
       );
     })}
-  </Box>
+  </div>
 );
 
 const formatDate = (dateStr: string) => {
@@ -371,7 +371,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   // ─── Render Step 1: Configuration ──────────────────────────────────────
 
   const renderConfigStep = () => (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+    <div className="flex flex-col gap-3.5">
       {!hasAccess && (
         <Alert
           severity="warning"
@@ -382,28 +382,17 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
       )}
 
       {/* Info banner */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1.5,
-          p: 1.5,
-          borderRadius: '11px',
-          backgroundColor: 'var(--accent-soft)',
-          border: '1px solid',
-          borderColor: 'var(--field-line)',
-        }}
-      >
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mt: 0.25 }}><InfoIcon size={18} strokeWidth={1.75} /></Box>
-        <Box>
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--ink)' }}>
+      <div className="flex items-start gap-2 p-2 rounded-[11px] bg-[var(--accent-soft)] border border-[var(--field-line)]">
+        <span className="inline-flex text-[var(--accent)] mt-0.5"><InfoIcon size={18} strokeWidth={1.75} /></span>
+        <div>
+          <p className="cn-text-body2 text-[0.8125rem] font-medium text-[var(--ink)]">
             Collez le lien iCal de votre calendrier externe pour importer vos réservations.
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'var(--muted)', fontSize: '0.6875rem' }}>
+          </p>
+          <span className="cn-text-caption text-[var(--muted)] text-[0.6875rem]">
             Airbnb : Annonce &rarr; Tarification et disponibilité &rarr; Exporter le calendrier
-          </Typography>
-        </Box>
-      </Box>
+          </span>
+        </div>
+      </div>
 
       {/* URL du calendrier */}
       <TextField
@@ -418,7 +407,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         sx={SX_FIELD}
         InputLabelProps={{ shrink: true }}
         InputProps={{
-          startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mr: 1 }}><CalendarIcon size={18} strokeWidth={1.75} /></Box>,
+          startAdornment: <span className="inline-flex text-[var(--faint)] me-1.5"><CalendarIcon size={18} strokeWidth={1.75} /></span>,
         }}
       />
 
@@ -477,9 +466,9 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           }}
           InputProps={{
             startAdornment: detectedSource.logo ? (
-              <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
+              <div className="me-1.5 flex items-center">
                 <SourceLogoIcon logo={detectedSource.logo} label={detectedSource.label} size={22} />
-              </Box>
+              </div>
             ) : undefined,
           }}
           helperText="Détecté automatiquement depuis l'URL"
@@ -515,16 +504,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
       </Box>
 
       {/* Menage automatique — ligne inline legere */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          py: 0.5,
-          cursor: 'pointer',
-        }}
-        onClick={() => hasAccess && setAutoCreateInterventions(!autoCreateInterventions)}
-      >
+      <div className="flex items-center gap-1.5 py-0.5 cursor-pointer" onClick={() => hasAccess && setAutoCreateInterventions(!autoCreateInterventions)}>
         <Tooltip
           title={!hasAccess ? 'Disponible avec le forfait Confort ou Premium' : ''}
           arrow
@@ -540,13 +520,13 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             />
           </span>
         </Tooltip>
-        <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--ink)' }}>
+        <p className="cn-text-body2 text-[0.8125rem] font-medium text-[var(--ink)]">
           Ménage automatique
-        </Typography>
-        <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>
+        </p>
+        <span className="cn-text-caption text-[0.6875rem] text-[var(--muted)]">
           — Crée une demande de ménage le jour du checkout à l'heure de départ du voyageur
-        </Typography>
-      </Box>
+        </span>
+      </div>
 
       {error && (
         <Alert
@@ -557,7 +537,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           {error}
         </Alert>
       )}
-    </Box>
+    </div>
   );
 
   // ─── Render Step 2: Preview ────────────────────────────────────────────
@@ -571,11 +551,11 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
     const blockedCount = allEvents.filter((e) => e.type === 'blocked').length;
 
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-          <Typography variant="subtitle2" sx={{ fontSize: '0.875rem', fontWeight: 700 }}>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <h6 className="cn-text-subtitle2 text-[0.875rem] font-bold">
             {preview.propertyName}
-          </Typography>
+          </h6>
           <Chip
             icon={<EventIcon size={14} strokeWidth={1.75} />}
             label={`${reservationCount} réservation${reservationCount > 1 ? 's' : ''}`}
@@ -608,7 +588,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               }}
             />
           )}
-        </Box>
+        </div>
 
         {totalCount === 0 && (
           <Alert severity="info" sx={{ borderRadius: '10px', fontSize: '0.8125rem' }}>
@@ -649,7 +629,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
                   </TableCell>
                   <TableCell>
                     {event.type === 'blocked' ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      <div className="flex items-center gap-1">
                         <Chip
                           label="Bloqué"
                           size="small"
@@ -664,19 +644,19 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
                             '& .MuiChip-label': { px: 0.5 },
                           }}
                         />
-                        <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
+                        <p className="cn-text-body2 text-[0.8125rem] text-[var(--muted)]">
                           Période bloquée
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
                     ) : (
                       <>
-                        <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+                        <p className="cn-text-body2 text-[0.8125rem] font-medium">
                           {event.guestName || event.summary || 'Réservation'}
-                        </Typography>
+                        </p>
                         {event.confirmationCode && (
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+                          <span className="cn-text-caption text-muted-foreground text-[0.6875rem]">
                             {event.confirmationCode}
-                          </Typography>
+                          </span>
                         )}
                       </>
                     )}
@@ -688,24 +668,13 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         </TableContainer>
 
         {autoCreateInterventions && totalCount > 0 && (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 1.5,
-              p: 1.5,
-              borderRadius: '11px',
-              backgroundColor: 'var(--accent-soft)',
-              border: '1px solid',
-              borderColor: 'var(--field-line)',
-            }}
-          >
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mt: 0.25 }}><SyncIcon size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'var(--body)' }}>
+          <div className="flex items-start gap-2 p-2 rounded-[11px] bg-[var(--accent-soft)] border border-[var(--field-line)]">
+            <span className="inline-flex text-[var(--accent)] mt-0.5"><SyncIcon size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 text-[0.8125rem] text-[var(--body)]">
               {totalCount} demande{totalCount > 1 ? 's' : ''} de service de ménage
               {totalCount > 1 ? ' seront' : ' sera'} automatiquement créée{totalCount > 1 ? 's' : ''} à l'heure de départ du voyageur, le jour du checkout.
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
 
         {error && (
@@ -717,7 +686,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             {error}
           </Alert>
         )}
-      </Box>
+      </div>
     );
   };
 
@@ -729,7 +698,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
     const hasErrors = importResult.errors && importResult.errors.length > 0;
 
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, alignItems: 'center', py: 3 }}>
+      <div className="flex flex-col gap-3.5 items-center py-4">
         {/* Success/Warning icon */}
         <Box
           sx={{
@@ -743,17 +712,17 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           }}
         >
           {!hasErrors ? (
-            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleIcon size={36} strokeWidth={1.75} /></Box>
+            <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircleIcon size={36} strokeWidth={1.75} /></span>
           ) : (
-            <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><ErrorIcon size={36} strokeWidth={1.75} /></Box>
+            <span className="inline-flex text-[var(--bui-warning-ink)]"><ErrorIcon size={36} strokeWidth={1.75} /></span>
           )}
         </Box>
 
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+        <h6 className="cn-text-subtitle1 font-bold text-[1rem]">
           Import terminé
-        </Typography>
+        </h6>
 
-        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <div className="flex gap-1.5 justify-center flex-wrap">
           <Chip
             icon={<CheckCircleIcon size={14} strokeWidth={1.75} />}
             label={`${importResult.imported} importée${importResult.imported > 1 ? 's' : ''}`}
@@ -786,41 +755,29 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 28, '& .MuiChip-icon': { fontSize: 14 } }}
             />
           )}
-        </Box>
+        </div>
 
         {hasErrors && (
           <Alert severity="warning" sx={{ width: '100%', borderRadius: '10px', fontSize: '0.8125rem' }}>
-            <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5, fontSize: '0.8125rem' }}>
+            <p className="cn-text-body2 font-semibold mb-0.5 text-[0.8125rem]">
               Certains événements n'ont pas pu être importés :
-            </Typography>
+            </p>
             {importResult.errors.map((err, i) => (
-              <Typography key={i} variant="caption" display="block" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+              <span className="cn-text-caption block text-muted-foreground text-[0.6875rem]" key={i}>
                 &bull; {err}
-              </Typography>
+              </span>
             ))}
           </Alert>
         )}
 
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 1.5,
-            p: 1.5,
-            borderRadius: '11px',
-            backgroundColor: 'var(--accent-soft)',
-            border: '1px solid',
-            borderColor: 'var(--field-line)',
-            width: '100%',
-          }}
-        >
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mt: 0.25 }}><SyncIcon size={18} strokeWidth={1.75} /></Box>
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'var(--body)' }}>
+        <div className="flex items-start gap-2 p-2 rounded-[11px] bg-[var(--accent-soft)] border border-[var(--field-line)] w-full">
+          <span className="inline-flex text-[var(--accent)] mt-0.5"><SyncIcon size={18} strokeWidth={1.75} /></span>
+          <p className="cn-text-body2 text-[0.8125rem] text-[var(--body)]">
             Votre calendrier sera automatiquement re-synchronisé toutes les 3 heures.
             Les doublons sont ignorés automatiquement.
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
     );
   };
 
@@ -866,22 +823,12 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         }}
       >
         <Box display="flex" alignItems="center" gap={1}>
-          <Box
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'var(--accent-soft)',
-            }}
-          >
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CalendarIcon size={18} strokeWidth={1.75} /></Box>
-          </Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--ink)' }}>
+          <div className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center bg-[var(--accent-soft)]">
+            <span className="inline-flex text-[var(--accent)]"><CalendarIcon size={18} strokeWidth={1.75} /></span>
+          </div>
+          <h6 className="cn-text-subtitle1 font-bold text-[0.9375rem] text-[var(--ink)]">
             Import Calendrier iCal
-          </Typography>
+          </h6>
         </Box>
         <IconButton onClick={handleClose} size="small" sx={{ color: 'var(--muted)', '&:hover': { color: 'var(--err)', backgroundColor: 'var(--hover)' } }}>
           <CloseIcon size={18} strokeWidth={1.75} />
@@ -889,9 +836,9 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
       </DialogTitle>
 
       {/* ─── Stepper ────────────────────────────────────────────────────── */}
-      <Box sx={{ px: 3, pt: 0.5 }}>
+      <div className="px-4 pt-0.5">
         <StepIndicator steps={STEPS} activeStep={activeStep} />
-      </Box>
+      </div>
 
       {/* ─── Content ────────────────────────────────────────────────────── */}
       <DialogContent sx={{ px: 3, py: 2.5 }}>

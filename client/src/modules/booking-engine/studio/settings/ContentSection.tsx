@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Box, ButtonBase } from '@mui/material';
+import { ButtonBase } from '@mui/material';
 import type { StudioConfigState } from '../useStudioConfig';
 import PropertySelectionPanel from './PropertySelectionPanel';
 import ContentAiPanel from './ContentAiPanel';
@@ -15,9 +15,9 @@ export default function ContentSection({ cfg }: { cfg: StudioConfigState }) {
   const [tab, setTab] = useState<ContentTab>('properties');
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', px: 2, height: 48, borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
-        <Box sx={{ display: 'inline-flex', p: 0.25, gap: 0.25, bgcolor: 'var(--field)', borderRadius: 'var(--radius-md)' }}>
+    <div className="h-full flex flex-col min-h-0">
+      <div className="flex items-center px-3 h-[48px] border-b border-[var(--line)] shrink-0">
+        <div className="inline-flex p-0.5 gap-0.5 bg-[var(--field)] rounded-[var(--radius-md)]">
           {([{ value: 'properties', label: 'Propriétés affichées' }, { value: 'ai', label: 'Génération IA' }] as const).map((o) => {
             const active = o.value === tab;
             return (
@@ -39,11 +39,11 @@ export default function ContentSection({ cfg }: { cfg: StudioConfigState }) {
               </ButtonBase>
             );
           })}
-        </Box>
-      </Box>
-      <Box sx={{ flex: 1, minHeight: 0 }}>
+        </div>
+      </div>
+      <div className="flex-1 min-h-0">
         {tab === 'properties' ? <PropertySelectionPanel cfg={cfg} /> : <ContentAiPanel />}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

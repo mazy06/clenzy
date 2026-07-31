@@ -1,15 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Typography,
-  Box,
-  CircularProgress,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, CircularProgress } from '@mui/material';
 import { NightsStay } from '../../icons';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -68,15 +58,15 @@ const MinNightsEditDialog: React.FC<MinNightsEditDialogProps> = ({
         Définir le minimum de nuits
       </DialogTitle>
       <DialogContent>
-        <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Typography variant="body2" color="text.secondary">
+        <div className="pt-1.5 flex flex-col gap-3">
+          <p className="cn-text-body2 text-muted-foreground">
             {formatDateRange(selectedDates)}
             {selectedDates.length > 1 && (
-              <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+              <span className="cn-text-body2 text-muted-foreground ms-1.5">
                 ({selectedDates.length} dates)
-              </Typography>
+              </span>
             )}
-          </Typography>
+          </p>
 
           <TextField
             label="Minimum de nuits"
@@ -90,12 +80,12 @@ const MinNightsEditDialog: React.FC<MinNightsEditDialogProps> = ({
             inputProps={{ min: 1, max: 365, step: 1 }}
           />
 
-          <Typography variant="caption" color="text.secondary">
+          <span className="cn-text-caption text-muted-foreground">
             Les réservations dont la date d'arrivée tombe sur l'une de ces dates devront
             respecter ce minimum. Le défaut de la propriété est remplacé uniquement sur
             les dates sélectionnées.
-          </Typography>
-        </Box>
+          </span>
+        </div>
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} disabled={loading}>

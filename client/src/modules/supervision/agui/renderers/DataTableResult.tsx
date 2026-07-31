@@ -57,17 +57,17 @@ export const DataTableResult: React.FC<{ data: DataTableData }> = ({ data }) => 
 
   if (rows.length === 0 || columns.length === 0) {
     return (
-      <Box sx={{ mt: 1, mb: 1.5, px: 2, py: 2, borderRadius: '12px', border: '1px solid var(--line)', bgcolor: 'var(--card)', textAlign: 'center' }}>
-        <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>Aucune donnée.</Typography>
-      </Box>
+      <div className="mt-1.5 mb-2 px-3 py-3 rounded-[12px] border border-[var(--line)] bg-[var(--card)] text-center">
+        <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">Aucune donnée.</p>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
+    <div className="mt-1.5 mb-2">
       {data.title && <Overline sx={{ mb: 0.75 }}>{data.title}</Overline>}
 
-      <Box sx={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
+      <div className="rounded-[12px] overflow-hidden border border-[var(--line)] bg-[var(--card)]">
         <Box
           sx={{
             display: 'grid',
@@ -123,13 +123,13 @@ export const DataTableResult: React.FC<{ data: DataTableData }> = ({ data }) => 
             })}
           </Box>
         ))}
-      </Box>
+      </div>
 
       {hidden > 0 && (
-        <Typography sx={{ display: 'block', mt: 0.75, fontSize: '11.5px', color: 'var(--muted)', fontStyle: 'italic' }}>
+        <p className="cn-text-body1 block mt-1 text-[11.5px] text-[var(--muted)] italic">
           + {hidden} de plus
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   );
 };

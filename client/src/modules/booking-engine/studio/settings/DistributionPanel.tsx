@@ -23,11 +23,11 @@ export default function DistributionPanel({ cfg }: DistributionPanelProps) {
 
   if (cfg.loading || !config) {
     return (
-      <Box sx={{ maxWidth: 720, mx: 'auto', px: 4, py: 4 }}>
+      <div className="max-w-[720px] mx-auto px-6 py-6">
         {cfg.error
-          ? <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}><AlertTriangle size={18} /> {cfg.error}</Box>
+          ? <div className="flex items-center gap-1.5 p-3 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]"><AlertTriangle size={18} /> {cfg.error}</div>
           : [0, 1, 2].map((i) => <Skeleton key={i} variant="rounded" height={150} sx={{ mb: 2.5, borderRadius: 'var(--radius-lg)', bgcolor: 'var(--hover)' }} />)}
-      </Box>
+      </div>
     );
   }
 
@@ -79,14 +79,14 @@ const properties = await booking.getProperties();`;
       </SettingCard>
 
       {cfg.error && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2.5, p: 1.5, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
+        <div className="flex items-center gap-1.5 mb-3.5 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
           <AlertTriangle size={16} /> {cfg.error}
-        </Box>
+        </div>
       )}
 
       <SettingCard title="Site hébergé" description="Une page de réservation prête à l'emploi, sans rien installer.">
-        <Box sx={{ py: 1.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-          <Box sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Globe size={18} strokeWidth={2} /></Box>
+        <div className="py-2 flex items-center gap-1.5 flex-wrap">
+          <div className="inline-flex text-[var(--accent)]"><Globe size={18} strokeWidth={2} /></div>
           <Box sx={{ flex: 1, minWidth: 220, fontFamily: 'var(--font-mono, monospace)', fontSize: 'var(--text-sm)', color: 'var(--body)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {hostedUrl}
           </Box>
@@ -97,15 +97,15 @@ const properties = await booking.getProperties();`;
           <Box component="a" href={hostedUrl} target="_blank" rel="noopener noreferrer" sx={{ ...miniBtnSx, textDecoration: 'none' }}>
             <ExternalLink size={14} strokeWidth={2} /> Ouvrir
           </Box>
-        </Box>
+        </div>
       </SettingCard>
 
       <SettingCard title="Widget intégrable" description="Collez ce code dans votre site pour afficher le moteur de réservation.">
-        <Box sx={{ py: 1.5 }}>
+        <div className="py-2">
           <CodeBlock icon={Code2} code={embedCode} copied={copiedId === 'embed'} onCopy={() => copy('embed', embedCode)} />
-          <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--faint)', mt: 1.5, mb: 0.75 }}>Ou en iframe :</Box>
+          <div className="text-[var(--text-2xs)] text-[var(--faint)] mt-2 mb-1">Ou en iframe :</div>
           <CodeBlock code={iframeCode} copied={copiedId === 'iframe'} onCopy={() => copy('iframe', iframeCode)} />
-        </Box>
+        </div>
       </SettingCard>
 
       <SettingCard title="SDK & API" description="Pour une intégration sur mesure dans votre application.">
@@ -113,7 +113,7 @@ const properties = await booking.getProperties();`;
           label="Clé API"
           helper="Authentifie vos requêtes. Régénérer invalide l'ancienne clé immédiatement."
           control={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, width: '100%' }}>
+            <div className="flex items-center gap-0.5 w-full">
               <InputBase
                 value={apiKey}
                 readOnly
@@ -126,16 +126,16 @@ const properties = await booking.getProperties();`;
               <IconBtn label="Copier la clé" onClick={() => copy('key', apiKey)}>
                 {copiedId === 'key' ? <Check size={15} strokeWidth={2.4} /> : <Copy size={15} strokeWidth={2} />}
               </IconBtn>
-            </Box>
+            </div>
           }
         />
-        <Box sx={{ py: 1.5 }}>
+        <div className="py-2">
           <CodeBlock icon={Terminal} code={sdkCode} copied={copiedId === 'sdk'} onCopy={() => copy('sdk', sdkCode)} />
-        </Box>
-        <Box sx={{ pb: 1.75, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+        </div>
+        <div className="pb-2.5 flex items-center gap-2 flex-wrap">
           {regenConfirm ? (
             <>
-              <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--err)' }}>L'ancienne clé cessera de fonctionner. Confirmer ?</Box>
+              <div className="text-[var(--text-sm)] text-[var(--err)]">L'ancienne clé cessera de fonctionner. Confirmer ?</div>
               <ButtonBase onClick={onRegenerate} disabled={busy} sx={{ ...miniBtnSx, color: 'var(--err)', borderColor: 'var(--err)' }}>Oui, régénérer</ButtonBase>
               <ButtonBase onClick={() => setRegenConfirm(false)} sx={miniBtnSx}>Annuler</ButtonBase>
             </>
@@ -144,7 +144,7 @@ const properties = await booking.getProperties();`;
               <RefreshCw size={14} strokeWidth={2} /> Régénérer la clé
             </ButtonBase>
           )}
-        </Box>
+        </div>
       </SettingCard>
     </SettingsPage>
   );
@@ -152,8 +152,8 @@ const properties = await booking.getProperties();`;
 
 function CodeBlock({ code, onCopy, copied, icon: Icon }: { code: string; onCopy: () => void; copied: boolean; icon?: typeof Code2 }) {
   return (
-    <Box sx={{ position: 'relative' }}>
-      {Icon && <Box sx={{ position: 'absolute', top: 10, left: 10, color: 'var(--faint)', display: 'inline-flex' }}><Icon size={15} strokeWidth={2} /></Box>}
+    <div className="relative">
+      {Icon && <div className="absolute top-[10px] start-[10px] text-[var(--faint)] inline-flex"><Icon size={15} strokeWidth={2} /></div>}
       <Box component="pre" sx={{
         m: 0, p: 1.5, pl: Icon ? 4.5 : 1.5, pr: 5.5, fontFamily: 'var(--font-mono, monospace)', fontSize: 13, lineHeight: 1.6,
         color: 'var(--ink)', bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)',
@@ -167,7 +167,7 @@ function CodeBlock({ code, onCopy, copied, icon: Icon }: { code: string; onCopy:
       }}>
         {copied ? <Check size={15} strokeWidth={2.4} /> : <Copy size={15} strokeWidth={2} />}
       </ButtonBase>
-    </Box>
+    </div>
   );
 }
 

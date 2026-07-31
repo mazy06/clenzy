@@ -127,10 +127,10 @@ const OwnerPortalPage: React.FC = () => {
 
       {!ownerId ? (
         <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><HomeIcon size={48} strokeWidth={1.75} /></Box>
-          <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+          <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><HomeIcon size={48} strokeWidth={1.75} /></span>
+          <p className="cn-text-body1 text-[0.875rem] text-muted-foreground">
             {t('ownerPortal.selectOwnerHint', 'Selectionnez un proprietaire pour afficher les donnees')}
-          </Typography>
+          </p>
         </Paper>
       ) : (
         <>
@@ -235,10 +235,10 @@ const BrandingButton: React.FC = () => {
           {t('ownerPortal.branding.title', 'Page propriétaire — votre marque')}
         </DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
-          <Typography variant="body2" color="text.secondary">
+          <p className="cn-text-body2 text-muted-foreground">
             {t('ownerPortal.branding.subtitle',
               'Logo et couleur affichés sur les liens de suivi partagés à vos propriétaires. Aucune mention de la plateforme.')}
-          </Typography>
+          </p>
           {error && <Alert severity="warning">{error}</Alert>}
           <TextField
             label={t('ownerPortal.branding.logoUrl', 'URL du logo (HTTPS)')}
@@ -281,9 +281,9 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+      <div className="flex justify-center py-6">
         <CircularProgress size={32} />
-      </Box>
+      </div>
     );
   }
 
@@ -317,9 +317,9 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                 <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: kpi.color }}>
                   {kpi.value}
                 </Typography>
-                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', mt: 0.25 }}>
+                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mt-0.5">
                   {kpi.label}
-                </Typography>
+                </p>
               </CardContent>
             </Card>
           </Grid>
@@ -329,18 +329,18 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
       {/* ── Revenue by Month ── */}
       {dashboard.revenueByMonth && Object.keys(dashboard.revenueByMonth).length > 0 && (
         <Paper sx={{ ...CARD_SX, p: 2, mb: 2 }}>
-          <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, mb: 1.5 }}>
+          <p className="cn-text-body1 text-[0.8125rem] font-bold mb-2">
             {t('ownerPortal.revenueByMonth', 'Revenu par mois')}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'flex-end', height: 120 }}>
+          </p>
+          <div className="flex gap-0.5 items-end h-[120px]">
             {Object.entries(dashboard.revenueByMonth).map(([month, revenue]) => {
               const maxRevenue = Math.max(...Object.values(dashboard.revenueByMonth));
               const barHeight = maxRevenue > 0 ? (revenue / maxRevenue) * 100 : 0;
               return (
-                <Box key={month} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary', mb: 0.25 }}>
+                <div className="flex-1 flex flex-col items-center" key={month}>
+                  <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground mb-0.5">
                     {fmtCurrency(revenue)}
-                  </Typography>
+                  </p>
                   <Box
                     sx={{
                       width: '100%',
@@ -350,13 +350,13 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                       borderRadius: '4px 4px 0 0',
                     }}
                   />
-                  <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary', mt: 0.25 }}>
+                  <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground mt-0.5">
                     {month.slice(-2)}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
               );
             })}
-          </Box>
+          </div>
         </Paper>
       )}
 
@@ -481,53 +481,53 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
         <>
           {/* ── Header totals ── */}
           <Paper sx={{ ...CARD_SX, p: 2, mb: 1.5 }}>
-            <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, mb: 1 }}>
+            <p className="cn-text-body1 text-[0.875rem] font-bold mb-1.5">
               {statement.ownerName} — {fmtDate(statement.periodStart)} → {fmtDate(statement.periodEnd)}
-            </Typography>
+            </p>
             <Grid container spacing={2}>
               <Grid item xs={6} sm={3}>
-                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                   {t('ownerPortal.totalRevenue', 'Revenu total')}
-                </Typography>
-                <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#1976d2' }}>
+                </p>
+                <p className="cn-text-body1 text-[1rem] font-bold text-[#1976d2]">
                   {fmtCurrency(statement.totalRevenue)}
-                </Typography>
+                </p>
               </Grid>
               <Grid item xs={6} sm={3}>
-                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                   {t('ownerPortal.totalCommissions', 'Commissions')}
-                </Typography>
-                <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#D4A574' }}>
+                </p>
+                <p className="cn-text-body1 text-[1rem] font-bold text-[#D4A574]">
                   {fmtCurrency(statement.totalCommissions)}
-                </Typography>
+                </p>
               </Grid>
               {/* Frais OTA : affiches seulement quand le proprietaire les supporte.
                   A la charge de la conciergerie, ils ne sortent pas de son releve. */}
               {statement.totalOtaFees > 0 && (
                 <Grid item xs={6} sm={3}>
-                  <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                  <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                     {t('ownerPortal.totalOtaFees', 'Frais OTA')}
-                  </Typography>
-                  <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#ef5350' }}>
+                  </p>
+                  <p className="cn-text-body1 text-[1rem] font-bold text-[#ef5350]">
                     {fmtCurrency(statement.totalOtaFees)}
-                  </Typography>
+                  </p>
                 </Grid>
               )}
               <Grid item xs={6} sm={3}>
-                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                   {t('ownerPortal.totalExpenses', 'Depenses')}
-                </Typography>
-                <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#ef5350' }}>
+                </p>
+                <p className="cn-text-body1 text-[1rem] font-bold text-[#ef5350]">
                   {fmtCurrency(statement.totalExpenses)}
-                </Typography>
+                </p>
               </Grid>
               <Grid item xs={6} sm={3}>
-                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                   {t('ownerPortal.netAmount', 'Montant net')}
-                </Typography>
-                <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#2e7d32' }}>
+                </p>
+                <p className="cn-text-body1 text-[1rem] font-bold text-[#2e7d32]">
                   {fmtCurrency(statement.netAmount)}
-                </Typography>
+                </p>
               </Grid>
             </Grid>
           </Paper>

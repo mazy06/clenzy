@@ -1,19 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  Skeleton,
-  Alert,
-  Typography,
-  TextField,
-} from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Skeleton, Alert, TextField } from '@mui/material';
 import { syncAdminApi, CalendarCommand, CalendarConflict } from '../../../services/api/syncAdminApi';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 import PagePagination from '../../../components/PagePagination';
@@ -102,13 +88,13 @@ const CalendarAuditTab: React.FC = () => {
   };
 
   return (
-    <Box>
+    <div>
       {/* Conflicts Alert */}
       {conflicts.length > 0 && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" gutterBottom>
+          <h6 className="cn-text-subtitle2 mb-[0.35em]">
             {conflicts.length} conflit(s) calendrier detecte(s)
-          </Typography>
+          </h6>
           <TableContainer>
             <Table size="small">
               <TableHead>
@@ -139,11 +125,11 @@ const CalendarAuditTab: React.FC = () => {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
           ))}
-        </Box>
+        </div>
       ) : (
         <>
           <TableContainer
@@ -215,7 +201,7 @@ const CalendarAuditTab: React.FC = () => {
           />
         </>
       )}
-    </Box>
+    </div>
   );
 };
 

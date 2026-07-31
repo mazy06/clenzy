@@ -1,18 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  Box,
-  Typography,
-  Alert,
-  CircularProgress,
-  Divider,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Box, Alert, CircularProgress, Divider } from '@mui/material';
 import { CloudUpload } from '../../icons';
 import { useDocumentTypes, useUploadTemplate } from './hooks/useDocuments';
 
@@ -96,7 +83,7 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
       <DialogContent>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-        <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="mt-1.5 flex flex-col gap-3">
           {/* Upload zone — tokens Signature (pas encore de pattern dropzone baseline) */}
           <Box
             sx={{
@@ -115,13 +102,13 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
           >
             <input type="file" accept=".odt" hidden onChange={handleFileChange} aria-label="Sélectionner un fichier template ODT" />
             <Box component="span" sx={{ display: 'inline-flex', color: file ? 'var(--ok)' : 'var(--faint)', mb: 1 }}><CloudUpload size={40} strokeWidth={1.75} /></Box>
-            <Typography variant="body1" fontWeight={500}>
+            <p className="cn-text-body1 font-medium">
               {file ? file.name : 'Cliquez pour sélectionner un fichier .odt'}
-            </Typography>
+            </p>
             {file && (
-              <Typography variant="caption" color="text.secondary">
+              <span className="cn-text-caption text-muted-foreground">
                 {(file.size / 1024).toFixed(1)} KB
-              </Typography>
+              </span>
             )}
           </Box>
 
@@ -157,7 +144,7 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
           />
 
           <Divider sx={{ my: 1 }}>
-            <Typography variant="caption" color="text.secondary">Configuration email (optionnel)</Typography>
+            <span className="cn-text-caption text-muted-foreground">Configuration email (optionnel)</span>
           </Divider>
 
           <TextField
@@ -179,7 +166,7 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
             rows={3}
             placeholder="HTML du corps de l'email..."
           />
-        </Box>
+        </div>
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} disabled={loading} size="small">Annuler</Button>

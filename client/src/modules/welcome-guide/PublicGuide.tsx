@@ -429,9 +429,9 @@ const PublicGuide: React.FC = () => {
 
   if (status === 'loading') {
     return (
-      <Box sx={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', bgcolor: '#F2E9D9' }}>
+      <div className="flex h-[100vh] items-center justify-center bg-[#F2E9D9]">
         <CircularProgress sx={{ color: '#BC5B36' }} />
-      </Box>
+      </div>
     );
   }
 
@@ -745,20 +745,20 @@ const PublicGuide: React.FC = () => {
         <DialogTitle>{payingUpsell?.title}</DialogTitle>
         <DialogContent dividers sx={{ p: payClientSecret && !paySuccess && !payError ? 0 : 3 }}>
           {paySuccess ? (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Box sx={{ color: '#BC5B36', fontWeight: 700, mb: 1.5, fontSize: 16 }}>{L.paySuccess}</Box>
+            <div className="text-center py-6">
+              <div className="text-[#BC5B36] font-bold mb-2 text-[16px]">{L.paySuccess}</div>
               <button type="button" onClick={closePay} style={{ ...solidBtn }}>OK</button>
-            </Box>
+            </div>
           ) : payError ? (
-            <Box sx={{ color: '#C44E32', py: 1 }}>{L.payError}</Box>
+            <div className="text-[#C44E32] py-1.5">{L.payError}</div>
           ) : payClientSecret && stripePromise ? (
             <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret: payClientSecret, onComplete: onPayComplete }}>
               <EmbeddedCheckout />
             </EmbeddedCheckoutProvider>
           ) : (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <div className="flex justify-center py-6">
               <CircularProgress sx={{ color: '#BC5B36' }} />
-            </Box>
+            </div>
           )}
         </DialogContent>
       </Dialog>

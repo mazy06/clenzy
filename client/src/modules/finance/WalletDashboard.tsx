@@ -130,7 +130,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
   if (loading) {
     // Skeletons : 4 tuiles + panneau historique (cartes hairline plates)
     return (
-      <Box>
+      <div>
         <Grid container spacing={2} sx={{ mt: 1 }}>
           {[1, 2, 3, 4].map((i) => (
             <Grid item xs={12} sm={6} md={3} key={i}>
@@ -138,10 +138,10 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                 variant="outlined"
                 sx={{ p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <div className="flex items-center gap-1.5 mb-1.5">
                   <Skeleton variant="rounded" width={26} height={26} />
                   <Skeleton variant="text" width="50%" height={16} />
-                </Box>
+                </div>
                 <Skeleton variant="text" width="60%" height={28} />
                 <Skeleton variant="text" width="30%" height={14} />
               </Paper>
@@ -157,24 +157,24 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
             <Skeleton key={i} variant="rectangular" height={36} sx={{ borderRadius: 1, mb: 1 }} />
           ))}
         </Paper>
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       {!embedded && (
         <PageHeader title="Portefeuilles" subtitle="Vue d'ensemble des portefeuilles et transactions" iconBadge={<AccountBalanceWallet />} backPath="/dashboard" />
       )}
 
       {wallets.length === 0 ? (
-        <Box sx={{ mt: 2 }}>
+        <div className="mt-3">
           <EmptyState
             icon={<AccountBalanceWallet />}
             title="Aucun portefeuille trouvé"
             description="Les portefeuilles seront créés automatiquement lors du premier paiement."
           />
-        </Box>
+        </div>
       ) : (
         <>
           {/* Wallet summary cards */}
@@ -219,17 +219,9 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                       >
                         {typeInfo.icon}
                       </Box>
-                      <Typography
-                        sx={{
-                          fontSize: '10.5px',
-                          fontWeight: 700,
-                          color: 'var(--faint)',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                        }}
-                      >
+                      <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em]">
                         {typeInfo.label}
-                      </Typography>
+                      </p>
                     </Box>
                     <Typography
                       sx={{
@@ -243,9 +235,9 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                     >
                       <Money value={wallet.balance} from={wallet.currency} />
                     </Typography>
-                    <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+                    <span className="cn-text-caption text-[var(--muted)]">
                       {wallet.currency}
-                    </Typography>
+                    </span>
                   </Paper>
                 </Grid>
               );
@@ -259,33 +251,25 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
               sx={{ mt: 3, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none', overflow: 'hidden' }}
             >
               <Box p={2} display="flex" justifyContent="space-between" alignItems="center">
-                <Typography
-                  sx={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: 16,
-                    fontWeight: 600,
-                    letterSpacing: '-0.01em',
-                    color: 'var(--ink)',
-                  }}
-                >
+                <p className="cn-text-body1 font-[var(--font-display)] text-[16px] font-semibold tracking-[-0.01em] text-[var(--ink)]">
                   Historique — {WALLET_TYPE_LABELS[selectedWallet.walletType]?.label}
-                </Typography>
+                </p>
               </Box>
 
               {entriesLoading ? (
-                <Box sx={{ px: 2, pb: 2 }}>
+                <div className="px-3 pb-3">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Skeleton key={i} variant="rectangular" height={32} sx={{ borderRadius: 1, mb: 1 }} />
                   ))}
-                </Box>
+                </div>
               ) : entries.length === 0 ? (
-                <Box sx={{ px: 2, pb: 2 }}>
+                <div className="px-3 pb-3">
                   <EmptyState
                     icon={<AccountBalanceWallet />}
                     title="Aucune transaction"
                     variant="transparent"
                   />
-                </Box>
+                </div>
               ) : (
                 <>
                   <TableContainer>
@@ -358,6 +342,6 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
           )}
         </>
       )}
-    </Box>
+    </div>
   );
 }

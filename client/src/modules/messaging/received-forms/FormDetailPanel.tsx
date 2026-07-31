@@ -215,21 +215,13 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         display: 'flex', alignItems: 'flex-start', gap: '14px',
         pb: '18px', borderBottom: '1px solid var(--line)',
       }}>
-        <Box sx={{
-          width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '20px',
-          color: 'var(--on-accent)', bgcolor: 'var(--accent)',
-        }}>
+        <div className="w-[60px] h-[60px] rounded-[50%] shrink-0 flex items-center justify-center font-[var(--font-display)] font-semibold text-[20px] text-[var(--on-accent)] bg-[var(--accent)]">
           {initialsOf(form.fullName)}
-        </Box>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{
-            fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 600,
-            color: 'var(--ink)', letterSpacing: '-.01em',
-          }}>
+        </div>
+        <div className="min-w-0">
+          <p className="cn-text-body1 font-[var(--font-display)] text-[20px] font-semibold text-[var(--ink)] tracking-[-.01em]">
             {form.fullName || 'Anonyme'}
-          </Typography>
+          </p>
           <Typography sx={{ fontSize: '13px', color: 'var(--muted)', mt: '2px' }}>
             {form.subject || `Formulaire #${form.id}`}
           </Typography>
@@ -264,15 +256,15 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
               </Box>
             )}
           </Box>
-        </Box>
+        </div>
         {/* .fr-dright : pilule statut + date + IP */}
-        <Box sx={{ ml: 'auto', textAlign: 'right', flexShrink: 0 }}>
+        <div className="ms-auto text-end shrink-0">
           <Box component="span" sx={{
             display: 'inline-flex', alignItems: 'center', gap: '7px',
             fontSize: '11px', fontWeight: 700, p: '5px 12px', borderRadius: '20px',
             bgcolor: pill.bg, color: pill.fg,
           }}>
-            <Box component="span" sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: 'currentColor' }} />
+            <span className="w-[7px] h-[7px] rounded-[50%] bg-[currentColor]" />
             {pill.label}
           </Box>
           <Typography sx={{ fontSize: '13px', color: 'var(--muted)', mt: '8px' }}>
@@ -287,7 +279,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
               IP : {form.ipAddress}
             </Typography>
           )}
-        </Box>
+        </div>
       </Box>
 
       {/* Sections payload (aperçu du bien / services / planning) */}
@@ -359,9 +351,9 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
           </Button>
         )}
         {!tpl && form.formType === 'DEVIS' && (
-          <Typography sx={{ fontSize: '11px', color: 'var(--faint)', fontStyle: 'italic', flex: 1, minWidth: 200 }}>
+          <p className="cn-text-body1 text-[11px] text-[var(--faint)] italic flex-1 min-w-[200px]">
             Aucun template DEVIS actif — ajoute-en un dans Documents & Communications pour activer la génération PDF.
-          </Typography>
+          </p>
         )}
       </Box>
 
@@ -403,7 +395,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
                   }}>
                     {isFailed ? <AlertTriangleIcon size={15} strokeWidth={1.75} /> : 'PDF'}
                   </Box>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <div className="flex-1 min-w-0">
                     <Typography sx={{
                       fontSize: '13px', fontWeight: 600, color: isFailed ? 'var(--err)' : 'var(--ink)',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -420,7 +412,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
                         : [gen.legalNumber, gen.createdAt ? formatFormDate(gen.createdAt) : '']
                             .filter(Boolean).join(' · ')}
                     </Typography>
-                  </Box>
+                  </div>
                   <Box component="span" sx={{
                     ml: 'auto', display: 'inline-flex', alignItems: 'center', gap: '4px',
                     fontSize: '12.5px', fontWeight: 600,
@@ -448,22 +440,19 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
           display: 'flex', alignItems: 'center', gap: 1, py: 1.25, px: 2,
           borderBottom: '1px solid var(--line)', bgcolor: 'var(--surface-2)',
         }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}>
+          <span className="inline-flex text-[var(--err)]">
             <FileTextIcon size={18} strokeWidth={1.75} />
-          </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{
-              fontSize: '13px', fontWeight: 700, color: 'var(--ink)',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="cn-text-body1 text-[13px] font-bold text-[var(--ink)] overflow-hidden text-ellipsis whitespace-nowrap">
               {previewMeta?.filename || 'Aperçu du document'}
-            </Typography>
+            </p>
             {previewMeta?.createdAt && (
-              <Typography sx={{ fontSize: '11px', color: 'var(--muted)' }}>
+              <p className="cn-text-body1 text-[11px] text-[var(--muted)]">
                 Généré le {formatFormDate(previewMeta.createdAt)}
-              </Typography>
+              </p>
             )}
-          </Box>
+          </div>
           {previewUrl && (
             <>
               <Tooltip title="Ouvrir dans un nouvel onglet">
@@ -517,16 +506,16 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem' }}>
           Renvoyer le devis
           {form.email ? (
-            <Typography variant="body2" sx={{ color: 'var(--muted)', mt: 0.5 }}>
+            <p className="cn-text-body2 text-[var(--muted)] mt-0.5">
               À {form.email} — info@clenzy.fr en copie
-            </Typography>
+            </p>
           ) : null}
         </DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           {resend.loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <div className="flex justify-center py-6">
               <CircularProgress size={22} sx={{ color: 'var(--accent)' }} />
-            </Box>
+            </div>
           ) : (
             <>
               <TextField
@@ -587,9 +576,9 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         </DialogTitle>
         <DialogContent>
           {errorDetail?.date && (
-            <Typography sx={{ fontSize: '12px', color: 'var(--muted)', mb: 1 }}>
+            <p className="cn-text-body1 text-[12px] text-[var(--muted)] mb-1.5">
               {formatFormDate(errorDetail.date)}
-            </Typography>
+            </p>
           )}
           <Box sx={{
             fontFamily: 'monospace', fontSize: '12.5px', lineHeight: 1.6, color: 'var(--ink)',

@@ -150,38 +150,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       >
       {/* Thumbnails preview au-dessus du textarea — uniquement si attachments */}
       {attachments.length > 0 && (
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 0.75,
-            flexWrap: 'wrap',
-            alignItems: 'center',
-          }}
-        >
+        <div className="flex gap-1 flex-wrap items-center">
           {attachments.map((att, idx) => (
-            <Box
-              key={att.storageKey}
-              sx={{
-                position: 'relative',
-                width: 64,
-                height: 64,
-                borderRadius: '10px',
-                overflow: 'hidden',
-                border: '1px solid var(--line)',
-                bgcolor: 'var(--field)',
-              }}
-            >
-              <Box
-                component="img"
-                src={att.url}
-                alt={att.name ?? 'image jointe'}
-                sx={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  display: 'block',
-                }}
-              />
+            <div className="relative w-[64px] h-[64px] rounded-[10px] overflow-hidden border border-[var(--line)] bg-[var(--field)]" key={att.storageKey}>
+              <img className="w-full h-full object-cover block" src={att.url} alt={att.name ?? 'image jointe'} />
               <IconButton
                 aria-label={`Retirer ${att.name ?? 'l\'image'}`}
                 size="small"
@@ -201,12 +173,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               >
                 <XIcon size={12} />
               </IconButton>
-            </Box>
+            </div>
           ))}
           {isUploading && (
             <CircularProgress size={20} sx={{ ml: 0.5, color: 'var(--accent)' }} />
           )}
-        </Box>
+        </div>
       )}
 
       {/* Boîte .mg-cbox : champ + outils + envoi */}

@@ -103,13 +103,13 @@ export default function PublicConcierge({ apiKey }: { apiKey: string }) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, height: 52, flexShrink: 0,
             bgcolor: 'var(--accent, #5453D6)', color: 'var(--on-accent, #fff)' }}>
             <MessageCircle size={18} strokeWidth={2} />
-            <Box sx={{ flex: 1, fontWeight: 700, fontSize: 15 }}>Concierge</Box>
+            <div className="flex-1 font-bold text-[15px]">Concierge</div>
             <ButtonBase onClick={() => setOpen(false)} aria-label="Fermer" sx={{ width: 30, height: 30, borderRadius: '50%', color: 'inherit', cursor: 'pointer', '&:hover': { bgcolor: 'rgba(255,255,255,0.18)' } }}>
               <X size={18} strokeWidth={2} />
             </ButtonBase>
           </Box>
 
-          <Box ref={scrollRef} sx={{ flex: 1, overflowY: 'auto', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5" ref={scrollRef}>
             {messages.length === 0 && (
               <Box sx={{ m: 'auto', textAlign: 'center', color: 'var(--muted, #6b7280)', fontSize: 13.5, px: 2, lineHeight: 1.5 }}>
                 Bonjour ! Une question sur les logements, l'arrivée, les équipements ? Je suis là pour vous aider.
@@ -127,11 +127,11 @@ export default function PublicConcierge({ apiKey }: { apiKey: string }) {
               </Box>
             ))}
             {loading && (
-              <Box sx={{ alignSelf: 'flex-start', px: 1.5, py: 1 }}>
+              <div className="self-start px-2 py-1.5">
                 <CircularProgress size={16} sx={{ color: 'var(--muted, #6b7280)' }} />
-              </Box>
+              </div>
             )}
-          </Box>
+          </div>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.25, borderTop: '1px solid var(--line, #e5e7eb)', flexShrink: 0 }}>
             <Box

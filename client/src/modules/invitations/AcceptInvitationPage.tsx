@@ -1,20 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  CircularProgress,
-  Alert,
-  Chip,
-  ThemeProvider,
-  CssBaseline,
-  TextField,
-  Stack,
-  InputAdornment,
-  IconButton,
-} from '@mui/material';
+import { Box, Paper, Button, CircularProgress, Alert, Chip, ThemeProvider, CssBaseline, TextField, Stack, InputAdornment, IconButton } from '@mui/material';
 import {
   PersonAdd,
   CheckCircle,
@@ -60,17 +46,9 @@ function BaitlyWordmark({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
 /** Petit chip "INVITATION" uppercase letter-spacing — meme style que le sous-titre email. */
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <Typography
-      sx={{
-        fontSize: 11,
-        fontWeight: 600,
-        textTransform: 'uppercase',
-        letterSpacing: '0.12em',
-        color: '#94a3b8',
-      }}
-    >
+    <p className="cn-text-body1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#94a3b8]">
       {children}
-    </Typography>
+    </p>
   );
 }
 
@@ -349,18 +327,18 @@ export default function AcceptInvitationPage() {
           }}
         >
           {/* Wordmark Baitly minimaliste (coherent avec l'email d'invitation) */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3.5 }}>
+          <div className="flex justify-center mb-5">
             <BaitlyWordmark size="lg" />
-          </Box>
+          </div>
 
           {/* Loading */}
           {state === 'loading' && (
-            <Box sx={{ py: 4 }}>
+            <div className="py-6">
               <CircularProgress size={48} />
-              <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+              <p className="cn-text-body1 text-muted-foreground mt-3">
                 Chargement de l'invitation...
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
 
           {/* Invitation Info */}
@@ -368,104 +346,46 @@ export default function AcceptInvitationPage() {
             <>
               {/* Hero : "INVITATION" label + nom de l'organisation. Pas de gradient
                   satureee — typographie pure, comme l'email. */}
-              <Box sx={{ mb: 3.5, textAlign: 'center' }}>
+              <div className="mb-5 text-center">
                 <SectionLabel>Invitation</SectionLabel>
-                <Typography
-                  sx={{
-                    mt: 1,
-                    fontSize: 14,
-                    color: '#64748b',
-                    lineHeight: 1.5,
-                  }}
-                >
+                <p className="cn-text-body1 mt-1.5 text-[14px] text-[#64748b] leading-[1.5]">
                   Tu es invite a rejoindre l'organisation
-                </Typography>
-                <Typography
-                  sx={{
-                    mt: 0.75,
-                    fontSize: 22,
-                    fontWeight: 700,
-                    letterSpacing: '-0.01em',
-                    color: '#0f172a',
-                    lineHeight: 1.2,
-                  }}
-                >
+                </p>
+                <p className="cn-text-body1 mt-1 text-[22px] font-bold tracking-[-0.01em] text-[#0f172a] leading-[1.2]">
                   {invitation.organizationName}
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
               {/* Bloc info : Role + email + expiration, layout aere */}
-              <Box
-                sx={{
-                  mb: 3,
-                  borderTop: '1px solid #f1f5f9',
-                  borderBottom: '1px solid #f1f5f9',
-                  py: 2,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 1.5,
-                }}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 1,
-                  }}
-                >
-                  <Typography sx={{ fontSize: 13, color: '#64748b' }}>Role</Typography>
+              <div className="mb-4 border-t border-[#f1f5f9] border-b border-[#f1f5f9] py-3 flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-1.5">
+                  <p className="cn-text-body1 text-[13px] text-[#64748b]">Role</p>
                   <Chip
                     label={getRoleLabel(invitation.roleInvited)}
                     color={getRoleColor(invitation.roleInvited)}
                     size="small"
                     sx={{ height: 22, fontSize: 11, fontWeight: 600, borderRadius: 1 }}
                   />
-                </Box>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 1,
-                  }}
-                >
-                  <Typography sx={{ fontSize: 13, color: '#64748b' }}>Email</Typography>
-                  <Typography
-                    sx={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: '#0f172a',
-                      maxWidth: '60%',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                    title={invitation.invitedEmail}
-                  >
+                </div>
+                <div className="flex items-center justify-between gap-1.5">
+                  <p className="cn-text-body1 text-[13px] text-[#64748b]">Email</p>
+                  <p className="cn-text-body1 text-[13px] font-semibold text-[#0f172a] max-w-[60%] overflow-hidden text-ellipsis whitespace-nowrap" title={invitation.invitedEmail}>
                     {invitation.invitedEmail}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
                 {invitation.expiresAt && (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 1,
-                    }}
-                  >
-                    <Typography sx={{ fontSize: 13, color: '#64748b' }}>Expire</Typography>
-                    <Typography sx={{ fontSize: 13, color: '#475569' }}>
+                  <div className="flex items-center justify-between gap-1.5">
+                    <p className="cn-text-body1 text-[13px] text-[#64748b]">Expire</p>
+                    <p className="cn-text-body1 text-[13px] text-[#475569]">
                       {new Date(invitation.expiresAt).toLocaleDateString('fr-FR', {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric',
                       })}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                 )}
-              </Box>
+              </div>
 
               {isAuthenticated ? (
                 (() => {
@@ -474,7 +394,7 @@ export default function AcceptInvitationPage() {
                     && currentEmail.toLowerCase() !== invitation.invitedEmail.toLowerCase();
 
                   return emailMismatch ? (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    <div className="flex flex-col gap-2">
                       <Alert severity="warning" sx={{ textAlign: 'left' }}>
                         Vous etes connecte avec <strong>{currentEmail}</strong> mais cette
                         invitation est destinee a <strong>{invitation.invitedEmail}</strong>.
@@ -508,7 +428,7 @@ export default function AcceptInvitationPage() {
                       >
                         Se deconnecter et creer un compte
                       </Button>
-                    </Box>
+                    </div>
                   ) : (
                     <Button
                       variant="contained"
@@ -523,7 +443,7 @@ export default function AcceptInvitationPage() {
                   );
                 })()
               ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <div className="flex flex-col gap-2">
                   <Button
                     variant="outlined"
                     size="large"
@@ -544,28 +464,21 @@ export default function AcceptInvitationPage() {
                   >
                     J'ai deja un compte
                   </Button>
-                </Box>
+                </div>
               )}
             </>
           )}
 
           {/* Register form (inline, plus de redirection Keycloak) */}
           {state === 'register_form' && invitation && (
-            <Box sx={{ py: 1, textAlign: 'left' }}>
-              <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <div className="py-1.5 text-start">
+              <div className="text-center mb-4">
                 <SectionLabel>Creation de compte</SectionLabel>
-                <Typography
-                  sx={{
-                    mt: 1.25,
-                    fontSize: 14,
-                    color: '#475569',
-                    lineHeight: 1.5,
-                  }}
-                >
+                <p className="cn-text-body1 mt-2 text-[14px] text-[#475569] leading-[1.5]">
                   Rejoins <strong style={{ color: '#0f172a' }}>{invitation.organizationName}</strong>{' '}
                   en tant que {getRoleLabel(invitation.roleInvited).toLowerCase()}.
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
               {error && (
                 <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
@@ -693,34 +606,34 @@ export default function AcceptInvitationPage() {
                   Retour
                 </Button>
               </Stack>
-            </Box>
+            </div>
           )}
 
           {/* Accepting */}
           {state === 'accepting' && (
-            <Box sx={{ py: 4 }}>
+            <div className="py-6">
               <CircularProgress size={48} />
-              <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+              <p className="cn-text-body1 text-muted-foreground mt-3">
                 Acceptation en cours...
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
 
           {/* Complete Profile */}
           {state === 'complete_profile' && (
-            <Box sx={{ py: 2, textAlign: 'left' }}>
-              <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', mb: 1 }}><CheckCircle size={48} strokeWidth={1.75} /></Box>
-                <Typography variant="h6" fontWeight={700}>
+            <div className="py-3 text-start">
+              <div className="text-center mb-4">
+                <span className="inline-flex text-[var(--bui-success-ink)] mb-1.5"><CheckCircle size={48} strokeWidth={1.75} /></span>
+                <h6 className="cn-text-h6 font-bold">
                   Completez votre profil
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
+                </h6>
+                <p className="cn-text-body2 text-muted-foreground">
                   Vous avez rejoint <strong>{invitation?.organizationName}</strong>.
                   Verifiez vos informations avant de continuer.
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div className="flex flex-col gap-3">
                 <TextField
                   label="Prenom"
                   value={keycloak.tokenParsed?.given_name || ''}
@@ -751,9 +664,9 @@ export default function AcceptInvitationPage() {
                   size="small"
                   helperText="Optionnel — utile pour les notifications SMS"
                 />
-              </Box>
+              </div>
 
-              <Box sx={{ display: 'flex', gap: 1.5, mt: 3 }}>
+              <div className="flex gap-2 mt-4">
                 <Button
                   variant="contained"
                   fullWidth
@@ -763,33 +676,33 @@ export default function AcceptInvitationPage() {
                 >
                   {savingProfile ? <CircularProgress size={20} /> : 'Continuer'}
                 </Button>
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
           {/* Accepted */}
           {state === 'accepted' && (
-            <Box sx={{ py: 3 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', mb: 2 }}><CheckCircle size={64} strokeWidth={1.75} /></Box>
-              <Typography variant="h5" fontWeight={700} gutterBottom>
+            <div className="py-4">
+              <span className="inline-flex text-[var(--bui-success-ink)] mb-3"><CheckCircle size={64} strokeWidth={1.75} /></span>
+              <h5 className="cn-text-h5 font-bold mb-[0.35em]">
                 Bienvenue !
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
+              </h5>
+              <p className="cn-text-body1 text-muted-foreground">
                 Vous avez rejoint <strong>{invitation?.organizationName}</strong> avec succes.
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              </p>
+              <p className="cn-text-body2 text-muted-foreground mt-1.5">
                 Redirection vers le tableau de bord...
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
 
           {/* Error */}
           {state === 'error' && (
-            <Box sx={{ py: 3 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'error.main', mb: 2 }}><ErrorOutline size={64} strokeWidth={1.75} /></Box>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
+            <div className="py-4">
+              <span className="inline-flex text-destructive mb-3"><ErrorOutline size={64} strokeWidth={1.75} /></span>
+              <h6 className="cn-text-h6 font-semibold mb-[0.35em]">
                 Invitation non valide
-              </Typography>
+              </h6>
               <Alert severity="error" sx={{ mt: 2, textAlign: 'left' }}>
                 {error}
               </Alert>
@@ -800,7 +713,7 @@ export default function AcceptInvitationPage() {
               >
                 Retour a la connexion
               </Button>
-            </Box>
+            </div>
           )}
         </Paper>
       </Box>

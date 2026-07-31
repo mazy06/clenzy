@@ -62,7 +62,7 @@ export function SupervisionPendingAction({ action, onResolve }: SupervisionPendi
       }}
     >
       {/* En-tête : intention (validation requise) + outil concerné */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, pt: 1.25, pb: 0.75 }}>
+      <div className="flex items-center gap-1.5 px-2 pt-2 pb-1">
         <Box
           sx={{
             display: 'flex',
@@ -78,50 +78,23 @@ export function SupervisionPendingAction({ action, onResolve }: SupervisionPendi
         >
           <Gavel size={15} strokeWidth={2} />
         </Box>
-        <Box sx={{ minWidth: 0 }}>
+        <div className="min-w-0">
           <Box sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.3, color: ACCENT, textTransform: 'uppercase' }}>
             {t('supervision.approval.title', 'Validation requise')}
           </Box>
-          <Box
-            sx={{
-              fontSize: 13.5,
-              fontWeight: 700,
-              lineHeight: 1.3,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          <div className="text-[13.5px] font-bold leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap">
             {action.toolName}
-          </Box>
-        </Box>
-      </Box>
+          </div>
+        </div>
+      </div>
 
       {/* Message d'explication remonté par l'agent */}
-      <Box
-        sx={{
-          px: 1.5,
-          pb: 1.25,
-          fontSize: 12.5,
-          lineHeight: 1.5,
-          color: 'rgba(231,233,251,.82)',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-        }}
-      >
+      <div className="px-2 pb-2 text-[12.5px] leading-[1.5] text-[rgba(231,233,251,.82)] whitespace-pre-wrap break-words">
         {action.message}
-      </Box>
+      </div>
 
       {/* Décision : Refuser (secondaire) / Valider (primaire ambre) */}
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 1,
-          px: 1.5,
-          py: 1.25,
-          borderTop: '1px solid rgba(255,255,255,.1)',
-        }}
-      >
+      <div className="flex gap-1.5 px-2 py-2 border-t border-[rgba(255,255,255,.1)]">
         <DecisionButton
           variant="reject"
           disabled={submitting}
@@ -140,7 +113,7 @@ export function SupervisionPendingAction({ action, onResolve }: SupervisionPendi
               : t('supervision.approval.validate', 'Valider')
           }
         />
-      </Box>
+      </div>
     </Box>
   );
 }

@@ -1,4 +1,4 @@
-import { Box, Typography, Tooltip, LinearProgress } from '@mui/material';
+import { Typography, Tooltip, LinearProgress } from '@mui/material';
 
 const LOW = 20;
 const CRITICAL = 10;
@@ -21,7 +21,7 @@ export default function BatteryIndicator({ level }: BatteryIndicatorProps) {
 
   return (
     <Tooltip title={low ? 'Batterie faible' : 'Batterie'} arrow>
-      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.625 }}>
+      <span className="inline-flex items-center gap-1">
         <LinearProgress
           variant="determinate"
           value={level}
@@ -45,7 +45,7 @@ export default function BatteryIndicator({ level }: BatteryIndicatorProps) {
         >
           {level}%
         </Typography>
-      </Box>
+      </span>
     </Tooltip>
   );
 }

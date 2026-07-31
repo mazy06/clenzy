@@ -1,15 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  Box,
-  Typography,
-  MenuItem,
-  Alert,
-  CircularProgress,
-  Menu,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
+import { Box, MenuItem, Alert, CircularProgress, Menu, IconButton, Tooltip } from '@mui/material';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
@@ -235,12 +226,12 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     return (
       <Box sx={createSpacing.page()}>
         <Alert severity="info">
-          <Typography variant="h6" gutterBottom>
+          <h6 className="cn-text-h6 mb-[0.35em]">
             {t('interventions.errors.noPermission')}
-          </Typography>
-          <Typography variant="body1">
+          </h6>
+          <p className="cn-text-body1">
             {t('interventions.noPermissionMessage')}
-          </Typography>
+          </p>
         </Alert>
       </Box>
     );
@@ -289,7 +280,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
   ];
 
   const actionButtons = (
-    <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
+    <div className="flex gap-1 items-center">
       <ExportButton
         data={filteredInterventions}
         columns={exportColumns}
@@ -318,7 +309,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
           </IconButton>
         </Tooltip>
       )}
-    </Box>
+    </div>
   );
 
   const filterBar = (
@@ -361,7 +352,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Portal actions into parent's PageHeader when embedded */}
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
 
@@ -369,7 +360,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
       {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
 
       {!embedded && (
-        <Box sx={{ flexShrink: 0 }}>
+        <div className="shrink-0">
           <PageHeader
             title={t('interventions.title')}
             subtitle={t('interventions.subtitle')}
@@ -379,7 +370,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
             actions={actionButtons}
             filters={filterBar}
           />
-        </Box>
+        </div>
       )}
 
       {error && (
@@ -389,7 +380,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
       )}
 
       {/* ─── Liste des interventions ─────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      <div className="flex flex-col flex-1 min-h-0">
 
           {loading ? (
             <ListSkeleton rows={6} variant="row" />
@@ -432,29 +423,29 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
               navigate={navigate}
             />
           )}
-        </Box>
+        </div>
 
       {/* ─── Menus et dialogs partagés ─────────────────────────────────────── */}
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
         <MenuItem onClick={handleViewDetails} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-          <Box component="span" sx={{ display: "inline-flex", mr: 1 }}><VisibilityIcon size={18} strokeWidth={1.75} /></Box>
+          <span className="inline-flex me-1.5"><VisibilityIcon size={18} strokeWidth={1.75} /></span>
           {t('interventions.viewDetails')}
         </MenuItem>
         {(isManager() || isAdmin()) && selectedIntervention?.status === 'PENDING' && (
           <MenuItem onClick={handleOpenAssignDialog} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-            <Box component="span" sx={{ display: "inline-flex", mr: 1, color: "var(--info)" }}><AssignmentIcon size={18} strokeWidth={1.75} /></Box>
+            <span className="inline-flex me-1.5 text-[var(--info)]"><AssignmentIcon size={18} strokeWidth={1.75} /></span>
             Assigner
           </MenuItem>
         )}
         {selectedIntervention && canModifyIntervention(selectedIntervention) && (
           <MenuItem onClick={handleEdit} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-            <Box component="span" sx={{ display: "inline-flex", mr: 1 }}><EditIcon size={18} strokeWidth={1.75} /></Box>
+            <span className="inline-flex me-1.5"><EditIcon size={18} strokeWidth={1.75} /></span>
             Modifier
           </MenuItem>
         )}
         {canDeleteInterventions && (
           <MenuItem onClick={handleDelete} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-            <Box component="span" sx={{ display: "inline-flex", mr: 1 }}><DeleteIcon size={18} strokeWidth={1.75} /></Box>
+            <span className="inline-flex me-1.5"><DeleteIcon size={18} strokeWidth={1.75} /></span>
             {t('interventions.delete')}
           </MenuItem>
         )}
@@ -475,6 +466,6 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
         setAssignTargetId={setAssignTargetId}
       />
 
-    </Box>
+    </div>
   );
 }

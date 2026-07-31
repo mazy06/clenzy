@@ -40,15 +40,15 @@ type TabFilter = 'all' | 'unread' | 'intervention' | 'service_request' | 'paymen
 const NOTIFICATION_TAB_VALUES: TabFilter[] = ['all', 'unread', 'intervention', 'service_request', 'payment', 'reservation', 'system', 'contact', 'document', 'guest_messaging'];
 
 const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
-  intervention: <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Build size={18} strokeWidth={1.75} /></Box>,
-  service_request: <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Description size={18} strokeWidth={1.75} /></Box>,
-  payment: <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Payment size={18} strokeWidth={1.75} /></Box>,
-  system: <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Info size={18} strokeWidth={1.75} /></Box>,
-  team: <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><Groups size={18} strokeWidth={1.75} /></Box>,
-  contact: <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Email size={18} strokeWidth={1.75} /></Box>,
-  document: <Box component="span" sx={{ display: 'inline-flex', color: 'warning.dark' }}><Description size={18} strokeWidth={1.75} /></Box>,
-  reservation: <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><EventNote size={18} strokeWidth={1.75} /></Box>,
-  guest_messaging: <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Email size={18} strokeWidth={1.75} /></Box>,
+  intervention: <span className="inline-flex text-primary"><Build size={18} strokeWidth={1.75} /></span>,
+  service_request: <span className="inline-flex text-[var(--bui-warning-ink)]"><Description size={18} strokeWidth={1.75} /></span>,
+  payment: <span className="inline-flex text-[var(--bui-success-ink)]"><Payment size={18} strokeWidth={1.75} /></span>,
+  system: <span className="inline-flex text-[secondary.main]"><Info size={18} strokeWidth={1.75} /></span>,
+  team: <span className="inline-flex text-[info.main]"><Groups size={18} strokeWidth={1.75} /></span>,
+  contact: <span className="inline-flex text-destructive"><Email size={18} strokeWidth={1.75} /></span>,
+  document: <span className="inline-flex text-[warning.dark]"><Description size={18} strokeWidth={1.75} /></span>,
+  reservation: <span className="inline-flex text-[info.main]"><EventNote size={18} strokeWidth={1.75} /></span>,
+  guest_messaging: <span className="inline-flex text-destructive"><Email size={18} strokeWidth={1.75} /></span>,
 };
 
 function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string, lang = 'fr'): string {
@@ -195,7 +195,7 @@ export default function NotificationsPage() {
   ];
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={t('notifications.title')}
         subtitle={
@@ -224,7 +224,7 @@ export default function NotificationsPage() {
 
       {/* Pleine largeur comme les autres écrans : le padding vient du layout
           (<main> p:{xs:1.5,md:2}). Pas de maxWidth ni mx:auto (anomalie retirée). */}
-      <Box>
+      <div>
       {/* Filter Tabs */}
       <PageTabs
         options={tabs.map((tab) => ({ value: tab.value, label: tab.label }))}
@@ -257,7 +257,7 @@ export default function NotificationsPage() {
           />
         }
       >
-        <Box ref={listRef}>
+        <div ref={listRef}>
           {notifications.map((notification, index) => (
             <Box
               key={notification.id}
@@ -284,26 +284,15 @@ export default function NotificationsPage() {
               }}
             >
               {/* Icon */}
-              <Box
-                sx={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: 'action.hover',
-                  flexShrink: 0,
-                }}
-              >
+              <div className="w-[36px] h-[36px] rounded-[50%] flex items-center justify-center bg-[action.hover] shrink-0">
                 {CATEGORY_ICONS[notification.category] ?? <Info size={18} strokeWidth={1.75} />}
-              </Box>
+              </div>
 
               {/* Text */}
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1">
                   {!notification.read && (
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', flexShrink: 0 }}><Circle size={7} strokeWidth={1.75} /></Box>
+                    <span className="inline-flex text-primary shrink-0"><Circle size={7} strokeWidth={1.75} /></span>
                   )}
                   <Typography
                     variant="body2"
@@ -320,34 +309,16 @@ export default function NotificationsPage() {
                       ? t(`notifications.keys.${notification.notificationKey}`, { defaultValue: notification.title })
                       : notification.title}
                   </Typography>
-                </Box>
-                <Typography
-                  variant="body2"
-                  color="text.disabled"
-                  sx={{
-                    fontSize: '0.78rem',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    mt: 0.15,
-                  }}
-                >
+                </div>
+                <p className="cn-text-body2 text-muted-foreground opacity-60 text-[0.78rem] overflow-hidden text-ellipsis whitespace-nowrap mt-0">
                   {notification.message}
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
               {/* Time */}
-              <Typography
-                variant="caption"
-                color="text.disabled"
-                sx={{
-                  fontSize: '0.72rem',
-                  flexShrink: 0,
-                  whiteSpace: 'nowrap',
-                }}
-              >
+              <span className="cn-text-caption text-muted-foreground opacity-60 text-[0.72rem] shrink-0 whitespace-nowrap">
                 {timeAgo(notification.createdAt, t, currentLanguage)}
-              </Typography>
+              </span>
 
               {/* Delete — visible on hover */}
               <Tooltip title={t('common.delete')}>
@@ -368,7 +339,7 @@ export default function NotificationsPage() {
               </Tooltip>
             </Box>
           ))}
-        </Box>
+        </div>
         {totalElements > perPage && (
           <PagePagination
             count={totalElements}
@@ -378,7 +349,7 @@ export default function NotificationsPage() {
           />
         )}
       </DataFetchWrapper>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

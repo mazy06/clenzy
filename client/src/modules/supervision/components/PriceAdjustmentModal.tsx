@@ -8,10 +8,7 @@
    ============================================================ */
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
-  IconButton, ToggleButton, ToggleButtonGroup, Typography,
-} from '@mui/material';
+import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { Close } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Money } from '../../../components/Money';
@@ -196,19 +193,19 @@ export function PriceAdjustmentModal({
         {raise
           ? t('supervision.price.titleRaise', 'Relever les tarifs (demande forte)')
           : t('supervision.price.title', 'Ajuster les tarifs des créneaux creux')}
-        <Typography sx={{ fontSize: 12.5, color: 'text.secondary', fontWeight: 400, mt: 0.25 }}>
+        <p className="cn-text-body1 text-[12.5px] text-muted-foreground font-normal mt-0.5">
           {t('supervision.price.subtitle', '{{count}} créneau(x) · {{nights}} nuits', {
             count: segments.length, nights: totalNights,
           })}
-        </Typography>
+        </p>
       </DialogTitle>
 
       <DialogContent dividers>
         {/* Calendrier DEUX MOIS côte à côte : les créneaux proposés, une couleur par segment. */}
         <Box sx={{ display: 'flex', gap: 2.5, mb: 1.5, flexDirection: { xs: 'column', sm: 'row' } }}>
           {months.map((month, mi) => (
-            <Box key={mi} sx={{ flex: 1, minWidth: 0 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+            <div className="flex-1 min-w-0" key={mi}>
+              <div className="flex items-center justify-between mb-0.5">
                 {mi === 0 ? (
                   <Button
                     size="small"
@@ -218,10 +215,10 @@ export function PriceAdjustmentModal({
                   >
                     ‹
                   </Button>
-                ) : <Box sx={{ width: 30 }} />}
-                <Typography sx={{ fontSize: 12.5, fontWeight: 700, textTransform: 'capitalize' }}>
+                ) : <div className="w-[30px]" />}
+                <p className="cn-text-body1 text-[12.5px] font-bold capitalize">
                   {month.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
-                </Typography>
+                </p>
                 {mi === months.length - 1 ? (
                   <Button
                     size="small"
@@ -231,11 +228,11 @@ export function PriceAdjustmentModal({
                   >
                     ›
                   </Button>
-                ) : <Box sx={{ width: 30 }} />}
-              </Box>
+                ) : <div className="w-[30px]" />}
+              </div>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
                 {WEEKDAYS.map((d) => (
-                  <Box key={`wd-${mi}-${d}`} sx={{ textAlign: 'center', fontSize: 10, color: 'text.secondary', pb: 0.25 }}>{d}</Box>
+                  <div className="text-center text-[10px] text-muted-foreground pb-0.5" key={`wd-${mi}-${d}`}>{d}</div>
                 ))}
                 {monthGrid(month).flat().map((day) => {
                   const inMonth = day.getMonth() === month.getMonth();
@@ -257,15 +254,15 @@ export function PriceAdjustmentModal({
                   );
                 })}
               </Box>
-            </Box>
+            </div>
           ))}
         </Box>
 
         {/* Sélecteur de mode de saisie de la remise */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5, flexWrap: 'wrap' }}>
-          <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <p className="cn-text-body1 text-[12.5px] text-muted-foreground">
             {t('supervision.price.discountMode', 'Remise en')}
-          </Typography>
+          </p>
           <ToggleButtonGroup
             size="small"
             exclusive
@@ -279,22 +276,19 @@ export function PriceAdjustmentModal({
             <ToggleButton value="fixedAmount" sx={{ textTransform: 'none', px: 1.25 }}>{raise ? '+€' : '−€'}</ToggleButton>
           </ToggleButtonGroup>
           {!canConvert && (
-            <Typography sx={{ fontSize: 11, color: 'warning.main' }}>
+            <p className="cn-text-body1 text-[11px] text-[var(--bui-warning-ink)]">
               {t('supervision.price.simulateFirst', 'Simulez pour convertir')}
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
 
         {/* Segments éditables */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {segments.map((seg, i) => {
             const f = sim?.segments[i];
             return (
-              <Box
-                key={i}
-                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 1.25 }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <div className="border border-[divider] rounded-[1.5px] p-2" key={i}>
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <input
                     type="date"
                     aria-label={t('supervision.price.segmentFrom', 'Date de début')}
@@ -302,7 +296,7 @@ export function PriceAdjustmentModal({
                     onChange={(e) => setSegments((p) => p.map((s, idx) => idx === i ? { ...s, from: e.target.value } : s))}
                     style={{ padding: '4px 6px', borderRadius: 6, border: '1px solid var(--line, #ccc)' }}
                   />
-                  <Box sx={{ color: 'text.secondary', fontSize: 12 }}>→</Box>
+                  <div className="text-muted-foreground text-[12px]">→</div>
                   <input
                     type="date"
                     aria-label={t('supervision.price.segmentTo', 'Date de fin')}
@@ -310,7 +304,7 @@ export function PriceAdjustmentModal({
                     onChange={(e) => setSegments((p) => p.map((s, idx) => idx === i ? { ...s, to: e.target.value } : s))}
                     style={{ padding: '4px 6px', borderRadius: 6, border: '1px solid var(--line, #ccc)' }}
                   />
-                  <Box sx={{ flex: 1 }} />
+                  <div className="flex-1" />
                   <input
                     type="number"
                     aria-label={t('supervision.price.segmentValue', 'Valeur de la remise')}
@@ -319,7 +313,7 @@ export function PriceAdjustmentModal({
                     onChange={(e) => applyInput(i, Number(e.target.value))}
                     style={{ width: 76, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--line, #ccc)', textAlign: 'right' }}
                   />
-                  <Box sx={{ fontSize: 12.5, color: 'text.secondary', width: 16 }}>{modeUnit}</Box>
+                  <div className="text-[12.5px] text-muted-foreground w-[16px]">{modeUnit}</div>
                   <IconButton
                     size="small"
                     onClick={() => removeSegment(i)}
@@ -328,32 +322,32 @@ export function PriceAdjustmentModal({
                   >
                     <Close size={15} />
                   </IconButton>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.5 }}>
+                </div>
+                <div className="flex items-center gap-1 mt-0.5">
                   <Box sx={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, bgcolor: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
-                  <Typography sx={{ fontSize: 11.5, color: 'text.secondary' }}>
+                  <p className="cn-text-body1 text-[11.5px] text-muted-foreground">
                     {fmt(seg.from)}→{fmt(seg.to)} · {nights(seg.from, seg.to)} {t('supervision.price.nights', 'nuits')} · {raise ? '+' : '−'}{seg.percent}%
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
                 {f && (
-                  <Typography sx={{ fontSize: 11.5, color: 'text.primary', mt: 0.5, fontVariantNumeric: 'tabular-nums' }}>
+                  <p className="cn-text-body1 text-[11.5px] text-foreground mt-0.5 tabular-nums">
                     {t('supervision.price.occ', 'Occupation')} {Math.round(f.baseline.occupancyRate * 100)}%
                     {' → '}<b>{Math.round(f.scenario.occupancyRate * 100)}%</b>
                     {'  ·  '}{t('supervision.price.revenue', 'Revenu')} <Money value={f.deltaRevenue} from="EUR" decimals={0} />
-                  </Typography>
+                  </p>
                 )}
-              </Box>
+              </div>
             );
           })}
-        </Box>
+        </div>
 
         {/* Cumul de la prévision */}
         {sim && (
-          <Box sx={{ mt: 1.5, p: 1.25, bgcolor: 'action.hover', borderRadius: 1.5 }}>
-            <Typography sx={{ fontSize: 12.5, fontWeight: 700 }}>
+          <div className="mt-2 p-2 bg-[action.hover] rounded-[1.5px]">
+            <p className="cn-text-body1 text-[12.5px] font-bold">
               {t('supervision.price.forecastTotal', 'Prévision cumulée')}
-            </Typography>
-            <Typography sx={{ fontSize: 12.5, mt: 0.25, fontVariantNumeric: 'tabular-nums' }}>
+            </p>
+            <p className="cn-text-body1 text-[12.5px] mt-0.5 tabular-nums">
               {t('supervision.price.revenue', 'Revenu')} <Money value={sim.totalBaselineRevenue} from="EUR" decimals={0} />
               {' → '}<b><Money value={sim.totalScenarioRevenue} from="EUR" decimals={0} /></b>
               {'  ('}
@@ -361,11 +355,11 @@ export function PriceAdjustmentModal({
                 {sim.totalDeltaRevenue >= 0 ? '+' : ''}<Money value={sim.totalDeltaRevenue} from="EUR" decimals={0} />
               </Box>
               {')'}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
 
-        {error && <Typography sx={{ fontSize: 12, color: 'error.main', mt: 1 }}>{error}</Typography>}
+        {error && <p className="cn-text-body1 text-[12px] text-destructive mt-1.5">{error}</p>}
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 1.5 }}>

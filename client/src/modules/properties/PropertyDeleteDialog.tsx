@@ -1,7 +1,5 @@
 import React from 'react';
-import {
-  Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface PropertyDeleteDialogProps {
@@ -23,9 +21,9 @@ const PropertyDeleteDialog: React.FC<PropertyDeleteDialogProps> = ({
         {t('properties.confirmDelete')}
       </DialogTitle>
       <DialogContent>
-        <Typography sx={{ fontSize: '13px', color: 'var(--body)' }}>
+        <p className="cn-text-body1 text-[13px] text-[var(--body)]">
           {t('properties.confirmDeleteMessage', { name: propertyName })}
-        </Typography>
+        </p>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} size="small" variant="text">

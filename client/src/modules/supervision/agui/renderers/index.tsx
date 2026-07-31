@@ -143,9 +143,9 @@ const KeyValueFallback: React.FC<{ data: unknown }> = ({ data }) => {
   // Chaîne brute (tool non-JSON) → petite note texte.
   if (typeof data === 'string') {
     return (
-      <Box sx={{ mt: 1, mb: 1.5, px: 1.5, py: 1.25, borderRadius: '10px', border: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
-        <Typography sx={{ fontSize: '12.5px', color: 'var(--body)', whiteSpace: 'pre-wrap' }}>{data}</Typography>
-      </Box>
+      <div className="mt-1.5 mb-2 px-2 py-2 rounded-[10px] border border-[var(--line)] bg-[var(--card)]">
+        <p className="cn-text-body1 text-[12.5px] text-[var(--body)] whitespace-pre-wrap">{data}</p>
+      </div>
     );
   }
 
@@ -164,7 +164,7 @@ const KeyValueFallback: React.FC<{ data: unknown }> = ({ data }) => {
   if (entries.length === 0) return null;
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5, p: 1.5, borderRadius: '10px', border: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
+    <div className="mt-1.5 mb-2 p-2 rounded-[10px] border border-[var(--line)] bg-[var(--card)]">
       {entries.map(([k, v], idx) => (
         <Box
           key={k}
@@ -173,11 +173,11 @@ const KeyValueFallback: React.FC<{ data: unknown }> = ({ data }) => {
           <Typography sx={{ flex: '0 0 38%', color: 'var(--muted)', fontSize: '11.5px' }}>
             {humanizeKey(k)}
           </Typography>
-          <Typography sx={{ flex: 1, fontSize: '12.5px', color: 'var(--body)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
+          <p className="cn-text-body1 flex-1 text-[12.5px] text-[var(--body)] font-medium tabular-nums">
             {String(v)}
-          </Typography>
+          </p>
         </Box>
       ))}
-    </Box>
+    </div>
   );
 };

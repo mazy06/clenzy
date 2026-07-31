@@ -52,7 +52,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         py: 1.5,
       }}
     >
-      <Box sx={{ px: 1.5, pb: 1 }}>
+      <div className="px-2 pb-1.5">
         {/* Soft accent (réf .s-btn--soft) : fond accent-soft + texte accent */}
         <Button
           fullWidth
@@ -77,7 +77,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         >
           Nouvelle conversation
         </Button>
-      </Box>
+      </div>
 
       <Box
         sx={{
@@ -95,16 +95,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         {loading && conversations.length === 0 && <SkeletonList />}
 
         {!loading && conversations.length === 0 && (
-          <Box
-            sx={{
-              px: 1.5,
-              py: 3,
-              textAlign: 'center',
-              color: 'var(--muted)',
-              fontSize: '12.5px',
-              lineHeight: 1.5,
-            }}
-          >
+          <div className="px-2 py-4 text-center text-[var(--muted)] text-[12.5px] leading-[1.5]">
             <MessageIcon
               size={20}
               strokeWidth={1.5}
@@ -114,26 +105,14 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
             <div style={{ color: 'var(--faint)', marginTop: 2 }}>
               Lance ta premiere question.
             </div>
-          </Box>
+          </div>
         )}
 
         {grouped.map((group) => (
-          <Box key={group.label} sx={{ mb: 1.5 }}>
-            <Typography
-              sx={{
-                display: 'block',
-                px: 1.5,
-                pt: 1,
-                pb: 0.5,
-                fontSize: '10.5px',
-                letterSpacing: '.06em',
-                textTransform: 'uppercase',
-                fontWeight: 700,
-                color: 'var(--faint)',
-              }}
-            >
+          <div className="mb-2" key={group.label}>
+            <p className="cn-text-body1 block px-2 pt-1.5 pb-0.5 text-[10.5px] tracking-[.06em] uppercase font-bold text-[var(--faint)]">
               {group.label}
-            </Typography>
+            </p>
             {group.items.map((conv) => (
               <ConversationItem
                 key={conv.id}
@@ -143,7 +122,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                 onArchive={onArchive}
               />
             ))}
-          </Box>
+          </div>
         ))}
       </Box>
     </Box>
@@ -207,7 +186,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
         '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
       }}
     >
-      <Box sx={{ flex: 1, minWidth: 0 }}>
+      <div className="flex-1 min-w-0">
         <Typography
           sx={{
             fontSize: '12.5px',
@@ -221,7 +200,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
         >
           {title}
         </Typography>
-      </Box>
+      </div>
 
       <Tooltip title="Archiver" placement="right" enterDelay={400}>
         <IconButton
@@ -252,17 +231,9 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
 
 const SkeletonList: React.FC = () => {
   return (
-    <Box sx={{ px: 0.5, pt: 1 }}>
+    <div className="px-0.5 pt-1.5">
       {[80, 65, 75].map((width) => (
-        <Box
-          key={width}
-          sx={{
-            mx: 0.5,
-            mb: 0.5,
-            py: 1,
-            px: 1.25,
-          }}
-        >
+        <div className="mx-0.5 mb-0.5 py-1.5 px-2" key={width}>
           <Box
             sx={{
               width: `${width}%`,
@@ -271,9 +242,9 @@ const SkeletonList: React.FC = () => {
               bgcolor: 'var(--hover)',
             }}
           />
-        </Box>
+        </div>
       ))}
-    </Box>
+    </div>
   );
 };
 

@@ -16,10 +16,7 @@
    ============================================================ */
 
 import React, { useCallback } from 'react';
-import {
-  Box, Typography, Button, Chip, Switch, Select, MenuItem, TextField, FormControl,
-  Card, Tooltip,
-} from '@mui/material';
+import { Box, Button, Chip, Switch, Select, MenuItem, TextField, FormControl, Card, Tooltip } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -130,18 +127,18 @@ const ConstellationAutoRulesSection: React.FC = () => {
     );
 
   return (
-    <Box sx={{ mt: 4 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--ink)' }}>
+    <div className="mt-6">
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <p className="cn-text-body1 text-[0.95rem] font-semibold text-[var(--ink)]">
           {t('automation.constellation.title', 'Constellation — actions automatiques')}
-        </Typography>
-      </Box>
-      <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mb: 1.5 }}>
+        </p>
+      </div>
+      <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground mb-2">
         {t(
           'automation.constellation.subtitle',
           'Les agents appliquent eux-mêmes certaines actions sûres, sous enveloppe. Le niveau de chaque agent reste le plafond ; hors enveloppe, une carte à valider est créée comme aujourd’hui.',
         )}
-      </Typography>
+      </p>
 
       <Card sx={{ overflowX: 'auto' }}>
         {rules.map((rule, idx) => {
@@ -179,36 +176,36 @@ const ConstellationAutoRulesSection: React.FC = () => {
                 </span>
               </Tooltip>
 
-              <Box sx={{ minWidth: 0 }}>
-                <Typography noWrap sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink)' }}>
+              <div className="min-w-0">
+                <p className="cn-text-body1 truncate text-[0.8125rem] font-semibold text-[var(--ink)]">
                   {t(`automation.constellation.types.${rule.actionType}.label`, rule.actionType)}
-                </Typography>
-                <Typography noWrap sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                </p>
+                <p className="cn-text-body1 truncate text-[0.6875rem] text-muted-foreground">
                   {t(`automation.constellation.types.${rule.actionType}.description`, '')}
-                </Typography>
+                </p>
                 {t(`automation.constellation.types.${rule.actionType}.conditions`, '') !== '' && (
-                  <Typography noWrap sx={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>
+                  <p className="cn-text-body1 truncate text-[0.6875rem] text-[var(--muted)]">
                     {t(`automation.constellation.types.${rule.actionType}.conditions`, '')}
-                  </Typography>
+                  </p>
                 )}
                 {cappedToSuggest && (
-                  <Typography sx={{ fontSize: '0.6875rem', color: 'var(--warn)', fontWeight: 600 }}>
+                  <p className="cn-text-body1 text-[0.6875rem] text-[var(--warn)] font-semibold">
                     {t('automation.constellation.cappedBySuggest',
                       'Plafonné par le niveau de l’agent {{agent}} : Suggestion',
                       { agent: moduleLabel })}
-                  </Typography>
+                  </p>
                 )}
                 {!cappedToSuggest && ceiling === 'notify' && rule.level === 'full' && (
-                  <Typography sx={{ fontSize: '0.6875rem', color: 'var(--warn)', fontWeight: 600 }}>
+                  <p className="cn-text-body1 text-[0.6875rem] text-[var(--warn)] font-semibold">
                     {t('automation.constellation.cappedByNotify',
                       'Plafonné par le niveau de l’agent {{agent}} : Agir puis notifier',
                       { agent: moduleLabel })}
-                  </Typography>
+                  </p>
                 )}
                 {/* Règles de Confiance (V3) : recommandation « gagnée par l'historique »
                     — INERTE, l'humain active ou ignore. Jamais sur un type déjà ON. */}
                 {!rule.enabled && rule.suggestedAt && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.5 }}>
+                  <div className="flex items-center gap-1 mt-0.5">
                     <Chip
                       label={t('automation.constellation.recommended',
                         'Recommandé — {{count}} approbations consécutives',
@@ -238,9 +235,9 @@ const ConstellationAutoRulesSection: React.FC = () => {
                         </Button>
                       </>
                     )}
-                  </Box>
+                  </div>
                 )}
-              </Box>
+              </div>
 
               <Chip label={moduleLabel} size="small" sx={pillSx('var(--accent-soft)', 'var(--accent)')} />
 
@@ -307,13 +304,13 @@ const ConstellationAutoRulesSection: React.FC = () => {
                   sx={{ width: 148 }}
                 />
               ) : (
-                <Box />
+                <div />
               )}
             </Box>
           );
         })}
       </Card>
-    </Box>
+    </div>
   );
 };
 

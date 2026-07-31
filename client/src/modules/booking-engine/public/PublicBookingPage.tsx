@@ -228,10 +228,10 @@ export default function PublicBookingPage() {
   if (error) {
     return (
       <Centered>
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, color: 'var(--muted)' }}>
+        <div className="flex flex-col items-center gap-2 text-[var(--muted)]">
           <AlertTriangle size={32} strokeWidth={1.75} />
-          <Box sx={{ fontSize: 'var(--text-md)' }}>{error}</Box>
-        </Box>
+          <div className="text-[var(--text-md)]">{error}</div>
+        </div>
       </Centered>
     );
   }
@@ -266,10 +266,10 @@ export default function PublicBookingPage() {
           HOME GrapesJS embarque déjà ses propres marqueurs hydratés (évite le doublon bookable). */}
       {!homeHasWidgets && (
         <Box id="reserver" sx={{ maxWidth: 1040, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 4, md: 6 } }}>
-          <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', fontWeight: 'var(--fw-bold)', textAlign: 'center', mb: 3 }}>
+          <div className="font-[var(--font-display)] text-[var(--text-2xl)] font-[var(--fw-bold)] text-center mb-4">
             Réservez votre séjour
-          </Box>
-          <Box ref={widgetHostRef} />
+          </div>
+          <div ref={widgetHostRef} />
         </Box>
       )}
 
@@ -282,26 +282,26 @@ export default function PublicBookingPage() {
 function ReviewsSection({ data }: { data: PublicReviews }) {
   return (
     <Box sx={{ maxWidth: 1040, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 4, md: 6 } }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 3 }}>
+      <div className="flex items-center justify-center gap-1.5 mb-4">
         <Star size={22} fill="var(--accent)" color="var(--accent)" />
-        <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', fontWeight: 'var(--fw-bold)', color: 'var(--ink)' }}>
+        <div className="font-[var(--font-display)] text-[var(--text-2xl)] font-[var(--fw-bold)] text-[var(--ink)]">
           {data.stats.averageRating.toFixed(1)}
-        </Box>
-        <Box sx={{ color: 'var(--muted)', fontSize: 'var(--text-md)' }}>· {data.stats.totalCount} avis</Box>
-      </Box>
+        </div>
+        <div className="text-[var(--muted)] text-[var(--text-md)]">· {data.stats.totalCount} avis</div>
+      </div>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
         {data.reviews.map((r, i) => (
-          <Box key={i} sx={{ p: 2, border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', bgcolor: 'var(--bg)' }}>
-            <Box sx={{ display: 'flex', gap: 0.25, mb: 1 }}>
+          <div className="p-3 border border-[var(--line)] rounded-[var(--radius-lg)] bg-[var(--bg)]" key={i}>
+            <div className="flex gap-0.5 mb-1.5">
               {Array.from({ length: 5 }).map((_, s) => (
                 <Star key={s} size={14} color="var(--accent)" fill={s < r.rating ? 'var(--accent)' : 'none'} />
               ))}
-            </Box>
+            </div>
             {r.reviewText && (
-              <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--body)', lineHeight: 1.5, mb: 1 }}>{r.reviewText}</Box>
+              <div className="text-[var(--text-md)] text-[var(--body)] leading-[1.5] mb-1.5">{r.reviewText}</div>
             )}
-            <Box sx={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>{r.guestName}</Box>
-          </Box>
+            <div className="text-[var(--text-sm)] font-[var(--fw-semibold)] text-[var(--ink)]">{r.guestName}</div>
+          </div>
         ))}
       </Box>
     </Box>
@@ -310,8 +310,8 @@ function ReviewsSection({ data }: { data: PublicReviews }) {
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'var(--bg)', p: 3 }}>
+    <div className="min-h-[100vh] flex items-center justify-center bg-[var(--bg)] p-4">
       {children}
-    </Box>
+    </div>
   );
 }

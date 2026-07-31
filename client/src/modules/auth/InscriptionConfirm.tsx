@@ -2,19 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import {
-  Box,
-  Paper,
-  TextField,
-  Button,
-  Typography,
-  Stack,
-  Alert,
-  CircularProgress,
-  Chip,
-  ThemeProvider,
-  CssBaseline,
-} from '@mui/material';
+import { Box, Paper, TextField, Button, Stack, Alert, CircularProgress, Chip, ThemeProvider, CssBaseline } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -186,46 +174,38 @@ export default function InscriptionConfirm() {
           }}
         >
           {/* Logo */}
-          <Box sx={{ mb: 2 }}>
+          <div className="mb-3">
             <BaitlyMarkLogo scale={1.1} />
-          </Box>
+          </div>
 
           {/* Loading */}
           {status === 'loading' && (
-            <Box sx={{ py: 4 }}>
+            <div className="py-6">
               <CircularProgress sx={{ color: 'primary.main', mb: 2 }} />
-              <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+              <p className="cn-text-body1 font-medium text-muted-foreground">
                 {t('auth.inscriptionConfirm.loadingLink', 'Verification du lien...')}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
 
           {/* Formulaire de creation de mot de passe */}
           {(status === 'ready' || status === 'submitting') && info && (
-            <Box sx={{ py: 2, textAlign: 'left' }}>
-              <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, textAlign: 'center', color: 'text.primary' }}>
+            <div className="py-3 text-start">
+              <h5 className="cn-text-h5 font-bold mb-1.5 text-center text-foreground">
                 {t('auth.inscriptionConfirm.createPasswordTitle', 'Creez votre mot de passe')}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3, textAlign: 'center' }}>
+              </h5>
+              <p className="cn-text-body2 text-muted-foreground mb-4 text-center">
                 {t('auth.inscriptionConfirm.createPasswordSubtitle', 'Derniere etape pour finaliser votre inscription.')}
-              </Typography>
+              </p>
 
               {/* Banner avec infos utilisateur */}
-              <Box
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  backgroundColor: 'rgba(166,192,206,0.1)',
-                  border: '1px solid rgba(166,192,206,0.3)',
-                  mb: 3,
-                }}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              <div className="p-3 rounded-[2px] bg-[rgba(166,192,206,0.1)] border border-[rgba(166,192,206,0.3)] mb-4">
+                <p className="cn-text-body2 font-semibold">
                   {info.fullName}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
+                </p>
+                <p className="cn-text-body2 text-muted-foreground">
                   {info.email}
-                </Typography>
+                </p>
                 {info.forfait && (
                   <Chip
                     label={t('auth.inscriptionConfirm.forfaitChip', `Forfait ${getForfaitShortLabel(t, info.forfait)}`, {
@@ -241,7 +221,7 @@ export default function InscriptionConfirm() {
                     }}
                   />
                 )}
-              </Box>
+              </div>
 
               {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
@@ -308,12 +288,12 @@ export default function InscriptionConfirm() {
                     : t('auth.inscriptionConfirm.submit', 'Creer mon mot de passe')}
                 </Button>
               </Stack>
-            </Box>
+            </div>
           )}
 
           {/* Succes */}
           {status === 'success' && (
-            <Box sx={{ py: 3 }}>
+            <div className="py-4">
               <Box
                 component="span"
                 sx={{
@@ -330,26 +310,26 @@ export default function InscriptionConfirm() {
               >
                 <CheckCircleIcon size={72} strokeWidth={1.75} />
               </Box>
-              <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: 'text.primary' }}>
+              <h5 className="cn-text-h5 font-bold mb-1.5 text-foreground">
                 {t('auth.inscriptionConfirm.successTitle', 'Inscription finalisee !')}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+              </h5>
+              <p className="cn-text-body2 text-muted-foreground mb-3">
                 {t('auth.inscriptionConfirm.successBody', 'Votre compte a ete cree avec succes. Redirection vers votre tableau de bord...')}
-              </Typography>
+              </p>
               <CircularProgress size={24} sx={{ color: 'primary.main' }} />
-            </Box>
+            </div>
           )}
 
           {/* Deja finalise */}
           {status === 'already_completed' && (
-            <Box sx={{ py: 3 }}>
-              <Box component="span" sx={{ display: 'inline-flex', mb: 2, color: 'primary.main' }}><CheckCircleIcon size={64} strokeWidth={1.75} color='currentColor' /></Box>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+            <div className="py-4">
+              <span className="inline-flex mb-3 text-primary"><CheckCircleIcon size={64} strokeWidth={1.75} color='currentColor' /></span>
+              <h6 className="cn-text-h6 font-semibold mb-1.5">
                 {t('auth.inscriptionConfirm.alreadyCompletedTitle', 'Inscription deja finalisee')}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+              </h6>
+              <p className="cn-text-body2 text-muted-foreground mb-4">
                 {t('auth.inscriptionConfirm.alreadyCompletedBody', 'Votre compte a deja ete cree. Vous pouvez vous connecter avec vos identifiants.')}
-              </Typography>
+              </p>
               <Button
                 variant="contained"
                 startIcon={<LoginIcon />}
@@ -364,19 +344,19 @@ export default function InscriptionConfirm() {
               >
                 {t('auth.inscriptionConfirm.loginButton', 'Se connecter')}
               </Button>
-            </Box>
+            </div>
           )}
 
           {/* Token expire */}
           {status === 'expired' && (
-            <Box sx={{ py: 3 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main', mb: 2 }}><ErrorOutline size={64} strokeWidth={1.75} /></Box>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+            <div className="py-4">
+              <span className="inline-flex text-[var(--bui-warning-ink)] mb-3"><ErrorOutline size={64} strokeWidth={1.75} /></span>
+              <h6 className="cn-text-h6 font-semibold mb-1.5">
                 {t('auth.inscriptionConfirm.expiredTitle', 'Lien expire')}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+              </h6>
+              <p className="cn-text-body2 text-muted-foreground mb-4">
                 {t('auth.inscriptionConfirm.expiredBody', 'Le lien de confirmation a expire. Veuillez contacter le support pour obtenir un nouveau lien.')}
-              </Typography>
+              </p>
               <Button
                 variant="outlined"
                 onClick={() => navigate('/login')}
@@ -388,19 +368,19 @@ export default function InscriptionConfirm() {
               >
                 {t('auth.common.backToLogin', 'Retour a la connexion')}
               </Button>
-            </Box>
+            </div>
           )}
 
           {/* Erreur generique */}
           {status === 'error' && (
-            <Box sx={{ py: 3 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'error.main', mb: 2 }}><ErrorOutline size={64} strokeWidth={1.75} /></Box>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+            <div className="py-4">
+              <span className="inline-flex text-destructive mb-3"><ErrorOutline size={64} strokeWidth={1.75} /></span>
+              <h6 className="cn-text-h6 font-semibold mb-1.5">
                 {t('auth.inscriptionConfirm.errorTitle', 'Lien invalide')}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+              </h6>
+              <p className="cn-text-body2 text-muted-foreground mb-4">
                 {error || t('auth.inscriptionConfirm.errorBody', 'Le lien de confirmation est invalide. Veuillez contacter le support.')}
-              </Typography>
+              </p>
               <Button
                 variant="outlined"
                 onClick={() => navigate('/login')}
@@ -412,7 +392,7 @@ export default function InscriptionConfirm() {
               >
                 {t('auth.common.backToLogin', 'Retour a la connexion')}
               </Button>
-            </Box>
+            </div>
           )}
         </Paper>
       </Box>

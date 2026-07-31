@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Switch, Typography } from '@mui/material';
+import { Box, Switch } from '@mui/material';
 
 /**
  * Primitives de formulaire partagées par les onglets « Réservation & accueil »
@@ -13,23 +13,15 @@ export const SectionHeading: React.FC<{ icon: React.ReactNode; title: string; ac
   title,
   actions,
 }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1.25 }}>
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-      <Box sx={{ flexShrink: 0, display: 'flex', color: 'var(--faint)' }}>{icon}</Box>
-      <Typography
-        sx={{
-          fontSize: '10.5px',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '.06em',
-          color: 'var(--faint)',
-        }}
-      >
+  <div className="flex items-center justify-between gap-1.5 mb-2">
+    <div className="flex items-center gap-1.5 min-w-0">
+      <div className="shrink-0 flex text-[var(--faint)]">{icon}</div>
+      <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
         {title}
-      </Typography>
-    </Box>
-    {actions ? <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>{actions}</Box> : null}
-  </Box>
+      </p>
+    </div>
+    {actions ? <div className="flex gap-0.5 shrink-0">{actions}</div> : null}
+  </div>
 );
 
 /** État vide compact d'une section : encart pointillé discret + icône + texte court. */
@@ -46,10 +38,10 @@ export const EmptyHint: React.FC<{ icon: React.ReactNode; text: string }> = ({ i
       bgcolor: 'var(--hover)',
     }}
   >
-    <Box sx={{ flexShrink: 0, display: 'flex', color: 'var(--faint)' }}>{icon}</Box>
-    <Typography sx={{ fontSize: '12.5px', lineHeight: 1.5, color: 'var(--muted)' }}>
+    <div className="shrink-0 flex text-[var(--faint)]">{icon}</div>
+    <p className="cn-text-body1 text-[12.5px] leading-[1.5] text-[var(--muted)]">
       {text}
-    </Typography>
+    </p>
   </Box>
 );
 
@@ -61,16 +53,16 @@ export const ToggleRow: React.FC<{
   checked: boolean;
   onChange: (v: boolean) => void;
 }> = ({ icon, label, description, checked, onChange }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.25 }}>
-    <Box sx={{ flexShrink: 0, display: 'flex', color: 'text.secondary' }}>{icon}</Box>
-    <Box sx={{ flex: 1, minWidth: 0 }}>
-      <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
+  <div className="flex items-center gap-2 py-2">
+    <div className="shrink-0 flex text-muted-foreground">{icon}</div>
+    <div className="flex-1 min-w-0">
+      <p className="cn-text-body2 font-semibold leading-[1.3]">
         {label}
-      </Typography>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.3 }}>
+      </p>
+      <span className="cn-text-caption text-muted-foreground block leading-[1.3]">
         {description}
-      </Typography>
-    </Box>
+      </span>
+    </div>
     <Switch checked={checked} onChange={(e) => onChange(e.target.checked)} />
-  </Box>
+  </div>
 );

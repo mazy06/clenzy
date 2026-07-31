@@ -1,10 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import {
-  Drawer,
-  Box,
-  IconButton,
-  useTheme,
-} from '@mui/material';
+import { Drawer, Box, IconButton, useTheme } from '@mui/material';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -365,34 +360,11 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
       }}
     >
       {/* ─── Entête : titre display + sous-titre séjour + ✕ pastille ──── */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 1,
-          px: 2,
-          py: 1.5,
-          borderBottom: '1px solid var(--line)',
-        }}
-      >
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Box
-            component="span"
-            sx={{
-              display: 'block',
-              fontFamily: 'var(--font-display)',
-              fontSize: '0.9375rem',
-              fontWeight: 700,
-              color: 'var(--ink)',
-              lineHeight: 1.25,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+      <div className="flex items-center justify-between gap-1.5 px-3 py-2 border-b border-[var(--line)]">
+        <div className="min-w-0 flex-1">
+          <span className="block font-[var(--font-display)] text-[0.9375rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
             {headerTitle}
-          </Box>
+          </span>
           <Box
             component="span"
             sx={{
@@ -405,7 +377,7 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
           >
             {formatStayRange(event.startDate, event.endDate)}
           </Box>
-        </Box>
+        </div>
         <IconButton
           size="small"
           onClick={onClose}
@@ -423,13 +395,13 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
         >
           <Close size={14} strokeWidth={1.75} />
         </IconButton>
-      </Box>
+      </div>
 
       {/* ─── Onglets niveau 1 (soulignés accent, style PageTabs) ──────── */}
       {isSubView ? (
         <PanelSubViewHeader title={getSubViewTitle(currentView)} onBack={popView} />
       ) : (
-        <Box sx={{ px: 1 }}>
+        <div className="px-1.5">
           <PageTabs<PanelTab>
             options={tabConfig.map((tab) => ({ value: tab.value, label: tab.label, icon: tab.icon }))}
             value={activeTab}
@@ -439,7 +411,7 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
             mb={0}
             ariaLabel="Onglets du détail"
           />
-        </Box>
+        </div>
       )}
 
       {/* Content */}

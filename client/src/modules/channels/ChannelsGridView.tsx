@@ -105,12 +105,7 @@ function OtaLogo({ channel }: { channel: OtaChannel }) {
       }}
     >
       {channel.logo ? (
-        <Box
-          component="img"
-          src={channel.logo}
-          alt={channel.name}
-          sx={{ height: 24, objectFit: 'contain', maxWidth: 120 }}
-        />
+        <img className="h-[24px] object-contain max-w-[120px]" src={channel.logo} alt={channel.name} />
       ) : (
         <Typography
           sx={{
@@ -202,23 +197,17 @@ function OtaChannelCard({
       {/* Card content */}
       <Box sx={OTA_CARD_CONTENT_SX}>
         {/* Channel name */}
-        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink)' }}>
+        <p className="cn-text-body1 font-[var(--font-display)] text-[0.875rem] font-semibold text-[var(--ink)]">
           {channel.name}
-        </Typography>
+        </p>
 
         {/* Description */}
-        <Typography sx={{
-          fontSize: '0.71875rem',
-          color: 'var(--muted)',
-          lineHeight: 1.5,
-          flex: 1,
-          minHeight: 32,
-        }}>
+        <p className="cn-text-body1 text-[0.71875rem] text-[var(--muted)] leading-[1.5] flex-1 min-h-[32px]">
           {t(channel.descriptionKey)}
-        </Typography>
+        </p>
 
         {/* Action button */}
-        <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
+        <div className="mt-auto flex justify-end">
           {isAvailable && !isConnected && (
             <Button
               size="small"
@@ -247,7 +236,7 @@ function OtaChannelCard({
               {t('channels.ota.comingSoon')}
             </Button>
           )}
-        </Box>
+        </div>
       </Box>
     </Box>
   );

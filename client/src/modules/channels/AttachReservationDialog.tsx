@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Autocomplete,
-  TextField,
-  Button,
-  CircularProgress,
-  Typography,
-  Alert,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, TextField, Button, CircularProgress, Alert } from '@mui/material';
 import { reservationsApi, type Reservation } from '../../services/api/reservationsApi';
 import { useAttachToReservation } from '../../hooks/useConversations';
 import { formatPhoneNumber } from '../../utils/formatPhone';
@@ -86,10 +75,10 @@ export default function AttachReservationDialog({
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600 }}>Rattacher à une réservation</DialogTitle>
       <DialogContent>
-        <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mb: 2 }}>
+        <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground mb-3">
           Reliez le numéro {phone ? <strong>{phone}</strong> : 'de ce contact'} à sa réservation.
           Le numéro sera mémorisé sur le guest : ses prochains messages WhatsApp seront reconnus automatiquement.
-        </Typography>
+        </p>
         <Autocomplete<Reservation>
           options={options}
           loading={loading}

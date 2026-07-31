@@ -314,7 +314,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
       {/* Header */}
       <Box sx={HEADER_SX}>
         <Box sx={TITLE_ROW_SX}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CleaningServices size={20} strokeWidth={1.75} /></Box>
+          <span className="inline-flex text-[var(--accent)]"><CleaningServices size={20} strokeWidth={1.75} /></span>
           <Typography sx={TITLE_SX}>
             {t('properties.priceEstimation.title')}
           </Typography>
@@ -322,7 +322,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
 
         {preview && (
           <Box sx={BADGE_SX}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><TrendingUp size={13} strokeWidth={1.75} /></Box>
+            <span className="inline-flex text-[var(--muted)]"><TrendingUp size={13} strokeWidth={1.75} /></span>
             <Typography sx={PER_LABEL_SX}>
               {t('properties.cleaningEstimator.engineBadge')}
             </Typography>
@@ -333,18 +333,18 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
       {/* Duration banner — durée normée du moteur pour le type sélectionné */}
       {selectedQuote != null && (
         <Box sx={DURATION_BANNER_SX}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={20} strokeWidth={1.75} /></Box>
-          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
+          <span className="inline-flex text-[var(--accent)]"><Timer size={20} strokeWidth={1.75} /></span>
+          <div className="flex items-baseline gap-1">
             <Typography sx={DURATION_VALUE_SX}>
               {formatDuration(selectedQuote.durationMinutes)}
             </Typography>
             <Typography sx={DURATION_LABEL_SX}>
               {t('properties.durationEstimation.title')}
             </Typography>
-          </Box>
-          <Typography sx={{ fontSize: '10.5px', color: 'var(--muted)', fontStyle: 'italic', ml: 'auto' }}>
+          </div>
+          <p className="cn-text-body1 text-[10.5px] text-[var(--muted)] italic ms-auto">
             {t('properties.durationEstimation.computed')}
-          </Typography>
+          </p>
         </Box>
       )}
 
@@ -380,7 +380,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
                   }}
                   sx={isSelected ? PRICE_CARD_SELECTED_SX : PRICE_CARD_SX}
                 >
-                  {isSelected && <Box component="span" sx={{ position: 'absolute', top: 6, right: 6, display: 'inline-flex', color: 'var(--accent)' }}><CheckCircle size={18} strokeWidth={1.75} /></Box>}
+                  {isSelected && <span className="absolute top-[6px] end-[6px] inline-flex text-[var(--accent)]"><CheckCircle size={18} strokeWidth={1.75} /></span>}
                   <Chip
                     label={t(`properties.priceEstimation.cleaningTypes.${type}`)}
                     size="small"
@@ -410,16 +410,16 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
 
           {/* Adopter la médiane CLEANING comme prix du logement */}
           {recommendedStandard != null && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mt: 2 }}>
+            <div className="flex items-center gap-2 mt-3">
               {adopted ? (
-                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                <div className="inline-flex items-center gap-1">
                   <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok, var(--accent))' }}>
                     <CheckCircle size={15} strokeWidth={1.75} />
                   </Box>
-                  <Typography sx={{ fontSize: '12px', fontWeight: 600, color: 'var(--body)' }}>
+                  <p className="cn-text-body1 text-[12px] font-semibold text-[var(--body)]">
                     {t('properties.cleaningEstimator.adopted')}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
               ) : (
                 <Box
                   component="button"
@@ -432,32 +432,32 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
                 </Box>
               )}
               {cleaningBasePrice != null && Number(cleaningBasePrice) > 0 && !adopted && (
-                <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums">
                   {t('properties.cleaningEstimator.currentBasePrice')} : <Money value={Number(cleaningBasePrice)} from="EUR" decimals={0} />
-                </Typography>
+                </p>
               )}
-            </Box>
+            </div>
           )}
 
           {/* Décomposition minutes — transparence du conseil (pattern price book) */}
           {breakdownEntries.length > 0 && (
             <Box sx={BREAKDOWN_SX}>
               <Box sx={{ ...BREAKDOWN_ROW_SX, bgcolor: 'var(--surface-2)' }}>
-                <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
+                <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
                   {t('properties.cleaningEstimator.breakdownTitle')}
-                </Typography>
-                <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', fontVariantNumeric: 'tabular-nums' }}>
+                </p>
+                <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] tabular-nums">
                   {formatDuration(breakdownEntries.reduce((sum, e) => sum + e.minutes, 0))}
-                </Typography>
+                </p>
               </Box>
               {breakdownEntries.map(({ key, minutes }) => (
                 <Box key={key} sx={BREAKDOWN_ROW_SX}>
-                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                     {t(`properties.cleaningEstimator.breakdown.${key}`)}
-                  </Typography>
-                  <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+                  </p>
+                  <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] tabular-nums">
                     {minutes} min
-                  </Typography>
+                  </p>
                 </Box>
               ))}
             </Box>

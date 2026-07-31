@@ -57,33 +57,21 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
       <Box component="span" sx={{ display: 'inline-flex', color: ok ? 'var(--ok)' : 'var(--faint)', flexShrink: 0 }}>
         {ok ? <CheckCircle size={13} strokeWidth={2} /> : <Close size={13} strokeWidth={2} />}
       </Box>
-      <Box component="span" sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink)', flexShrink: 0 }}>
+      <span className="text-[0.75rem] font-semibold text-[var(--ink)] shrink-0">
         {label}
-      </Box>
-      <Box
-        component="span"
-        sx={{
-          ml: 'auto',
-          fontSize: '0.6875rem',
-          color: 'var(--muted)',
-          textAlign: 'right',
-          minWidth: 0,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
+      </span>
+      <span className="ms-auto text-[0.6875rem] text-[var(--muted)] text-end min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
         {detail}
-      </Box>
+      </span>
     </Box>
   );
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}>
+    <div>
+      <div className="flex items-center gap-1 mb-0.5">
+        <span className="inline-flex text-[var(--faint)]">
           <Bolt size={13} strokeWidth={1.75} />
-        </Box>
+        </span>
         <Box component="span" sx={{ ...OVERLINE_SX, flex: 1 }}>Messagerie automatique</Box>
         <Tooltip title="Configurer dans Automatisations">
           <IconButton
@@ -94,12 +82,12 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
             <Settings size={13} strokeWidth={1.75} />
           </IconButton>
         </Tooltip>
-      </Box>
+      </div>
 
       {isLoading ? (
-        <Box sx={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>Chargement…</Box>
+        <div className="text-[0.6875rem] text-[var(--faint)]">Chargement…</div>
       ) : (
-        <Box>
+        <div>
           <Row
             ok={checkInOk}
             label="Check-in"
@@ -122,36 +110,36 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
                 ? <CheckCircle size={13} strokeWidth={2} />
                 : <Warning size={13} strokeWidth={2} />}
             </Box>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+            <div className="flex-1 min-w-0">
               <Box component="span" sx={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: hasEmail ? 'var(--ok)' : 'var(--warn)' }}>
                 {hasEmail ? `Email guest disponible (${guestEmail})` : 'Pas d\'email guest'}
               </Box>
               {!hasEmail && (
-                <Box component="span" sx={{ display: 'block', fontSize: '0.625rem', color: 'var(--muted)', mt: 0.25, lineHeight: 1.35 }}>
+                <span className="block text-[0.625rem] text-[var(--muted)] mt-0.5 leading-[1.35]">
                   {isAnonymizedIcal
                     ? `Réservation importée via iCal (${source}) — l'email du voyageur n'est pas exposé par le canal. Renseigne-le manuellement dans la fiche client pour activer les envois.`
                     : 'Aucun message automatique ne pourra être envoyé tant que l\'email n\'est pas renseigné.'}
-                </Box>
+                </span>
               )}
               {hasEmail && !checkInOk && !checkOutOk && (
-                <Box component="span" sx={{ display: 'block', fontSize: '0.625rem', color: 'var(--muted)', mt: 0.25, lineHeight: 1.35 }}>
+                <span className="block text-[0.625rem] text-[var(--muted)] mt-0.5 leading-[1.35]">
                   Active une règle de messagerie dans Automatisations pour que les emails partent sans intervention.
-                </Box>
+                </span>
               )}
-            </Box>
+            </div>
           </Box>
 
           {(checkInOk || checkOutOk) && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.75, color: 'var(--faint)' }}>
+            <div className="flex items-center gap-0.5 mt-1 text-[var(--faint)]">
               <AccessTime size={10} strokeWidth={1.75} />
-              <Box component="span" sx={{ fontSize: '0.625rem', fontStyle: 'italic' }}>
+              <span className="text-[0.625rem] italic">
                 Scheduler : déclenchement horaire
-              </Box>
-            </Box>
+              </span>
+            </div>
           )}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

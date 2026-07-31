@@ -79,14 +79,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
         {/* Fond : poster (snapshot du flux) si dispo, sinon dégradé radial sombre. Le poster
             évite la dalle noire avant lecture (go2rtc tire l'image à la demande). */}
         {poster && (
-          <Box
-            component="img"
-            src={poster}
-            alt=""
-            loading="lazy"
-            onError={() => setPosterOk(false)}
-            sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
-          />
+          <img className="absolute inset-[0px] w-full h-full object-cover z-[0]" src={poster} alt="" loading="lazy" onError={() => setPosterOk(false)} />
         )}
         <Box sx={{
           position: 'absolute', inset: 0, zIndex: 1,
@@ -96,7 +89,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
         }} />
 
         {/* Pills haut */}
-        <Box sx={{ position: 'absolute', top: 8, left: 8, right: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 2 }}>
+        <div className="absolute top-[8px] start-[8px] end-[8px] flex items-center justify-between z-[2]">
           {online ? (
             <Chip size="small" icon={<FiberManualRecord size={9} />} label="EN DIRECT"
               sx={{ height: 20, bgcolor: alpha('#4A9B8E', 0.92), color: '#fff', fontWeight: 700, fontSize: '0.6rem', letterSpacing: '0.06em',
@@ -109,7 +102,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
               <Box component="span" sx={{ color: ACCENT, display: 'inline-flex' }}><FiberManualRecord size={12} /></Box>
             </Tooltip>
           )}
-        </Box>
+        </div>
 
         {/* Centre : play à la demande / état flux / injoignable */}
         {online ? (
@@ -123,9 +116,9 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
                 sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, zIndex: 2, bgcolor: '#000' }}
               />
             ) : (
-              <Box sx={{ position: 'relative', zIndex: 2, textAlign: 'center', px: 2 }}>
+              <div className="relative z-[2] text-center px-3">
                 <Typography sx={{ color: alpha('#fff', 0.7), fontSize: '0.66rem' }}>Flux indisponible — passerelle média non configurée.</Typography>
-              </Box>
+              </div>
             )
           ) : (
             <Box className="co-cam-play"
@@ -137,7 +130,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
         ) : (
           <Box sx={{ position: 'relative', zIndex: 2, color: alpha('#fff', 0.45), display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
             <WifiOff size={22} />
-            <Typography sx={{ fontSize: '0.62rem' }}>Caméra injoignable</Typography>
+            <p className="cn-text-body1 text-[0.62rem]">Caméra injoignable</p>
           </Box>
         )}
 
@@ -159,21 +152,21 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
         )}
 
         {/* Overlay bas : nom + pièce */}
-        <Box sx={{ position: 'absolute', left: 10, right: 10, bottom: 8, zIndex: 2 }}>
+        <div className="absolute start-[10px] end-[10px] bottom-[8px] z-[2]">
           <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.8rem', lineHeight: 1.2, textShadow: '0 1px 4px rgba(12,18,22,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {name}
           </Typography>
           {roomName && (
             <Typography sx={{ color: alpha('#fff', 0.78), fontSize: '0.65rem', textShadow: '0 1px 3px rgba(12,18,22,0.7)' }}>{roomName}</Typography>
           )}
-        </Box>
+        </div>
       </Box>
 
       {/* ── Footer : marque + actions ── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 1, py: 0.75 }}>
+      <div className="flex items-center gap-1 px-1.5 py-1">
         <Box component="span" sx={{ color: ACCENT, display: 'inline-flex' }}><PhotoCamera size={14} strokeWidth={1.75} /></Box>
-        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>{brand || 'Caméra'}</Typography>
-        <Box sx={{ ml: 'auto', display: 'flex', gap: 0.25 }}>
+        <span className="cn-text-caption text-muted-foreground font-semibold">{brand || 'Caméra'}</span>
+        <div className="ms-auto flex gap-0.5">
           {/* Lecture/Arrêt — contrôle fiable au-dessus de l'iframe (le clic sur le feed est capté par l'iframe une fois lancée). */}
           {online && (
             <Tooltip title={active ? 'Arrêter la lecture' : 'Lancer la lecture'} arrow>
@@ -203,8 +196,8 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
               <span><IconButton size="small" disabled={acting} onClick={() => onDelete(id)} sx={{ color: 'text.disabled', '&:hover': { color: ACCENT } }}><Delete size={15} strokeWidth={1.75} /></IconButton></span>
             </Tooltip>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
     </Box>
   );
 }

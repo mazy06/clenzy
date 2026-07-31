@@ -80,17 +80,17 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-      <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', lineHeight: 1.5 }}>
+    <div className="flex flex-col gap-2">
+      <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.5]">
         Collez votre HTML ci-dessous (et, si besoin, le CSS séparément). Le contenu est converti puis
         assaini avant d’être chargé dans l’éditeur. Le canevas actuel sera remplacé.
-      </Box>
+      </div>
 
       {/* Sélecteur de format : auto-détection par défaut, ou format imposé (forceId). */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Box component="label" htmlFor="paste-format" sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)' }}>
+      <div className="flex items-center gap-1.5">
+        <label className="text-[var(--text-sm)] text-[var(--muted)]" htmlFor="paste-format">
           Format
-        </Box>
+        </label>
         <Box
           component="select"
           id="paste-format"
@@ -109,13 +109,13 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
             </option>
           ))}
         </Box>
-      </Box>
+      </div>
 
       {/* Zone HTML (requise). */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-        <Box component="label" htmlFor="paste-html" sx={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--ink)' }}>
+      <div className="flex flex-col gap-0.5">
+        <label className="text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--ink)]" htmlFor="paste-html">
           HTML
-        </Box>
+        </label>
         <Box
           component="textarea"
           id="paste-html"
@@ -125,13 +125,13 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setHtml(e.target.value)}
           sx={{ ...fieldSx, minHeight: 160 }}
         />
-      </Box>
+      </div>
 
       {/* Zone CSS (optionnelle). */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-        <Box component="label" htmlFor="paste-css" sx={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--ink)' }}>
+      <div className="flex flex-col gap-0.5">
+        <label className="text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--ink)]" htmlFor="paste-css">
           CSS <Box component="span" sx={{ color: 'var(--faint)', fontWeight: 'var(--fw-regular, 400)' }}>(optionnel)</Box>
-        </Box>
+        </label>
         <Box
           component="textarea"
           id="paste-css"
@@ -141,7 +141,7 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCss(e.target.value)}
           sx={{ ...fieldSx, minHeight: 100 }}
         />
-      </Box>
+      </div>
 
       {error ? (
         <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--err, #c0392b)' }} role="alert">
@@ -150,28 +150,22 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
       ) : null}
 
       {warnings.length > 0 ? (
-        <Box
-          role="status"
-          sx={{
-            display: 'flex', flexDirection: 'column', gap: 0.5, p: 1.25,
-            bgcolor: 'var(--hover)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)',
-          }}
-        >
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>
+        <div className="flex flex-col gap-0.5 p-2 bg-[var(--hover)] border border-[var(--line)] rounded-[var(--radius-md)]" role="status">
+          <div className="inline-flex items-center gap-1 text-[var(--text-sm)] font-[var(--fw-semibold)] text-[var(--ink)]">
             <AlertTriangle size={15} strokeWidth={2} style={{ color: 'var(--err, #c0392b)' }} />
             Contenu importé avec des avertissements
-          </Box>
-          <Box component="ul" sx={{ m: 0, pl: 2.5, fontSize: 'var(--text-sm)', color: 'var(--muted)', lineHeight: 1.5 }}>
+          </div>
+          <ul className="m-0 ps-3.5 text-[var(--text-sm)] text-[var(--muted)] leading-[1.5]">
             {warnings.map((w, i) => (
-              <Box component="li" key={i}>
+              <li key={i}>
                 {w}
-              </Box>
+              </li>
             ))}
-          </Box>
-        </Box>
+          </ul>
+        </div>
       ) : null}
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+      <div className="flex justify-end gap-1.5">
         {/* Après un import avec avertissements, l'utilisateur confirme la fermeture (le contenu est déjà injecté). */}
         {warnings.length > 0 ? (
           <ButtonBase
@@ -200,7 +194,7 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
           <ClipboardPaste size={15} strokeWidth={2} />
           {warnings.length > 0 ? 'Réimporter' : 'Importer'}
         </ButtonBase>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

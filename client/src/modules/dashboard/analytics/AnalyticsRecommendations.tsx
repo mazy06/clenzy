@@ -59,7 +59,7 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
             <Grid item xs={12} key={i}>
               <Card sx={{ ...CARD_SX, opacity: 0.5 }}>
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-                  <Box sx={{ height: 80 }} />
+                  <div className="h-[80px]" />
                 </CardContent>
               </Card>
             </Grid>
@@ -68,9 +68,9 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
           <Grid item xs={12}>
             <Card sx={CARD_SX}>
               <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-                <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', textAlign: 'center', py: 2 }}>
+                <p className="cn-text-body1 text-[0.75rem] text-muted-foreground text-center py-3">
                   {t('dashboard.analytics.noRecommendations')}
-                </Typography>
+                </p>
               </CardContent>
             </Card>
           </Grid>
@@ -80,7 +80,7 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
               <Card sx={CARD_SX}>
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                   {/* Header: icon + title */}
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, mb: 0.5 }}>
+                  <div className="flex items-start gap-1 mb-0.5">
                     <Box
                       sx={{
                         display: 'flex',
@@ -96,7 +96,7 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
                     >
                       {TYPE_ICONS[rec.type]}
                     </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <div className="flex-1 min-w-0">
                       <Typography
                         sx={{
                           fontSize: '0.75rem',
@@ -112,8 +112,8 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
                       >
                         {rec.title}
                       </Typography>
-                    </Box>
-                  </Box>
+                    </div>
+                  </div>
 
                   {/* Description */}
                   <Typography
@@ -133,17 +133,10 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
                   </Typography>
 
                   {/* Bottom row: impact + confidence + priority */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                    <Typography
-                      sx={{
-                        fontSize: '0.6875rem',
-                        fontWeight: 700,
-                        color: 'success.main',
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
+                  <div className="flex items-center gap-0.5 flex-wrap">
+                    <p className="cn-text-body1 text-[0.6875rem] font-bold text-[var(--bui-success-ink)] tabular-nums">
                       +<Money value={rec.estimatedImpact} from="EUR" decimals={0} />
-                    </Typography>
+                    </p>
                     <Chip
                       label={`${rec.confidence}%`}
                       size="small"
@@ -165,7 +158,7 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
                       }}
                       title={rec.priority}
                     />
-                  </Box>
+                  </div>
                 </CardContent>
               </Card>
             </Grid>

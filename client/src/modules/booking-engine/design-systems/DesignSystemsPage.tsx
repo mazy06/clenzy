@@ -118,29 +118,29 @@ export default function DesignSystemsPage() {
       />
 
       {error && (
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, my: 2, p: 1.5, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 13, whiteSpace: 'pre-wrap' }}>
+        <div className="flex items-start gap-1.5 my-3 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[13px] whitespace-pre-wrap">
           <AlertTriangle size={16} strokeWidth={2} style={{ flexShrink: 0, marginTop: 2 }} /> {error}
-        </Box>
+        </div>
       )}
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '280px 1fr' }, gap: 2.5, mt: 2 }}>
         {/* Colonne liste */}
-        <Box>
+        <div>
           <Button fullWidth variant="contained" disableElevation startIcon={<Plus size={16} strokeWidth={2} />} onClick={startCreate} sx={{ textTransform: 'none', mb: 1.5 }}>
             Créer un système
           </Button>
-          <Box sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', px: 0.5, mb: 1 }}>
+          <div className="text-[11px] font-bold tracking-[0.08em] uppercase text-[var(--muted)] px-0.5 mb-1.5">
             Vos systèmes {systems && <span style={{ fontVariantNumeric: 'tabular-nums' }}>· {systems.length}</span>}
-          </Box>
+          </div>
           {systems === null && <Skeleton variant="rounded" height={120} sx={{ borderRadius: '12px', bgcolor: 'var(--hover)' }} />}
           {systems && systems.length === 0 && (
-            <Box sx={{ color: 'var(--muted)', fontSize: 13, px: 0.5, py: 2, lineHeight: 1.6 }}>
+            <div className="text-[var(--muted)] text-[13px] px-0.5 py-3 leading-[1.6]">
               Aucun système pour l'instant. Créez-en un à partir d'un site, d'une marque ou d'un DESIGN.md.
-            </Box>
+            </div>
           )}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <div className="flex flex-col gap-0.5">
             {systems?.map((s) => (
-              <Box key={s.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <div className="flex items-center gap-0.5" key={s.id}>
                 <Box
                   component="button" type="button" onClick={() => { setSelectedId(s.id); setCreating(false); }}
                   sx={{
@@ -149,25 +149,25 @@ export default function DesignSystemsPage() {
                     transition: 'background 150ms ease',
                   }}
                 >
-                  <Box sx={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{s.name}</Box>
-                  <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center', mt: 0.25 }}>
-                    {s.category && <Box sx={{ fontSize: 11, color: 'var(--muted)' }}>{s.category}</Box>}
+                  <div className="text-[13.5px] font-semibold text-[var(--ink)]">{s.name}</div>
+                  <div className="flex gap-1 items-center mt-0.5">
+                    {s.category && <div className="text-[11px] text-[var(--muted)]">{s.category}</div>}
                     <Chip size="small" label={s.scope === 'GLOBAL' ? 'Baitly' : 'Privé'} sx={{ height: 16, fontSize: 9.5 }} />
-                  </Box>
+                  </div>
                 </Box>
                 <Box component="button" type="button" aria-label="Supprimer" onClick={() => handleDelete(s.id)} sx={{ border: 0, bgcolor: 'transparent', color: 'var(--muted)', cursor: 'pointer', p: 0.5, display: 'grid', placeItems: 'center' }}>
                   <Trash2 size={14} strokeWidth={2} />
                 </Box>
-              </Box>
+              </div>
             ))}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* Panneau : création OU aperçu */}
         <Box sx={{ border: '1px solid var(--line)', borderRadius: 'var(--radius-lg, 14px)', p: 3, minHeight: 420, bgcolor: 'var(--surface, #fff)' }}>
           {creating ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 720 }}>
-              <Box sx={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)' }}>Nouveau système de design</Box>
+            <div className="flex flex-col gap-3 max-w-[720px]">
+              <div className="text-[17px] font-bold text-[var(--ink)]">Nouveau système de design</div>
 
               <ToggleButtonGroup value={source} exclusive onChange={(_, v) => v && setSource(v)} size="small" sx={{ flexWrap: 'wrap' }}>
                 {SOURCES.map((s) => {
@@ -181,10 +181,10 @@ export default function DesignSystemsPage() {
               </ToggleButtonGroup>
               <Box sx={{ fontSize: 13, color: 'var(--muted)', mt: -1 }}>{SOURCES.find((s) => s.id === source)?.hint}</Box>
 
-              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+              <div className="flex gap-2 flex-wrap">
                 <TextField size="small" label="Nom" value={name} onChange={(e) => setName(e.target.value)} sx={{ flex: 1, minWidth: 220 }} />
                 <TextField size="small" label="Catégorie (optionnel)" value={category} onChange={(e) => setCategory(e.target.value)} sx={{ flex: 1, minWidth: 220 }} />
-              </Box>
+              </div>
 
               {source === 'URL' && (
                 <TextField size="small" label="URL du site" placeholder="https://…" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} />
@@ -199,43 +199,43 @@ export default function DesignSystemsPage() {
                 <TextField multiline minRows={4} label="Tokens --bt-* (JSON, optionnel)" placeholder='{"--bt-color-primary":"#…"}' value={tokensJson} onChange={(e) => setTokensJson(e.target.value)} sx={{ '& textarea': { fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12.5 } }} />
               )}
 
-              <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+              <div className="flex gap-1.5 mt-1.5">
                 <Button variant="contained" disableElevation onClick={handleCreate} disabled={!canCreate || busy}
                   startIcon={busy ? <CircularProgress size={15} color="inherit" /> : <Sparkles size={16} strokeWidth={2} />} sx={{ textTransform: 'none' }}>
                   {busy ? (aiSource ? 'Génération…' : 'Création…') : aiSource ? 'Générer le système' : 'Créer'}
                 </Button>
                 <Button variant="text" onClick={() => setCreating(false)} disabled={busy} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Annuler</Button>
-              </Box>
-            </Box>
+              </div>
+            </div>
           ) : selected ? (
-            <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
-                <Box sx={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{selected.name}</Box>
+            <div>
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <div className="text-[18px] font-bold text-[var(--ink)]">{selected.name}</div>
                 {selected.category && <Chip size="small" label={selected.category} />}
                 {selected.sourceType && <Chip size="small" variant="outlined" label={selected.sourceType} />}
-              </Box>
+              </div>
               {swatches.length > 0 && (
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2.5 }}>
+                <div className="flex gap-1.5 flex-wrap mb-3.5">
                   {swatches.map((sw) => (
                     <Box key={sw.name} title={`${sw.name}: ${sw.value}`} sx={{ width: 48, height: 48, borderRadius: '10px', bgcolor: sw.value, border: '1px solid var(--line)' }} />
                   ))}
-                </Box>
+                </div>
               )}
               {selected.designMarkdown ? (
-                <Box sx={{ whiteSpace: 'pre-wrap', fontSize: 13.5, lineHeight: 1.65, color: 'var(--ink)', maxHeight: '55vh', overflowY: 'auto', bgcolor: 'var(--bg)', borderRadius: 'var(--radius-md)', p: 2, border: '1px solid var(--line)' }}>
+                <div className="whitespace-pre-wrap text-[13.5px] leading-[1.65] text-[var(--ink)] max-h-[55vh] overflow-y-auto bg-[var(--bg)] rounded-[var(--radius-md)] p-3 border border-[var(--line)]">
                   {selected.designMarkdown}
-                </Box>
+                </div>
               ) : (
-                <Box sx={{ color: 'var(--muted)', fontSize: 13 }}>Pas de DESIGN.md — ce système ne porte que des tokens.</Box>
+                <div className="text-[var(--muted)] text-[13px]">Pas de DESIGN.md — ce système ne porte que des tokens.</div>
               )}
-            </Box>
+            </div>
           ) : (
             <Box sx={{ height: '100%', minHeight: 360, display: 'grid', placeItems: 'center', textAlign: 'center', color: 'var(--muted)' }}>
-              <Box>
+              <div>
                 <Sparkles size={28} strokeWidth={1.5} style={{ opacity: 0.5 }} />
-                <Box sx={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', mt: 1 }}>Créer un système de design</Box>
-                <Box sx={{ fontSize: 13, mt: 0.5, maxWidth: 420 }}>À partir d'un site, d'une marque ou d'un DESIGN.md — une direction réutilisable pour vos templates.</Box>
-              </Box>
+                <div className="text-[15px] font-semibold text-[var(--ink)] mt-1.5">Créer un système de design</div>
+                <div className="text-[13px] mt-0.5 max-w-[420px]">À partir d'un site, d'une marque ou d'un DESIGN.md — une direction réutilisable pour vos templates.</div>
+              </div>
             </Box>
           )}
         </Box>

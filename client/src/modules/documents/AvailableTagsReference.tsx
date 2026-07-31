@@ -1,21 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Chip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tooltip,
-  IconButton,
-  Alert,
-} from '@mui/material';
+import { Box, Chip, Accordion, AccordionSummary, AccordionDetails, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, IconButton, Alert } from '@mui/material';
 import {
   ExpandMore,
   ContentCopy,
@@ -346,10 +330,10 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
   const totalTags = TAG_CATEGORIES.reduce((sum, c) => sum + c.tags.length, 0);
 
   return (
-    <Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.78rem' }}>
+    <div>
+      <p className="cn-text-body2 text-muted-foreground mb-3 text-[0.78rem]">
         {totalTags} tags disponibles dans {TAG_CATEGORIES.length} catégories
-      </Typography>
+      </p>
 
       {/* Instructions — icone lucide ContentCopy inline (plus d'emoji) */}
       <Alert
@@ -364,8 +348,8 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
           '& .MuiAlert-icon': { color: 'var(--info)' },
         }}
       >
-        <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.6 }}>
-          <Box component="strong" sx={{ fontWeight: 600 }}>Comment utiliser les tags :</Box>{' '}
+        <p className="cn-text-body2 text-[0.8125rem] leading-[1.6]">
+          <strong className="font-semibold">Comment utiliser les tags :</strong>{' '}
           Dans votre fichier .odt, insérez les tags sous la forme{' '}
           <Box component="code" sx={codeChipSx}>{'${categorie.champ}'}</Box>
           . Par exemple{' '}
@@ -375,7 +359,7 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
             <ContentCopy size={13} strokeWidth={1.75} />
           </Box>{' '}
           à droite de chaque ligne pour copier un tag prêt à coller.
-        </Typography>
+        </p>
       </Alert>
 
       {/* Catégories de tags */}
@@ -409,7 +393,7 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
               },
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, width: '100%', minWidth: 0 }}>
+            <div className="flex items-center gap-2 w-full min-w-0">
               {/* Badge icone Baitly (tile 26x26 tintee, icon 16px) */}
               <Box
                 sx={{
@@ -431,20 +415,20 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                     })
                   : category.icon}
               </Box>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>
+              <div className="flex-1 min-w-0">
+                <p className="cn-text-body1 font-semibold text-[0.875rem] text-foreground">
                   {category.label}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block', lineHeight: 1.4 }}>
+                </p>
+                <span className="cn-text-caption text-muted-foreground text-[0.7rem] block leading-[1.4]">
                   {category.description}
-                </Typography>
-              </Box>
+                </span>
+              </div>
               <Chip
                 label={`${category.tags.length} tags`}
                 size="small"
                 sx={chipSx(category.tone)}
               />
-            </Box>
+            </div>
           </AccordionSummary>
           <AccordionDetails sx={{ p: 0 }}>
             <TableContainer>
@@ -486,9 +470,9 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+                        <p className="cn-text-body2 text-[0.8125rem]">
                           {tagDef.description}
-                        </Typography>
+                        </p>
                       </TableCell>
                       <TableCell>
                         <Chip
@@ -498,9 +482,9 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                         />
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.8125rem' }}>
+                        <p className="cn-text-body2 text-muted-foreground italic text-[0.8125rem]">
                           {tagDef.example}
-                        </Typography>
+                        </p>
                       </TableCell>
                       <TableCell align="center">
                         <Tooltip title={copiedTag === tagDef.tag ? 'Copié !' : 'Copier le tag'} arrow>
@@ -529,13 +513,13 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
       ))}
 
       {filteredCategories.length === 0 && (
-        <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Typography color="text.secondary">
+        <div className="text-center py-6">
+          <p className="cn-text-body1 text-muted-foreground">
             Aucun tag ne correspond à la recherche &quot;{search}&quot;
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

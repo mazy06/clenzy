@@ -22,11 +22,11 @@ const CELLS = [
 
 export function SupervisionDemo() {
   return (
-    <Box sx={{ p: 2, maxWidth: 1100, mx: 'auto' }}>
+    <div className="p-3 max-w-[1100px] mx-auto">
       <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'var(--muted, #6b7196)', mb: 1 }}>
         Planning (démo) — cible des comètes
       </Typography>
-      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+      <div className="flex gap-1.5 mb-3">
         {CELLS.map((cell) => (
           <Box
             key={cell.id}
@@ -43,8 +43,8 @@ export function SupervisionDemo() {
             <Typography sx={{ fontSize: 11.5, color: 'var(--muted, #6b7196)' }}>{cell.sub}</Typography>
           </Box>
         ))}
-      </Box>
+      </div>
       <SupervisionView propertyId="demo" />
-    </Box>
+    </div>
   );
 }

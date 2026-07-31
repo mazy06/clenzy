@@ -1,10 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import {
-  Box, Paper, Typography, Button, Chip, Switch, IconButton, Tooltip,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField,
-  MenuItem, Select, FormControl, InputLabel, CircularProgress, Alert,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-} from '@mui/material';
+import { Box, Paper, Button, Chip, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, CircularProgress, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -182,7 +177,7 @@ const ChannelPromotionsPage: React.FC = () => {
         showBackButton={false}
         backPath="/channels"
         actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <div className="flex gap-1.5">
             {propertyId && (
               <Button
                 size="small"
@@ -204,7 +199,7 @@ const ChannelPromotionsPage: React.FC = () => {
             >
               {t('promotions.create', 'Nouvelle promotion')}
             </Button>
-          </Box>
+          </div>
         }
       />
 
@@ -241,19 +236,19 @@ const ChannelPromotionsPage: React.FC = () => {
 
       {/* ── Table ── */}
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+        <div className="flex justify-center py-6">
           <CircularProgress size={32} />
-        </Box>
+        </div>
       ) : isError ? (
         <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
           {t('promotions.error', 'Erreur lors du chargement des promotions')}
         </Alert>
       ) : promotions.length === 0 ? (
         <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><CampaignIcon size={48} strokeWidth={1.75} /></Box>
-          <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+          <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><CampaignIcon size={48} strokeWidth={1.75} /></span>
+          <p className="cn-text-body1 text-[0.875rem] text-muted-foreground">
             {t('promotions.empty', 'Aucune promotion configuree')}
-          </Typography>
+          </p>
           <Button
             size="small"
             variant="outlined"
@@ -392,10 +387,10 @@ const ChannelPromotionsPage: React.FC = () => {
             >
               {CHANNEL_OPTIONS.map((c) => (
                 <MenuItem key={c.value} value={c.value} sx={{ fontSize: '0.8125rem' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <div className="flex items-center gap-1.5">
                     <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: c.color }} />
                     {c.label}
-                  </Box>
+                  </div>
                 </MenuItem>
               ))}
             </Select>
@@ -431,7 +426,7 @@ const ChannelPromotionsPage: React.FC = () => {
             InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
           />
 
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <div className="flex gap-2">
             <TextField
               label={t('promotions.form.startDate', 'Date debut')}
               type="date"
@@ -452,7 +447,7 @@ const ChannelPromotionsPage: React.FC = () => {
               InputLabelProps={{ shrink: true, sx: { fontSize: '0.8125rem' } }}
               InputProps={{ sx: { fontSize: '0.8125rem' } }}
             />
-          </Box>
+          </div>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setFormOpen(false)} size="small" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>

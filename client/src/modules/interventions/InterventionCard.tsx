@@ -315,7 +315,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
       {/* ─── Zone info ─── */}
       <CardContent sx={styles.infoContent}>
         {/* Titre + chip type */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, mb: 0.5 }}>
+        <div className="flex items-center gap-1 min-w-0 mb-0.5">
           <Typography sx={{ ...styles.nameText, flex: 1 }} title={intervention.title}>
             {intervention.title}
           </Typography>
@@ -329,13 +329,13 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
               border: `1px solid ${typeHex}40`,
             }}
           />
-        </Box>
+        </div>
 
         {/* Propriété */}
         <Box sx={styles.locationRow}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)', flexShrink: 0 }}>
+          <span className="inline-flex text-[var(--muted)] shrink-0">
             <LocationOn size={14} strokeWidth={1.75} />
-          </Box>
+          </span>
           <Typography
             sx={styles.locationText}
             title={`${intervention.propertyName} - ${intervention.propertyAddress}`}
@@ -364,7 +364,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
               : <PersonIcon size={13} strokeWidth={2} />}
           </Box>
           <Box component="span" sx={styles.footStrong}>{assigneeName}</Box>
-          <Box sx={{ flex: 1 }} />
+          <div className="flex-1" />
           <Chip
             label={getInterventionPriorityLabel(intervention.priority, t)}
             size="small"

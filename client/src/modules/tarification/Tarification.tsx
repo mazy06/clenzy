@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  Button,
-} from '@mui/material';
+import { Alert, Snackbar, CircularProgress, Button } from '@mui/material';
 import {
   Save,
   Refresh,
@@ -117,22 +111,22 @@ export default function Tarification() {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+      <div className="flex justify-center items-center min-h-[400px]">
         <CircularProgress />
-      </Box>
+      </div>
     );
   }
 
   return (
     <PageHeaderActionsProvider slot={headerActionsSlot}>
-      <Box>
+      <div>
         <PageHeader
           title={title}
           subtitle={subtitle}
           iconBadge={<Euro />}
           backPath="/dashboard"
           actions={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <div className="flex items-center gap-1.5">
               {headerActionsPortal}
               {canEdit && (
                 <>
@@ -158,7 +152,7 @@ export default function Tarification() {
                   </Button>
                 </>
               )}
-            </Box>
+            </div>
           }
         />
 
@@ -176,7 +170,7 @@ export default function Tarification() {
         />
 
         {/* ─── Tab Content ───────────────────────────────────────────── */}
-        <Box sx={{ pt: 1 }}>
+        <div className="pt-1.5">
           {activeTab === 0 && (
             <TabPMS config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
@@ -210,7 +204,7 @@ export default function Tarification() {
           {activeTab === 6 && (
             <TabMonitoring config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
-        </Box>
+        </div>
 
         {/* ─── Snackbar ────────────────────────────────────────────────── */}
         <Snackbar
@@ -223,7 +217,7 @@ export default function Tarification() {
             {snackbar.message}
           </Alert>
         </Snackbar>
-      </Box>
+      </div>
     </PageHeaderActionsProvider>
   );
 }

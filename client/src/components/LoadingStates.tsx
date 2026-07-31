@@ -57,16 +57,7 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
   }
 
   return (
-    <Box sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '100vh',
-      gap: 2,
-      p: 3,
-      bgcolor: 'var(--bg)'
-    }}>
+    <div className="flex flex-col items-center justify-center h-[100vh] gap-3 p-4 bg-[var(--bg)]">
       {state === 'error-loading' ? (
         // Alerte pleine largeur — pattern .rm-conflict : fond -soft + border color-mix 30%
         <Box
@@ -81,16 +72,16 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '13.5px', fontWeight: 700, color: 'var(--ink)' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}>
+            <span className="inline-flex text-[var(--err)]">
               <WarningIcon size={17} strokeWidth={1.75} />
-            </Box>
+            </span>
             {title}
           </Box>
-          <Typography sx={{ fontSize: '12.5px', color: 'var(--body)', mt: 0.75 }}>
+          <p className="cn-text-body1 text-[12.5px] text-[var(--body)] mt-1">
             {description}
-          </Typography>
+          </p>
           {(onRetry || onClearError) && (
-            <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+            <div className="flex gap-1.5 mt-2">
               {onRetry && (
                 <Button
                   variant="outlined"
@@ -110,7 +101,7 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
                   Ignorer
                 </Button>
               )}
-            </Box>
+            </div>
           )}
         </Box>
       ) : (
@@ -133,6 +124,6 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
           </Typography>
         </>
       )}
-    </Box>
+    </div>
   );
 };

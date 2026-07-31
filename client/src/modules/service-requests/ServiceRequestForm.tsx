@@ -1,13 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Alert,
-  CircularProgress,
-  Collapse,
-} from '@mui/material';
+import { Box, Paper, Button, Alert, CircularProgress, Collapse } from '@mui/material';
 import { ArrowBack } from "../../icons";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -585,7 +577,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   // En mode édition, si la demande est approuvée, empêcher l'édition
   if (isEditMode && approvedStatus) {
     return (
-      <Box sx={{ p: 3 }}>
+      <div className="p-4">
         <Alert severity="info" sx={{ mb: 3 }}>
           {t('serviceRequests.approvedCannotEdit')}
         </Alert>
@@ -596,20 +588,20 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
         >
           {t('common.back')}
         </Button>
-      </Box>
+      </div>
     );
   }
 
   if (loadingData || loadingServiceRequest) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+      <div className="flex justify-center items-center h-[50vh]">
         <CircularProgress size={32} />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       {/* Messages d'erreur/succès */}
       {error && (
         <Alert severity="error" sx={{ mb: 1.5, py: 0.75, fontSize: '0.8125rem' }}>
@@ -625,18 +617,18 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
       {/* Estimation prix — visible uniquement quand une propriété est sélectionnée */}
       <Collapse in={isPropertySelected} timeout={400}>
-        <Box sx={{ flexShrink: 0, mb: 1.5 }}>
+        <div className="shrink-0 mb-2">
           <ServiceRequestPriceEstimate
             property={selectedProperty}
             forfaitConfigs={forfaitConfigs}
             selectedForfaitKey={selectedForfaitKey}
           />
-        </Box>
+        </div>
       </Collapse>
 
       {/* Formulaire */}
       <form onSubmit={rhfHandleSubmit(onSubmit)}>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+        <div className="flex gap-3 items-start">
           {/* ─── Colonne gauche : Propriété + Infos ─── */}
           <Box sx={{ flex: isPropertySelected ? 7 : 1, display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0, transition: 'flex 0.4s ease' }}>
             {/* 1. Propriété — en premier pour auto-fill (anneau accent-soft tant que rien n'est sélectionné) */}
@@ -696,9 +688,9 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
               {/* 4. Assignation et statut */}
               <Paper sx={{ border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', borderRadius: '14px', p: 2 }}>
-                <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1.5 }}>
+                <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-2">
                   {t('serviceRequests.sections.requestorAssignment')}
-                </Typography>
+                </p>
 
                 <ServiceRequestFormAssignment
                   control={control}
@@ -716,7 +708,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
               </Paper>
             </Box>
           )}
-        </Box>
+        </div>
       </form>
 
       {/* Bouton de soumission caché pour le PageHeader */}
@@ -727,7 +719,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
       >
         Soumettre
       </Button>
-    </Box>
+    </div>
   );
 };
 

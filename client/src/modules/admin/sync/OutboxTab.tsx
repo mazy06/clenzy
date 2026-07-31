@@ -1,24 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  Button,
-  Checkbox,
-  CircularProgress,
-  Skeleton,
-  Alert,
-  Tooltip,
-  Typography,
-  Grid,
-  TextField,
-} from '@mui/material';
+import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Checkbox, CircularProgress, Skeleton, Alert, Tooltip, Grid, TextField } from '@mui/material';
 import {
   Replay,
   InfoOutlined,
@@ -94,13 +75,13 @@ const renderStatusTooltip = (status: string) => {
   const help = STATUS_HELP[status];
   if (!help) return status;
   return (
-    <Box sx={{ p: 0.5, maxWidth: 300 }}>
-      <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, mb: 0.5 }}>{help.title}</Typography>
-      <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.4, mb: 0.5 }}>{help.what}</Typography>
-      <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.4, fontStyle: 'italic', color: 'var(--bg)', opacity: 0.85 }}>
+    <div className="p-0.5 max-w-[300px]">
+      <p className="cn-text-body1 text-[0.75rem] font-bold mb-0.5">{help.title}</p>
+      <p className="cn-text-body1 text-[0.6875rem] leading-[1.4] mb-0.5">{help.what}</p>
+      <p className="cn-text-body1 text-[0.6875rem] leading-[1.4] italic text-[var(--bg)] opacity-85">
         → {help.todo}
-      </Typography>
-    </Box>
+      </p>
+    </div>
   );
 };
 
@@ -109,7 +90,7 @@ const renderStatusTooltip = (status: string) => {
  * the column. Keeps the table header tidy while making the data self-explanatory.
  */
 const HeaderHint: React.FC<{ label: string; hint: string }> = ({ label, hint }) => (
-  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+  <div className="inline-flex items-center gap-0.5">
     <span>{label}</span>
     <Tooltip arrow title={hint}>
       <Box
@@ -124,7 +105,7 @@ const HeaderHint: React.FC<{ label: string; hint: string }> = ({ label, hint }) 
         <InfoOutlined size={13} strokeWidth={1.75} />
       </Box>
     </Tooltip>
-  </Box>
+  </div>
 );
 
 type OutboxStatus = 'PENDING' | 'SENT' | 'FAILED';
@@ -245,7 +226,7 @@ const OutboxTab: React.FC = () => {
   // Register filters (Status + Topic) into the page header.
   useEffect(() => {
     setHeaderFilters(
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-2 flex-wrap">
         <FilterChipRow
           options={STATUS_OPTIONS}
           value={statusFilter}
@@ -260,7 +241,7 @@ const OutboxTab: React.FC = () => {
           onChange={(e) => { setTopic(e.target.value); setPage(0); }}
           sx={{ width: 180 }}
         />
-      </Box>,
+      </div>,
     );
     return () => setHeaderFilters(null);
   }, [setHeaderFilters, statusFilter, topic]);
@@ -268,7 +249,7 @@ const OutboxTab: React.FC = () => {
   // Register actions (Select All Failed + Retry Selected) into the page header.
   useEffect(() => {
     setHeaderActions(
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <div className="flex items-center gap-1.5">
         {OUTBOX_HELP}
         <Tooltip
           arrow
@@ -301,7 +282,7 @@ const OutboxTab: React.FC = () => {
             </Button>
           </span>
         </Tooltip>
-      </Box>,
+      </div>,
     );
     return () => setHeaderActions(null);
   }, [setHeaderActions, handleSelectAllFailed, handleRetry, retrying, selectedIds.size]);
@@ -318,36 +299,36 @@ const OutboxTab: React.FC = () => {
   };
 
   return (
-    <Box>
+    <div>
       {/* Stats — StatTile (carte plate hairline, valeur display tabular-nums) */}
       {stats && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={6} sm={3}>
             <Tooltip arrow title="Events qui attendent d'être publiés vers Kafka. Le relais les traite par paquets toutes les quelques secondes.">
-              <Box>
+              <div>
                 <StatTile icon={<HourglassEmpty />} label="Pending" value={stats.pending} color="#7BA3C2" />
-              </Box>
+              </div>
             </Tooltip>
           </Grid>
           <Grid item xs={6} sm={3}>
             <Tooltip arrow title="Events publiés avec succès dans Kafka. Aucune action requise.">
-              <Box>
+              <div>
                 <StatTile icon={<SendIcon />} label="Sent" value={stats.sent} color="#4A9B8E" />
-              </Box>
+              </div>
             </Tooltip>
           </Grid>
           <Grid item xs={6} sm={3}>
             <Tooltip arrow title="Events dont la publication Kafka a échoué. Sélectionnez-les + bouton Retry après avoir corrigé la cause (voir colonne Error).">
-              <Box>
+              <div>
                 <StatTile icon={<ErrorOutline />} label="Failed" value={stats.failed} color="#C97A7A" />
-              </Box>
+              </div>
             </Tooltip>
           </Grid>
           <Grid item xs={6} sm={3}>
             <Tooltip arrow title="Total cumulé d'events écrits dans l'outbox depuis sa création.">
-              <Box>
+              <div>
                 <StatTile icon={<InfoOutlined />} label="Total" value={stats.total} color="#6B8A9A" />
-              </Box>
+              </div>
             </Tooltip>
           </Grid>
         </Grid>
@@ -357,11 +338,11 @@ const OutboxTab: React.FC = () => {
       {retryMessage && <Alert severity="info" sx={{ mb: 2 }}>{retryMessage}</Alert>}
 
       {loading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
           ))}
-        </Box>
+        </div>
       ) : (
         <>
           <TableContainer
@@ -473,13 +454,9 @@ const OutboxTab: React.FC = () => {
                         </Tooltip>
                       </TableCell>
                       <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                          title={evt.errorMessage || undefined}
-                        >
+                        <p className="cn-text-body2 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title={evt.errorMessage || undefined}>
                           {evt.errorMessage || '—'}
-                        </Typography>
+                        </p>
                       </TableCell>
                       <TableCell>
                         {evt.createdAt ? new Date(evt.createdAt).toLocaleString() : '—'}
@@ -503,7 +480,7 @@ const OutboxTab: React.FC = () => {
           />
         </>
       )}
-    </Box>
+    </div>
   );
 };
 

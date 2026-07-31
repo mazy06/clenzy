@@ -224,25 +224,25 @@ export default function SiteGenerationPage() {
   if (generating) {
     return (
       <Box className="od-canvas" sx={{ minHeight: '100vh', bgcolor: 'var(--bg)', display: 'grid', placeItems: 'center', p: 3 }}>
-        <Box sx={{ width: '100%', maxWidth: 560 }}><SiteGenerationProgress brandLabel={brandName.trim() || null} /></Box>
+        <div className="w-full max-w-[560px]"><SiteGenerationProgress brandLabel={brandName.trim() || null} /></div>
       </Box>
     );
   }
   if (unavailable) {
     return (
       <Box className="od-canvas" sx={{ minHeight: '100vh', bgcolor: 'var(--bg)', display: 'grid', placeItems: 'center', p: 3 }}>
-        <Box sx={{ maxWidth: 420, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
+        <div className="max-w-[420px] text-center flex flex-col items-center gap-2">
           <Box sx={{ width: 48, height: 48, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: 'var(--err-soft)', color: 'var(--err)' }}><AlertTriangle size={26} strokeWidth={2} /></Box>
-          <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--ink)' }}>{k('unavailableTitle', 'Génération IA indisponible')}</Box>
-          <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', lineHeight: 1.55 }}>{k('unavailableBody', "Aucun modèle IA n'est disponible pour la génération de site pour le moment. Les administrateurs ont été notifiés et vont rétablir le service. Réessayez plus tard.")}</Box>
+          <div className="font-[var(--font-display)] text-[var(--text-xl)] font-bold text-[var(--ink)]">{k('unavailableTitle', 'Génération IA indisponible')}</div>
+          <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.55]">{k('unavailableBody', "Aucun modèle IA n'est disponible pour la génération de site pour le moment. Les administrateurs ont été notifiés et vont rétablir le service. Réessayez plus tard.")}</div>
           <Button disableElevation onClick={() => navigate(-1)} sx={{ ...accentBtnSx, mt: 1 }}>{k('unavailableClose', 'Fermer')}</Button>
-        </Box>
+        </div>
       </Box>
     );
   }
 
   return (
-    <Box className="od-canvas" sx={{ minHeight: '100vh', bgcolor: 'var(--bg)' }}>
+    <div className="od-canvas min-h-[100vh] bg-[var(--bg)]">
       {/* Barre supérieure — sticky frostée, grille 1fr auto 1fr, marque centrée (modèle .ds-setup-topbar). */}
       <Box sx={{ position: 'sticky', top: 0, zIndex: 20, height: 64, display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 2, px: { xs: 2, md: '28px' }, borderBottom: '1px solid var(--line)', bgcolor: 'color-mix(in srgb, var(--bg) 88%, transparent)', backdropFilter: 'saturate(1.4) blur(10px)' }}>
         <Box sx={{ justifySelf: 'start' }}>
@@ -279,83 +279,83 @@ export default function SiteGenerationPage() {
             }}>
               <Sparkles size={12} strokeWidth={2.4} />
             </Box>
-            <Box component="span" sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--accent)' }}>
+            <span className="text-[10.5px] font-bold tracking-[0.09em] uppercase text-[var(--accent)]">
               Génération IA
-            </Box>
+            </span>
           </Box>
           <Box sx={{ fontFamily: 'var(--font-display)', fontSize: { xs: 30, md: 42 }, fontWeight: 700, lineHeight: 1.08, color: 'var(--ink)', letterSpacing: '-0.02em', textWrap: 'balance' }}>
             Générez votre site, en minutes
           </Box>
-          <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--muted)', lineHeight: 1.6, mt: 2, maxWidth: 460 }}>
+          <div className="text-[var(--text-md)] text-[var(--muted)] leading-[1.6] mt-3 max-w-[460px]">
             L'IA rédige et structure un site complet à partir de votre brief, puis en dérive un thème on-brand. Les pages sont créées en brouillon — à relire avant publication.
-          </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 3 }}>
+          </div>
+          <div className="flex flex-col gap-2 mt-4">
             {[
               { n: 1, t: 'Direction de design', d: 'Réutilisez ou créez une direction — optionnel' },
               { n: 2, t: 'Brief', d: 'Type de biens, ton, marque, langues' },
             ].map((s) => {
               const active = step === s.n;
               return (
-                <Box key={s.n} sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start' }}>
+                <div className="flex gap-2 items-start" key={s.n}>
                   <Box sx={{ display: 'grid', placeItems: 'center', width: 22, height: 22, borderRadius: '50%', flexShrink: 0, mt: 0.2, fontSize: 12, fontWeight: 700, fontVariantNumeric: 'tabular-nums', bgcolor: active ? 'var(--accent)' : 'var(--accent-soft)', color: active ? 'var(--on-accent)' : 'var(--accent)' }}>{s.n}</Box>
-                  <Box>
+                  <div>
                     <Box sx={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: active ? 'var(--ink)' : 'var(--body)' }}>{s.t}</Box>
-                    <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>{s.d}</Box>
-                  </Box>
-                </Box>
+                    <div className="text-[var(--text-2xs)] text-[var(--muted)]">{s.d}</div>
+                  </div>
+                </div>
               );
             })}
-          </Box>
+          </div>
 
           {/* Récap direction + complétude (étape 2) */}
           {step === 2 && (
-            <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <div className="mt-6 flex flex-col gap-2">
               {selectedDsName && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, fontSize: 'var(--text-2xs)', color: 'var(--body)', bgcolor: 'var(--accent-soft)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', px: 1.25, py: 1 }}>
+                <div className="flex items-center gap-1 text-[var(--text-2xs)] text-[var(--body)] bg-[var(--accent-soft)] border border-[var(--line)] rounded-[var(--radius-md)] px-2 py-1.5">
                   <Check size={14} strokeWidth={2.4} style={{ color: 'var(--accent)' }} /> {k('directionApplied', 'Direction')} : <b>{selectedDsName}</b>
-                </Box>
+                </div>
               )}
               {recap && (
-                <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--body)', bgcolor: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', px: 1.25, py: 1, lineHeight: 1.5 }}>
-                  <Box component="span" sx={{ fontWeight: 600, color: 'var(--ink)' }}>{k('briefRecap', 'Brief')} : </Box>{recap}
-                </Box>
+                <div className="text-[var(--text-2xs)] text-[var(--body)] bg-[var(--surface)] border border-[var(--line)] rounded-[var(--radius-md)] px-2 py-1.5 leading-[1.5]">
+                  <span className="font-semibold text-[var(--ink)]">{k('briefRecap', 'Brief')} : </span>{recap}
+                </div>
               )}
-              <Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-2xs)', color: 'var(--muted)', mb: 0.5 }}>
+              <div>
+                <div className="flex justify-between text-[var(--text-2xs)] text-[var(--muted)] mb-0.5">
                   <span>{k('completeness', 'Complétude du brief')}</span>
                   <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: briefScoreColor }}>{briefScore}%</span>
-                </Box>
-                <Box sx={{ height: 6, borderRadius: 999, bgcolor: 'var(--line)', overflow: 'hidden' }}>
+                </div>
+                <div className="h-[6px] rounded-[999px] bg-[var(--line)] overflow-hidden">
                   <Box sx={{ height: '100%', width: `${briefScore}%`, bgcolor: briefScoreColor, transition: 'width var(--duration-fast) var(--ease-out)' }} />
-                </Box>
+                </div>
                 {briefScore < 100 && briefHints.length > 0 && (
-                  <Box sx={{ mt: 0.5, fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>{k('completenessHint', 'Pour un meilleur résultat')} : {briefHints.join(' · ')}</Box>
+                  <div className="mt-0.5 text-[var(--text-2xs)] text-[var(--muted)]">{k('completenessHint', 'Pour un meilleur résultat')} : {briefHints.join(' · ')}</div>
                 )}
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
         </Box>
 
         {/* ─── Colonne droite : contenu d'étape ─── */}
-        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="flex flex-col">
           {step === 1 ? (
             <>
-              <Box sx={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--ink)' }}>Direction de design</Box>
-              <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', mt: 0.5, mb: 2, lineHeight: 1.55 }}>
+              <div className="text-[var(--text-xl)] font-bold text-[var(--ink)]">Direction de design</div>
+              <div className="text-[var(--text-sm)] text-[var(--muted)] mt-0.5 mb-3 leading-[1.55]">
                 {k('directionIntro', "Choisissez la DIRECTION (identité visuelle + voix) que l'IA suivra, ou créez-en une. Optionnel : sans direction, l'IA choisit un style.")}
-              </Box>
+              </div>
 
               {!dsCreating && (
                 <>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                  <div className="flex flex-col gap-1">
                     <DirectionRow selected={selectedDsId === null} onClick={() => setSelectedDsId(null)}
                       title={k('directionNone', 'Sans direction')} subtitle={k('directionNoneSub', "L'IA choisit un style adapté au brief")} />
-                    {systems === null && <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', px: 1, py: 1 }}>Chargement…</Box>}
+                    {systems === null && <div className="text-[var(--text-sm)] text-[var(--muted)] px-1.5 py-1.5">Chargement…</div>}
                     {systems?.map((s) => (
                       <DirectionRow key={s.id} selected={selectedDsId === s.id} onClick={() => setSelectedDsId(s.id)}
                         title={s.name} subtitle={[s.category, s.scope === 'GLOBAL' ? 'Baitly' : 'Privé'].filter(Boolean).join(' · ')} />
                     ))}
-                  </Box>
+                  </div>
                   <ButtonBase onClick={() => setDsCreating(true)} sx={{ ...ghostBtnSx, mt: 1.5, alignSelf: 'flex-start' }}>
                     <Plus size={16} strokeWidth={2} /> {k('directionCreate', 'Créer une direction')}
                   </ButtonBase>
@@ -363,7 +363,7 @@ export default function SiteGenerationPage() {
               )}
 
               {dsCreating && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', p: 2 }}>
+                <div className="flex flex-col gap-2 border border-[var(--line)] rounded-[var(--radius-md)] p-3">
                   <ToggleButtonGroup value={dsSource} exclusive onChange={(_, v) => v && setDsSource(v)} size="small"
                     sx={{ flexWrap: 'wrap', gap: 0.5, '& .MuiToggleButton-root': { border: '1px solid var(--line)', borderRadius: 'var(--radius-md) !important', color: 'var(--body)', '&.Mui-selected': { bgcolor: 'var(--accent-soft)', color: 'var(--accent)', borderColor: 'var(--accent)' } } }}>
                     {DS_SOURCES.map((s) => { const Icon = s.icon; return (
@@ -374,42 +374,42 @@ export default function SiteGenerationPage() {
                   {dsSource === 'URL' && <InputBase value={dsUrl} onChange={(e) => setDsUrl(e.target.value)} placeholder="https://…" sx={inputSx} />}
                   {dsSource === 'BRAND' && <InputBase value={dsBrand} onChange={(e) => setDsBrand(e.target.value)} placeholder={k('directionBrand', 'Décrivez la marque (ambiance, couleurs, voix…)')} multiline minRows={3} sx={inputSx} />}
                   {(dsSource === 'PASTE' || dsSource === 'MANUAL') && <InputBase value={dsMarkdown} onChange={(e) => setDsMarkdown(e.target.value)} placeholder="# Design System…" multiline minRows={4} sx={{ ...inputSx, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 'var(--text-sm)' }} />}
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  <div className="flex justify-end gap-1.5">
                     <ButtonBase onClick={() => setDsCreating(false)} disabled={dsBusy} sx={ghostBtnSx}>{t('common.cancel', 'Annuler')}</ButtonBase>
                     <ButtonBase onClick={handleCreateDs} disabled={!canCreateDs || dsBusy} sx={primaryBtnSx}>
                       {dsBusy ? <><CircularProgress size={15} thickness={5} sx={{ color: 'var(--on-accent)' }} /> {k('directionCreating', 'Création…')}</> : <><Sparkles size={16} strokeWidth={2} /> {k('directionDo', 'Créer')}</>}
                     </ButtonBase>
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               )}
             </>
           ) : (
             <>
-              <Box sx={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--ink)' }}>Brief</Box>
-              <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', mt: 0.5, mb: 2, lineHeight: 1.55 }}>
+              <div className="text-[var(--text-xl)] font-bold text-[var(--ink)]">Brief</div>
+              <div className="text-[var(--text-sm)] text-[var(--muted)] mt-0.5 mb-3 leading-[1.55]">
                 {k('intro', "Décrivez votre activité : l'IA rédige et structure un site complet (selon les pages choisies) et dérive un thème. Les pages sont créées en brouillon — à relire avant publication.")}
-              </Box>
+              </div>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div className="flex flex-col gap-3">
                 <Field label={k('propertyTypeLabel', 'Type de biens')} required>
                   <InputBase value={propertyType} onChange={(e) => setPropertyType(e.target.value)} placeholder={k('propertyTypePlaceholder', 'Ex. riads de luxe à Marrakech, appartements urbains…')} sx={inputSx} autoFocus />
                 </Field>
                 <Field label={k('toneLabel', 'Ton souhaité')}>
                   <InputBase value={tone} onChange={(e) => setTone(e.target.value)} placeholder={k('tonePlaceholder', 'Ex. chaleureux et authentique, épuré et moderne…')} sx={inputSx} />
                 </Field>
-                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                <div className="flex gap-2 flex-wrap">
                   <Field label={k('brandLabel', 'Nom de marque')}>
                     <InputBase value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder={k('brandPlaceholder', 'Optionnel')} sx={inputSx} />
                   </Field>
                   <Field label={k('colorLabel', 'Couleur principale')}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                      <Box component="input" type="color" value={/^#[0-9a-fA-F]{6}$/.test(primaryColorHint) ? primaryColorHint : '#5453D6'} onChange={(e) => setPrimaryColorHint((e.target as HTMLInputElement).value)} aria-label={k('colorPickerLabel', 'Choisir une couleur')} sx={{ width: 38, height: 38, p: 0, border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', bgcolor: 'var(--field)', cursor: 'pointer', flexShrink: 0 }} />
+                    <div className="flex items-center gap-1">
+                      <input className="w-[38px] h-[38px] p-0 border border-[var(--line)] rounded-[var(--radius-md)] bg-[var(--field)] cursor-pointer shrink-0" type="color" value={/^#[0-9a-fA-F]{6}$/.test(primaryColorHint) ? primaryColorHint : '#5453D6'} onChange={(e) => setPrimaryColorHint((e.target as HTMLInputElement).value)} aria-label={k('colorPickerLabel', 'Choisir une couleur')} />
                       <InputBase value={primaryColorHint} onChange={(e) => setPrimaryColorHint(e.target.value)} placeholder={k('colorPlaceholder', 'Auto')} sx={{ ...inputSx, flex: 1 }} />
-                    </Box>
+                    </div>
                   </Field>
-                </Box>
+                </div>
                 <Field label={k('languagesLabel', 'Langues à générer')} required>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                  <div className="flex flex-wrap gap-1">
                     {LANGUAGE_CHOICES.map((lang) => {
                       const selected = languages.includes(lang.code);
                       return (
@@ -419,24 +419,24 @@ export default function SiteGenerationPage() {
                         </ButtonBase>
                       );
                     })}
-                  </Box>
-                  <Box sx={{ mt: 0.75, fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>{k('languagesHint', 'La première langue sélectionnée est rédigée par l’IA ; les autres sont produites par auto-traduction (à relire).')}</Box>
+                  </div>
+                  <div className="mt-1 text-[var(--text-2xs)] text-[var(--muted)]">{k('languagesHint', 'La première langue sélectionnée est rédigée par l’IA ; les autres sont produites par auto-traduction (à relire).')}</div>
                 </Field>
-              </Box>
+              </div>
             </>
           )}
 
           {error && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, p: 1.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
+            <div className="flex items-center gap-1.5 mt-3 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
               <AlertTriangle size={16} strokeWidth={2} style={{ flexShrink: 0 }} /> {error}
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
       </Box>
 
       {/* Paywall de rachat de crédits (402 AI_CREDITS_INSUFFICIENT / 429 quota) → packs Stripe existants. */}
       <AiCreditsPaywall open={paywallOpen} onClose={() => setPaywallOpen(false)} balanceMillicredits={paywallBalance} />
-    </Box>
+    </div>
   );
 }
 
@@ -449,10 +449,10 @@ function DirectionRow({ selected, onClick, title, subtitle }: { selected: boolea
       transition: 'border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out)',
       '&:hover': { borderColor: 'var(--accent)' },
     }}>
-      <Box sx={{ minWidth: 0 }}>
-        <Box sx={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--ink)' }}>{title}</Box>
-        {subtitle && <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>{subtitle}</Box>}
-      </Box>
+      <div className="min-w-0">
+        <div className="text-[var(--text-sm)] font-semibold text-[var(--ink)]">{title}</div>
+        {subtitle && <div className="text-[var(--text-2xs)] text-[var(--muted)]">{subtitle}</div>}
+      </div>
       {selected && <Check size={16} strokeWidth={2.4} style={{ color: 'var(--accent)', flexShrink: 0 }} />}
     </ButtonBase>
   );
@@ -460,12 +460,12 @@ function DirectionRow({ selected, onClick, title, subtitle }: { selected: boolea
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
-    <Box sx={{ flex: 1, minWidth: 200 }}>
-      <Box component="label" sx={{ display: 'block', mb: 0.5, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--body)' }}>
-        {label}{required && <Box component="span" sx={{ color: 'var(--accent)', ml: 0.25 }}>*</Box>}
-      </Box>
+    <div className="flex-1 min-w-[200px]">
+      <label className="block mb-0.5 text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--body)]">
+        {label}{required && <span className="text-[var(--accent)] ms-0.5">*</span>}
+      </label>
       {children}
-    </Box>
+    </div>
   );
 }
 

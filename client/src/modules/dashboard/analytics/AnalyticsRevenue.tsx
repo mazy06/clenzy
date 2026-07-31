@@ -65,11 +65,11 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
                 {t('dashboard.analytics.revenueTrend')}
               </Typography>
               {loading || !data ? (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0, position: 'relative' }}>
+                <div className="flex-1 min-h-0 relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data.byMonth} margin={{ top: 4, right: 6, left: -18, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
@@ -80,7 +80,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
                       <Area type="monotone" dataKey="expenses" stroke={CHART_ERROR} fill={CHART_ERROR} fillOpacity={0.08} strokeWidth={1.5} />
                     </AreaChart>
                   </ResponsiveContainer>
-                </Box>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -94,12 +94,12 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
                 {t('dashboard.analytics.byChannel')}
               </Typography>
               {loading || !data ? (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                  <Box sx={{ flex: 1, minHeight: 0, position: 'relative' }}>
+                <div className="flex-1 min-h-0 flex flex-col">
+                  <div className="flex-1 min-h-0 relative">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -116,19 +116,19 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
                         <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => convertAndFormat(Number(v), 'EUR')} />
                       </PieChart>
                     </ResponsiveContainer>
-                  </Box>
+                  </div>
                   {/* Legend */}
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 0.5 }}>
+                  <div className="flex flex-wrap gap-1 mt-0.5">
                     {data.byChannel.map((ch) => (
-                      <Box key={ch.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.375 }}>
+                      <div className="flex items-center gap-0.5" key={ch.name}>
                         <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: ch.color, flexShrink: 0 }} />
-                        <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary' }}>
+                        <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground">
                           {ch.name}
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
                     ))}
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -142,11 +142,11 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
                 {t('dashboard.analytics.topProperties')}
               </Typography>
               {loading || !data ? (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0, position: 'relative' }}>
+                <div className="flex-1 min-h-0 relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.byProperty} layout="vertical" margin={{ top: 4, right: 6, left: 0, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} horizontal={false} />
@@ -156,7 +156,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
                       <Bar dataKey="revenue" fill="#6B8A9A" radius={[0, 3, 3, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
-                </Box>
+                </div>
               )}
             </CardContent>
           </Card>

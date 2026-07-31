@@ -62,7 +62,7 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
             <Grid item xs={12} key={i}>
               <Card sx={{ ...CARD_SX, opacity: 0.5 }}>
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-                  <Box sx={{ height: 60 }} />
+                  <div className="h-[60px]" />
                 </CardContent>
               </Card>
             </Grid>
@@ -71,7 +71,7 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
           <Grid item xs={12}>
             <Card sx={CARD_SX}>
               <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 1 }}>
+                <div className="flex items-center gap-1 py-1.5">
                   <Box
                     sx={{
                       display: 'flex',
@@ -87,10 +87,10 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
                   >
                     <InfoOutlined />
                   </Box>
-                  <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                  <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
                     {t('dashboard.analytics.noAlerts')}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </Grid>
@@ -105,7 +105,7 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
               >
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                   {/* Header */}
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, mb: 0.5 }}>
+                  <div className="flex items-start gap-1 mb-0.5">
                     <Box
                       sx={{
                         display: 'flex',
@@ -121,22 +121,11 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
                     >
                       {SEVERITY_ICONS[alert.severity]}
                     </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-                        <Typography
-                          sx={{
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            color: 'text.primary',
-                            lineHeight: 1.3,
-                            flex: 1,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-0.5 mb-0.5">
+                        <p className="cn-text-body1 text-[0.75rem] font-bold text-foreground leading-[1.3] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                           {alert.title}
-                        </Typography>
+                        </p>
                         <Chip
                           label={SEVERITY_LABELS[alert.severity]}
                           size="small"
@@ -149,21 +138,15 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
                             '& .MuiChip-label': { px: 0.5 },
                           }}
                         />
-                      </Box>
-                      <Typography
-                        sx={{
-                          fontSize: '0.625rem',
-                          color: 'text.secondary',
-                          lineHeight: 1.4,
-                        }}
-                      >
+                      </div>
+                      <p className="cn-text-body1 text-[0.625rem] text-muted-foreground leading-[1.4]">
                         {alert.description}
-                      </Typography>
-                    </Box>
-                  </Box>
+                      </p>
+                    </div>
+                  </div>
 
                   {/* Action */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                  <div className="flex items-center gap-0.5 mt-0.5">
                     <Typography
                       sx={{
                         fontSize: '0.5625rem',
@@ -175,7 +158,7 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
                     >
                       {alert.action}
                     </Typography>
-                  </Box>
+                  </div>
                 </CardContent>
               </Card>
             </Grid>

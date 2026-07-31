@@ -1,8 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Box, Paper, Typography, MenuItem, TextField, Skeleton, Alert,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-} from '@mui/material';
+import { Paper, Typography, MenuItem, TextField, Skeleton, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import {
   AccountBalance,
   Gavel as StepTvaIcon,
@@ -94,12 +91,12 @@ const FiscalReportSection: React.FC = () => {
   );
 
   return (
-    <Box>
+    <div>
       {helpAction}
 
       {/* Period selector */}
       <Paper sx={{ ...PANEL_SX, p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="flex gap-3 flex-wrap items-center">
           <PeriodSegmented<PeriodMode>
             value={mode}
             onChange={setMode}
@@ -150,15 +147,15 @@ const FiscalReportSection: React.FC = () => {
               <MenuItem value={4}>T4 (Oct-Dec)</MenuItem>
             </TextField>
           )}
-        </Box>
+        </div>
       </Paper>
 
       {/* Loading / Error */}
       {activeQuery.isLoading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <div className="flex flex-col gap-2">
           <Skeleton variant="rounded" height={76} sx={{ borderRadius: 'var(--radius-lg)' }} />
           <Skeleton variant="rounded" height={200} sx={{ borderRadius: 'var(--radius-lg)' }} />
-        </Box>
+        </div>
       ) : activeQuery.error ? (
         <Alert severity="error" sx={{ mb: 2 }}>
           Erreur lors du chargement du rapport fiscal
@@ -173,7 +170,7 @@ const FiscalReportSection: React.FC = () => {
       ) : (
         <>
           {/* Summary cards */}
-          <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+          <div className="flex gap-3 mb-3 flex-wrap">
             {[
               { label: 'Periode', value: summary.period, isText: true },
               { label: 'Factures', value: String(summary.invoiceCount), isText: true },
@@ -193,9 +190,9 @@ const FiscalReportSection: React.FC = () => {
                   }),
                 }}
               >
-                <Typography sx={{ display: 'block', fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--faint)', mb: 0.25 }}>
+                <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-0.5">
                   {card.label}
-                </Typography>
+                </p>
                 <Typography
                   sx={{
                     fontFamily: 'var(--font-display)',
@@ -210,7 +207,7 @@ const FiscalReportSection: React.FC = () => {
                 </Typography>
               </Paper>
             ))}
-          </Box>
+          </div>
 
           {/* Breakdown table */}
           {summary.breakdown?.length > 0 && (
@@ -243,7 +240,7 @@ const FiscalReportSection: React.FC = () => {
           )}
         </>
       )}
-    </Box>
+    </div>
   );
 };
 

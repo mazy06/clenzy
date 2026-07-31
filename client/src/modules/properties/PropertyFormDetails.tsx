@@ -1,12 +1,5 @@
 import React, { useCallback } from 'react';
-import {
-  Box,
-  Grid,
-  Typography,
-  TextField,
-  Checkbox,
-  FormControlLabel,
-} from '@mui/material';
+import { Grid, Typography, TextField, Checkbox, FormControlLabel } from '@mui/material';
 import {
   Euro,
   Bed,
@@ -66,7 +59,7 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
     const { t } = useTranslation();
 
     return (
-      <Box>
+      <div>
         <Typography sx={SECTION_TITLE_SX}>
           {t('properties.characteristics')}
         </Typography>
@@ -214,7 +207,7 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
         </Grid>
 
         {/* ─── Amenities Section ─────────────────────────────────────────── */}
-        <Box sx={{ mt: 3 }}>
+        <div className="mt-4">
           <Typography sx={SECTION_TITLE_SX}>
             {t('properties.amenities.title')}
           </Typography>
@@ -223,9 +216,9 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
             name="amenities"
             control={control}
             render={({ field }) => (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div className="flex flex-col gap-3">
                 {AMENITIES_CATEGORIES.map((category) => (
-                  <Box key={category.key}>
+                  <div key={category.key}>
                     <Typography sx={CATEGORY_TITLE_SX}>
                       {t(`properties.amenities.categories.${category.key}`)}
                     </Typography>
@@ -257,13 +250,13 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                         );
                       })}
                     </Grid>
-                  </Box>
+                  </div>
                 ))}
-              </Box>
+              </div>
             )}
           />
-        </Box>
-      </Box>
+        </div>
+      </div>
     );
   }
 );

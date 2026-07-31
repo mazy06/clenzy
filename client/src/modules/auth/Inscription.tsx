@@ -448,7 +448,7 @@ export default function Inscription() {
     <AuthLayout maxFormWidth={activeStep === 1 ? 880 : 560}>
       {/* Badge forfait selectionne */}
         {prefill.forfait && (
-          <Box sx={{ textAlign: 'center', mb: 2 }}>
+          <div className="text-center mb-3">
             <Chip
               label={getForfaitLabel(t, prefill.forfait)}
               sx={{
@@ -459,12 +459,12 @@ export default function Inscription() {
                 px: 1,
               }}
             />
-            <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
+            <span className="cn-text-caption block text-muted-foreground mt-0.5">
               {getInterventionPriceLabel(t, prefill.forfait, prefill.interventionPrice)} | {isSyncMode
                 ? t('auth.inscription.platformWithSync', 'Plateforme + Synchro')
                 : t('auth.inscription.platform', 'Plateforme')} : {getPmsDisplayPrice(t, billingPeriod, pmsBaseCents)}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         )}
 
         {/* Stepper */}
@@ -506,7 +506,7 @@ export default function Inscription() {
         {/* Erreur */}
         {error && (
           <Alert severity={paymentCancelled && !loading ? 'warning' : 'error'} sx={{ mb: 2 }}>
-            <Typography variant="body2">{error}</Typography>
+            <p className="cn-text-body2">{error}</p>
           </Alert>
         )}
 
@@ -544,7 +544,7 @@ export default function Inscription() {
             </Box>
 
             {/* Selection du type d'organisation */}
-            <Box>
+            <div>
               <Typography
                 variant="overline"
                 sx={{
@@ -578,7 +578,7 @@ export default function Inscription() {
                   />
                 ))}
               </Box>
-            </Box>
+            </div>
 
             {/* Nom de la societe (conditionnel, requis pour type pro) */}
             {isProType && (
@@ -596,7 +596,7 @@ export default function Inscription() {
 
             {/* Selection du forfait si non pre-rempli */}
             {!prefill.forfait && (
-              <Box>
+              <div>
                 <Typography
                   variant="overline"
                   sx={{
@@ -625,29 +625,21 @@ export default function Inscription() {
                       label={getForfaitShortLabel(t, f)}
                       description={getForfaitTagline(t, f)}
                       hint={
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontWeight: 600,
-                            color: 'inherit',
-                            fontSize: '0.75rem',
-                            opacity: 0.95,
-                          }}
-                        >
+                        <span className="cn-text-caption font-semibold text-inherit text-[0.75rem] opacity-95">
                           {t('auth.inscription.forfaitHint', `dès ${FORFAIT_BASE_PRICES[f]}€/intervention`, { price: FORFAIT_BASE_PRICES[f] })}
-                        </Typography>
+                        </span>
                       }
                     />
                   ))}
                 </Box>
-              </Box>
+              </div>
             )}
 
             {/* Selection de la periode de facturation */}
             <Divider sx={{ my: 1 }} />
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+            <span className="cn-text-caption text-muted-foreground font-semibold">
               {t('auth.inscription.billingPeriodLabel', 'Periode de facturation')}
-            </Typography>
+            </span>
             <ToggleButtonGroup
               value={billingPeriod}
               exclusive
@@ -668,30 +660,28 @@ export default function Inscription() {
                 <Chip label="-35%" size="small" color="success" sx={{ ml: 0.5, height: 18, fontSize: '0.65rem', fontWeight: 700 }} />
               </ToggleButton>
             </ToggleButtonGroup>
-            <Typography variant="caption" color="text.secondary">
+            <span className="cn-text-caption text-muted-foreground">
               {t('auth.inscription.platform', 'Plateforme')} : {getPmsDisplayPrice(t, billingPeriod, pmsBaseCents)}
               {billingPeriod !== 'MONTHLY' && pmsBaseCents !== null && (
-                <Typography component="span" variant="caption" sx={{ ml: 0.5, textDecoration: 'line-through', color: 'text.disabled' }}>
+                <span className="cn-text-caption ms-0.5 line-through text-muted-foreground opacity-60">
                   {formatCents(pmsBaseCents)}{t('auth.inscription.perMonth', '/mois')}
-                </Typography>
+                </span>
               )}
               {billingPeriod !== 'MONTHLY' && (
-                <Typography component="span" variant="caption" sx={{ ml: 0.5, color: 'success.main', fontWeight: 600 }}>
+                <span className="cn-text-caption ms-0.5 text-[var(--bui-success-ink)] font-semibold">
                   {' '}{t('auth.inscription.invoiced', `Facture ${getPmsFirstPayment(t, billingPeriod, pmsBaseCents)}`, { amount: getPmsFirstPayment(t, billingPeriod, pmsBaseCents) })}
-                </Typography>
+                </span>
               )}
-            </Typography>
+            </span>
 
             {/* Resume des donnees de la landing page */}
             {hasLandingData && (
               <>
                 <Divider sx={{ my: 1 }} />
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                <span className="cn-text-caption text-muted-foreground font-semibold">
                   {t('auth.inscription.requestInfo', 'Informations de votre demande')}
-                </Typography>
-                <Box sx={{
-                  display: 'flex', flexWrap: 'wrap', gap: 0.75,
-                }}>
+                </span>
+                <div className="flex flex-wrap gap-1">
                   {prefill.propertyType && (
                     <Chip size="small" variant="outlined" label={getPropertyTypeLabel(t, prefill.propertyType)} />
                   )}
@@ -715,7 +705,7 @@ export default function Inscription() {
                       }
                     />
                   )}
-                </Box>
+                </div>
               </>
             )}
 
@@ -753,9 +743,9 @@ export default function Inscription() {
                 InputLabelProps={{ shrink: true }}
               >
                 <MenuItem value="">
-                  <Typography component="span" variant="body2" sx={{ color: 'text.disabled' }}>
+                  <span className="cn-text-body2 text-muted-foreground opacity-60">
                     {t('auth.inscription.referralPlaceholder', 'Sélectionner…')}
-                  </Typography>
+                  </span>
                 </MenuItem>
                 {REFERRAL_SOURCE_VALUES.map((value) => (
                   <MenuItem key={value} value={value}>
@@ -767,7 +757,7 @@ export default function Inscription() {
 
             {/* Consentements RGPD (CGU obligatoire + newsletter optionnel) */}
             <Divider sx={{ my: 1 }} />
-            <Box>
+            <div>
               <FormControlLabel
                 control={
                   <Checkbox
@@ -781,7 +771,7 @@ export default function Inscription() {
                   />
                 }
                 label={
-                  <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.4 }}>
+                  <p className="cn-text-body2 text-[0.8125rem] leading-[1.4]">
                     {t('auth.inscription.cguPrefix', "J'accepte les")}{' '}
                     <MuiLink
                       href="/cgu"
@@ -801,10 +791,10 @@ export default function Inscription() {
                       {t('auth.inscription.privacyLinkText', 'politique de confidentialité')}
                     </MuiLink>
                     {' '}
-                    <Typography component="span" variant="caption" sx={{ color: 'error.main', fontWeight: 600 }}>
+                    <span className="cn-text-caption text-destructive font-semibold">
                       *
-                    </Typography>
-                  </Typography>
+                    </span>
+                  </p>
                 }
                 sx={{ alignItems: 'flex-start', mr: 0, '& .MuiFormControlLabel-label': { mt: 0.4 } }}
               />
@@ -821,13 +811,13 @@ export default function Inscription() {
                   />
                 }
                 label={
-                  <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.4 }}>
+                  <p className="cn-text-body2 text-[0.8125rem] leading-[1.4]">
                     {t('auth.inscription.newsletterOptIn', 'Je souhaite recevoir la newsletter Baitly (nouveautés produit, conseils gestion locative).')}
-                  </Typography>
+                  </p>
                 }
                 sx={{ alignItems: 'flex-start', mr: 0, mt: 0.5, '& .MuiFormControlLabel-label': { mt: 0.4 } }}
               />
-            </Box>
+            </div>
           </Stack>
         )}
 
@@ -847,36 +837,31 @@ export default function Inscription() {
                 boxShadow: 'none',
               }}>
                 <CardContent sx={{ p: 2.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <Box sx={{
-                      width: 36, height: 36, borderRadius: '50%',
-                      bgcolor: 'rgba(166,192,206,0.15)',
-                      color: 'primary.main',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <div className="w-[36px] h-[36px] rounded-[50%] bg-[rgba(166,192,206,0.15)] text-primary flex items-center justify-center">
                       <CartIcon size={18} strokeWidth={1.75} color='currentColor' />
-                    </Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                    </div>
+                    <h6 className="cn-text-subtitle2 font-semibold text-foreground">
                       {t('auth.inscription.summary', 'Recapitulatif')}
-                    </Typography>
-                  </Box>
+                    </h6>
+                  </div>
 
                   <Stack spacing={1.5}>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    <div>
+                      <span className="cn-text-caption text-muted-foreground font-semibold">
                         {t('auth.inscription.summaryAccount', 'Compte')}
-                      </Typography>
-                      <Typography variant="body2">{fullName}</Typography>
-                      <Typography variant="body2" color="text.secondary">{email}</Typography>
-                    </Box>
+                      </span>
+                      <p className="cn-text-body2">{fullName}</p>
+                      <p className="cn-text-body2 text-muted-foreground">{email}</p>
+                    </div>
 
                     <Divider />
 
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    <div>
+                      <span className="cn-text-caption text-muted-foreground font-semibold">
                         {t('auth.inscription.summaryPlan', 'Forfait')}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                      </span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
                         <Chip
                           label={getForfaitLabel(t, forfait)}
                           size="small"
@@ -887,58 +872,54 @@ export default function Inscription() {
                             fontSize: '0.75rem',
                           }}
                         />
-                      </Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                      </div>
+                      <span className="cn-text-caption text-muted-foreground mt-0.5 block">
                         {getInterventionPriceLabel(t, forfait, prefill.interventionPrice)}
-                      </Typography>
-                    </Box>
+                      </span>
+                    </div>
 
                     <Divider />
 
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    <div>
+                      <span className="cn-text-caption text-muted-foreground font-semibold">
                         {isSyncMode
                           ? t('auth.inscription.summarySubscriptionWithSync', 'Abonnement plateforme + Synchro auto')
                           : t('auth.inscription.summarySubscription', 'Abonnement plateforme')}
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                      </span>
+                      <p className="cn-text-body2 font-semibold text-primary">
                         {getPmsDisplayPrice(t, billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      </p>
+                      <span className="cn-text-caption text-muted-foreground">
                         {t('auth.inscription.summaryPeriod', 'Periode :')} {getBillingPeriodLabel(t, billingPeriod)}
-                      </Typography>
-                    </Box>
+                      </span>
+                    </div>
 
                     <Divider />
 
-                    <Box sx={{
-                      p: 1.5, borderRadius: 1.5,
-                      bgcolor: 'rgba(166,192,206,0.08)',
-                      border: '1px solid rgba(166,192,206,0.2)',
-                    }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    <div className="p-2 rounded-[1.5px] bg-[rgba(166,192,206,0.08)] border border-[rgba(166,192,206,0.2)]">
+                      <div className="flex justify-between items-center">
+                        <p className="cn-text-body2 font-semibold">
                           {t('auth.inscription.summaryTotal', 'Total a payer')}
-                        </Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 700, color: 'primary.dark' }}>
+                        </p>
+                        <p className="cn-text-body1 font-bold text-[primary.dark]">
                           {getPmsFirstPayment(t, billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
-                        </Typography>
-                      </Box>
-                    </Box>
+                        </p>
+                      </div>
+                    </div>
                   </Stack>
 
-                  <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleIcon size={14} strokeWidth={1.75} /></Box>
-                    <Typography variant="caption" color="text.secondary">
+                  <div className="mt-3 flex items-center gap-0.5">
+                    <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircleIcon size={14} strokeWidth={1.75} /></span>
+                    <span className="cn-text-caption text-muted-foreground">
                       {t('auth.inscription.securedPayment', 'Paiement securise via Stripe')}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
             </Box>
 
             {/* Colonne droite : Stripe Embedded Checkout */}
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+            <div className="flex-1 min-w-0">
               <Card sx={{
                 border: '1px solid',
                 borderColor: 'divider',
@@ -947,18 +928,14 @@ export default function Inscription() {
                 overflow: 'hidden',
               }}>
                 <CardContent sx={{ p: 2.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <Box sx={{
-                      width: 36, height: 36, borderRadius: '50%',
-                      bgcolor: 'rgba(107,138,154,0.12)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <div className="w-[36px] h-[36px] rounded-[50%] bg-[rgba(107,138,154,0.12)] flex items-center justify-center">
                       <CreditCardIcon size={18} strokeWidth={1.75} color='currentColor' />
-                    </Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                    </div>
+                    <h6 className="cn-text-subtitle2 font-semibold text-foreground">
                       {t('auth.inscription.paymentTitle', 'Paiement')}
-                    </Typography>
-                  </Box>
+                    </h6>
+                  </div>
                   <EmbeddedCheckoutProvider
                     stripe={stripePromise}
                     options={{ clientSecret }}
@@ -967,13 +944,13 @@ export default function Inscription() {
                   </EmbeddedCheckoutProvider>
                 </CardContent>
               </Card>
-            </Box>
+            </div>
           </Box>
         )}
 
         {/* Bouton de navigation (cache a l'etape Paiement) */}
         {activeStep === 0 && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <div className="flex justify-center mt-4">
             <Button
               variant="contained"
               onClick={handleNext}
@@ -988,13 +965,13 @@ export default function Inscription() {
             >
               {loading ? <CircularProgress size={20} color="inherit" /> : t('auth.inscription.submit', 'Continuer vers le paiement')}
             </Button>
-          </Box>
+          </div>
         )}
 
         {/* Lien vers login (cache a l'etape Paiement) */}
         {activeStep === 0 && (
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
-            <Typography variant="caption" color="text.secondary">
+          <div className="mt-3 text-center">
+            <span className="cn-text-caption text-muted-foreground">
               {t('auth.inscription.alreadyAccount', 'Deja un compte ?')}{' '}
               <Typography
                 component="span"
@@ -1009,8 +986,8 @@ export default function Inscription() {
               >
                 {t('auth.inscription.loginLink', 'Se connecter')}
               </Typography>
-            </Typography>
-          </Box>
+            </span>
+          </div>
         )}
     </AuthLayout>
   );

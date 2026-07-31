@@ -519,12 +519,12 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
   );
 
   const content = (
-    <Box className="be-home" data-accent="indigo">
+    <div className="be-home" data-accent="indigo">
       <div className="canvas" style={{ maxWidth: 1180 }}>
         {error && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, p: 1.5, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 13 }}>
+          <div className="flex items-center gap-1.5 mb-3 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[13px]">
             <AlertTriangle size={16} strokeWidth={2} /> {error}
-          </Box>
+          </div>
         )}
 
         {/* Studio à 2 colonnes : création (gauche) + rail templates vertical (droite). */}
@@ -538,12 +538,12 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
         </div>
 
         {/* Les directions réutilisables se gèrent ici ; la SÉLECTION se fait à l'étape 1 de la génération. */}
-        <Box sx={{ mb: 1.5 }}>
+        <div className="mb-2">
           <Box component="button" type="button" onClick={() => navigate('/booking-engine/design-systems')}
             sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, border: 0, bgcolor: 'transparent', cursor: 'pointer', color: 'var(--accent)', fontSize: 13, fontWeight: 500 }}>
             <Sparkles size={14} strokeWidth={2} /> Gérer les systèmes de design
           </Box>
-        </Box>
+        </div>
 
         {/* 2 · Champ IA */}
         {creating ? (
@@ -721,7 +721,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           onClose={commitLocation}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
         >
-          <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1, width: 260 }}>
+          <div className="p-2 flex flex-col gap-1.5 w-[260px]">
             <InputBase
               autoFocus
               value={location}
@@ -730,7 +730,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
               placeholder="Ex. Marrakech, Côte d'Azur…"
               sx={{ px: 1.25, py: 0.75, fontSize: 13, border: '1px solid var(--line)', borderRadius: 'var(--radius-md, 8px)', bgcolor: 'var(--field)' }}
             />
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="flex justify-between items-center">
               <Box component="button" type="button" onClick={() => removeOption('location')}
                 sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, border: 0, bgcolor: 'transparent', cursor: 'pointer', fontSize: 12.5, color: 'var(--err, #c0392b)' }}>
                 <X size={14} strokeWidth={2} /> Retirer
@@ -739,8 +739,8 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
                 sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--accent)' }}>
                 OK
               </Box>
-            </Box>
-          </Box>
+            </div>
+          </div>
         </Popover>
         {/* 3 · Éventail de funnels */}
         <div className="fan-wrap">
@@ -853,9 +853,9 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           {configs === null && !error && <Skeleton variant="rounded" height={132} sx={{ borderRadius: '14px', bgcolor: 'var(--hover)' }} />}
 
           {configs && configs.length === 0 && (
-            <Box sx={{ textAlign: 'center', py: 6, color: 'var(--muted)', fontSize: 14 }}>
+            <div className="text-center py-9 text-[var(--muted)] text-[14px]">
               Aucun booking engine pour l'instant — partez d'un funnel, d'un template, ou décrivez votre activité ci-dessus.
-            </Box>
+            </div>
           )}
 
           {configs && configs.length > 0 && view === 'list' && (
@@ -888,18 +888,18 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
               {filtered.map((c) => (
                 <div key={c.id} className="gcard-wrap">
                   <button className="gcard" type="button" onClick={() => navigate(`/booking-engine/studio/${c.id}`)}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
-                      <Box sx={{ position: 'relative', width: 52, height: 36, borderRadius: '6px', flexShrink: 0, overflow: 'hidden', bgcolor: 'var(--surface-2)', border: '1px solid var(--line)' }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="relative w-[52px] h-[36px] rounded-[6px] shrink-0 overflow-hidden bg-[var(--surface-2)] border border-[var(--line)]">
                         <MiniPreview color={c.primaryColor || '#5453d6'} />
-                      </Box>
-                      <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Box sx={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--ink)' }}>{c.name}</Box>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[14px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis text-[var(--ink)]">{c.name}</div>
                         <span className={`status ${c.enabled ? 'active' : 'off'}`} style={{ fontSize: 12 }}><span className="led" /> {c.enabled ? 'Actif' : 'Désactivé'}</span>
-                      </Box>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 'auto', color: 'var(--accent)', fontSize: 13, fontWeight: 500 }}>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-0.5 mt-auto text-[var(--accent)] text-[13px] font-medium">
                       Ouvrir <ArrowRight size={14} strokeWidth={2} />
-                    </Box>
+                    </div>
                   </button>
                   <button className="gcard__del" type="button" aria-label={`Supprimer ${c.name}`} title="Supprimer" onClick={() => setConfirmDelete(c)}><Trash2 size={15} strokeWidth={2} /></button>
                 </div>
@@ -923,7 +923,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 
   return (
@@ -931,9 +931,9 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
       {embedded ? (
         <Box sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>{content}</Box>
       ) : (
-        <Box sx={{ minHeight: '100vh', bgcolor: 'var(--bg)' }}>
+        <div className="min-h-[100vh] bg-[var(--bg)]">
           <Box sx={{ px: { xs: 2, md: 4 }, py: { xs: 3, md: 5 } }}>{content}</Box>
-        </Box>
+        </div>
       )}
     </>
   );

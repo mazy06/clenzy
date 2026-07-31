@@ -146,27 +146,19 @@ interface FormSectionProps {
  * vertical généreux pour une lecture aérée dans la modal.
  */
 const FormSection: React.FC<FormSectionProps> = ({ label, hint, children }) => (
-  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-    <Box>
-      <Typography
-        sx={{
-          fontSize: '10.5px',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          color: 'var(--faint)',
-        }}
-      >
+  <div className="flex flex-col gap-2">
+    <div>
+      <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.06em] text-[var(--faint)]">
         {label}
-      </Typography>
+      </p>
       {hint && (
-        <Typography sx={{ fontSize: '0.75rem', color: 'var(--muted)', mt: 0.25 }}>
+        <p className="cn-text-body1 text-[0.75rem] text-[var(--muted)] mt-0.5">
           {hint}
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
     {children}
-  </Box>
+  </div>
 );
 
 // ─── Reusable contract form fields ───────────────────────────────────────────
@@ -203,7 +195,7 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
+    <div className="flex flex-col gap-5">
       {/* ── Modèle d'accord (presets) ── */}
       <FormSection
         label="Modèle d'accord"
@@ -241,24 +233,16 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
                 }}
               >
                 {active && (
-                  <Box
-                    component="span"
-                    sx={{
-                      position: 'absolute', top: 8, right: 8,
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      width: 16, height: 16, borderRadius: '50%',
-                      bgcolor: 'var(--accent)', color: 'var(--on-accent)',
-                    }}
-                  >
+                  <span className="absolute top-[8px] end-[8px] inline-flex items-center justify-center w-[16px] h-[16px] rounded-[50%] bg-[var(--accent)] text-[var(--on-accent)]">
                     <Check size={10} strokeWidth={2.5} />
-                  </Box>
+                  </span>
                 )}
                 <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, lineHeight: 1.3, pr: active ? 2.5 : 0, color: 'var(--ink)' }}>
                   {preset.label}
                 </Typography>
-                <Typography sx={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.45, mt: 0.5 }}>
+                <p className="cn-text-body1 text-[0.75rem] text-[var(--muted)] leading-[1.45] mt-0.5">
                   {preset.description}
-                </Typography>
+                </p>
               </Box>
             );
           })}
@@ -328,7 +312,7 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
 
       {/* ── Encaissement & commission (taxonomie OTA) ── */}
       <FormSection label="Encaissement & commission">
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="flex flex-col gap-3">
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1.4fr 1fr 0.6fr' }, gap: 2 }}>
             <TextField
               select label="Qui encaisse le paiement guest ?" value={form.paymentModel ?? 'DIRECT'}
@@ -371,7 +355,7 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
             />
           </Box>
           <SplitPreviewBar commissionRate={form.commissionRate} splitRatios={splitRatios} />
-        </Box>
+        </div>
       </FormSection>
 
       {/* ── Services & inclusions ── */}
@@ -380,7 +364,7 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
         hint="Part conciergerie sur les ventes annexes. Vide = répartition par défaut de l'organisation."
       >
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, alignItems: 'start' }}>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <div className="flex gap-3">
             <TextField
               label="Upsells" type="number"
               value={form.upsellCommissionRate != null ? Math.round(form.upsellCommissionRate * 100) : ''}
@@ -390,8 +374,8 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
               InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
               inputProps={{ min: 0, max: 100, step: 1, style: { fontVariantNumeric: 'tabular-nums' } }}
             />
-          </Box>
-          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center', minHeight: 40 }}>
+          </div>
+          <div className="flex gap-0.5 flex-wrap items-center min-h-[40px]">
             <FormControlLabel
               control={<Switch size="small" checked={form.autoRenew ?? false} onChange={e => setForm(prev => ({ ...prev, autoRenew: e.target.checked }))} />}
               label="Renouvellement auto"
@@ -407,7 +391,7 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
               label="Maintenance incluse"
               sx={{ '& .MuiFormControlLabel-label': { fontSize: '0.8125rem' } }}
             />
-          </Box>
+          </div>
         </Box>
       </FormSection>
 
@@ -423,7 +407,7 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
           placeholder="Détails complémentaires, conditions particulières… (optionnel)"
         />
       </FormSection>
-    </Box>
+    </div>
   );
 };
 
@@ -450,7 +434,7 @@ const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, split
   // État vide : aucune commission saisie → pas de calcul, juste un repère visuel.
   if (!hasCommission) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+      <div className="flex flex-col gap-0.5">
         <Box
           sx={{
             height: 8,
@@ -461,10 +445,10 @@ const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, split
           }}
           aria-label="Aucune commission définie"
         />
-        <Typography sx={{ fontSize: '0.6875rem', color: 'var(--faint)', fontStyle: 'italic' }}>
+        <p className="cn-text-body1 text-[0.6875rem] text-[var(--faint)] italic">
           Saisissez un taux de commission pour voir la répartition appliquée à ce contrat.
-        </Typography>
-      </Box>
+        </p>
+      </div>
     );
   }
 
@@ -488,21 +472,9 @@ const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, split
   ];
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+    <div className="flex flex-col gap-1">
       {/* Barre segmentée */}
-      <Box
-        sx={{
-          display: 'flex',
-          height: 8,
-          borderRadius: 0.75,
-          overflow: 'hidden',
-          border: '1px solid',
-          borderColor: 'var(--line)',
-          bgcolor: 'var(--field)',
-        }}
-        role="img"
-        aria-label={`Répartition : propriétaire ${ownerPct.toFixed(0)}%, plateforme ${platformPct.toFixed(1)}%, conciergerie ${conciergePct.toFixed(1)}%`}
-      >
+      <div className="flex h-[8px] rounded-[0.75px] overflow-hidden border border-[var(--line)] bg-[var(--field)]" role="img" aria-label={`Répartition : propriétaire ${ownerPct.toFixed(0)}%, plateforme ${platformPct.toFixed(1)}%, conciergerie ${conciergePct.toFixed(1)}%`}>
         {segments.map((seg) => (
           <Tooltip key={seg.label} title={`${seg.label} : ${seg.pct.toFixed(1)} %`} arrow>
             <Box
@@ -514,26 +486,26 @@ const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, split
             />
           </Tooltip>
         ))}
-      </Box>
+      </div>
       {/* Légende */}
-      <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+      <div className="flex gap-2 flex-wrap">
         {segments.map((seg) => (
-          <Box key={seg.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <div className="flex items-center gap-0.5" key={seg.label}>
             <Box
               sx={{
                 width: 6, height: 6, borderRadius: '50%',
                 bgcolor: seg.color,
               }}
             />
-            <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)', fontWeight: 500 }}>
+            <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] font-medium">
               {seg.label}
-            </Typography>
-            <Typography sx={{ fontSize: '0.6875rem', color: 'var(--ink)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+            </p>
+            <p className="cn-text-body1 text-[0.6875rem] text-[var(--ink)] font-semibold tabular-nums">
               {seg.pct.toFixed(seg.pct >= 10 ? 0 : 1)} %
-            </Typography>
-          </Box>
+            </p>
+          </div>
         ))}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };

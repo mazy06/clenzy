@@ -1,22 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Select,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
-  FormLabel,
-  CircularProgress,
-} from '@mui/material';
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, Select, FormControl, InputLabel, MenuItem, Radio, RadioGroup, FormControlLabel, FormLabel, CircularProgress } from '@mui/material';
 import {
   CheckCircle,
   Cancel,
@@ -40,9 +23,9 @@ export function DeleteConfirmDialog({ open, onClose, onConfirm, requestTitle, t 
     <Dialog open={open} onClose={onClose}>
       <DialogTitle>{t('serviceRequests.confirmDelete')}</DialogTitle>
       <DialogContent>
-        <Typography variant="body2">
+        <p className="cn-text-body2">
           {t('serviceRequests.confirmDeleteMessage', { title: requestTitle })}
-        </Typography>
+        </p>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} size="small">{t('common.cancel')}</Button>
@@ -83,9 +66,9 @@ export function StatusChangeDialog({
     <Dialog open={open} onClose={onClose}>
       <DialogTitle>{t('serviceRequests.changeStatus')}</DialogTitle>
       <DialogContent>
-        <Typography variant="caption" sx={{ mb: 1.5, fontSize: '0.75rem' }}>
+        <span className="cn-text-caption mb-2 text-[0.75rem]">
           {t('serviceRequests.changeStatusMessage', { title: requestTitle })}
-        </Typography>
+        </span>
         <FormControl fullWidth>
           <InputLabel>{t('serviceRequests.newStatus')}</InputLabel>
           <Select
@@ -165,14 +148,14 @@ export function AssignDialog({
       </DialogTitle>
       <DialogContent>
         {selectedRequest && (
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          <div className="mb-3">
+            <p className="cn-text-body2 text-muted-foreground mb-1.5">
               {t('serviceRequests.assign')}: <strong>{selectedRequest.title}</strong>
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
+            </p>
+            <span className="cn-text-caption text-muted-foreground">
               {t('serviceRequests.assignDescription')}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         )}
 
         <FormControl component="fieldset" sx={{ width: '100%', mt: 2 }}>
@@ -232,9 +215,9 @@ export function AssignDialog({
         </FormControl>
 
         {loadingData && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+          <div className="flex justify-center py-3">
             <CircularProgress size={24} />
-          </Box>
+          </div>
         )}
       </DialogContent>
       <DialogActions>
@@ -278,13 +261,13 @@ export function ErrorDialog({ open, onClose, message, t }: ErrorDialogProps) {
       fullWidth
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'error.main' }}>
-        <Box component="span" sx={{ display: "inline-flex", color: "error.main" }}><Cancel size={20} strokeWidth={1.75} /></Box>
+        <span className="inline-flex text-destructive"><Cancel size={20} strokeWidth={1.75} /></span>
         {t('common.error')}
       </DialogTitle>
       <DialogContent>
-        <Typography variant="body2">
+        <p className="cn-text-body2">
           {message}
-        </Typography>
+        </p>
       </DialogContent>
       <DialogActions>
         <Button
@@ -320,13 +303,13 @@ export function SuccessDialog({ open, onClose, message, t }: SuccessDialogProps)
       fullWidth
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'success.main' }}>
-        <Box component="span" sx={{ display: "inline-flex", color: "success.main" }}><CheckCircle size={20} strokeWidth={1.75} /></Box>
+        <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={20} strokeWidth={1.75} /></span>
         {t('common.success')}
       </DialogTitle>
       <DialogContent>
-        <Typography variant="body2">
+        <p className="cn-text-body2">
           {message}
-        </Typography>
+        </p>
       </DialogContent>
       <DialogActions>
         <Button

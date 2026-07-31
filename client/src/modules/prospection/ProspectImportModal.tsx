@@ -1,20 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  Box,
-  IconButton,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  LinearProgress,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, IconButton, Alert, FormControl, InputLabel, Select, MenuItem, LinearProgress } from '@mui/material';
 import {
   Close as CloseIcon,
   CloudUpload,
@@ -113,9 +98,9 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
       >
         <Box display="flex" alignItems="center" gap={1}>
           <CloudUpload color="primary" />
-          <Typography variant="h6" component="div">
+          <div className="cn-text-h6">
             Importer des prospects
-          </Typography>
+          </div>
         </Box>
         <IconButton onClick={handleClose} size="small" sx={{ color: 'text.secondary' }}>
           <CloseIcon />
@@ -126,9 +111,9 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
         {/* Success message */}
         {successCount !== null && (
           <Alert severity="success" icon={<CheckCircle />} sx={{ mb: 2 }}>
-            <Typography variant="body1">
+            <p className="cn-text-body1">
               <strong>{successCount}</strong> prospects importes avec succes !
-            </Typography>
+            </p>
           </Alert>
         )}
 
@@ -187,22 +172,22 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
           {selectedFile ? (
             <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
               <InsertDriveFile color="primary" />
-              <Typography variant="body1" color="text.primary">
+              <p className="cn-text-body1 text-foreground">
                 {selectedFile.name}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              </p>
+              <p className="cn-text-body2 text-muted-foreground">
                 ({(selectedFile.size / 1024).toFixed(1)} Ko)
-              </Typography>
+              </p>
             </Box>
           ) : (
             <>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><CloudUpload size={48} strokeWidth={1.75} /></Box>
-              <Typography variant="body1" color="text.secondary">
+              <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><CloudUpload size={48} strokeWidth={1.75} /></span>
+              <p className="cn-text-body1 text-muted-foreground">
                 Deposez votre fichier CSV ici
-              </Typography>
-              <Typography variant="body2" color="text.disabled">
+              </p>
+              <p className="cn-text-body2 text-muted-foreground opacity-60">
                 ou cliquez pour parcourir
-              </Typography>
+              </p>
             </>
           )}
         </Box>

@@ -45,50 +45,26 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
 
   if (items.length === 0) {
     return (
-      <Box
-        sx={{
-          mt: 1, mb: 1.5,
-          px: 2, py: 2,
-          borderRadius: '12px',
-          border: '1px solid var(--line)',
-          bgcolor: 'var(--card)',
-          textAlign: 'center',
-        }}
-      >
-        <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+      <div className="mt-1.5 mb-2 px-3 py-3 rounded-[12px] border border-[var(--line)] bg-[var(--card)] text-center">
+        <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
           Aucun resultat
           {data.from && data.to && ` sur la periode ${formatDate(data.from)} → ${formatDate(data.to)}`}.
-        </Typography>
-      </Box>
+        </p>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
+    <div className="mt-1.5 mb-2">
       {/* Header avec range de dates si fournie */}
       {data.from && data.to && (
-        <Typography
-          sx={{
-            display: 'block',
-            mb: 0.75,
-            fontSize: '11.5px',
-            color: 'var(--muted)',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
+        <p className="cn-text-body1 block mb-1 text-[11.5px] text-[var(--muted)] tabular-nums">
           Periode : {formatDate(data.from)} → {formatDate(data.to)}
-        </Typography>
+        </p>
       )}
 
       {/* Table hairline */}
-      <Box
-        sx={{
-          borderRadius: '12px',
-          overflow: 'hidden',
-          border: '1px solid var(--line)',
-          bgcolor: 'var(--card)',
-        }}
-      >
+      <div className="rounded-[12px] overflow-hidden border border-[var(--line)] bg-[var(--card)]">
         {/* Header row */}
         <Box
           sx={{
@@ -102,21 +78,9 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
           }}
         >
           {columns.map((col) => (
-            <Typography
-              key={col.key}
-              sx={{
-                fontSize: '10.5px',
-                fontWeight: 700,
-                letterSpacing: '.05em',
-                textTransform: 'uppercase',
-                color: 'var(--faint)',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
+            <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)] whitespace-nowrap overflow-hidden text-ellipsis" key={col.key}>
               {col.label}
-            </Typography>
+            </p>
           ))}
         </Box>
 
@@ -153,23 +117,15 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
             ))}
           </Box>
         ))}
-      </Box>
+      </div>
 
       {/* Footer truncation */}
       {hiddenCount > 0 && (
-        <Typography
-          sx={{
-            display: 'block',
-            mt: 0.75,
-            fontSize: '11.5px',
-            color: 'var(--muted)',
-            fontStyle: 'italic',
-          }}
-        >
+        <p className="cn-text-body1 block mt-1 text-[11.5px] text-[var(--muted)] italic">
           + {hiddenCount} de plus (demande "tous" pour la liste complete)
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   );
 };
 

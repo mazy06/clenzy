@@ -109,7 +109,7 @@ const HelpPopover: React.FC<HelpPopoverProps> = ({
         }}
       >
         {/* Header — chip AIDE + titre */}
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 0.75 }}>
+        <div className="flex items-start gap-1.5 mb-1">
           <Box
             sx={{
               fontSize: '10.5px',
@@ -144,7 +144,7 @@ const HelpPopover: React.FC<HelpPopoverProps> = ({
           >
             {title}
           </Typography>
-        </Box>
+        </div>
 
         {/* Description */}
         <Typography

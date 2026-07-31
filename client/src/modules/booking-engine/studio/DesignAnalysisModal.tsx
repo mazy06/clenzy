@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, IconButton, Box } from '@mui/material';
+import { Dialog, DialogContent, IconButton } from '@mui/material';
 import { X } from 'lucide-react';
 import AiDesignMatcher from '../AiDesignMatcher';
 import type { DesignTokens } from '../../../services/api/bookingEngineApi';
@@ -23,17 +23,17 @@ export default function DesignAnalysisModal({ open, onClose, configId, initialUr
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
       PaperProps={{ sx: { borderRadius: 'var(--radius-lg)' } }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2.5, pt: 2, pb: 1 }}>
-        <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-bold)', color: 'var(--ink)' }}>
+      <div className="flex items-center justify-between px-3.5 pt-3 pb-1.5">
+        <div className="font-[var(--font-display)] text-[var(--text-lg)] font-[var(--fw-bold)] text-[var(--ink)]">
           Analyse du design
-        </Box>
+        </div>
         <IconButton onClick={onClose} size="small" aria-label="Fermer"><X size={18} /></IconButton>
-      </Box>
+      </div>
       <DialogContent sx={{ pt: 1 }}>
-        <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', mb: 2, lineHeight: 1.5 }}>
+        <div className="text-[var(--text-sm)] text-[var(--muted)] mb-3 leading-[1.5]">
           Renseigne l’URL du site du client : l’IA en extrait les couleurs/typo et applique le design
           au widget de réservation et aux blocs de la page.
-        </Box>
+        </div>
         <AiDesignMatcher
           configId={configId}
           sourceWebsiteUrl={url}

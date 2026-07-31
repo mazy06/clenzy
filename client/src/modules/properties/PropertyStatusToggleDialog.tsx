@@ -1,7 +1,5 @@
 import React from 'react';
-import {
-  Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, CircularProgress,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, CircularProgress } from '@mui/material';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 
 interface PropertyStatusToggleDialogProps {
@@ -30,12 +28,12 @@ const PropertyStatusToggleDialog: React.FC<PropertyStatusToggleDialogProps> = ({
         {isActive ? 'Désactiver cette propriété ?' : 'Réactiver cette propriété ?'}
       </DialogTitle>
       <DialogContent>
-        <Typography sx={{ fontSize: '13px', color: 'var(--body)' }}>
+        <p className="cn-text-body1 text-[13px] text-[var(--body)]">
           {property && <><strong>{property.name}</strong>{' '}</>}
           {isActive
             ? 'ne sera plus visible dans le planning, les recherches et le booking engine. Tu pourras la réactiver à tout moment.'
             : 'réapparaîtra dans le planning, les recherches et le booking engine.'}
-        </Typography>
+        </p>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} size="small" variant="text" disabled={pending}>

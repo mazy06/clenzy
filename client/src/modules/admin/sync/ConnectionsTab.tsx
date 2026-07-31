@@ -1,20 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  Button,
-  CircularProgress,
-  Skeleton,
-  Alert,
-  Typography,
-} from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, CircularProgress, Skeleton, Alert } from '@mui/material';
 import { Refresh } from '../../../icons';
 import { syncAdminApi, ConnectionSummary } from '../../../services/api/syncAdminApi';
 
@@ -75,11 +60,11 @@ const ConnectionsTab: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <div className="flex flex-col gap-1.5">
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
         ))}
-      </Box>
+      </div>
     );
   }
 
@@ -88,10 +73,10 @@ const ConnectionsTab: React.FC = () => {
   }
 
   return (
-    <Box>
-      <Typography variant="h6" gutterBottom sx={{ color: 'var(--ink)' }}>
+    <div>
+      <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
         Connexions Channel
-      </Typography>
+      </h6>
 
       <TableContainer
         component={Paper}
@@ -137,13 +122,9 @@ const ConnectionsTab: React.FC = () => {
                     {conn.lastSyncAt ? new Date(conn.lastSyncAt).toLocaleString() : '—'}
                   </TableCell>
                   <TableCell>
-                    <Typography
-                      variant="body2"
-                      sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                      title={conn.lastError || undefined}
-                    >
+                    <p className="cn-text-body2 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title={conn.lastError || undefined}>
                       {conn.lastError || '—'}
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{conn.mappingCount}</TableCell>
                   <TableCell>
@@ -173,7 +154,7 @@ const ConnectionsTab: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
-    </Box>
+    </div>
   );
 };
 

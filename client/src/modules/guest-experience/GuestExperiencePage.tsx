@@ -65,7 +65,7 @@ const GuestExperiencePage: React.FC = () => {
     <PageHeaderActionsProvider slot={slot} filtersSlot={filtersSlot}>
       {/* En-tête + tabs FIXES ; seul le contenu sous les tabs défile (scroll interne,
           comme les pages à scroll propre du soft) → le PageHeader ne scrolle plus. */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      <div className="flex flex-col flex-1 min-h-0">
         <PageHeader
           title={t('guestExperience.title', 'Réservation & accueil')}
           subtitle={subtitle}
@@ -84,7 +84,7 @@ const GuestExperiencePage: React.FC = () => {
             <WelcomeGuideAdmin />
           )}
         </Box>
-      </Box>
+      </div>
     </PageHeaderActionsProvider>
   );
 };

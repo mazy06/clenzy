@@ -119,18 +119,18 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
   return (
     <Paper sx={CARD_SX}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <div className="flex justify-between items-center mb-2">
+        <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em]">
           {editingPlan ? t('dynamicPricing.ratePlan.edit') : t('dynamicPricing.ratePlan.create')}
-        </Typography>
+        </p>
         {editingPlan && (
           <IconButton size="small" onClick={onCancel} sx={{ p: 0.25 }}>
             <CloseIcon size={16} strokeWidth={1.75} />
           </IconButton>
         )}
-      </Box>
+      </div>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      <div className="flex flex-col gap-2">
         {/* Name */}
         <TextField
           label={t('dynamicPricing.ratePlan.name')}
@@ -153,7 +153,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
         </FormControl>
 
         {/* Price + Currency + Priority row */}
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <div className="flex gap-1.5">
           <TextField
             label={t('dynamicPricing.ratePlan.nightlyPrice')}
             type="number"
@@ -171,9 +171,9 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
             sx={{ width: 90 }}
             InputProps={{
               startAdornment: (
-                <Typography variant="body2" sx={{ mr: 0.5, fontWeight: 600, color: 'text.secondary' }}>
+                <p className="cn-text-body2 me-0.5 font-semibold text-muted-foreground">
                   <CurrencySymbol code={activeCurrency} />
-                </Typography>
+                </p>
               ),
             }}
           />
@@ -186,13 +186,13 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
             sx={{ width: 100 }}
             inputProps={{ min: 0, step: 1 }}
           />
-        </Box>
+        </div>
 
         {/* Date range — shared mini calendar */}
-        <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem', mb: 0.5, display: 'block' }}>
+        <div>
+          <span className="cn-text-caption text-muted-foreground text-[0.625rem] mb-0.5 block">
             {t('dynamicPricing.ratePlan.dateRange')}
-          </Typography>
+          </span>
           <MiniDateRangePicker
             startDate={startDate}
             endDate={endDate}
@@ -200,13 +200,13 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
             onChangeEnd={setEndDate}
             isFrench={isFrench}
           />
-        </Box>
+        </div>
 
         {/* Days of week */}
-        <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem', mb: 0.5, display: 'block' }}>
+        <div>
+          <span className="cn-text-caption text-muted-foreground text-[0.625rem] mb-0.5 block">
             {t('dynamicPricing.ratePlan.daysOfWeek')}
-          </Typography>
+          </span>
           <Box sx={{ display: 'flex', gap: '3px' }}>
             {(() => {
               const daysOfWeekSet = new Set(daysOfWeek);
@@ -248,7 +248,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
               });
             })()}
           </Box>
-        </Box>
+        </div>
 
         {/* Active toggle */}
         <FormControlLabel
@@ -256,14 +256,14 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
             <Switch size="small" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
           }
           label={
-            <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
+            <span className="cn-text-caption text-[0.75rem]">
               {isActive ? t('dynamicPricing.ratePlan.active') : t('dynamicPricing.ratePlan.inactive')}
-            </Typography>
+            </span>
           }
         />
 
         {/* Actions */}
-        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+        <div className="flex gap-1.5 justify-end">
           {editingPlan && (
             <Button
               size="small"
@@ -284,8 +284,8 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
           >
             {editingPlan ? t('common.save') : t('dynamicPricing.ratePlan.create')}
           </Button>
-        </Box>
-      </Box>
+        </div>
+      </div>
     </Paper>
   );
 };

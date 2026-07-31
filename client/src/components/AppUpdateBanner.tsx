@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Snackbar, Alert, Button, Box, Typography } from '@mui/material';
+import { Snackbar, Alert, Button } from '@mui/material';
 // Module virtuel injecte par vite-plugin-pwa au build. Types resolus via
 // /// <reference types="vite-plugin-pwa/react" /> dans vite-env.d.ts.
 import { useRegisterSW } from 'virtual:pwa-register/react';
@@ -118,7 +118,7 @@ export default function AppUpdateBanner() {
           alignItems: 'center',
         }}
         action={
-          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+          <div className="flex gap-0.5 items-center">
             <Button
               size="small"
               variant="text"
@@ -133,12 +133,12 @@ export default function AppUpdateBanner() {
             >
               {t('appUpdate.reload', 'Recharger maintenant')}
             </Button>
-          </Box>
+          </div>
         }
       >
-        <Typography variant="body2" sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)' }}>
+        <p className="cn-text-body2 text-[12.5px] font-semibold text-[var(--ink)]">
           {t('appUpdate.message', 'Une nouvelle version est disponible.')}
-        </Typography>
+        </p>
       </Alert>
     </Snackbar>
   );

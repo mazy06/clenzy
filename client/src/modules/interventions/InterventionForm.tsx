@@ -1,12 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Grid,
-  Button,
-  Alert,
-  CircularProgress
-} from '@mui/material';
+import { Box, Grid, Button, Alert, CircularProgress } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -326,16 +319,16 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   if (!hasPermission) {
     if (isEditMode) {
       return (
-        <Box sx={{ p: 3 }}>
+        <div className="p-4">
           <Alert severity="error">
-            <Typography variant="h6" gutterBottom>
+            <h6 className="cn-text-h6 mb-[0.35em]">
               {t('common.accessDenied') || 'Acces non autorise'}
-            </Typography>
-            <Typography variant="body1">
+            </h6>
+            <p className="cn-text-body1">
               {t('interventions.errors.noEditPermission') || 'Vous n\'avez pas les permissions necessaires pour modifier des interventions.'}
-            </Typography>
+            </p>
           </Alert>
-        </Box>
+        </div>
       );
     }
     return null;
@@ -368,7 +361,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   }
 
   return (
-    <Box>
+    <div>
       {/* Header standalone (page /interventions/new). En mode edit, le
           PageHeader est fourni par le parent InterventionEdit. */}
       {!isEditMode && (
@@ -439,7 +432,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
           {t('common.submit')}
         </Button>
       </form>
-    </Box>
+    </div>
   );
 };
 

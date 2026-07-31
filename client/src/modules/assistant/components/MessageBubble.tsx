@@ -36,7 +36,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     const attachments = message.attachments ?? [];
     return (
       <>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <div className="flex justify-end mb-3">
           <Box
             sx={{
               maxWidth: '74%',
@@ -52,7 +52,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           >
             {/* Attachments thumbnails 100x100 — au-dessus du texte */}
             {attachments.length > 0 && (
-              <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+              <div className="flex gap-1 flex-wrap">
                 {attachments.map((att) => (
                   <Box
                     key={att.storageKey}
@@ -80,20 +80,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                       '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                     }}
                   >
-                    <Box
-                      component="img"
-                      src={att.url}
-                      alt={att.name ?? 'image jointe'}
-                      sx={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                      }}
-                    />
+                    <img className="w-full h-full object-cover block" src={att.url} alt={att.name ?? 'image jointe'} />
                   </Box>
                 ))}
-              </Box>
+              </div>
             )}
 
             {message.content && (
@@ -116,7 +106,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
               </Typography>
             )}
           </Box>
-        </Box>
+        </div>
 
         {/* Modal full-size — declenche par clic sur un thumbnail */}
         <Dialog
@@ -126,26 +116,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           aria-labelledby="attachment-fullsize-title"
         >
           <DialogContent sx={{ p: 1.5 }}>
-            <Typography
-              id="attachment-fullsize-title"
-              variant="caption"
-              sx={{ display: 'block', mb: 1, color: 'var(--muted)' }}
-            >
+            <span className="cn-text-caption block mb-1.5 text-[var(--muted)]" id="attachment-fullsize-title">
               {fullSizeAlt}
-            </Typography>
+            </span>
             {fullSizeUrl && (
-              <Box
-                component="img"
-                src={fullSizeUrl}
-                alt={fullSizeAlt}
-                sx={{
-                  maxWidth: '100%',
-                  maxHeight: '80vh',
-                  display: 'block',
-                  mx: 'auto',
-                  borderRadius: '10px',
-                }}
-              />
+              <img className="max-w-full max-h-[80vh] block mx-auto rounded-[10px]" src={fullSizeUrl} alt={fullSizeAlt} />
             )}
           </DialogContent>
         </Dialog>
@@ -173,17 +148,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           Pas de bg circulaire : le mark a son propre dessin (8 nodes +
           centre + lignes) qui se suffit a lui-meme. Container minimal
           pour aligner la taille avec le premier ligne de texte. */}
-      <Box
-        sx={{
-          flexShrink: 0,
-          width: 28,
-          height: 28,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          mt: 0.5, // align with bubble first line
-        }}
-      >
+      <div className="shrink-0 w-[28px] h-[28px] flex items-center justify-center mt-0.5">
         {/* idleAnimation=false : pas de boot+scan+breathe sur chaque message
             (visual noise constant si 50 messages). active={isStreaming} :
             declenche l'animation hover-equivalent (lignes absorbees + centre
@@ -196,17 +161,17 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           idleAnimation={false}
           active={isStreaming}
         />
-      </Box>
+      </div>
 
       {/* Contenu : tool calls + widgets pleine largeur, texte en bulle in */}
-      <Box sx={{ flex: 1, minWidth: 0 }}>
+      <div className="flex-1 min-w-0">
         {/* Tool call cards : chip recap des outils utilises (compact) */}
         {message.toolCalls && message.toolCalls.length > 0 && (
-          <Box sx={{ mb: 1, display: 'flex', flexWrap: 'wrap' }}>
+          <div className="mb-1.5 flex flex-wrap">
             {message.toolCalls.map((tc) => (
               <ToolCallCard key={tc.toolCallId} call={tc} />
             ))}
-          </Box>
+          </div>
         )}
 
         {/* Rich widgets : KPI tiles, tables, etc. — rendus selon displayHint
@@ -242,14 +207,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
 
         {/* Streaming indicator quand le contenu est encore vide */}
         {isStreaming && !message.content && !message.toolCalls?.length && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+          <div className="flex items-center gap-1.5 py-0.5">
             <CircularProgress size={12} thickness={5} sx={{ color: 'var(--accent)' }} />
-            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>
+            <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">
               Reflechit...
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
-      </Box>
+      </div>
     </Box>
   );
 };

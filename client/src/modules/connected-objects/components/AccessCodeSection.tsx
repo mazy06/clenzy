@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Box, Typography, IconButton, Button, Tooltip, CircularProgress, Divider, TextField, MenuItem,
-  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert,
-} from '@mui/material';
+import { Typography, IconButton, Button, Tooltip, CircularProgress, Divider, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert } from '@mui/material';
 import { VpnKey, ContentCopy, Visibility, VisibilityOff, Refresh } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useLockAccessCode } from '../useLockAccessCode';
@@ -85,15 +82,15 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
   return (
     <>
       <Divider sx={{ mt: 0.25 }} />
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+      <div className="flex items-center gap-0.5 min-w-0">
         <Tooltip title="Code d'accès" arrow>
-          <Box component="span" sx={{ color: 'text.disabled', display: 'inline-flex', flexShrink: 0 }}>
+          <span className="text-muted-foreground opacity-60 inline-flex shrink-0">
             <VpnKey size={14} strokeWidth={1.75} />
-          </Box>
+          </span>
         </Tooltip>
 
         {isLoading ? (
-          <Typography variant="caption" sx={{ color: 'text.disabled' }}>Code d'accès…</Typography>
+          <span className="cn-text-caption text-muted-foreground opacity-60">Code d'accès…</span>
         ) : hasCode ? (
           <>
             {/* Code PIN : display (Space Grotesk) tabular-nums sur fond --field */}
@@ -132,7 +129,7 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
           </>
         ) : (
           <>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>Aucun code actif</Typography>
+            <span className="cn-text-caption text-muted-foreground">Aucun code actif</span>
             <Button
               size="small"
               variant="text"
@@ -145,12 +142,12 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
             </Button>
           </>
         )}
-      </Box>
+      </div>
 
       {hasCode && code!.validUntil && (
-        <Typography variant="caption" sx={{ color: 'text.disabled', pl: 2.5, display: 'block', lineHeight: 1.2 }}>
+        <span className="cn-text-caption text-muted-foreground opacity-60 ps-3.5 block leading-[1.2]">
           Valide jusqu'au {formatUntil(code!.validUntil)}
-        </Typography>
+        </span>
       )}
 
       {lockDevice ? (

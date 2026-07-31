@@ -1,19 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Grid,
-  MenuItem,
-  Paper,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Grid, MenuItem, Paper, TextField } from '@mui/material';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -164,9 +150,9 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
 
       <DialogContent dividers>
         {isLoading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+          <div className="flex justify-center p-6">
             <CircularProgress />
-          </Box>
+          </div>
         )}
 
         {error && (
@@ -229,17 +215,7 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
                         <MenuItem key={lang.value} value={lang.value} disabled={!tpl}>
                           {lang.label}
                           {isCustom && (
-                            <Box
-                              component="span"
-                              sx={{
-                                ml: 1,
-                                width: 6,
-                                height: 6,
-                                borderRadius: '50%',
-                                bgcolor: 'var(--accent)',
-                                display: 'inline-block',
-                              }}
-                            />
+                            <span className="ms-1.5 w-[6px] h-[6px] rounded-[50%] bg-[var(--accent)] inline-block" />
                           )}
                         </MenuItem>
                       );
@@ -271,23 +247,23 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
               </Grid>
 
               {/* ── Preview : SEULE difference visuelle vs SystemTemplate — bulle WhatsApp ── */}
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <div className="mt-4">
+                <h6 className="cn-text-subtitle2 text-muted-foreground mb-[0.35em]">
                   {t('whatsappTemplates.dialog.preview')}
-                </Typography>
+                </h6>
                 <WhatsAppBubblePreview body={body} rtl={language === 'ar_AR'} />
-              </Box>
+              </div>
             </Grid>
 
             {/* ── Sidebar variables (droite 5/12) ── */}
             <Grid item xs={12} md={5}>
               <Paper variant="outlined" sx={{ p: 2, position: 'sticky', top: 16 }}>
-                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                <h6 className="cn-text-subtitle2 font-semibold mb-[0.35em]">
                   {t('messaging.templates.editor.variables')}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                </h6>
+                <span className="cn-text-caption text-muted-foreground block mb-2">
                   {t('messaging.templates.editor.variablesDesc')}
-                </Typography>
+                </span>
                 <VariablePicker
                   variables={availableVariables}
                   usedKeys={usedVariables}
@@ -311,7 +287,7 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
             {t('whatsappTemplates.dialog.resetToSystem')}
           </Button>
         )}
-        <Box sx={{ flex: 1 }} />
+        <div className="flex-1" />
         <Button onClick={onClose} disabled={saving}>
           {t('common.cancel')}
         </Button>
@@ -388,20 +364,9 @@ function renderWhatsAppBody(body: string): React.ReactNode {
   return partsWithVars.map((part, idx) => {
     if (/^\{[a-zA-Z][a-zA-Z0-9_]*\}$/.test(part)) {
       return (
-        <Box
-          key={idx}
-          component="span"
-          sx={{
-            fontFamily: 'monospace',
-            fontSize: '0.85em',
-            bgcolor: 'rgba(37,211,102,0.18)',
-            color: '#075E54',
-            px: 0.5,
-            borderRadius: 0.5,
-          }}
-        >
+        <span className="font-mono text-[0.85em] bg-[rgba(37,211,102,0.18)] text-[#075E54] px-0.5 rounded-[0.5px]" key={idx}>
           {part}
-        </Box>
+        </span>
       );
     }
     return <React.Fragment key={idx}>{renderMarkdownTokens(part)}</React.Fragment>;

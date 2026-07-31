@@ -1,37 +1,6 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  Box,
-  Typography,
-  Button,
-  Grid,
-  Card,
-  CardContent,
-  CardActions,
-  Chip,
-  Tooltip,
-  IconButton,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  Avatar,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Divider,
-  Alert,
-  Skeleton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  FormHelperText,
-} from '@mui/material';
+import { Box, Button, Grid, Card, CardContent, CardActions, Chip, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, Avatar, List, ListItem, ListItemAvatar, ListItemText, Divider, Alert, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
 import {
   MoreVert,
   Edit,
@@ -335,18 +304,18 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
   // Si pas de permission, afficher un message informatif
   if (!user || !canManageUsers) {
     return (
-      <Box sx={{ p: 2 }}>
+      <div className="p-3">
         <Alert severity="info" sx={{ p: 2, py: 1 }}>
-          <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}>
+          <h6 className="cn-text-subtitle1 mb-[0.35em] mb-1.5">
             Accès non autorisé
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+          </h6>
+          <p className="cn-text-body2 text-[0.85rem]">
             Vous n'avez pas les permissions nécessaires pour gérer les utilisateurs.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </Typography>
+          </p>
         </Alert>
-      </Box>
+      </div>
     );
   }
 
@@ -363,7 +332,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
   }
 
   const actionButtons = (
-    <Box sx={{ display: 'flex', gap: 1.5 }}>
+    <div className="flex gap-2">
       <ExportButton
         data={filteredUsers}
         columns={exportColumns}
@@ -392,7 +361,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
       >
         Nouvel utilisateur
       </Button>
-    </Box>
+    </div>
   );
 
   const filtersBar = (
@@ -431,7 +400,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
   );
 
   return (
-    <Box>
+    <div>
       {/* Portal des actions dans le header parent */}
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
 
@@ -448,7 +417,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
       )}
 
       {/* Statistiques — StatTile (carte plate hairline, valeur display) */}
-      <Box sx={{ mb: 2 }}>
+      <div className="mb-3">
         <Grid container spacing={2}>
           <Grid item xs={6} md={3}>
             <StatTile
@@ -483,12 +452,12 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
             />
           </Grid>
         </Grid>
-      </Box>
+      </div>
 
       {/* Filtres : portales dans le PageHeader parent, sinon inline en standalone */}
       {filtersContainer
         ? createPortal(filtersBar, filtersContainer)
-        : !embedded && <Box sx={{ mb: 2 }}>{filtersBar}</Box>}
+        : !embedded && <div className="mb-3">{filtersBar}</div>}
 
       {/* Liste des utilisateurs */}
       <Grid container spacing={2}>
@@ -535,8 +504,8 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
               >
                 <CardContent sx={{ flexGrow: 1, p: 1.75, pb: 1.25 }}>
                   {/* En-tête avec avatar (initiales display — pattern .mg-avt/.s-av) et menu */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.25, gap: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flex: 1, minWidth: 0 }}>
+                  <div className="flex justify-between items-start mb-2 gap-1.5">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
                       <Avatar
                         src={userAvatarSrc(user)}
                         sx={{
@@ -553,35 +522,15 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                       >
                         {user.firstName.charAt(0)}{user.lastName.charAt(0)}
                       </Avatar>
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                          fontWeight={600}
-                          sx={{
-                            fontSize: '0.9rem',
-                            lineHeight: 1.25,
-                            color: 'text.primary',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
+                      <div className="flex-1 min-w-0">
+                        <p className="cn-text-body1 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                           {user.firstName} {user.lastName}
-                        </Typography>
-                        <Typography
-                          color="text.secondary"
-                          sx={{
-                            fontSize: '0.7rem',
-                            lineHeight: 1.3,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            display: 'block',
-                          }}
-                        >
+                        </p>
+                        <p className="cn-text-body1 text-muted-foreground text-[0.7rem] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap block">
                           {user.email}
-                        </Typography>
-                      </Box>
-                    </Box>
+                        </p>
+                      </div>
+                    </div>
                     <IconButton
                       size="small"
                       onClick={(e) => handleMenuOpen(e, user)}
@@ -590,10 +539,10 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                     >
                       <MoreVert size={16} strokeWidth={1.75} />
                     </IconButton>
-                  </Box>
+                  </div>
 
                   {/* Rôles (plateforme + org) et statut — chips -soft */}
-                  <Box sx={{ display: 'flex', gap: 0.5, mb: 1.25, flexWrap: 'wrap' }}>
+                  <div className="flex gap-0.5 mb-2 flex-wrap">
                     <Tooltip title="Rôle sur la plateforme">
                       <Chip
                         icon={<PlatformIcon size={11} strokeWidth={2} />}
@@ -627,60 +576,37 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                       size="small"
                       sx={{ backgroundColor: statusToken.bg, color: statusToken.fg }}
                     />
-                  </Box>
+                  </div>
 
                   {/* Informations supplémentaires */}
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.625 }}>
+                  <div className="flex flex-col gap-1">
                     {user.phoneNumber && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                        <Box sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="inline-flex text-muted-foreground shrink-0">
                           <Phone size={13} strokeWidth={1.75} />
-                        </Box>
-                        <Typography
-                          sx={{
-                            fontSize: '0.72rem',
-                            color: 'text.secondary',
-                            fontVariantNumeric: 'tabular-nums',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
+                        </div>
+                        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums overflow-hidden text-ellipsis whitespace-nowrap">
                           {user.phoneNumber}
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
                     )}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                      <Box sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="inline-flex text-muted-foreground shrink-0">
                         <Email size={13} strokeWidth={1.75} />
-                      </Box>
-                      <Typography
-                        sx={{
-                          fontSize: '0.72rem',
-                          color: 'text.secondary',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                      </div>
+                      <p className="cn-text-body1 text-[0.72rem] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                         {user.email}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                      <Box sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="inline-flex text-muted-foreground shrink-0">
                         <Person size={13} strokeWidth={1.75} />
-                      </Box>
-                      <Typography
-                        sx={{
-                          fontSize: '0.72rem',
-                          color: 'text.secondary',
-                          fontVariantNumeric: 'tabular-nums',
-                        }}
-                      >
+                      </div>
+                      <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums">
                         Créé le {formatDate(user.createdAt)}
-                      </Typography>
-                    </Box>
-                  </Box>
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
 
                 {/* Actions */}
@@ -746,7 +672,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
         )}
         <MenuItem onClick={handleDelete} sx={{ color: 'var(--err)' }}>
           <ListItemIcon>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Delete size={18} strokeWidth={1.75} /></Box>
+            <span className="inline-flex text-[var(--err)]"><Delete size={18} strokeWidth={1.75} /></span>
           </ListItemIcon>
           Supprimer
         </MenuItem>
@@ -816,12 +742,12 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                     const RoleIcon = role.Icon;
                     return (
                       <MenuItem key={role.value} value={role.value}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <div className="flex items-center gap-1.5">
                           <Box sx={{ display: 'inline-flex', color: role.hex }}>
                             <RoleIcon size={16} strokeWidth={1.75} />
                           </Box>
-                          <Typography variant="body2">{role.label}</Typography>
-                        </Box>
+                          <p className="cn-text-body2">{role.label}</p>
+                        </div>
                       </MenuItem>
                     );
                   })}
@@ -838,7 +764,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                 >
                   {userStatuses.map((status) => (
                     <MenuItem key={status.value} value={status.value}>
-                      <Typography variant="body2">{status.label}</Typography>
+                      <p className="cn-text-body2">{status.label}</p>
                     </MenuItem>
                   ))}
                 </Select>
@@ -863,10 +789,10 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle sx={{ pb: 1 }}>Confirmer la suppression</DialogTitle>
         <DialogContent sx={{ pt: 1.5 }}>
-          <Typography variant="body2">
+          <p className="cn-text-body2">
             Êtes-vous sûr de vouloir supprimer l'utilisateur "{selectedUser?.firstName} {selectedUser?.lastName}" ?
             Cette action est irréversible.
-          </Typography>
+          </p>
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 1.5 }}>
           <Button onClick={() => setDeleteDialogOpen(false)} size="small">Annuler</Button>
@@ -875,7 +801,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 });
 

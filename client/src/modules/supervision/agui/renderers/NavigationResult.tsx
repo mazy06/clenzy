@@ -5,7 +5,7 @@
    → carte cliquable qui route vers la page suggérée (react-router).
    ============================================================ */
 import React from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import { Button } from '@mui/material';
 import { ArrowForward } from '../../../../icons';
 import { SurfaceCard, Overline } from './shared';
 
@@ -21,16 +21,16 @@ export const NavigationResult: React.FC<{
 }> = ({ data, onNavigate }) => (
   <SurfaceCard>
     <Overline sx={{ mb: 0.5 }}>Navigation suggérée</Overline>
-    <Typography sx={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>
+    <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)]">
       {data.label ?? 'Page suggérée'}
-    </Typography>
+    </p>
     {data.reason && (
-      <Typography sx={{ fontSize: '12px', color: 'var(--muted)', mt: 0.25, lineHeight: 1.5 }}>
+      <p className="cn-text-body1 text-[12px] text-[var(--muted)] mt-0.5 leading-[1.5]">
         {data.reason}
-      </Typography>
+      </p>
     )}
     {data.path && onNavigate && (
-      <Box sx={{ mt: 1.25 }}>
+      <div className="mt-2">
         <Button
           size="small"
           variant="outlined"
@@ -40,7 +40,7 @@ export const NavigationResult: React.FC<{
         >
           {data.label ? `Ouvrir ${data.label}` : 'Y aller'}
         </Button>
-      </Box>
+      </div>
     )}
   </SurfaceCard>
 );

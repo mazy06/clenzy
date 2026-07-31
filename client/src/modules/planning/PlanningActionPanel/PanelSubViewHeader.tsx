@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, IconButton } from '@mui/material';
+import { IconButton } from '@mui/material';
 import { ArrowBack } from '../../../icons';
 
 interface PanelSubViewHeaderProps {
@@ -8,35 +8,14 @@ interface PanelSubViewHeaderProps {
 }
 
 const PanelSubViewHeader: React.FC<PanelSubViewHeaderProps> = ({ title, onBack }) => (
-  <Box
-    sx={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 1,
-      minHeight: 40,
-      px: 1,
-      borderBottom: '1px solid',
-      borderColor: 'divider',
-    }}
-  >
+  <div className="flex items-center gap-1.5 min-h-[40px] px-1.5 border-b border-[divider]">
     <IconButton size="small" onClick={onBack} sx={{ p: 0.5 }}>
       <ArrowBack size={18} strokeWidth={1.75} />
     </IconButton>
-    <Typography
-      variant="subtitle2"
-      sx={{
-        fontWeight: 700,
-        fontSize: '0.75rem',
-        textTransform: 'uppercase',
-        letterSpacing: '0.03em',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-      }}
-    >
+    <h6 className="cn-text-subtitle2 font-bold text-[0.75rem] uppercase tracking-[0.03em] overflow-hidden text-ellipsis whitespace-nowrap">
       {title}
-    </Typography>
-  </Box>
+    </h6>
+  </div>
 );
 
 export default PanelSubViewHeader;

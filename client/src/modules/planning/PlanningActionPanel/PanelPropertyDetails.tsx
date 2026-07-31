@@ -241,10 +241,10 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
   ].filter((r): r is { icon: React.ReactElement; label: string; value: string } => r !== null);
 
   return (
-    <Box>
+    <div>
       {/* ─── HÉRO : aperçu carte (propriété géolocalisée) sinon icône ─── */}
       {hasCoords ? (
-        <Box sx={{ borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--line)', mb: 1.25 }}>
+        <div className="rounded-[14px] overflow-hidden border border-[var(--line)] mb-2">
           <MapboxPropertyMap
             properties={[{
               lat: property.latitude as number,
@@ -256,26 +256,15 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             zoom={14}
             height={150}
           />
-        </Box>
+        </div>
       ) : (
-        <Box
-          sx={{
-            height: 96,
-            borderRadius: '14px',
-            backgroundColor: 'var(--accent-soft)',
-            color: 'var(--accent)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            mb: 1.25,
-          }}
-        >
+        <div className="h-[96px] rounded-[14px] bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center mb-2">
           <Apartment size={40} strokeWidth={1.5} />
-        </Box>
+        </div>
       )}
 
       {/* Nom + statut + ligne « ville · m² · ch » */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.875, mb: 0.25 }}>
+      <div className="flex items-center gap-1.5 mb-0.5">
         <Typography
           sx={{
             fontFamily: 'var(--font-display)',
@@ -303,7 +292,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             '& .MuiChip-label': { px: 0.75 },
           }}
         />
-      </Box>
+      </div>
 
       {metaLine && (
         <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)', display: 'block', mb: 0.25 }}>
@@ -316,14 +305,14 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
 
       {/* ─── ACCÈS : Digicode / Étage / Wi-Fi (si données) ───────────── */}
       {accessRows.length > 0 && (
-        <Box sx={{ mb: 1.5 }}>
+        <div className="mb-2">
           <Typography sx={SECTION_TITLE_SX}>Accès</Typography>
           <Box sx={{ '& > * + *': { borderTop: '1px solid var(--line)' } }}>
             {accessRows.map((row) => (
               <Box key={row.label} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: '7px' }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)', flexShrink: 0 }}>
+                <span className="inline-flex text-[var(--muted)] shrink-0">
                   {row.icon}
-                </Box>
+                </span>
                 <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)', flexShrink: 0 }}>
                   {row.label}
                 </Typography>
@@ -345,7 +334,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
               </Box>
             ))}
           </Box>
-        </Box>
+        </div>
       )}
 
       {/* ─── STAT TILES : grid uniforme ────────────────────────────── */}
@@ -358,31 +347,16 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         }}
       >
         {metrics.map((m) => (
-          <Box
-            key={m.label}
-            sx={{
-              px: 0.5,
-              py: 0.625,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              textAlign: 'center',
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 1,
-              minWidth: 0,
-              gap: 0.125,
-            }}
-          >
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>{m.icon}</Box>
+          <div className="px-0.5 py-1 flex flex-col items-center text-center border border-[divider] rounded-[1px] min-w-0 gap-0" key={m.label}>
+            <span className="inline-flex text-muted-foreground">{m.icon}</span>
             <Typography sx={{ fontSize: BODY_FS, fontWeight: 700, lineHeight: 1 }}>{m.value}</Typography>
             <Typography sx={{ fontSize: MICRO_FS, color: 'text.secondary', lineHeight: 1.1 }}>{m.label}</Typography>
-          </Box>
+          </div>
         ))}
       </Box>
 
       {/* ─── PHOTOS ────────────────────────────────────────────────── */}
-      <Box sx={{ mb: 1.5 }}>
+      <div className="mb-2">
         <PropertyImageCarousel
           photoUrls={property.photoUrls}
           alt={property.name}
@@ -393,7 +367,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
           showCounter
           sx={{ width: '100%', borderRadius: 1.5, overflow: 'hidden' }}
         />
-      </Box>
+      </div>
 
       {/* ─── ÉQUIPEMENTS : chips colores par categorie semantique ────────
             5 categories (comfort / kitchen / appliances / outdoor / safetyFamily),
@@ -401,9 +375,9 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             leger (10-12% opacite) et une bordure 30-35% : distinction visuelle
             par categorie sans surcharge "rainbow". */}
       {property.amenities.length > 0 && (
-        <Box sx={{ mb: 1.5 }}>
+        <div className="mb-2">
           <Typography sx={SECTION_TITLE_SX}>Équipements</Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+          <div className="flex flex-wrap gap-0.5">
             {property.amenities.map((a) => {
               const palette = getAmenityChipStyle(a);
               return (
@@ -425,8 +399,8 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                 />
               );
             })}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* ─── CONFIGURATION MÉNAGE (accordion) ─────────────────────── */}
@@ -445,15 +419,15 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
           expandIcon={<ExpandMore size={14} strokeWidth={1.75} />}
           sx={{ minHeight: 34, '& .MuiAccordionSummary-content': { my: 0.5 } }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}>
+          <div className="flex items-center gap-1">
+            <span className="inline-flex text-primary">
               <CleaningServices size={14} strokeWidth={1.75} />
-            </Box>
+            </span>
             <Typography sx={{ fontSize: BODY_FS, fontWeight: 600 }}>Configuration ménage</Typography>
-          </Box>
+          </div>
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0, pb: 1.25, px: 1.25 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <div className="flex flex-col gap-0.5">
             <ConfigRow icon={<Schedule size={12} strokeWidth={1.75} />} label="Fréquence">
               {property.cleaningFrequency ? getCleaningFrequencyLabel(property.cleaningFrequency, t) : '—'}
             </ConfigRow>
@@ -469,13 +443,13 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             )}
             {(property.defaultCheckInTime || property.defaultCheckOutTime) && (
               <ConfigRow label="Check-in / out">
-                <Box component="span" sx={{ fontWeight: 600 }}>{property.defaultCheckInTime || '—'}</Box>
+                <span className="font-semibold">{property.defaultCheckInTime || '—'}</span>
                 {' / '}
-                <Box component="span" sx={{ fontWeight: 600 }}>{property.defaultCheckOutTime || '—'}</Box>
+                <span className="font-semibold">{property.defaultCheckOutTime || '—'}</span>
               </ConfigRow>
             )}
             {cleaningFeatures.length > 0 && (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+              <div className="flex flex-wrap gap-0.5 mt-0.5">
                 {cleaningFeatures.map((f) => (
                   <Chip
                     key={f as string}
@@ -496,9 +470,9 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                     }}
                   />
                 ))}
-              </Box>
+              </div>
             )}
-          </Box>
+          </div>
         </AccordionDetails>
       </Accordion>
 
@@ -564,7 +538,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
               Aucune demande de service
             </Typography>
           ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <div className="flex flex-col gap-0.5">
               {[...serviceRequests]
                 .sort((a, b) => new Date(b.desiredDate || '').getTime() - new Date(a.desiredDate || '').getTime())
                 .slice(0, 5)
@@ -592,7 +566,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                   Voir toutes les demandes
                 </FooterLink>
               )}
-            </Box>
+            </div>
           )}
         </>
       )}
@@ -605,7 +579,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
               Aucune intervention planifiée
             </Typography>
           ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <div className="flex flex-col gap-0.5">
               {[...interventions]
                 .sort((a, b) => new Date(b.scheduledDate || '').getTime() - new Date(a.scheduledDate || '').getTime())
                 .slice(0, 5)
@@ -633,7 +607,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                   Voir toutes les interventions
                 </FooterLink>
               )}
-            </Box>
+            </div>
           )}
         </>
       )}
@@ -659,7 +633,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
       >
         Ouvrir la fiche logement
       </Button>
-    </Box>
+    </div>
   );
 };
 
@@ -679,11 +653,11 @@ function ConfigRow({
   children: React.ReactNode;
 }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+    <div className="flex items-center gap-1">
       {icon && (
-        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+        <span className="inline-flex text-muted-foreground">
           {icon}
-        </Box>
+        </span>
       )}
       <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary', minWidth: 90 }}>
         {label} :
@@ -691,7 +665,7 @@ function ConfigRow({
       <Typography sx={{ fontSize: BODY_FS, fontWeight: 600, color: 'text.primary', flex: 1 }}>
         {children}
       </Typography>
-    </Box>
+    </div>
   );
 }
 
@@ -735,10 +709,10 @@ function ListItemCard({
         },
       }}
     >
-      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+      <span className="inline-flex text-muted-foreground shrink-0">
         {icon}
-      </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
+      </span>
+      <div className="flex-1 min-w-0">
         <Typography
           sx={{
             fontSize: BODY_FS,
@@ -765,7 +739,7 @@ function ListItemCard({
         >
           {meta}
         </Typography>
-      </Box>
+      </div>
       <Chip
         label={statusLabel}
         size="small"

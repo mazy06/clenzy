@@ -76,15 +76,7 @@ export const HelpStepsGrid: React.FC<{ steps: HelpStep[]; columns?: number }> = 
           = step.accent ?? DEFAULT_ACCENT_CYCLE[i % DEFAULT_ACCENT_CYCLE.length];
         const accent = ACCENT_TOKENS[accentKey];
         return (
-          <Box
-            key={step.title}
-            sx={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 1.125,
-              minWidth: 0,
-            }}
-          >
+          <div className="flex items-start gap-1.5 min-w-0" key={step.title}>
             {/* Small square icon — no big round badge over each heading */}
             <Box
               sx={{
@@ -103,7 +95,7 @@ export const HelpStepsGrid: React.FC<{ steps: HelpStep[]; columns?: number }> = 
             >
               {step.icon}
             </Box>
-            <Box sx={{ minWidth: 0 }}>
+            <div className="min-w-0">
               <Typography
                 sx={{
                   fontSize: '12.5px',
@@ -120,18 +112,11 @@ export const HelpStepsGrid: React.FC<{ steps: HelpStep[]; columns?: number }> = 
               >
                 {step.title}
               </Typography>
-              <Typography
-                sx={{
-                  fontSize: '11.5px',
-                  color: 'var(--muted)',
-                  lineHeight: 1.45,
-                  mt: 0.25,
-                }}
-              >
+              <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] leading-[1.45] mt-0.5">
                 {step.description}
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
         );
       })}
     </Box>
@@ -240,14 +225,7 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
       }}
     >
       {/* Header row — accent chip + title + dismiss button */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1,
-          mb: 0.75,
-        }}
-      >
+      <div className="flex items-start gap-1.5 mb-1">
         <Box
           sx={{
             fontSize: '10.5px',
@@ -295,7 +273,7 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
         >
           <CloseIcon size={16} strokeWidth={1.75} />
         </IconButton>
-      </Box>
+      </div>
 
       {/* Description */}
       <Typography

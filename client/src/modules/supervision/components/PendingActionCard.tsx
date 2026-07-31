@@ -96,7 +96,7 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
       }}
     >
       {/* en-tête : agent + statut + expiration */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1 }}>
+      <div className="flex items-center gap-2 mb-1.5">
         <Box
           sx={{
             width: 30,
@@ -112,29 +112,18 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
         >
           <AgentIcon token={meta.icon} size={16} />
         </Box>
-        <Box
-          sx={{
-            minWidth: 0,
-            flex: 1,
-            fontSize: 12,
-            fontWeight: 500,
-            color: 'var(--ink)',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
+        <div className="min-w-0 flex-1 text-[12px] font-medium text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis">
           {t(meta.nameKey)}
-        </Box>
+        </div>
         {/* Statut à DROITE, sur la même ligne que le nom : « À régler »/« Rappel »
             pour paiement/rappel, sinon le compte à rebours d'expiration. */}
         {isPayment || isReminder ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, flexShrink: 0 }}>
+          <div className="flex items-center gap-1 shrink-0">
             <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warn)', flexShrink: 0 }} />
-            <Box sx={{ fontSize: 10.5, fontWeight: 500, letterSpacing: '.01em', color: 'var(--warn)', whiteSpace: 'nowrap' }}>
+            <div className="text-[10.5px] font-medium tracking-[.01em] text-[var(--warn)] whitespace-nowrap">
               {isPayment ? t('supervision.payment.badge', 'À régler') : t('supervision.reminder.badge', 'Rappel')}
-            </Box>
-          </Box>
+            </div>
+          </div>
         ) : (
           <Box
             sx={{
@@ -157,13 +146,13 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
             {expired ? t('supervision.hitl.expired') : t('supervision.hitl.expiresIn', { time: formatRemaining(cd, t) })}
           </Box>
         )}
-      </Box>
+      </div>
 
       {propertyName && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75, fontSize: 11.5, fontWeight: 400, color: 'var(--muted)' }}>
+        <div className="flex items-center gap-0.5 mb-1 text-[11.5px] font-normal text-[var(--muted)]">
           <HomeWork size={13} />
           {propertyName}
-        </Box>
+        </div>
       )}
 
       {/* titre + motif (texte brut) — plus de gras (sobriété demandée) */}
@@ -172,13 +161,13 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
       </Box>
       {/* En 'payment' : plus de ligne « Montant à régler » — le montant est
           affiché DIRECTEMENT dans le bouton « Régler ». */}
-      {!isPayment && <Box sx={{ fontSize: 11.5, color: 'var(--muted)', mb: 1.25 }}>{action.motif}</Box>}
+      {!isPayment && <div className="text-[11.5px] text-[var(--muted)] mb-2">{action.motif}</div>}
 
       {/* actions */}
       {expired ? (
-        <Box sx={{ fontSize: 12, fontWeight: 500, color: 'var(--err)' }}>{t('supervision.hitl.expired')}</Box>
+        <div className="text-[12px] font-medium text-[var(--err)]">{t('supervision.hitl.expired')}</div>
       ) : (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <div className="flex items-center gap-1.5">
           <Button
             size="small"
             variant="contained"
@@ -217,18 +206,18 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
               <>
                 {t('supervision.payment.settle', 'Régler')}
                 {action.amountEur != null && (
-                  <Box component="span" sx={{ ml: 0.5 }}>
+                  <span className="ms-0.5">
                     <Money value={action.amountEur} from="EUR" />
-                  </Box>
+                  </span>
                 )}
               </>
             ) : isApply ? (
               <>
                 {t('supervision.apply.action', 'Appliquer')}
                 {action.amountEur != null && (
-                  <Box component="span" sx={{ ml: 0.5 }}>
+                  <span className="ms-0.5">
                     +<Money value={action.amountEur} from="EUR" decimals={0} />
-                  </Box>
+                  </span>
                 )}
               </>
             ) : isReminder ? (
@@ -267,14 +256,14 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
           >
             <ChevronDown size={16} style={{ transform: why ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
           </IconButton>
-        </Box>
+        </div>
       )}
 
       {/* « Pourquoi ? » — raisonnement métier (texte brut, déjà nettoyé serveur) */}
       <Collapse in={why} unmountOnExit>
-        <Box sx={{ mt: 1.25, pt: 1.25, borderTop: '1px solid var(--line)', fontSize: 11.5, lineHeight: 1.5, color: 'var(--muted)' }}>
+        <div className="mt-2 pt-2 border-t border-[var(--line)] text-[11.5px] leading-[1.5] text-[var(--muted)]">
           {displayReasoning}
-        </Box>
+        </div>
       </Collapse>
     </Box>
   );

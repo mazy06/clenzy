@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowForward as ArrowRightIcon,
@@ -77,46 +77,23 @@ export const NavigationCardWidget: React.FC<NavigationCardWidgetProps> = ({ data
       }}
       aria-label={`Aller vers ${data.label}`}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <div className="flex items-center gap-2">
         {/* Icone semantique */}
-        <Box
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: '9px',
-            bgcolor: 'var(--card)',
-            color: 'var(--accent)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
+        <div className="w-[36px] h-[36px] rounded-[9px] bg-[var(--card)] text-[var(--accent)] flex items-center justify-center shrink-0">
           <Icon size={18} strokeWidth={1.75} />
-        </Box>
+        </div>
 
         {/* Contenu */}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{
-            fontSize: '13.5px',
-            fontWeight: 600,
-            color: 'var(--ink)',
-            lineHeight: 1.3,
-          }}>
+        <div className="flex-1 min-w-0">
+          <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] leading-[1.3]">
             {data.label}
-          </Typography>
+          </p>
           {data.reason && (
-            <Typography sx={{
-              display: 'block',
-              fontSize: '11.5px',
-              color: 'var(--muted)',
-              lineHeight: 1.4,
-              mt: 0.125,
-            }}>
+            <p className="cn-text-body1 block text-[11.5px] text-[var(--muted)] leading-[1.4] mt-0">
               {data.reason}
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
 
         {/* Bouton fleche (cosmetic — toute la carte est cliquable) */}
         <Button
@@ -133,7 +110,7 @@ export const NavigationCardWidget: React.FC<NavigationCardWidgetProps> = ({ data
         >
           <ArrowRightIcon size={18} strokeWidth={2} />
         </Button>
-      </Box>
+      </div>
     </Box>
   );
 };

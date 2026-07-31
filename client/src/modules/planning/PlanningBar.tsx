@@ -449,24 +449,9 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           key: 'channel',
           label: `Canal : ${event.sublabel || '—'}`,
           icon: (
-            <Box
-              sx={{
-                width: 16,
-                height: 16,
-                borderRadius: '5px',
-                backgroundColor: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Box
-                component="img"
-                src={sourceLogo!}
-                alt=""
-                sx={{ width: 11, height: 11, objectFit: 'contain', display: 'block' }}
-              />
-            </Box>
+            <div className="w-[16px] h-[16px] rounded-[5px] bg-[#fff] flex items-center justify-center">
+              <img className="w-[11px] h-[11px] object-contain block" src={sourceLogo!} alt="" />
+            </div>
           ),
         }]
       : []),
@@ -642,30 +627,11 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             />
           )}
           {/* Spec .s-brick__t : colonne centrée, line-height 1.2. */}
-          <Box
-            sx={{
-              minWidth: 0,
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              lineHeight: 1.2,
-            }}
-          >
+          <div className="min-w-0 flex-1 flex flex-col justify-center leading-[1.2]">
             {/* Ligne 1 (spec .s-brick__n) : nombre de nuits — 9.5px fw600 */}
-            <Box
-              component="span"
-              sx={{
-                fontSize: '9.5px',
-                fontWeight: 600,
-                opacity: 0.85,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
+            <span className="text-[9.5px] font-semibold opacity-85 whitespace-nowrap overflow-hidden text-ellipsis">
               {nights} {nights > 1 ? 'nuits' : 'nuit'}
-            </Box>
+            </span>
             {/* Ligne 2 (spec .pl-bar__g) : nom du voyageur — 12px fw600 */}
             {showLabel && (
               <Box
@@ -682,7 +648,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                 {event.label}
               </Box>
             )}
-          </Box>
+          </div>
           {/* Prix réservation (pilule .pl-price) — toujours visible quand la
               brique a la place ; couleur = état paiement. Sous PRICE_AMOUNT_MIN
               le montant se masque (icône d'état seule, .is-narrow). */}
@@ -736,20 +702,20 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                   },
                 }}
               >
-                <Box component="span" className="pl-price-ic">
+                <span className="pl-price-ic">
                   {priceUnpaid ? <CreditCardFill size={13} /> : <CheckBold size={12} />}
-                </Box>
+                </span>
                 {priceAmountVisible && (
-                  <Box component="span">
+                  <span>
                     <Money value={totalPrice} from={srcCurrency} compact symbolSize={11} symbolSx={{ ml: '2px' }} />
-                  </Box>
+                  </span>
                 )}
               </Box>
             </Tooltip>
           )}
           {/* Pastilles a droite : indicateurs (+N) + logo canal */}
           {(showBadgeGroup || (sourceLogo && displayWidth > 60)) && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+            <div className="flex items-center gap-0.5 shrink-0">
               {showBadgeGroup && shownIndicators.map((it) => {
                 // Tarif de prestation : pilule « icône + montant » quand la
                 // brique est large ; sinon carré-icône d'origine (.is-narrow).
@@ -847,9 +813,9 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                           >
                             {it.icon}
                           </Box>
-                          <Box component="span" sx={{ whiteSpace: 'nowrap' }}>
+                          <span className="whitespace-nowrap">
                             {it.label}
-                          </Box>
+                          </span>
                         </Box>
                       ))}
                     </Box>
@@ -908,7 +874,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                   </Box>
                 </Tooltip>
               )}
-            </Box>
+            </div>
           )}
         </Box>
       )}
@@ -932,17 +898,9 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           }}
         >
           {icon && (
-            <Box
-              sx={{
-                color: 'var(--on-accent)',
-                flexShrink: 0,
-                display: 'flex',
-                alignItems: 'center',
-                opacity: 0.95,
-              }}
-            >
+            <div className="text-[var(--on-accent)] shrink-0 flex items-center opacity-95">
               {icon}
-            </Box>
+            </div>
           )}
         </Box>
       )}

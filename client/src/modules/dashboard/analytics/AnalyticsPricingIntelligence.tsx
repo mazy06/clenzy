@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
+import { Typography, Card, CardContent, Grid } from '@mui/material';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar,
@@ -62,11 +62,11 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
                 {t('dashboard.analytics.priceVsRevPAN')}
               </Typography>
               {loading || !data ? (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0 }}>
+                <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data.avgPriceVsRevPAN} margin={{ top: 4, right: 6, left: -18, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
@@ -77,7 +77,7 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
                       <Line type="monotone" dataKey="revPAN" name="RevPAN" stroke="#4A9B8E" strokeWidth={1.5} dot={{ r: 2 }} strokeDasharray="5 3" />
                     </LineChart>
                   </ResponsiveContainer>
-                </Box>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -91,11 +91,11 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
                 {t('dashboard.analytics.priceByType')}
               </Typography>
               {loading || !data ? (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0 }}>
+                <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.byPropertyType} margin={{ top: 4, right: 6, left: -18, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
@@ -105,7 +105,7 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
                       <Bar dataKey="avgPrice" name={t('dashboard.analytics.avgPrice')} fill="#D4A574" radius={[3, 3, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
-                </Box>
+                </div>
               )}
             </CardContent>
           </Card>

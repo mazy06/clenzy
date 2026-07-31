@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, Typography, Chip } from '@mui/material';
+import { Box, Paper, Chip } from '@mui/material';
 import {
   Sync as SyncIcon,
   CheckCircle as CheckCircleIcon,
@@ -26,9 +26,9 @@ const AirbnbSyncStatusSection: React.FC<AirbnbSyncStatusSectionProps> = ({
   t,
 }) => (
   <Paper sx={{ ...CARD_SX }}>
-    <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, mb: 1 }}>
+    <p className="cn-text-body1 text-[0.875rem] font-bold mb-1.5">
       {t('channels.syncStatus.title')}
-    </Typography>
+    </p>
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 1 }}>
       {listings.map((listing) => {
         const property = properties.find((p) => p.id === listing.propertyId);
@@ -76,22 +76,22 @@ function SyncStatusCard({
         bgcolor: statusSoft,
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+      <div className="flex items-center gap-0.5 mb-0.5">
         <Box component="span" sx={{ display: 'inline-flex', color: statusColor }}>
           <StatusIcon size={14} strokeWidth={1.75} />
         </Box>
-        <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
+        <p className="cn-text-body1 text-[0.75rem] font-semibold">
           {propertyName}
-        </Typography>
-      </Box>
-      <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
+        </p>
+      </div>
+      <p className="cn-text-body1 text-[0.625rem] text-muted-foreground">
         {listing.syncEnabled ? t('channels.syncStatus.syncOn') : t('channels.syncStatus.syncOff')}
         {listing.lastSyncAt && ` · ${t('channels.syncStatus.lastSync')}: ${new Date(listing.lastSyncAt).toLocaleString(dateLocale)}`}
-      </Typography>
-      <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
+      </p>
+      <div className="flex gap-0.5 mt-0.5">
         {listing.syncEnabled && <Chip label={<><SyncIcon size={'0.625rem'} strokeWidth={1.75} /> Sync</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="success" variant="outlined" />}
         {listing.autoCreateInterventions && <Chip label={<><CleaningIcon size={'0.625rem'} strokeWidth={1.75} /> Auto</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="info" variant="outlined" />}
-      </Box>
+      </div>
     </Box>
   );
 }

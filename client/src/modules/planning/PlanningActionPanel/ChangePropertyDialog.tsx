@@ -1,18 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Box,
-  Typography,
-  Chip,
-  IconButton,
-  Button,
-  Divider,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Chip, IconButton, Button, Divider, Alert, CircularProgress } from '@mui/material';
 import {
   Close,
   Home,
@@ -136,12 +123,12 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
           px: 2.5,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><SwapHoriz size={20} strokeWidth={1.75} /></Box>
-          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex text-[var(--accent)]"><SwapHoriz size={20} strokeWidth={1.75} /></span>
+          <h6 className="cn-text-h6 font-bold text-[1rem]">
             Changer de logement
-          </Typography>
-        </Box>
+          </h6>
+        </div>
         <IconButton size="small" onClick={handleClose}>
           <Close size={18} strokeWidth={1.75} />
         </IconButton>
@@ -149,51 +136,43 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
 
       <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
         {/* Current reservation summary */}
-        <Box
-          sx={{
-            p: 1.5,
-            borderRadius: '10px',
-            backgroundColor: 'var(--surface-2)',
-            border: '1px solid var(--line)',
-            mb: 2,
-          }}
-        >
-          <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--faint)' }}>
+        <div className="p-2 rounded-[10px] bg-[var(--surface-2)] border border-[var(--line)] mb-3">
+          <span className="cn-text-caption font-bold text-[10.5px] uppercase tracking-[0.05em] text-[var(--faint)]">
             Reservation actuelle
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Person size={16} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+          </span>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="inline-flex text-[var(--muted)]"><Person size={16} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 font-semibold text-[0.8125rem]">
               {reservation.guestName}
-            </Typography>
+            </p>
             <Chip
               label={`${reservation.guestCount} voyageur${reservation.guestCount > 1 ? 's' : ''}`}
               size="small"
               variant="outlined"
               sx={{ fontSize: '0.625rem', height: 20 }}
             />
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Home size={16} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="inline-flex text-[var(--muted)]"><Home size={16} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 text-[0.8125rem]">
               {reservation.propertyName}
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="inline-flex text-[var(--muted)]"><CalendarMonth size={16} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 text-[0.8125rem]">
               {reservation.checkIn} &rarr; {reservation.checkOut}
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
 
         <Divider sx={{ mb: 2 }} />
 
         {/* Available properties */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.8125rem' }}>
+        <div className="flex items-center justify-between mb-2">
+          <h6 className="cn-text-subtitle2 font-bold text-[0.8125rem]">
             Logements disponibles
-          </Typography>
+          </h6>
           <Chip
             label={`${compatibleProperties.length} disponible${compatibleProperties.length > 1 ? 's' : ''}`}
             size="small"
@@ -205,14 +184,14 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
               color: compatibleProperties.length > 0 ? 'var(--ok)' : 'var(--muted)',
             }}
           />
-        </Box>
+        </div>
 
         {compatibleProperties.length === 0 ? (
           <Alert severity="info" sx={{ fontSize: '0.75rem', mb: 2 }}>
             Aucun logement disponible dans la meme ville avec une capacite suffisante pour ces dates.
           </Alert>
         ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
+          <div className="flex flex-col gap-1.5 mb-3">
             {compatibleProperties.map((property) => {
               const isSelected = selectedPropertyId === property.id;
               const typeLabel = property.type
@@ -238,18 +217,18 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
                     '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
                       <Box component="span" sx={{ display: 'inline-flex', color: isSelected ? 'var(--accent)' : 'var(--muted)' }}><Home size={18} strokeWidth={1.75} /></Box>
-                      <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem' }}>
+                      <p className="cn-text-body2 font-bold text-[0.8125rem]">
                         {property.name}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                     {isSelected && (
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CheckCircle size={18} strokeWidth={1.75} /></Box>
+                      <span className="inline-flex text-[var(--accent)]"><CheckCircle size={18} strokeWidth={1.75} /></span>
                     )}
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 0.75, mt: 0.75, ml: 3.5 }}>
+                  </div>
+                  <div className="flex gap-1 mt-1 ms-5">
                     <Chip
                       label={property.city}
                       size="small"
@@ -270,11 +249,11 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
                       variant="outlined"
                       sx={{ fontSize: '0.625rem', height: 20 }}
                     />
-                  </Box>
+                  </div>
                 </Box>
               );
             })}
-          </Box>
+          </div>
         )}
 
         {/* Confirmation info */}

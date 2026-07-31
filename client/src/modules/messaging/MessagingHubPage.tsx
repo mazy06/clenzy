@@ -165,7 +165,7 @@ export default function MessagingHubPage() {
   };
 
   return (
-    <Box sx={{ width: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="w-full flex-1 min-h-0 flex flex-col overflow-hidden">
       <PageHeader
         title={t('messagingHub.title', 'Messagerie')}
         subtitle={t('messagingHub.subtitle', 'Email · SMS · WhatsApp · Formulaires')}
@@ -245,7 +245,7 @@ export default function MessagingHubPage() {
               onBack={() => setSelectedKey(null)}
             />
           ) : (
-            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3, bgcolor: 'var(--bg)' }}>
+            <div className="flex-1 flex items-center justify-center p-4 bg-[var(--bg)]">
               <EmptyState
                 variant="transparent"
                 icon={<ForumIcon />}
@@ -255,10 +255,10 @@ export default function MessagingHubPage() {
                   'Choisissez une conversation ou un formulaire à gauche pour afficher le détail.',
                 )}
               />
-            </Box>
+            </div>
           )}
         </Box>
       </Paper>
-    </Box>
+    </div>
   );
 }

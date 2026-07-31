@@ -47,9 +47,9 @@ export default function ImportPanel({ open, onClose, editor, onImportTemplate }:
   const renderSlot = (): ReactNode => {
     if (!editor) {
       return (
-        <Box sx={{ py: 6, textAlign: 'center', color: 'var(--faint)', fontSize: 'var(--text-sm)' }}>
+        <div className="py-9 text-center text-[var(--faint)] text-[var(--text-sm)]">
           Éditeur non disponible.
-        </Box>
+        </div>
       );
     }
     switch (tab) {
@@ -72,26 +72,26 @@ export default function ImportPanel({ open, onClose, editor, onImportTemplate }:
         borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-pop)', outline: 'none', overflow: 'hidden',
       }}>
         {/* En-tête */}
-        <Box sx={{ display: 'flex', alignItems: 'center', px: 2.5, height: 64, borderBottom: '1px solid var(--line)' }}>
-          <Box>
-            <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)' }}>
+        <div className="flex items-center px-3.5 h-[64px] border-b border-[var(--line)]">
+          <div>
+            <div className="font-[var(--font-display)] text-[var(--text-lg)] font-[var(--fw-semibold)]">
               Importer un design
-            </Box>
-            <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)' }}>
+            </div>
+            <div className="text-[var(--text-sm)] text-[var(--muted)]">
               Charge un contenu HTML+CSS dans l'éditeur. Le canevas actuel sera remplacé.
-            </Box>
-          </Box>
-          <Box sx={{ flex: 1 }} />
+            </div>
+          </div>
+          <div className="flex-1" />
           <ButtonBase onClick={onClose} aria-label="Fermer"
             sx={{ width: 34, height: 34, borderRadius: 'var(--radius-md)', color: 'var(--muted)', cursor: 'pointer',
               '&:hover': { bgcolor: 'var(--hover)', color: 'var(--ink)' },
               '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 } }}>
             <X size={20} strokeWidth={2} />
           </ButtonBase>
-        </Box>
+        </div>
 
         {/* Onglets */}
-        <Box sx={{ display: 'flex', gap: 0.5, px: 2.5, pt: 1.5, borderBottom: '1px solid var(--line)' }}>
+        <div className="flex gap-0.5 px-3.5 pt-2 border-b border-[var(--line)]">
           {TABS.map((t) => {
             const active = t.id === tab;
             return (
@@ -109,10 +109,10 @@ export default function ImportPanel({ open, onClose, editor, onImportTemplate }:
               </ButtonBase>
             );
           })}
-        </Box>
+        </div>
 
         {/* Corps de l'onglet actif */}
-        <Box sx={{ overflowY: 'auto', p: 2.5 }}>{renderSlot()}</Box>
+        <div className="overflow-y-auto p-3.5">{renderSlot()}</div>
       </Box>
     </Modal>
   );

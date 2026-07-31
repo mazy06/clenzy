@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import type { BarLayout } from './types';
 import { BAR_BORDER_RADIUS } from './constants';
 import { getEventDisplayColor } from './utils/colorUtils';
@@ -40,19 +40,9 @@ const PlanningBarGhost: React.FC<PlanningBarGhostProps> = ({ layout, isConflict 
       }}
     >
       {width > 40 && (
-        <Typography
-          sx={{
-            fontSize: '0.6875rem',
-            fontWeight: 600,
-            color: 'var(--ink)',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            lineHeight: 1.2,
-          }}
-        >
+        <p className="cn-text-body1 text-[0.6875rem] font-semibold text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis leading-[1.2]">
           {event.label}
-        </Typography>
+        </p>
       )}
     </Box>
   );

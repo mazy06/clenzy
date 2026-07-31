@@ -1,29 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  MenuItem,
-  Snackbar,
-  Alert,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Snackbar, Alert, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip } from '@mui/material';
 import { Add, OpenInNew, Refresh, ReportProblem } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -260,9 +238,9 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
   );
 
   const content = loading ? (
-    <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+    <div className="flex justify-center py-9">
       <CircularProgress size={28} />
-    </Box>
+    </div>
   ) : issues.length === 0 ? (
     <EmptyState
       icon={<ReportProblem />}
@@ -299,11 +277,11 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
               </TableCell>
               <TableCell>{issue.propertyName ?? '—'}</TableCell>
               <TableCell>
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>{issue.title}</Typography>
+                <p className="cn-text-body2 font-medium">{issue.title}</p>
                 {issue.reportedByName && (
-                  <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+                  <span className="cn-text-caption text-[var(--muted)]">
                     {t('issues.reportedBy', 'Signalée par')} {issue.reportedByName}
-                  </Typography>
+                  </span>
                 )}
               </TableCell>
               <TableCell>
@@ -323,7 +301,7 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
   );
 
   return (
-    <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+    <div className="flex-1 min-h-0 flex flex-col overflow-auto">
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
       {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
       {!embedded && (
@@ -403,7 +381,7 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
               </TextField>
             </Stack>
             {createError && (
-              <Typography variant="body2" sx={{ color: 'var(--err)' }}>{createError}</Typography>
+              <p className="cn-text-body2 text-[var(--err)]">{createError}</p>
             )}
           </Stack>
         </DialogContent>
@@ -438,32 +416,32 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
           <>
             <DialogTitle sx={{ pb: 1 }}>
               <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
-                <Typography component="span" variant="h6" sx={{ flex: 1, minWidth: 0 }}>
+                <span className="cn-text-h6 flex-1 min-w-0">
                   {selected.title}
-                </Typography>
+                </span>
                 <StatusChip tone={STATUS_TONES[selected.status]} label={statusLabel(selected.status)} />
               </Stack>
             </DialogTitle>
             <DialogContent dividers>
               <Stack gap={2}>
-                <Box>
-                  <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+                <div>
+                  <span className="cn-text-caption text-[var(--muted)]">
                     {selected.propertyName ?? '—'}
                     {' · '}
                     {selected.createdAt ? new Date(selected.createdAt).toLocaleString() : ''}
                     {selected.reportedByName ? ` · ${t('issues.reportedBy', 'Signalée par')} ${selected.reportedByName}` : ''}
-                  </Typography>
+                  </span>
                   {selected.description && (
-                    <Typography variant="body2" sx={{ mt: 0.75, whiteSpace: 'pre-wrap' }}>
+                    <p className="cn-text-body2 mt-1 whitespace-pre-wrap">
                       {selected.description}
-                    </Typography>
+                    </p>
                   )}
                   {selected.dismissReason && (
-                    <Typography variant="body2" sx={{ mt: 0.75, color: 'var(--muted)' }}>
+                    <p className="cn-text-body2 mt-1 text-[var(--muted)]">
                       {t('issues.dismissedReason', 'Motif du rejet')} : {selected.dismissReason}
-                    </Typography>
+                    </p>
                   )}
-                </Box>
+                </div>
 
                 {selected.status === 'CONVERTED' && selected.convertedServiceRequestId != null && (
                   <Button
@@ -479,9 +457,9 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
 
                 {canManage && isActionable && (
                   <Stack gap={1.5}>
-                    <Typography variant="subtitle2">
+                    <h6 className="cn-text-subtitle2">
                       {t('issues.qualifySection', 'Qualification')}
-                    </Typography>
+                    </h6>
                     <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}>
                       <TextField
                         label={t('issues.fields.category', 'Catégorie')}
@@ -517,15 +495,15 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
                 )}
 
                 {canManage && isActionable && confirmConvert && (
-                  <Typography variant="body2" sx={{ color: 'var(--warn)' }}>
+                  <p className="cn-text-body2 text-[var(--warn)]">
                     {t('issues.convertConfirm', 'Créer une demande de maintenance pré-chiffrée à')}{' '}
-                    <Box component="span" sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                    <span className="font-semibold tabular-nums">
                       {selected.suggestedCost != null
                         ? formatCurrency(selected.suggestedCost)
                         : t('issues.noCost', 'chiffrage manuel')}
-                    </Box>
+                    </span>
                     {' — '}{t('issues.convertConfirmSuffix', 'confirmer ?')}
-                  </Typography>
+                  </p>
                 )}
 
                 {canManage && isActionable && !confirmConvert && (
@@ -539,7 +517,7 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
                 )}
 
                 {error && (
-                  <Typography variant="body2" sx={{ color: 'var(--err)' }}>{error}</Typography>
+                  <p className="cn-text-body2 text-[var(--err)]">{error}</p>
                 )}
               </Stack>
             </DialogContent>
@@ -570,6 +548,6 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
           </>
         )}
       </Dialog>
-    </Box>
+    </div>
   );
 }

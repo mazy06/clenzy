@@ -106,24 +106,9 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
         <Box sx={{ display: 'inline-flex', color: 'var(--accent)', opacity: 0.55, mb: '14px' }}>
           <Business size={26} strokeWidth={1.5} />
         </Box>
-        <Box
-          component="span"
-          sx={{
-            position: 'absolute',
-            left: 10,
-            right: 10,
-            bottom: 7,
-            fontSize: '0.8125rem',
-            fontWeight: 700,
-            color: 'var(--ink)',
-            lineHeight: 1.25,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <span className="absolute start-[10px] end-[10px] bottom-[7px] text-[0.8125rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
           {property.name}
-        </Box>
+        </span>
       </Box>
 
       {/* Type + adresse + propriétaire */}
@@ -146,24 +131,24 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
             />
           )}
           {address && (
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75 }}>
+            <div className="flex items-start gap-1">
               <Box sx={{ display: 'inline-flex', color: 'var(--muted)', flexShrink: 0, mt: '1px' }}>
                 <LocationOn size={STAT_ICON_SIZE} strokeWidth={1.75} />
               </Box>
               <Box component="span" sx={{ fontSize: BODY_FS, color: 'var(--muted)', lineHeight: 1.4 }}>
                 {address}
               </Box>
-            </Box>
+            </div>
           )}
           {property.ownerName && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-              <Box sx={{ display: 'inline-flex', color: 'var(--muted)', flexShrink: 0 }}>
+            <div className="flex items-center gap-1">
+              <div className="inline-flex text-[var(--muted)] shrink-0">
                 <Person size={STAT_ICON_SIZE} strokeWidth={1.75} />
-              </Box>
+              </div>
               <Box component="span" sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
                 {property.ownerName}
               </Box>
-            </Box>
+            </div>
           )}
         </Box>
       )}
@@ -172,7 +157,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
       {(hasStats || hasTimes || property.cleaningFrequency) && (
         <Box sx={{ px: '14px', py: '10px', borderTop: '1px solid var(--line)' }}>
           {hasStats && (
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+            <div className="grid grid-cols-2 gap-1.5">
               {property.maxGuests != null && (
                 <StatPill
                   icon={<People size={STAT_ICON_SIZE} strokeWidth={1.75} />}
@@ -202,41 +187,41 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
                   value={fmt.format(property.cleaningBasePrice)}
                 />
               )}
-            </Box>
+            </div>
           )}
 
           {hasTimes && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mt: hasStats ? 1 : 0, flexWrap: 'wrap' }}>
               {property.defaultCheckInTime && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}>
+                <div className="flex items-center gap-1">
+                  <span className="inline-flex text-[var(--ok)]">
                     <AccessTime size={STAT_ICON_SIZE} strokeWidth={1.75} />
-                  </Box>
+                  </span>
                   <Box component="span" sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
-                    Check-in <Box component="strong" sx={{ color: 'var(--ink)' }}>{property.defaultCheckInTime.slice(0, 5)}</Box>
+                    Check-in <strong className="text-[var(--ink)]">{property.defaultCheckInTime.slice(0, 5)}</strong>
                   </Box>
-                </Box>
+                </div>
               )}
               {property.defaultCheckOutTime && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}>
+                <div className="flex items-center gap-1">
+                  <span className="inline-flex text-[var(--warn)]">
                     <AccessTime size={STAT_ICON_SIZE} strokeWidth={1.75} />
-                  </Box>
+                  </span>
                   <Box component="span" sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
-                    Check-out <Box component="strong" sx={{ color: 'var(--ink)' }}>{property.defaultCheckOutTime.slice(0, 5)}</Box>
+                    Check-out <strong className="text-[var(--ink)]">{property.defaultCheckOutTime.slice(0, 5)}</strong>
                   </Box>
-                </Box>
+                </div>
               )}
             </Box>
           )}
 
           {property.cleaningFrequency && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mt: (hasStats || hasTimes) ? 0.75 : 0 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}>
+              <span className="inline-flex text-[var(--muted)]">
                 <CalendarMonth size={STAT_ICON_SIZE} strokeWidth={1.75} />
-              </Box>
+              </span>
               <Box component="span" sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
-                Fréquence ménage : <Box component="strong" sx={{ color: 'var(--ink)' }}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Box>
+                Fréquence ménage : <strong className="text-[var(--ink)]">{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</strong>
               </Box>
             </Box>
           )}
@@ -248,21 +233,21 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
       {perf && (
         <Box sx={{ px: '14px', py: '10px', borderTop: '1px solid var(--line)' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: '8px' }}>
-            <Box sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
+            <div className="inline-flex text-[var(--accent)]">
               <Speed size={STAT_ICON_SIZE} strokeWidth={1.75} />
-            </Box>
+            </div>
             <Box component="span" sx={{ fontSize: LABEL_FS, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3, color: 'var(--muted)' }}>
               Performance · {perf.windowDays} j
             </Box>
           </Box>
 
           {/* Score + barre de progression */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
+          <div className="flex justify-between mb-0.5">
             <Box component="span" sx={{ fontSize: LABEL_FS, color: 'var(--muted)' }}>Score</Box>
             <Box component="span" sx={{ fontSize: BODY_FS, fontWeight: 700, color: scoreColor(perf.score), fontVariantNumeric: 'tabular-nums' }}>
               {perf.score}/100
             </Box>
-          </Box>
+          </div>
           <LinearProgress
             variant="determinate"
             value={Math.max(0, Math.min(100, perf.score))}
@@ -276,7 +261,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
           />
 
           {/* Lignes label / valeur */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <div className="flex flex-col gap-0.5">
             <PerfRow label="RevPAN" value={<Money value={perf.revPan} from="EUR" decimals={2} />} />
             <PerfRow label="Taux d'occupation" value={`${Math.round(perf.occupancyRate)} %`} />
             <PerfRow label="Revenu total" value={<Money value={perf.revenue} from="EUR" decimals={0} />} />
@@ -285,7 +270,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
               value={`${Math.round(perf.netMargin)} %`}
               valueColor={perf.netMargin >= 60 ? '#4A9B8E' : perf.netMargin >= 40 ? '#D4A574' : '#C97A7A'}
             />
-          </Box>
+          </div>
         </Box>
       )}
 
@@ -348,12 +333,12 @@ function scoreColor(score: number): string {
 // rendu de la carte « Performance par logement ».
 function PerfRow({ label, value, valueColor }: { label: string; value: React.ReactNode; valueColor?: string }) {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+    <div className="flex justify-between items-baseline">
       <Box component="span" sx={{ fontSize: LABEL_FS, color: 'var(--muted)' }}>{label}</Box>
       <Box component="span" sx={{ fontSize: BODY_FS, fontWeight: 700, color: valueColor ?? 'var(--ink)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
         {value}
       </Box>
-    </Box>
+    </div>
   );
 }
 

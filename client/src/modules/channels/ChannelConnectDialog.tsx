@@ -1,17 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Box,
-  Button,
-  TextField,
-  Alert,
-  CircularProgress,
-  Typography,
-  IconButton,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Alert, CircularProgress, IconButton } from '@mui/material';
 import { Close, CheckCircle, Science } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useConnectChannel, useTestChannelConnection } from '../../hooks/useChannelConnections';
@@ -121,32 +109,16 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
           gap: 1.5,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+        <div className="flex items-center gap-2 min-w-0">
           {channel.logo && (
-            <Box
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: 36,
-                px: 1.25,
-                borderRadius: '10px',
-                bgcolor: 'var(--field)',
-                flexShrink: 0,
-              }}
-            >
-              <Box
-                component="img"
-                src={channel.logo}
-                alt={channel.name}
-                sx={{ height: 20, objectFit: 'contain' }}
-              />
-            </Box>
+            <div className="inline-flex items-center justify-center h-[36px] px-2 rounded-[10px] bg-[var(--field)] shrink-0">
+              <img className="h-[20px] object-contain" src={channel.logo} alt={channel.name} />
+            </div>
           )}
-          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 600, color: 'var(--ink)' }}>
+          <p className="cn-text-body1 font-[var(--font-display)] text-[1rem] font-semibold text-[var(--ink)]">
             {t('channels.connect.title', { channel: channel.name })}
-          </Typography>
-        </Box>
+          </p>
+        </div>
         <IconButton onClick={handleClose} size="small" aria-label={t('common.close')}>
           <Close fontSize="small" />
         </IconButton>
@@ -154,11 +126,11 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
 
       {/* ─── Content ─────────────────────────────────────────────── */}
       <DialogContent sx={{ pt: 2.5, pb: 1 }}>
-        <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mb: 2 }}>
+        <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground mb-3">
           {t('channels.connect.description', { channel: channel.name })}
-        </Typography>
+        </p>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="flex flex-col gap-3">
           {fields.map((field) => (
             <TextField
               key={field.key}
@@ -173,7 +145,7 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
               autoComplete="off"
             />
           ))}
-        </Box>
+        </div>
 
         {/* Test result */}
         {testResult && (
@@ -207,7 +179,7 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
         >
           {t('channels.connect.testConnection')}
         </Button>
-        <Box sx={{ flex: 1 }} />
+        <div className="flex-1" />
         <Button
           onClick={handleClose}
           size="small"

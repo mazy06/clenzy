@@ -1,23 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Box,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Button,
-  Typography,
-  Snackbar,
-  Alert,
-  CircularProgress,
-  Skeleton,
-  Tooltip,
-  Chip,
-} from '@mui/material';
+import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Button, Snackbar, Alert, CircularProgress, Skeleton, Tooltip, Chip } from '@mui/material';
 import {
   Download,
   Delete,
@@ -121,7 +103,7 @@ const DatabaseAdminPage: React.FC = () => {
   };
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title="Base de donnees"
         subtitle="Gestion des backups PostgreSQL"
@@ -129,7 +111,7 @@ const DatabaseAdminPage: React.FC = () => {
         backPath="/admin"
         showBackButton={false}
         actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <div className="flex gap-1.5">
             <Button
               variant="outlined"
               size="small"
@@ -148,17 +130,17 @@ const DatabaseAdminPage: React.FC = () => {
             >
               {creating ? 'Creation en cours...' : 'Creer un dump'}
             </Button>
-          </Box>
+          </div>
         }
       />
 
       <Paper variant="outlined" sx={{ mt: 3, borderRadius: '14px', borderColor: 'var(--line)', overflow: 'hidden' }}>
         {loading ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 2 }}>
+          <div className="flex flex-col gap-1.5 p-3">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
             ))}
-          </Box>
+          </div>
         ) : backups.length === 0 ? (
           <EmptyState
             icon={<Storage />}
@@ -181,11 +163,11 @@ const DatabaseAdminPage: React.FC = () => {
                 {backups.map((backup) => (
                   <TableRow key={backup.filename} hover>
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <div className="flex items-center gap-1.5">
                         <Storage fontSize="small" color="action" />
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                        <p className="cn-text-body2 font-mono text-[0.8rem]">
                           {backup.filename}
-                        </Typography>
+                        </p>
                         {backup.filename.endsWith('.gz') && (
                           <Chip
                             label="gzip"
@@ -193,13 +175,13 @@ const DatabaseAdminPage: React.FC = () => {
                             sx={{ color: 'var(--muted)', backgroundColor: 'var(--hover)' }}
                           />
                         )}
-                      </Box>
+                      </div>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">{formatFileSize(backup.sizeBytes)}</Typography>
+                      <p className="cn-text-body2">{formatFileSize(backup.sizeBytes)}</p>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">{formatDate(backup.createdAt)}</Typography>
+                      <p className="cn-text-body2">{formatDate(backup.createdAt)}</p>
                     </TableCell>
                     <TableCell align="right">
                       <Tooltip title="Telecharger">
@@ -245,7 +227,7 @@ const DatabaseAdminPage: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 };
 

@@ -53,26 +53,16 @@ export const Overline: React.FC<{ children: React.ReactNode; sx?: object }> = ({
 
 /** Carte d'erreur discrète (le LLM explique dans son texte). */
 export const ErrorCard: React.FC<{ message?: string }> = ({ message }) => (
-  <Box
-    sx={{
-      mt: 1,
-      mb: 1.5,
-      px: 1.5,
-      py: 1.25,
-      borderRadius: '10px',
-      border: '1px solid var(--err)',
-      bgcolor: 'var(--err-soft)',
-    }}
-  >
-    <Typography sx={{ fontSize: '12.5px', color: 'var(--err)', fontWeight: 500 }}>
+  <div className="mt-1.5 mb-2 px-2 py-2 rounded-[10px] border border-[var(--err)] bg-[var(--err-soft)]">
+    <p className="cn-text-body1 text-[12.5px] text-[var(--err)] font-medium">
       {message && message.trim() !== '' ? message : 'L’outil a échoué.'}
-    </Typography>
-  </Box>
+    </p>
+  </div>
 );
 
 /** État « en cours » uniforme pendant l'exécution du tool. */
 export const PendingHint: React.FC<{ label: string }> = ({ label }) => (
-  <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', py: 0.5 }}>{label}…</Typography>
+  <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] py-0.5">{label}…</p>
 );
 
 /** Pastille de statut colorée (réservations, interventions, jours…). */

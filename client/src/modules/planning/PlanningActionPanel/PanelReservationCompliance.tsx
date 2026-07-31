@@ -109,18 +109,18 @@ const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({
   };
 
   return (
-    <Box>
+    <div>
       {/* Header overline + icône bouclier */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}>
+      <div className="flex items-center gap-1 mb-1.5">
+        <span className="inline-flex text-[var(--faint)]">
           <VerifiedUser size={13} strokeWidth={1.75} />
-        </Box>
+        </span>
         <Box component="span" sx={{ ...OVERLINE_SX, flex: 1 }}>
           {t('reservations.compliance.title', 'Fiche de police')}
         </Box>
-      </Box>
+      </div>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+      <div className="flex flex-col gap-1">
         {declarations.map((d, idx) => {
           // Numérotation des accompagnants (1, 2, …), indépendante de l'index brut.
           const companionIndex = declarations.slice(0, idx + 1).filter((x) => !x.primary).length;
@@ -130,51 +130,31 @@ const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({
           const providerLabel = d.providerType ? PROVIDER_LABELS[d.providerType] ?? d.providerType : null;
 
           return (
-            <Box
-              key={d.id}
-              sx={{
-                backgroundColor: 'var(--field)',
-                borderRadius: '10px',
-                px: 1.5,
-                py: 1,
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box
-                  component="span"
-                  sx={{
-                    flex: 1,
-                    minWidth: 0,
-                    fontSize: '0.8125rem',
-                    fontWeight: 600,
-                    color: 'var(--ink)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
+            <div className="bg-[var(--field)] rounded-[10px] px-2 py-1.5" key={d.id}>
+              <div className="flex items-center gap-1.5">
+                <span className="flex-1 min-w-0 text-[0.8125rem] font-semibold text-[var(--ink)] overflow-hidden text-ellipsis whitespace-nowrap">
                   {travelerLabel(d, companionIndex)}
-                </Box>
+                </span>
                 <Chip
                   icon={submitted ? <Check size={11} strokeWidth={2} /> : undefined}
                   label={statusLabel(d.status)}
                   size="small"
                   sx={{ ...toneTokensSx(tokens, 'sm'), borderRadius: 'var(--radius-pill)', flexShrink: 0 }}
                 />
-              </Box>
+              </div>
 
               {/* Ligne détail : provider + date (transmise) OU bouton resoumettre */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.625 }}>
+              <div className="flex items-center gap-1.5 mt-1">
                 {submitted ? (
-                  <Box component="span" sx={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>
+                  <span className="text-[0.6875rem] text-[var(--muted)]">
                     {providerLabel && (
-                      <Box component="span" sx={{ fontWeight: 600 }}>{providerLabel}</Box>
+                      <span className="font-semibold">{providerLabel}</span>
                     )}
                     {providerLabel && d.submittedAt && ' · '}
                     {d.submittedAt && (
-                      <Box component="span" sx={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDate(d.submittedAt)}</Box>
+                      <span className="tabular-nums">{fmtDate(d.submittedAt)}</span>
                     )}
-                  </Box>
+                  </span>
                 ) : (
                   <Button
                     size="small"
@@ -201,7 +181,7 @@ const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({
                     {t('reservations.compliance.resubmit', 'Resoumettre')}
                   </Button>
                 )}
-              </Box>
+              </div>
 
               {/* Retour après action (succès / pending / erreur) */}
               {row?.message && (
@@ -217,18 +197,18 @@ const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({
                   }}
                 >
                   {row.tone === 'warn' && (
-                    <Box component="span" sx={{ display: 'inline-flex' }}>
+                    <span className="inline-flex">
                       <HourglassEmpty size={12} strokeWidth={1.75} />
-                    </Box>
+                    </span>
                   )}
-                  <Box component="span">{row.message}</Box>
+                  <span>{row.message}</span>
                 </Box>
               )}
-            </Box>
+            </div>
           );
         })}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

@@ -1,16 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  CircularProgress,
-  Alert,
-  ThemeProvider,
-  CssBaseline,
-} from '@mui/material';
+import { Box, Paper, Button, CircularProgress, Alert, ThemeProvider, CssBaseline } from '@mui/material';
 import { MarkEmailRead, ErrorOutline, Send as SendIcon } from '../../icons';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
@@ -88,21 +79,21 @@ export default function InscriptionSuccess() {
           textAlign: 'center',
         }}>
           {/* Logo */}
-          <Box sx={{ mb: 2 }}>
+          <div className="mb-3">
             <BaitlyMarkLogo scale={1.1} />
-          </Box>
+          </div>
 
           {status === 'loading' && (
-            <Box sx={{ py: 4 }}>
+            <div className="py-6">
               <CircularProgress sx={{ color: 'primary.main', mb: 2 }} />
-              <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+              <p className="cn-text-body1 font-medium text-muted-foreground">
                 {t('auth.inscriptionSuccess.loading', 'Finalisation de votre paiement...')}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
 
           {status === 'success' && (
-            <Box sx={{ py: 3 }}>
+            <div className="py-4">
               <Box component="span" sx={{
                 display: 'inline-flex',
                 color: 'primary.main',
@@ -116,13 +107,13 @@ export default function InscriptionSuccess() {
               }}>
                 <MarkEmailRead size={72} strokeWidth={1.75} />
               </Box>
-              <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: 'text.primary' }}>
+              <h5 className="cn-text-h5 font-bold mb-1.5 text-foreground">
                 {t('auth.inscriptionSuccess.successTitle', 'Verifiez votre boite email')}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+              </h5>
+              <p className="cn-text-body2 text-muted-foreground mb-1.5">
                 {t('auth.inscriptionSuccess.paymentConfirmed', 'Votre paiement a ete confirme avec succes.')}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+              </p>
+              <p className="cn-text-body2 text-muted-foreground mb-4">
                 {t(
                   'auth.inscriptionSuccess.checkEmail',
                   `Un email de confirmation a ete envoye${inscriptionEmail ? ` a ${inscriptionEmail}` : ''}. Cliquez sur le lien dans l'email pour creer votre mot de passe et finaliser votre inscription.`,
@@ -132,7 +123,7 @@ export default function InscriptionSuccess() {
                       : '',
                   },
                 )}
-              </Typography>
+              </p>
 
               {resendMessage && (
                 <Alert severity="success" sx={{ mb: 2, textAlign: 'left' }}>
@@ -162,23 +153,23 @@ export default function InscriptionSuccess() {
                   : t('auth.inscriptionSuccess.resend', "Renvoyer l'email")}
               </Button>
 
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="caption" color="text.secondary">
+              <div className="mt-3">
+                <span className="cn-text-caption text-muted-foreground">
                   {t('auth.inscriptionSuccess.checkSpam', "Verifiez vos spams si vous ne trouvez pas l'email.")}
-                </Typography>
-              </Box>
-            </Box>
+                </span>
+              </div>
+            </div>
           )}
 
           {status === 'error' && (
-            <Box sx={{ py: 3 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'error.main', mb: 2 }}><ErrorOutline size={64} strokeWidth={1.75} /></Box>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+            <div className="py-4">
+              <span className="inline-flex text-destructive mb-3"><ErrorOutline size={64} strokeWidth={1.75} /></span>
+              <h6 className="cn-text-h6 font-semibold mb-1.5">
                 {t('auth.inscriptionSuccess.errorTitle', 'Session introuvable')}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+              </h6>
+              <p className="cn-text-body2 text-muted-foreground mb-4">
                 {t('auth.inscriptionSuccess.errorBody', "Aucune session de paiement n'a ete trouvee. Si vous avez deja paye, verifiez vos emails.")}
-              </Typography>
+              </p>
               <Button
                 variant="outlined"
                 onClick={() => navigate('/login')}
@@ -190,7 +181,7 @@ export default function InscriptionSuccess() {
               >
                 {t('auth.common.backToLogin', 'Retour a la connexion')}
               </Button>
-            </Box>
+            </div>
           )}
         </Paper>
       </Box>

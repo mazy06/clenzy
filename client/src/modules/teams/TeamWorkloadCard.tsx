@@ -129,19 +129,19 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
     {
       label: t('teams.workload.active'),
       value: activeInterventions.length,
-      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Assignment size={24} strokeWidth={1.75} /></Box>,
+      icon: <span className="inline-flex text-[var(--accent)]"><Assignment size={24} strokeWidth={1.75} /></span>,
       color: 'var(--accent)',
     },
     {
       label: t('teams.workload.completedThisMonth'),
       value: completedThisMonth.length,
-      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={24} strokeWidth={1.75} /></Box>,
+      icon: <span className="inline-flex text-[var(--ok)]"><CheckCircle size={24} strokeWidth={1.75} /></span>,
       color: 'var(--ok)',
     },
     {
       label: t('teams.workload.pending'),
       value: pendingInterventions.length,
-      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><HourglassEmpty size={24} strokeWidth={1.75} /></Box>,
+      icon: <span className="inline-flex text-[var(--warn)]"><HourglassEmpty size={24} strokeWidth={1.75} /></span>,
       color: 'var(--warn)',
     },
   ];
@@ -149,38 +149,38 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
   return (
     <Card sx={{ height: '100%' }}>
       <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6" sx={{ color: 'var(--ink)', fontWeight: 600 }}>
+        <div className="flex justify-between items-center mb-3">
+          <h6 className="cn-text-h6 text-[var(--ink)] font-semibold">
             {t('teams.workload.title')}
-          </Typography>
+          </h6>
           {(() => { const c = getWorkloadHex(); return (
             <Box sx={{ px: 1.5, py: 0.5, borderRadius: '999px', backgroundColor: `${c}18`, color: c }}>
-              <Typography variant="caption" fontWeight={600}>{getWorkloadLabel()}</Typography>
+              <span className="cn-text-caption font-semibold">{getWorkloadLabel()}</span>
             </Box>
           ); })()}
-        </Box>
+        </div>
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {metrics.map((metric) => (
             <Grid item xs={4} key={metric.label}>
-              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: '12px', bgcolor: 'var(--field)', border: '1px solid var(--field-line)' }}>
+              <div className="text-center p-2 rounded-[12px] bg-[var(--field)] border border-[var(--field-line)]">
                 {metric.icon}
                 <Typography variant="h5" sx={{ color: metric.color, mt: 0.5, fontFamily: 'var(--font-display)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                   {metric.value}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
                   {metric.label}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             </Grid>
           ))}
         </Grid>
 
-        <Box sx={{ mb: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-            <Typography variant="body2" fontWeight={500}>{t('teams.workload.capacity')}</Typography>
+        <div className="mb-4">
+          <div className="flex justify-between items-center mb-0.5">
+            <p className="cn-text-body2 font-medium">{t('teams.workload.capacity')}</p>
             <Typography variant="body2" fontWeight={600} sx={{ color: getWorkloadColor(), fontVariantNumeric: 'tabular-nums' }}>{capacityPercent}%</Typography>
-          </Box>
+          </div>
           <LinearProgress
             variant="determinate"
             value={capacityPercent}
@@ -191,10 +191,10 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
               '& .MuiLinearProgress-bar': { borderRadius: 4, bgcolor: getWorkloadColor() },
             }}
           />
-        </Box>
+        </div>
 
         {chartData.length > 0 ? (
-          <Box sx={{ height: 200 }}>
+          <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -208,11 +208,11 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          </Box>
+          </div>
         ) : (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography variant="body2" color="text.secondary">{t('dashboard.noData')}</Typography>
-          </Box>
+          <div className="text-center py-6">
+            <p className="cn-text-body2 text-muted-foreground">{t('dashboard.noData')}</p>
+          </div>
         )}
       </CardContent>
     </Card>

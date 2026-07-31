@@ -1,22 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  Chip,
-  CircularProgress,
-  IconButton,
-  MenuItem,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Alert, Button, Card, Chip, CircularProgress, IconButton, MenuItem, Select, Table, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarChart as BarChartIcon, Delete as DeleteIcon } from '../../icons';
 import EmptyState from '../../components/EmptyState';
@@ -104,14 +87,14 @@ const CustomReport: React.FC = () => {
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <div className="flex flex-col gap-2">
       {/* ── Définition ── */}
       <Card variant="outlined" sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-        <Box>
-          <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+        <div>
+          <span className="cn-text-caption text-[var(--muted)]">
             {t('reports.custom.dimensionsLabel', 'Dimensions')}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mt: 0.5 }}>
+          </span>
+          <div className="flex gap-1 flex-wrap mt-0.5">
             {DIMENSIONS.map((d) => (
               <Chip
                 key={d}
@@ -123,13 +106,13 @@ const CustomReport: React.FC = () => {
                 sx={{ cursor: 'pointer' }}
               />
             ))}
-          </Box>
-        </Box>
-        <Box>
-          <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+          </div>
+        </div>
+        <div>
+          <span className="cn-text-caption text-[var(--muted)]">
             {t('reports.custom.metricsLabel', 'Métriques')}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mt: 0.5 }}>
+          </span>
+          <div className="flex gap-1 flex-wrap mt-0.5">
             {METRICS.map((m) => (
               <Chip
                 key={m}
@@ -141,9 +124,9 @@ const CustomReport: React.FC = () => {
                 sx={{ cursor: 'pointer' }}
               />
             ))}
-          </Box>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+          </div>
+        </div>
+        <div className="flex gap-1.5 flex-wrap items-center">
           <Select size="small" value={granularity} onChange={(e) => setGranularity(e.target.value as ReportGranularity)}>
             {GRANULARITIES.map((g) => (
               <MenuItem key={g} value={g}>{t(`reports.custom.granularities.${g}`, g)}</MenuItem>
@@ -175,7 +158,7 @@ const CustomReport: React.FC = () => {
               ? t('reports.custom.running', 'Calcul…')
               : t('reports.custom.run', 'Exécuter')}
           </Button>
-          <Box sx={{ flex: 1 }} />
+          <div className="flex-1" />
           <TextField
             size="small"
             placeholder={t('reports.custom.viewNamePlaceholder', 'Nom de la vue')}
@@ -190,12 +173,12 @@ const CustomReport: React.FC = () => {
           >
             {t('reports.custom.save', 'Sauvegarder')}
           </Button>
-        </Box>
+        </div>
         {(viewsQuery.data?.length ?? 0) > 0 && (
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+          <div className="flex gap-1 flex-wrap items-center">
+            <span className="cn-text-caption text-[var(--muted)]">
               {t('reports.custom.savedViews', 'Vues sauvegardées :')}
-            </Typography>
+            </span>
             {viewsQuery.data?.map((v) => (
               <Chip
                 key={v.id}
@@ -208,7 +191,7 @@ const CustomReport: React.FC = () => {
                 sx={{ cursor: 'pointer' }}
               />
             ))}
-          </Box>
+          </div>
         )}
       </Card>
 
@@ -219,15 +202,15 @@ const CustomReport: React.FC = () => {
         </Alert>
       )}
       {runMutation.isPending && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+        <div className="flex justify-center py-6">
           <CircularProgress size={28} />
-        </Box>
+        </div>
       )}
       {result && !runMutation.isPending && (
         <Card variant="outlined" sx={{ p: 1.5 }}>
-          <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+          <span className="cn-text-caption text-[var(--muted)]">
             {t('reports.custom.resultCurrency', 'Montants en')} {result.currency}
-          </Typography>
+          </span>
           {result.rows.length === 0 ? (
             <EmptyState
               icon={<BarChartIcon />}
@@ -235,7 +218,7 @@ const CustomReport: React.FC = () => {
               variant="plain"
             />
           ) : (
-            <Box sx={{ overflowX: 'auto' }}>
+            <div className="overflow-x-auto">
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -262,7 +245,7 @@ const CustomReport: React.FC = () => {
                   ))}
                 </TableBody>
               </Table>
-            </Box>
+            </div>
           )}
         </Card>
       )}
@@ -276,7 +259,7 @@ const CustomReport: React.FC = () => {
           )}
         />
       )}
-    </Box>
+    </div>
   );
 };
 

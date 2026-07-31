@@ -36,14 +36,14 @@ export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+      <div className="flex justify-center py-9">
         <CircularProgress size={32} />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       <Box role="tablist" sx={{ display: 'flex', gap: '6px', mb: 2, flexWrap: 'wrap' }}>
         {subtabs.map((st, i) => {
           const active = subTab === i;
@@ -111,6 +111,6 @@ export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
           onConfirm={confirmQuote}
         />
       )}
-    </Box>
+    </div>
   );
 }

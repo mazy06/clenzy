@@ -1,21 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Paper,
-  Typography,
-  Chip,
-  Button,
-  Grid,
-  CircularProgress,
-  Alert,
-  Divider,
-  TextField,
-  IconButton,
-  Tooltip,
-  Menu,
-  MenuItem,
-} from '@mui/material';
+import { Box, Paper, Chip, Button, Grid, CircularProgress, Alert, Divider, TextField, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
 import {
   ArrowBack,
   Edit,
@@ -244,20 +229,20 @@ const TemplateDetails: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+      <div className="flex justify-center p-6">
         <CircularProgress />
-      </Box>
+      </div>
     );
   }
 
   if (fetchError || !template) {
     return (
-      <Box>
+      <div>
         <Alert severity="error">Template introuvable</Alert>
         <Button startIcon={<ArrowBack />} onClick={() => navigate('/documents')} size="small" sx={{ mt: 2 }}>
           Retour
         </Button>
-      </Box>
+      </div>
     );
   }
 
@@ -270,7 +255,7 @@ const TemplateDetails: React.FC = () => {
   const reparsePending = reparseMutation.isPending;
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={template.name}
         subtitle={`Modèle de document · v${template.version}`}
@@ -285,7 +270,7 @@ const TemplateDetails: React.FC = () => {
           />
         }
         actions={
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <div className="flex gap-1.5 items-center">
             {!template.active && (
               <Button
                 variant="contained"
@@ -345,7 +330,7 @@ const TemplateDetails: React.FC = () => {
               style={{ display: 'none' }}
               onChange={handleReplaceFileChange}
             />
-          </Box>
+          </div>
         }
       />
 
@@ -354,23 +339,23 @@ const TemplateDetails: React.FC = () => {
       <Grid container spacing={3} alignItems="flex-start">
         {/* Colonne gauche : Informations + Apercu PDF empiles */}
         <Grid item xs={12} md={6}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <div className="flex flex-col gap-4">
             {/* Informations */}
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}>
-              <Typography sx={{ mb: 2, fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
+              <p className="cn-text-body1 mb-3 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
                 Informations
-              </Typography>
+              </p>
 
               {editing ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div className="flex flex-col gap-3">
                   <TextField label="Nom" value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} fullWidth size="small" />
                   <TextField label="Description" value={editData.description} onChange={(e) => setEditData({ ...editData, description: e.target.value })} fullWidth size="small" multiline rows={2} />
                   <Divider />
                   <TextField label="Objet email" value={editData.emailSubject} onChange={(e) => setEditData({ ...editData, emailSubject: e.target.value })} fullWidth size="small" />
                   <TextField label="Corps email" value={editData.emailBody} onChange={(e) => setEditData({ ...editData, emailBody: e.target.value })} fullWidth size="small" multiline rows={3} />
-                </Box>
+                </div>
               ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <div className="flex flex-col gap-2">
                   <InfoRow label="Type de document" value={template.documentType} />
                   <InfoRow label="Fichier original" value={template.originalFilename} />
                   <InfoRow label="Version" value={`v${template.version}`} />
@@ -382,22 +367,22 @@ const TemplateDetails: React.FC = () => {
                       <InfoRow label="Objet email" value={template.emailSubject} />
                     </>
                   )}
-                </Box>
+                </div>
               )}
             </Paper>
 
             {/* Apercu PDF — affiche systematiquement sous les Informations */}
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-                <Box>
-                  <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
+              <div className="flex justify-between items-center mb-3 flex-wrap gap-1.5">
+                <div>
+                  <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
                     Aperçu
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  </p>
+                  <span className="cn-text-caption text-muted-foreground">
                     Prévisualisation générée avec des données factices.
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                  </span>
+                </div>
+                <div className="flex gap-0.5">
                   <Tooltip title="Regénérer l'aperçu">
                     <span>
                       <IconButton onClick={loadPreview} disabled={previewLoading} size="small">
@@ -419,8 +404,8 @@ const TemplateDetails: React.FC = () => {
                       </IconButton>
                     </span>
                   </Tooltip>
-                </Box>
-              </Box>
+                </div>
+              </div>
 
               {previewError && (
                 <Alert severity="error" sx={{ mb: 2 }} onClose={() => setPreviewError(null)}>
@@ -456,9 +441,9 @@ const TemplateDetails: React.FC = () => {
                     zIndex: 1,
                   }}>
                     <CircularProgress size={28} />
-                    <Typography variant="caption" color="text.secondary">
+                    <span className="cn-text-caption text-muted-foreground">
                       Génération de l'aperçu en cours...
-                    </Typography>
+                    </span>
                   </Box>
                 )}
                 {previewUrl ? (
@@ -469,21 +454,15 @@ const TemplateDetails: React.FC = () => {
                     style={{ width: '100%', height: '100%', border: 0 }}
                   />
                 ) : !previewLoading && (
-                  <Box sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Typography variant="body2" color="text.secondary">
+                  <div className="absolute inset-[0px] flex items-center justify-center">
+                    <p className="cn-text-body2 text-muted-foreground">
                       Aperçu non disponible.
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                 )}
               </Box>
             </Paper>
-          </Box>
+          </div>
         </Grid>
 
         {/* Colonne droite : Tags detectes (sticky sur grand ecran pour rester
@@ -505,15 +484,15 @@ const TemplateDetails: React.FC = () => {
         slotProps={{ paper: { sx: { minWidth: 240, mt: 0.5 } } }}
       >
         <MenuItem onClick={runFromMenu(handleDownloadOriginal)} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'text.secondary' }}>
+          <span className="inline-flex me-1.5 text-muted-foreground">
             <Download size={18} strokeWidth={1.75} />
-          </Box>
+          </span>
           Télécharger le fichier source (.odt)
         </MenuItem>
         <MenuItem onClick={runFromMenu(handleDownloadPreview)} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'text.secondary' }}>
+          <span className="inline-flex me-1.5 text-muted-foreground">
             <Visibility size={18} strokeWidth={1.75} />
-          </Box>
+          </span>
           Télécharger l'aperçu PDF
         </MenuItem>
         <Divider sx={{ my: 0.5 }} />
@@ -522,9 +501,9 @@ const TemplateDetails: React.FC = () => {
           disabled={replacePending}
           sx={{ fontSize: '0.85rem', py: 0.75 }}
         >
-          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'text.secondary' }}>
+          <span className="inline-flex me-1.5 text-muted-foreground">
             {replacePending ? <CircularProgress size={16} /> : <Upload size={18} strokeWidth={1.75} />}
-          </Box>
+          </span>
           {replacePending ? 'Remplacement…' : 'Remplacer le fichier (.odt)'}
         </MenuItem>
         <MenuItem
@@ -532,9 +511,9 @@ const TemplateDetails: React.FC = () => {
           disabled={reparsePending}
           sx={{ fontSize: '0.85rem', py: 0.75 }}
         >
-          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'text.secondary' }}>
+          <span className="inline-flex me-1.5 text-muted-foreground">
             {reparsePending ? <CircularProgress size={16} /> : <Refresh size={18} strokeWidth={1.75} />}
-          </Box>
+          </span>
           Re-scanner les tags
         </MenuItem>
         <Divider sx={{ my: 0.5 }} />
@@ -543,9 +522,9 @@ const TemplateDetails: React.FC = () => {
           disabled={deleteMutation.isPending}
           sx={{ fontSize: '0.85rem', py: 0.75, color: 'var(--err)' }}
         >
-          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'var(--err)' }}>
+          <span className="inline-flex me-1.5 text-[var(--err)]">
             <Delete size={18} strokeWidth={1.75} />
-          </Box>
+          </span>
           Supprimer
         </MenuItem>
       </Menu>
@@ -584,15 +563,15 @@ const TemplateDetails: React.FC = () => {
         icon={<Delete size={22} strokeWidth={1.75} />}
         confirmIcon={<Delete size={18} strokeWidth={1.75} />}
       />
-    </Box>
+    </div>
   );
 };
 
 const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-    <Typography variant="body2" color="text.secondary">{label}</Typography>
-    <Typography variant="body2" fontWeight={500}>{value}</Typography>
-  </Box>
+  <div className="flex justify-between">
+    <p className="cn-text-body2 text-muted-foreground">{label}</p>
+    <p className="cn-text-body2 font-medium">{value}</p>
+  </div>
 );
 
 export default TemplateDetails;

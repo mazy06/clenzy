@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect, createContext, useContext } from 'react';
-import { Box, Typography } from '@mui/material';
 import {
   Security,
   TrendingUp,
@@ -104,18 +103,18 @@ const MonitoringPage: React.FC = () => {
   );
 
   const headerActionsSlot = (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+    <div className="flex items-center gap-1.5">
       {headerLastUpdate && (
-        <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+        <span className="cn-text-caption text-muted-foreground whitespace-nowrap">
           {t('tabHeaders.monitoring.lastUpdate', 'Dernière mise à jour')}: {headerLastUpdate.toLocaleTimeString()}
-        </Typography>
+        </span>
       )}
       {headerActions}
-    </Box>
+    </div>
   );
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={title}
         subtitle={subtitle}
@@ -132,7 +131,7 @@ const MonitoringPage: React.FC = () => {
         ariaLabel="Monitoring tabs"
       />
 
-      <Box sx={{ mt: 2 }}>
+      <div className="mt-3">
         <MonitoringHeaderContext.Provider value={headerApi}>
           {tabValue === 0 && <TokenMonitoring />}
           {tabValue === 1 && <KeycloakMetrics />}
@@ -140,8 +139,8 @@ const MonitoringPage: React.FC = () => {
           {tabValue === 3 && <HealthChecks />}
           {tabValue === 4 && <RlsAudit />}
         </MonitoringHeaderContext.Provider>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

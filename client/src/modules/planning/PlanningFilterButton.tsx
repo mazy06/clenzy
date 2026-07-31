@@ -78,9 +78,9 @@ const ModalToggleChip: React.FC<{
 }> = ({ active, label, icon, onClick }) => (
   <Box component="button" type="button" aria-pressed={active} onClick={onClick} sx={sigButtonSx(active)}>
     {icon && (
-      <Box component="span" sx={{ display: 'inline-flex', color: 'inherit' }}>
+      <span className="inline-flex text-inherit">
         {icon}
-      </Box>
+      </span>
     )}
     {label}
   </Box>
@@ -180,58 +180,58 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
         }}
       >
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="subtitle2" sx={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.8125rem', color: 'var(--ink)' }}>
+        <div className="flex items-center justify-between mb-3">
+          <h6 className="cn-text-subtitle2 font-[var(--font-display)] font-semibold text-[0.8125rem] text-[var(--ink)]">
             Filtres
-          </Typography>
+          </h6>
           <IconButton size="small" onClick={() => setFilterAnchor(null)} sx={{ p: 0.25, color: 'var(--faint)', '&:hover': { color: 'var(--ink)', backgroundColor: 'var(--hover)' } }}>
             <CloseIcon size={16} strokeWidth={1.75} />
           </IconButton>
-        </Box>
+        </div>
 
         {/* Chips légende (canaux + statuts) — uniquement quand la toolbar ne les
             affiche pas (compact / constellation déployée), pour éviter le doublon. */}
         {showLegendChips && (
           <>
-            <Box sx={{ mb: 2 }}>
+            <div className="mb-3">
               <Typography variant="overline" sx={OVERLINE_SX}>
                 Canaux
               </Typography>
-              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+              <div className="flex gap-0.5 flex-wrap">
                 <ChannelLegendChips
                   activeChannels={activeChannels}
                   onToggleChannel={onToggleChannel}
                   presentChannels={presentChannels}
                   variant="toggle"
                 />
-              </Box>
-            </Box>
+              </div>
+            </div>
 
             <Divider sx={{ mb: 2, borderColor: 'var(--line)' }} />
 
-            <Box sx={{ mb: 2 }}>
+            <div className="mb-3">
               <Typography variant="overline" sx={OVERLINE_SX}>
                 Statuts
               </Typography>
-              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+              <div className="flex gap-0.5 flex-wrap">
                 <StatusLegendChips
                   activeStatuses={activeStatuses}
                   onToggleStatus={onToggleStatus}
                   variant="toggle"
                 />
-              </Box>
-            </Box>
+              </div>
+            </div>
 
             <Divider sx={{ mb: 2, borderColor: 'var(--line)' }} />
           </>
         )}
 
         {/* Affichage */}
-        <Box sx={{ mb: 1 }}>
+        <div className="mb-1.5">
           <Typography variant="overline" sx={OVERLINE_SX}>
             Affichage
           </Typography>
-          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+          <div className="flex gap-0.5 flex-wrap">
             {/* Interventions : chip légende (grille) — hébergée ici seulement
                 quand la toolbar ne l'affiche pas. */}
             {showLegendChips && (
@@ -257,13 +257,13 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
               icon={<ViewCompact size={13} strokeWidth={1.75} />}
               onClick={() => onDensityChange(isCompactDensity ? 'normal' : 'compact')}
             />
-          </Box>
+          </div>
 
           {/* Animation d'urgence (briques paiement en attente / info manquante) */}
           <Typography variant="overline" sx={{ ...OVERLINE_SX, mt: 1.5 }}>
             Animation d'urgence
           </Typography>
-          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+          <div className="flex gap-0.5 flex-wrap">
             {URGENCY_ANIMATION_OPTIONS.map((opt) => (
               <ModalToggleChip
                 key={opt.value}
@@ -272,12 +272,12 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
                 onClick={() => onUrgencyAnimationChange(opt.value)}
               />
             ))}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* Clear all filters */}
         {(hasActiveFilters || activeFilterCount > 0) && (
-          <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid var(--line)' }}>
+          <div className="mt-2 pt-2 border-t border-[var(--line)]">
             <Typography
               variant="caption"
               sx={{
@@ -294,7 +294,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
             >
               Effacer tous les filtres
             </Typography>
-          </Box>
+          </div>
         )}
       </Popover>
     </>

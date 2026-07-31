@@ -1,17 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  InputAdornment,
-  TextField,
-  Typography,
-  Alert,
-} from '@mui/material';
+import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, InputAdornment, TextField, Alert } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -121,42 +109,42 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
       </DialogTitle>
       <DialogContent dividers>
         {ratesQuery.isPending && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <div className="flex justify-center py-6">
             <CircularProgress size={26} />
-          </Box>
+          </div>
         )}
         {ratesQuery.isError && (
           <Alert severity="error">{t('users.ratesDialog.loadError', 'Impossible de charger les tarifs de ce prestataire.')}</Alert>
         )}
         {data && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <div className="flex flex-col gap-3.5">
             {/* ── Score qualité 30 j ── */}
             {score != null && (
-              <Box>
-                <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)', mb: 0.75 }}>
+              <div>
+                <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-1">
                   {t('settings.myRates.scoreSection', 'Score qualité (30 jours)')}
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, flexWrap: 'wrap' }}>
-                  <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: 600, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
+                </p>
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <p className="cn-text-body1 font-[var(--font-display)] text-[24px] font-semibold text-[var(--accent)] tabular-nums">
                     {score.score}
-                    <Box component="span" sx={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 500 }}>/100</Box>
-                  </Typography>
-                  <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                    <span className="text-[13px] text-[var(--muted)] font-medium">/100</span>
+                  </p>
+                  <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
                     {t('settings.myRates.scoreDetail', {
                       count: score.completedCount,
                       proof: Math.round(score.proofRate * 100),
                     })}
-                  </Typography>
-                </Box>
-              </Box>
+                  </p>
+                </div>
+              </div>
             )}
 
             {/* ── Taux horaire ── */}
-            <Box>
-              <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)', mb: 0.75 }}>
+            <div>
+              <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-1">
                 {t('settings.myRates.hourlySection', 'Taux horaire')}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              </p>
+              <div className="flex items-center gap-3 flex-wrap">
                 <TextField
                   label={t('settings.myRates.hourlyRate', 'Taux horaire')}
                   type="number"
@@ -168,31 +156,31 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
                   InputLabelProps={{ shrink: true }}
                   sx={{ ...NUM_SX, width: 200 }}
                 />
-                <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
                   {t('settings.myRates.referenceRate', 'Taux de référence plateforme')} : {data.referenceHourlyRate} €/h
-                </Typography>
-              </Box>
-            </Box>
+                </p>
+              </div>
+            </div>
 
             {/* ── Forfaits par logement + nudge ── */}
-            <Box>
-              <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)', mb: 0.75 }}>
+            <div>
+              <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-1">
                 {t('settings.myRates.flatSection', 'Forfaits par logement')}
-              </Typography>
+              </p>
               {data.properties.length === 0 ? (
-                <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', fontStyle: 'italic' }}>
+                <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] italic">
                   {t('settings.myRates.noProperties', 'Aucun logement accessible.')}
-                </Typography>
+                </p>
               ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <div className="flex flex-col gap-1.5">
                   {data.properties.map((property) => {
                     const raw = flats[property.propertyId] ?? '';
                     const amount = raw.trim() !== '' && !isNaN(parseFloat(raw)) ? parseFloat(raw) : null;
                     return (
-                      <Box key={property.propertyId} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                        <Typography sx={{ flex: 1, minWidth: 140, fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+                      <div className="flex items-center gap-2 flex-wrap" key={property.propertyId}>
+                        <p className="cn-text-body1 flex-1 min-w-[140px] text-[13px] font-semibold text-[var(--ink)]">
                           {property.propertyName}
-                        </Typography>
+                        </p>
                         <TextField
                           type="number"
                           size="small"
@@ -203,16 +191,16 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
                           InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
                           sx={{ ...NUM_SX, width: 130 }}
                         />
-                        <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums whitespace-nowrap">
                           {property.advisoryMin}–{property.advisoryMax} €
-                        </Typography>
+                        </p>
                         <RateNudge amount={amount} rate={property} />
-                      </Box>
+                      </div>
                     );
                   })}
-                </Box>
+                </div>
               )}
-            </Box>
+            </div>
 
             {saveMutation.isError && (
               <Alert severity="error">{t('users.ratesDialog.saveError', 'Enregistrement impossible.')}</Alert>
@@ -220,7 +208,7 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
             {saved && !saveMutation.isPending && (
               <Alert severity="success">{t('users.ratesDialog.saved', 'Tarifs enregistrés.')}</Alert>
             )}
-          </Box>
+          </div>
         )}
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>

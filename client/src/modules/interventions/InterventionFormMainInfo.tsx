@@ -1,17 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Grid,
-  Typography,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  Card,
-  CardContent,
-} from '@mui/material';
+import { Grid, TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, Card, CardContent } from '@mui/material';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
@@ -72,9 +60,9 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
       <Grid item xs={12} md={8}>
         <Card>
           <CardContent sx={{ p: 2 }}>
-            <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
+            <h6 className="cn-text-subtitle1 font-semibold mb-[0.35em] mb-2">
               {t('interventions.sections.mainInfo')}
-            </Typography>
+            </h6>
 
             <Grid container spacing={1.5}>
               <Grid item xs={12}>
@@ -133,10 +121,10 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
 
                           return (
                             <MenuItem key={type.value} value={type.value}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                              <div className="flex items-center gap-1">
                                 {IconComponent && <IconComponent size={18} strokeWidth={1.75} />}
-                                <Typography variant="body2">{type.label}</Typography>
-                              </Box>
+                                <p className="cn-text-body2">{type.label}</p>
+                              </div>
                             </MenuItem>
                           );
                         })}

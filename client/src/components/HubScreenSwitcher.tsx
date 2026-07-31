@@ -134,18 +134,11 @@ export default function HubScreenSwitcher({ identity }: HubScreenSwitcherProps) 
       : t(identity.translationKey, identity.fallbackLabel);
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+    <div className="flex items-center gap-1.5 min-w-0">
       <Tooltip title={badgeLabel} arrow placement="bottom-start">
-        <Box
-          aria-hidden
-          sx={{
-            width: 30, height: 30, borderRadius: '9px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            bgcolor: 'var(--accent-soft)', color: 'var(--accent)', flexShrink: 0,
-          }}
-        >
+        <div className="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center bg-[var(--accent-soft)] text-[var(--accent)] shrink-0" aria-hidden>
           {sizedIcon(badgeIcon, badgeSize)}
-        </Box>
+        </div>
       </Tooltip>
 
       {identity.kind === 'single' ? (
@@ -202,6 +195,6 @@ export default function HubScreenSwitcher({ identity }: HubScreenSwitcherProps) 
           })}
         </Box>
       )}
-    </Box>
+    </div>
   );
 }

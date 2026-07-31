@@ -9,17 +9,7 @@
    ============================================================ */
 
 import { useEffect, useState } from 'react';
-import {
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Typography,
-  useTheme,
-} from '@mui/material';
+import { Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, useTheme } from '@mui/material';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { guestMessagingApi } from '../../../services/api/guestMessagingApi';
 import { renderServerEmailPreview } from '../../../utils/emailMarkdown';
@@ -78,29 +68,29 @@ export function FeedMessageModal({ logId, onClose }: FeedMessageModalProps) {
       <DialogTitle>{t('supervision.messageModal.title', { defaultValue: 'Message envoyé' })}</DialogTitle>
       <DialogContent dividers>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <div className="flex justify-center py-6">
             <CircularProgress size={24} />
-          </Box>
+          </div>
         ) : html ? (
           <>
             {subject && (
-              <Typography variant="body2" sx={{ mb: 1 }}>
+              <p className="cn-text-body2 mb-1.5">
                 <strong>{t('supervision.messageModal.subject', { defaultValue: 'Sujet' })} :</strong> {subject}
-              </Typography>
+              </p>
             )}
-            <Box sx={{ borderRadius: 1, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+            <div className="rounded-[1px] border border-[divider] overflow-hidden">
               <iframe
                 sandbox=""
                 srcDoc={srcDoc}
                 title={t('supervision.messageModal.title', { defaultValue: 'Message envoyé' })}
                 style={{ width: '100%', height: 340, border: 'none' }}
               />
-            </Box>
+            </div>
           </>
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', py: 2 }}>
+          <p className="cn-text-body2 text-muted-foreground italic py-3">
             {t('supervision.messageModal.unavailable', { defaultValue: 'Aperçu du message indisponible.' })}
-          </Typography>
+          </p>
         )}
       </DialogContent>
       <DialogActions>

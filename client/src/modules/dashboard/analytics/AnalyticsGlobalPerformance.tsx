@@ -59,14 +59,14 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
   const color = isUp ? 'success.main' : isDown ? 'error.main' : 'text.disabled';
 
   return (
-    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, mt: 0.25 }}>
+    <div className="inline-flex items-center gap-0.5 mt-0.5">
       <Box component="span" sx={{ display: 'inline-flex', color }}>
         <Icon size={12} strokeWidth={1.75} />
       </Box>
       <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color, fontVariantNumeric: 'tabular-nums' }}>
         {isUp ? '+' : ''}{value}%
       </Typography>
-    </Box>
+    </div>
   );
 };
 
@@ -76,14 +76,14 @@ const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, load
   <Card sx={HERO_CARD_SX}>
     <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
       {loading ? (
-        <Box>
+        <div>
           <Skeleton variant="text" width="50%" height={14} />
           <Skeleton variant="text" width="70%" height={28} sx={{ mt: 0.5 }} />
           <Skeleton variant="text" width="40%" height={12} sx={{ mt: 0.5 }} />
-        </Box>
+        </div>
       ) : (
         <>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+          <div className="flex items-center gap-1 mb-1">
             <Box
               sx={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -94,17 +94,17 @@ const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, load
             >
               {item.icon}
             </Box>
-            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+            <p className="cn-text-body1 text-[0.6875rem] font-semibold text-muted-foreground tracking-[0.02em] uppercase">
               {item.title}
-            </Typography>
-          </Box>
+            </p>
+          </div>
           <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
             {item.value}
           </Typography>
           {item.subtitle && (
-            <Typography sx={{ fontSize: '0.5625rem', color: 'text.disabled', mt: 0.25, lineHeight: 1.2 }}>
+            <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground opacity-60 mt-0.5 leading-[1.2]">
               {item.subtitle}
-            </Typography>
+            </p>
           )}
           {item.trend !== undefined && <TrendBadge value={item.trend} />}
         </>
@@ -116,7 +116,7 @@ const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, load
 // ─── Secondary KPI row item ─────────────────────────────────────────────────
 
 const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, loading }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, py: 1, px: 0.5 }}>
+  <div className="flex items-center gap-2 py-1.5 px-0.5">
     <Box
       sx={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -127,24 +127,24 @@ const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, 
     >
       {item.icon}
     </Box>
-    <Box sx={{ flex: 1, minWidth: 0 }}>
-      <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 500, lineHeight: 1.2 }}>
+    <div className="flex-1 min-w-0">
+      <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground font-medium leading-[1.2]">
         {item.title}
-      </Typography>
-    </Box>
-    <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+      </p>
+    </div>
+    <div className="text-end shrink-0">
       {loading ? (
         <Skeleton variant="text" width={48} height={18} />
       ) : (
         <>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
+          <p className="cn-text-body1 text-[0.875rem] font-bold leading-[1.2] tabular-nums">
             {item.value}
-          </Typography>
+          </p>
           {item.trend !== undefined && <TrendBadge value={item.trend} />}
         </>
       )}
-    </Box>
-  </Box>
+    </div>
+  </div>
 );
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -247,7 +247,7 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
   ];
 
   return (
-    <Box sx={{ mb: 3 }}>
+    <div className="mb-4">
       {/* ─── Hero KPIs ───────────────────────────────────────────── */}
       <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
         {heroKpis.map((kpi) => (
@@ -268,7 +268,7 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
               </Typography>
               {financialKpis.map((kpi, i) => (
                 <React.Fragment key={kpi.key}>
-                  {i > 0 && <Box sx={{ borderTop: '1px solid', borderColor: 'divider' }} />}
+                  {i > 0 && <div className="border-t border-[divider]" />}
                   <SecondaryKpiRow item={kpi} loading={loading} />
                 </React.Fragment>
               ))}
@@ -285,7 +285,7 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
               </Typography>
               {operationalKpis.map((kpi, i) => (
                 <React.Fragment key={kpi.key}>
-                  {i > 0 && <Box sx={{ borderTop: '1px solid', borderColor: 'divider' }} />}
+                  {i > 0 && <div className="border-t border-[divider]" />}
                   <SecondaryKpiRow item={kpi} loading={loading} />
                 </React.Fragment>
               ))}
@@ -293,7 +293,7 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
           </Card>
         </Grid>
       </Grid>
-    </Box>
+    </div>
   );
 });
 

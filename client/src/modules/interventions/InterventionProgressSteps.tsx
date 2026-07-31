@@ -125,10 +125,7 @@ const StepperHeader: React.FC<{
   activeStep: StepId;
   onStepClick: (id: StepId) => void;
 }> = ({ steps, activeStep, onStepClick }) => (
-  <Box sx={{
-    display: 'flex', alignItems: 'flex-start',
-    gap: 0, mb: 2, position: 'relative',
-  }}>
+  <div className="flex items-start gap-0 mb-3 relative">
     {steps.map((step, idx) => {
       const isActive = activeStep === step.id;
       return (
@@ -166,9 +163,9 @@ const StepperHeader: React.FC<{
               ) : step.locked ? (
                 <LockIcon size={14} strokeWidth={1.75} />
               ) : (
-                <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.75rem' }}>
+                <span className="cn-text-caption font-bold text-[0.75rem]">
                   {step.id + 1}
-                </Typography>
+                </span>
               )}
             </Box>
             <Typography
@@ -182,7 +179,7 @@ const StepperHeader: React.FC<{
         </React.Fragment>
       );
     })}
-  </Box>
+  </div>
 );
 
 const handleDownloadPdf = async (doc: DocumentGeneration) => {
@@ -336,20 +333,20 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
   // ── Step content renderers ────────────────────────────────────────────
 
   const renderInspection = () => (
-    <Box>
-      <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
+    <div>
+      <p className="cn-text-body2 font-semibold mb-1.5">
         {t('interventions.progressSteps.inspectionTitle')}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      </p>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('interventions.progressSteps.inspectionDescription')}
-      </Typography>
+      </p>
 
       {beforePhotos.length > 0 && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+        <div className="mb-3">
+          <p className="cn-text-body2 text-muted-foreground flex items-center gap-0.5 mb-1.5">
             <Box component="span" sx={{ display: 'inline-flex', color: inspectionComplete ? 'var(--ok)' : 'var(--muted)' }}><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></Box>
             {t('interventions.progressSteps.beforePhotosCount', { count: beforePhotos.length })}
-          </Typography>
+          </p>
           <PhotoGallery
             photos={beforePhotos}
             photoIds={beforePhotoIds}
@@ -357,21 +354,21 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             onDelete={!inspectionComplete ? handleDeletePhoto : undefined}
             deletingPhotoId={deletingPhotoId}
           />
-        </Box>
+        </div>
       )}
 
       {getStepNote('inspection') && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="caption" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>{t('interventions.detail.notes')}</Typography>
+        <div className="mb-3">
+          <span className="cn-text-caption font-semibold block mb-0.5">{t('interventions.detail.notes')}</span>
           <Box sx={noteBoxSx}>
-            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+            <p className="cn-text-body2 text-muted-foreground whitespace-pre-wrap">
               {getStepNote('inspection')}
-            </Typography>
+            </p>
           </Box>
-        </Box>
+        </div>
       )}
 
-      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+      <div className="flex gap-1.5 flex-wrap">
         <Button variant="outlined" size="small" startIcon={<PhotoCameraIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
           onClick={() => { setPhotoType('before'); setPhotosDialogOpen(true); }}>
           {t('interventions.progressSteps.addPhotos')}
@@ -403,16 +400,16 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             {t('interventions.progressSteps.validateInspection')}
           </Button>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 
   const renderRooms = () => (
-    <Box>
+    <div>
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-        <Typography variant="body2" fontWeight={600}>
+        <p className="cn-text-body2 font-semibold">
           {t('interventions.progressSteps.roomValidation')}
-        </Typography>
+        </p>
         {totalRooms > 0 && (
           <Chip label={`${validatedRooms.size}/${totalRooms}`} size="small"
             color={allRoomsValidated ? 'success' : 'primary'} variant="outlined"
@@ -420,11 +417,11 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
           />
         )}
       </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('interventions.progressSteps.roomValidationDesc')}
-      </Typography>
+      </p>
 
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 2 }}>
+      <div className="flex flex-wrap gap-1 mb-3">
         {roomNames.map((name, idx) => (
           <Chip key={name}
             icon={validatedRooms.has(idx) ? <CheckCircleOutlineIcon size={18} strokeWidth={1.75} /> : <RoomIcon size={18} strokeWidth={1.75} />}
@@ -435,41 +432,41 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             sx={roomChipSx(false)}
           />
         ))}
-      </Box>
+      </div>
 
       {getStepNote('rooms') && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="caption" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>{t('interventions.detail.notes')}</Typography>
+        <div className="mb-3">
+          <span className="cn-text-caption font-semibold block mb-0.5">{t('interventions.detail.notes')}</span>
           <Box sx={noteBoxSx}>
-            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+            <p className="cn-text-body2 text-muted-foreground whitespace-pre-wrap">
               {getStepNote('rooms')}
-            </Typography>
+            </p>
           </Box>
-        </Box>
+        </div>
       )}
 
       <Button variant="outlined" size="small" startIcon={<CommentIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
         onClick={() => handleOpenNotesDialog('rooms')}>
         {getStepNote('rooms') ? t('interventions.progressSteps.editNote') : t('interventions.progressSteps.addNote')}
       </Button>
-    </Box>
+    </div>
   );
 
   const renderPhotos = () => (
-    <Box>
-      <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
+    <div>
+      <p className="cn-text-body2 font-semibold mb-1.5">
         {t('interventions.progressSteps.afterPhotosTitle')}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      </p>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('interventions.progressSteps.afterPhotosDesc')}
-      </Typography>
+      </p>
 
       {afterPhotos.length > 0 && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-            <Box component="span" sx={{ display: "inline-flex", color: "var(--ok)" }}><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></Box>
+        <div className="mb-3">
+          <p className="cn-text-body2 text-muted-foreground flex items-center gap-0.5 mb-1.5">
+            <span className="inline-flex text-[var(--ok)]"><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></span>
             {t('interventions.progressSteps.afterPhotosCount', { count: afterPhotos.length })}
-          </Typography>
+          </p>
           <PhotoGallery
             photos={afterPhotos}
             photoIds={afterPhotoIds}
@@ -477,21 +474,21 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             onDelete={handleDeletePhoto}
             deletingPhotoId={deletingPhotoId}
           />
-        </Box>
+        </div>
       )}
 
       {getStepNote('after_photos') && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="caption" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>{t('interventions.detail.notes')}</Typography>
+        <div className="mb-3">
+          <span className="cn-text-caption font-semibold block mb-0.5">{t('interventions.detail.notes')}</span>
           <Box sx={noteBoxSx}>
-            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+            <p className="cn-text-body2 text-muted-foreground whitespace-pre-wrap">
               {getStepNote('after_photos')}
-            </Typography>
+            </p>
           </Box>
-        </Box>
+        </div>
       )}
 
-      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+      <div className="flex gap-1.5 flex-wrap">
         <Button variant="outlined" size="small" startIcon={<PhotoCameraIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
           onClick={() => { setPhotoType('after'); setPhotosDialogOpen(true); }}>
           {t('interventions.progressSteps.addPhotos')}
@@ -500,110 +497,106 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
           onClick={() => handleOpenNotesDialog('after_photos')}>
           {getStepNote('after_photos') ? t('interventions.progressSteps.editNote') : t('interventions.progressSteps.addNote')}
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 
   const renderRecap = () => (
-    <Box>
-      <Typography variant="body2" fontWeight={600} sx={{ mb: 2.5 }}>
+    <div>
+      <p className="cn-text-body2 font-semibold mb-3.5">
         {t('interventions.progressSteps.recapTitle')}
-      </Typography>
+      </p>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2.5 }}>
         {/* Inspection */}
         <Box sx={recapCardSx}>
           <Box display="flex" alignItems="center" gap={0.75} mb={1.5}>
-            <Box component="span" sx={{ display: "inline-flex", color: "var(--ok)" }}><CheckCircleIcon size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" fontWeight={600}>{t('interventions.progressSteps.recapInspection')}</Typography>
+            <span className="inline-flex text-[var(--ok)]"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 font-semibold">{t('interventions.progressSteps.recapInspection')}</p>
           </Box>
           {beforePhotos.length > 0 && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+            <span className="cn-text-caption text-muted-foreground block mb-1.5">
               {t('interventions.progressSteps.beforePhotosShort', { count: beforePhotos.length })}
-            </Typography>
+            </span>
           )}
           {getStepNote('inspection') && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontStyle: 'italic', mb: 1 }}>
+            <span className="cn-text-caption text-muted-foreground block italic mb-1.5">
               "{getStepNote('inspection').substring(0, 60)}{getStepNote('inspection').length > 60 ? '...' : ''}"
-            </Typography>
+            </span>
           )}
           {beforePhotos.length > 0 && (
-            <Box sx={{ mt: 0.5 }}>
+            <div className="mt-0.5">
               <PhotoGallery photos={beforePhotos} columns={3} />
-            </Box>
+            </div>
           )}
         </Box>
 
         {/* Rooms */}
         <Box sx={recapCardSx}>
           <Box display="flex" alignItems="center" gap={0.75} mb={1.5}>
-            <Box component="span" sx={{ display: "inline-flex", color: "var(--ok)" }}><CheckCircleIcon size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" fontWeight={600}>{t('interventions.progressSteps.recapRooms', { validated: validatedRooms.size, total: totalRooms })}</Typography>
+            <span className="inline-flex text-[var(--ok)]"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 font-semibold">{t('interventions.progressSteps.recapRooms', { validated: validatedRooms.size, total: totalRooms })}</p>
           </Box>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+          <div className="flex flex-wrap gap-1">
             {roomNames.map((name, idx) => (
               validatedRooms.has(idx) && (
                 <Chip key={name} icon={<CheckCircleOutlineIcon size={18} strokeWidth={1.75} />} label={name} size="small"
                   color="success" variant="filled" sx={{ height: 28, fontSize: '0.75rem' }} />
               )
             ))}
-          </Box>
+          </div>
           {getStepNote('rooms') && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontStyle: 'italic' }}>
+            <span className="cn-text-caption text-muted-foreground block mt-1.5 italic">
               "{getStepNote('rooms').substring(0, 60)}{getStepNote('rooms').length > 60 ? '...' : ''}"
-            </Typography>
+            </span>
           )}
         </Box>
 
         {/* Photos */}
         <Box sx={recapCardSx}>
           <Box display="flex" alignItems="center" gap={0.75} mb={1.5}>
-            <Box component="span" sx={{ display: "inline-flex", color: "var(--ok)" }}><CheckCircleIcon size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" fontWeight={600}>{t('interventions.progressSteps.recapAfterPhotos')}</Typography>
+            <span className="inline-flex text-[var(--ok)]"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 font-semibold">{t('interventions.progressSteps.recapAfterPhotos')}</p>
           </Box>
           {afterPhotos.length > 0 && (
             <>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+              <span className="cn-text-caption text-muted-foreground block mb-1.5">
                 {t('interventions.progressSteps.afterPhotosShort', { count: afterPhotos.length })}
-              </Typography>
+              </span>
               <PhotoGallery photos={afterPhotos} columns={3} />
             </>
           )}
           {getStepNote('after_photos') && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontStyle: 'italic' }}>
+            <span className="cn-text-caption text-muted-foreground block mt-1.5 italic">
               "{getStepNote('after_photos').substring(0, 60)}{getStepNote('after_photos').length > 60 ? '...' : ''}"
-            </Typography>
+            </span>
           )}
         </Box>
       </Box>
 
       {/* Documents */}
       {documents.length > 0 && (
-        <Box sx={{ mt: 3 }}>
+        <div className="mt-4">
           <Box display="flex" alignItems="center" gap={0.75} mb={2}>
-            <Box component="span" sx={{ display: "inline-flex", color: "var(--accent)" }}><DescriptionIcon size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" fontWeight={600}>
+            <span className="inline-flex text-[var(--accent)]"><DescriptionIcon size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 font-semibold">
               {t('interventions.progressSteps.documents', { count: documents.length })}
-            </Typography>
+            </p>
           </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <div className="flex flex-col gap-2">
             {documents.map((doc) => {
               const hasFile = !!doc.fileName;
               return (
                 <Box key={doc.id} sx={docCardSx} onClick={() => hasFile && handleViewPdf(doc)}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0, flex: 1 }}>
-                    <Box sx={{
-                      width: 40, height: 40, borderRadius: 1.5,
-                      bgcolor: 'var(--accent-soft)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
-                      <Box component="span" sx={{ display: "inline-flex", color: "var(--accent)" }}><DescriptionIcon size={22} strokeWidth={1.75} /></Box>
-                    </Box>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="body2" fontWeight={600} noWrap sx={{ mb: 0.5 }}>
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="w-[40px] h-[40px] rounded-[1.5px] bg-[var(--accent-soft)] flex items-center justify-center shrink-0">
+                      <span className="inline-flex text-[var(--accent)]"><DescriptionIcon size={22} strokeWidth={1.75} /></span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="cn-text-body2 font-semibold truncate mb-0.5">
                         {doc.fileName}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                      </p>
+                      <div className="flex items-center gap-1 flex-wrap">
                         <Chip label={doc.documentType.replace(/_/g, ' ')} size="small"
                           sx={{ height: 22, fontSize: '0.675rem', fontWeight: 500, bgcolor: 'var(--hover)', color: 'var(--muted)' }} />
                         {doc.emailStatus === 'SENT' && (
@@ -616,11 +609,11 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                             label={t('interventions.progressSteps.emailFailed')} size="small" color="error" variant="outlined"
                             sx={{ height: 22, fontSize: '0.675rem' }} />
                         )}
-                      </Box>
-                    </Box>
-                  </Box>
+                      </div>
+                    </div>
+                  </div>
                   {hasFile && (
-                    <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                    <div className="flex gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                       <Button size="small" variant="outlined" startIcon={<VisibilityIcon size={18} strokeWidth={1.75} />}
                         onClick={() => handleViewPdf(doc)}
                         sx={{
@@ -637,18 +630,18 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                         }}>
                         {t('interventions.progressSteps.download')}
                       </Button>
-                    </Box>
+                    </div>
                   )}
                 </Box>
               );
             })}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* Complete intervention button */}
       {intervention.status !== 'COMPLETED' && (
-        <Box sx={{ mt: 3.5, textAlign: 'center' }}>
+        <div className="mt-5 text-center">
           <Button variant="contained" color="success" size="large" startIcon={<DoneIcon size={18} strokeWidth={1.75} />}
             onClick={handleCompleteIntervention}
             disabled={!areAllStepsCompleted || completing}
@@ -663,9 +656,9 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             }}>
             {completing ? t('interventions.progressSteps.completing') : t('interventions.progressSteps.complete')}
           </Button>
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 
   const renderStepContent = () => {
@@ -685,14 +678,9 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         <>
           <StepperHeader steps={steps} activeStep={activeStep} onStepClick={(id) => setActiveStep(id)} />
 
-          <Box sx={{
-            p: 2.5, borderRadius: '14px',
-            border: '1px solid', borderColor: 'var(--line)',
-            bgcolor: 'var(--card)',
-            minHeight: 120,
-          }}>
+          <div className="p-3.5 rounded-[14px] border border-[var(--line)] bg-[var(--card)] min-h-[120px]">
             {renderStepContent()}
-          </Box>
+          </div>
         </>
       )}
 
@@ -709,24 +697,24 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         }}>
           {isBeforeScheduledDate && intervention?.scheduledDate && (
             <>
-              <Typography variant="body2" fontWeight={600} sx={{ mb: 1, color: 'var(--warn)' }}>
+              <p className="cn-text-body2 font-semibold mb-1.5 text-[var(--warn)]">
                 Planifiee pour le{' '}
                 {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR', {
                   weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
                   hour: '2-digit', minute: '2-digit',
                 })}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+              </p>
+              <span className="cn-text-caption text-muted-foreground mb-3 block">
                 Le demarrage sera possible a partir de cette date.
-              </Typography>
+              </span>
             </>
           )}
           {!isBeforeScheduledDate && (
             <>
-              <Box component="span" sx={{ display: "inline-flex", color: "var(--accent)", mb: 1 }}><RocketIcon size={32} strokeWidth={1.5} /></Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              <span className="inline-flex text-[var(--accent)] mb-1.5"><RocketIcon size={32} strokeWidth={1.5} /></span>
+              <p className="cn-text-body2 text-muted-foreground mb-3">
                 {t('interventions.progressSteps.startDescription')}
-              </Typography>
+              </p>
             </>
           )}
           <Button variant="contained" color="primary" startIcon={<PlayArrowIcon size={18} strokeWidth={1.75} />}
@@ -750,17 +738,14 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             display: 'flex', flexDirection: { xs: 'column', sm: 'row' },
             alignItems: { xs: 'stretch', sm: 'center' }, gap: 2,
           }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
-              <Box sx={{
-                width: 36, height: 36, borderRadius: '50%', bgcolor: 'var(--ok-soft)', color: 'var(--ok)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
+            <div className="flex items-center gap-2 flex-1">
+              <div className="w-[36px] h-[36px] rounded-[50%] bg-[var(--ok-soft)] text-[var(--ok)] flex items-center justify-center shrink-0">
                 <CheckCircleIcon size={20} strokeWidth={1.75} />
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+              </div>
+              <p className="cn-text-body2 text-muted-foreground leading-[1.5]">
                 {t('interventions.progressSteps.completedMessage')}
-              </Typography>
-            </Box>
+              </p>
+            </div>
             <Button variant="contained" color="warning" startIcon={<ReplayIcon size={18} strokeWidth={1.75} />}
               onClick={handleReopenIntervention} disabled={completing}
               sx={{
@@ -780,10 +765,10 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
       {/* ── Photos avant standalone ──────────────────────────────── */}
       {canUpdateProgress && beforePhotos.length > 0 && !inspectionComplete && activeStep !== 0 && (
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>{t('interventions.detail.beforePhotosStandalone')}</Typography>
+        <div className="mt-3">
+          <p className="cn-text-body2 font-semibold mb-1.5">{t('interventions.detail.beforePhotosStandalone')}</p>
           <PhotoGallery photos={beforePhotos} columns={3} />
-        </Box>
+        </div>
       )}
 
       {/* ── PDF Preview Dialog ──────────────────────────────────── */}
@@ -799,9 +784,9 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         </DialogTitle>
         <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           {pdfLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+            <div className="flex justify-center items-center flex-1">
               <CircularProgress />
-            </Box>
+            </div>
           ) : pdfUrl ? (
             <object
               data={pdfUrl}
@@ -809,22 +794,22 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
               width="100%"
               style={{ flex: 1, border: 'none', minHeight: 0 }}
             >
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+              <div className="p-4 text-center">
+                <p className="cn-text-body2 text-muted-foreground mb-3">
                   {t('interventions.progressSteps.pdfNotSupported', 'Votre navigateur ne supporte pas la visualisation PDF.')}
-                </Typography>
+                </p>
                 <Button variant="contained" href={pdfUrl} download={pdfFileName || 'document.pdf'}
                   startIcon={<DownloadIcon size={18} strokeWidth={1.75} />} sx={{ textTransform: 'none' }}>
                   {t('interventions.progressSteps.download')}
                 </Button>
-              </Box>
+              </div>
             </object>
           ) : (
-            <Box sx={{ p: 3, textAlign: 'center' }}>
+            <div className="p-4 text-center">
               <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
                 {t('interventions.progressSteps.pdfLoadError', 'Erreur lors du chargement du PDF')}
               </Alert>
-            </Box>
+            </div>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 2, py: 1.5 }}>

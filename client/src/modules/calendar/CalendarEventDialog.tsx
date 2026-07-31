@@ -138,42 +138,42 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
 
         {/* Property */}
         <Box display="flex" alignItems="center" mb={1.5}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><LocationIcon size={18} strokeWidth={1.75} /></Box>
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          <span className="inline-flex text-muted-foreground me-1.5"><LocationIcon size={18} strokeWidth={1.75} /></span>
+          <div>
+            <p className="cn-text-body2 font-medium">
               {intervention.propertyName}
-            </Typography>
+            </p>
             {intervention.propertyAddress && (
-              <Typography variant="caption" color="text.secondary">
+              <span className="cn-text-caption text-muted-foreground">
                 {intervention.propertyAddress}
-              </Typography>
+              </span>
             )}
-          </Box>
+          </div>
         </Box>
 
         {/* Scheduled date */}
         <Box display="flex" alignItems="center" mb={1.5}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><CalendarIcon size={18} strokeWidth={1.75} /></Box>
-          <Typography variant="body2">
+          <span className="inline-flex text-muted-foreground me-1.5"><CalendarIcon size={18} strokeWidth={1.75} /></span>
+          <p className="cn-text-body2">
             {formatDate(intervention.scheduledDate)}
-          </Typography>
+          </p>
         </Box>
 
         {/* Duration */}
         <Box display="flex" alignItems="center" mb={1.5}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><ScheduleIcon size={18} strokeWidth={1.75} /></Box>
-          <Typography variant="body2">
+          <span className="inline-flex text-muted-foreground me-1.5"><ScheduleIcon size={18} strokeWidth={1.75} /></span>
+          <p className="cn-text-body2">
             {formatDuration(intervention.estimatedDurationHours)}
-          </Typography>
+          </p>
         </Box>
 
         {/* Assigned to */}
         {intervention.assignedToName && (
           <Box display="flex" alignItems="center" mb={1.5}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><PersonIcon size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="body2">
+            <span className="inline-flex text-muted-foreground me-1.5"><PersonIcon size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2">
               {intervention.assignedToName}
-            </Typography>
+            </p>
           </Box>
         )}
 
@@ -182,7 +182,7 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
           <>
             <Divider sx={{ my: 1.5 }} />
             <Box display="flex" alignItems="flex-start" mb={1}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1, mt: 0.25 }}><AssignmentIcon size={18} strokeWidth={1.75} /></Box>
+              <span className="inline-flex text-muted-foreground me-1.5 mt-0.5"><AssignmentIcon size={18} strokeWidth={1.75} /></span>
               <Typography
                 variant="body2"
                 color="text.secondary"

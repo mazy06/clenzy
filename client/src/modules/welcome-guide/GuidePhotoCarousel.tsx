@@ -145,18 +145,7 @@ export default function GuidePhotoCarousel({
         <>
           <CarouselArrow side="left" onClick={() => go(-1)} />
           <CarouselArrow side="right" onClick={() => go(1)} />
-          <Box
-            sx={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 7,
-              display: 'flex',
-              justifyContent: 'center',
-              gap: 0.5,
-              pointerEvents: 'none',
-            }}
-          >
+          <div className="absolute start-[0px] end-[0px] bottom-[7px] flex justify-center gap-0.5 pointer-events-none">
             {slides.map((s, i) => (
               <Box
                 key={s.id}
@@ -170,7 +159,7 @@ export default function GuidePhotoCarousel({
                 }}
               />
             ))}
-          </Box>
+          </div>
         </>
       )}
     </Box>

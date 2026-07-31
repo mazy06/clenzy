@@ -1,31 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  Container,
-  Stepper,
-  Step,
-  StepLabel,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  CircularProgress,
-  Grid,
-  Card,
-  CardContent,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Checkbox,
-  TextField,
-  InputAdornment,
-  Avatar,
-} from '@mui/material';
+import { Paper, Container, Stepper, Step, StepLabel, Button, FormControl, InputLabel, Select, MenuItem, Chip, CircularProgress, Grid, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, TextField, InputAdornment, Avatar } from '@mui/material';
 import {
   People,
   Group,
@@ -92,9 +66,9 @@ const TeamUserAssignmentForm: React.FC = () => {
           backPath="/portfolios"
           showBackButton={true}
         />
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
+        <div className="flex justify-center items-center min-h-[300px]">
           <CircularProgress size={32} />
-        </Box>
+        </div>
       </Container>
     );
   }
@@ -105,13 +79,13 @@ const TeamUserAssignmentForm: React.FC = () => {
     switch (step) {
       case 0:
         return (
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 0.5 }}>
+          <div>
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-0.5">
               {t('portfolios.steps.selectManagerTitle')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.82rem', mb: 2.5 }}>
+            </h6>
+            <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3.5">
               {t('portfolios.steps.selectManagerDescription')}
-            </Typography>
+            </p>
             <FormControl fullWidth size="small">
               <InputLabel>{t('portfolios.fields.manager')}</InputLabel>
               <Select
@@ -123,31 +97,31 @@ const TeamUserAssignmentForm: React.FC = () => {
               >
                 {managers.map((manager) => (
                   <MenuItem key={manager.id} value={manager.id}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <div className="flex items-center gap-1.5">
                       <Avatar sx={{ width: 24, height: 24, fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px' }}>
                         {manager.firstName.charAt(0)}{manager.lastName.charAt(0)}
                       </Avatar>
-                      <Typography sx={{ fontSize: '0.85rem' }}>
+                      <p className="cn-text-body1 text-[0.85rem]">
                         {manager.firstName} {manager.lastName} - {manager.email}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
-          </Box>
+          </div>
         );
 
       case 1:
         return (
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 0.5 }}>
+          <div>
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-0.5">
               {t('portfolios.fields.selectTeams')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.82rem', mb: 2.5 }}>
+            </h6>
+            <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3.5">
               {t('portfolios.fields.selectTeamsDescription')}{' '}
               <strong>{t('portfolios.fields.optionalStep')}</strong>
-            </Typography>
+            </p>
             <Grid container spacing={1.5}>
               {teams.map((team) => (
                 <Grid item xs={12} sm={6} md={4} key={team.id}>
@@ -167,24 +141,24 @@ const TeamUserAssignmentForm: React.FC = () => {
                     onClick={() => handleTeamToggle(team.id)}
                   >
                     <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
+                      <div className="flex items-center mb-1">
                         <Checkbox
                           checked={selectedTeamsSet.has(team.id)}
                           onChange={() => handleTeamToggle(team.id)}
                           size="small"
                           sx={{ p: 0.25, mr: 0.75 }}
                         />
-                        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mr: 0.75 }}><Group size={18} strokeWidth={1.75} /></Box>
-                        <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                        <span className="inline-flex text-[var(--accent)] me-1"><Group size={18} strokeWidth={1.75} /></span>
+                        <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold">
                           {team.name}
-                        </Typography>
-                      </Box>
+                        </h6>
+                      </div>
                       {team.description && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 3.5, fontSize: '0.72rem', mb: 0.5 }}>
+                        <span className="cn-text-caption text-muted-foreground block ms-5 text-[0.72rem] mb-0.5">
                           {team.description}
-                        </Typography>
+                        </span>
                       )}
-                      <Box sx={{ display: 'flex', gap: 0.75, ml: 3.5, alignItems: 'center' }}>
+                      <div className="flex gap-1 ms-5 items-center">
                         {team.interventionType && (
                           <Chip
                             label={team.interventionType}
@@ -193,32 +167,32 @@ const TeamUserAssignmentForm: React.FC = () => {
                             sx={{ height: 20, fontSize: '0.6rem' }}
                           />
                         )}
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                        <span className="cn-text-caption text-muted-foreground text-[0.65rem]">
                           {team.memberCount ?? 0} {t('portfolios.fields.members')}
-                        </Typography>
-                      </Box>
+                        </span>
+                      </div>
                     </CardContent>
                   </Card>
                 </Grid>
               ))}
             </Grid>
-          </Box>
+          </div>
         );
 
       case 2:
         return (
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 0.5 }}>
+          <div>
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-0.5">
               {t('portfolios.fields.selectUsers')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.82rem', mb: 2 }}>
+            </h6>
+            <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3">
               {t('portfolios.fields.selectUsersDescription')}
               {selectedTeams.length === 0 ? (
                 <strong> {t('portfolios.fields.mustSelectAtLeastOneUser')}</strong>
               ) : (
                 <strong> {t('portfolios.fields.optionalSelection')}</strong>
               )}
-            </Typography>
+            </p>
 
             {/* Search bar */}
             <TextField
@@ -230,7 +204,7 @@ const TeamUserAssignmentForm: React.FC = () => {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={18} strokeWidth={1.75} /></Box>
+                    <span className="inline-flex text-muted-foreground"><Search size={18} strokeWidth={1.75} /></span>
                   </InputAdornment>
                 ),
               }}
@@ -244,12 +218,12 @@ const TeamUserAssignmentForm: React.FC = () => {
             />
 
             {filteredUsers.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><People size={40} strokeWidth={1.75} /></Box>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+              <div className="text-center py-6">
+                <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><People size={40} strokeWidth={1.75} /></span>
+                <p className="cn-text-body2 text-muted-foreground text-[0.85rem]">
                   {userSearchTerm ? t('portfolios.fields.noUserFound') : t('portfolios.fields.noUserAvailable')}
-                </Typography>
-              </Box>
+                </p>
+              </div>
             ) : (
               <Grid container spacing={1.5}>
                 {filteredUsers.map((userItem) => (
@@ -270,7 +244,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                       onClick={() => handleUserToggle(userItem.id)}
                     >
                       <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
+                        <div className="flex items-center mb-1">
                           <Checkbox
                             checked={selectedUsersSet.has(userItem.id)}
                             onChange={() => handleUserToggle(userItem.id)}
@@ -292,14 +266,14 @@ const TeamUserAssignmentForm: React.FC = () => {
                           >
                             {userItem.firstName.charAt(0)}{userItem.lastName.charAt(0)}
                           </Avatar>
-                          <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                          <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold">
                             {userItem.firstName} {userItem.lastName}
-                          </Typography>
-                        </Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 3.5, fontSize: '0.7rem', mb: 0.5 }}>
+                          </h6>
+                        </div>
+                        <span className="cn-text-caption text-muted-foreground block ms-5 text-[0.7rem] mb-0.5">
                           {userItem.email}
-                        </Typography>
-                        <Box sx={{ ml: 3.5 }}>
+                        </span>
+                        <div className="ms-5">
                           <Chip
                             label={getRoleLabel(userItem.role)}
                             size="small"
@@ -307,14 +281,14 @@ const TeamUserAssignmentForm: React.FC = () => {
                             icon={getRoleIcon(userItem.role)}
                             sx={{ height: 22, fontSize: '0.65rem' }}
                           />
-                        </Box>
+                        </div>
                       </CardContent>
                     </Card>
                   </Grid>
                 ))}
               </Grid>
             )}
-          </Box>
+          </div>
         );
 
       case 3: {
@@ -326,98 +300,98 @@ const TeamUserAssignmentForm: React.FC = () => {
           : { firstName: user?.firstName, lastName: user?.lastName, email: user?.email };
 
         return (
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 2 }}>
+          <div>
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-3">
               {t('portfolios.fields.confirmAssignments')}
-            </Typography>
+            </h6>
 
             {/* Manager */}
             <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2 }}>
-              <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <h6 className="cn-text-subtitle2 text-[0.82rem] mb-0.5 flex items-center gap-0.5">
                 <People size={16} strokeWidth={1.75} />
                 {t('portfolios.fields.selectedManager')}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+              </h6>
+              <div className="flex items-center gap-1.5 mt-0.5">
                 <Avatar sx={{ width: 28, height: 28, fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px' }}>
                   {selectedManagerData?.firstName?.charAt(0)}{selectedManagerData?.lastName?.charAt(0)}
                 </Avatar>
-                <Box>
-                  <Typography variant="subtitle2" color="primary" sx={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                <div>
+                  <h6 className="cn-text-subtitle2 text-primary text-[0.85rem] font-semibold">
                     {selectedManagerData?.firstName} {selectedManagerData?.lastName}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                  </h6>
+                  <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
                     {selectedManagerData?.email}
-                  </Typography>
-                </Box>
-              </Box>
+                  </span>
+                </div>
+              </div>
             </Paper>
 
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5 flex items-center gap-0.5">
                     <Group size={16} strokeWidth={1.75} />
                     {t('portfolios.fields.selectedTeams')} ({selectedTeamsData.length})
-                  </Typography>
+                  </h6>
                   {selectedTeamsData.length > 0 ? (
                     <List dense disablePadding>
                       {selectedTeamsData.map((team) => (
                         <ListItem key={team.id} disableGutters sx={{ py: 0.5 }}>
                           <ListItemIcon sx={{ minWidth: 28 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
+                            <span className="inline-flex text-[var(--ok)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
                           </ListItemIcon>
                           <ListItemText
-                            primary={<Typography sx={{ fontSize: '0.82rem' }}>{team.name}</Typography>}
+                            primary={<p className="cn-text-body1 text-[0.82rem]">{team.name}</p>}
                             secondary={
-                              <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                              <span className="cn-text-caption text-[0.7rem]">
                                 {team.memberCount ?? 0} {t('portfolios.fields.members')} {team.interventionType ? `\u2022 ${team.interventionType}` : ''}
-                              </Typography>
+                              </span>
                             }
                           />
                         </ListItem>
                       ))}
                     </List>
                   ) : (
-                    <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.75rem' }}>
+                    <span className="cn-text-caption text-muted-foreground italic text-[0.75rem]">
                       {t('portfolios.fields.noTeamSelected')}
-                    </Typography>
+                    </span>
                   )}
                 </Paper>
               </Grid>
 
               <Grid item xs={12} md={6}>
                 <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5 flex items-center gap-0.5">
                     <People size={16} strokeWidth={1.75} />
                     {t('portfolios.fields.selectedUsers')} ({selectedUsersData.length})
-                  </Typography>
+                  </h6>
                   {selectedUsersData.length > 0 ? (
                     <List dense disablePadding>
                       {selectedUsersData.map((userItem) => (
                         <ListItem key={userItem.id} disableGutters sx={{ py: 0.5 }}>
                           <ListItemIcon sx={{ minWidth: 28 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
+                            <span className="inline-flex text-[var(--ok)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
                           </ListItemIcon>
                           <ListItemText
-                            primary={<Typography sx={{ fontSize: '0.82rem' }}>{userItem.firstName} {userItem.lastName}</Typography>}
+                            primary={<p className="cn-text-body1 text-[0.82rem]">{userItem.firstName} {userItem.lastName}</p>}
                             secondary={
-                              <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                              <span className="cn-text-caption text-[0.7rem]">
                                 {userItem.email} {'\u2022'} {getRoleLabel(userItem.role)}
-                              </Typography>
+                              </span>
                             }
                           />
                         </ListItem>
                       ))}
                     </List>
                   ) : (
-                    <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.75rem' }}>
+                    <span className="cn-text-caption text-muted-foreground italic text-[0.75rem]">
                       {t('portfolios.fields.noUserAvailable')}
-                    </Typography>
+                    </span>
                   )}
                 </Paper>
               </Grid>
             </Grid>
-          </Box>
+          </div>
         );
       }
 
@@ -450,11 +424,11 @@ const TeamUserAssignmentForm: React.FC = () => {
           ))}
         </Stepper>
 
-        <Box sx={{ mb: 4, minHeight: 200 }}>
+        <div className="mb-6 min-h-[200px]">
           {getStepContent(activeStep)}
-        </Box>
+        </div>
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div className="flex justify-between">
           <Button
             disabled={activeStep === 0}
             onClick={handleBack}
@@ -488,7 +462,7 @@ const TeamUserAssignmentForm: React.FC = () => {
               {t('portfolios.forms.next')}
             </Button>
           )}
-        </Box>
+        </div>
       </Paper>
     </Container>
   );

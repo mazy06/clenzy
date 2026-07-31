@@ -80,30 +80,22 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
 
   if (total === 0) {
     return (
-      <Box sx={{ mt: 1, mb: 1.5 }}>
-        <Box sx={{
-          p: 3, borderRadius: '12px',
-          bgcolor: 'var(--warn-soft)',
-          textAlign: 'center',
-        }}>
-          <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--warn)' }}>
+      <div className="mt-1.5 mb-2">
+        <div className="p-4 rounded-[12px] bg-[var(--warn-soft)] text-center">
+          <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--warn)]">
             Aucune propriete dans le portefeuille — ajoute-en une pour commencer.
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <div className="mt-1.5 mb-2 flex flex-col gap-2">
       {data.title && (
-        <Typography sx={{
-          display: 'block', fontSize: '10.5px', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '.05em',
-          color: 'var(--faint)',
-        }}>
+        <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
           {data.title}
-        </Typography>
+        </p>
       )}
 
       {/* Section 1 : 4 stat tiles */}
@@ -139,7 +131,7 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
 
       {/* Section 2 : Top performers */}
       {topPerformers.length > 0 && (
-        <Box>
+        <div>
           <SectionHeader
             label="Top performers"
             icon={<TrendUpIcon size={14} />}
@@ -156,41 +148,41 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
               <TopPerformerCard key={p.id} performer={p} />
             ))}
           </Box>
-        </Box>
+        </div>
       )}
 
       {/* Section 3 : Sous-performants */}
       {underPerformers.length > 0 && (
-        <Box>
+        <div>
           <SectionHeader
             label={`Sous-performants (${underPerformers.length})`}
             icon={<TrendDownIcon size={14} />}
             color="var(--warn)"
           />
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+          <div className="flex flex-col gap-1">
             {underPerformers.map((p) => (
               <UnderPerformerRow key={p.id} performer={p} />
             ))}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* Section 4 : Patterns detectes */}
       {patterns.length > 0 && (
-        <Box>
+        <div>
           <SectionHeader
             label="Patterns detectes"
             icon={<WarningIcon size={14} />}
             color="var(--err)"
           />
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+          <div className="flex flex-col gap-1">
             {patterns.map((pat, idx) => (
               <PatternRow key={`${pat.type}-${idx}`} pattern={pat} />
             ))}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 
@@ -216,37 +208,16 @@ const StatTile: React.FC<{
         bgcolor: tileBg,
       }}
     >
-      <Typography
-        sx={{
-          display: 'block', color: 'var(--faint)',
-          fontSize: '10.5px', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '.05em', mb: 0.25,
-        }}
-      >
+      <p className="cn-text-body1 block text-[var(--faint)] text-[10.5px] font-bold uppercase tracking-[.05em] mb-0.5">
         {label}
-      </Typography>
-      <Typography
-        sx={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '1.15rem',
-          fontWeight: 600,
-          lineHeight: 1.2,
-          fontVariantNumeric: 'tabular-nums',
-          color: 'var(--ink)',
-          letterSpacing: '-0.01em',
-        }}
-      >
+      </p>
+      <p className="cn-text-body1 font-[var(--font-display)] text-[1.15rem] font-semibold leading-[1.2] tabular-nums text-[var(--ink)] tracking-[-0.01em]">
         {value}
-      </Typography>
+      </p>
       {hint && (
-        <Typography
-          sx={{
-            display: 'block', color: 'var(--muted)',
-            fontSize: '10.5px', mt: 0.25,
-          }}
-        >
+        <p className="cn-text-body1 block text-[var(--muted)] text-[10.5px] mt-0.5">
           {hint}
-        </Typography>
+        </p>
       )}
     </Box>
   );
@@ -257,7 +228,7 @@ const SectionHeader: React.FC<{
   icon: React.ReactNode;
   color: string;
 }> = ({ label, icon, color }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75 }}>
+  <div className="flex items-center gap-0.5 mb-1">
     <Box sx={{ display: 'inline-flex', color }}>{icon}</Box>
     <Typography
       sx={{
@@ -268,52 +239,31 @@ const SectionHeader: React.FC<{
     >
       {label}
     </Typography>
-  </Box>
+  </div>
 );
 
 const TopPerformerCard: React.FC<{ performer: TopPerformer }> = ({ performer }) => {
   const occupancyPct = Math.round(performer.occupancy * 100);
 
   return (
-    <Box
-      sx={{
-        px: 1.25, py: 1,
-        borderRadius: '10px',
-        bgcolor: 'var(--ok-soft)',
-      }}
-    >
-      <Typography
-        sx={{
-          fontSize: '13.5px', fontWeight: 600,
-          color: 'var(--ink)',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}
-      >
+    <div className="px-2 py-1.5 rounded-[10px] bg-[var(--ok-soft)]">
+      <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis">
         {performer.name}
-      </Typography>
+      </p>
       {performer.city && (
-        <Typography
-          sx={{ display: 'block', color: 'var(--muted)', fontSize: '11.5px' }}
-        >
+        <p className="cn-text-body1 block text-[var(--muted)] text-[11.5px]">
           {performer.city}
-        </Typography>
+        </p>
       )}
-      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, mt: 0.5 }}>
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '1rem', fontWeight: 600,
-            fontVariantNumeric: 'tabular-nums',
-            color: 'var(--ok)',
-          }}
-        >
+      <div className="flex items-baseline gap-1 mt-0.5">
+        <p className="cn-text-body1 font-[var(--font-display)] text-[1rem] font-semibold tabular-nums text-[var(--ok)]">
           {formatCurrency(performer.revenue)}
-        </Typography>
-        <Typography sx={{ color: 'var(--faint)', fontSize: '11.5px' }}>
+        </p>
+        <p className="cn-text-body1 text-[var(--faint)] text-[11.5px]">
           {performer.reservations} resa
-        </Typography>
-      </Box>
-      <Box sx={{ mt: 0.75 }}>
+        </p>
+      </div>
+      <div className="mt-1">
         <LinearProgress
           variant="determinate"
           value={occupancyPct}
@@ -326,70 +276,39 @@ const TopPerformerCard: React.FC<{ performer: TopPerformer }> = ({ performer }) 
             },
           }}
         />
-        <Typography
-          sx={{
-            display: 'block', fontSize: '10.5px', mt: 0.25,
-            color: 'var(--muted)',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
+        <p className="cn-text-body1 block text-[10.5px] mt-0.5 text-[var(--muted)] tabular-nums">
           Occupation {occupancyPct}%
-        </Typography>
-      </Box>
-    </Box>
+        </p>
+      </div>
+    </div>
   );
 };
 
 const UnderPerformerRow: React.FC<{ performer: UnderPerformer }> = ({ performer }) => {
   return (
-    <Box
-      sx={{
-        px: 1.25, py: 1,
-        borderRadius: '10px',
-        bgcolor: 'var(--warn-soft)',
-        display: 'flex',
-        gap: 1,
-        alignItems: 'flex-start',
-      }}
-    >
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-          <Typography sx={{
-            fontSize: '13.5px', fontWeight: 600,
-            color: 'var(--ink)',
-          }}>
+    <div className="px-2 py-1.5 rounded-[10px] bg-[var(--warn-soft)] flex gap-1.5 items-start">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-1.5">
+          <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)]">
             {performer.name}
-          </Typography>
+          </p>
           {performer.city && (
-            <Typography sx={{
-              color: 'var(--muted)', fontSize: '11.5px',
-            }}>
+            <p className="cn-text-body1 text-[var(--muted)] text-[11.5px]">
               {performer.city}
-            </Typography>
+            </p>
           )}
-        </Box>
-        <Typography sx={{
-          display: 'block', color: 'var(--warn)', fontSize: '11.5px', fontWeight: 600, mt: 0.25,
-        }}>
+        </div>
+        <p className="cn-text-body1 block text-[var(--warn)] text-[11.5px] font-semibold mt-0.5">
           {performer.reason}
-        </Typography>
-        <Typography sx={{
-          display: 'block', color: 'var(--muted)', fontSize: '11.5px',
-          fontStyle: 'italic', mt: 0.25,
-        }}>
+        </p>
+        <p className="cn-text-body1 block text-[var(--muted)] text-[11.5px] italic mt-0.5">
           → {performer.recommendation}
-        </Typography>
-      </Box>
-      <Typography sx={{
-        fontFamily: 'var(--font-display)',
-        fontSize: '0.85rem', fontWeight: 600,
-        fontVariantNumeric: 'tabular-nums',
-        color: 'var(--warn)',
-        whiteSpace: 'nowrap',
-      }}>
+        </p>
+      </div>
+      <p className="cn-text-body1 font-[var(--font-display)] text-[0.85rem] font-semibold tabular-nums text-[var(--warn)] whitespace-nowrap">
         {Math.round(performer.occupancy * 100)}%
-      </Typography>
-    </Box>
+      </p>
+    </div>
   );
 };
 
@@ -413,14 +332,11 @@ const PatternRow: React.FC<{ pattern: Pattern }> = ({ pattern }) => {
       }}>
         <Icon size={16} />
       </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
-          <Typography sx={{
-            fontSize: '13.5px', fontWeight: 600,
-            color: 'var(--ink)',
-          }}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1 mb-0.5">
+          <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)]">
             {pattern.title}
-          </Typography>
+          </p>
           <Chip
             label={pattern.severity}
             size="small"
@@ -433,21 +349,16 @@ const PatternRow: React.FC<{ pattern: Pattern }> = ({ pattern }) => {
               '& .MuiChip-label': { px: 0.75 },
             }}
           />
-        </Box>
-        <Typography sx={{
-          display: 'block', color: 'var(--muted)', fontSize: '11.5px',
-        }}>
+        </div>
+        <p className="cn-text-body1 block text-[var(--muted)] text-[11.5px]">
           {pattern.description}
-        </Typography>
+        </p>
         {pattern.items && pattern.items.length > 0 && (
-          <Typography sx={{
-            display: 'block', color: 'var(--faint)',
-            fontSize: '11.5px', mt: 0.25,
-          }}>
+          <p className="cn-text-body1 block text-[var(--faint)] text-[11.5px] mt-0.5">
             {pattern.items.join(' · ')}
-          </Typography>
+          </p>
         )}
-      </Box>
+      </div>
     </Box>
   );
 };

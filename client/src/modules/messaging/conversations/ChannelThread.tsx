@@ -207,8 +207,8 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
             <>
               {/* Concierge IA : brouillon à valider (C1) — jamais envoyé sans l'opérateur. */}
               {aiDraft && (
-                <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderBottom: '1px solid', borderColor: 'divider' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75, color: 'primary.main' }}>
+                <div className="p-2 bg-[action.hover] border-b border-[divider]">
+                  <div className="flex items-center gap-1 mb-1 text-primary">
                     <SparklesIcon size={16} strokeWidth={1.75} />
                     <Typography
                       variant="caption"
@@ -216,11 +216,11 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
                     >
                       {t('concierge.draftTitle', 'Brouillon Concierge IA')}
                     </Typography>
-                  </Box>
-                  <Typography variant="body2" sx={{ mb: 1, whiteSpace: 'pre-wrap', color: 'text.primary' }}>
+                  </div>
+                  <p className="cn-text-body2 mb-1.5 whitespace-pre-wrap text-foreground">
                     {aiDraft}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
+                  </p>
+                  <div className="flex gap-1.5">
                     <Button
                       size="small"
                       variant="contained"
@@ -248,8 +248,8 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
                     >
                       {t('common.reject', 'Rejeter')}
                     </Button>
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               )}
               {whatsappWindowExpired && (
                 <Alert

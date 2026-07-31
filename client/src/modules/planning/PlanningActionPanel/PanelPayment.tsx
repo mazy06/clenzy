@@ -133,10 +133,10 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
     : 0;
 
   return (
-    <Box>
+    <div>
       {/* Payment status */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Payment size={18} strokeWidth={1.75} /></Box>
+      <div className="flex items-center gap-1.5 mb-3">
+        <span className="inline-flex text-[var(--accent)]"><Payment size={18} strokeWidth={1.75} /></span>
         <Typography sx={OVERLINE_SX}>Statut paiement</Typography>
         {(() => { const t = STATUS_TOKENS[(intervention.paymentStatus || intervention.status)?.toUpperCase()] || NEUTRAL_TOKENS; return (
         <Chip
@@ -145,29 +145,29 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
           sx={{ ...chipSx(t.bg, t.color), ml: 'auto' }}
         />
         ); })()}
-      </Box>
+      </div>
 
       {/* Cost details */}
-      <Box sx={{ p: 1.5, border: '1px solid var(--line)', borderRadius: '10px', mb: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Schedule size={14} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>Durée estimée</Typography>
-          </Box>
-          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+      <div className="p-2 border border-[var(--line)] rounded-[10px] mb-3">
+        <div className="flex justify-between items-center mb-0.5">
+          <div className="flex items-center gap-0.5">
+            <span className="inline-flex text-[var(--muted)]"><Schedule size={14} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)]">Durée estimée</p>
+          </div>
+          <p className="cn-text-body1 text-[0.6875rem] font-semibold text-[var(--ink)] tabular-nums">
             {intervention.estimatedDurationHours || '—'} h
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><AttachMoney size={14} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>Coût estimé</Typography>
-          </Box>
-          <Typography sx={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
+          </p>
+        </div>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-0.5">
+            <span className="inline-flex text-[var(--muted)]"><AttachMoney size={14} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)]">Coût estimé</p>
+          </div>
+          <p className="cn-text-body1 text-[0.9375rem] font-semibold text-[var(--ink)] font-[var(--font-display)] tabular-nums">
             <Money value={estimatedCost} from="EUR" />
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
 
       {/* Pay button for AWAITING_PAYMENT */}
       {intervention.status === 'awaiting_payment' && (
@@ -180,12 +180,12 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
       {/* Manager validation */}
       {canValidate && intervention.status === 'awaiting_validation' && (
         <>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Gavel size={16} strokeWidth={1.75} /></Box>
+          <div className="flex items-center gap-0.5 mb-1.5">
+            <span className="inline-flex text-[var(--warn)]"><Gavel size={16} strokeWidth={1.75} /></span>
             <Typography sx={OVERLINE_SX}>
               Validation manager
             </Typography>
-          </Box>
+          </div>
           <Alert severity="warning" sx={{ fontSize: '0.6875rem', mb: 1 }}>
             Cette intervention est terminée et attend votre validation.
           </Alert>
@@ -208,21 +208,21 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
       )}
 
       {/* Payment history */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Receipt size={16} strokeWidth={1.75} /></Box>
+      <div className="flex items-center gap-0.5 mb-1.5">
+        <span className="inline-flex text-[var(--muted)]"><Receipt size={16} strokeWidth={1.75} /></span>
         <Typography sx={OVERLINE_SX}>
           Historique paiements
         </Typography>
-      </Box>
+      </div>
 
       {payment.loadingHistory ? (
         <Box display="flex" justifyContent="center" py={2}>
           <CircularProgress size={20} />
         </Box>
       ) : payment.paymentHistory.length === 0 ? (
-        <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)', fontStyle: 'italic' }}>
+        <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] italic">
           Aucun paiement enregistré
-        </Typography>
+        </p>
       ) : (
         <TableContainer sx={{ mb: 1 }}>
           <Table size="small">
@@ -262,9 +262,9 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
       <Dialog open={validateDialogOpen} onClose={() => setValidateDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Valider l'intervention</DialogTitle>
         <DialogContent>
-          <Typography sx={{ fontSize: '0.75rem', mb: 2 }}>
+          <p className="cn-text-body1 text-[0.75rem] mb-3">
             Intervention : <strong>{intervention.title}</strong>
-          </Typography>
+          </p>
           <TextField
             fullWidth
             size="small"
@@ -289,7 +289,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

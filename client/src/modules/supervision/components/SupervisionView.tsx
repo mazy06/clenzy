@@ -68,10 +68,10 @@ export function SupervisionView({
   );
 
   return (
-    <Box>
-      <Box sx={{ mb: 1.5 }}>
+    <div>
+      <div className="mb-2">
         <ScopeSwitch value={scope} onChange={setScope} />
-      </Box>
+      </div>
       {scope === 'property' ? (
         // Hôte autonome (démo/spike) : hauteur responsive bornée pour que le
         // panneau (height:100%) ait une hauteur définie à remplir.
@@ -87,6 +87,6 @@ export function SupervisionView({
       ) : (
         <PortfolioPanel createProvider={portfolioFactory} deps={['portfolio']} onEditAction={onEditAction} />
       )}
-    </Box>
+    </div>
   );
 }

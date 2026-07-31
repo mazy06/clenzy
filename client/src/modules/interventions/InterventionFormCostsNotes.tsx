@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  Typography,
-  TextField,
-  Card,
-  CardContent,
-} from '@mui/material';
+import { TextField, Card, CardContent } from '@mui/material';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -26,9 +21,9 @@ const InterventionFormCostsNotes: React.FC<InterventionFormCostsNotesProps> = Re
         {!isHost() && (
           <Card>
             <CardContent sx={{ p: 2 }}>
-              <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
+              <h6 className="cn-text-subtitle1 font-semibold mb-[0.35em] mb-2">
                 {t('interventions.sections.costs')}
-              </Typography>
+              </h6>
 
               <Controller
                 name="estimatedCost"
@@ -54,9 +49,9 @@ const InterventionFormCostsNotes: React.FC<InterventionFormCostsNotesProps> = Re
         {/* Notes et photos */}
         <Card sx={{ mt: isHost() ? 0 : 1.5 }}>
           <CardContent sx={{ p: 2 }}>
-            <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
+            <h6 className="cn-text-subtitle1 font-semibold mb-[0.35em] mb-2">
               {t('interventions.sections.notesPhotos')}
-            </Typography>
+            </h6>
 
             <Controller
               name="notes"

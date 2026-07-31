@@ -1,21 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Typography,
-  Avatar,
-  IconButton,
-  CircularProgress,
-} from '@mui/material';
+import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Avatar, IconButton, CircularProgress } from '@mui/material';
 import {
   SwapHoriz as SwapHorizIcon,
   Close as CloseIcon,
@@ -83,9 +67,9 @@ export const ReassignmentDialog: React.FC<ReassignmentDialogProps> = ({
       >
         <Box display="flex" alignItems="center" gap={1}>
           <SwapHorizIcon color="primary" size={22} strokeWidth={1.75} />
-          <Typography variant="h6" component="div" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+          <div className="cn-text-h6 text-[1rem] font-semibold">
             {t('portfolios.fields.reassignClient')}
-          </Typography>
+          </div>
         </Box>
         <IconButton onClick={handleClose} size="small" sx={{ color: 'text.secondary' }}>
           <CloseIcon fontSize="small" />
@@ -95,29 +79,19 @@ export const ReassignmentDialog: React.FC<ReassignmentDialogProps> = ({
       <DialogContent sx={{ pt: 2.5, pb: 2 }}>
         {/* Client info */}
         {client && (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-              mb: 2.5,
-              p: 1.5,
-              bgcolor: 'var(--field)',
-              borderRadius: 2,
-            }}
-          >
+          <div className="flex items-center gap-2 mb-3.5 p-2 bg-[var(--field)] rounded-[2px]">
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-display)', fontWeight: 600, borderRadius: '10px', fontSize: '0.78rem' }}>
               {client.firstName?.[0]}{client.lastName?.[0]}
             </Avatar>
-            <Box>
-              <Typography variant="subtitle2" sx={{ fontSize: '0.85rem', fontWeight: 600 }}>
+            <div>
+              <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold">
                 {client.firstName} {client.lastName}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+              </h6>
+              <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                 {client.email}
-              </Typography>
-            </Box>
-          </Box>
+              </span>
+            </div>
+          </div>
         )}
 
         {/* Manager select */}
@@ -133,15 +107,15 @@ export const ReassignmentDialog: React.FC<ReassignmentDialogProps> = ({
           >
             {managers.map((manager) => (
               <MenuItem key={manager.id} value={manager.id}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={16} strokeWidth={1.75} /></Box>
-                  <Typography sx={{ fontSize: '0.85rem' }}>
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-flex text-muted-foreground"><Person size={16} strokeWidth={1.75} /></span>
+                  <p className="cn-text-body1 text-[0.85rem]">
                     {manager.firstName} {manager.lastName}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+                  </p>
+                  <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                     {manager.email}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               </MenuItem>
             ))}
           </Select>

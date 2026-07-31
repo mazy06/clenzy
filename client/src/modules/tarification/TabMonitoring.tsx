@@ -39,12 +39,12 @@ interface TabMonitoringProps {
 
 function FeatureItem({ text }: { text: string }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.25 }}>
-      <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleOutline size={16} strokeWidth={1.75} /></Box>
-      <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+    <div className="flex items-center gap-1 py-0.5">
+      <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircleOutline size={16} strokeWidth={1.75} /></span>
+      <p className="cn-text-body2 text-[0.8125rem]">
         {text}
-      </Typography>
-    </Box>
+      </p>
+    </div>
   );
 }
 
@@ -68,17 +68,17 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
     (config.monitoringClenzySupportPriceCents || 0);
 
   return (
-    <Box sx={{ pt: 2 }}>
+    <div className="pt-3">
       {/* ─── Section title ─────────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><VolumeUp size={20} strokeWidth={1.75} /></Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="inline-flex text-primary"><VolumeUp size={20} strokeWidth={1.75} /></span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('tarification.monitoring.title')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3.5">
         {t('tarification.monitoring.subtitle')}
-      </Typography>
+      </p>
 
       {/* ─── Two offers side by side ───────────────────────────────────── */}
       <Grid container spacing={2}>
@@ -100,11 +100,11 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
             }}
           >
             {/* Header */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <div className="flex items-center gap-1.5 mb-1.5">
               <Handshake size={22} strokeWidth={1.75} color='var(--accent)' />
-              <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem' }}>
+              <h6 className="cn-text-subtitle1 font-bold text-[1rem]">
                 {t('tarification.monitoring.minut.title')}
-              </Typography>
+              </h6>
               <Chip
                 label={t('tarification.monitoring.minut.badge')}
                 size="small"
@@ -112,20 +112,20 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                 variant="outlined"
                 sx={{ fontSize: '0.6875rem', height: 22 }}
               />
-            </Box>
+            </div>
 
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', mb: 2, lineHeight: 1.5 }}>
+            <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] mb-3 leading-[1.5]">
               {t('tarification.monitoring.minut.description')}
-            </Typography>
+            </p>
 
             <Divider sx={{ my: 1.5 }} />
 
             {/* Pricing model */}
-            <Typography variant="overline" sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', letterSpacing: '0.08em' }}>
+            <span className="cn-text-overline text-[0.6875rem] font-bold text-muted-foreground tracking-[0.08em]">
               {t('tarification.monitoring.minut.pricingModel')}
-            </Typography>
+            </span>
 
-            <Box sx={{ mt: 1, mb: 2 }}>
+            <div className="mt-1.5 mb-3">
               {config.monitoringMinutMonthlyPriceCents > 0 ? (
                 <TextField
                   label={t('tarification.monitoring.minut.monthlyPrice')}
@@ -148,25 +148,25 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                     textAlign: 'center',
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '1.1rem' }}>
+                  <h6 className="cn-text-h6 font-bold text-muted-foreground text-[1.1rem]">
                     {t('tarification.monitoring.minut.onQuote')}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+                  </h6>
+                  <span className="cn-text-caption text-muted-foreground text-[0.6875rem]">
                     {t('tarification.monitoring.minut.onQuoteHint')}
-                  </Typography>
+                  </span>
                 </Box>
               )}
-            </Box>
+            </div>
 
             <Divider sx={{ my: 1.5 }} />
 
             {/* Features */}
-            <Box sx={{ mb: 2 }}>
+            <div className="mb-3">
               <FeatureItem text={t('tarification.monitoring.minut.feature1')} />
               <FeatureItem text={t('tarification.monitoring.minut.feature2')} />
               <FeatureItem text={t('tarification.monitoring.minut.feature3')} />
               <FeatureItem text={t('tarification.monitoring.minut.feature4')} />
-            </Box>
+            </div>
 
             <Divider sx={{ my: 1.5 }} />
 
@@ -210,11 +210,11 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
             }}
           >
             {/* Header */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <div className="flex items-center gap-1.5 mb-1.5">
               <Memory size={22} strokeWidth={1.75} color='var(--ok)' />
-              <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem' }}>
+              <h6 className="cn-text-subtitle1 font-bold text-[1rem]">
                 {t('tarification.monitoring.clenzy.title')}
-              </Typography>
+              </h6>
               <Chip
                 label={t('tarification.monitoring.clenzy.badge')}
                 size="small"
@@ -222,18 +222,18 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                 variant="outlined"
                 sx={{ fontSize: '0.6875rem', height: 22 }}
               />
-            </Box>
+            </div>
 
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', mb: 2, lineHeight: 1.5 }}>
+            <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] mb-3 leading-[1.5]">
               {t('tarification.monitoring.clenzy.description')}
-            </Typography>
+            </p>
 
             <Divider sx={{ my: 1.5 }} />
 
             {/* Pricing model */}
-            <Typography variant="overline" sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', letterSpacing: '0.08em' }}>
+            <span className="cn-text-overline text-[0.6875rem] font-bold text-muted-foreground tracking-[0.08em]">
               {t('tarification.monitoring.clenzy.pricingModel')}
-            </Typography>
+            </span>
 
             <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 1 }}>
               <Grid item xs={6}>
@@ -291,36 +291,24 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
             </Grid>
 
             {/* Total */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                p: 1.25,
-                borderRadius: 1.5,
-                bgcolor: 'success.50',
-                border: '1px solid',
-                borderColor: 'success.200',
-                mb: 1.5,
-              }}
-            >
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.875rem' }}>
+            <div className="flex items-center justify-between p-2 rounded-[1.5px] bg-[success.50] border border-[success.200] mb-2">
+              <h6 className="cn-text-subtitle2 font-bold text-[0.875rem]">
                 {t('tarification.monitoring.clenzy.total')}
-              </Typography>
+              </h6>
               <Typography variant="h6" sx={{ fontWeight: 800, color: 'success.main', fontSize: '1.25rem' }}>
                 {clenzyTotalCents > 0 ? <Money value={clenzyTotalCents / 100} decimals={0} /> : <>— <CurrencySymbol code={currency} /></>}
               </Typography>
-            </Box>
+            </div>
 
             <Divider sx={{ my: 1.5 }} />
 
             {/* Features */}
-            <Box sx={{ mb: 2 }}>
+            <div className="mb-3">
               <FeatureItem text={t('tarification.monitoring.clenzy.feature1')} />
               <FeatureItem text={t('tarification.monitoring.clenzy.feature2')} />
               <FeatureItem text={t('tarification.monitoring.clenzy.feature3')} />
               <FeatureItem text={t('tarification.monitoring.clenzy.feature4')} />
-            </Box>
+            </div>
 
             <Divider sx={{ my: 1.5 }} />
 
@@ -347,6 +335,6 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
           </Paper>
         </Grid>
       </Grid>
-    </Box>
+    </div>
   );
 }

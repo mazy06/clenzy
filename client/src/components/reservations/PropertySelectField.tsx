@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, TextField, MenuItem } from '@mui/material';
+import { Box, TextField, MenuItem } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { UseReservationFormResult } from './useReservationForm';
 import { FIELD_SX } from './reservationDialogStyles';
@@ -36,9 +36,9 @@ const PropertySelectField: React.FC<Props> = ({ form }) => {
         ))}
       </TextField>
       {!form.isPlatformStaff && form.propertyName && (
-        <Typography sx={{ fontSize: '11px', color: 'var(--muted)', fontStyle: 'italic' }}>
+        <p className="cn-text-body1 text-[11px] text-[var(--muted)] italic">
           {t('reservations.dialog.propertyAutoSelected')}
-        </Typography>
+        </p>
       )}
     </Box>
   );

@@ -1,24 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  Alert,
-  CircularProgress,
-  Autocomplete,
-  FormHelperText,
-  Paper,
-  Divider
-} from '@mui/material';
+import { Box, Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Chip, Alert, CircularProgress, Autocomplete, FormHelperText, Paper, Divider } from '@mui/material';
 import {
   Send as SendIcon,
   AttachFile as AttachFileIcon,
@@ -177,7 +158,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
   ];
 
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
+    <div className="max-w-[800px] mx-auto p-4">
       <PageHeader
         title={t('contact.newMessageTitle')}
         iconBadge={<MessageIcon />}
@@ -259,19 +240,19 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                         const { key, ...optionProps } = props;
                         return (
                           <li key={key} {...optionProps}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <div className="flex items-center gap-1.5">
                               <PersonIcon fontSize="small" />
-                              <Box>
-                                <Typography variant="body2">
+                              <div>
+                                <p className="cn-text-body2">
                                   {typeof option === 'string' ? option : `${option.firstName} ${option.lastName}`}
-                                </Typography>
+                                </p>
                                 {typeof option !== 'string' && (
-                                  <Typography variant="caption" color="text.secondary">
+                                  <span className="cn-text-caption text-muted-foreground">
                                     {option.email} - {option.role}
-                                  </Typography>
+                                  </span>
                                 )}
-                              </Box>
-                            </Box>
+                              </div>
+                            </div>
                           </li>
                         );
                       }}
@@ -297,7 +278,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                             ...params.InputProps,
                             startAdornment: (
                               <>
-                                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><EmailIcon  /></Box>
+                                <span className="inline-flex text-muted-foreground me-1.5"><EmailIcon  /></span>
                                 {params.InputProps.startAdornment}
                               </>
                             ),
@@ -322,7 +303,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                       error={!!errors.subject}
                       helperText={errors.subject?.message}
                       InputProps={{
-                        startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><SubjectIcon  /></Box>
+                        startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><SubjectIcon  /></span>
                       }}
                     />
                   )}
@@ -369,7 +350,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                       <Select {...field}>
                         {categoryOptions.map((option) => (
                           <MenuItem key={option.value} value={option.value}>
-                            <Box component="span" sx={{ display: 'inline-flex', mr: 1 }}><CategoryIcon size={16} strokeWidth={1.75} /></Box>
+                            <span className="inline-flex me-1.5"><CategoryIcon size={16} strokeWidth={1.75} /></span>
                             {option.label}
                           </MenuItem>
                         ))}
@@ -384,9 +365,9 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
 
               {/* Message with template button */}
               <Grid item xs={12}>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+                <div className="flex justify-end mb-1.5">
                   <ContactTemplates onSelectTemplate={handleSelectTemplate} />
-                </Box>
+                </div>
                 <Controller
                   name="message"
                   control={control}
@@ -400,7 +381,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                       error={!!errors.message}
                       helperText={errors.message?.message}
                       InputProps={{
-                        startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1, alignSelf: 'flex-start', mt: 1 }}><MessageIcon  /></Box>
+                        startAdornment: <span className="inline-flex text-muted-foreground me-1.5 self-start mt-1.5"><MessageIcon  /></span>
                       }}
                     />
                   )}
@@ -410,15 +391,15 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
               {/* Pieces jointes */}
               <Grid item xs={12}>
                 <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="subtitle2">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <h6 className="cn-text-subtitle2">
                       <Box component="span" sx={{ display: 'inline-flex', mr: 1, verticalAlign: 'middle' }}><AttachFileIcon  /></Box>
                       {t('contact.attachments')}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    </h6>
+                    <span className="cn-text-caption text-muted-foreground">
                       Max {MAX_FILE_SIZE_MB} MB / {t('contact.attachmentCount')}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
 
                   <input
                     type="file"
@@ -439,10 +420,10 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                   </label>
 
                   {attachments.length > 0 && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                    <div className="mt-3">
+                      <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                         {t('contact.selectedFiles')}
-                      </Typography>
+                      </p>
                       {attachments.map((file, index) => (
                         <Chip
                           key={index}
@@ -453,14 +434,14 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                           sx={{ mr: 1, mb: 1, borderWidth: 1.5 }}
                         />
                       ))}
-                    </Box>
+                    </div>
                   )}
                 </Paper>
               </Grid>
 
               {/* Boutons */}
               <Grid item xs={12}>
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                <div className="flex gap-3 justify-end">
                   <Button
                     variant="outlined"
                     onClick={() => {
@@ -483,13 +464,13 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                   >
                     {submitting ? t('contact.sending') : t('contact.send')}
                   </Button>
-                </Box>
+                </div>
               </Grid>
             </Grid>
           </form>
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

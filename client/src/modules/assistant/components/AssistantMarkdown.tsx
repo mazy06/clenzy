@@ -95,72 +95,44 @@ export const AssistantMarkdown: React.FC<AssistantMarkdownProps> = ({ text }) =>
       </Box>
     ),
     li: ({ children }) => (
-      <Box component="li" sx={{
-        fontSize: 13,
-        lineHeight: 1.55,
-        color: 'var(--body)',
-      }}>
+      <li className="text-[13px] leading-[1.55] text-[var(--body)]">
         {children}
-      </Box>
+      </li>
     ),
 
     // Emphase
     strong: ({ children }) => (
-      <Box component="strong" sx={{ fontWeight: 600, color: 'var(--ink)' }}>
+      <strong className="font-semibold text-[var(--ink)]">
         {children}
-      </Box>
+      </strong>
     ),
     em: ({ children }) => (
-      <Box component="em" sx={{ fontStyle: 'italic' }}>{children}</Box>
+      <em className="italic">{children}</em>
     ),
 
     // Code inline : fond champ dé-bleui
     code: ({ children }) => (
-      <Box component="code" sx={{
-        px: 0.5, py: 0.125,
-        borderRadius: '5px',
-        bgcolor: 'var(--field)',
-        border: '1px solid var(--line)',
-        fontFamily: 'monospace',
-        fontSize: '0.85em',
-      }}>
+      <code className="px-0.5 py-0 rounded-[5px] bg-[var(--field)] border border-[var(--line)] font-mono text-[0.85em]">
         {children}
-      </Box>
+      </code>
     ),
 
     // Headings : display, poids et taille adaptes au flow inline
     h1: ({ children }) => (
-      <Typography component="h2" sx={{
-        fontFamily: 'var(--font-display)',
-        fontSize: 16, fontWeight: 600, mt: 1.5, mb: 0.5,
-        color: 'var(--ink)',
-      }}>{children}</Typography>
+      <h2 className="font-[var(--font-display)] text-[16px] font-semibold mt-2 mb-0.5 text-[var(--ink)]">{children}</h2>
     ),
     h2: ({ children }) => (
-      <Typography component="h3" sx={{
-        fontFamily: 'var(--font-display)',
-        fontSize: 14.5, fontWeight: 600, mt: 1.5, mb: 0.5,
-        color: 'var(--ink)',
-      }}>{children}</Typography>
+      <h3 className="font-[var(--font-display)] text-[14.5px] font-semibold mt-2 mb-0.5 text-[var(--ink)]">{children}</h3>
     ),
     h3: ({ children }) => (
-      <Typography component="h4" sx={{
-        fontSize: 13.5, fontWeight: 600, mt: 1.25, mb: 0.25,
-        color: 'var(--ink)',
-      }}>{children}</Typography>
+      <h4 className="text-[13.5px] font-semibold mt-2 mb-0.5 text-[var(--ink)]">{children}</h4>
     ),
 
     // Blockquote (citation)
     blockquote: ({ children }) => (
-      <Box sx={{
-        my: 1,
-        pl: 1.5,
-        py: 0.5,
-        borderRadius: '6px',
-        bgcolor: 'var(--hover)',
-      }}>
+      <div className="my-1.5 ps-2 py-0.5 rounded-[6px] bg-[var(--hover)]">
         {children}
-      </Box>
+      </div>
     ),
   }), []);
 
@@ -179,8 +151,8 @@ export const AssistantMarkdown: React.FC<AssistantMarkdownProps> = ({ text }) =>
   // global, mais le navigateur applique l'isolation bidirectionnelle unicode
   // automatiquement sur les caracteres arabes detectes.
   return (
-    <Box dir={arabicDirProp(text)}>
+    <div dir={arabicDirProp(text)}>
       <ReactMarkdown components={components}>{text}</ReactMarkdown>
-    </Box>
+    </div>
   );
 };

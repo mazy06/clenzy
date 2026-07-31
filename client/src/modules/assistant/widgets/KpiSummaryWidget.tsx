@@ -39,7 +39,7 @@ export const KpiSummaryWidget: React.FC<KpiSummaryWidgetProps> = ({ data }) => {
   const kpis = data.kpis ?? [];
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
+    <div className="mt-1.5 mb-2">
       {/* Score header — gros chiffre display + statut */}
       {scorePct !== null && (
         <Box
@@ -66,22 +66,19 @@ export const KpiSummaryWidget: React.FC<KpiSummaryWidgetProps> = ({ data }) => {
             }}
           >
             {scorePct}
-            <Box component="span" sx={{ fontSize: '1.25rem', fontWeight: 500, ml: 0.25 }}>
+            <span className="text-[1.25rem] font-medium ms-0.5">
               %
-            </Box>
+            </span>
           </Typography>
-          <Box>
-            <Typography sx={{
-              display: 'block', fontWeight: 700, color: 'var(--faint)',
-              fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em',
-            }}>
+          <div>
+            <p className="cn-text-body1 block font-bold text-[var(--faint)] text-[10.5px] uppercase tracking-[.06em]">
               Readiness score
-            </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>
+            </p>
+            <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">
               {critical ? 'KPI critique en defaut' : 'Tous les KPI critiques OK'}
               {data.kpiCount !== undefined && ` · ${data.kpiCount} indicateurs`}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         </Box>
       )}
 
@@ -99,7 +96,7 @@ export const KpiSummaryWidget: React.FC<KpiSummaryWidgetProps> = ({ data }) => {
           ))}
         </Box>
       )}
-    </Box>
+    </div>
   );
 };
 
@@ -128,47 +125,16 @@ const KpiTile: React.FC<{ kpi: NonNullable<KpiSummaryData['kpis']>[number] }> = 
         },
       }}
     >
-      <Typography
-        sx={{
-          display: 'block',
-          color: 'var(--faint)',
-          fontSize: '10.5px',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '.05em',
-          mb: 0.25,
-          pr: 1.5,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
-      >
+      <p className="cn-text-body1 block text-[var(--faint)] text-[10.5px] font-bold uppercase tracking-[.05em] mb-0.5 pe-2 whitespace-nowrap overflow-hidden text-ellipsis">
         {kpi.name}
-      </Typography>
-      <Typography
-        sx={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '1.05rem',
-          fontWeight: 600,
-          lineHeight: 1.2,
-          fontVariantNumeric: 'tabular-nums',
-          color: 'var(--ink)',
-        }}
-      >
+      </p>
+      <p className="cn-text-body1 font-[var(--font-display)] text-[1.05rem] font-semibold leading-[1.2] tabular-nums text-[var(--ink)]">
         {kpi.value}
-      </Typography>
+      </p>
       {kpi.target && (
-        <Typography
-          sx={{
-            display: 'block',
-            color: 'var(--muted)',
-            fontSize: '10.5px',
-            mt: 0.25,
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
+        <p className="cn-text-body1 block text-[var(--muted)] text-[10.5px] mt-0.5 tabular-nums">
           cible {kpi.target}
-        </Typography>
+        </p>
       )}
     </Box>
   );

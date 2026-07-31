@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Box, Typography, Button, Alert } from '@mui/material';
+import { Button, Alert } from '@mui/material';
 import { Refresh as RefreshIcon } from '../icons';
 import * as Sentry from '@sentry/react';
 
@@ -63,29 +63,20 @@ class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '400px',
-            p: 3,
-          }}
-        >
+        <div className="flex flex-col items-center justify-center min-h-[400px] p-4">
           <Alert severity="error" sx={{ mb: 2, maxWidth: 600 }}>
-            <Typography variant="h6" gutterBottom>
+            <h6 className="cn-text-h6 mb-[0.35em]">
               Une erreur s'est produite
-            </Typography>
-            <Typography variant="body2" sx={{ mb: 2 }}>
+            </h6>
+            <p className="cn-text-body2 mb-3">
               {this.state.error?.message || "Une erreur inattendue s'est produite"}
-            </Typography>
+            </p>
             {import.meta.env.DEV && this.state.errorInfo && (
-              <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1, fontSize: '0.75rem', fontFamily: 'monospace', overflow: 'auto', maxHeight: '200px' }}>
-                <Typography variant="caption" component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              <div className="mt-3 p-3 bg-[grey.100] rounded-[1px] text-[0.75rem] font-mono overflow-auto max-h-[200px]">
+                <pre className="cn-text-caption whitespace-pre-wrap break-words">
                   {this.state.error?.stack}
-                </Typography>
-              </Box>
+                </pre>
+              </div>
             )}
             <Button
               variant="contained"
@@ -97,7 +88,7 @@ class ErrorBoundary extends Component<Props, State> {
               Réessayer
             </Button>
           </Alert>
-        </Box>
+        </div>
       );
     }
 

@@ -1,30 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  TableContainer,
-  Chip,
-  IconButton,
-  Tooltip,
-  FormControl,
-  Select,
-  MenuItem,
-  Badge,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  CircularProgress,
-} from '@mui/material';
+import { Card, CardContent, Typography, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Chip, IconButton, Tooltip, FormControl, Select, MenuItem, Badge, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, CircularProgress } from '@mui/material';
 import {
   History,
   CheckCircle,
@@ -122,15 +97,15 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
     <Card>
       <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5">
             <Badge badgeContent={unacknowledgedCount} color="error" max={99}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><History size={18} strokeWidth={1.75} /></Box>
+              <span className="inline-flex text-primary"><History size={18} strokeWidth={1.75} /></span>
             </Badge>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '0.875rem' }}>
+            <h6 className="cn-text-subtitle1 font-bold text-[0.875rem]">
               Historique des alertes
-            </Typography>
-          </Box>
+            </h6>
+          </div>
 
           <FormControl size="small" sx={{ minWidth: 140 }}>
             <Select
@@ -144,16 +119,16 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
               <MenuItem value="CRITICAL" sx={{ fontSize: '0.75rem' }}>Critique</MenuItem>
             </Select>
           </FormControl>
-        </Box>
+        </div>
 
         {alertsQuery.isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+          <div className="flex justify-center py-4">
             <CircularProgress size={24} />
-          </Box>
+          </div>
         ) : alerts.length === 0 ? (
-          <Typography sx={{ py: 3, textAlign: 'center', color: 'text.secondary', fontSize: '0.8125rem' }}>
+          <p className="cn-text-body1 py-4 text-center text-muted-foreground text-[0.8125rem]">
             Aucune alerte enregistree
-          </Typography>
+          </p>
         ) : (
           <>
             <TableContainer>
@@ -187,7 +162,7 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
                       <TableCell sx={cellSx} align="center">
                         {alert.acknowledged ? (
                           <Tooltip title={`Acquittee par ${alert.acknowledgedBy || '?'}${alert.notes ? ` — ${alert.notes}` : ''}`}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
+                            <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
                           </Tooltip>
                         ) : (
                           <Tooltip title="Acquitter">

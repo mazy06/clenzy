@@ -80,7 +80,7 @@ export default function FilterChipRow<T extends string>({
           <Chip
             key={opt.value || '__all__'}
             label={
-              <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4 }}>
+              <span className="inline-flex items-center gap-0.5">
                 {opt.label}
                 {opt.count !== undefined && (
                   <Box
@@ -98,7 +98,7 @@ export default function FilterChipRow<T extends string>({
                     {opt.count}
                   </Box>
                 )}
-              </Box>
+              </span>
             }
             onClick={() => onChange(active ? '' : (opt.value as T | ''))}
             size="small"

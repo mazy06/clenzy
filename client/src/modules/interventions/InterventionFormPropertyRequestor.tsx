@@ -1,14 +1,5 @@
 import React from 'react';
-import {
-  Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  Card,
-  CardContent,
-} from '@mui/material';
+import { FormControl, InputLabel, Select, MenuItem, FormHelperText, Card, CardContent } from '@mui/material';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -46,9 +37,9 @@ const InterventionFormPropertyRequestor: React.FC<InterventionFormPropertyReques
     return (
       <Card sx={{ mb: 1.5 }}>
         <CardContent sx={{ p: 2 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
+          <h6 className="cn-text-subtitle1 font-semibold mb-[0.35em] mb-2">
             {t('interventions.sections.propertyRequestor')}
-          </Typography>
+          </h6>
 
           <Controller
             name="propertyId"
@@ -63,7 +54,7 @@ const InterventionFormPropertyRequestor: React.FC<InterventionFormPropertyReques
                 >
                   {properties.map((property) => (
                     <MenuItem key={property.id} value={property.id}>
-                      <Typography variant="body2">{property.name} - {property.address}, {property.city}</Typography>
+                      <p className="cn-text-body2">{property.name} - {property.address}, {property.city}</p>
                     </MenuItem>
                   ))}
                 </Select>
@@ -88,7 +79,7 @@ const InterventionFormPropertyRequestor: React.FC<InterventionFormPropertyReques
                 >
                   {users.map((user) => (
                     <MenuItem key={user.id} value={user.id}>
-                      <Typography variant="body2">{user.firstName} {user.lastName} ({user.email})</Typography>
+                      <p className="cn-text-body2">{user.firstName} {user.lastName} ({user.email})</p>
                     </MenuItem>
                   ))}
                 </Select>

@@ -413,9 +413,9 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
           />
 
           {/* Header : logo. tone="dark" en photo mode (nodes blancs sur bg fonce). */}
-          <Box sx={{ position: 'relative', zIndex: 1 }}>
+          <div className="relative z-[1]">
             <BaitlyMarkLogo scale={0.95} tone={ENABLE_PHOTO_HERO ? 'dark' : 'auto'} />
-          </Box>
+          </div>
 
           {/* Centre : carrousel slide actuel + dots verticaux a droite.
               Layout : `justifyContent: 'space-between'` pousse le texte au
@@ -425,16 +425,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
               entre les deux s'adapte naturellement au viewport (plus large
               sur 1920px, plus serre sur 1280px). Les dots restent toujours
               dans la colonne brand. */}
-          <Box
-            sx={{
-              position: 'relative',
-              zIndex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 3,
-            }}
-          >
+          <div className="relative z-[1] flex items-center justify-between gap-4">
             <Box sx={{ flex: '0 1 auto', maxWidth: { md: 440, lg: 520, xl: 580 }, minHeight: 360 }}>
               {/* key={slideIndex} force le remount a chaque slide => l'animation
                   CSS fade-in se rejoue automatiquement. Approche tres simple
@@ -518,7 +509,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                     integrations specifiques (slides 5-11). Wrappe en flex
                     pour gerer les slides a 4+ services (slide 6 channels). */}
                 {current.services && current.services.length > 0 && (
-                  <Box sx={{ mt: 3, display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                  <div className="mt-4 flex flex-wrap gap-1">
                     {current.services.map((service) => (
                       <ServiceChip
                         key={`${slideIndex}-${service.name}`}
@@ -526,7 +517,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                         onDark={ENABLE_PHOTO_HERO}
                       />
                     ))}
-                  </Box>
+                  </div>
                 )}
               </Box>
             </Box>
@@ -536,18 +527,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                 la dependance slideIndex/isPaused).
                 Dot active : pill verticale (height 24, width 8) au lieu
                 d'horizontale, conforme a l'orientation du tablist. */}
-            <Box
-              role="tablist"
-              aria-label="Slides marketing"
-              aria-orientation="vertical"
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1,
-                alignItems: 'center',
-                flexShrink: 0,
-              }}
-            >
+            <div className="flex flex-col gap-1.5 items-center shrink-0" role="tablist" aria-label="Slides marketing" aria-orientation="vertical">
               {SLIDES.map((slide, i) => {
                 const isActive = i === slideIndex;
                 // Dots : white-translucent en photo mode pour contraster
@@ -588,13 +568,13 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                   />
                 );
               })}
-            </Box>
-          </Box>
+            </div>
+          </div>
 
           {/* Footer : trust signals discrets. En photo mode, on passe en
               variantes white-translucent pour rester lisible sur fond fonce. */}
-          <Box sx={{ position: 'relative', zIndex: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+          <div className="relative z-[1]">
+            <div className="flex items-center gap-4 flex-wrap">
               <TrustItem
                 dot={ENABLE_PHOTO_HERO ? '#89B1C2' : primary}
                 label={t('auth.layout.trustEurope', 'Hébergé en Europe')}
@@ -610,8 +590,8 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                 label={t('auth.layout.trustSupport', 'Support 7j/7')}
                 onDark={ENABLE_PHOTO_HERO}
               />
-            </Box>
-          </Box>
+            </div>
+          </div>
         </Box>
       )}
 
@@ -654,9 +634,9 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
         >
           {/* Logo compact en haut sur mobile (le panneau brand est cache) */}
           {!isMdUp && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+            <div className="flex justify-center mb-6">
               <BaitlyMarkLogo scale={0.85} />
-            </Box>
+            </div>
           )}
 
           {children}
@@ -755,7 +735,7 @@ function ServiceChip({
  *  Sinon, text.secondary du theme MUI. */
 function TrustItem({ dot, label, onDark = false }: { dot: string; label: string; onDark?: boolean }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+    <div className="flex items-center gap-1">
       <Box
         sx={{
           width: 5,
@@ -775,6 +755,6 @@ function TrustItem({ dot, label, onDark = false }: { dot: string; label: string;
       >
         {label}
       </Typography>
-    </Box>
+    </div>
   );
 }

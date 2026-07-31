@@ -226,7 +226,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
             />
 
             {/* Body: property column + grid rows */}
-            <Box sx={{ display: 'flex', position: 'relative' }}>
+            <div className="flex relative">
               {/* Property column (sticky left) */}
               <PlanningPropertyColumn
                 properties={properties}
@@ -341,7 +341,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                   />
                 ))}
               </Box>
-            </Box>
+            </div>
           </Box>
         </Box>
 

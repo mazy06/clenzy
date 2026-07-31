@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Box, TextField, MenuItem, Alert, CircularProgress, Typography } from '@mui/material';
+import { TextField, MenuItem, Alert, CircularProgress } from '@mui/material';
 import { netatmoApi } from '../../../services/api/netatmoApi';
 
 type NetatmoSource = 'weather' | 'thermostat' | 'security';
@@ -42,10 +42,10 @@ export default function NetatmoDevicePicker({ selectedId, onSelect, source = 'we
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}>
+      <div className="flex items-center gap-1.5 py-1.5">
         <CircularProgress size={16} />
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>Recherche des {NOUN[source]} Netatmo…</Typography>
-      </Box>
+        <p className="cn-text-body2 text-muted-foreground">Recherche des {NOUN[source]} Netatmo…</p>
+      </div>
     );
   }
   if (isError) {

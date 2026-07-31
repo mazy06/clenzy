@@ -1,19 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
-  Chip,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, RadioGroup, FormControlLabel, Radio, CircularProgress, Alert, Chip } from '@mui/material';
 import { useWhatsAppTemplatesList } from '../../hooks/useWhatsAppTemplates';
 import type { WhatsAppTemplateGroup } from '../../services/api/whatsappTemplatesApi';
 
@@ -67,13 +53,13 @@ export default function SendWhatsAppTemplateDialog({
       <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600 }}>Envoyer un template</DialogTitle>
       <DialogContent>
         {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+          <div className="flex justify-center py-4">
             <CircularProgress size={24} />
-          </Box>
+          </div>
         ) : !groups || groups.length === 0 ? (
-          <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+          <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground">
             Aucun template disponible.
-          </Typography>
+          </p>
         ) : (
           <RadioGroup value={selectedKey} onChange={(e) => setSelectedKey(e.target.value)}>
             {groups.map((g) => (
@@ -83,28 +69,28 @@ export default function SendWhatsAppTemplateDialog({
                 control={<Radio size="small" sx={{ alignSelf: 'flex-start', pt: 0.5 }} />}
                 sx={{ alignItems: 'flex-start', mb: 1, mr: 0, '& .MuiFormControlLabel-label': { width: '100%' } }}
                 label={
-                  <Box sx={{ py: 0.5 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>{formatKey(g.templateKey)}</Typography>
+                  <div className="py-0.5">
+                    <div className="flex items-center gap-1">
+                      <p className="cn-text-body1 text-[0.8125rem] font-semibold">{formatKey(g.templateKey)}</p>
                       <Chip
                         label={g.category}
                         size="small"
                         sx={{ height: 16, fontSize: '0.5625rem', fontWeight: 600, bgcolor: 'action.hover' }}
                       />
-                    </Box>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', whiteSpace: 'pre-wrap', mt: 0.25 }}>
+                    </div>
+                    <p className="cn-text-body1 text-[0.75rem] text-muted-foreground whitespace-pre-wrap mt-0.5">
                       {(() => { const b = bodyOf(g); return b.length > 160 ? `${b.slice(0, 160)}…` : b; })()}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                 }
               />
             ))}
           </RadioGroup>
         )}
-        <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', mt: 1, fontStyle: 'italic' }}>
+        <p className="cn-text-body1 text-[0.7rem] text-muted-foreground mt-1.5 italic">
           Les variables (ex. {'{guestFirstName}'}) seront remplacées par les infos de la réservation.
           En OpenWA, le template part comme texte rendu.
-        </Typography>
+        </p>
         {error && (
           <Alert severity="error" sx={{ mt: 1, fontSize: '0.8125rem' }}>
             Échec de l'envoi du template. Réessayez.

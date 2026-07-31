@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Card,
-  CardContent,
-} from '@mui/material';
+import { FormControl, InputLabel, Select, MenuItem, Card, CardContent } from '@mui/material';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -44,9 +36,9 @@ const InterventionFormAssignment: React.FC<InterventionFormAssignmentProps> = Re
     return (
       <Card sx={{ mb: 1.5 }}>
         <CardContent sx={{ p: 2 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
+          <h6 className="cn-text-subtitle1 font-semibold mb-[0.35em] mb-2">
             {t('interventions.sections.assignment')}
-          </Typography>
+          </h6>
 
           <Controller
             name="assignedToType"
@@ -89,7 +81,7 @@ const InterventionFormAssignment: React.FC<InterventionFormAssignmentProps> = Re
                       ['TECHNICIAN', 'EXTERIOR_TECH', 'LAUNDRY', 'SUPERVISOR', 'SUPER_MANAGER'].includes(user.role)
                         ? [
                             <MenuItem key={user.id} value={user.id}>
-                              <Typography variant="body2">{user.firstName} {user.lastName} ({user.role})</Typography>
+                              <p className="cn-text-body2">{user.firstName} {user.lastName} ({user.role})</p>
                             </MenuItem>,
                           ]
                         : [],
@@ -115,7 +107,7 @@ const InterventionFormAssignment: React.FC<InterventionFormAssignmentProps> = Re
                   >
                     {teams.map((team) => (
                       <MenuItem key={team.id} value={team.id}>
-                        <Typography variant="body2">{team.name} ({team.interventionType})</Typography>
+                        <p className="cn-text-body2">{team.name} ({team.interventionType})</p>
                       </MenuItem>
                     ))}
                   </Select>

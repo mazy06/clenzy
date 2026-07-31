@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { Box, Typography, Tooltip } from '@mui/material';
+import { Box, Tooltip } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PropertyPopover from './PropertyPopover';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -137,7 +137,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
           → la poignée de resize (height:100%) est bornée à CETTE zone (les lignes)
           et NON à la hauteur totale — sinon sa ligne verte de hover/resig courait
           en pleine hauteur dans le vide (effet « 2 colonnes »). */}
-      <Box sx={{ position: 'relative', backgroundColor: 'var(--card)', borderRight: '1px solid var(--line)' }}>
+      <div className="relative bg-[var(--card)] border-e border-[var(--line)]">
       {/* Drag handle pour redimensionner la colonne (bord droit).
           Hit-area de 6px, visuel discret sauf au hover/drag ; borné aux lignes. */}
       {onColWidthChange && (
@@ -224,7 +224,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                 px: '16px',
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, minWidth: 0 }}>
+              <div className="flex items-center gap-1 min-w-0">
                 {/* Box component=span : evite l'heritage du variant body1 du
                     Typography (le theme MUI a des fontSize responsive en
                     media-query qui peuvent surcharger sx en breakpoint large). */}
@@ -247,29 +247,12 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                 </Box>
                 {/* Reservations en cours / a venir : pastille inline discrete */}
                 {reservationCount > 0 && (
-                  <Box
-                    component="span"
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 0.25,
-                      flexShrink: 0,
-                      color: 'var(--faint)',
-                    }}
-                  >
+                  <span className="inline-flex items-center gap-0.5 shrink-0 text-[var(--faint)]">
                     <TagIcon size={10} strokeWidth={1.75} />
-                    <Box
-                      component="span"
-                      sx={{
-                        fontSize: '0.625rem',
-                        fontWeight: 600,
-                        lineHeight: 1,
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
+                    <span className="text-[0.625rem] font-semibold leading-[1] tabular-nums">
                       {reservationCount}
-                    </Box>
-                  </Box>
+                    </span>
+                  </span>
                 )}
                 {/* Cartes HITL en attente : pastille ambre numérotée (attire l'œil) */}
                 {pendingCount > 0 && (
@@ -296,7 +279,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                     {pendingCount > 99 ? '99+' : pendingCount}
                   </Box>
                 )}
-              </Box>
+              </div>
               {/* Spec .pl-name .ci : 10.5px var(--muted) */}
               {subtitle && (
                 <Box
@@ -347,17 +330,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             )}
             {/* Indicateur en bas-droite : sync canaux (wifi) */}
             {sync && sync.total > 0 && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  right: 6,
-                  bottom: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.75,
-                  pointerEvents: 'none',
-                }}
-              >
+              <div className="absolute end-[6px] bottom-[4px] flex items-center gap-1 pointer-events-none">
                 <Tooltip
                   title={`${sync.synced} sur ${sync.total} canaux synchronises (sync < 24h)`}
                   placement="top"
@@ -373,21 +346,12 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                     }}
                   >
                     <ChannelIcon size={11} strokeWidth={1.75} />
-                    <Box
-                      component="span"
-                      sx={{
-                        fontSize: '0.5625rem',
-                        fontWeight: 600,
-                        color: 'inherit',
-                        lineHeight: 1,
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
+                    <span className="text-[0.5625rem] font-semibold text-inherit leading-[1] tabular-nums">
                       {sync.synced}/{sync.total}
-                    </Box>
+                    </span>
                   </Box>
                 </Tooltip>
-              </Box>
+              </div>
             )}
           </Box>
           {/* Spacer d'alignement : compense la hauteur de l'accordéon côté grille.
@@ -402,7 +366,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
           </React.Fragment>
         );
       })}
-      </Box>
+      </div>
       {/* Zone vide sous le dernier logement : transparente, SANS bordure droite
           → pas de « 2 colonnes », juste un espace vide (aligné sur la grille,
           dont les lignes de remplissage sont aussi transparentes). */}

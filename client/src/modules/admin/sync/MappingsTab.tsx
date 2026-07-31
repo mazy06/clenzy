@@ -1,17 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  Skeleton,
-  Alert,
-} from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Skeleton, Alert } from '@mui/material';
 import { syncAdminApi, MappingSummary } from '../../../services/api/syncAdminApi';
 import PagePagination from '../../../components/PagePagination';
 
@@ -52,11 +40,11 @@ const MappingsTab: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <div className="flex flex-col gap-1.5">
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
         ))}
-      </Box>
+      </div>
     );
   }
 
@@ -65,7 +53,7 @@ const MappingsTab: React.FC = () => {
   }
 
   return (
-    <Box>
+    <div>
       <TableContainer
         component={Paper}
         variant="outlined"
@@ -129,7 +117,7 @@ const MappingsTab: React.FC = () => {
         rowsPerPageOptions={[10, 20, 50]}
         onRowsPerPageChange={handleChangeRowsPerPage}
       />
-    </Box>
+    </div>
   );
 };
 

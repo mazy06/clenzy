@@ -1,15 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Typography,
-  Button,
-  Card,
-  CardContent,
-  CircularProgress,
-  Alert,
-  LinearProgress,
-} from '@mui/material';
+import { Box, Button, Card, CardContent, CircularProgress, Alert, LinearProgress } from '@mui/material';
 import { CheckCircle, ArrowBack, HourglassTop, ErrorOutline } from "../../icons";
 import { paymentsApi } from '../../services/api/paymentsApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -82,18 +73,18 @@ const PaymentSuccess: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ maxWidth: 500, mx: 'auto', mt: 6 }}>
+      <div className="max-w-[500px] mx-auto mt-9">
         <Card>
           <CardContent sx={{ textAlign: 'center', p: 4 }}>
             <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mb: 2, animation: 'spin 2s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } }, '@media (prefers-reduced-motion: reduce)': { animation: 'none' } }}>
               <HourglassTop size={56} strokeWidth={1.75} />
             </Box>
-            <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
+            <h5 className="cn-text-h5 font-semibold mb-1.5">
               Verification du paiement...
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            </h5>
+            <p className="cn-text-body2 text-muted-foreground mb-4">
               Confirmation en cours aupres de Stripe ({attempt}/{MAX_ATTEMPTS})
-            </Typography>
+            </p>
             <LinearProgress
               variant="determinate"
               value={(attempt / MAX_ATTEMPTS) * 100}
@@ -101,17 +92,17 @@ const PaymentSuccess: React.FC = () => {
             />
           </CardContent>
         </Card>
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ maxWidth: 500, mx: 'auto', mt: 6 }}>
+    <div className="max-w-[500px] mx-auto mt-9">
       <Card>
         <CardContent sx={{ textAlign: 'center', p: 4 }}>
           {error ? (
             <>
-              <Box component="span" sx={{ display: "inline-flex", color: "var(--err)", mb: 2 }}><ErrorOutline size={64} strokeWidth={1.5} /></Box>
+              <span className="inline-flex text-[var(--err)] mb-3"><ErrorOutline size={64} strokeWidth={1.5} /></span>
               <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
               <Button
                 variant="contained"
@@ -123,13 +114,13 @@ const PaymentSuccess: React.FC = () => {
             </>
           ) : paymentConfirmed ? (
             <>
-              <Box component="span" sx={{ display: "inline-flex", color: "var(--ok)", mb: 2 }}><CheckCircle size={80} strokeWidth={1.5} /></Box>
-              <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
+              <span className="inline-flex text-[var(--ok)] mb-3"><CheckCircle size={80} strokeWidth={1.5} /></span>
+              <h4 className="cn-text-h4 mb-[0.35em] font-bold">
                 Paiement reussi !
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              </h4>
+              <p className="cn-text-body1 text-muted-foreground mb-4">
                 Votre paiement a ete traite avec succes. Le statut sera mis a jour automatiquement.
-              </Typography>
+              </p>
               <Button
                 variant="contained"
                 color="primary"
@@ -140,16 +131,16 @@ const PaymentSuccess: React.FC = () => {
             </>
           ) : (
             <>
-              <Box component="span" sx={{ display: "inline-flex", color: "var(--warn)", mb: 2 }}><CheckCircle size={80} strokeWidth={1.5} /></Box>
-              <Typography variant="h5" gutterBottom sx={{ fontWeight: 700 }}>
+              <span className="inline-flex text-[var(--warn)] mb-3"><CheckCircle size={80} strokeWidth={1.5} /></span>
+              <h5 className="cn-text-h5 mb-[0.35em] font-bold">
                 Paiement en cours de traitement
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
+              </h5>
+              <p className="cn-text-body1 text-muted-foreground mb-1.5">
                 Votre paiement a bien ete envoye a Stripe. La confirmation peut prendre quelques instants.
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              </p>
+              <p className="cn-text-body2 text-muted-foreground mb-4">
                 Le statut sera mis a jour automatiquement.
-              </Typography>
+              </p>
               <Button
                 variant="contained"
                 color="primary"
@@ -161,7 +152,7 @@ const PaymentSuccess: React.FC = () => {
           )}
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

@@ -241,12 +241,12 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
             {feed.length > 0 ? (
               <ActivityFeed entries={feed} />
             ) : (
-              <Box sx={{ px: 1, py: 2, textAlign: 'center', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+              <div className="px-1.5 py-3 text-center text-[12px] text-[var(--muted)] leading-[1.5]">
                 {t(
                   'supervision.feed.emptyOnboarding',
                   'Les agents observent ce logement. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord.',
                 )}
-              </Box>
+              </div>
             )}
           </Box>
         </Box>
@@ -264,7 +264,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
     if (propertySnapshot) {
       if (!propertySnapshot.pendingAction && propertySnapshot.pending.length === 0) return undefined;
       return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+        <div className="flex flex-col gap-2">
           {propertySnapshot.pendingAction && (
             <SupervisionPendingAction action={propertySnapshot.pendingAction} onResolve={handleResolvePending} />
           )}
@@ -277,7 +277,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
               variant="panel"
             />
           )}
-        </Box>
+        </div>
       );
     }
     if (snapshot && snapshot.pending.length > 0) {
@@ -299,20 +299,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
   }
 
   return (
-    <Box
-      ref={attachRoot}
-      sx={{
-        position: 'relative',
-        // Colonne flex pleine hauteur : la constellation (flex:1) remplit
-        // l'espace responsive de l'accordéon Planning et la barre de chat se
-        // pose dessous. height:100% résout via la chaîne accordéon→sticky→ici
-        // (hauteurs définies). Plancher pour les hôtes sans hauteur définie.
-        height: '100%',
-        minHeight: 380,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
+    <div className="relative h-full min-h-[380px] flex flex-col" ref={attachRoot}>
       {/* Scan manuel (mode live) : posé EN ICÔNE dans le HUD (haut-gauche), à
           droite du titre « Orchestrateur · actif » — plus de pastille texte
           séparée qui recouvrait la carte d'activité. */}
@@ -464,6 +451,6 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
           }}
         />
       )}
-    </Box>
+    </div>
   );
 }

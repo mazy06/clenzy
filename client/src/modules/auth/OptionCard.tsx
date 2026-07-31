@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Tooltip, useTheme, alpha } from '@mui/material';
+import { Box, Tooltip, useTheme, alpha } from '@mui/material';
 
 /**
  * Carte d'option selectionnable — pattern moderne pour remplacer les chips
@@ -50,16 +50,16 @@ export default function OptionCard({
 
   const hasTooltipContent = !!(description || hint);
   const tooltipTitle = hasTooltipContent ? (
-    <Box sx={{ py: 0.25 }}>
+    <div className="py-0.5">
       {description && (
-        <Typography variant="caption" sx={{ display: 'block', lineHeight: 1.4, fontSize: '0.75rem' }}>
+        <span className="cn-text-caption block leading-[1.4] text-[0.75rem]">
           {description}
-        </Typography>
+        </span>
       )}
       {hint && (
         <Box sx={{ mt: description ? 0.5 : 0 }}>{hint}</Box>
       )}
-    </Box>
+    </div>
   ) : null;
 
   const card = (
@@ -103,19 +103,9 @@ export default function OptionCard({
         },
       }}
     >
-      <Typography
-        variant="body2"
-        sx={{
-          fontWeight: 600,
-          fontSize: '0.875rem',
-          lineHeight: 1.3,
-          color: 'text.primary',
-          flex: 1,
-          minWidth: 0,
-        }}
-      >
+      <p className="cn-text-body2 font-semibold text-[0.875rem] leading-[1.3] text-foreground flex-1 min-w-0">
         {label}
-      </Typography>
+      </p>
 
       {/* Indicateur radio en haut a droite */}
       <Box

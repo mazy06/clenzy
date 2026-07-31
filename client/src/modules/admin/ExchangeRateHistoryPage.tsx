@@ -1,23 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import {
-  Box,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Button,
-  Typography,
-  CircularProgress,
-  Skeleton,
-  TextField,
-  MenuItem,
-  Chip,
-  Tooltip,
-  Alert,
-} from '@mui/material';
+import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, CircularProgress, Skeleton, TextField, MenuItem, Chip, Tooltip, Alert } from '@mui/material';
 import { Refresh, CurrencyExchange, TrendingUp } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../../components/PageHeader';
@@ -148,7 +130,7 @@ export default function ExchangeRateHistoryPage() {
     : null;
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title="Historique des taux de change"
         subtitle="Taux de change BCE mis a jour quotidiennement"
@@ -203,7 +185,7 @@ export default function ExchangeRateHistoryPage() {
 
       {/* Filters */}
       <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: '14px', borderColor: 'var(--line)' }}>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="flex gap-3 items-center flex-wrap">
           <TextField
             select
             label="Paire de devises"
@@ -247,7 +229,7 @@ export default function ExchangeRateHistoryPage() {
           />
 
           {stats && (
-            <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+            <div className="flex gap-1.5 ms-auto">
               <Tooltip title="Minimum sur la periode">
                 <Chip label={`Min: ${formatRate(stats.min)}`} size="small" sx={chipSx('var(--info)', 'var(--info-soft)')} />
               </Tooltip>
@@ -262,9 +244,9 @@ export default function ExchangeRateHistoryPage() {
                   sx={chipSx('var(--accent)', 'var(--accent-soft)')}
                 />
               </Tooltip>
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
       </Paper>
 
       {refreshMutation.isSuccess && (
@@ -282,11 +264,11 @@ export default function ExchangeRateHistoryPage() {
       {/* Table */}
       <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}>
         {isLoading ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 2 }}>
+          <div className="flex flex-col gap-1.5 p-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
             ))}
-          </Box>
+          </div>
         ) : (
           <>
             <Table size="small">
@@ -303,9 +285,9 @@ export default function ExchangeRateHistoryPage() {
                 {rows.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                      <Typography color="text.secondary">
+                      <p className="cn-text-body1 text-muted-foreground">
                         Aucun taux de change sur cette periode.
-                      </Typography>
+                      </p>
                     </TableCell>
                   </TableRow>
                 )}
@@ -339,6 +321,6 @@ export default function ExchangeRateHistoryPage() {
           </>
         )}
       </TableContainer>
-    </Box>
+    </div>
   );
 }

@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Paper,
-  Button,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
+import { Paper, Button, Alert, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import type { Property } from '../../services/api';
@@ -126,9 +120,9 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
 
   if (isLoadingProperty) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '40vh' }}>
+      <div className="flex justify-center items-center h-[40vh]">
         <CircularProgress size={28} />
-      </Box>
+      </div>
     );
   }
 
@@ -143,22 +137,22 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
   // ─── Render ───────────────────────────────────────────────────────────
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      <Box sx={{ flexShrink: 0 }}>
+    <div className="flex flex-col h-full min-h-0">
+      <div className="shrink-0">
         <CleaningPriceEstimator control={control} setValue={setValue} />
-      </Box>
+      </div>
       <form
         onSubmit={handleSubmit((data) => submitForm(data))}
         style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
       >
-        <Box sx={{ display: 'flex', gap: 2, flex: 1, minHeight: 0 }}>
+        <div className="flex gap-3 flex-1 min-h-0">
           {/* ── Colonne gauche : Infos principales ──────────────────── */}
           <Paper sx={{ ...FORM_PAPER_SX, flex: 7, minWidth: 0, overflow: 'auto' }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div className="flex flex-col gap-4">
               <PropertyFormBasicInfo control={control} errors={errors} propertyTypes={propertyTypes} />
               <PropertyFormAddress control={control} errors={errors} setValue={setValue} />
               <PropertyFormDetails control={control} errors={errors} />
-            </Box>
+            </div>
           </Paper>
 
           {/* ── Colonne droite : Configuration & Ménage ─────────────── */}
@@ -173,7 +167,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
               isManager={isManager}
             />
           </Paper>
-        </Box>
+        </div>
 
         {/* Error message */}
         {submitError && (
@@ -185,7 +179,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
           Soumettre
         </Button>
       </form>
-    </Box>
+    </div>
   );
 };
 

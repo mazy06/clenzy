@@ -246,7 +246,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
   const hasPhotos = photos.length > 0;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <div className="flex flex-col gap-2">
       {/* ── Sync info banner ─────────────────────────────────────────────── */}
       <Alert severity="info" variant="outlined" sx={{ fontSize: '0.75rem' }}>
         {t('properties.photos.channelSync')}
@@ -262,13 +262,13 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
         >
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><CloudUpload size={36} strokeWidth={1.5} /></Box>
-          <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.secondary', textAlign: 'center' }}>
+          <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><CloudUpload size={36} strokeWidth={1.5} /></span>
+          <p className="cn-text-body1 text-[0.8125rem] font-medium text-muted-foreground text-center">
             {t('properties.photos.dragDrop')}
-          </Typography>
-          <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', mt: 0.5 }}>
+          </p>
+          <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60 mt-0.5">
             {t('properties.photos.maxSize')}
-          </Typography>
+          </p>
         </Box>
         <input
           ref={fileInputRef}
@@ -282,9 +282,9 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
 
       {/* ── Loading state ────────────────────────────────────────────────── */}
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+        <div className="flex justify-center py-6">
           <CircularProgress size={28} />
-        </Box>
+        </div>
       )}
 
       {/* ── Photo grid or empty state ────────────────────────────────────── */}
@@ -306,17 +306,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
           >
             {photos.map((photo) => (
               <Box key={photo.id} sx={PHOTO_CARD_SX}>
-                <Box
-                  component="img"
-                  src={photo.url}
-                  alt={photo.name}
-                  sx={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    display: 'block',
-                  }}
-                />
+                <img className="w-full h-full object-cover block" src={photo.url} alt={photo.name} />
                 <Box className="photo-overlay" sx={PHOTO_OVERLAY_SX}>
                   <IconButton
                     size="small"
@@ -347,7 +337,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
               }}
               onClick={() => fileInputRef.current?.click()}
             >
-              <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><AddPhotoAlternate size={28} strokeWidth={1.5} /></Box>
+              <span className="inline-flex text-muted-foreground opacity-60"><AddPhotoAlternate size={28} strokeWidth={1.5} /></span>
             </Box>
           </Box>
         </Paper>
@@ -388,7 +378,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

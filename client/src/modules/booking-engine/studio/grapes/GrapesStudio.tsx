@@ -652,7 +652,7 @@ function ToolBtn({ icon: Icon, title, onClick, active = false, disabled = false,
 }) {
   return (
     <Tooltip title={title}>
-      <Box component="span" sx={{ display: 'inline-flex' }}>
+      <span className="inline-flex">
         <ButtonBase
           onClick={onClick}
           disabled={disabled}
@@ -672,9 +672,9 @@ function ToolBtn({ icon: Icon, title, onClick, active = false, disabled = false,
           }}
         >
           <Icon size={16} strokeWidth={2} />
-          {label && <Box component="span">{label}</Box>}
+          {label && <span>{label}</span>}
         </ButtonBase>
-      </Box>
+      </span>
     </Tooltip>
   );
 }
@@ -690,10 +690,10 @@ function CompositesPanel({ composites, canEditGlobal, onInsert, onEdit, onDelete
   onNew: () => void;
 }) {
   return (
-    <Box sx={{ p: 1.25, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-      <Box sx={{ fontSize: 'var(--text-xs)', color: 'var(--muted)', lineHeight: 1.4, px: 0.5 }}>
+    <div className="p-2 flex flex-col gap-1">
+      <div className="text-[var(--text-xs)] text-[var(--muted)] leading-[1.4] px-0.5">
         Clique pour insérer, ou glisse-dépose le composite depuis l'onglet « Blocs » (catégorie Composites).
-      </Box>
+      </div>
       <ButtonBase
         onClick={onNew}
         sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 0.75, height: 34, borderRadius: 'var(--radius-md)', border: '1px dashed var(--line)', color: 'var(--accent)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', cursor: 'pointer', '&:hover': { borderColor: 'var(--accent)', bgcolor: 'var(--accent-soft)' } }}
@@ -702,15 +702,15 @@ function CompositesPanel({ composites, canEditGlobal, onInsert, onEdit, onDelete
       </ButtonBase>
       {composites.map((c) => (
         <Box key={c.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.9, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--card)', transition: 'border-color var(--duration-fast) var(--ease-out)', '&:hover': { borderColor: 'var(--accent)' } }}>
-          <Box sx={{ flexShrink: 0, display: 'inline-flex', color: 'var(--muted)' }}><Boxes size={20} strokeWidth={1.8} /></Box>
+          <div className="shrink-0 inline-flex text-[var(--muted)]"><Boxes size={20} strokeWidth={1.8} /></div>
         <ButtonBase onClick={() => onInsert(c)} sx={{ flex: 1, minWidth: 0, display: 'block', textAlign: 'left', cursor: 'pointer' }}>
-            <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--ink)' }}>
+            <span className="flex items-center gap-0.5 text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--ink)]">
               {c.name}
               {c.global && (
-                <Box component="span" sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', color: 'var(--accent)', bgcolor: 'var(--accent-soft)', px: 0.6, py: 0.1, borderRadius: 'var(--radius-sm)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Global</Box>
+                <span className="text-[var(--text-2xs)] font-[var(--fw-semibold)] text-[var(--accent)] bg-[var(--accent-soft)] px-1 py-0 rounded-[var(--radius-sm)] uppercase tracking-[.04em]">Global</span>
               )}
-            </Box>
-            <Box component="span" sx={{ display: 'block', fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>{compositeSummary(c)}</Box>
+            </span>
+            <span className="block text-[var(--text-2xs)] text-[var(--muted)]">{compositeSummary(c)}</span>
           </ButtonBase>
           {!c.builtin && (!c.global || canEditGlobal) && (
             <Tooltip title="Modifier">
@@ -728,7 +728,7 @@ function CompositesPanel({ composites, canEditGlobal, onInsert, onEdit, onDelete
           )}
         </Box>
       ))}
-    </Box>
+    </div>
   );
 }
 
@@ -1583,20 +1583,20 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
 
   if (cfg.loading) {
     return (
-      <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 'var(--text-md)' }}>
+      <div className="h-full flex items-center justify-center text-[var(--muted)] text-[var(--text-md)]">
         Chargement de l’éditeur…
-      </Box>
+      </div>
     );
   }
 
   const chromeHidden = previewOn; // en aperçu : on masque toute la chrome (barre + pages + panneau)
 
   return (
-    <Box className="clenzy-grapes" sx={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div className="clenzy-grapes relative flex flex-col h-full min-h-0">
       {/* Barre des pages (multi-page) — masquée en aperçu. */}
       {pageMode && !chromeHidden && (
-        <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0, borderBottom: '1px solid var(--line)', bgcolor: 'var(--bg)' }}>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
+        <div className="flex items-center shrink-0 border-b border-[var(--line)] bg-[var(--bg)]">
+          <div className="flex-1 min-w-0">
             <PagesBar
               pages={pages.pages}
               selectedId={pages.selectedPageId}
@@ -1608,10 +1608,10 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
               onReset={handleReset}
               busy={pages.loading}
             />
-          </Box>
+          </div>
           {/* Barre de LANGUES : bascule la langue d'édition (chips) + ajoute une langue supportée. La
               langue par défaut édite les pages `locale=null` ; les autres leurs variantes traduites. */}
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, px: 1, flexShrink: 0, borderLeft: '1px solid var(--line)' }}>
+          <div className="inline-flex items-center gap-0.5 px-1.5 shrink-0 border-s border-[var(--line)]">
             {pages.availableLocales.map((loc) => {
               const active = loc === pages.activeLocale;
               return (
@@ -1704,14 +1704,14 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                 </ButtonBase>
               </Tooltip>
             )}
-          </Box>
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, px: 1, flexShrink: 0 }}>
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-1.5 shrink-0">
             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', color: needsPublish ? 'var(--warn, #B26B00)' : 'var(--ok)' }}>
               <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: needsPublish ? 'var(--warn, #D4A574)' : 'var(--ok)' }} />
               {needsPublish ? 'Brouillon non publié' : 'Publié'}
             </Box>
             <Tooltip title={needsPublish ? 'Publier la version en ligne' : 'Aucune modification à publier'}>
-              <Box component="span">
+              <span>
                 <ButtonBase
                   onClick={() => { handlePublish(); }}
                   disabled={publishing || !needsPublish}
@@ -1726,49 +1726,43 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                 >
                   <Rocket size={14} strokeWidth={2} /> {publishing ? 'Publication…' : 'Publier'}
                 </ButtonBase>
-              </Box>
+              </span>
             </Tooltip>
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* Barre d'outils de l'éditeur (option A — 100 % React, un seul style de bouton). Masquée en aperçu. */}
       {!chromeHidden && (
-        <Box
-          className="cz-editor-toolbar"
-          sx={{
-            display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0, height: 44, px: 1,
-            borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)',
-          }}
-        >
+        <div className="cz-editor-toolbar flex items-center gap-0.5 shrink-0 h-[44px] px-1.5 border-b border-[var(--line)] bg-[var(--card)]">
           <ToolBtn icon={Undo2} title="Annuler" onClick={doUndo} />
           <ToolBtn icon={Redo2} title="Rétablir" onClick={doRedo} />
-          <Box sx={{ width: '1px', height: 20, bgcolor: 'var(--line)', mx: 0.5 }} />
+          <div className="w-[1px] h-[20px] bg-[var(--line)] mx-0.5" />
           {/* Import = mode Avancé uniquement (import de design multi-standards). Masqué en Guidé. */}
           {!guided && <ToolBtn icon={FolderInput} title="Importer un design" label="Importer" onClick={() => setImportOpen(true)} />}
           <ToolBtn icon={Workflow} title="Parcours de réservation (modèles + composeur)" label="Funnel" onClick={handleFunnel} />
           <ToolBtn icon={PaintBucket} title="Insérer les styles de widgets (skin de base, à personnaliser)" label="Styles widgets" onClick={insertWidgetStyles} />
           <ToolBtn icon={ImagePlus} title="Logo du site (barre de navigation + pied de page)" label="Logo" onClick={() => logoInputRef.current?.click()} />
           <input ref={logoInputRef} type="file" accept="image/*" hidden onChange={() => { void handleLogoUpload(); }} />
-          <Box sx={{ flex: 1, minWidth: 8 }} />
+          <div className="flex-1 min-w-[8px]" />
           <ToolBtn icon={SquareDashed} title="Afficher les contours d'édition" active={outlineOn} onClick={toggleOutline} />
           <ToolBtn icon={Eye} title="Aperçu" active={previewOn} onClick={togglePreview} />
           <ToolBtn icon={Maximize} title="Plein écran" active={fullscreenOn} onClick={toggleFullscreen} />
           <ToolBtn icon={Code} title="Voir le code généré" onClick={openCode} />
-          <Box sx={{ width: '1px', height: 20, bgcolor: 'var(--line)', mx: 0.5 }} />
+          <div className="w-[1px] h-[20px] bg-[var(--line)] mx-0.5" />
           <ToolBtn
             icon={panelCollapsed ? PanelLeftOpen : PanelLeftClose}
             title={panelCollapsed ? 'Afficher le panneau' : 'Réduire le panneau'}
             onClick={() => setPanelCollapsed((c) => !c)}
           />
-        </Box>
+        </div>
       )}
 
       {/* Canvas (GrapesJS) + panneau droit (managers React). */}
-      <Box sx={{ display: 'flex', flex: 1, minHeight: 0 }}>
+      <div className="flex flex-1 min-h-0">
         {/* Zone canvas (relative) : ancre la dalle du constructeur SANS couvrir le panneau droit (onglets). */}
-        <Box sx={{ flex: 1, minWidth: 0, height: '100%', position: 'relative' }}>
-          <Box ref={containerRef} sx={{ width: '100%', height: '100%' }} />
+        <div className="flex-1 min-w-0 h-full relative">
+          <div className="w-full h-full" ref={containerRef} />
           {/* Dalle du constructeur de composite : overlay de la SEULE zone canvas (≠ plein écran). */}
           <CompositeBuilder
             open={compositeCreatorOpen}
@@ -1780,7 +1774,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
             onInsert={handleInsertCompositeDraft}
             onSave={handleSaveComposite}
           />
-        </Box>
+        </div>
         {/* Panneau droit : conteneurs des managers, TOUJOURS montés (cible `appendTo`) ; on bascule la
             vue par `display` et on réduit la largeur à 0 (sans démonter) au repli / en aperçu. */}
         <Box
@@ -1796,8 +1790,8 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
         >
           {/* Sélecteur de vue — en tête du panneau droit (segmented), FIXE (hors zone de scroll). */}
           {!panelCollapsed && !chromeHidden && (
-            <Box sx={{ flexShrink: 0, display: 'flex', justifyContent: 'center', p: 1, borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
-              <Box sx={{ display: 'inline-flex', gap: 0.25, p: 0.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--field)' }}>
+            <div className="shrink-0 flex justify-center p-1.5 border-b border-[var(--line)] bg-[var(--card)]">
+              <div className="inline-flex gap-0.5 p-0.5 rounded-[var(--radius-md)] bg-[var(--field)]">
                 {visibleTabs.map(({ key, icon: Icon, label }) => {
                   const active = key === activeView;
                   return (
@@ -1821,8 +1815,8 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                     </Tooltip>
                   );
                 })}
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
           {/* Contenu — SEUL à scroller : la barre de défilement n'apparaît plus au niveau des onglets. */}
           <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
@@ -1843,7 +1837,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
             <Box ref={traitsRef} sx={{ display: activeView === 'traits' ? 'block' : 'none' }} />
           </Box>
         </Box>
-      </Box>
+      </div>
 
       {/* Aperçu : seule affordance visible = quitter l'aperçu. */}
       {chromeHidden && (
@@ -1886,6 +1880,6 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
         availableTargets={autoTranslateTargets}
         onTranslate={handleAutoTranslatePage}
       />
-    </Box>
+    </div>
   );
 }

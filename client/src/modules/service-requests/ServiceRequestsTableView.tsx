@@ -1,7 +1,5 @@
 import React from 'react';
-import {
-  Paper, Typography, Chip, Tooltip, IconButton,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, } from '@mui/material';
+import { Paper, Chip, Tooltip, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, MoreVert } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -75,27 +73,27 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
                 onClick={() => navigate(`/service-requests/${request.id}`)}
               >
                 <TableCell>
-                  <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+                  <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)]">
                     {stripPropertySuffix(request.title, request.propertyName)}
-                  </Typography>
+                  </p>
                 </TableCell>
                 <TableCell>
-                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                     {request.propertyName}
-                  </Typography>
-                  <Typography sx={{ fontSize: '11px', color: 'var(--muted)' }}>
+                  </p>
+                  <p className="cn-text-body1 text-[11px] text-[var(--muted)]">
                     {request.propertyAddress}, {request.propertyCity}
-                  </Typography>
+                  </p>
                 </TableCell>
                 <TableCell>
-                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                     {request.requestorName}
-                  </Typography>
+                  </p>
                 </TableCell>
                 <TableCell>
-                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                     {request.assignedToName || '—'}
-                  </Typography>
+                  </p>
                 </TableCell>
                 <TableCell align="center">
                   <Chip
@@ -112,19 +110,19 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
                   />
                 </TableCell>
                 <TableCell align="right">
-                  <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
+                  <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] font-[var(--font-display)] tabular-nums">
                     {request.estimatedCost != null ? <Money value={request.estimatedCost} from="EUR" /> : '—'}
-                  </Typography>
+                  </p>
                   {request.estimatedDuration > 0 && (
-                    <Typography sx={{ fontSize: '11px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                    <p className="cn-text-body1 text-[11px] text-[var(--muted)] tabular-nums">
                       ~{request.estimatedDuration}h
-                    </Typography>
+                    </p>
                   )}
                 </TableCell>
                 <TableCell>
-                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)', fontVariantNumeric: 'tabular-nums' }}>
+                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)] tabular-nums">
                     {formatDateShort(request.dueDate)}
-                  </Typography>
+                  </p>
                 </TableCell>
                 <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
                   <Tooltip title="Détails">

@@ -11,7 +11,7 @@
       → délègue au KpiSummaryResult (réutilisation du rendu KPI).
    ============================================================ */
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import { Check } from '../../../../icons';
 import { SurfaceCard, formatMoney, humanizeKey, humanizeStatus } from './shared';
 import { KpiSummaryResult } from './KpiSummaryResult';
@@ -56,7 +56,7 @@ export const SummaryResult: React.FC<{ data: Summary }> = ({ data }) => {
 
   return (
     <SurfaceCard sx={{ borderColor: 'var(--ok)' }}>
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+      <div className="flex items-start gap-1.5">
         <Box
           sx={{
             flexShrink: 0,
@@ -73,31 +73,22 @@ export const SummaryResult: React.FC<{ data: Summary }> = ({ data }) => {
         >
           <Check size={14} strokeWidth={2.5} />
         </Box>
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.4 }}>
+        <div className="min-w-0 flex-1">
+          <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)] leading-[1.4]">
             {message ?? 'Action effectuée'}
-          </Typography>
+          </p>
           {data.id != null && (
-            <Typography sx={{ fontSize: '11px', color: 'var(--faint)', mt: 0.25 }}>
+            <p className="cn-text-body1 text-[11px] text-[var(--faint)] mt-0.5">
               Réf. #{String(data.id)}
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
         {hasTotal && (
-          <Typography
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '16px',
-              fontWeight: 600,
-              color: 'var(--ink)',
-              fontVariantNumeric: 'tabular-nums',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          <p className="cn-text-body1 font-[var(--font-display)] text-[16px] font-semibold text-[var(--ink)] tabular-nums whitespace-nowrap">
             {formatMoney(data.total, typeof data.currency === 'string' ? data.currency : undefined)}
-          </Typography>
+          </p>
         )}
-      </Box>
+      </div>
 
       {details.length > 0 && (
         <Box
@@ -111,24 +102,14 @@ export const SummaryResult: React.FC<{ data: Summary }> = ({ data }) => {
           }}
         >
           {details.map(([key, value]) => (
-            <Box key={key} sx={{ display: 'flex', gap: 0.75, alignItems: 'baseline', minWidth: 0 }}>
-              <Typography sx={{ color: 'var(--muted)', fontSize: '11px', flexShrink: 0 }}>
+            <div className="flex gap-1 items-baseline min-w-0" key={key}>
+              <p className="cn-text-body1 text-[var(--muted)] text-[11px] shrink-0">
                 {humanizeKey(key)}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '12px',
-                  color: 'var(--body)',
-                  fontWeight: 500,
-                  fontVariantNumeric: 'tabular-nums',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
+              </p>
+              <p className="cn-text-body1 text-[12px] text-[var(--body)] font-medium tabular-nums overflow-hidden text-ellipsis whitespace-nowrap">
                 {detailValue(key, value, data.currency)}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           ))}
         </Box>
       )}

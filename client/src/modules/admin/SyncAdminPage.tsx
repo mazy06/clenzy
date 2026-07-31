@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect, createContext, useContext } from 'react';
-import { Box } from '@mui/material';
 import {
   Cable,
   Sync,
@@ -119,7 +118,7 @@ const SyncAdminPage: React.FC = () => {
   );
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={title}
         subtitle={subtitle}
@@ -137,7 +136,7 @@ const SyncAdminPage: React.FC = () => {
         ariaLabel="Sync admin tabs"
       />
 
-      <Box sx={{ mt: 2 }}>
+      <div className="mt-3">
         <SyncAdminHeaderContext.Provider value={headerApi}>
           {tabValue === 0 && <ConnectionsTab />}
           {tabValue === 1 && <EventsTab />}
@@ -147,8 +146,8 @@ const SyncAdminPage: React.FC = () => {
           {tabValue === 5 && <DiagnosticsTab />}
           {tabValue === 6 && <ReconciliationTab />}
         </SyncAdminHeaderContext.Provider>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

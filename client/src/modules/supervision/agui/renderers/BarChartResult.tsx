@@ -10,7 +10,6 @@
    Les séries sans couleur prennent une couleur d'accent par défaut.
    ============================================================ */
 import React from 'react';
-import { Box, Typography } from '@mui/material';
 import {
   ResponsiveContainer,
   BarChart,
@@ -56,19 +55,19 @@ export const BarChartResult: React.FC<{ data: BarChartData }> = ({ data }) => {
 
   if (items.length === 0 || series.length === 0) {
     return (
-      <Box sx={{ mt: 1, mb: 1.5, px: 2, py: 2, borderRadius: '12px', border: '1px solid var(--line)', bgcolor: 'var(--card)', textAlign: 'center' }}>
-        <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+      <div className="mt-1.5 mb-2 px-3 py-3 rounded-[12px] border border-[var(--line)] bg-[var(--card)] text-center">
+        <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
           {data.title ?? 'Graphique'} — aucune donnée.
-        </Typography>
-      </Box>
+        </p>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
+    <div className="mt-1.5 mb-2">
       {data.title && <Overline sx={{ mb: 1 }}>{data.title}</Overline>}
 
-      <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: 'var(--field)', height: 230 }}>
+      <div className="p-2 rounded-[12px] bg-[var(--field)] h-[230px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={items} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
@@ -101,7 +100,7 @@ export const BarChartResult: React.FC<{ data: BarChartData }> = ({ data }) => {
             ))}
           </BarChart>
         </ResponsiveContainer>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };

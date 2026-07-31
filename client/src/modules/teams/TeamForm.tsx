@@ -159,11 +159,11 @@ const TeamForm: React.FC = () => {
   // Vérifier les permissions APRÈS tous les hooks
   if (!canCreate) {
     return (
-      <Box sx={{ p: 2 }}>
+      <div className="p-3">
         <Alert severity="error" sx={{ py: 1 }}>
           {t('teams.errors.noPermission')}
         </Alert>
-      </Box>
+      </div>
     );
   }
 
@@ -235,9 +235,9 @@ const TeamForm: React.FC = () => {
 
   if (loadingUsers) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+      <div className="flex justify-center items-center h-[50vh]">
         <CircularProgress size={32} />
-      </Box>
+      </div>
     );
   }
 
@@ -246,7 +246,7 @@ const TeamForm: React.FC = () => {
   const selectedCategory = teamServiceCategories.find(cat => cat.value === watchedInterventionType);
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={t('teams.createTitle')}
         subtitle={t('teams.createSubtitle')}
@@ -254,7 +254,7 @@ const TeamForm: React.FC = () => {
         backLabel={t('teams.backToList')}
         showBackButton={true}
         actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <div className="flex gap-1.5">
             <Button
               variant="contained"
               onClick={() => {
@@ -268,7 +268,7 @@ const TeamForm: React.FC = () => {
             >
               {createMutation.isPending ? t('teams.creating') : t('teams.createTeam')}
             </Button>
-          </Box>
+          </div>
         }
       />
 
@@ -297,9 +297,9 @@ const TeamForm: React.FC = () => {
           <Grid item xs={12} md={8}>
             <Card>
               <CardContent sx={{ p: 2 }}>
-                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
+                <h6 className="cn-text-subtitle1 font-semibold mb-[0.35em] mb-2">
                   {t('teams.sections.teamInfo')}
-                </Typography>
+                </h6>
 
                 <Grid container spacing={1.5}>
                   <Grid item xs={12}>
@@ -351,10 +351,10 @@ const TeamForm: React.FC = () => {
                           <Select {...field} label={`${t('teams.fields.interventionType')} *`} size="small">
                             {teamServiceCategories.map((cat) => (
                               <MenuItem key={cat.value} value={cat.value}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                <div className="flex items-center gap-1">
                                   {getCategoryIcon(cat.value, 18)}
-                                  <Typography variant="body2">{cat.label}</Typography>
-                                </Box>
+                                  <p className="cn-text-body2">{cat.label}</p>
+                                </div>
                               </MenuItem>
                             ))}
                           </Select>
@@ -400,23 +400,23 @@ const TeamForm: React.FC = () => {
                     >
                       {getCategoryIcon(selectedCategory.value, 20)}
                     </Box>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="caption" sx={{ color: 'var(--ink)', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block' }}>
+                    <div className="min-w-0">
+                      <span className="cn-text-caption text-[var(--ink)] font-bold text-[0.75rem] tracking-[0.5px] uppercase block">
                         {selectedCategory.label}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'var(--muted)', fontSize: '0.65rem', display: 'block', mt: 0.25 }}>
+                      </span>
+                      <span className="cn-text-caption text-[var(--muted)] text-[0.65rem] block mt-0.5">
                         {selectedCategory.description}
-                      </Typography>
-                    </Box>
+                      </span>
+                    </div>
                   </Box>
                 )}
 
-                <Box sx={{ p: 1.5 }}>
+                <div className="p-2">
                   {/* Rôles autorisés */}
-                  <Typography variant="caption" sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--faint)', mb: 1, display: 'block' }}>
+                  <span className="cn-text-caption text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-1.5 block">
                     {t('teams.fields.authorizedRoles')}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1.5 }}>
+                  </span>
+                  <div className="flex gap-0.5 flex-wrap mb-2">
                     {availableRoles.map(role => (
                       <Chip
                         key={role.value}
@@ -426,23 +426,23 @@ const TeamForm: React.FC = () => {
                         sx={{ height: 22, fontSize: '0.68rem', fontWeight: 500, borderWidth: 1.5 }}
                       />
                     ))}
-                  </Box>
+                  </div>
 
                   <Divider sx={{ my: 1 }} />
 
                   {/* Compteur utilisateurs */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <div className="flex items-center gap-1">
                     <Box component="span" sx={{ display: 'inline-flex', color: filteredUsers.length > 0 ? 'var(--accent)' : 'text.disabled' }}><GroupIcon size={16} strokeWidth={1.75} /></Box>
                     <Typography variant="caption" sx={{ fontSize: '0.72rem', color: filteredUsers.length > 0 ? 'text.primary' : 'text.disabled', fontWeight: 500 }}>
                       {filteredUsers.length} {t('teams.fields.usersAvailable')}
                     </Typography>
-                  </Box>
+                  </div>
                   {filteredUsers.length === 0 && (
-                    <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5, fontSize: '0.65rem' }}>
+                    <span className="cn-text-caption text-destructive block mt-0.5 text-[0.65rem]">
                       {t('teams.fields.noUserWithRoles')}
-                    </Typography>
+                    </span>
                   )}
-                </Box>
+                </div>
               </CardContent>
             </Card>
           </Grid>
@@ -451,9 +451,9 @@ const TeamForm: React.FC = () => {
           <Grid item xs={12}>
             <Card>
               <CardContent sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                  <Typography variant="subtitle1" fontWeight={600} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><MapIcon size={18} strokeWidth={1.75} /></Box>
+                <div className="flex items-center justify-between mb-2">
+                  <h6 className="cn-text-subtitle1 font-semibold flex items-center gap-1">
+                    <span className="inline-flex text-[var(--accent)]"><MapIcon size={18} strokeWidth={1.75} /></span>
                     {t('teams.coverageZones')}
                     {zoneFields.length > 0 && (
                       <Chip
@@ -462,7 +462,7 @@ const TeamForm: React.FC = () => {
                         sx={{ ml: 0.5, height: 20, fontSize: '0.65rem', fontWeight: 700, color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', fontVariantNumeric: 'tabular-nums', '& .MuiChip-label': { px: 0.75 } }}
                       />
                     )}
-                  </Typography>
+                  </h6>
                   <Button
                     variant="outlined"
                     startIcon={<Add size={16} strokeWidth={1.75} />}
@@ -471,7 +471,7 @@ const TeamForm: React.FC = () => {
                   >
                     {t('teams.addCoverageZone')}
                   </Button>
-                </Box>
+                </div>
 
                 {zoneFields.length === 0 ? (
                   <Box sx={{
@@ -481,13 +481,13 @@ const TeamForm: React.FC = () => {
                     borderRadius: '12px',
                     bgcolor: 'var(--field)',
                   }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 0.5 }}><MapIcon size={32} strokeWidth={1.75} /></Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+                    <span className="inline-flex text-muted-foreground opacity-60 mb-0.5"><MapIcon size={32} strokeWidth={1.75} /></span>
+                    <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
                       {t('teams.noCoverageZones')}
-                    </Typography>
+                    </p>
                   </Box>
                 ) : (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <div className="flex flex-col gap-1.5">
                     {zoneFields.map((zoneField, index) => {
                       const watchedCountry = watch(`coverageZones.${index}.country`) || 'FR';
                       const countryDef = COVERAGE_COUNTRIES.find(c => c.code === watchedCountry) ?? COVERAGE_COUNTRIES[0];
@@ -541,7 +541,7 @@ const TeamForm: React.FC = () => {
 
                           {isFr ? (
                             <>
-                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <div className="flex-1 min-w-0">
                                 <Controller
                                   name={`coverageZones.${index}.department`}
                                   control={control}
@@ -567,10 +567,10 @@ const TeamForm: React.FC = () => {
                                     />
                                   )}
                                 />
-                              </Box>
+                              </div>
 
                               {showArrondissement && (
-                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <div className="flex-1 min-w-0">
                                   <Controller
                                     name={`coverageZones.${index}.arrondissement`}
                                     control={control}
@@ -592,11 +592,11 @@ const TeamForm: React.FC = () => {
                                       />
                                     )}
                                   />
-                                </Box>
+                                </div>
                               )}
                             </>
                           ) : (
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <div className="flex-1 min-w-0">
                               <Controller
                                 name={`coverageZones.${index}.city`}
                                 control={control}
@@ -620,7 +620,7 @@ const TeamForm: React.FC = () => {
                                   />
                                 )}
                               />
-                            </Box>
+                            </div>
                           )}
 
                           <IconButton
@@ -633,7 +633,7 @@ const TeamForm: React.FC = () => {
                         </Box>
                       );
                     })}
-                  </Box>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -643,8 +643,8 @@ const TeamForm: React.FC = () => {
           <Grid item xs={12}>
             <Card>
               <CardContent sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                  <Typography variant="subtitle1" fontWeight={600}>
+                <div className="flex items-center justify-between mb-2">
+                  <h6 className="cn-text-subtitle1 font-semibold">
                     {t('teams.sections.teamMembers')}
                     {fields.length > 0 && (
                       <Chip
@@ -653,7 +653,7 @@ const TeamForm: React.FC = () => {
                         sx={{ ml: 1, height: 20, fontSize: '0.65rem', fontWeight: 700, color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', fontVariantNumeric: 'tabular-nums', '& .MuiChip-label': { px: 0.75 } }}
                       />
                     )}
-                  </Typography>
+                  </h6>
                   {filteredUsers.length > fields.length && (
                     <Button
                       variant="outlined"
@@ -664,7 +664,7 @@ const TeamForm: React.FC = () => {
                       {t('teams.fields.addMember')}
                     </Button>
                   )}
-                </Box>
+                </div>
 
                 {fields.length === 0 ? (
                   <Box sx={{
@@ -674,10 +674,10 @@ const TeamForm: React.FC = () => {
                     borderRadius: '12px',
                     bgcolor: 'var(--field)',
                   }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><GroupIcon size={36} strokeWidth={1.75} /></Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontSize: '0.8125rem' }}>
+                    <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><GroupIcon size={36} strokeWidth={1.75} /></span>
+                    <p className="cn-text-body2 text-muted-foreground mb-2 text-[0.8125rem]">
                       {t('teams.fields.noMemberAdded')}
-                    </Typography>
+                    </p>
                     <Button
                       variant="outlined"
                       startIcon={<Add size={16} strokeWidth={1.75} />}
@@ -689,7 +689,7 @@ const TeamForm: React.FC = () => {
                     </Button>
                   </Box>
                 ) : (
-                  <Box>
+                  <div>
                     {fields.map((field, index) => (
                       <Box
                         key={field.id}
@@ -753,15 +753,15 @@ const TeamForm: React.FC = () => {
                                 )}
                                 renderOption={(props, user) => (
                                   <li {...props}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                    <div className="flex items-center gap-1">
                                       <Avatar sx={{ width: 24, height: 24, borderRadius: '8px', fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--on-accent)', bgcolor: 'var(--accent)' }}>
                                         {user.firstName.charAt(0)}{user.lastName.charAt(0)}
                                       </Avatar>
-                                      <Box>
-                                        <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{user.firstName} {user.lastName}</Typography>
-                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>{user.email}</Typography>
-                                      </Box>
-                                    </Box>
+                                      <div>
+                                        <p className="cn-text-body2 text-[0.8125rem]">{user.firstName} {user.lastName}</p>
+                                        <span className="cn-text-caption text-muted-foreground text-[0.65rem]">{user.email}</span>
+                                      </div>
+                                    </div>
                                   </li>
                                 )}
                               />
@@ -770,7 +770,7 @@ const TeamForm: React.FC = () => {
                         </Box>
 
                         {/* Role select */}
-                        <Box sx={{ flex: 1, minWidth: 120 }}>
+                        <div className="flex-1 min-w-[120px]">
                           <Controller
                             name={`members.${index}.role`}
                             control={control}
@@ -786,7 +786,7 @@ const TeamForm: React.FC = () => {
                               </FormControl>
                             )}
                           />
-                        </Box>
+                        </div>
 
                         {/* Delete button */}
                         <IconButton
@@ -803,7 +803,7 @@ const TeamForm: React.FC = () => {
                         </IconButton>
                       </Box>
                     ))}
-                  </Box>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -814,7 +814,7 @@ const TeamForm: React.FC = () => {
           Soumettre
         </Button>
       </form>
-    </Box>
+    </div>
   );
 };
 

@@ -97,27 +97,27 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
           sx={FIELD_SX}
         >
           <MenuItem value="BLOCKED">
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <div className="flex items-center gap-1.5">
               <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.blocked }}>
                 <Lock size={15} strokeWidth={1.75} />
               </Box>
               {t('reservations.dialog.blockTypeBlocked')}
-            </Box>
+            </div>
           </MenuItem>
           <MenuItem value="MAINTENANCE">
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <div className="flex items-center gap-1.5">
               <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
                 <Build size={15} strokeWidth={1.75} />
               </Box>
               {t('reservations.dialog.blockTypeMaintenance')}
-            </Box>
+            </div>
           </MenuItem>
         </TextField>
 
         {nights > 0 && (
-          <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+          <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] tabular-nums">
             {nights} {t(nights > 1 ? 'reservations.dialog.blockNights' : 'reservations.dialog.blockNight')}
-          </Typography>
+          </p>
         )}
 
         <TextField
@@ -135,7 +135,7 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
         <ConflictAlert form={form} />
 
         {error && (
-          <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--err)' }}>{error}</Typography>
+          <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--err)]">{error}</p>
         )}
       </Box>
 

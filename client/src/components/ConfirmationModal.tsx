@@ -1,15 +1,5 @@
 import React from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  Box,
-  IconButton,
-  CircularProgress,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, IconButton, CircularProgress } from '@mui/material';
 import {
   Warning as WarningIcon,
   Close as CloseIcon,
@@ -86,9 +76,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       }}>
         <Box display="flex" alignItems="center" gap={1.25} sx={{ minWidth: 0 }}>
           {getIcon()}
-          <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span className="overflow-hidden text-ellipsis whitespace-nowrap">
             {title}
-          </Box>
+          </span>
         </Box>
         {/* ✕ — pattern .rm-x : 34px r10 hairline, hover --err */}
         <IconButton
@@ -120,9 +110,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             padding: '13px 16px',
           }}
         >
-          <Typography sx={{ fontSize: '13px', color: 'var(--body)' }}>
+          <p className="cn-text-body1 text-[13px] text-[var(--body)]">
             {message}
-          </Typography>
+          </p>
         </Box>
       </DialogContent>
 

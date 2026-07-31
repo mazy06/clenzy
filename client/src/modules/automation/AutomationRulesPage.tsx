@@ -1,10 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import {
-  Box, Typography, Button, Chip, Switch, IconButton, Tooltip,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField,
-  MenuItem, ListSubheader, Select, FormControl, InputLabel, CircularProgress, Alert,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Card, CardContent, Grid, Skeleton, } from '@mui/material';
+import { Box, Button, Chip, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListSubheader, Select, FormControl, InputLabel, CircularProgress, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Card, CardContent, Grid, Skeleton } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -284,20 +279,20 @@ const AutomationRulesPage: React.FC = () => {
       }}
     >
       <Chip label={sa.statusLabel} size="small" sx={{ ...systemStatusStyle(sa.status), justifySelf: 'start' }} />
-      <Box sx={{ minWidth: 0 }}>
-        <Typography noWrap sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink)' }}>{sa.label}</Typography>
-        <Typography noWrap sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>{sa.description}</Typography>
-      </Box>
-      <Box sx={{ display: 'flex', minWidth: 0 }}>
+      <div className="min-w-0">
+        <p className="cn-text-body1 truncate text-[0.8125rem] font-semibold text-[var(--ink)]">{sa.label}</p>
+        <p className="cn-text-body1 truncate text-[0.6875rem] text-muted-foreground">{sa.description}</p>
+      </div>
+      <div className="flex min-w-0">
         <Chip label={sa.triggerLabel} size="small" sx={pillSx('var(--accent-soft)', 'var(--accent)')} />
-      </Box>
-      <Box sx={{ display: 'flex', minWidth: 0 }}>
+      </div>
+      <div className="flex min-w-0">
         <Chip label={sa.actionLabel} size="small" sx={pillSx('var(--info-soft)', 'var(--info)')} />
-      </Box>
-      <Box sx={{ display: 'flex', minWidth: 0 }}>
+      </div>
+      <div className="flex min-w-0">
         <Chip label={sa.mechanism} size="small" sx={pillSx('var(--field)', 'var(--muted)')} />
-      </Box>
-      <Box />
+      </div>
+      <div />
     </Box>
   );
 
@@ -348,9 +343,9 @@ const AutomationRulesPage: React.FC = () => {
         showBackButton={false}
         backPath="/settings"
         actions={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <div className="flex items-center gap-1.5">
             {/* Sélecteur d'affichage : liste (défaut) / cartes */}
-            <Box sx={{ display: 'flex', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+            <div className="flex border border-[var(--hairline)] rounded-[var(--radius-md)] overflow-hidden">
               <Tooltip title={t('automation.view.list', 'Vue liste')}>
                 <IconButton
                   size="small"
@@ -377,7 +372,7 @@ const AutomationRulesPage: React.FC = () => {
                   <CardViewIcon size={16} strokeWidth={1.75} />
                 </IconButton>
               </Tooltip>
-            </Box>
+            </div>
             {canEdit && (
               <Button
                 size="small"
@@ -388,7 +383,7 @@ const AutomationRulesPage: React.FC = () => {
                 {t('automation.create', 'Nouvelle regle')}
               </Button>
             )}
-          </Box>
+          </div>
         }
       />
 
@@ -431,33 +426,33 @@ const AutomationRulesPage: React.FC = () => {
               <Card>
                 <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                   {/* Header row : nom + toggle (Switch thème, nu) */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink)', flex: 1 }}>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <p className="cn-text-body1 text-[0.875rem] font-semibold text-[var(--ink)] flex-1">
                       {rule.name}
-                    </Typography>
+                    </p>
                     <Switch
                       checked={rule.enabled}
                       onChange={() => handleToggle(rule.id)}
                       disabled={toggleMutation.isPending}
                     />
-                  </Box>
+                  </div>
 
                   {/* Conditions / actions : chips -soft (déclencheur = accent) */}
-                  <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
+                  <div className="flex gap-1 flex-wrap mb-2">
                     {renderRuleChips(rule)}
-                  </Box>
+                  </div>
 
                   {/* Template */}
                   {rule.templateName && (
-                    <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mb: 1 }}>
+                    <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mb-1.5">
                       Template: {rule.templateName}
-                    </Typography>
+                    </p>
                   )}
 
                   {/* Actions */}
-                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                  <div className="flex gap-0.5">
                     {renderRuleActions(rule)}
-                  </Box>
+                  </div>
                 </CardContent>
               </Card>
             </Grid>
@@ -490,38 +485,38 @@ const AutomationRulesPage: React.FC = () => {
                   '& .MuiSwitch-track': { borderRadius: 9, opacity: 1 },
                 }}
               />
-              <Box sx={{ minWidth: 0 }}>
-                <Typography noWrap sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink)' }}>
+              <div className="min-w-0">
+                <p className="cn-text-body1 truncate text-[0.8125rem] font-semibold text-[var(--ink)]">
                   {rule.name}
-                </Typography>
+                </p>
                 {rule.templateName && (
-                  <Typography noWrap sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                  <p className="cn-text-body1 truncate text-[0.6875rem] text-muted-foreground">
                     Template: {rule.templateName}
-                  </Typography>
+                  </p>
                 )}
-              </Box>
-              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', minWidth: 0 }}>
+              </div>
+              <div className="flex gap-0.5 flex-wrap min-w-0">
                 {renderTriggerChips(rule)}
-              </Box>
-              <Box sx={{ display: 'flex', minWidth: 0 }}>
+              </div>
+              <div className="flex min-w-0">
                 {renderActionChip(rule)}
-              </Box>
-              <Box sx={{ display: 'flex', minWidth: 0 }}>
+              </div>
+              <div className="flex min-w-0">
                 {renderChannelChip(rule)}
-              </Box>
-              <Box sx={{ display: 'flex', gap: 0.25, justifyContent: 'flex-end' }}>
+              </div>
+              <div className="flex gap-0.5 justify-end">
                 {renderRuleActions(rule)}
-              </Box>
+              </div>
             </Box>
           ))}
           {/* Automatisations système (lecture seule) fusionnées dans la même liste */}
           {systemAutomations.length > 0 && (
             <>
-              <Box sx={{ px: 2, py: 1, borderTop: '1px solid var(--hairline)', backgroundColor: 'var(--field)' }}>
-                <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--faint)' }}>
+              <div className="px-3 py-1.5 border-t border-[var(--hairline)] bg-[var(--field)]">
+                <p className="cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.06em] text-[var(--faint)]">
                   {t('automation.system.title', 'Automatisations système')} · {t('automation.system.readOnly', 'Lecture seule')}
-                </Typography>
-              </Box>
+                </p>
+              </div>
               {systemAutomations.map((sa) => renderSystemRow(sa))}
             </>
           )}
@@ -534,45 +529,45 @@ const AutomationRulesPage: React.FC = () => {
       {/* En vue CARTE, les automatisations système restent une section dédiée en
           dessous ; en vue LISTE elles sont fusionnées dans la liste ci-dessus. */}
       {viewMode === 'card' && systemAutomations.length > 0 && (
-        <Box sx={{ mt: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-            <Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--ink)' }}>
+        <div className="mt-6">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <p className="cn-text-body1 text-[0.95rem] font-semibold text-[var(--ink)]">
               {t('automation.system.title', 'Automatisations système')}
-            </Typography>
+            </p>
             <Chip
               label={t('automation.system.readOnly', 'Lecture seule')}
               size="small"
               sx={pillSx('var(--field)', 'var(--muted)')}
             />
-          </Box>
-          <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mb: 1.5 }}>
+          </div>
+          <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground mb-2">
             {t('automation.system.subtitle', 'Automatisations gérées ailleurs dans le produit (hors règles). Affichées ici pour visibilité — leur statut reflète l’état réel.')}
-          </Typography>
+          </p>
           <Grid container spacing={1.5}>
             {systemAutomations.map((sa) => (
               <Grid item xs={12} md={6} key={sa.key}>
                 <Card sx={{ opacity: 0.94 }}>
                   <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
-                      <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink)', flex: 1 }}>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <p className="cn-text-body1 text-[0.875rem] font-semibold text-[var(--ink)] flex-1">
                         {sa.label}
-                      </Typography>
+                      </p>
                       <Chip label={sa.statusLabel} size="small" sx={systemStatusStyle(sa.status)} />
-                    </Box>
-                    <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', mb: 1 }}>
+                    </div>
+                    <p className="cn-text-body1 text-[0.78rem] text-muted-foreground mb-1.5">
                       {sa.description}
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                    </p>
+                    <div className="flex gap-1 flex-wrap">
                       <Chip label={sa.triggerLabel} size="small" sx={pillSx('var(--accent-soft)', 'var(--accent)')} />
                       <Chip label={sa.actionLabel} size="small" sx={pillSx('var(--info-soft)', 'var(--info)')} />
                       <Chip label={sa.mechanism} size="small" sx={pillSx('var(--field)', 'var(--muted)')} />
-                    </Box>
+                    </div>
                   </CardContent>
                 </Card>
               </Grid>
             ))}
           </Grid>
-        </Box>
+        </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
@@ -639,7 +634,7 @@ const AutomationRulesPage: React.FC = () => {
 
           {/* Décalage/heure : uniquement pour les déclencheurs « cycle de vie ». */}
           {isLifecycleTrigger(formData.triggerType) && (
-            <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <div className="flex gap-2">
               <TextField
                 label={t('automation.form.offset', 'Delai (jours)')}
                 type="number"
@@ -658,7 +653,7 @@ const AutomationRulesPage: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, triggerTime: e.target.value })}
                 InputLabelProps={{ shrink: true }}
               />
-            </Box>
+            </div>
           )}
 
           {/* Canal d'envoi : uniquement pour les actions de messagerie. */}
@@ -672,10 +667,10 @@ const AutomationRulesPage: React.FC = () => {
               >
                 {CHANNEL_OPTIONS.map((c) => (
                   <MenuItem key={c.value} value={c.value}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <div className="flex items-center gap-1.5">
                       {c.icon}
                       {c.label}
-                    </Box>
+                    </div>
                   </MenuItem>
                 ))}
               </Select>
@@ -786,9 +781,9 @@ const ExecutionsDialog: React.FC<{
         {isLoading ? (
           <Skeleton variant="rounded" height={220} sx={{ borderRadius: 'var(--radius-lg)' }} />
         ) : executions.length === 0 ? (
-          <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', textAlign: 'center', py: 3 }}>
+          <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground text-center py-4">
             {t('automation.noExecutions', 'Aucune execution trouvee')}
-          </Typography>
+          </p>
         ) : (
           <>
             <TableContainer>

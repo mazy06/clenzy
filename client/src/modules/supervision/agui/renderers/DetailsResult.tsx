@@ -60,20 +60,11 @@ export const DetailsResult: React.FC<{ data: Details }> = ({ data }) => {
 
   return (
     <SurfaceCard>
-      <Typography
-        sx={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '15px',
-          fontWeight: 600,
-          color: 'var(--ink)',
-          mb: 1,
-          letterSpacing: '-0.01em',
-        }}
-      >
+      <p className="cn-text-body1 font-[var(--font-display)] text-[15px] font-semibold text-[var(--ink)] mb-1.5 tracking-[-0.01em]">
         {title}
-      </Typography>
+      </p>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+      <div className="flex flex-col">
         {entries.map(([key, value], idx) => (
           <Box
             key={key}
@@ -90,21 +81,12 @@ export const DetailsResult: React.FC<{ data: Details }> = ({ data }) => {
             >
               {humanizeKey(key)}
             </Typography>
-            <Typography
-              component="div"
-              sx={{
-                flex: 1,
-                fontSize: '12.5px',
-                color: 'var(--body)',
-                fontWeight: 500,
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
+            <div className="flex-1 text-[12.5px] text-[var(--body)] font-medium tabular-nums">
               {formatValue(key, value, data.currency)}
-            </Typography>
+            </div>
           </Box>
         ))}
-      </Box>
+      </div>
     </SurfaceCard>
   );
 };

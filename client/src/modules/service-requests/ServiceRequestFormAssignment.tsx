@@ -155,11 +155,11 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
 
         {/* Type d'assignation - Chips */}
         {canAssignForProperty && (
-          <Box sx={{ mb: 2 }}>
-            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 0.75 }}>
+          <div className="mb-3">
+            <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1">
               {t('serviceRequests.fields.assignmentType')}
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+            </p>
+            <div className="flex gap-1 flex-wrap">
               {ASSIGNMENT_TYPES.map((at) => {
                 const isSelected = (watchedAssignedToType || '') === at.value;
                 return (
@@ -196,7 +196,7 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                   />
                 );
               })}
-            </Box>
+            </div>
 
             {/* Indication auto-sélection */}
             {watchedServiceType && (
@@ -204,27 +204,27 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                 const cat = getServiceCategory(watchedServiceType);
                 if (cat === 'cleaning') {
                   return (
-                    <Typography sx={{ fontSize: '10px', color: 'var(--faint)', fontStyle: 'italic', mt: 0.5 }}>
+                    <p className="cn-text-body1 text-[10px] text-[var(--faint)] italic mt-0.5">
                       Type nettoyage → assignation équipe pré-sélectionnée
-                    </Typography>
+                    </p>
                   );
                 }
                 if (cat === 'maintenance') {
                   return (
-                    <Typography sx={{ fontSize: '10px', color: 'var(--faint)', fontStyle: 'italic', mt: 0.5 }}>
+                    <p className="cn-text-body1 text-[10px] text-[var(--faint)] italic mt-0.5">
                       Type maintenance → assignation équipe pré-sélectionnée
-                    </Typography>
+                    </p>
                   );
                 }
                 return null;
               })()
             )}
-          </Box>
+          </div>
         )}
 
         {/* Assignation specifique - Select avec style cohérent */}
         {canAssignForProperty && watchedAssignedToType && (
-          <Box sx={{ mb: 1 }}>
+          <div className="mb-1.5">
             <Controller
               name="assignedToId"
               control={control}
@@ -257,7 +257,7 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                       displayEmpty
                       notched
                       renderValue={() => (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <div className="flex items-center gap-1">
                           {watchedAssignedToType === 'user' ? (
                             <Box component="span" sx={{ display: 'inline-flex', color: hasValue ? 'var(--accent)' : 'var(--faint)' }}><Person size={16} strokeWidth={1.75} /></Box>
                           ) : (
@@ -270,22 +270,22 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                                 : (selectedItem as Team).name
                               : t('serviceRequests.fields.select')}
                           </Typography>
-                        </Box>
+                        </div>
                       )}
                     >
                       {watchedAssignedToType === 'user'
                         ? getAssignableUsers().map((user) => (
                             <MenuItem key={user.id} value={user.id}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, width: '100%' }}>
+                              <div className="flex items-center gap-1 w-full">
                                 <Box component="span" sx={{ display: 'inline-flex', color: matchingSet.has(user.id) ? 'var(--ok)' : 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
-                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                                <div className="flex-1 min-w-0">
+                                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                                     {user.firstName} {user.lastName}
-                                  </Typography>
-                                  <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)' }}>
+                                  </p>
+                                  <p className="cn-text-body1 text-[10.5px] text-[var(--faint)]">
                                     {user.role} • {user.email}
-                                  </Typography>
-                                </Box>
+                                  </p>
+                                </div>
                                 {matchingSet.has(user.id) && (
                                   <Chip
                                     label="Propose"
@@ -293,22 +293,22 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                                     sx={{ height: 18, fontSize: '9.5px', fontWeight: 700, color: 'var(--ok)', bgcolor: 'var(--ok-soft)', '& .MuiChip-label': { px: 0.75 } }}
                                   />
                                 )}
-                              </Box>
+                              </div>
                             </MenuItem>
                           ))
                         : filteredTeams.map((team) => (
                             <MenuItem key={team.id} value={team.id}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Group size={16} strokeWidth={1.75} /></Box>
-                                <Box>
-                                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)', fontWeight: 500 }}>
+                              <div className="flex items-center gap-1">
+                                <span className="inline-flex text-[var(--accent)]"><Group size={16} strokeWidth={1.75} /></span>
+                                <div>
+                                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)] font-medium">
                                     {team.name}
-                                  </Typography>
-                                  <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)' }}>
+                                  </p>
+                                  <p className="cn-text-body1 text-[10.5px] text-[var(--faint)]">
                                     {team.memberCount} {t('serviceRequests.members')} • {getInterventionTypeLabel(team.interventionType)}
-                                  </Typography>
-                                </Box>
-                              </Box>
+                                  </p>
+                                </div>
+                              </div>
                             </MenuItem>
                           ))}
                     </Select>
@@ -316,7 +316,7 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                 );
               }}
             />
-          </Box>
+          </div>
         )}
       </>
     );

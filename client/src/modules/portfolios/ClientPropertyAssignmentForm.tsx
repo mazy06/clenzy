@@ -1,29 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  Container,
-  Stepper,
-  Step,
-  StepLabel,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  CircularProgress,
-  Grid,
-  Card,
-  CardContent,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Checkbox,
-  Avatar,
-} from '@mui/material';
+import { Paper, Container, Stepper, Step, StepLabel, Button, FormControl, InputLabel, Select, MenuItem, Chip, CircularProgress, Grid, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, Checkbox, Avatar } from '@mui/material';
 import {
   People,
   Assignment,
@@ -70,9 +46,9 @@ const ClientPropertyAssignmentForm: React.FC = () => {
           backPath="/portfolios"
           showBackButton={true}
         />
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
+        <div className="flex justify-center items-center min-h-[300px]">
           <CircularProgress size={32} />
-        </Box>
+        </div>
       </Container>
     );
   }
@@ -83,13 +59,13 @@ const ClientPropertyAssignmentForm: React.FC = () => {
     switch (step) {
       case 0:
         return (
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 0.5 }}>
+          <div>
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-0.5">
               {t('portfolios.steps.selectManagerTitle')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.82rem', mb: 2.5 }}>
+            </h6>
+            <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3.5">
               {t('portfolios.steps.selectManagerDescription')}
-            </Typography>
+            </p>
             <FormControl fullWidth size="small">
               <InputLabel>{t('portfolios.fields.manager')}</InputLabel>
               <Select
@@ -101,30 +77,30 @@ const ClientPropertyAssignmentForm: React.FC = () => {
               >
                 {managers.map((manager) => (
                   <MenuItem key={manager.id} value={manager.id}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <div className="flex items-center gap-1.5">
                       <Avatar sx={{ width: 24, height: 24, fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px' }}>
                         {manager.firstName.charAt(0)}{manager.lastName.charAt(0)}
                       </Avatar>
-                      <Typography sx={{ fontSize: '0.85rem' }}>
+                      <p className="cn-text-body1 text-[0.85rem]">
                         {manager.firstName} {manager.lastName} - {manager.email}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
-          </Box>
+          </div>
         );
 
       case 1:
         return (
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 0.5 }}>
+          <div>
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-0.5">
               {t('portfolios.fields.selectClientsToAssign')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.82rem', mb: 2.5 }}>
+            </h6>
+            <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3.5">
               {t('portfolios.fields.selectClientsDescription')}
-            </Typography>
+            </p>
 
             <FormControl fullWidth size="small">
               <InputLabel>Clients (HOST)</InputLabel>
@@ -144,7 +120,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                 sx={{ borderRadius: 2, fontSize: '0.85rem' }}
                 renderValue={(selected) => {
                   if (selected.length === 0) {
-                    return <Typography variant="body2" color="text.secondary">{t('portfolios.fields.selectClients')}</Typography>;
+                    return <p className="cn-text-body2 text-muted-foreground">{t('portfolios.fields.selectClients')}</p>;
                   }
                   return selected.map(id => {
                     const client = hostUsers.find(c => c.id === id);
@@ -154,26 +130,26 @@ const ClientPropertyAssignmentForm: React.FC = () => {
               >
                 {hostUsers.map((client) => (
                   <MenuItem key={client.id} value={client.id}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <div className="flex items-center gap-1.5">
                       <Checkbox checked={selectedClientsSet.has(client.id)} size="small" />
                       <Avatar sx={{ width: 24, height: 24, fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px' }}>
                         {client.firstName.charAt(0)}{client.lastName.charAt(0)}
                       </Avatar>
-                      <Typography sx={{ fontSize: '0.85rem' }}>
+                      <p className="cn-text-body1 text-[0.85rem]">
                         {client.firstName} {client.lastName} - {client.email}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
 
             {selectedClients.length > 0 && (
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', mb: 1 }}>
+              <div className="mt-3">
+                <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5">
                   {t('portfolios.fields.clientsSelected')} ({selectedClients.length}) :
-                </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                </h6>
+                <div className="flex flex-wrap gap-1">
                   {selectedClients.map(clientId => {
                     const client = hostUsers.find(c => c.id === clientId);
                     return client ? (
@@ -188,26 +164,26 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                       />
                     ) : null;
                   })}
-                </Box>
-              </Box>
+                </div>
+              </div>
             )}
-          </Box>
+          </div>
         );
 
       case 2:
         return (
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 0.5 }}>
+          <div>
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-0.5">
               {t('portfolios.fields.selectProperties')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.82rem', mb: 2.5 }}>
+            </h6>
+            <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3.5">
               {t('portfolios.fields.propertiesDescription')}
-            </Typography>
+            </p>
 
             {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <div className="flex justify-center py-6">
                 <CircularProgress size={28} />
-              </Box>
+              </div>
             ) : (
               <Grid container spacing={1.5}>
                 {properties.map((property) => (
@@ -228,25 +204,25 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                       onClick={() => handlePropertyToggle(property.id)}
                     >
                       <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
+                        <div className="flex items-center mb-1">
                           <Checkbox
                             checked={selectedPropertiesSet.has(property.id)}
                             onChange={() => handlePropertyToggle(property.id)}
                             size="small"
                             sx={{ p: 0.25, mr: 0.75 }}
                           />
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)', mr: 0.75 }}><Home size={18} strokeWidth={1.75} /></Box>
-                          <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', fontWeight: 600 }} noWrap>
+                          <span className="inline-flex text-[var(--info)] me-1"><Home size={18} strokeWidth={1.75} /></span>
+                          <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold truncate">
                             {property.name}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', ml: 3.5 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }} noWrap>
+                          </h6>
+                        </div>
+                        <div className="flex items-center ms-5">
+                          <span className="inline-flex text-muted-foreground me-0.5"><LocationOn size={13} strokeWidth={1.75} /></span>
+                          <span className="cn-text-caption text-muted-foreground text-[0.7rem] truncate">
                             {property.address}, {property.city}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 0.75, mt: 0.75, ml: 3.5 }}>
+                          </span>
+                        </div>
+                        <div className="flex gap-1 mt-1 ms-5">
                           <Chip label={property.type} size="small" sx={{ height: 20, fontSize: '0.6rem' }} />
                           {property.status && (
                             <Chip
@@ -256,7 +232,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                               sx={{ height: 20, fontSize: '0.6rem' }}
                             />
                           )}
-                        </Box>
+                        </div>
                       </CardContent>
                     </Card>
                   </Grid>
@@ -265,11 +241,11 @@ const ClientPropertyAssignmentForm: React.FC = () => {
             )}
 
             {properties.length === 0 && selectedClients.length > 0 && !loading && (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4, fontSize: '0.82rem' }}>
+              <p className="cn-text-body2 text-muted-foreground text-center py-6 text-[0.82rem]">
                 {t('portfolios.fields.noClientAssociated')}
-              </Typography>
+              </p>
             )}
-          </Box>
+          </div>
         );
 
       case 3: {
@@ -278,53 +254,53 @@ const ClientPropertyAssignmentForm: React.FC = () => {
         const selectedManagerData = managers.find(m => m.id === selectedManager);
 
         return (
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 2 }}>
+          <div>
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-3">
               {t('portfolios.fields.confirmAssignments')}
-            </Typography>
+            </h6>
 
             <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2 }}>
-              <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <h6 className="cn-text-subtitle2 text-[0.82rem] mb-0.5 flex items-center gap-0.5">
                 <People size={16} strokeWidth={1.75} />
                 {t('portfolios.fields.selectedManager')}
-              </Typography>
+              </h6>
               {selectedManagerData ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                <div className="flex items-center gap-1.5 mt-0.5">
                   <Avatar sx={{ width: 28, height: 28, fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px' }}>
                     {selectedManagerData.firstName.charAt(0)}{selectedManagerData.lastName.charAt(0)}
                   </Avatar>
-                  <Box>
-                    <Typography variant="subtitle2" color="primary" sx={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                  <div>
+                    <h6 className="cn-text-subtitle2 text-primary text-[0.85rem] font-semibold">
                       {selectedManagerData.firstName} {selectedManagerData.lastName}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                    </h6>
+                    <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
                       {selectedManagerData.email}
-                    </Typography>
-                  </Box>
-                </Box>
+                    </span>
+                  </div>
+                </div>
               ) : (
-                <Typography variant="body2" color="error" sx={{ fontSize: '0.82rem' }}>
+                <p className="cn-text-body2 text-destructive text-[0.82rem]">
                   {t('portfolios.confirmations.noManagerFound')}
-                </Typography>
+                </p>
               )}
             </Paper>
 
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5 flex items-center gap-0.5">
                     <People size={16} strokeWidth={1.75} />
                     {t('portfolios.fields.selectedClients')} ({selectedClientsData.length})
-                  </Typography>
+                  </h6>
                   <List dense disablePadding>
                     {selectedClientsData.map((client) => (
                       <ListItem key={client.id} disableGutters sx={{ py: 0.5 }}>
                         <ListItemIcon sx={{ minWidth: 28 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
+                          <span className="inline-flex text-[var(--ok)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
                         </ListItemIcon>
                         <ListItemText
-                          primary={<Typography sx={{ fontSize: '0.82rem' }}>{client.firstName} {client.lastName}</Typography>}
-                          secondary={<Typography variant="caption" sx={{ fontSize: '0.7rem' }}>{client.email}</Typography>}
+                          primary={<p className="cn-text-body1 text-[0.82rem]">{client.firstName} {client.lastName}</p>}
+                          secondary={<span className="cn-text-caption text-[0.7rem]">{client.email}</span>}
                         />
                       </ListItem>
                     ))}
@@ -334,19 +310,19 @@ const ClientPropertyAssignmentForm: React.FC = () => {
 
               <Grid item xs={12} md={6}>
                 <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5 flex items-center gap-0.5">
                     <Assignment size={16} strokeWidth={1.75} />
                     {t('portfolios.fields.selectedProperties')} ({selectedPropertiesData.length})
-                  </Typography>
+                  </h6>
                   <List dense disablePadding>
                     {selectedPropertiesData.map((property) => (
                       <ListItem key={property.id} disableGutters sx={{ py: 0.5 }}>
                         <ListItemIcon sx={{ minWidth: 28 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
+                          <span className="inline-flex text-[var(--ok)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
                         </ListItemIcon>
                         <ListItemText
-                          primary={<Typography sx={{ fontSize: '0.82rem' }}>{property.name}</Typography>}
-                          secondary={<Typography variant="caption" sx={{ fontSize: '0.7rem' }}>{property.address}, {property.city}</Typography>}
+                          primary={<p className="cn-text-body1 text-[0.82rem]">{property.name}</p>}
+                          secondary={<span className="cn-text-caption text-[0.7rem]">{property.address}, {property.city}</span>}
                         />
                       </ListItem>
                     ))}
@@ -354,7 +330,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                 </Paper>
               </Grid>
             </Grid>
-          </Box>
+          </div>
         );
       }
 
@@ -387,11 +363,11 @@ const ClientPropertyAssignmentForm: React.FC = () => {
           ))}
         </Stepper>
 
-        <Box sx={{ mb: 4, minHeight: 200 }}>
+        <div className="mb-6 min-h-[200px]">
           {getStepContent(activeStep)}
-        </Box>
+        </div>
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div className="flex justify-between">
           <Button
             disabled={activeStep === 0}
             onClick={handleBack}
@@ -425,7 +401,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
               {t('portfolios.forms.next')}
             </Button>
           )}
-        </Box>
+        </div>
       </Paper>
     </Container>
   );

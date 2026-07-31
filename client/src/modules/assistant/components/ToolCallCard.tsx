@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import { CheckCircle as CheckCircleIcon, ErrorOutline as AlertCircleIcon } from '../../../icons';
 import type { ToolCallExecuted } from '../../../hooks/useAgent';
 
@@ -37,31 +37,13 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({ call }) => {
       ) : (
         <CheckCircleIcon size={12} strokeWidth={1.75} />
       )}
-      <Typography
-        component="span"
-        sx={{
-          fontFamily: 'monospace',
-          fontSize: '10.5px',
-          fontWeight: 700,
-          letterSpacing: '.02em',
-          color: 'inherit',
-        }}
-      >
+      <span className="font-mono text-[10.5px] font-bold tracking-[.02em] text-inherit">
         {call.toolName}
-      </Typography>
+      </span>
       {isError && (
-        <Typography
-          component="span"
-          sx={{
-            fontSize: '10.5px',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '.05em',
-            color: 'var(--err)',
-          }}
-        >
+        <span className="text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--err)]">
           erreur
-        </Typography>
+        </span>
       )}
     </Box>
   );

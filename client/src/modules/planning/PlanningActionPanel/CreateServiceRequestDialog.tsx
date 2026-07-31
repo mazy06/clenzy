@@ -1,22 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Box,
-  Typography,
-  IconButton,
-  Button,
-  InputBase,
-  CircularProgress,
-  Alert,
-  Link,
-  Stepper,
-  Step,
-  StepLabel,
-  Chip,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box, IconButton, Button, InputBase, CircularProgress, Alert, Link, Stepper, Step, StepLabel, Chip } from '@mui/material';
 import {
   Close,
   Send,
@@ -815,12 +798,12 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
     >
       {/* ── Title ── */}
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 1, pt: 2, px: 2.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Send size={20} strokeWidth={1.75} /></Box>
-          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="inline-flex text-[var(--accent)]"><Send size={20} strokeWidth={1.75} /></span>
+          <h6 className="cn-text-h6 font-bold text-[1rem]">
             {isEditMode ? 'Modifier l\'intervention' : 'Nouvelle intervention'}
-          </Typography>
-        </Box>
+          </h6>
+        </div>
         {/* Stepper à droite, sur la même ligne que le titre */}
         <Stepper
           activeStep={activeStep}
@@ -845,28 +828,28 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
       <DialogContent sx={{ px: 2.5, pt: 0, pb: 0 }}>
         {/* ── Header: Property info + Title + Requestor ── */}
-        <Box sx={{ mb: 2, pb: 2, borderBottom: '1px solid var(--line)' }}>
+        <div className="mb-3 pb-3 border-b border-[var(--line)]">
           {/* Property name + address */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Home size={16} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink)' }}>
+          <div className="flex items-center gap-1 mb-1.5">
+            <span className="inline-flex text-[var(--accent)]"><Home size={16} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 text-[0.8125rem] font-semibold text-[var(--ink)]">
               {propertyName}
-            </Typography>
+            </p>
             {selectedProperty && (
-              <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>
+              <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)]">
                 — {selectedProperty.address}, {selectedProperty.city}
-              </Typography>
+              </p>
             )}
-          </Box>
+          </div>
 
           {/* Title + Requestor row */}
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <div className="flex gap-2">
             {/* Title — aligné visuellement sur le bloc « Demandeur » (libellé
                 majuscule au-dessus + champ encadré). */}
             <Box sx={{ flex: 7 }}>
-              <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5, ml: 0.25 }}>
+              <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] mb-0.5 ms-0.5">
                 Titre de la demande *
-              </Typography>
+              </p>
               <Controller
                 name="title"
                 control={control}
@@ -883,7 +866,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                       border: `1px solid ${fieldState.error ? 'var(--err)' : 'var(--field-line)'}`,
                       minHeight: 40,
                     }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Send size={16} strokeWidth={1.75} /></Box>
+                      <span className="inline-flex text-[var(--accent)]"><Send size={16} strokeWidth={1.75} /></span>
                       <InputBase
                         {...field}
                         fullWidth
@@ -892,9 +875,9 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                       />
                     </Box>
                     {fieldState.error && (
-                      <Typography sx={{ fontSize: '0.6875rem', color: 'var(--err)', mt: 0.25, ml: 0.25 }}>
+                      <p className="cn-text-body1 text-[0.6875rem] text-[var(--err)] mt-0.5 ms-0.5">
                         {fieldState.error.message}
-                      </Typography>
+                      </p>
                     )}
                   </>
                 )}
@@ -903,24 +886,14 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
             {/* Demandeur — lecture seule, trace l'utilisateur connecté */}
             <Box sx={{ flex: 5 }}>
-              <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5, ml: 0.25 }}>
+              <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] mb-0.5 ms-0.5">
                 Demandeur
-              </Typography>
-              <Box sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.75,
-                px: 1.25,
-                py: 0.75,
-                borderRadius: '11px',
-                bgcolor: 'var(--field)',
-                border: '1px solid var(--field-line)',
-                minHeight: 40,
-              }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
-                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--ink)', flex: 1 }}>
+              </p>
+              <div className="flex items-center gap-1 px-2 py-1 rounded-[11px] bg-[var(--field)] border border-[var(--field-line)] min-h-[40px]">
+                <span className="inline-flex text-[var(--accent)]"><Person size={16} strokeWidth={1.75} /></span>
+                <p className="cn-text-body1 text-[0.8125rem] font-medium text-[var(--ink)] flex-1">
                   {currentUserLabel}
-                </Typography>
+                </p>
                 {currentUserRole && (
                   <Chip
                     label={currentUserRole}
@@ -935,18 +908,18 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                     }}
                   />
                 )}
-              </Box>
+              </div>
             </Box>
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* ── Step Content ── */}
         {loadingData ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <div className="flex justify-center py-6">
             <CircularProgress size={28} />
-          </Box>
+          </div>
         ) : (
-          <Box sx={{ minHeight: 250 }}>
+          <div className="min-h-[250px]">
             {/* Step 1: Service */}
             {activeStep === 0 && (
               <ServiceRequestFormInfo
@@ -968,30 +941,30 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
             {/* Step 2: Chiffrage */}
             {activeStep === 1 && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <div className="flex flex-col gap-2">
                     {/* Chiffrage ménage : estimation forfait (durée + prix), en colonne */}
                     {selectedProperty && isCleaningCategory && (
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, px: 1.5, py: 1.25, borderRadius: '10px', border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', bgcolor: 'var(--accent-soft)' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={18} strokeWidth={1.75} /></Box>
-                          <Box>
-                            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>Durée estimée</Typography>
-                            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--accent)', lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>{formatDuration(estimatedDuration)}</Typography>
-                          </Box>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Euro size={18} strokeWidth={1.75} /></Box>
-                          <Box>
-                            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>Prix estimé</Typography>
+                        <div className="flex items-center gap-1">
+                          <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
+                          <div>
+                            <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] leading-[1]">Durée estimée</p>
+                            <p className="cn-text-body1 font-[var(--font-display)] text-[0.9375rem] font-semibold text-[var(--accent)] leading-[1.3] tabular-nums">{formatDuration(estimatedDuration)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="inline-flex text-[var(--accent)]"><Euro size={18} strokeWidth={1.75} /></span>
+                          <div>
+                            <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] leading-[1]">Prix estimé</p>
                             {priceRange ? (
-                              <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--accent)', lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>
+                              <p className="cn-text-body1 font-[var(--font-display)] text-[0.9375rem] font-semibold text-[var(--accent)] leading-[1.3] tabular-nums">
                                 {priceRange.min === priceRange.max ? <Money value={priceRange.min} from="EUR" /> : `${convertAndFormat(priceRange.min, 'EUR')} – ${convertAndFormat(priceRange.max, 'EUR')}`}
-                              </Typography>
+                              </p>
                             ) : (
-                              <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--faint)', lineHeight: 1.3 }}>Non disponible</Typography>
+                              <p className="cn-text-body1 text-[0.75rem] font-medium text-[var(--faint)] leading-[1.3]">Non disponible</p>
                             )}
-                          </Box>
-                        </Box>
+                          </div>
+                        </div>
                         {selectedForfait && (
                           <Chip label={selectedForfait.label} size="small" variant="outlined" sx={{ alignSelf: 'flex-start', height: 22, fontSize: '0.625rem', fontWeight: 600, color: 'var(--accent)', borderColor: 'var(--accent)', backgroundColor: 'var(--card)', '& .MuiChip-label': { px: 1 } }} />
                         )}
@@ -1006,7 +979,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                         onChange={handlePricingChange}
                       />
                     )}
-              </Box>
+              </div>
             )}
 
             {/* Step 3: Planning */}
@@ -1023,7 +996,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
             {/* Step 4: Assignment */}
             {activeStep === 3 && (
-              <Box>
+              <div>
                 <ServiceRequestFormAssignment
                   control={control}
                   errors={errors}
@@ -1041,14 +1014,14 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
                 {/* ── Conflict detection panel ────────────────────────────── */}
                 {conflictLoading && (watchedAssignedToType === 'team' || watchedAssignedToType === 'user') && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1.5, py: 0.75 }}>
+                  <div className="flex items-center gap-1.5 mt-2 py-1">
                     <CircularProgress size={14} />
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                    <span className="cn-text-caption text-muted-foreground text-[0.75rem]">
                       {watchedAssignedToType === 'team'
                         ? "Vérification de la disponibilité de l'équipe..."
                         : "Vérification de la disponibilité de l'utilisateur..."}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 )}
 
                 {/* ── Team conflict ── */}
@@ -1062,32 +1035,32 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                       '& .MuiAlert-message': { fontSize: '0.75rem' },
                     }}
                   >
-                    <Typography sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 0.5 }}>
+                    <p className="cn-text-body1 font-bold text-[0.8125rem] mb-0.5">
                       Conflit de planification détecté
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.75rem', mb: 1 }}>
+                    </p>
+                    <p className="cn-text-body1 text-[0.75rem] mb-1.5">
                       L'équipe <strong>{conflictInfo.teamName}</strong> a déjà{' '}
                       {conflictInfo.teamConflictCount > 0
                         ? `${conflictInfo.teamConflictCount} intervention${conflictInfo.teamConflictCount > 1 ? 's' : ''} d'équipe`
                         : 'des membres occupés'}{' '}
                       sur ce créneau. Choisissez une autre équipe ou une autre date.
-                    </Typography>
+                    </p>
                     {conflictMembers.length > 0 && (
-                      <Box sx={{ mt: 0.5, pl: 0.5 }}>
+                      <div className="mt-0.5 ps-0.5">
                         {conflictMembers.map((member) => (
-                          <Box key={member.userId} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.25 }}>
+                          <div className="flex items-center gap-1 py-0.5" key={member.userId}>
                             <Box component="span" sx={{ display: 'inline-flex', color: member.available ? 'var(--ok)' : 'var(--err)' }}><Person size={12} strokeWidth={1.75} /></Box>
-                            <Typography sx={{ fontSize: '0.6875rem' }}>
+                            <p className="cn-text-body1 text-[0.6875rem]">
                               {member.firstName} {member.lastName}
                               {!member.available && (
-                                <Typography component="span" sx={{ fontSize: '0.6875rem', color: 'var(--err)', fontWeight: 600 }}>
+                                <span className="text-[0.6875rem] text-[var(--err)] font-semibold">
                                   {' '}— {member.conflictCount} conflit{member.conflictCount > 1 ? 's' : ''}
-                                </Typography>
+                                </span>
                               )}
-                            </Typography>
-                          </Box>
+                            </p>
+                          </div>
                         ))}
-                      </Box>
+                      </div>
                     )}
                   </Alert>
                 )}
@@ -1112,14 +1085,14 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                       '& .MuiAlert-message': { fontSize: '0.75rem' },
                     }}
                   >
-                    <Typography sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 0.5 }}>
+                    <p className="cn-text-body1 font-bold text-[0.8125rem] mb-0.5">
                       Conflit de planification détecté
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.75rem' }}>
+                    </p>
+                    <p className="cn-text-body1 text-[0.75rem]">
                       <strong>{userConflictInfo.firstName} {userConflictInfo.lastName}</strong> a déjà{' '}
                       {userConflictInfo.conflictCount} intervention{userConflictInfo.conflictCount > 1 ? 's' : ''}{' '}
                       sur ce créneau. Choisissez un autre intervenant ou une autre date.
-                    </Typography>
+                    </p>
                   </Alert>
                 )}
 
@@ -1136,9 +1109,9 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                 <Alert severity="info" sx={{ fontSize: '0.6875rem', mt: 2, '& .MuiAlert-message': { fontSize: '0.6875rem' } }}>
                   La demande sera soumise au workflow : validation → assignation → paiement → intervention planifiée.
                 </Alert>
-              </Box>
+              </div>
             )}
-          </Box>
+          </div>
         )}
 
         {/* Error / Success */}
@@ -1164,7 +1137,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
           Annuler
         </Button>
 
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <div className="flex gap-1.5">
           {activeStep > 0 && (
             <Button
               onClick={handleBack}
@@ -1200,7 +1173,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
               {hasConflict ? 'Conflit détecté' : isEditMode ? 'Enregistrer' : 'Créer la demande'}
             </Button>
           )}
-        </Box>
+        </div>
       </DialogActions>
     </Dialog>
   );

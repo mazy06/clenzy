@@ -101,7 +101,7 @@ export default function ConnectedObjectsHub({
   );
 
   return (
-    <Box>
+    <div>
       {!embedded && (
         <PageHeader
           title="Objets connectés"
@@ -116,11 +116,11 @@ export default function ConnectedObjectsHub({
 
       {/* Bandeau de connexion — pont vers les Settings */}
       <Paper variant="outlined" sx={{ p: 1, mb: 1.5, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        <Typography variant="caption" sx={{ color: 'var(--faint)', fontWeight: 700, fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.06em', mr: 0.5 }}>
+        <span className="cn-text-caption text-[var(--faint)] font-bold text-[10.5px] uppercase tracking-[0.06em] me-0.5">
           Services reliés
-        </Typography>
+        </span>
         {visibleProviders.length === 0 && !loading ? (
-          <Typography variant="caption" sx={{ color: 'text.disabled' }}>Aucun service relié pour l'instant.</Typography>
+          <span className="cn-text-caption text-muted-foreground opacity-60">Aucun service relié pour l'instant.</span>
         ) : (
           visibleProviders.map((p) => {
             // Statut -soft : connecté = --ok, à reconnecter = --warn (tokens thémables)
@@ -159,7 +159,7 @@ export default function ConnectedObjectsHub({
 
       {/* Filtre par type */}
       {kindsPresent.length > 1 && (
-        <Box sx={{ mb: 1.5 }}>
+        <div className="mb-2">
           <FilterChipRow<DeviceKind>
             value={kindFilter}
             onChange={setKindFilter}
@@ -173,7 +173,7 @@ export default function ConnectedObjectsHub({
               count: devices.filter((d) => d.kind === k).length,
             }))}
           />
-        </Box>
+        </div>
       )}
 
       {/* Contenu : grille groupée par logement */}
@@ -197,7 +197,7 @@ export default function ConnectedObjectsHub({
         />
       ) : (
         filteredGroups.map((group) => (
-          <Box key={group.propertyId ?? 'none'} sx={{ mb: 2 }}>
+          <div className="mb-3" key={group.propertyId ?? 'none'}>
             <Box
               onClick={group.propertyId != null ? () => navigate(`/connected-objects/property/${group.propertyId}`) : undefined}
               sx={{
@@ -207,15 +207,15 @@ export default function ConnectedObjectsHub({
                 '&:hover .co-prop-name': { color: group.propertyId != null ? 'var(--accent)' : 'text.primary' },
               }}
             >
-              <Box component="span" sx={{ color: 'text.secondary', display: 'inline-flex' }}>
+              <span className="text-muted-foreground inline-flex">
                 <Home size={15} strokeWidth={1.75} />
-              </Box>
+              </span>
               <Typography className="co-prop-name" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'text.primary', transition: 'color 150ms' }}>{group.propertyName}</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>· {group.devices.length} objet{group.devices.length > 1 ? 's' : ''}</Typography>
+              <span className="cn-text-caption text-muted-foreground opacity-60">· {group.devices.length} objet{group.devices.length > 1 ? 's' : ''}</span>
               {group.propertyId != null && (
-                <Box component="span" sx={{ color: 'text.disabled', display: 'inline-flex', ml: 0.25 }}>
+                <span className="text-muted-foreground opacity-60 inline-flex ms-0.5">
                   <ChevronRight size={15} strokeWidth={1.75} />
-                </Box>
+                </span>
               )}
             </Box>
             <Box sx={GRID}>
@@ -223,17 +223,17 @@ export default function ConnectedObjectsHub({
                 <DeviceCard key={d.uid} device={d} onAction={handleAction} acting={actingUid === d.uid} />
               ))}
             </Box>
-          </Box>
+          </div>
         ))
       )}
 
       {/* Types à venir (caméras, thermostats) — place réservée */}
       {comingSoon.length > 0 && (
-        <Box sx={{ mt: 1 }}>
-          <Typography variant="caption" sx={{ color: 'var(--faint)', fontWeight: 700, fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 0.75 }}>
+        <div className="mt-1.5">
+          <span className="cn-text-caption text-[var(--faint)] font-bold text-[10.5px] uppercase tracking-[0.06em] block mb-1">
             Bientôt disponible
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          </span>
+          <div className="flex gap-1.5 flex-wrap">
             {comingSoon.map((k) => {
               const meta = DEVICE_KINDS[k];
               const previewRoute = PREVIEW_ROUTES[k];
@@ -252,11 +252,11 @@ export default function ConnectedObjectsHub({
                     }}
                   >
                     <Box component="span" sx={{ color: meta.color, display: 'inline-flex' }}>{meta.icon(16)}</Box>
-                    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>{meta.label}</Typography>
+                    <p className="cn-text-body2 text-muted-foreground font-medium">{meta.label}</p>
                     {previewRoute ? (
                       <>
                         <Chip size="small" label="Aperçu" sx={{ height: 18, fontSize: '0.65rem', bgcolor: alpha(meta.color, 0.15), color: meta.color, fontWeight: 700 }} />
-                        <Box component="span" sx={{ color: 'text.disabled', display: 'inline-flex' }}><ChevronRight size={14} strokeWidth={1.75} /></Box>
+                        <span className="text-muted-foreground opacity-60 inline-flex"><ChevronRight size={14} strokeWidth={1.75} /></span>
                       </>
                     ) : (
                       <Chip size="small" label="Bientôt" sx={{ height: 18, fontSize: '0.65rem' }} />
@@ -265,8 +265,8 @@ export default function ConnectedObjectsHub({
                 </Tooltip>
               );
             })}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       <AddDeviceWizard open={wizardOpen} onClose={() => setWizardOpen(false)} onAdded={() => { void refetch(); }} />
@@ -274,6 +274,6 @@ export default function ConnectedObjectsHub({
       <Snackbar open={!!connectMsg} autoHideDuration={6000} onClose={() => setConnectMsg(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         {connectMsg ? <Alert severity="info" variant="filled" onClose={() => setConnectMsg(null)} sx={{ width: '100%' }}>{connectMsg}</Alert> : undefined}
       </Snackbar>
-    </Box>
+    </div>
   );
 }

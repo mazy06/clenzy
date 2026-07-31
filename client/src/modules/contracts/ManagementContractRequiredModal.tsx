@@ -1,9 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Box, Button, Typography, Alert, CircularProgress,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Alert, CircularProgress } from '@mui/material';
 import { Handshake, Check } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -93,35 +90,28 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
       disableEscapeKeyDown
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
-        <Box
-          component="span"
-          sx={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 28, height: 28, borderRadius: '8px',
-            bgcolor: 'var(--accent-soft)', color: 'var(--accent)',
-          }}
-        >
+        <span className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-[8px] bg-[var(--accent-soft)] text-[var(--accent)]">
           <Handshake size={16} strokeWidth={2} />
-        </Box>
-        <Box>
-          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 600, lineHeight: 1.2, color: 'var(--ink)' }}>
+        </span>
+        <div>
+          <p className="cn-text-body1 font-[var(--font-display)] text-[16px] font-semibold leading-[1.2] text-[var(--ink)]">
             {t('contracts.required.title', 'Contrat de gestion requis')}
-          </Typography>
+          </p>
           {property && (
-            <Typography sx={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+            <p className="cn-text-body1 text-[0.75rem] text-[var(--muted)]">
               {property.name}
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
       </DialogTitle>
 
       <DialogContent dividers sx={{ px: 3, py: 3 }}>
-        <Typography sx={{ fontSize: '0.8125rem', color: 'var(--muted)', mb: 3 }}>
+        <p className="cn-text-body1 text-[0.8125rem] text-[var(--muted)] mb-4">
           {t(
             'contracts.required.intro',
             "Avant d'exploiter ce logement, définissez le contrat de gestion : il fixe le modèle d'encaissement (taxonomie OTA) et la commission qui pilotent la répartition des paiements. Choisissez un modèle pour préremplir, puis ajustez les détails.",
           )}
-        </Typography>
+        </p>
 
         <ManagementContractFormFields
           form={form}

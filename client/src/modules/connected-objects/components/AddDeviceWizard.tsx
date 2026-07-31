@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem,
-  Box, Typography, Paper, Alert, CircularProgress, alpha,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Box, Paper, Alert, CircularProgress, alpha } from '@mui/material';
 import { ChevronRight } from '../../../icons';
 import { propertiesApi, type Property } from '../../../services/api/propertiesApi';
 import { smartLockApi, type SmartLockBrand, type SmartLockAccessCodeMode } from '../../../services/api/smartLockApi';
@@ -144,7 +141,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
                   }}
                 >
                   <Box sx={{ color: meta.color, display: 'inline-flex' }}>{meta.icon(22)}</Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{meta.label}</Typography>
+                  <p className="cn-text-body2 font-semibold">{meta.label}</p>
                 </Paper>
               );
             })}
@@ -153,7 +150,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
 
         {/* Étape 2 — Service / marque */}
         {step === 1 && kind && (
-          <Box sx={{ mt: 1.5 }}>
+          <div className="mt-2">
             <TextField
               select fullWidth size="small" label="Service / marque" value={provider}
               onChange={(e) => setProvider(e.target.value)}
@@ -165,12 +162,12 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
             <Alert severity="info" sx={{ mt: 1.5 }}>
               Le service doit être relié dans <strong>Réglages → Services connectés</strong> pour piloter l'objet à distance.
             </Alert>
-          </Box>
+          </div>
         )}
 
         {/* Étape 3 — Affectation */}
         {step === 2 && kind && (
-          <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <div className="mt-2 flex flex-col gap-2">
             <TextField
               select fullWidth size="small" label="Logement" value={propertyId}
               onChange={(e) => setPropertyId(Number(e.target.value))}
@@ -233,7 +230,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
               />
             )}
             {error && <Alert severity="error">{error}</Alert>}
-          </Box>
+          </div>
         )}
       </DialogContent>
       <DialogActions>

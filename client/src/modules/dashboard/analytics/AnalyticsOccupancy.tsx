@@ -67,11 +67,11 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
                 {t('dashboard.analytics.occupancyByMonth')}
               </Typography>
               {loading || !data ? (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0 }}>
+                <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.byMonth} margin={{ top: 4, right: 6, left: -18, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
@@ -82,7 +82,7 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
                       <Bar dataKey="vacant" name={t('dashboard.analytics.vacant')} fill="#E2E8F0" stackId="a" radius={[3, 3, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
-                </Box>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -96,11 +96,11 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
                 {t('dashboard.analytics.occupancyByProperty')}
               </Typography>
               {loading || !data ? (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0 }}>
+                <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.byProperty.slice(0, 6)} layout="vertical" margin={{ top: 4, right: 6, left: 0, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} horizontal={false} />
@@ -110,7 +110,7 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
                       <Bar dataKey="rate" fill="#6B8A9A" radius={[0, 3, 3, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
-                </Box>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -135,9 +135,9 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
                 {t('dashboard.analytics.heatmap')}
               </Typography>
               {loading || !data ? (
-                <Box sx={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="h-[100px] flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '2px', mt: 0.5 }}>
                   {data.heatmap.map((day) => (
@@ -157,7 +157,7 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
                 </Box>
               )}
               {/* Legend */}
-              <Box sx={{ display: 'flex', gap: 0.75, mt: 0.75, alignItems: 'center' }}>
+              <div className="flex gap-1 mt-1 items-center">
                 {[
                   { label: '0%', color: '#F1F5F9' },
                   { label: '20%', color: '#C97A7A' },
@@ -165,12 +165,12 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
                   { label: '80%', color: '#6B8A9A' },
                   { label: '100%', color: '#4A9B8E' },
                 ].map((item) => (
-                  <Box key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                  <div className="flex items-center gap-0.5" key={item.label}>
                     <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: item.color }} />
-                    <Typography sx={{ fontSize: '0.5rem', color: 'text.disabled' }}>{item.label}</Typography>
-                  </Box>
+                    <p className="cn-text-body1 text-[0.5rem] text-muted-foreground opacity-60">{item.label}</p>
+                  </div>
                 ))}
-              </Box>
+              </div>
             </CardContent>
           </Card>
         </Grid>

@@ -132,20 +132,20 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
     >
       <CardContent sx={CARD_CONTENT_SX}>
         {loading ? (
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
+          <div>
+            <div className="flex items-center gap-1 mb-0.5">
               <Skeleton variant="rectangular" width={28} height={28} sx={{ borderRadius: 1 }} />
-              <Box sx={{ flex: 1 }}>
+              <div className="flex-1">
                 <Skeleton variant="text" width="60%" height={14} />
                 <Skeleton variant="text" width="40%" height={20} />
-              </Box>
-            </Box>
+              </div>
+            </div>
             <Skeleton variant="text" width="50%" height={10} />
-          </Box>
+          </div>
         ) : (
           <>
             {/* Header row with icon + title */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
+            <div className="flex items-center gap-1 mb-0.5">
               {icon && (
                 <Box
                   sx={{
@@ -165,7 +165,7 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
               <Typography variant="body2" color="text.secondary" sx={TITLE_SX}>
                 {title}
               </Typography>
-            </Box>
+            </div>
 
             {/* Value */}
             {value != null && value !== '' && (
@@ -180,13 +180,13 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
 
             {/* Trend */}
             {trend && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mt: 0.25 }}>
+              <div className="flex items-center gap-0.5 mt-0.5">
                 {trend.value > 0 ? (
                   <TrendingUp color="success" size={11} strokeWidth={1.75} />
                 ) : trend.value < 0 ? (
                   <TrendingDown color="error" size={11} strokeWidth={1.75} />
                 ) : (
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><Remove size={11} strokeWidth={1.75} /></Box>
+                  <span className="inline-flex text-muted-foreground opacity-60"><Remove size={11} strokeWidth={1.75} /></span>
                 )}
                 <Typography
                   variant="caption"
@@ -202,14 +202,14 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
                   {trend.value > 0 ? '+' : ''}{trend.value}%
                   {trend.label ? ` ${trend.label}` : ''}
                 </Typography>
-              </Box>
+              </div>
             )}
 
             {/* Custom content (charts, etc.) */}
             {children && (
-              <Box sx={{ flex: 1, minHeight: 0, mt: 0.5 }}>
+              <div className="flex-1 min-h-0 mt-0.5">
                 {children}
-              </Box>
+              </div>
             )}
           </>
         )}

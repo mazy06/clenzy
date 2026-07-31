@@ -1,9 +1,5 @@
 import React from 'react';
-import {
-  Box, Typography, Button, CircularProgress,
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  ToggleButton, ToggleButtonGroup, FormControl, InputLabel, Select as MuiSelect, MenuItem,
-} from '@mui/material';
+import { Button, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, ToggleButton, ToggleButtonGroup, FormControl, InputLabel, Select as MuiSelect, MenuItem } from '@mui/material';
 import { Person as PersonIcon, Group as GroupIcon } from '../../icons';
 import type { Team } from '../../services/api';
 import type { User } from '../../services/api/usersApi';
@@ -38,9 +34,9 @@ const InterventionAssignDialog: React.FC<InterventionAssignDialogProps> = ({
     <DialogTitle sx={{ pb: 1, fontSize: '1rem', fontWeight: 600 }}>
       Assigner l'intervention
       {selectedIntervention && (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontSize: '0.8125rem' }}>
+        <p className="cn-text-body2 text-muted-foreground mt-0.5 text-[0.8125rem]">
           {selectedIntervention.title}
-        </Typography>
+        </p>
       )}
     </DialogTitle>
     <DialogContent sx={{ pt: 2 }}>
@@ -58,11 +54,11 @@ const InterventionAssignDialog: React.FC<InterventionAssignDialogProps> = ({
         sx={{ mb: 2 }}
       >
         <ToggleButton value="team" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
-          <Box component="span" sx={{ display: "inline-flex", mr: 0.5 }}><GroupIcon size={18} strokeWidth={1.75} /></Box>
+          <span className="inline-flex me-0.5"><GroupIcon size={18} strokeWidth={1.75} /></span>
           Équipe
         </ToggleButton>
         <ToggleButton value="user" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
-          <Box component="span" sx={{ display: "inline-flex", mr: 0.5 }}><PersonIcon size={18} strokeWidth={1.75} /></Box>
+          <span className="inline-flex me-0.5"><PersonIcon size={18} strokeWidth={1.75} /></span>
           Utilisateur
         </ToggleButton>
       </ToggleButtonGroup>
@@ -79,9 +75,9 @@ const InterventionAssignDialog: React.FC<InterventionAssignDialogProps> = ({
                 <MenuItem key={team.id} value={team.id} sx={{ fontSize: '0.875rem' }}>
                   {team.name}
                   {team.memberCount !== undefined && (
-                    <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                    <span className="cn-text-caption text-muted-foreground ms-1.5">
                       ({team.memberCount} membres)
-                    </Typography>
+                    </span>
                   )}
                 </MenuItem>
               ))
@@ -89,9 +85,9 @@ const InterventionAssignDialog: React.FC<InterventionAssignDialogProps> = ({
                 <MenuItem key={u.id} value={u.id} sx={{ fontSize: '0.875rem' }}>
                   {u.firstName} {u.lastName}
                   {u.role && (
-                    <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                    <span className="cn-text-caption text-muted-foreground ms-1.5">
                       ({u.role})
-                    </Typography>
+                    </span>
                   )}
                 </MenuItem>
               ))}

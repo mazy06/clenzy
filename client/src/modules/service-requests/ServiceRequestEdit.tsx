@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Button } from '@mui/material';
+import { Button } from '@mui/material';
 import { Cancel, Save } from "../../icons";
 import ServiceRequestForm from './ServiceRequestForm';
 import PageHeader from '../../components/PageHeader';
@@ -19,15 +19,15 @@ const ServiceRequestEdit: React.FC = () => {
   const handleClose = () => navigate(`/service-requests/${id}`);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      <Box sx={{ flexShrink: 0 }}>
+    <div className="flex flex-col h-full min-h-0">
+      <div className="shrink-0">
         <PageHeader
           title={t('serviceRequests.edit')}
           subtitle={t('serviceRequests.editSubtitle')}
           backPath={`/service-requests/${id}`}
           showBackButton={true}
           actions={
-            <Box sx={{ display: 'flex', gap: 0.75 }}>
+            <div className="flex gap-1">
               <Button
                 variant="outlined"
                 onClick={handleClose}
@@ -48,12 +48,12 @@ const ServiceRequestEdit: React.FC = () => {
               >
                 {loading ? t('serviceRequests.updating') : t('serviceRequests.update')}
               </Button>
-            </Box>
+            </div>
           }
         />
-      </Box>
+      </div>
 
-      <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+      <div className="flex-1 min-h-0 overflow-auto">
         <ServiceRequestForm
           serviceRequestId={Number(id)}
           mode="edit"
@@ -62,8 +62,8 @@ const ServiceRequestEdit: React.FC = () => {
           loading={loading}
           submitRef={submitRef}
         />
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

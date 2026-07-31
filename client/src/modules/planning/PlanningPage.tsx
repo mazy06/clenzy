@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Box, CircularProgress, Alert, Typography, Button, Tooltip, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { Box, CircularProgress, Alert, Button, Tooltip, IconButton, useMediaQuery, useTheme } from '@mui/material';
 import { CalendarMonth, Add, CloudDownload, Fullscreen, FullscreenExit } from '../../icons';
 import EmptyState from '../../components/EmptyState';
 import PageHeader from '../../components/PageHeader';
@@ -699,7 +699,7 @@ const PlanningPage: React.FC = () => {
 
       {/* Toolbar — navigation/zoom/légendes du planning : masqué en Vue d'ensemble */}
       {!isOverview && (
-        <Box sx={{ flexShrink: 0, mb: 1 }}>
+        <div className="shrink-0 mb-1.5">
           <PlanningToolbar
             currentDate={visibleMonthDate}
             zoom={nav.zoom}
@@ -718,7 +718,7 @@ const PlanningPage: React.FC = () => {
             activeStatuses={activeStatuses}
             onToggleStatus={toggleStatus}
           />
-        </Box>
+        </div>
       )}
 
       {/* Error */}
@@ -730,38 +730,28 @@ const PlanningPage: React.FC = () => {
 
       {/* Vue d'ensemble (portefeuille) — plein largeur, masque la grille */}
       {isOverview ? (
-        <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto', px: 1.5 }}>
+        <div className="flex-1 min-h-0 min-w-0 overflow-auto px-2">
           <PortfolioPanel createProvider={createPortfolioProvider} deps={['portfolio']} />
-        </Box>
+        </div>
       ) : loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, gap: 1.5 }}>
+        <div className="flex justify-center items-center flex-1 gap-2">
           <CircularProgress size={28} />
-          <Typography variant="body2" color="text.secondary">
+          <p className="cn-text-body2 text-muted-foreground">
             Chargement du planning...
-          </Typography>
-        </Box>
+          </p>
+        </div>
       ) : filteredProperties.length === 0 ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, px: 2 }}>
+        <div className="flex justify-center items-center flex-1 px-3">
           <EmptyState
             icon={<CalendarMonth />}
             title="Aucun logement trouvé"
             description="Vérifiez vos filtres ou ajoutez des propriétés pour les voir apparaître dans le planning."
             variant="transparent"
           />
-        </Box>
+        </div>
       ) : (
         /* Main content area */
-        <Box
-          sx={{
-            flex: 1,
-            minHeight: 0,
-            minWidth: 0,
-            overflow: 'hidden',
-            px: 1.5,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
+        <div className="flex-1 min-h-0 min-w-0 overflow-hidden px-2 flex flex-col">
           <PlanningTimeline
             properties={pagination.paginatedProperties}
             days={timeline.days}
@@ -806,7 +796,7 @@ const PlanningPage: React.FC = () => {
               onNextPage={pagination.goNextPage}
             />
           </Box>
-        </Box>
+        </div>
       )}
 
       {/* Action Panel */}

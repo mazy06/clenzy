@@ -29,11 +29,11 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
   // Si aucun rôle n'est sélectionné, afficher un message
   if (!selectedRole || !rolePermissions) {
     return (
-      <Box>
+      <div>
         <Alert severity="info">
           Veuillez sélectionner un rôle pour voir la démonstration des effets
         </Alert>
-      </Box>
+      </div>
     );
   }
 
@@ -121,7 +121,7 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
   };
 
   return (
-    <Box>
+    <div>
       <Grid container spacing={2}>
         {menuPermissions.map((menu) => {
           const status = getMenuStatus(menu.name, menu.permissions);
@@ -145,26 +145,18 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
               >
                 <CardContent sx={{ p: 2.5 }}>
                   {/* En-tête avec icône et statut */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                    <Box sx={{ 
-                      p: 1, 
-                      bgcolor: 'grey.100', 
-                      borderRadius: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'text.secondary'
-                    }}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-1.5 bg-[grey.100] rounded-[1px] flex items-center justify-center text-muted-foreground">
                       {getModuleIcon(menu.name)}
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+                    </div>
+                    <div className="flex-1">
+                      <h6 className="cn-text-h6 font-semibold text-foreground mb-0.5">
                         {menu.name}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+                      </h6>
+                      <p className="cn-text-body2 text-muted-foreground leading-[1.4]">
                         {menu.description}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                     <Chip
                       label={status.accessible ? 'Accessible' : 'Inaccessible'}
                       size="small"
@@ -176,24 +168,17 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
                         minWidth: 80
                       }}
                     />
-                  </Box>
+                  </div>
                   
                   {/* Permissions requises */}
-                  <Box sx={{ 
-                    p: 1.5, 
-                    bgcolor: 'grey.50', 
-                    borderRadius: 1, 
-                    mb: 2,
-                    border: '1px solid',
-                    borderColor: 'grey.200'
-                  }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, display: 'block', mb: 0.5 }}>
+                  <div className="p-2 bg-[grey.50] rounded-[1px] mb-3 border border-[grey.200]">
+                    <span className="cn-text-caption text-muted-foreground font-medium block mb-0.5">
                       Permissions requises
-                    </Typography>
-                    <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500, fontFamily: 'monospace' }}>
+                    </span>
+                    <p className="cn-text-body2 text-foreground font-medium font-mono">
                       {menu.permissions.join(', ')}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                   
                   {/* Raison du statut */}
                   <Box sx={{ 
@@ -215,7 +200,7 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
       </Grid>
 
       {/* Résumé des accès */}
-      <Box sx={{ mt: 4 }}>
+      <div className="mt-6">
         <Grid container spacing={2}>
           <Grid item xs={12} md={6}>
             <Card 
@@ -228,12 +213,12 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
                 borderWidth: 1.5
               }}
             >
-              <Typography variant="h4" color="success.main" sx={{ fontWeight: 700, mb: 1 }}>
+              <h4 className="cn-text-h4 text-[var(--bui-success-ink)] font-bold mb-1.5">
                 {rolePermissions.permissions.length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+              </h4>
+              <p className="cn-text-body2 text-muted-foreground font-medium">
                 Permissions actives
-              </Typography>
+              </p>
             </Card>
           </Grid>
           
@@ -251,15 +236,15 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
               <Typography variant="h4" color={rolePermissions.isDefault ? 'success.main' : 'warning.main'} sx={{ fontWeight: 700, mb: 1 }}>
                 {rolePermissions.isDefault ? '✅' : '⚠️'}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+              <p className="cn-text-body2 text-muted-foreground font-medium">
                 {rolePermissions.isDefault ? 'Par défaut' : 'Modifié'}
-              </Typography>
+              </p>
             </Card>
           </Grid>
         </Grid>
         
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

@@ -143,10 +143,10 @@ const renderFilter = (filterKey: string, filter: FilterConfig) => {
       >
         {filter.options.map((option: FilterOption) => (
           <MenuItem key={option.value} value={option.value} sx={MENU_ITEM_SX}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <div className="flex items-center gap-1">
               {option.icon}
               {option.label}
-            </Box>
+            </div>
           </MenuItem>
         ))}
       </Select>
@@ -293,30 +293,21 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
             },
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontSize: '10.5px',
-                fontWeight: 700,
-                letterSpacing: '.06em',
-                textTransform: 'uppercase',
-                color: 'var(--faint)',
-              }}
-            >
+          <div className="flex items-center justify-between mb-3">
+            <h6 className="cn-text-subtitle2 text-[10.5px] font-bold tracking-[.06em] uppercase text-[var(--faint)]">
               Filtres
-            </Typography>
+            </h6>
             <IconButton size="small" onClick={() => setFilterAnchor(null)} sx={{ p: 0.25 }}>
               <CloseIcon size={16} />
             </IconButton>
-          </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          </div>
+          <div className="flex flex-col gap-2">
             {Object.entries(filters).map(([key, filter]) =>
               filter ? renderFilter(key, filter) : null
             )}
-          </Box>
+          </div>
           {activeFilterCount > 0 && (
-            <Box sx={{ mt: 2, pt: 1.5, borderTop: '1px solid var(--line)' }}>
+            <div className="mt-3 pt-2 border-t border-[var(--line)]">
               <Typography
                 variant="caption"
                 sx={{
@@ -332,7 +323,7 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
               >
                 Effacer tous les filtres
               </Typography>
-            </Box>
+            </div>
           )}
         </Popover>
       </Box>
@@ -342,17 +333,17 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
 
   if (bare) {
     return (
-      <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: 1, alignItems: 'center', width: '100%', overflow: 'hidden' }}>
+      <div className="flex flex-nowrap gap-1.5 items-center w-full overflow-hidden">
         {content}
-      </Box>
+      </div>
     );
   }
 
   return (
     <Paper sx={{ ...PAPER_SX, ...sx }}>
-      <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: 1, alignItems: 'center', overflow: 'hidden' }}>
+      <div className="flex flex-nowrap gap-1.5 items-center overflow-hidden">
         {content}
-      </Box>
+      </div>
     </Paper>
   );
 };

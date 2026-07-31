@@ -75,8 +75,8 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
           }}
         >
           {/* Identity */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0, flex: 1 }}>
-            <Box sx={{ position: 'relative', flexShrink: 0 }}>
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="relative shrink-0">
               <Avatar
                 src={photoUrl ?? undefined}
                 sx={{
@@ -109,8 +109,8 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
                   }}
                 />
               )}
-            </Box>
-            <Box sx={{ minWidth: 0 }}>
+            </div>
+            <div className="min-w-0">
               <Typography
                 variant="h5"
                 sx={{
@@ -124,31 +124,22 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
               >
                 {user.firstName} {user.lastName}
               </Typography>
-              <Typography
-                sx={{
-                  fontSize: '0.8125rem',
-                  color: 'text.secondary',
-                  mt: 0.25,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
+              <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap">
                 {user.email}
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
 
           {/* Chips */}
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', flexShrink: 0 }}>
+          <div className="flex gap-1 flex-wrap shrink-0">
             <Chip
               icon={
-                <Box component="span" sx={{ display: 'inline-flex' }}>
+                <span className="inline-flex">
                   {React.cloneElement(roleInfo.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
                     size: 14,
                     strokeWidth: 1.75,
                   })}
-                </Box>
+                </span>
               }
               label={roleInfo.label}
               size="small"
@@ -166,7 +157,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
                 color: (SEM_TOKEN[statusInfo.color] ?? NEUTRAL_TOKEN).fg,
               }}
             />
-          </Box>
+          </div>
         </Box>
 
         {/* Meta row — replaces the 3-up centered KPI tiles. */}
@@ -225,9 +216,9 @@ const MetaItem: React.FC<{
         '&:hover': href ? { color: 'var(--accent)' } : undefined,
       }}
     >
-      <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+      <span className="inline-flex text-muted-foreground opacity-60">
         {icon}
-      </Box>
+      </span>
       <Box
         component="span"
         sx={{
@@ -244,9 +235,9 @@ const MetaItem: React.FC<{
 
   if (href) {
     return (
-      <Box component="a" href={href} sx={{ textDecoration: 'none' }}>
+      <a className="no-underline" href={href}>
         {content}
-      </Box>
+      </a>
     );
   }
   return content;

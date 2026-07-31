@@ -33,9 +33,9 @@ export function PendingQueue({ actions, onValidate, onEdit, onAdjustPrice, varia
         sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: '14px 8px', color: 'var(--muted)' }}
       >
         <CheckCircle size={28} style={{ color: 'var(--ok)', flexShrink: 0 }} />
-        <Box>
+        <div>
           <Box sx={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink, #1b2240)' }}>{t('supervision.hitl.empty')}</Box>
-        </Box>
+        </div>
       </Box>
     );
   }

@@ -345,14 +345,14 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
           key={wp.interventionType}
           icon={<Build size={14} strokeWidth={1.75} />}
           label={
-            <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+            <span className="inline-flex items-center gap-0.5">
               <span>{wp.label}</span>
               {wp.basePrice > 0 && (
                 <Box component="span" sx={{ fontSize: '10px', fontWeight: 600, color: isSelected ? catFg : 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
                   {wp.basePrice} €
                 </Box>
               )}
-            </Box>
+            </span>
           }
           onClick={disabled ? undefined : () => handleWorkPrestationClick(wp)}
           disabled={disabled}
@@ -391,17 +391,17 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
         )}
 
         {/* Type de service — Catégories principales */}
-        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1 }}>
+        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1.5">
           {t('serviceRequests.fields.serviceType')} *
-        </Typography>
+        </p>
 
         <Controller
           name="serviceType"
           control={control}
           render={({ fieldState }) => (
-            <Box>
+            <div>
               {/* 3 catégories — chips sélecteurs : actif = texte couleur + fond -soft */}
-              <Box sx={{ display: 'flex', gap: 1, mb: 1.5, flexWrap: 'wrap' }}>
+              <div className="flex gap-1.5 mb-2 flex-wrap">
                 {CATEGORIES.map((cat) => {
                   const isActive = activeCategory === cat.key;
                   return (
@@ -435,31 +435,26 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                     />
                   );
                 })}
-              </Box>
+              </div>
 
               {/* Catalogue maintenance chiffré, regroupé par domaine */}
               {useWorkCatalogue && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                <div className="flex flex-col gap-2">
                   {workDomainGroups.map(([domain, items]) => (
-                    <Box key={domain}>
-                      <Typography
-                        sx={{
-                          fontSize: '10px', fontWeight: 700, color: 'var(--faint)',
-                          textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.625,
-                        }}
-                      >
+                    <div key={domain}>
+                      <p className="cn-text-body1 text-[10px] font-bold text-[var(--faint)] uppercase tracking-[0.06em] mb-1">
                         {domain}
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                      </p>
+                      <div className="flex gap-1 flex-wrap">
                         {items.map((wp) => renderWorkChip(wp))}
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
                   ))}
-                </Box>
+                </div>
               )}
 
               {/* Sous-types (sélecteur, non-maintenance) + types personnalisés */}
-              <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+              <div className="flex gap-1 flex-wrap">
                 {!useWorkCatalogue && subTypes.map((option) => {
                   const isSelected = watchedServiceType === option.value;
                   const activeCat = CATEGORIES.find(c => c.key === activeCategory);
@@ -602,7 +597,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                     </>
                   );
                 })()}
-              </Box>
+              </div>
 
               {/* Erreur de validation */}
               {fieldState.error && (
@@ -610,18 +605,18 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                   {fieldState.error.message}
                 </FormHelperText>
               )}
-            </Box>
+            </div>
           )}
         />
 
         {/* ─── Prestations à la carte (ménage uniquement) ─── */}
         {isCleaning && availablePrestations.length > 0 && (
-          <Box sx={{ mt: 2 }}>
-            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1 }}>
+          <div className="mt-3">
+            <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1.5">
               Prestations à la carte
-            </Typography>
+            </p>
 
-            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+            <div className="flex gap-1 flex-wrap">
               {availablePrestations.map((p) => {
                 const isActive = activePrestations.has(p.key);
                 const isIncluded = includedPrestationsSet.has(p.key);
@@ -641,18 +636,18 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                     key={p.key}
                     icon={p.icon}
                     label={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <div className="flex items-center gap-0.5">
                         <span>{chipLabel}</span>
                         {isIncluded ? (
-                          <Typography component="span" sx={{ fontSize: '9.5px', color: 'var(--ok)', fontWeight: 700, bgcolor: 'var(--ok-soft)', px: 0.5, py: 0.1, borderRadius: '4px' }}>
+                          <span className="text-[9.5px] text-[var(--ok)] font-bold bg-[var(--ok-soft)] px-0.5 py-0 rounded-[4px]">
                             Inclus
-                          </Typography>
+                          </span>
                         ) : (
                           <Typography component="span" sx={{ fontSize: '10px', color: isActive ? 'var(--accent)' : 'var(--faint)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
                             {extraLabel}
                           </Typography>
                         )}
-                      </Box>
+                      </div>
                     }
                     onClick={disabled ? undefined : () => handleTogglePrestation(p.key)}
                     disabled={disabled}
@@ -683,8 +678,8 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                   />
                 );
               })}
-            </Box>
-          </Box>
+            </div>
+          </div>
         )}
 
         {/* Séparateur reliant la sélection du type au chiffrage (modale). */}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import { Close, Home, Public as GlobeIcon, Schedule, CheckCircle } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ReservationStatus } from '../../services/api';
@@ -41,19 +41,9 @@ const ReservationDialogHeader: React.FC<Props> = ({ form, onClose, entryMode, on
         flexShrink: 0,
       }}
     >
-      <Typography
-        component="span"
-        sx={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '18px',
-          fontWeight: 600,
-          color: 'var(--ink)',
-          letterSpacing: '-0.01em',
-          whiteSpace: 'nowrap',
-        }}
-      >
+      <span className="font-[var(--font-display)] text-[18px] font-semibold text-[var(--ink)] tracking-[-0.01em] whitespace-nowrap">
         {isBlock ? t('reservations.dialog.blockTitle') : form.headerTitle}
-      </Typography>
+      </span>
 
       {/* Toggle réservation / blocage (création uniquement) */}
       {showModeToggle && (
@@ -121,12 +111,12 @@ const ReservationDialogHeader: React.FC<Props> = ({ form, onClose, entryMode, on
             minWidth: 0,
           }}
         >
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', flexShrink: 0 }}>
+          <span className="inline-flex text-[var(--accent)] shrink-0">
             <Home size={16} strokeWidth={1.75} />
-          </Box>
-          <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          </span>
+          <span className="overflow-hidden text-ellipsis whitespace-nowrap">
             {form.propertyName || t('reservations.dialog.propertyPlaceholder')}
-          </Box>
+          </span>
         </Box>
       )}
 

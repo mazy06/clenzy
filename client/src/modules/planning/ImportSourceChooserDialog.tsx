@@ -76,14 +76,14 @@ function ChoiceCard({ icon, iconBg, iconColor, title, description, onSelect }: C
       >
         {icon}
       </Box>
-      <Box>
+      <div>
         <Typography sx={{ fontWeight: 700, fontSize: 14.5, color: 'var(--ink)', textWrap: 'balance' }}>
           {title}
         </Typography>
-        <Typography sx={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.45, mt: 0.5 }}>
+        <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] leading-[1.45] mt-0.5">
           {description}
-        </Typography>
-      </Box>
+        </p>
+      </div>
     </Box>
   );
 }
@@ -99,9 +99,9 @@ export default function ImportSourceChooserDialog({
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         {t('planning.importChooser.title', 'Importer des réservations')}
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        <p className="cn-text-body2 text-muted-foreground mt-0.5">
           {t('planning.importChooser.subtitle', 'Choisissez comment connecter vos canaux de réservation.')}
-        </Typography>
+        </p>
       </DialogTitle>
       <DialogContent sx={{ pb: 3 }}>
         <Box sx={{ display: 'flex', gap: 1.5, flexDirection: { xs: 'column', sm: 'row' } }}>

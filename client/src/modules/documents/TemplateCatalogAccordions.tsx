@@ -1,14 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Chip,
-  Button,
-  Divider,
-} from '@mui/material';
+import { Box, Accordion, AccordionSummary, AccordionDetails, Chip, Button, Divider } from '@mui/material';
 import {
   ExpandMore,
   EventAvailable,
@@ -402,14 +393,11 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
   };
 
   return (
-    <Box sx={{ mb: 4 }}>
+    <div className="mb-6">
       {/* Section title — no forced uppercase, no aggressive letter-spacing (anti-pattern templated) */}
-      <Typography
-        variant="subtitle2"
-        sx={{ mb: 1.5, color: 'text.secondary', fontSize: '0.78rem', fontWeight: 600 }}
-      >
+      <h6 className="cn-text-subtitle2 mb-2 text-muted-foreground text-[0.78rem] font-semibold">
         Catalogue des templates par étape du parcours
-      </Typography>
+      </h6>
 
       {CATALOG_GROUPS.map((group) => (
         <Accordion
@@ -437,7 +425,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
               '&.Mui-expanded': { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: '1px solid', borderColor: 'divider' },
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, width: '100%' }}>
+            <div className="flex items-center gap-2 w-full">
               {/* Badge icone Baitly (tile 26x26, accent color, contraste WCAG AA+) */}
               <Box
                 sx={{
@@ -459,15 +447,15 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                     })
                   : group.icon}
               </Box>
-              <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', flex: 1, color: 'text.primary' }}>
+              <p className="cn-text-body1 font-semibold text-[0.875rem] flex-1 text-foreground">
                 {group.label}
-              </Typography>
+              </p>
               <Chip
                 label={`${group.items.length} template${group.items.length > 1 ? 's' : ''}`}
                 size="small"
                 sx={chipSx(group.tone)}
               />
-            </Box>
+            </div>
           </AccordionSummary>
           <AccordionDetails sx={{ p: 0 }}>
             {group.items.map((item, idx) => {
@@ -476,41 +464,41 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
               const channel = CHANNEL_CONFIG[item.channel] || CHANNEL_CONFIG.email;
 
               return (
-                <Box key={item.id}>
+                <div key={item.id}>
                   {idx > 0 && <Divider />}
-                  <Box sx={{ p: 2 }}>
+                  <div className="p-3">
                     {/* Header : titre + chips meta uniformes (toutes en softChipSx) */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1, flexWrap: 'wrap' }}>
-                      <Typography sx={{ fontWeight: 600, fontSize: '0.8125rem', flex: 1, minWidth: 0 }}>
+                    <div className="flex items-center gap-1 mb-1.5 flex-wrap">
+                      <p className="cn-text-body1 font-semibold text-[0.8125rem] flex-1 min-w-0">
                         {item.name}
-                      </Typography>
+                      </p>
                       <Chip label={trigger.label} size="small" sx={chipSx(trigger.tone)} />
                       <Chip label={channel.label} size="small" sx={chipSx(channel.tone)} />
                       <Chip label={item.recipient} size="small" sx={chipSx(TONES.muted)} />
-                    </Box>
+                    </div>
 
                     {/* Description */}
-                    <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8125rem', mb: 1.25, lineHeight: 1.5 }}>
+                    <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] mb-2 leading-[1.5]">
                       {item.description}
-                    </Typography>
+                    </p>
 
                     {/* Trigger detail */}
-                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mb: 0.5 }}>
-                      <Box component="strong" sx={{ color: 'text.primary', fontWeight: 600 }}>Déclencheur :</Box> {item.triggerDetail}
-                    </Typography>
+                    <span className="cn-text-caption block text-muted-foreground mb-0.5">
+                      <strong className="text-foreground font-semibold">Déclencheur :</strong> {item.triggerDetail}
+                    </span>
 
                     {/* Variables — chips tres legeres (variant pure tag, font 10px, no border) */}
                     {item.variables && item.variables.length > 0 && (
-                      <Box sx={{ mt: 1.25 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.625 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+                      <div className="mt-2">
+                        <div className="flex items-center gap-0.5 mb-1">
+                          <span className="inline-flex text-muted-foreground">
                             <Code size={13} strokeWidth={1.75} />
-                          </Box>
-                          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.7rem' }}>
+                          </span>
+                          <span className="cn-text-caption font-semibold text-muted-foreground text-[0.7rem]">
                             Variables disponibles
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-0.5">
                           {item.variables.map((v) => (
                             <Box
                               key={v}
@@ -532,8 +520,8 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                               {`{${v}}`}
                             </Box>
                           ))}
-                        </Box>
-                      </Box>
+                        </div>
+                      </div>
                     )}
 
                     {/* Footer status row — couleur tintee selon l'etat (palette Baitly) */}
@@ -569,14 +557,14 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
 
                           {item.templateKind === 'document' && linkedTemplate && (
                             <>
-                              <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <div className="flex-1 min-w-0">
+                                <p className="cn-text-body1 text-[0.75rem] font-semibold text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                                   {linkedTemplate.originalFilename}
-                                </Typography>
-                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6875rem' }}>
+                                </p>
+                                <span className="cn-text-caption text-muted-foreground text-[0.6875rem]">
                                   {linkedTemplate.active ? 'Actif' : 'Inactif'} · v{linkedTemplate.version}
-                                </Typography>
-                              </Box>
+                                </span>
+                              </div>
                               <Button
                                 size="small"
                                 startIcon={<Visibility size={13} strokeWidth={1.75} />}
@@ -597,9 +585,9 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
 
                           {item.templateKind === 'document' && !linkedTemplate && (
                             <>
-                              <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.primary', fontWeight: 500 }}>
+                              <p className="cn-text-body1 flex-1 text-[0.75rem] text-foreground font-medium">
                                 Aucun template uploadé
-                              </Typography>
+                              </p>
                               <Button
                                 size="small"
                                 variant="outlined"
@@ -622,9 +610,9 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
 
                           {item.templateKind === 'message' && (
                             <>
-                              <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.primary' }}>
-                                Template de messagerie — configurable dans <Box component="span" sx={{ fontWeight: 600 }}>Templates messages</Box>
-                              </Typography>
+                              <p className="cn-text-body1 flex-1 text-[0.75rem] text-foreground">
+                                Template de messagerie — configurable dans <span className="font-semibold">Templates messages</span>
+                              </p>
                               {onSwitchToMessagingTab && (
                                 <Button
                                   size="small"
@@ -646,16 +634,16 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                           )}
 
                           {item.templateKind === 'hardcoded' && (
-                            <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.secondary' }}>
+                            <p className="cn-text-body1 flex-1 text-[0.75rem] text-muted-foreground">
                               Template intégré au système — non modifiable
-                            </Typography>
+                            </p>
                           )}
 
                           {item.templateKind === 'system-email' && (
                             <>
-                              <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.primary' }}>
-                                Template email systeme — éditable dans <Box component="span" sx={{ fontWeight: 600 }}>Templates email</Box>
-                              </Typography>
+                              <p className="cn-text-body1 flex-1 text-[0.75rem] text-foreground">
+                                Template email systeme — éditable dans <span className="font-semibold">Templates email</span>
+                              </p>
                               {onOpenSystemEmail && item.systemEmailKey && (
                                 <Button
                                   size="small"
@@ -678,14 +666,14 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                         </Box>
                       );
                     })()}
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               );
             })}
           </AccordionDetails>
         </Accordion>
       ))}
-    </Box>
+    </div>
   );
 };
 

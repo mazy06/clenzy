@@ -142,23 +142,23 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
     return (
       <>
         {/* Header */}
-        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1.5 }}>
+        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-2">
           {t('serviceRequests.sections.priorityPlanning')}
-        </Typography>
+        </p>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="flex flex-col gap-3">
 
           {/* ─── Priorité (Chips sélectionnables, sémantique -soft) ─── */}
-          <Box>
-            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 0.75 }}>
+          <div>
+            <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1">
               {t('serviceRequests.fields.priority')} *
-            </Typography>
+            </p>
             <Controller
               name="priority"
               control={control}
               render={({ field, fieldState }) => (
-                <Box>
-                  <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                <div>
+                  <div className="flex gap-1 flex-wrap">
                     {PRIORITIES.map((p) => {
                       const isSelected = field.value === p.value;
                       return (
@@ -195,22 +195,22 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                         />
                       );
                     })}
-                  </Box>
+                  </div>
                   {fieldState.error && (
                     <FormHelperText error sx={{ mt: 0.5 }}>
                       {fieldState.error.message}
                     </FormHelperText>
                   )}
-                </Box>
+                </div>
               )}
             />
-          </Box>
+          </div>
 
           {/* ─── Durée estimée (chip + popover pour admin) ─── */}
-          <Box>
-            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 0.75 }}>
+          <div>
+            <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1">
               {t('serviceRequests.fields.estimatedDuration')} *
-            </Typography>
+            </p>
             <Controller
               name="estimatedDurationHours"
               control={control}
@@ -220,7 +220,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                 const canEdit = isAdminOrManager && !disabled;
 
                 return (
-                  <Box>
+                  <div>
                     {/* Chip durée */}
                     <Box
                       onClick={canEdit ? (e: React.MouseEvent<HTMLElement>) => {
@@ -244,20 +244,20 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                         } : {},
                       }}
                     >
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={18} strokeWidth={1.75} /></Box>
-                      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-                        <Typography sx={{ fontSize: '16px', fontWeight: 600, color: 'var(--accent)', lineHeight: 1.2, fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
+                      <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
+                      <div className="flex items-baseline gap-0.5">
+                        <p className="cn-text-body1 text-[16px] font-semibold text-[var(--accent)] leading-[1.2] font-[var(--font-display)] tabular-nums">
                           {displayLabel}
-                        </Typography>
-                        <Typography sx={{ fontSize: '10.5px', fontWeight: 500, color: 'var(--muted)' }}>
+                        </p>
+                        <p className="cn-text-body1 text-[10.5px] font-medium text-[var(--muted)]">
                           durée estimée
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
                       {canEdit ? (
-                        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', ml: 'auto' }}><EditIcon size={13} strokeWidth={1.75} /></Box>
+                        <span className="inline-flex text-[var(--accent)] ms-auto"><EditIcon size={13} strokeWidth={1.75} /></span>
                       ) : (
                         <Tooltip title="Calculée automatiquement, modifiable par un manager" arrow>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', ml: 'auto' }}><Lock size={13} strokeWidth={1.75} /></Box>
+                          <span className="inline-flex text-[var(--faint)] ms-auto"><Lock size={13} strokeWidth={1.75} /></span>
                         </Tooltip>
                       )}
                     </Box>
@@ -283,9 +283,9 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                         },
                       }}
                     >
-                      <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1 }}>
+                      <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1.5">
                         Modifier la durée
-                      </Typography>
+                      </p>
                       <TextField
                         value={durationInputValue}
                         onChange={(e) => setDurationInputValue(e.target.value)}
@@ -307,9 +307,9 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                         inputProps={{ min: 1, step: 5 }}
                         InputProps={{
                           endAdornment: (
-                            <Typography sx={{ fontSize: '12px', color: 'var(--faint)', whiteSpace: 'nowrap', ml: 0.5 }}>
+                            <p className="cn-text-body1 text-[12px] text-[var(--faint)] whitespace-nowrap ms-0.5">
                               min
-                            </Typography>
+                            </p>
                           ),
                         }}
                         helperText={
@@ -329,25 +329,25 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                       </FormHelperText>
                     )}
                     {!isAdminOrManager && (
-                      <Typography sx={{ fontSize: '10px', color: 'var(--faint)', fontStyle: 'italic', mt: 0.5 }}>
+                      <p className="cn-text-body1 text-[10px] text-[var(--faint)] italic mt-0.5">
                         Calculée automatiquement depuis les caractéristiques du logement
-                      </Typography>
+                      </p>
                     )}
-                  </Box>
+                  </div>
                 );
               }}
             />
-          </Box>
+          </div>
 
           {/* ─── Date d'échéance ─── */}
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
-              <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)' }}>
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
                 {t('serviceRequests.fields.dueDate')} *
-              </Typography>
+              </p>
 
               {/* Toggle checkout / custom — chips sélecteurs accent-soft */}
-              <Box sx={{ display: 'flex', gap: 0.5 }}>
+              <div className="flex gap-0.5">
                 {([
                   { key: 'checkout' as const, label: 'Checkout', icon: <EventAvailable size={14} strokeWidth={1.75} />, onClick: handleSwitchToCheckout },
                   { key: 'custom' as const, label: 'Autre date', icon: <EditIcon size={14} strokeWidth={1.75} />, onClick: handleSwitchToCustom },
@@ -378,19 +378,19 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                     />
                   );
                 })}
-              </Box>
-            </Box>
+              </div>
+            </div>
 
             <Controller
               name="desiredDate"
               control={control}
               render={({ field, fieldState }) => (
-                <Box>
+                <div>
                   {dateMode === 'checkout' ? (
                     <>
                       {/* Checkout date chips */}
                       {checkoutDates.length > 0 ? (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <div className="flex flex-col gap-0.5">
                           {checkoutDates.map((co) => {
                             const isSelected = field.value === co.isoValue;
                             return (
@@ -416,14 +416,14 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                                 }}
                               >
                                 <Box component="span" sx={{ display: 'inline-flex', color: isSelected ? 'var(--accent)' : 'var(--faint)' }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
-                                <Box sx={{ flex: 1 }}>
+                                <div className="flex-1">
                                   <Typography sx={{ fontSize: '12px', fontWeight: isSelected ? 600 : 500, color: isSelected ? 'var(--accent)' : 'var(--ink)', lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>
                                     {formatCheckoutDateDisplay(co.checkOut, co.checkOutTime)}
                                   </Typography>
-                                  <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', lineHeight: 1.2 }}>
+                                  <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] leading-[1.2]">
                                     Départ {co.guestName}
-                                  </Typography>
-                                </Box>
+                                  </p>
+                                </div>
                                 {isSelected && (
                                   <Chip label="Sélectionné" size="small"
                                     sx={{ height: 18, fontSize: '10px', fontWeight: 700, color: 'var(--accent)', bgcolor: 'var(--card)', border: '1px solid var(--accent)', '& .MuiChip-label': { px: 0.75 } }}
@@ -432,7 +432,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                               </Box>
                             );
                           })}
-                        </Box>
+                        </div>
                       ) : (
                         <Box sx={{
                           py: 1.5,
@@ -442,9 +442,9 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                           border: '1px dashed var(--line-2)',
                           textAlign: 'center',
                         }}>
-                          <Typography sx={{ fontSize: '11.5px', color: 'var(--faint)' }}>
+                          <p className="cn-text-body1 text-[11.5px] text-[var(--faint)]">
                             Aucun checkout à venir pour cette propriété
-                          </Typography>
+                          </p>
                           <Chip
                             label="Saisir une date manuellement"
                             size="small"
@@ -473,11 +473,11 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                       {fieldState.error.message}
                     </FormHelperText>
                   )}
-                </Box>
+                </div>
               )}
             />
-          </Box>
-        </Box>
+          </div>
+        </div>
       </>
     );
   }

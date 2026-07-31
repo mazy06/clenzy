@@ -1,16 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  CardActions,
-  Typography,
-  Chip,
-  IconButton,
-  Avatar,
-  AvatarGroup,
-  Button,
-} from '@mui/material';
+import { Box, Card, CardContent, CardActions, Chip, IconButton, Avatar, AvatarGroup, Button } from '@mui/material';
 import {
   MoreVert,
   Visibility,
@@ -164,8 +153,8 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
     >
       <CardContent sx={{ flexGrow: 1, p: 1.75, pb: 1.25 }}>
         {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.25, gap: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flex: 1, minWidth: 0 }}>
+        <div className="flex justify-between items-start mb-2 gap-1.5">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             <Box
               sx={{
                 width: 38,
@@ -181,37 +170,15 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
             >
               <TypeIcon size={18} strokeWidth={1.75} />
             </Box>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography
-                fontWeight={600}
-                sx={{
-                  fontSize: '0.9rem',
-                  lineHeight: 1.25,
-                  color: 'text.primary',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-                title={team.name}
-              >
+            <div className="flex-1 min-w-0">
+              <p className="cn-text-body1 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={team.name}>
                 {team.name}
-              </Typography>
-              <Typography
-                color="text.secondary"
-                sx={{
-                  fontSize: '0.7rem',
-                  lineHeight: 1.3,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  display: 'block',
-                }}
-                title={team.description || 'Aucune description'}
-              >
+              </p>
+              <p className="cn-text-body1 text-muted-foreground text-[0.7rem] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap block" title={team.description || 'Aucune description'}>
                 {team.description || 'Aucune description'}
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
           <IconButton
             size="small"
             onClick={(e) => { e.stopPropagation(); onMenuOpen(e, team); }}
@@ -220,10 +187,10 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
           >
             <MoreVert size={16} strokeWidth={1.75} />
           </IconButton>
-        </Box>
+        </div>
 
         {/* Type, statut, charge */}
-        <Box sx={{ display: 'flex', gap: 0.5, mb: 1.25, flexWrap: 'wrap' }}>
+        <div className="flex gap-0.5 mb-2 flex-wrap">
           <Chip
             icon={<TypeIcon size={11} strokeWidth={2} />}
             label={typeLabel}
@@ -255,12 +222,12 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
               }}
             />
           )}
-        </Box>
+        </div>
 
         {/* Membres + interventions totales */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
+        <div className="flex items-center justify-between gap-1.5 mb-1">
           {members.length > 0 ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <div className="flex items-center gap-1">
               <AvatarGroup
                 max={4}
                 sx={{
@@ -282,61 +249,42 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
                   </Avatar>
                 ))}
               </AvatarGroup>
-              <Typography
-                sx={{
-                  fontSize: '0.7rem',
-                  color: 'text.secondary',
-                  fontVariantNumeric: 'tabular-nums',
-                  ml: 0.25,
-                }}
-              >
+              <p className="cn-text-body1 text-[0.7rem] text-muted-foreground tabular-nums ms-0.5">
                 {members.length} {members.length > 1 ? 'membres' : 'membre'}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-              <Box sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+            <div className="flex items-center gap-1">
+              <div className="inline-flex text-muted-foreground opacity-60">
                 <PersonIcon size={13} strokeWidth={1.75} />
-              </Box>
-              <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>
+              </div>
+              <p className="cn-text-body1 text-[0.7rem] text-muted-foreground opacity-60">
                 Aucun membre
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
 
           {(team.totalInterventions ?? 0) > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-              <Box sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+            <div className="flex items-center gap-0.5 shrink-0">
+              <div className="inline-flex text-muted-foreground">
                 <Build size={12} strokeWidth={1.75} />
-              </Box>
-              <Typography
-                sx={{
-                  fontSize: '0.7rem',
-                  color: 'text.secondary',
-                  fontVariantNumeric: 'tabular-nums',
-                }}
-              >
+              </div>
+              <p className="cn-text-body1 text-[0.7rem] text-muted-foreground tabular-nums">
                 {team.totalInterventions}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
-        </Box>
+        </div>
 
         {team.createdAt && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+          <div className="flex items-center gap-1.5">
+            <div className="inline-flex text-muted-foreground shrink-0">
               <GroupIcon size={13} strokeWidth={1.75} />
-            </Box>
-            <Typography
-              sx={{
-                fontSize: '0.7rem',
-                color: 'text.secondary',
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
+            </div>
+            <p className="cn-text-body1 text-[0.7rem] text-muted-foreground tabular-nums">
               Créée le {formatShortDate(team.createdAt)}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
       </CardContent>
 

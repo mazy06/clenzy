@@ -61,11 +61,11 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
                 {t('dashboard.analytics.forecastChart')}
               </Typography>
               {loading || !data ? (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0 }}>
+                <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={data.chartData} margin={{ top: 4, right: 6, left: -18, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
@@ -81,7 +81,7 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
                       <Line type="monotone" dataKey="forecast" name={t('dashboard.analytics.forecastLabel')} stroke="#4A9B8E" strokeWidth={1.5} strokeDasharray="6 3" dot={{ r: 2 }} />
                     </ComposedChart>
                   </ResponsiveContainer>
-                </Box>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -89,7 +89,7 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
 
         {/* Right column — KPI cards + Scenarios */}
         <Grid item xs={12} md={4}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, height: '100%' }}>
+          <div className="flex flex-col gap-2 h-full">
             {/* Forecast KPI cards stacked */}
             <AnalyticsWidgetCard
               title={t('dashboard.analytics.forecast30d')}
@@ -123,32 +123,32 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
                   {t('dashboard.analytics.scenarios')}
                 </Typography>
                 {loading || !data ? (
-                  <Box sx={{ height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Typography variant="caption" color="text.disabled">...</Typography>
-                  </Box>
+                  <div className="h-[60px] flex items-center justify-center">
+                    <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                  </div>
                 ) : (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 0.5 }}>
+                  <div className="flex flex-col gap-1 mt-0.5">
                     {[data.scenarios.optimistic, data.scenarios.realistic, data.scenarios.pessimistic].map((s, i) => {
                       const colors = ['#4A9B8E', '#6B8A9A', '#C97A7A'];
                       return (
-                        <Box key={s.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <div className="flex items-center gap-1" key={s.label}>
                           <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: colors[i], flexShrink: 0 }} />
-                          <Box sx={{ flex: 1 }}>
-                            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.2 }}>
+                          <div className="flex-1">
+                            <p className="cn-text-body1 text-[0.6875rem] font-semibold text-foreground leading-[1.2]">
                               {s.label}
-                            </Typography>
-                            <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary' }}>
+                            </p>
+                            <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground">
                               <Money value={s.revenue} from="EUR" decimals={0} /> • {s.occupancy}% occ.
-                            </Typography>
-                          </Box>
-                        </Box>
+                            </p>
+                          </div>
+                        </div>
                       );
                     })}
-                  </Box>
+                  </div>
                 )}
               </CardContent>
             </Card>
-          </Box>
+          </div>
         </Grid>
       </Grid>
     </GridSection>

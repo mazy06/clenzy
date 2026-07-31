@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Box, Typography, Button, Alert, Tooltip, CircularProgress } from '@mui/material';
+import { Box, Button, Alert, Tooltip, CircularProgress } from '@mui/material';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { LocationOn, DirectionsWalk } from '../icons';
@@ -173,7 +173,7 @@ export function PropertyLocationPicker({
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+    <div className="flex flex-col gap-1.5">
       {/* Helper / status text */}
       {!hasCoords && (
         <Alert
@@ -198,7 +198,7 @@ export function PropertyLocationPicker({
           borderColor: hasCoords ? 'success.main' : 'warning.main',
         }}
       >
-        <Box ref={mapContainerRef} sx={{ width: '100%', height: '100%' }} />
+        <div className="w-full h-full" ref={mapContainerRef} />
 
         {/* Floating coordinates badge */}
         {hasCoords && (
@@ -221,26 +221,17 @@ export function PropertyLocationPicker({
               gap: 0.5,
             }}
           >
-            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}>
+            <span className="inline-flex text-[var(--bui-success-ink)]">
               <LocationOn size={11} strokeWidth={2} />
-            </Box>
-            <Typography sx={{ fontFamily: 'monospace', fontSize: '0.6875rem', color: 'text.primary' }}>
+            </span>
+            <p className="cn-text-body1 font-mono text-[0.6875rem] text-foreground">
               {Number(latitude).toFixed(5)}, {Number(longitude).toFixed(5)}
-            </Typography>
+            </p>
           </Box>
         )}
 
         {/* Floating action buttons */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 0.5,
-          }}
-        >
+        <div className="absolute top-[8px] start-[8px] flex flex-col gap-0.5">
           <Tooltip title="Utiliser ma position actuelle" placement="right">
             <Button
               onClick={handleGeolocate}
@@ -288,7 +279,7 @@ export function PropertyLocationPicker({
               </Button>
             </Tooltip>
           )}
-        </Box>
+        </div>
       </Box>
 
       {geoError && (
@@ -298,11 +289,11 @@ export function PropertyLocationPicker({
       )}
 
       {hasCoords && (
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>
+        <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60">
           Astuce : clique sur la carte ou fais glisser le pin pour ajuster la position exacte.
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   );
 }
 

@@ -40,9 +40,9 @@ export default function RevenueByChannelCard({
           px: '17px', pt: '15px', pb: headerAction ? '11px' : '4px',
         }}
       >
-        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+        <p className="cn-text-body1 font-[var(--font-display)] text-[15px] font-semibold text-[var(--ink)] tracking-[-0.01em]">
           {title}
-        </Typography>
+        </p>
         {headerAction}
       </Box>
 
@@ -63,23 +63,23 @@ export default function RevenueByChannelCard({
                 '&:first-of-type': { borderTop: 0 },
               }}
             >
-              <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', width: 74, flexShrink: 0 }}>
+              <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] w-[74px] shrink-0">
                 {c.name}
-              </Typography>
-              <Box sx={{ flex: 1, height: 8, borderRadius: '5px', bgcolor: 'var(--field)', overflow: 'hidden' }}>
+              </p>
+              <div className="flex-1 h-[8px] rounded-[5px] bg-[var(--field)] overflow-hidden">
                 <Box sx={{ height: '100%', borderRadius: '5px', width: `${c.pct}%`, backgroundColor: c.color, transition: 'width .3s var(--ease-out)', '@media (prefers-reduced-motion: reduce)': { transition: 'none' } }} />
-              </Box>
-              <Box sx={{ flexShrink: 0, textAlign: 'right', minWidth: 66 }}>
+              </div>
+              <div className="shrink-0 text-end min-w-[66px]">
                 {/* Montant (devise) en tête, % + delta en sous-ligne. */}
-                <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
+                <p className="cn-text-body1 font-[var(--font-display)] text-[13px] font-semibold text-[var(--ink)] leading-[1.2] tabular-nums">
                   {c.amount != null ? <Money value={c.amount} decimals={0} /> : `${c.pct}%`}
-                </Typography>
+                </p>
                 {(c.amount != null || (delta != null && delta !== 0)) && (
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '5px', mt: '1px' }}>
                     {c.amount != null && (
-                      <Typography component="span" sx={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                      <span className="text-[10.5px] font-semibold text-[var(--muted)] tabular-nums">
                         {c.pct}%
-                      </Typography>
+                      </span>
                     )}
                     {delta != null && delta !== 0 && (
                       <Typography component="span" sx={{ fontSize: '10.5px', fontWeight: 700, color: delta > 0 ? 'var(--ok)' : 'var(--err)', fontVariantNumeric: 'tabular-nums' }}>
@@ -88,7 +88,7 @@ export default function RevenueByChannelCard({
                     )}
                   </Box>
                 )}
-              </Box>
+              </div>
             </Box>
           );
         })}

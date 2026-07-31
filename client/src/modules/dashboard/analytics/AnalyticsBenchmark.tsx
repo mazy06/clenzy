@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
+import { Typography, Card, CardContent, Grid } from '@mui/material';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -59,11 +59,11 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
                 {t('dashboard.analytics.portfolioVsBest')}
               </Typography>
               {loading || !data || data.radarData.length === 0 ? (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0 }}>
+                <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart data={data.radarData}>
                       <PolarGrid stroke="#E2E8F0" />
@@ -88,7 +88,7 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
                       <Legend wrapperStyle={LEGEND_STYLE} iconSize={6} />
                     </RadarChart>
                   </ResponsiveContainer>
-                </Box>
+                </div>
               )}
             </CardContent>
           </Card>

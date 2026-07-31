@@ -1,16 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  Box,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress,
-  Typography,
-  Button,
-  Tooltip,
-} from '@mui/material';
+import { Box, FormControl, InputLabel, Select, MenuItem, CircularProgress, Button, Tooltip } from '@mui/material';
 import {
   CloudUpload as PushIcon,
   TrendingUp,
@@ -233,9 +223,9 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
         </Select>
       </FormControl>
       {isPlatformStaff && selectedOwnerId !== null && (
-        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', whiteSpace: 'nowrap' }}>
+        <span className="cn-text-caption text-muted-foreground text-[0.6875rem] whitespace-nowrap">
           {filteredProperties.length} {t('dynamicPricing.propertiesCount')}
-        </Typography>
+        </span>
       )}
     </>
   );
@@ -276,9 +266,9 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
       {/* ── Filter selectors — portaled into tab bar when embedded ── */}
       {embedded && tabInlineContainer && createPortal(filterSelectors, tabInlineContainer)}
       {!embedded && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+        <div className="flex items-center gap-2 mb-2">
           {filterSelectors}
-        </Box>
+        </div>
       )}
 
       {/* Tabs */}
@@ -295,7 +285,7 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
 
       {/* ─── Tab: Par propriété ─── */}
       {activeTab === 0 && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <div className="flex flex-col gap-2">
           {/* Top row: Calendar (left) + Form (right) — same height */}
           <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'stretch', flexWrap: { xs: 'wrap', lg: 'nowrap' } }}>
             {/* Left column — Calendar (stretches to match right column) */}
@@ -353,7 +343,7 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
               deleteLoading={deleteRatePlanLoading}
             />
           )}
-        </Box>
+        </div>
       )}
 
       {/* ─── Tab: Vue d'ensemble ─── */}

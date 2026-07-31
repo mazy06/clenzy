@@ -10,18 +10,7 @@
    ============================================================ */
 
 import { useEffect, useState, type ReactNode } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Typography,
-} from '@mui/material';
+import { Alert, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { invoicesApi, INVOICE_STATUS_COLORS, type Invoice } from '../../../services/api/invoicesApi';
@@ -34,12 +23,12 @@ interface FeedInvoiceModalProps {
 }
 
 const row = (label: string, value: ReactNode) => (
-  <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.5 }}>
-    <Typography variant="body2" color="text.secondary">{label}</Typography>
-    <Typography variant="body2" component="div" sx={{ fontWeight: 600, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+  <div className="flex justify-between gap-3 py-0.5">
+    <p className="cn-text-body2 text-muted-foreground">{label}</p>
+    <div className="cn-text-body2 font-semibold text-end tabular-nums">
       {value}
-    </Typography>
-  </Box>
+    </div>
+  </div>
 );
 
 export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) {
@@ -120,13 +109,13 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
       <DialogTitle>{t('supervision.invoiceModal.title', 'Facture')}</DialogTitle>
       <DialogContent dividers>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <div className="flex justify-center py-6">
             <CircularProgress size={24} />
-          </Box>
+          </div>
         ) : invoice ? (
           <>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-              <Typography sx={{ fontWeight: 700 }}>{invoice.invoiceNumber}</Typography>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="cn-text-body1 font-bold">{invoice.invoiceNumber}</p>
               <Chip
                 size="small"
                 label={t(`supervision.invoiceModal.status.${invoice.status}`, invoice.status)}
@@ -136,7 +125,7 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
                   fontWeight: 700,
                 }}
               />
-            </Box>
+            </div>
             {row(
               t('supervision.invoiceModal.amount', 'Montant TTC'),
               <Money value={invoice.totalTtc} from={invoice.currency || 'EUR'} />,
@@ -184,9 +173,9 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
             )}
           </>
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', py: 2 }}>
+          <p className="cn-text-body2 text-muted-foreground italic py-3">
             {error ?? t('supervision.invoiceModal.loadError', 'Facture introuvable ou inaccessible.')}
-          </Typography>
+          </p>
         )}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
@@ -196,7 +185,7 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
         >
           {t('supervision.invoiceModal.openBilling', 'Ouvrir dans Facturation')}
         </Button>
-        <Box sx={{ flex: 1 }} />
+        <div className="flex-1" />
         <Button onClick={onClose}>{t('supervision.invoiceModal.close', 'Fermer')}</Button>
         {payable && (
           <>

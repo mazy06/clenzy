@@ -1,15 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  Box,
-  Typography,
-  IconButton,
-  Button,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, Box, IconButton, Button, CircularProgress, Alert } from '@mui/material';
 import {
   Close as CloseIcon,
   Lock as LockIcon,
@@ -163,51 +153,17 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
       {/* ── Success screen ─────────────────────────────────────────── */}
       {paymentSuccess ? (
         <DialogContent sx={{ p: 0 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              py: 6,
-              px: 4,
-              gap: 2,
-            }}
-          >
-            <Box
-              component="span"
-              sx={{
-                display: 'inline-flex',
-                color: 'var(--ok)',
-              }}
-            >
+          <div className="flex flex-col items-center justify-center py-9 px-6 gap-3">
+            <span className="inline-flex text-[var(--ok)]">
               <CheckCircleIcon size={64} strokeWidth={1.5} />
-            </Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontFamily: 'var(--font-display)',
-                fontWeight: 600,
-                fontSize: 20,
-                letterSpacing: '-.01em',
-                color: 'var(--ink)',
-                textAlign: 'center',
-              }}
-            >
+            </span>
+            <h5 className="cn-text-h5 font-[var(--font-display)] font-semibold text-[20px] tracking-[-.01em] text-[var(--ink)] text-center">
               Paiement reussi !
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: 'var(--muted)',
-                fontSize: '13px',
-                textAlign: 'center',
-                maxWidth: 360,
-              }}
-            >
+            </h5>
+            <p className="cn-text-body2 text-[var(--muted)] text-[13px] text-center max-w-[360px]">
               Le paiement de <Money value={amount} from="EUR" /> pour{' '}
               <strong>{interventionTitle || 'l\'intervention'}</strong> a ete traite avec succes.
-            </Typography>
+            </p>
             <Button
               variant="contained"
               color="success"
@@ -216,7 +172,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
             >
               Fermer
             </Button>
-          </Box>
+          </div>
         </DialogContent>
       ) : (
         <>
@@ -229,34 +185,25 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
               gap: 1.5,
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', flexShrink: 0 }}>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="inline-flex text-[var(--accent)] shrink-0">
                 <LockIcon size={18} strokeWidth={1.75} />
-              </Box>
-              <Box sx={{ minWidth: 0 }}>
-                <Box component="span" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              </span>
+              <div className="min-w-0">
+                <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
                   Paiement securise
-                </Box>
+                </span>
                 {interventionTitle && (
-                  <Typography variant="body2" sx={{ fontFamily: 'var(--font-sans)', fontSize: '11.5px', fontWeight: 400, color: 'var(--muted)' }}>
+                  <p className="cn-text-body2 font-[var(--font-sans)] text-[11.5px] font-normal text-[var(--muted)]">
                     {interventionTitle}
-                  </Typography>
+                  </p>
                 )}
-              </Box>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '1.125rem',
-                  fontWeight: 600,
-                  fontVariantNumeric: 'tabular-nums',
-                  color: 'var(--accent)',
-                }}
-              >
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <h6 className="cn-text-h6 font-[var(--font-display)] text-[1.125rem] font-semibold tabular-nums text-[var(--accent)]">
                 <Money value={amount} from="EUR" />
-              </Typography>
+              </h6>
               {/* ✕ — pattern .rm-x : 34px r10 hairline, hover --err */}
               <IconButton
                 onClick={onClose}
@@ -275,33 +222,24 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
               >
                 <CloseIcon size={16} strokeWidth={1.75} />
               </IconButton>
-            </Box>
+            </div>
           </DialogTitle>
 
           {/* ── Content ─────────────────────────────────────────── */}
           <DialogContent sx={{ p: 0 }}>
             {/* Loading state */}
             {loading && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  py: 8,
-                  gap: 2,
-                }}
-              >
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <CircularProgress size={32} thickness={3.5} sx={{ color: 'var(--accent)' }} />
-                <Typography variant="body2" sx={{ color: 'var(--muted)', fontSize: '12.5px' }}>
+                <p className="cn-text-body2 text-[var(--muted)] text-[12.5px]">
                   Chargement du formulaire de paiement...
-                </Typography>
-              </Box>
+                </p>
+              </div>
             )}
 
             {/* Error state */}
             {error && (
-              <Box sx={{ p: 3 }}>
+              <div className="p-4">
                 <Alert
                   severity="error"
                   sx={{
@@ -317,7 +255,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
                 >
                   {error}
                 </Alert>
-              </Box>
+              </div>
             )}
 
             {/* Stripe Embedded Checkout */}
@@ -338,23 +276,12 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
 
             {/* Footer security note */}
             {!loading && !error && clientSecret && (
-              <Box
-                sx={{
-                  px: 3,
-                  py: 1.5,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 0.5,
-                  borderTop: '1px solid var(--line)',
-                  bgcolor: 'var(--surface-2)',
-                }}
-              >
-                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><LockIcon size={12} strokeWidth={1.75} /></Box>
-                <Typography variant="caption" sx={{ color: 'var(--faint)', fontSize: '11.5px' }}>
+              <div className="px-4 py-2 flex items-center justify-center gap-0.5 border-t border-[var(--line)] bg-[var(--surface-2)]">
+                <span className="inline-flex text-[var(--faint)]"><LockIcon size={12} strokeWidth={1.75} /></span>
+                <span className="cn-text-caption text-[var(--faint)] text-[11.5px]">
                   Paiement securise par Stripe. Vos donnees sont chiffrees.
-                </Typography>
-              </Box>
+                </span>
+              </div>
             )}
           </DialogContent>
         </>

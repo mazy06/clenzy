@@ -99,7 +99,7 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
   return (
     <Card sx={{ textAlign: 'center', py: 3 }}>
       <CardContent>
-        <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+        <div className="relative inline-flex">
           <CircularProgress
             variant="determinate"
             value={100}
@@ -114,16 +114,7 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
             thickness={4}
             sx={{ color }}
           />
-          <Box
-            sx={{
-              top: 0, left: 0, bottom: 0, right: 0,
-              position: 'absolute',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+          <div className="top-[0px] start-[0px] bottom-[0px] end-[0px] absolute flex flex-col items-center justify-center">
             <Box component="span" sx={{ display: 'inline-flex', color, mb: 0.5 }}>
               {criticalFailed ? (
                 <Warning size={32} strokeWidth={1.75} />
@@ -137,12 +128,12 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
             >
               {criticalFailed ? '0' : Math.round(score)}
             </Typography>
-            <Typography variant="caption" sx={{ color: 'var(--muted)' }}>/ 100</Typography>
-          </Box>
-        </Box>
-        <Typography variant="h6" sx={{ mt: 2, fontWeight: 600, color: 'var(--ink)' }}>
+            <span className="cn-text-caption text-[var(--muted)]">/ 100</span>
+          </div>
+        </div>
+        <h6 className="cn-text-h6 mt-3 font-semibold text-[var(--ink)]">
           Readiness Score
-        </Typography>
+        </h6>
         {criticalFailed && (
           <Chip
             label="KPI CRITIQUE EN ECHEC"
@@ -190,20 +181,12 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
 
   const cardContent = (
     <CardContent sx={{ pb: '12px !important' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, gap: 0.5 }}>
+      <div className="flex justify-between items-start mb-1.5 gap-0.5">
         {/* Label en overline (pattern entête de tuile KPI) */}
-        <Typography
-          sx={{
-            fontSize: '10.5px',
-            fontWeight: 700,
-            letterSpacing: '.05em',
-            textTransform: 'uppercase',
-            color: 'var(--faint)',
-          }}
-        >
+        <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]">
           {kpi.name}
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+        </p>
+        <div className="flex gap-0.5 shrink-0">
           {badgeCount !== undefined && badgeCount > 0 && (
             <Chip
               label={`${badgeCount} ouvert${badgeCount > 1 ? 's' : ''}`}
@@ -218,10 +201,10 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
               sx={{ color: 'var(--err)', backgroundColor: 'var(--err-soft)' }}
             />
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
+      <div className="flex items-baseline gap-1.5 mb-1.5">
         {/* Valeur display tabular-nums — l'accent statut vit dans la valeur + le chip */}
         <Typography
           variant="h4"
@@ -229,12 +212,12 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
         >
           {displayedValue}
         </Typography>
-      </Box>
+      </div>
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+      <div className="flex justify-between items-center">
+        <span className="cn-text-caption text-[var(--muted)]">
           Target: {displayedTarget}
-        </Typography>
+        </span>
         <Chip
           icon={<StatusIcon size={13} strokeWidth={1.75} />}
           label={kpi.status}
@@ -245,7 +228,7 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
             '& .MuiChip-icon': { color: tk.fg, marginLeft: '6px' },
           }}
         />
-      </Box>
+      </div>
     </CardContent>
   );
 
@@ -283,7 +266,7 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
           },
         }}
       >
-        <Box sx={{ height: '100%' }}>{card}</Box>
+        <div className="h-full">{card}</div>
       </MuiTooltip>
     );
   }
@@ -312,17 +295,14 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
       }}
     >
       {label && (
-        <Typography sx={{ fontWeight: 700, mb: 0.5, fontSize: '11.5px' }}>
+        <p className="cn-text-body1 font-bold mb-0.5 text-[11.5px]">
           {new Date(label).toLocaleString()}
-        </Typography>
+        </p>
       )}
       {payload.map((entry) => (
-        <Typography
-          key={entry.name}
-          sx={{ display: 'block', fontSize: '11.5px', fontWeight: 600 }}
-        >
+        <p className="cn-text-body1 block text-[11.5px] font-semibold" key={entry.name}>
           {entry.name}: {typeof entry.value === 'number' ? entry.value.toFixed(1) : entry.value}
-        </Typography>
+        </p>
       ))}
     </Box>
   );
@@ -460,7 +440,7 @@ const KpiReadinessPage: React.FC = () => {
   })) || [];
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title="KPI Readiness"
         subtitle="Indicateurs de performance pour la certification Airbnb Partner"
@@ -473,7 +453,7 @@ const KpiReadinessPage: React.FC = () => {
 
       {loading ? (
         // Skeletons à la silhouette de la page (gauge + panneau + grille KPI)
-        <Box sx={{ mt: 3 }}>
+        <div className="mt-4">
           <Grid container spacing={3}>
             <Grid item xs={12} md={4}>
               <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px' }} />
@@ -489,7 +469,7 @@ const KpiReadinessPage: React.FC = () => {
               </Grid>
             ))}
           </Grid>
-        </Box>
+        </div>
       ) : snapshot ? (
         <>
           {/* Score + Controls */}
@@ -510,27 +490,19 @@ const KpiReadinessPage: React.FC = () => {
                   borderColor: 'var(--line)',
                 }}
               >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-                  <Box>
-                    <Typography
-                      sx={{
-                        fontSize: '10.5px',
-                        fontWeight: 700,
-                        letterSpacing: '.05em',
-                        textTransform: 'uppercase',
-                        color: 'var(--faint)',
-                      }}
-                    >
+                <div className="flex justify-between items-center flex-wrap gap-3">
+                  <div>
+                    <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]">
                       Derniere capture
-                    </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: 'var(--ink)' }}>
+                    </p>
+                    <h6 className="cn-text-h6 font-semibold text-[var(--ink)]">
                       {formatTimestamp(snapshot.capturedAt)}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+                    </h6>
+                    <span className="cn-text-caption text-[var(--muted)]">
                       Source: {snapshot.source}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
                     <FormControlLabel
                       control={
                         <Switch
@@ -550,11 +522,11 @@ const KpiReadinessPage: React.FC = () => {
                     >
                       Rafraichir
                     </Button>
-                  </Box>
-                </Box>
+                  </div>
+                </div>
 
                 {/* Summary chips — -soft : texte couleur + fond -soft */}
-                <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap' }}>
+                <div className="flex gap-1.5 mt-3 flex-wrap">
                   {(['OK', 'WARNING', 'CRITICAL'] as KpiStatus[]).map((status) => {
                     const count = snapshot.kpis.filter((k) => k.status === status).length;
                     if (count === 0) return null;
@@ -568,7 +540,7 @@ const KpiReadinessPage: React.FC = () => {
                       />
                     );
                   })}
-                </Box>
+                </div>
               </Paper>
             </Grid>
           </Grid>
@@ -592,10 +564,10 @@ const KpiReadinessPage: React.FC = () => {
             variant="outlined"
             sx={{ mt: 3, p: 3, borderRadius: '14px', borderColor: 'var(--line)' }}
           >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: 'var(--ink)' }}>
+            <div className="flex justify-between items-center mb-3">
+              <h6 className="cn-text-h6 font-semibold text-[var(--ink)]">
                 Tendance historique
-              </Typography>
+              </h6>
               <FormControl size="small" sx={{ minWidth: 120 }}>
                 <InputLabel>Periode</InputLabel>
                 <Select
@@ -608,7 +580,7 @@ const KpiReadinessPage: React.FC = () => {
                   <MenuItem value={720}>30 jours</MenuItem>
                 </Select>
               </FormControl>
-            </Box>
+            </div>
 
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={350}>
@@ -648,14 +620,14 @@ const KpiReadinessPage: React.FC = () => {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <Box sx={{ textAlign: 'center', py: 6 }}>
-                <Typography variant="body1" color="text.secondary">
+              <div className="text-center py-9">
+                <p className="cn-text-body1 text-muted-foreground">
                   Aucune donnee historique disponible.
-                </Typography>
-                <Typography variant="body2" color="text.disabled" sx={{ mt: 1 }}>
+                </p>
+                <p className="cn-text-body2 text-muted-foreground opacity-60 mt-1.5">
                   Les snapshots sont captures automatiquement toutes les heures.
-                </Typography>
-              </Box>
+                </p>
+              </div>
             )}
           </Paper>
         </>
@@ -673,7 +645,7 @@ const KpiReadinessPage: React.FC = () => {
           snapshot?.kpis.find((k) => k.id === 'P1_RESOLUTION')?.targetValue ?? 60
         }
       />
-    </Box>
+    </div>
   );
 };
 

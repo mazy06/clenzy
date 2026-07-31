@@ -1,15 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  Box,
-  Button,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
+import { Button, Menu, MenuItem, ListItemIcon, ListItemText, IconButton, Tooltip } from '@mui/material';
 import {
   Add,
   Edit,
@@ -270,7 +261,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
   ], []);
 
   const actionButtons = (
-    <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
+    <div className="flex gap-1 items-center">
       <ExportButton
         data={filteredServiceRequests}
         columns={exportColumns}
@@ -286,7 +277,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
           <Add size={20} strokeWidth={1.75} />
         </IconButton>
       </Tooltip>
-    </Box>
+    </div>
   );
 
   const filterBar = (
@@ -329,7 +320,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Portal actions into parent's PageHeader when embedded */}
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
 
@@ -337,7 +328,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
       {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
 
       {!embedded && (
-        <Box sx={{ flexShrink: 0 }}>
+        <div className="shrink-0">
           <PageHeader
             title={t('serviceRequests.title')}
             subtitle={t('serviceRequests.subtitle')}
@@ -347,7 +338,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
             actions={actionButtons}
             filters={filterBar}
           />
-        </Box>
+        </div>
       )}
 
       {/* Liste des demandes de service */}
@@ -528,6 +519,6 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
         message={successMessage}
         t={t}
       />
-    </Box>
+    </div>
   );
 }

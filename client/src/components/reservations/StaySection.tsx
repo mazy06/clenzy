@@ -25,8 +25,8 @@ const StaySection: React.FC<Props> = ({ form }) => {
             { label: t('reservations.fields.checkOut'), value: form.endDate },
           ].map((f) => (
             <Box key={f.label} sx={{ padding: '8px 12px', borderRadius: '11px', border: '1px solid var(--field-line)', backgroundColor: 'var(--field)' }}>
-              <Typography sx={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--muted)' }}>{f.label}</Typography>
-              <Typography sx={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{f.value || '—'}</Typography>
+              <p className="cn-text-body1 text-[10.5px] font-semibold text-[var(--muted)]">{f.label}</p>
+              <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] tabular-nums">{f.value || '—'}</p>
             </Box>
           ))}
         </Box>

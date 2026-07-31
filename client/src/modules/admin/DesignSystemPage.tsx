@@ -1,5 +1,4 @@
 import { useState, type ComponentType, type ReactNode } from 'react';
-import { Box } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
@@ -2681,7 +2680,7 @@ export default function DesignSystemPage() {
     groups.length > 0 ? tabSections.filter((s) => s.group === activeGroup) : tabSections;
 
   return (
-    <Box>
+    <div>
       <PageHeader title={title} subtitle={subtitle} iconBadge={<Palette size={20} />} />
 
       <PageTabs
@@ -2746,6 +2745,6 @@ export default function DesignSystemPage() {
       {/* Toaster Sonner — monté ici tant que la lib n'est pas déployée app-wide ;
           à déplacer près de la racine (AuthenticatedApp) lors de la migration. */}
       <Toaster />
-    </Box>
+    </div>
   );
 }

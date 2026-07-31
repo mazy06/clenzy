@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Dialog, DialogContent, IconButton, Box, ButtonBase, CircularProgress,
-} from '@mui/material';
+import { Dialog, DialogContent, IconButton, ButtonBase, CircularProgress } from '@mui/material';
 import { X, Languages, AlertTriangle } from 'lucide-react';
 import type { AutoTranslateResult } from '../../../services/api/sitesApi';
 
@@ -65,29 +63,29 @@ export default function TranslateModal({ open, onClose, targetName, availableTar
       fullWidth
       PaperProps={{ sx: { borderRadius: 'var(--radius-lg)' } }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2.5, pt: 2, pb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent-soft)', color: 'var(--accent)', flexShrink: 0 }}>
+      <div className="flex items-center gap-1.5 px-3.5 pt-3 pb-1.5">
+        <div className="flex items-center justify-center w-[32px] h-[32px] rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--accent)] shrink-0">
           <Languages size={18} strokeWidth={2} />
-        </Box>
-        <Box sx={{ flex: 1, fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-bold)', color: 'var(--ink)' }}>
+        </div>
+        <div className="flex-1 font-[var(--font-display)] text-[var(--text-lg)] font-[var(--fw-bold)] text-[var(--ink)]">
           {k('title', 'Traduire par IA')}
-        </Box>
+        </div>
         <IconButton onClick={onClose} size="small" aria-label={t('common.close', 'Fermer')} disabled={translating}><X size={18} /></IconButton>
-      </Box>
+      </div>
 
       <DialogContent sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', lineHeight: 1.5 }}>
+        <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.5]">
           {targetName
             ? k('introNamed', 'Choisissez les langues vers lesquelles traduire « {{name}} ». Les variantes sont créées en brouillon, à relire avant publication.', { name: targetName })
             : k('intro', 'Choisissez les langues cibles. Les variantes sont créées en brouillon, à relire avant publication.')}
-        </Box>
+        </div>
 
         {availableTargets.length === 0 ? (
-          <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', textAlign: 'center', py: 2 }}>
+          <div className="text-[var(--text-sm)] text-[var(--muted)] text-center py-3">
             {k('noTargets', 'Aucune autre langue disponible à traduire.')}
-          </Box>
+          </div>
         ) : (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+          <div className="flex flex-wrap gap-1">
             {availableTargets.map((code) => {
               const checked = selected.includes(code);
               return (
@@ -110,16 +108,16 @@ export default function TranslateModal({ open, onClose, targetName, availableTar
                 </ButtonBase>
               );
             })}
-          </Box>
+          </div>
         )}
 
         {error && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
+          <div className="flex items-center gap-1.5 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
             <AlertTriangle size={16} strokeWidth={2} style={{ flexShrink: 0 }} /> {error}
-          </Box>
+          </div>
         )}
 
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, pt: 0.5 }}>
+        <div className="flex justify-end gap-1.5 pt-0.5">
           <ButtonBase onClick={onClose} disabled={translating} sx={ghostBtnSx}>
             {t('common.cancel', 'Annuler')}
           </ButtonBase>
@@ -128,7 +126,7 @@ export default function TranslateModal({ open, onClose, targetName, availableTar
               ? <><CircularProgress size={15} thickness={5} sx={{ color: 'var(--on-accent)' }} /> {k('translating', 'Traduction…')}</>
               : <><Languages size={16} strokeWidth={2.2} /> {k('submit', 'Traduire')}</>}
           </ButtonBase>
-        </Box>
+        </div>
       </DialogContent>
     </Dialog>
   );

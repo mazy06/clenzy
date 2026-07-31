@@ -1,20 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  Chip,
-  IconButton,
-  Alert,
-  CircularProgress,
-  Autocomplete,
-} from '@mui/material';
+import { Box, TextField, Button, FormControl, InputLabel, Select, MenuItem, FormHelperText, Chip, IconButton, Alert, CircularProgress, Autocomplete } from '@mui/material';
 import {
   Save,
   Cancel,
@@ -159,16 +144,16 @@ const UserEdit: React.FC = () => {
 
   if (!canManageUsers) {
     return (
-      <Box sx={{ p: 2 }}>
+      <div className="p-3">
         <Alert severity="info" sx={{ p: 2, py: 1 }}>
-          <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}>
+          <h6 className="cn-text-subtitle1 mb-[0.35em] mb-1.5">
             Acces non autorise
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+          </h6>
+          <p className="cn-text-body2 text-[0.85rem]">
             Vous n'avez pas les permissions necessaires pour modifier des utilisateurs.
-          </Typography>
+          </p>
         </Alert>
-      </Box>
+      </div>
     );
   }
 
@@ -252,17 +237,17 @@ const UserEdit: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+      <div className="flex justify-center items-center h-[50vh]">
         <CircularProgress size={32} />
-      </Box>
+      </div>
     );
   }
 
   if (error && !user) {
     return (
-      <Box sx={{ p: 2 }}>
+      <div className="p-3">
         <Alert severity="error" sx={{ p: 2, py: 1 }}>{error}</Alert>
-      </Box>
+      </div>
     );
   }
 
@@ -278,7 +263,7 @@ const UserEdit: React.FC = () => {
       && formData.newPassword !== formData.confirmPassword;
 
   return (
-    <Box sx={{ p: 2 }}>
+    <div className="p-3">
       <PageHeader
         title="Modifier l'utilisateur"
         subtitle={`${user?.firstName || ''} ${user?.lastName || ''}`}
@@ -329,7 +314,7 @@ const UserEdit: React.FC = () => {
       )}
 
       <form onSubmit={handleSubmit}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <div className="flex flex-col gap-2">
           {/* Photo de profil — first section, OTA-aware */}
           {user && (
             <DetailSection
@@ -388,9 +373,9 @@ const UserEdit: React.FC = () => {
               placeholder="Ex: jean.dupont@clenzy.fr"
               InputProps={{
                 startAdornment: (
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mr: 1 }}>
+                  <span className="inline-flex text-muted-foreground opacity-60 me-1.5">
                     <Email size={16} strokeWidth={1.75} />
-                  </Box>
+                  </span>
                 ),
               }}
             />
@@ -403,9 +388,9 @@ const UserEdit: React.FC = () => {
               placeholder="Ex: +33 6 12 34 56 78"
               InputProps={{
                 startAdornment: (
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mr: 1 }}>
+                  <span className="inline-flex text-muted-foreground opacity-60 me-1.5">
                     <Phone size={16} strokeWidth={1.75} />
-                  </Box>
+                  </span>
                 ),
               }}
             />
@@ -435,36 +420,26 @@ const UserEdit: React.FC = () => {
                     const r = getRoleEntry(value as string);
                     if (!r) return null;
                     return (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <RoleIconBadge role={r.value} size={22} />
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>{r.label}</Typography>
-                      </Box>
+                        <p className="cn-text-body2 font-medium">{r.label}</p>
+                      </div>
                     );
                   }}
                 >
                   {USER_ROLES.map((role) => (
                     <MenuItem key={role.value} value={role.value} sx={{ py: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
+                      <div className="flex items-center gap-2 min-w-0">
                         <RoleIconBadge role={role.value} size={26} />
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.2 }}>
+                        <div className="min-w-0">
+                          <p className="cn-text-body2 font-medium leading-[1.2]">
                             {role.label}
-                          </Typography>
-                          <Typography
-                            sx={{
-                              fontSize: '0.6875rem',
-                              color: 'text.secondary',
-                              lineHeight: 1.3,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              maxWidth: 320,
-                            }}
-                          >
+                          </p>
+                          <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap max-w-[320px]">
                             {role.description}
-                          </Typography>
-                        </Box>
-                      </Box>
+                          </p>
+                        </div>
+                      </div>
                     </MenuItem>
                   ))}
                 </Select>
@@ -522,21 +497,14 @@ const UserEdit: React.FC = () => {
                 }}
               >
                 <RoleIconBadge role={selectedRoleInfo.value} size={32} />
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography
-                    sx={{
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      color: 'text.primary',
-                      mb: 0.125,
-                    }}
-                  >
+                <div className="min-w-0">
+                  <p className="cn-text-body1 text-[0.75rem] font-bold text-foreground mb-0">
                     Rôle sélectionné : {selectedRoleInfo.label}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.4 }}>
+                  </p>
+                  <p className="cn-text-body1 text-[0.75rem] text-muted-foreground leading-[1.4]">
                     {selectedRoleInfo.description}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
               </Box>
             )}
           </DetailSection>
@@ -561,17 +529,17 @@ const UserEdit: React.FC = () => {
                   const { key, ...optionProps } = props;
                   return (
                     <li key={key} {...optionProps}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+                      <div className="flex items-center gap-1.5 w-full">
+                        <span className="inline-flex text-muted-foreground opacity-60">
                           <Business size={16} strokeWidth={1.75} />
-                        </Box>
-                        <Typography variant="body2" sx={{ flex: 1 }}>
+                        </span>
+                        <p className="cn-text-body2 flex-1">
                           {option.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <span className="cn-text-caption text-muted-foreground">
                           {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
-                        </Typography>
-                      </Box>
+                        </span>
+                      </div>
                     </li>
                   );
                 }}
@@ -621,9 +589,9 @@ const UserEdit: React.FC = () => {
               ) : undefined
             }
           >
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.75rem' }}>
+            <p className="cn-text-body2 text-muted-foreground mb-3 text-[0.75rem]">
               Laissez ces champs vides si vous ne souhaitez pas changer le mot de passe.
-            </Typography>
+            </p>
             <Box
               sx={{
                 display: 'grid',
@@ -641,9 +609,9 @@ const UserEdit: React.FC = () => {
                 placeholder="Minimum 8 caractères"
                 InputProps={{
                   startAdornment: (
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mr: 1 }}>
+                    <span className="inline-flex text-muted-foreground opacity-60 me-1.5">
                       <Lock size={16} strokeWidth={1.75} />
-                    </Box>
+                    </span>
                   ),
                   endAdornment: (
                     <IconButton
@@ -671,9 +639,9 @@ const UserEdit: React.FC = () => {
                 placeholder="Répétez le mot de passe"
                 InputProps={{
                   startAdornment: (
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mr: 1 }}>
+                    <span className="inline-flex text-muted-foreground opacity-60 me-1.5">
                       <Lock size={16} strokeWidth={1.75} />
-                    </Box>
+                    </span>
                   ),
                   endAdornment: (
                     <IconButton
@@ -693,9 +661,9 @@ const UserEdit: React.FC = () => {
               />
             </Box>
           </DetailSection>
-        </Box>
+        </div>
       </form>
-    </Box>
+    </div>
   );
 };
 

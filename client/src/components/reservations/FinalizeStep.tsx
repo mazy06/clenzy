@@ -72,24 +72,16 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
         <Typography sx={SEC_SX}>{t('reservations.dialog.recapTitle')}</Typography>
         {recapRows.map((row) => (
           <Box key={row.label} sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px' }}>
-            <Typography sx={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', flexShrink: 0 }}>{row.label}</Typography>
+            <p className="cn-text-body1 text-[12px] font-semibold text-[var(--muted)] shrink-0">{row.label}</p>
             <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{row.value}</Typography>
           </Box>
         ))}
         <Box sx={{ height: '1px', backgroundColor: 'var(--line)', margin: '2px 0' }} />
         <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px' }}>
-          <Typography sx={{ fontSize: '12px', fontWeight: 700, color: 'var(--ink)' }}>{t('reservations.dialog.recapTotal')}</Typography>
-          <Typography
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '18px',
-              fontWeight: 600,
-              color: 'var(--accent-deep)',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
+          <p className="cn-text-body1 text-[12px] font-bold text-[var(--ink)]">{t('reservations.dialog.recapTotal')}</p>
+          <p className="cn-text-body1 font-[var(--font-display)] text-[18px] font-semibold text-[var(--accent-deep)] tabular-nums">
             {form.totalPrice.toFixed(2)} €
-          </Typography>
+          </p>
         </Box>
       </Box>
     </>

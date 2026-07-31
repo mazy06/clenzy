@@ -1,4 +1,4 @@
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button } from '@mui/material';
 import { Smartphone, Refresh } from '../../../icons';
 import { BAITLY_APP } from '../baitlyApp';
 
@@ -27,25 +27,17 @@ const ACCENT = 'var(--accent)';
 
 export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePairingGuideProps) {
   return (
-    <Box
-      sx={{
-        mt: 1,
-        p: 1.5,
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--line)',
-        bgcolor: 'var(--card)',
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
+    <div className="mt-1.5 p-2 rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--card)]">
+      <div className="flex items-center gap-1 mb-0.5">
         <Smartphone size={16} color={ACCENT} />
-        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+        <p className="cn-text-body1 text-[0.82rem] font-semibold">
           Appairez votre appareil dans l'app {BAITLY_APP.name}
-        </Typography>
-      </Box>
-      <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 1 }}>
+        </p>
+      </div>
+      <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-1.5">
         L'appairage d'un objet neuf se fait dans l'app mobile {BAITLY_APP.name} (au plus près de
         l'appareil). Il apparaîtra ensuite ici automatiquement, rattaché au compte de l'organisation.
-      </Typography>
+      </p>
 
       <Box component="ol" sx={{ m: 0, pl: 2.25, mb: 1, '& li': { fontSize: '0.74rem', color: 'text.secondary', mb: 0.25 } }}>
         {STEPS.map((s) => (
@@ -53,7 +45,7 @@ export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePair
         ))}
       </Box>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-1.5 flex-wrap">
         {BAITLY_APP.available ? (
           <>
             {BAITLY_APP.pairingDeepLink && (
@@ -79,9 +71,9 @@ export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePair
             )}
           </>
         ) : (
-          <Typography sx={{ fontSize: '0.72rem', color: 'var(--warn)', fontWeight: 600 }}>
+          <p className="cn-text-body1 text-[0.72rem] text-[var(--warn)] font-semibold">
             App {BAITLY_APP.name} bientôt disponible — en attendant, contactez le support pour l'appairage.
-          </Typography>
+          </p>
         )}
 
         {onRefresh && (
@@ -96,7 +88,7 @@ export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePair
             {refreshing ? 'Recherche…' : "J'ai appairé — rafraîchir"}
           </Button>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

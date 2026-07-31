@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, Typography, Alert } from '@mui/material';
+import { Paper, Alert } from '@mui/material';
 import type { AirbnbConnectionStatus } from '../../services/api/airbnbApi';
 import { CARD_SX } from './channelsPageConstants';
 
@@ -19,18 +19,13 @@ const AirbnbConnectionDetails: React.FC<AirbnbConnectionDetailsProps> = ({
   t,
 }) => (
   <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-      <Box
-        component="img"
-        src={airbnbLogoSmall}
-        alt="Airbnb"
-        sx={{ height: 18 }}
-      />
-      <Typography sx={{ fontSize: '0.875rem', fontWeight: 700 }}>
+    <div className="flex items-center gap-1.5 mb-2">
+      <img className="h-[18px]" src={airbnbLogoSmall} alt="Airbnb" />
+      <p className="cn-text-body1 text-[0.875rem] font-bold">
         {t('channels.airbnb.connectedSince')}
-      </Typography>
-    </Box>
-    <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+      </p>
+    </div>
+    <div className="flex gap-4 flex-wrap">
       <DetailItem label={t('channels.airbnb.userId')} value={connectionStatus.airbnbUserId ?? '—'} />
       <DetailItem
         label={t('channels.airbnb.connectedSince')}
@@ -49,7 +44,7 @@ const AirbnbConnectionDetails: React.FC<AirbnbConnectionDetailsProps> = ({
           {connectionStatus.errorMessage}
         </Alert>
       )}
-    </Box>
+    </div>
   </Paper>
 );
 
@@ -59,13 +54,13 @@ export default AirbnbConnectionDetails;
 
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
-    <Box>
-      <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+    <div>
+      <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] font-bold uppercase tracking-[0.06em]">
         {label}
-      </Typography>
-      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+      </p>
+      <p className="cn-text-body1 text-[0.8125rem] font-semibold tabular-nums">
         {value}
-      </Typography>
-    </Box>
+      </p>
+    </div>
   );
 }

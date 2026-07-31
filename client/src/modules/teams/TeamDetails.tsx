@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Grid,
-  Chip,
-  Button,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
+import { Card, CardContent, Grid, Chip, Button, Alert, CircularProgress } from '@mui/material';
 import {
   Group,
   Edit,
@@ -88,30 +78,30 @@ const TeamDetails: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+      <div className="flex justify-center items-center h-[50vh]">
         <CircularProgress />
-      </Box>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 3 }}>
+      <div className="p-4">
         <Alert severity="error">{error}</Alert>
-      </Box>
+      </div>
     );
   }
 
   if (!team) {
     return (
-      <Box sx={{ p: 3 }}>
+      <div className="p-4">
         <Alert severity="warning">Équipe non trouvée</Alert>
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <div className="p-4">
       <PageHeader
         title={team.name}
         subtitle="Détails de l'équipe et de ses membres"
@@ -136,13 +126,13 @@ const TeamDetails: React.FC = () => {
       {/* Row 1: Carte principale avec résumé */}
       <Card sx={{ mb: 3 }}>
         <CardContent sx={{ p: 4 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <div className="flex justify-between items-start mb-4">
+            <div className="flex items-center gap-3">
               {getInterventionTypeIcon(team.interventionType)}
-              <Typography variant="h5" fontWeight={600}>
+              <h5 className="cn-text-h5 font-semibold">
                 {team.name}
-              </Typography>
-            </Box>
+              </h5>
+            </div>
             {(() => { const c = getInterventionTypeHex(team.interventionType); return (
             <Chip
               label={getInterventionTypeLabel(team.interventionType, t)}
@@ -150,59 +140,59 @@ const TeamDetails: React.FC = () => {
               sx={{ backgroundColor: `${c}18`, color: c, fontWeight: 600, '& .MuiChip-label': { px: 1 } }}
             />
             ); })()}
-          </Box>
+          </div>
 
-          <Box sx={{ mb: 3, p: 2, bgcolor: 'var(--field)', borderRadius: '12px', border: '1px solid var(--field-line)' }}>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'var(--accent)' }}>
+          <div className="mb-4 p-3 bg-[var(--field)] rounded-[12px] border border-[var(--field-line)]">
+            <h6 className="cn-text-subtitle2 mb-1.5 font-semibold text-[var(--accent)]">
               Description de l'équipe
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
+            </h6>
+            <p className="cn-text-body1 text-muted-foreground">
               {team.description || 'Aucune description disponible pour cette équipe.'}
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
           <Grid container spacing={3} sx={{ mb: 3 }}>
             <Grid item xs={6} md={3}>
-              <Box sx={{ textAlign: 'center' }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mb: 0.5 }}><Group size={20} strokeWidth={1.75} /></Box>
-                <Typography variant="body2" fontWeight={500}>{team.memberCount}</Typography>
-                <Typography variant="caption" color="text.secondary">Membres</Typography>
-              </Box>
+              <div className="text-center">
+                <span className="inline-flex text-muted-foreground mb-0.5"><Group size={20} strokeWidth={1.75} /></span>
+                <p className="cn-text-body2 font-medium">{team.memberCount}</p>
+                <span className="cn-text-caption text-muted-foreground">Membres</span>
+              </div>
             </Grid>
             <Grid item xs={6} md={3}>
-              <Box sx={{ textAlign: 'center' }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mb: 0.5 }}><Build size={20} strokeWidth={1.75} /></Box>
-                <Typography variant="body2" fontWeight={500}>{getInterventionTypeLabel(team.interventionType, t)}</Typography>
-                <Typography variant="caption" color="text.secondary">Spécialité</Typography>
-              </Box>
+              <div className="text-center">
+                <span className="inline-flex text-muted-foreground mb-0.5"><Build size={20} strokeWidth={1.75} /></span>
+                <p className="cn-text-body2 font-medium">{getInterventionTypeLabel(team.interventionType, t)}</p>
+                <span className="cn-text-caption text-muted-foreground">Spécialité</span>
+              </div>
             </Grid>
           </Grid>
 
-          <Box sx={{ p: 2, bgcolor: 'var(--field)', borderRadius: '12px', border: '1px solid var(--field-line)' }}>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'var(--accent)' }}>
+          <div className="p-3 bg-[var(--field)] rounded-[12px] border border-[var(--field-line)]">
+            <h6 className="cn-text-subtitle2 mb-1.5 font-semibold text-[var(--accent)]">
               Informations de l'équipe
-            </Typography>
+            </h6>
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>Créée le:</Typography>
-                  <Typography variant="caption" color="text.primary">
+                <div className="flex items-center gap-1.5">
+                  <span className="cn-text-caption text-muted-foreground font-medium">Créée le:</span>
+                  <span className="cn-text-caption text-foreground">
                     {team.createdAt ? new Date(team.createdAt).toLocaleDateString('fr-FR') : 'N/A'}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               </Grid>
               {team.updatedAt && (
                 <Grid item xs={12} md={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>Modifiée le:</Typography>
-                    <Typography variant="caption" color="text.primary">
+                  <div className="flex items-center gap-1.5">
+                    <span className="cn-text-caption text-muted-foreground font-medium">Modifiée le:</span>
+                    <span className="cn-text-caption text-foreground">
                       {new Date(team.updatedAt).toLocaleDateString('fr-FR')}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 </Grid>
               )}
             </Grid>
-          </Box>
+          </div>
         </CardContent>
       </Card>
 
@@ -223,7 +213,7 @@ const TeamDetails: React.FC = () => {
         teamName={team.name}
         canEdit={canEdit}
       />
-    </Box>
+    </div>
   );
 };
 

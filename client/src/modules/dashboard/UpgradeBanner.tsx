@@ -105,29 +105,15 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
         {/* Colonne gauche : icone + texte descriptif */}
         <Box sx={{ display: 'flex', gap: 2, flex: '1 1 0', minWidth: 0 }}>
           {/* Icone cercle */}
-          <Box
-            sx={{
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              bgcolor: 'rgba(107,138,154,0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
+          <div className="w-[48px] h-[48px] rounded-[50%] bg-[rgba(107,138,154,0.08)] flex items-center justify-center shrink-0">
             <Box component="span" sx={{ display: 'inline-flex', color: C.primary }}><CalendarIcon size={24} strokeWidth={1.75} /></Box>
-          </Box>
+          </div>
 
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
-              <Typography
-                variant="h6"
-                sx={{ fontWeight: 700, fontSize: '1rem', color: 'text.primary', lineHeight: 1.3 }}
-              >
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+              <h6 className="cn-text-h6 font-bold text-[1rem] text-foreground leading-[1.3]">
                 Debloquez le Planning & l'import iCal
-              </Typography>
+              </h6>
               <Chip
                 label="Forfait Essentiel"
                 size="small"
@@ -142,13 +128,13 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                   '& .MuiChip-label': { px: 0.75 },
                 }}
               />
-            </Box>
-            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.813rem', lineHeight: 1.6 }}>
+            </div>
+            <p className="cn-text-body2 text-muted-foreground text-[0.813rem] leading-[1.6]">
               Votre forfait actuel ne permet pas l'acces au planning interactif ni a l'import
               automatique de vos calendriers Airbnb, Booking et autres plateformes. Passez au
               forfait Confort pour automatiser la gestion de vos reservations.
-            </Typography>
-          </Box>
+            </p>
+          </div>
         </Box>
 
         {/* Colonne droite : 3 forfaits cote a cote */}
@@ -215,16 +201,13 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                 >
                   {label}
                   {isCurrent && (
-                    <Typography
-                      component="span"
-                      sx={{ fontSize: '0.7rem', color: 'text.secondary', fontWeight: 400, ml: 0.5 }}
-                    >
+                    <span className="text-[0.7rem] text-muted-foreground font-normal ms-0.5">
                       (actuel)
-                    </Typography>
+                    </span>
                   )}
                 </Typography>
                 {features.map((f) => (
-                  <Box key={f} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
+                  <div className="flex items-center gap-1 mb-0.5" key={f}>
                     <Box
                       component="span"
                       sx={{
@@ -246,7 +229,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                     >
                       {f}
                     </Typography>
-                  </Box>
+                  </div>
                 ))}
               </Box>
             );
@@ -255,14 +238,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
       </Box>
 
       {/* ── Ligne 2 : Boutons CTA en dessous ────────────────────────── */}
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 1.5,
-          alignItems: 'center',
-          flexWrap: 'wrap',
-        }}
-      >
+      <div className="flex gap-2 items-center flex-wrap">
         <Button
           variant="contained"
           size="medium"
@@ -319,11 +295,11 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
 
         {/* Error message */}
         {error && (
-          <Typography variant="caption" sx={{ color: 'error.main', ml: 1 }}>
+          <span className="cn-text-caption text-destructive ms-1.5">
             {error}
-          </Typography>
+          </span>
         )}
-      </Box>
+      </div>
     </Box>
   );
 };

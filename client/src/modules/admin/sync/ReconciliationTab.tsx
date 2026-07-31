@@ -1,26 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  Button,
-  CircularProgress,
-  Skeleton,
-  Alert,
-  Typography,
-  Grid,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, CircularProgress, Skeleton, Alert, Typography, Grid, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   PlayArrow,
   CompareArrows,
@@ -123,7 +102,7 @@ const ReconciliationTab: React.FC = () => {
   // Register Property ID + Status filters in the page header.
   useEffect(() => {
     setHeaderFilters(
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-2 flex-wrap">
         <TextField
           size="small"
           label="Property ID"
@@ -139,7 +118,7 @@ const ReconciliationTab: React.FC = () => {
           allLabel="Tous"
           size="compact"
         />
-      </Box>,
+      </div>,
     );
     return () => setHeaderFilters(null);
   }, [setHeaderFilters, propertyIdFilter, statusFilter]);
@@ -191,7 +170,7 @@ const ReconciliationTab: React.FC = () => {
   };
 
   return (
-    <Box>
+    <div>
       {/* Stats — StatTile (carte plate hairline, valeur display tabular-nums) */}
       {stats && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -220,11 +199,11 @@ const ReconciliationTab: React.FC = () => {
       {triggerMessage && <Alert severity="info" sx={{ mb: 2 }}>{triggerMessage}</Alert>}
 
       {loading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
           ))}
-        </Box>
+        </div>
       ) : (
         <>
           <TableContainer
@@ -311,13 +290,9 @@ const ReconciliationTab: React.FC = () => {
                         {run.startedAt ? new Date(run.startedAt).toLocaleString() : '—'}
                       </TableCell>
                       <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                          title={run.errorMessage || undefined}
-                        >
+                        <p className="cn-text-body2 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title={run.errorMessage || undefined}>
                           {run.errorMessage || '—'}
-                        </Typography>
+                        </p>
                       </TableCell>
                     </TableRow>
                   ))
@@ -340,10 +315,10 @@ const ReconciliationTab: React.FC = () => {
       <Dialog open={triggerDialogOpen} onClose={() => setTriggerDialogOpen(false)}>
         <DialogTitle>Trigger Reconciliation</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" sx={{ mb: 2 }}>
+          <p className="cn-text-body2 mb-3">
             Declencher une reconciliation manuelle pour une propriete.
             Tous les mappings actifs de cette propriete seront reconcilies.
-          </Typography>
+          </p>
           <TextField
             autoFocus
             fullWidth
@@ -366,7 +341,7 @@ const ReconciliationTab: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

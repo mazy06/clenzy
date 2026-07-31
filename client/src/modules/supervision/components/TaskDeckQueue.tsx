@@ -88,25 +88,25 @@ function TaskCard({
       }}
     >
       {/* En-tête : tuile d'icône + label du type + badge d'urgence */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <div className="flex items-center gap-1.5">
         <Box sx={{
           width: 32, height: 32, borderRadius: '10px', background: tile, color: meta.color,
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
           <AgentIcon token={meta.icon} size={16} />
         </Box>
-        <Box sx={{ fontSize: 12, fontWeight: 500, color: 'var(--ink)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div className="text-[12px] font-medium text-[var(--ink)] flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">
           {t(meta.nameKey)}
-        </Box>
+        </div>
         {payment || reminder || guestCard ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+          <div className="flex items-center gap-0.5 shrink-0">
             <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warn)' }} />
-            <Box sx={{ fontSize: 10.5, fontWeight: 500, color: 'var(--warn)', whiteSpace: 'nowrap' }}>
+            <div className="text-[10.5px] font-medium text-[var(--warn)] whitespace-nowrap">
               {payment ? t('supervision.payment.badge', 'À régler')
                 : reminder ? t('supervision.reminder.badge', 'Rappel')
                 : t('supervision.guestCard.badge', 'À compléter')}
-            </Box>
-          </Box>
+            </div>
+          </div>
         ) : (
           <Box sx={{
             display: 'flex', alignItems: 'center', gap: 0.5, px: 0.9, py: 0.35, borderRadius: '999px',
@@ -119,7 +119,7 @@ function TaskCard({
             {cd.expired ? t('supervision.hitl.expired') : remainingLabel(cd, t)}
           </Box>
         )}
-      </Box>
+      </div>
 
       {/* Titre (2 lignes max) */}
       <Box sx={{
@@ -130,7 +130,7 @@ function TaskCard({
       </Box>
 
       {/* Pied : action primaire / secondaire / chevron « Pourquoi ? » */}
-      <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+      <div className="flex gap-1.5 mt-2">
         <Button
           size="small" variant="contained" disableElevation
           onClick={priceAdjust ? () => onAdjustPrice!(action) : () => onValidate(action.id)}
@@ -146,11 +146,11 @@ function TaskCard({
             t('supervision.price.adjustCta', 'Ajuster les tarifs')
           ) : payment ? (
             <>{t('supervision.payment.settle', 'Régler')}{action.amountEur != null && (
-              <Box component="span" sx={{ ml: 'auto', pl: 0.75 }}><Money value={action.amountEur} from="EUR" /></Box>
+              <span className="ms-auto ps-1"><Money value={action.amountEur} from="EUR" /></span>
             )}</>
           ) : apply ? (
             <>{t('supervision.apply.action', 'Appliquer')}{action.amountEur != null && (
-              <Box component="span" sx={{ ml: 'auto', pl: 0.75 }}>+<Money value={action.amountEur} from="EUR" decimals={0} /></Box>
+              <span className="ms-auto ps-1">+<Money value={action.amountEur} from="EUR" decimals={0} /></span>
             )}</>
           ) : guestCard ? t('supervision.guestCard.cta', 'Compléter la fiche client')
             : reminder ? t('supervision.reminder.ack', 'Info reçue') : t('supervision.hitl.validate')}
@@ -170,12 +170,12 @@ function TaskCard({
         >
           <ChevronDown size={16} style={{ transform: why ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
         </IconButton>
-      </Box>
+      </div>
 
       <Collapse in={why} unmountOnExit>
-        <Box sx={{ mt: 1.25, pt: 1.25, borderTop: '1px solid var(--line)', fontSize: 11.5, lineHeight: 1.5, color: 'var(--muted)' }}>
+        <div className="mt-2 pt-2 border-t border-[var(--line)] text-[11.5px] leading-[1.5] text-[var(--muted)]">
           {action.reasoning}
-        </Box>
+        </div>
       </Collapse>
     </Box>
   );
@@ -207,13 +207,13 @@ function TaskStack({
 
   if (open) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+      <div className="flex flex-col">
         {/* Barre d'en-tête */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25 }}>
-          <Box sx={{ fontSize: 11.5, fontWeight: 500, color: 'var(--muted)', flex: 1, minWidth: 0 }}>
+        <div className="flex items-center gap-1.5 mb-2">
+          <div className="text-[11.5px] font-medium text-[var(--muted)] flex-1 min-w-0">
             {t('supervision.deck.count', { count: n })}
             {total > 0 && <> · <Money value={total} from="EUR" /></>}
-          </Box>
+          </div>
           <Button
             size="small" variant="text" onClick={onToggleSort}
             sx={{ textTransform: 'none', fontSize: 11, fontWeight: 500, color: 'var(--muted)', minWidth: 0, px: 1, borderRadius: '999px', border: '1px solid var(--line-2)' }}
@@ -229,16 +229,16 @@ function TaskStack({
               {t('supervision.deck.bulk', 'Tout traiter')}
             </Button>
           )}
-        </Box>
+        </div>
         {/* Liste (cascade) */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <div className="flex flex-col gap-2">
           {actions.map((a, i) => (
             <Box key={a.id} sx={{ animation: 'deckCascadeIn .42s var(--ease-out, cubic-bezier(.16,1,.3,1)) both', animationDelay: `${i * 0.05}s` }}>
               <TaskCard action={a} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} />
             </Box>
           ))}
-        </Box>
-      </Box>
+        </div>
+      </div>
     );
   }
 
@@ -283,9 +283,9 @@ function TaskStack({
         );
       })}
       {/* Carte du dessus (en flux : donne sa hauteur au deck) */}
-      <Box sx={{ position: 'relative', zIndex: 5 }}>
+      <div className="relative z-[5]">
         <TaskCard action={actions[0]} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} />
-      </Box>
+      </div>
       {/* Pastille de comptage */}
       {n > 1 && (
         <Box sx={{
@@ -424,7 +424,7 @@ function TaskDeckQueueInner({ actions, onValidate, onEdit, onAdjustPrice, varian
           animation: 'deckCascadeIn .3s ease both',
         }}>
           <Check size={15} style={{ color: 'var(--ok)' }} />
-          <Box sx={{ fontSize: 12, fontWeight: 500 }}>{undo.label}</Box>
+          <div className="text-[12px] font-medium">{undo.label}</div>
           <Button
             size="small" variant="text" onClick={doUndo} startIcon={<Undo size={13} />}
             sx={{ textTransform: 'none', fontWeight: 500, fontSize: 12, color: 'var(--accent)', minWidth: 0, '& .MuiButton-startIcon': { mr: 0.5 } }}

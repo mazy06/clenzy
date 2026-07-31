@@ -1,18 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Card,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  ToggleButton,
-  ToggleButtonGroup,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, Card, Skeleton, Table, TableBody, TableCell, TableHead, TableRow, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { CalendarX2, Eye, MousePointerClick, Search, ShoppingCart } from 'lucide-react';
 import StatTile from '../../../../components/StatTile';
 import EmptyState from '../../../../components/EmptyState';
@@ -90,17 +77,17 @@ export default function FunnelAnalyticsPanel() {
   ];
 
   return (
-    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5, maxWidth: 980 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+    <div className="p-3 flex flex-col gap-2 max-w-[980px]">
+      <div className="flex items-center justify-between">
+        <div>
+          <h6 className="cn-text-subtitle1 font-semibold">
             {t('bookingEngine.funnel.title', 'Funnel de réservation')}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+          </h6>
+          <span className="cn-text-caption text-[var(--muted)]">
             {t('bookingEngine.funnel.subtitle',
               'Demande captée par votre moteur de réservation — y compris la demande refusée.')}
-          </Typography>
-        </Box>
+          </span>
+        </div>
         <ToggleButtonGroup
           size="small"
           exclusive
@@ -110,7 +97,7 @@ export default function FunnelAnalyticsPanel() {
           <ToggleButton value={30}>30 j</ToggleButton>
           <ToggleButton value={90}>90 j</ToggleButton>
         </ToggleButtonGroup>
-      </Box>
+      </div>
 
       {error && <Alert severity="error">{error}</Alert>}
 
@@ -129,13 +116,13 @@ export default function FunnelAnalyticsPanel() {
       </Box>
 
       <Card variant="outlined" sx={{ p: 1.5 }}>
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+        <h6 className="cn-text-subtitle2 mb-1.5">
           {t('bookingEngine.funnel.topDeniedTitle', 'Séjours demandés sans disponibilité')}
-        </Typography>
-        <Typography variant="caption" sx={{ color: 'var(--muted)', display: 'block', mb: 1 }}>
+        </h6>
+        <span className="cn-text-caption text-[var(--muted)] block mb-1.5">
           {t('bookingEngine.funnel.topDeniedHint',
             'Ces dates ont été recherchées mais aucun logement n’était disponible — un signal pour revoir prix, min-stay ou inventaire.')}
-        </Typography>
+        </span>
         {loading ? (
           <Skeleton variant="rounded" height={160} />
         ) : (data?.topDenied.length ?? 0) === 0 ? (
@@ -167,6 +154,6 @@ export default function FunnelAnalyticsPanel() {
           </Table>
         )}
       </Card>
-    </Box>
+    </div>
   );
 }

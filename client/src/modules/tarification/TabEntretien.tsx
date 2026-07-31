@@ -1,21 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  Grid,
-  InputAdornment,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-} from '@mui/material';
+import { TextField, Grid, InputAdornment, Accordion, AccordionSummary, AccordionDetails, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip } from '@mui/material';
 import {
   Euro,
   ExpandMore,
@@ -44,9 +28,9 @@ interface TabEntretienProps {
 }
 
 const FORFAIT_ICONS = [
-  <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome key="s" size={20} strokeWidth={1.75} /></Box>,
-  <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Bolt key="e" size={20} strokeWidth={1.75} /></Box>,
-  <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><CleaningServices key="d" size={20} strokeWidth={1.75} /></Box>,
+  <span className="inline-flex text-primary"><AutoAwesome key="s" size={20} strokeWidth={1.75} /></span>,
+  <span className="inline-flex text-[var(--bui-warning-ink)]"><Bolt key="e" size={20} strokeWidth={1.75} /></span>,
+  <span className="inline-flex text-[secondary.main]"><CleaningServices key="d" size={20} strokeWidth={1.75} /></span>,
 ];
 
 export default function TabEntretien({ config, teams, canEdit, onUpdate, currencySymbol }: TabEntretienProps) {
@@ -110,17 +94,17 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
   }, [config.commissionConfigs, onUpdate]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pt: 1 }}>
+    <div className="flex flex-col gap-1.5 pt-1.5">
       {/* ─── Prix de base ───────────────────────────────────────────── */}
       <Accordion expanded={expandedSection === 'basePrices'} onChange={handleAccordionChange('basePrices')} sx={{ '&:before': { display: 'none' } }}>
         <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Euro size={20} strokeWidth={1.75} /></Box>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={600}>{t('tarification.basePrices.title')}</Typography>
-              <Typography variant="body2" color="text.secondary">{t('tarification.basePrices.subtitle')}</Typography>
-            </Box>
-          </Box>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-primary"><Euro size={20} strokeWidth={1.75} /></span>
+            <div>
+              <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.basePrices.title')}</h6>
+              <p className="cn-text-body2 text-muted-foreground">{t('tarification.basePrices.subtitle')}</p>
+            </div>
+          </div>
         </AccordionSummary>
         <AccordionDetails>
           <Grid container spacing={1.5}>
@@ -151,17 +135,17 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
             sx={{ '&:before': { display: 'none' } }}
           >
             <AccordionSummary expandIcon={<ExpandMore />}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <div className="flex items-center gap-1.5">
                 {FORFAIT_ICONS[index] || FORFAIT_ICONS[0]}
-                <Box>
-                  <Typography variant="subtitle1" fontWeight={600}>
+                <div>
+                  <h6 className="cn-text-subtitle1 font-semibold">
                     {t(`tarification.forfaits.${forfait.key}.title`, `Forfait ${forfait.label}`)}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  </h6>
+                  <p className="cn-text-body2 text-muted-foreground">
                     {t(`tarification.forfaits.${forfait.key}.subtitle`, `Configuration du forfait ${forfait.label.toLowerCase()}`)}
-                  </Typography>
-                </Box>
-              </Box>
+                  </p>
+                </div>
+              </div>
             </AccordionSummary>
             <AccordionDetails>
               <ForfaitAccordionSection
@@ -183,13 +167,13 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
       {/* ─── Coefficients type de logement ──────────────────────────── */}
       <Accordion expanded={expandedSection === 'propertyType'} onChange={handleAccordionChange('propertyType')} sx={{ '&:before': { display: 'none' } }}>
         <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Home size={20} strokeWidth={1.75} /></Box>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={600}>{t('tarification.propertyType.title')}</Typography>
-              <Typography variant="body2" color="text.secondary">{t('tarification.propertyType.subtitle')}</Typography>
-            </Box>
-          </Box>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[secondary.main]"><Home size={20} strokeWidth={1.75} /></span>
+            <div>
+              <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.propertyType.title')}</h6>
+              <p className="cn-text-body2 text-muted-foreground">{t('tarification.propertyType.subtitle')}</p>
+            </div>
+          </div>
         </AccordionSummary>
         <AccordionDetails>
           <TableContainer>
@@ -218,13 +202,13 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
       {/* ─── Coefficients nombre de logements ───────────────────────── */}
       <Accordion expanded={expandedSection === 'propertyCount'} onChange={handleAccordionChange('propertyCount')} sx={{ '&:before': { display: 'none' } }}>
         <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Home size={20} strokeWidth={1.75} /></Box>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={600}>{t('tarification.propertyCount.title')}</Typography>
-              <Typography variant="body2" color="text.secondary">{t('tarification.propertyCount.subtitle')}</Typography>
-            </Box>
-          </Box>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--bui-success-ink)]"><Home size={20} strokeWidth={1.75} /></span>
+            <div>
+              <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.propertyCount.title')}</h6>
+              <p className="cn-text-body2 text-muted-foreground">{t('tarification.propertyCount.subtitle')}</p>
+            </div>
+          </div>
         </AccordionSummary>
         <AccordionDetails>
           <TableContainer>
@@ -253,13 +237,13 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
       {/* ─── Coefficients capacité voyageurs ─────────────────────────── */}
       <Accordion expanded={expandedSection === 'guestCapacity'} onChange={handleAccordionChange('guestCapacity')} sx={{ '&:before': { display: 'none' } }}>
         <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><People size={20} strokeWidth={1.75} /></Box>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={600}>{t('tarification.guestCapacity.title')}</Typography>
-              <Typography variant="body2" color="text.secondary">{t('tarification.guestCapacity.subtitle')}</Typography>
-            </Box>
-          </Box>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-primary"><People size={20} strokeWidth={1.75} /></span>
+            <div>
+              <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.guestCapacity.title')}</h6>
+              <p className="cn-text-body2 text-muted-foreground">{t('tarification.guestCapacity.subtitle')}</p>
+            </div>
+          </div>
         </AccordionSummary>
         <AccordionDetails>
           <TableContainer>
@@ -288,13 +272,13 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
       {/* ─── Coefficients fréquence ──────────────────────────────────── */}
       <Accordion expanded={expandedSection === 'frequency'} onChange={handleAccordionChange('frequency')} sx={{ '&:before': { display: 'none' } }}>
         <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Speed size={20} strokeWidth={1.75} /></Box>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={600}>{t('tarification.frequency.title')}</Typography>
-              <Typography variant="body2" color="text.secondary">{t('tarification.frequency.subtitle')}</Typography>
-            </Box>
-          </Box>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--bui-warning-ink)]"><Speed size={20} strokeWidth={1.75} /></span>
+            <div>
+              <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.frequency.title')}</h6>
+              <p className="cn-text-body2 text-muted-foreground">{t('tarification.frequency.subtitle')}</p>
+            </div>
+          </div>
         </AccordionSummary>
         <AccordionDetails>
           <TableContainer>
@@ -323,13 +307,13 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
       {/* ─── Paliers surface ─────────────────────────────────────────── */}
       <Accordion expanded={expandedSection === 'surfaceTiers'} onChange={handleAccordionChange('surfaceTiers')} sx={{ '&:before': { display: 'none' } }}>
         <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><SquareFoot size={20} strokeWidth={1.75} /></Box>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={600}>{t('tarification.surface.title')}</Typography>
-              <Typography variant="body2" color="text.secondary">{t('tarification.surface.subtitle')}</Typography>
-            </Box>
-          </Box>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-destructive"><SquareFoot size={20} strokeWidth={1.75} /></span>
+            <div>
+              <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.surface.title')}</h6>
+              <p className="cn-text-body2 text-muted-foreground">{t('tarification.surface.subtitle')}</p>
+            </div>
+          </div>
         </AccordionSummary>
         <AccordionDetails>
           <TableContainer>
@@ -361,14 +345,14 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
 
       {/* ─── Commission entretien ────────────────────────────────────── */}
       {commission && (
-        <Box sx={{ px: 1 }}>
+        <div className="px-1.5">
           <CommissionSection
             commission={commission}
             canEdit={canEdit}
             onChange={handleCommissionChange}
           />
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

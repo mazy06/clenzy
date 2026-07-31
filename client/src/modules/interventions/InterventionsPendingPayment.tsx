@@ -1,23 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Button,
-  Alert,
-  CircularProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
+import { Box, Card, CardContent, Button, Alert, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, IconButton, Tooltip } from '@mui/material';
 import {
   Payment as PaymentIcon,
   Refresh as RefreshIcon,
@@ -161,14 +143,14 @@ const InterventionsPendingPayment: React.FC = () => {
 
   if (!hasAccess) {
     return (
-      <Box>
+      <div>
         <Alert severity="error">Vous n'avez pas acces a cette page</Alert>
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={t('interventions.pendingPayment.title')}
         subtitle={t('interventions.pendingPayment.subtitle')}
@@ -218,15 +200,15 @@ const InterventionsPendingPayment: React.FC = () => {
       {interventions.length === 0 ? (
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 6 }}>
-            <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: 'var(--ok-soft)', color: 'var(--ok)', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
+            <div className="w-[56px] h-[56px] rounded-[50%] bg-[var(--ok-soft)] text-[var(--ok)] flex items-center justify-center mx-auto mb-3">
               <PaymentIcon size={28} strokeWidth={1.5} />
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--ink)', mb: 0.5 }}>
+            </div>
+            <h6 className="cn-text-h6 font-semibold text-[0.9375rem] text-[var(--ink)] mb-0.5">
               Aucun paiement en attente
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>
+            </h6>
+            <p className="cn-text-body2 text-[var(--muted)] text-[0.8125rem]">
               Toutes vos interventions sont a jour.
-            </Typography>
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -283,22 +265,22 @@ const InterventionsPendingPayment: React.FC = () => {
                   }}
                 >
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--ink)' }}>
+                    <p className="cn-text-body2 font-semibold text-[0.8125rem] text-[var(--ink)]">
                       {intervention.title}
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'var(--body)' }}>
+                    <p className="cn-text-body2 text-[0.8125rem] text-[var(--body)]">
                       {intervention.requestorName}
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>
+                    <p className="cn-text-body2 font-medium text-[0.8125rem]">
                       {intervention.propertyName}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'var(--muted)', fontSize: '0.6875rem' }}>
+                    </p>
+                    <span className="cn-text-caption text-[var(--muted)] text-[0.6875rem]">
                       {intervention.propertyAddress}
-                    </Typography>
+                    </span>
                   </TableCell>
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
                     {(() => { const tk = getTypeTokens(intervention.type); return (
@@ -318,17 +300,17 @@ const InterventionsPendingPayment: React.FC = () => {
                     ); })()}
                   </TableCell>
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+                    <p className="cn-text-body2 text-[0.8125rem]">
                       {formatDate(intervention.scheduledDate)}
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell align="right" onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--warn)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
+                    <p className="cn-text-body2 font-semibold text-[0.875rem] text-[var(--warn)] font-[var(--font-display)] tabular-nums">
                       <Money value={intervention.estimatedCost} from="EUR" />
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell align="center">
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                    <div className="flex items-center justify-center gap-0.5">
                       <Tooltip title="Voir les details">
                         <IconButton
                           size="small"
@@ -354,7 +336,7 @@ const InterventionsPendingPayment: React.FC = () => {
                       >
                         {processingPayment === intervention.id ? 'Chargement...' : 'Payer'}
                       </Button>
-                    </Box>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -374,7 +356,7 @@ const InterventionsPendingPayment: React.FC = () => {
           interventionTitle={paymentTarget.title}
         />
       )}
-    </Box>
+    </div>
   );
 };
 

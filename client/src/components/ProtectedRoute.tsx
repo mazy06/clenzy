@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Box, Typography, Paper, Chip } from '@mui/material';
+import { Paper, Chip } from '@mui/material';
 import {
   Lock as LockIcon
 } from '../icons';
@@ -106,37 +106,21 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     const permissionMessage = getPermissionMessage();
 
     return (
-      <Box sx={{ 
-        p: 4, 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '60vh',
-        textAlign: 'center'
-      }}>
+      <div className="p-6 flex flex-col items-center justify-center min-h-[60vh] text-center">
         {/* Icône de verrouillage */}
-        <Box sx={{ 
-          mb: 3,
-          p: 2,
-          borderRadius: '50%',
-          bgcolor: 'grey.100',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LockIcon size={32} strokeWidth={1.5} /></Box>
-        </Box>
+        <div className="mb-4 p-3 rounded-[50%] bg-[grey.100] flex items-center justify-center">
+          <span className="inline-flex text-muted-foreground"><LockIcon size={32} strokeWidth={1.5} /></span>
+        </div>
 
         {/* Titre principal */}
-        <Typography variant="h4" color="text.primary" gutterBottom sx={{ fontWeight: 500, mb: 2 }}>
+        <h4 className="cn-text-h4 text-foreground mb-[0.35em] font-medium mb-3">
           Accès restreint
-        </Typography>
+        </h4>
 
         {/* Message explicatif */}
-        <Typography variant="h6" color="text.secondary" sx={{ mb: 3, maxWidth: 500, fontWeight: 400 }}>
+        <h6 className="cn-text-h6 text-muted-foreground mb-4 max-w-[500px] font-normal">
           Vous n'avez pas la permission de {permissionMessage}
-        </Typography>
+        </h6>
 
         {/* Détails techniques */}
         <Paper sx={{ 
@@ -147,23 +131,23 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           borderRadius: 2,
           maxWidth: 500
         }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, justifyContent: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
+          <div className="flex items-center gap-1.5 mb-3 justify-center">
+            <p className="cn-text-body2 text-muted-foreground">
               Permission requise : <strong>{requiredPermission}</strong>
-            </Typography>
-          </Box>
+            </p>
+          </div>
           
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, justifyContent: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
+          <div className="flex items-center gap-1.5 mb-3 justify-center">
+            <p className="cn-text-body2 text-muted-foreground">
               Page demandée : <strong>{location.pathname}</strong>
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
           {user && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
+            <div className="flex items-center gap-1.5 flex-wrap justify-center">
+              <p className="cn-text-body2 text-muted-foreground">
                 Votre rôle : 
-              </Typography>
+              </p>
               {user.roles.map((role, index) => (
                 <Chip
                   key={role}
@@ -174,10 +158,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
                   sx={{ fontSize: '0.75rem' }}
                 />
               ))}
-            </Box>
+            </div>
           )}
         </Paper>
-      </Box>
+      </div>
     );
   }
 

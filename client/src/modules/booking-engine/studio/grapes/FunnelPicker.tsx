@@ -117,31 +117,31 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
       PaperProps={{ sx: { width: '100%', maxWidth: 1040, m: 2, bgcolor: 'var(--card)', color: 'var(--body)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' } }}
     >
       {/* ── En-tête ── */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, px: 2.75, py: 2, borderBottom: '1px solid var(--line)' }}>
+      <div className="flex items-start gap-2 px-4 py-3 border-b border-[var(--line)]">
         <Box sx={{ flexShrink: 0, width: 42, height: 42, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)', display: 'grid', placeItems: 'center' }}>
           <Workflow size={20} strokeWidth={2} />
         </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box component="h2" sx={{ m: 0, fontSize: 'var(--text-md)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)', letterSpacing: '-.01em' }}>
+        <div className="flex-1 min-w-0">
+          <h2 className="m-0 text-[var(--text-md)] font-[var(--fw-semibold)] text-[var(--ink)] tracking-[-.01em]">
             Parcours de réservation
-          </Box>
+          </h2>
           <Box component="p" sx={{ m: '4px 0 0', fontSize: 'var(--text-2xs)', color: 'var(--muted)', lineHeight: 1.45, maxWidth: '62ch' }}>
             Démarrez avec un modèle prêt à l'emploi, ou composez votre propre parcours, écran par écran.
           </Box>
-        </Box>
+        </div>
         <ButtonBase onClick={onClose} aria-label="Fermer" sx={{ flexShrink: 0, width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', color: 'var(--muted)', display: 'grid', placeItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'var(--hover)', color: 'var(--ink)' } }}>
           <X size={18} strokeWidth={2} />
         </ButtonBase>
-      </Box>
+      </div>
 
       {/* ── Onglets ── */}
-      <Box sx={{ display: 'flex', gap: 0.75, px: 2.75, pt: 1.5 }}>
+      <div className="flex gap-1 px-4 pt-2">
         <TabBtn label="Modèles" count={BUILTIN_FUNNEL_PRESETS.length} active={activeTab === 'models'} onClick={() => setTab('models')} />
         {showSavedTab && (
           <TabBtn label="Mes parcours" count={savedPresets.length} active={activeTab === 'saved'} onClick={() => setTab('saved')} />
         )}
         <TabBtn label="Composer sur mesure" active={activeTab === 'compose'} onClick={() => setTab('compose')} />
-      </Box>
+      </div>
 
       {/* ── Corps (scroll) ── */}
       <Box ref={bodyRef} sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', px: 2.75, py: 2.5 }}>
@@ -178,25 +178,25 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
             <SecLabel>{editingId ? 'Modifier le parcours' : 'Composez votre parcours'}</SecLabel>
 
             {baseLabel && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.75, px: 1.5, py: 1, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent-soft)', border: '1px solid var(--line)' }}>
+              <div className="flex items-center gap-2 mb-2.5 px-2 py-1.5 rounded-[var(--radius-md)] bg-[var(--accent-soft)] border border-[var(--line)]">
                 <Box sx={{ flexShrink: 0, width: 27, height: 27, borderRadius: 'var(--radius-sm)', bgcolor: 'var(--card)', color: 'var(--accent)', display: 'grid', placeItems: 'center' }}>
                   <Pencil size={15} strokeWidth={2} />
                 </Box>
-                <Box component="span" sx={{ flex: 1, minWidth: 0, fontSize: 'var(--text-2xs)', color: 'var(--body)', lineHeight: 1.4 }}>
-                  Basé sur <Box component="span" sx={{ fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>« {baseLabel} »</Box>
+                <span className="flex-1 min-w-0 text-[var(--text-2xs)] text-[var(--body)] leading-[1.4]">
+                  Basé sur <span className="font-[var(--fw-semibold)] text-[var(--ink)]">« {baseLabel} »</span>
                   {' — '}{editingId ? 'vos modifications mettront à jour ce parcours.' : 'vos modifications créeront un nouveau parcours personnalisé.'}
-                </Box>
+                </span>
                 <SecondaryBtn icon={RotateCcw} label="Repartir de zéro" onClick={resetComposer} />
-              </Box>
+              </div>
             )}
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
               {/* Widgets disponibles */}
               <Panel title="Widgets disponibles" pill={`${selected.length} sélectionné${selected.length > 1 ? 's' : ''}`}>
-                <Box sx={{ maxHeight: 340, overflowY: 'auto', p: 1 }}>
+                <div className="max-h-[340px] overflow-y-auto p-1.5">
                   {widgetGroups.map((g) => (
-                    <Box key={g.category} sx={{ mb: 1.25 }}>
-                      <Box sx={{ px: 0.75, pt: 0.75, pb: 0.75, fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)' }}>{g.category}</Box>
+                    <div className="mb-2" key={g.category}>
+                      <div className="px-1 pt-1 pb-1 text-[var(--text-2xs)] font-[var(--fw-semibold)] uppercase tracking-[.08em] text-[var(--muted)]">{g.category}</div>
                       {g.items.map((w) => {
                         const on = selectedSet.has(w.id);
                         return (
@@ -215,10 +215,10 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
                             <Box sx={{ flexShrink: 0, width: 32, height: 32, borderRadius: 'var(--radius-sm)', bgcolor: on ? 'var(--card)' : 'var(--hover)', color: on ? 'var(--accent)' : 'var(--muted)', display: 'grid', placeItems: 'center' }}>
                               <WidgetGlyph id={w.id} size={17} />
                             </Box>
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                              <Box component="span" sx={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--ink)' }}>{w.label}</Box>
-                              {w.description && <Box component="span" sx={{ display: 'block', fontSize: 'var(--text-2xs)', color: 'var(--muted)', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.description}</Box>}
-                            </Box>
+                            <div className="flex-1 min-w-0">
+                              <span className="block text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--ink)]">{w.label}</span>
+                              {w.description && <span className="block text-[var(--text-2xs)] text-[var(--muted)] leading-[1.3] whitespace-nowrap overflow-hidden text-ellipsis">{w.description}</span>}
+                            </div>
                             <Box sx={{
                               flexShrink: 0, width: 20, height: 20, borderRadius: 'var(--radius-xs, 5px)',
                               border: `1.5px solid ${on ? 'var(--accent)' : 'var(--line)'}`,
@@ -230,67 +230,67 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
                           </ButtonBase>
                         );
                       })}
-                    </Box>
+                    </div>
                   ))}
-                </Box>
+                </div>
               </Panel>
 
               {/* Ordre du parcours */}
               <Panel title="Ordre du parcours" pill={String(selected.length)}>
-                <Box sx={{ flex: 1, minHeight: 200, maxHeight: 340, overflowY: 'auto', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <div className="flex-1 min-h-[200px] max-h-[340px] overflow-y-auto p-2 flex flex-col gap-1.5">
                   {selected.length === 0 ? (
-                    <Box sx={{ m: 'auto', textAlign: 'center', maxWidth: 240, px: 1.25, py: 3 }}>
+                    <div className="m-auto text-center max-w-[240px] px-2 py-4">
                       <Box sx={{ width: 46, height: 46, borderRadius: 'var(--radius-md)', bgcolor: 'var(--hover)', color: 'var(--muted)', display: 'grid', placeItems: 'center', mx: 'auto', mb: 1.5 }}>
                         <Workflow size={22} strokeWidth={1.75} />
                       </Box>
-                      <Box component="p" sx={{ m: 0, fontSize: 'var(--text-sm)', color: 'var(--muted)', lineHeight: 1.5 }}>
+                      <p className="m-0 text-[var(--text-sm)] text-[var(--muted)] leading-[1.5]">
                         Cochez des widgets à gauche pour composer votre parcours, étape par étape.
-                      </Box>
-                    </Box>
+                      </p>
+                    </div>
                   ) : selected.map((id, i) => (
-                    <Box key={id} sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 1.25, py: 1, bgcolor: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)' }}>
+                    <div className="flex items-center gap-2 px-2 py-1.5 bg-[var(--card)] border border-[var(--line)] rounded-[var(--radius-md)]" key={id}>
                       <Box sx={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', bgcolor: 'var(--hover)', color: 'var(--body)', fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', display: 'grid', placeItems: 'center', fontVariantNumeric: 'tabular-nums' }}>{i + 1}</Box>
                       <Box sx={{ flexShrink: 0, width: 28, height: 28, borderRadius: 'var(--radius-sm)', bgcolor: 'var(--hover)', color: 'var(--muted)', display: 'grid', placeItems: 'center' }}>
                         <WidgetGlyph id={id} size={15} />
                       </Box>
-                      <Box component="span" sx={{ flex: 1, minWidth: 0, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--ink)' }}>{widgetLabel(id)}</Box>
+                      <span className="flex-1 min-w-0 text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--ink)]">{widgetLabel(id)}</span>
                       <IconAction title="Monter" icon={ChevronUp} disabled={i === 0} onClick={() => move(id, -1)} />
                       <IconAction title="Descendre" icon={ChevronDown} disabled={i === selected.length - 1} onClick={() => move(id, 1)} />
                       <IconAction title="Retirer" icon={X} danger onClick={() => toggleWidget(id)} />
-                    </Box>
+                    </div>
                   ))}
-                </Box>
-                <Box sx={{ borderTop: '1px solid var(--line)', px: 1.75, py: 1.25, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Box component="span" sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>
+                </div>
+                <div className="border-t border-[var(--line)] px-2.5 py-2 flex items-center gap-2">
+                  <span className="text-[var(--text-2xs)] text-[var(--muted)]">
                     {selected.length === 0 ? 'Aucun widget' : `${selected.length} écran${selected.length > 1 ? 's' : ''} dans le parcours`}
-                  </Box>
-                  <Box sx={{ ml: 'auto' }}>
+                  </span>
+                  <div className="ms-auto">
                     <PrimaryBtn icon={Plus} label={baseLabel && !editingId ? 'Créer le parcours' : editingId ? 'Insérer ce parcours' : 'Insérer le parcours'} onClick={insertCustom} disabled={selected.length === 0} />
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               </Panel>
             </Box>
 
             {/* Avertissements de composition (prérequis manquants) — non bloquants. */}
             {compositionWarnings.length > 0 && (
-              <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5, px: 1.5, py: 1.25, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--hover)' }}>
+              <div className="mt-2 flex flex-col gap-0.5 px-2 py-2 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--hover)]">
                 {compositionWarnings.map((w) => (
-                  <Box key={`${w.severity}:${w.widgetId}:${w.capability}`} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>
+                  <div className="flex items-center gap-1 text-[var(--text-2xs)] text-[var(--muted)]" key={`${w.severity}:${w.widgetId}:${w.capability}`}>
                     <Box component="span" sx={{ flexShrink: 0, color: w.severity === 'warning' ? 'var(--accent)' : 'var(--muted)', display: 'inline-flex' }}>
                       {w.severity === 'warning' ? <AlertTriangle size={13} strokeWidth={2} /> : <Info size={13} strokeWidth={2} />}
                     </Box>
                     {w.message}
-                  </Box>
+                  </div>
                 ))}
-              </Box>
+              </div>
             )}
 
             {/* Enregistrement dans « Mes parcours » (P3) */}
             {onSave && (
-              <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid var(--line)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.25 }}>
-                <Box component="span" sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', mr: 0.5 }}>
+              <div className="mt-3 pt-3 border-t border-[var(--line)] flex flex-wrap items-center gap-2">
+                <span className="text-[var(--text-2xs)] text-[var(--muted)] me-0.5">
                   {editingId ? 'Mettre à jour ce parcours enregistré' : 'Enregistrer dans « Mes parcours »'}
-                </Box>
+                </span>
                 <TextField
                   value={presetName}
                   onChange={(e) => setPresetName(e.target.value)}
@@ -304,7 +304,7 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
                   }}
                 />
                 <SecondaryBtn icon={Save} label={editingId ? 'Mettre à jour' : 'Enregistrer'} onClick={saveCustom} disabled={selected.length === 0 || !presetName.trim()} />
-              </Box>
+              </div>
             )}
           </>
         )}
@@ -336,7 +336,7 @@ function TabBtn({ label, count, active, onClick }: { label: string; count?: numb
 }
 
 function SecLabel({ children }: { children: React.ReactNode }) {
-  return <Box sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--muted)', mb: 1.5 }}>{children}</Box>;
+  return <div className="text-[var(--text-2xs)] font-[var(--fw-semibold)] tracking-[.1em] uppercase text-[var(--muted)] mb-2">{children}</div>;
 }
 
 function CardGrid({ children }: { children: React.ReactNode }) {
@@ -354,54 +354,54 @@ function FunnelCard({ preset: p, onInsert, onEdit, onDelete }: { preset: FunnelP
   return (
     <Box sx={{ position: 'relative', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', bgcolor: 'var(--card)', p: 2, display: 'flex', flexDirection: 'column', gap: 1.5, transition: 'border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out)', '&:hover': { borderColor: 'var(--accent)', boxShadow: 'var(--shadow-sm, 0 6px 18px rgba(28,40,70,.08))' } }}>
       {/* Titre + badge + (supprimer) */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-          <Box component="span" sx={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>{p.label}</Box>
+      <div className="flex items-center gap-1.5">
+        <div className="flex-1 min-w-0 flex items-center gap-1 flex-wrap">
+          <span className="text-[var(--text-sm)] font-[var(--fw-semibold)] text-[var(--ink)]">{p.label}</span>
           {p.badge && (
             <Box component="span" sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', px: 0.75, py: '1px', borderRadius: 999, bgcolor: 'var(--hover)', color: 'var(--muted)', whiteSpace: 'nowrap' }}>{p.badge}</Box>
           )}
-        </Box>
+        </div>
         {onDelete && !p.builtin && <IconAction title="Supprimer" icon={Trash2} danger onClick={onDelete} />}
-      </Box>
+      </div>
 
       {p.description && <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', lineHeight: 1.4, mt: -0.75 }}>{p.description}</Box>}
 
       {/* Visualisation du parcours : étapes numérotées + flèches */}
-      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.75, p: 1.25, bgcolor: 'var(--hover)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)' }}>
+      <div className="flex items-center flex-wrap gap-1 p-2 bg-[var(--hover)] border border-[var(--line)] rounded-[var(--radius-md)]">
         {steps.map((s, i) => (
           <Box key={`${s}-${i}`} sx={{ display: 'contents' }}>
-            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, bgcolor: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', pl: 0.5, pr: 1, py: 0.5 }}>
+            <div className="inline-flex items-center gap-1 bg-[var(--card)] border border-[var(--line)] rounded-[var(--radius-sm)] ps-0.5 pe-1.5 py-0.5">
               <Box component="span" sx={{ flexShrink: 0, width: 17, height: 17, borderRadius: '50%', bgcolor: 'var(--hover)', color: 'var(--body)', fontSize: '10px', fontWeight: 'var(--fw-semibold)', display: 'grid', placeItems: 'center', fontVariantNumeric: 'tabular-nums' }}>{i + 1}</Box>
-              <Box component="span" sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-medium)', color: 'var(--ink)' }}>{s}</Box>
-            </Box>
+              <span className="text-[var(--text-2xs)] font-[var(--fw-medium)] text-[var(--ink)]">{s}</span>
+            </div>
             {i < steps.length - 1 && <Box component="span" sx={{ color: 'var(--muted)', display: 'grid', placeItems: 'center' }}><ChevronRight size={14} strokeWidth={2.4} /></Box>}
           </Box>
         ))}
-      </Box>
+      </div>
 
       {/* Pied : méta + actions */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 'auto' }}>
-        <Box component="span" sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>
-          <Box component="span" sx={{ color: 'var(--body)', fontWeight: 'var(--fw-medium)' }}>{p.widgetIds.length} widgets</Box>{screensMeta}
-        </Box>
-        <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+      <div className="flex items-center gap-1.5 mt-auto">
+        <span className="text-[var(--text-2xs)] text-[var(--muted)]">
+          <span className="text-[var(--body)] font-[var(--fw-medium)]">{p.widgetIds.length} widgets</span>{screensMeta}
+        </span>
+        <div className="ms-auto flex gap-1.5">
           <SecondaryBtn icon={Pencil} label="Modifier" onClick={onEdit} />
           <InsertBtn onClick={onInsert} />
-        </Box>
-      </Box>
+        </div>
+      </div>
     </Box>
   );
 }
 
 function Panel({ title, pill, children }: { title: string; pill: string; children: React.ReactNode }) {
   return (
-    <Box sx={{ border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', bgcolor: 'var(--card)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.75, py: 1.25, borderBottom: '1px solid var(--line)' }}>
-        <Box component="span" sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>{title}</Box>
+    <div className="border border-[var(--line)] rounded-[var(--radius-md)] bg-[var(--card)] overflow-hidden flex flex-col">
+      <div className="flex items-center gap-1.5 px-2.5 py-2 border-b border-[var(--line)]">
+        <span className="text-[var(--text-2xs)] font-[var(--fw-semibold)] tracking-[.08em] uppercase text-[var(--muted)]">{title}</span>
         <Box component="span" sx={{ ml: 'auto', fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', color: 'var(--muted)', bgcolor: 'var(--hover)', borderRadius: 'var(--radius-xs, 5px)', px: 0.75, py: '1px', fontVariantNumeric: 'tabular-nums' }}>{pill}</Box>
-      </Box>
+      </div>
       {children}
-    </Box>
+    </div>
   );
 }
 
@@ -419,7 +419,7 @@ function WidgetGlyph({ id, size = 17 }: { id: string; size?: number }) {
 function IconAction({ title, icon: Icon, onClick, disabled, danger }: { title: string; icon: typeof X; onClick: () => void; disabled?: boolean; danger?: boolean }) {
   return (
     <Tooltip title={title}>
-      <Box component="span">
+      <span>
         <ButtonBase
           onClick={onClick}
           disabled={disabled}
@@ -434,7 +434,7 @@ function IconAction({ title, icon: Icon, onClick, disabled, danger }: { title: s
         >
           <Icon size={14} strokeWidth={2} />
         </ButtonBase>
-      </Box>
+      </span>
     </Tooltip>
   );
 }

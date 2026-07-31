@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Box, ButtonBase, Skeleton } from '@mui/material';
+import { ButtonBase, Skeleton } from '@mui/material';
 import { Wand2, Search, Copy, Check, AlertTriangle, Sparkles } from 'lucide-react';
 import { propertiesApi, type Property } from '../../../../services/api/propertiesApi';
 import { propertyContentAiApi, type GeneratedContent } from '../../../../services/api/propertyContentAiApi';
@@ -81,29 +81,29 @@ export default function ContentAiPanel() {
 
   if (properties === null && !loadError) {
     return (
-      <Box sx={{ maxWidth: 720, mx: 'auto', px: 4, py: 4 }}>
+      <div className="max-w-[720px] mx-auto px-6 py-6">
         <Skeleton variant="rounded" height={220} sx={{ borderRadius: 'var(--radius-lg)', bgcolor: 'var(--hover)' }} />
-      </Box>
+      </div>
     );
   }
 
   if (loadError) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, m: 4, p: 2, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
+      <div className="flex items-center gap-1.5 m-6 p-3 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
         <AlertTriangle size={18} strokeWidth={2} /> {loadError}
-      </Box>
+      </div>
     );
   }
 
   if (properties && properties.length === 0) {
     return (
-      <Box sx={{ textAlign: 'center', py: 8, px: 4 }}>
-        <Box sx={{ width: 56, height: 56, mx: 'auto', mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-lg)', bgcolor: 'var(--accent-soft)', color: 'var(--accent)' }}>
+      <div className="text-center py-12 px-6">
+        <div className="w-[56px] h-[56px] mx-auto mb-3 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--accent-soft)] text-[var(--accent)]">
           <Sparkles size={26} strokeWidth={1.85} />
-        </Box>
-        <Box sx={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)', mb: 0.5 }}>Aucune propriété</Box>
-        <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--muted)' }}>Ajoutez une propriété pour générer son contenu avec l'IA.</Box>
-      </Box>
+        </div>
+        <div className="text-[var(--text-lg)] font-[var(--fw-semibold)] mb-0.5">Aucune propriété</div>
+        <div className="text-[var(--text-md)] text-[var(--muted)]">Ajoutez une propriété pour générer son contenu avec l'IA.</div>
+      </div>
     );
   }
 
@@ -123,37 +123,37 @@ export default function ContentAiPanel() {
         } />
       </SettingCard>
 
-      <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 2.5 }}>
+      <div className="flex gap-2 flex-wrap mb-3.5">
         <GenButton icon={Wand2} label="Générer une description" loading={generating === 'description'} disabled={!propertyId || generating !== null} onClick={() => generate('description')} />
         <GenButton icon={Search} label="Générer le SEO" variant="ghost" loading={generating === 'seo'} disabled={!propertyId || generating !== null} onClick={() => generate('seo')} />
-      </Box>
+      </div>
 
       {genError && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2.5, p: 1.5, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
+        <div className="flex items-center gap-1.5 mb-3.5 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
           <AlertTriangle size={16} strokeWidth={2} /> {genError}
-        </Box>
+        </div>
       )}
 
       {result && (
         <SettingCard title={result.kind === 'SEO_META' ? 'Meta SEO générée' : 'Description générée'}>
-          <Box sx={{ py: 1.5 }}>
+          <div className="py-2">
             {result.title && (
-              <Box sx={{ mb: 1.5 }}>
-                <Box sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)', mb: 0.5 }}>Titre</Box>
-                <Box sx={{ fontSize: 'var(--text-md)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>{result.title}</Box>
-              </Box>
+              <div className="mb-2">
+                <div className="text-[var(--text-2xs)] font-[var(--fw-bold)] tracking-[.06em] uppercase text-[var(--faint)] mb-0.5">Titre</div>
+                <div className="text-[var(--text-md)] font-[var(--fw-semibold)] text-[var(--ink)]">{result.title}</div>
+              </div>
             )}
-            <Box sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)', mb: 0.5 }}>
+            <div className="text-[var(--text-2xs)] font-[var(--fw-bold)] tracking-[.06em] uppercase text-[var(--faint)] mb-0.5">
               {result.kind === 'SEO_META' ? 'Meta description' : 'Contenu'}
-            </Box>
-            <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--body)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{result.content}</Box>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+            </div>
+            <div className="text-[var(--text-md)] text-[var(--body)] leading-[1.6] whitespace-pre-wrap">{result.content}</div>
+            <div className="flex justify-end mt-3">
               <ButtonBase onClick={copy} sx={ghostBtnSx}>
                 {copied ? <Check size={15} strokeWidth={2.4} /> : <Copy size={15} strokeWidth={2} />}
                 {copied ? 'Copié' : 'Copier'}
               </ButtonBase>
-            </Box>
-          </Box>
+            </div>
+          </div>
         </SettingCard>
       )}
     </SettingsPage>

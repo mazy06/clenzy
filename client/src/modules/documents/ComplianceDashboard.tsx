@@ -212,9 +212,9 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+      <div className="flex justify-center p-6">
         <CircularProgress />
-      </Box>
+      </div>
     );
   }
 
@@ -224,12 +224,12 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
   const countryFlag = COUNTRY_FLAGS[countryCode] || '';
 
   return (
-    <Box>
+    <div>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
 
       {/* ─── Country & Standard indicator ────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+      <div className="flex items-center gap-1.5 mb-3">
         {isAdmin ? (
           <>
             <Chip
@@ -261,7 +261,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                   sx={{ fontSize: '0.85rem', py: 1 }}
                 >
                   <ListItemIcon sx={{ minWidth: 32 }}>
-                    <Typography sx={{ fontSize: '1.1rem' }}>{opt.flag}</Typography>
+                    <p className="cn-text-body1 text-[1.1rem]">{opt.flag}</p>
                   </ListItemIcon>
                   <ListItemText
                     primary={opt.label}
@@ -270,7 +270,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                     secondaryTypographyProps={{ fontSize: '0.72rem' }}
                   />
                   {opt.code === countryCode && (
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)', ml: 1 }}><Check size={18} strokeWidth={1.75} /></Box>
+                    <span className="inline-flex text-[var(--ok)] ms-1.5"><Check size={18} strokeWidth={1.75} /></span>
                   )}
                 </MenuItem>
               ))}
@@ -283,7 +283,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
             sx={{ color: 'var(--accent)', bgcolor: 'var(--accent-soft)', '& .MuiChip-icon': { color: 'var(--accent)' } }}
           />
         )}
-      </Box>
+      </div>
 
       {/* ─── KPIs (primitive StatTile) ───────────────────────────────── */}
       {stats && (
@@ -325,8 +325,8 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
       {/* ─── Search result ────────────────────────────────────────────── */}
       {searchError && <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setSearchError(null)}>{searchError}</Alert>}
       {searchResult && (
-        <Box sx={{ mb: 2, p: 2, bgcolor: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: '12px' }}>
-          <Typography variant="body2">
+        <div className="mb-3 p-3 bg-[var(--surface-2)] border border-[var(--line)] rounded-[12px]">
+          <p className="cn-text-body2">
             <strong>N. Legal :</strong> {searchResult.legalNumber} &nbsp;|&nbsp;
             <strong>Type :</strong> {searchResult.documentType} &nbsp;|&nbsp;
             <strong>{t('documents.compliance.file')} :</strong> {searchResult.fileName || '\u2014'} &nbsp;|&nbsp;
@@ -337,17 +337,17 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
             ) : (
               <Chip label={t('common.no')} size="small" sx={{ color: 'var(--muted)', bgcolor: 'var(--hover)' }} />
             )}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
 
       {/* ─── Template compliance check ────────────────────────────────── */}
       <Card>
         <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 600, color: 'var(--ink)' }}>
+          <div className="flex items-center justify-between mb-3">
+            <p className="cn-text-body1 font-[var(--font-display)] text-[16px] font-semibold text-[var(--ink)]">
               {t('documents.compliance.templateVerification')}
-            </Typography>
+            </p>
             <Tooltip title="Relancer la verification" arrow>
               <IconButton
                 size="small"
@@ -361,19 +361,19 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                 </Box>
               </IconButton>
             </Tooltip>
-          </Box>
+          </div>
 
           {/* Progress bar during auto-check */}
           {autoCheckRunning && (
-            <Box sx={{ mb: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                <Typography variant="caption" color="text.secondary">
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="cn-text-caption text-muted-foreground">
                   Verification en cours... {autoCheckProgress}/{autoCheckTotal}
-                </Typography>
-                <Typography variant="caption" fontWeight={600} sx={{ color: 'var(--accent)', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-display)' }}>
+                </span>
+                <span className="cn-text-caption font-semibold text-[var(--accent)] tabular-nums font-[var(--font-display)]">
                   {autoCheckTotal > 0 ? Math.round((autoCheckProgress / autoCheckTotal) * 100) : 0}%
-                </Typography>
-              </Box>
+                </span>
+              </div>
               <LinearProgress
                 variant="determinate"
                 value={autoCheckTotal > 0 ? (autoCheckProgress / autoCheckTotal) * 100 : 0}
@@ -391,7 +391,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                   },
                 }}
               />
-            </Box>
+            </div>
           )}
 
           {/* Completion message */}
@@ -417,7 +417,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                 {templates.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
-                      <Typography color="text.secondary">{t('documents.compliance.noTemplates')}</Typography>
+                      <p className="cn-text-body1 text-muted-foreground">{t('documents.compliance.noTemplates')}</p>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -440,7 +440,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                         }}
                       >
                         <TableCell>
-                          <Typography variant="body2" fontWeight={500}>{tpl.name}</Typography>
+                          <p className="cn-text-body2 font-medium">{tpl.name}</p>
                         </TableCell>
                         <TableCell>
                           <Chip label={tpl.documentType} size="small" sx={{ color: 'var(--accent)', bgcolor: 'var(--accent-soft)' }} />
@@ -456,10 +456,10 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                         </TableCell>
                         <TableCell>
                           {isChecking ? (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <div className="flex items-center gap-1.5">
                               <CircularProgress size={16} sx={{ color: 'var(--accent)' }} />
-                              <Typography variant="caption" color="text.secondary">Verification...</Typography>
-                            </Box>
+                              <span className="cn-text-caption text-muted-foreground">Verification...</span>
+                            </div>
                           ) : report ? (
                             <Tooltip
                               arrow
@@ -493,7 +493,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                               })()}
                             </Tooltip>
                           ) : (
-                            <Typography variant="caption" color="text.secondary">En attente</Typography>
+                            <span className="cn-text-caption text-muted-foreground">En attente</span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -531,7 +531,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                           ) : isChecking ? (
                             <CircularProgress size={18} sx={{ color: 'var(--accent)' }} />
                           ) : (
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><VerifiedUser size={20} strokeWidth={1.75} /></Box>
+                            <span className="inline-flex text-[var(--faint)]"><VerifiedUser size={20} strokeWidth={1.75} /></span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -543,7 +543,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
           </TableContainer>
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 });
 

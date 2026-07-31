@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Box, CircularProgress } from '@mui/material';
+import { Button, CircularProgress } from '@mui/material';
 import { Cancel, Save } from "../../icons";
 import InterventionForm from './InterventionForm';
 import PageHeader from '../../components/PageHeader';
@@ -13,7 +13,7 @@ const InterventionEdit: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   return (
-    <Box sx={{ p: 3 }}>
+    <div className="p-4">
       <PageHeader
         title={t('interventions.editTitle')}
         subtitle={t('interventions.subtitle')}
@@ -21,7 +21,7 @@ const InterventionEdit: React.FC = () => {
         backLabel="Retour aux détails"
         showBackButton={true}
         actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <div className="flex gap-1.5">
             <Button
               variant="outlined"
               size="small"
@@ -47,7 +47,7 @@ const InterventionEdit: React.FC = () => {
             >
               {loading ? t('common.loading') : t('common.save')}
             </Button>
-          </Box>
+          </div>
         }
       />
 
@@ -57,7 +57,7 @@ const InterventionEdit: React.FC = () => {
         setLoading={setLoading}
         loading={loading}
       />
-    </Box>
+    </div>
   );
 };
 

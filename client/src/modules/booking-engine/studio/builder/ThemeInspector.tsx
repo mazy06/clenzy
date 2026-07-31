@@ -63,9 +63,9 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
 
   if (!config) {
     return (
-      <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', px: 3, color: 'var(--muted)', fontSize: 'var(--text-sm)' }}>
+      <div className="h-full flex items-center justify-center px-4 text-[var(--muted)] text-[var(--text-sm)]">
         Chargement du thème…
-      </Box>
+      </div>
     );
   }
 
@@ -87,11 +87,11 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
   const bg = tokens.backgroundColor || '#FFFFFF';
 
   return (
-    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2.25 }}>
+    <div className="p-3 flex flex-col gap-3.5">
       {/* Couleur */}
-      <Box>
+      <div>
         <Box component="label" htmlFor="theme-primary" sx={labelSx}>Couleur principale</Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.75 }}>
+        <div className="flex items-center gap-1.5 mt-1">
           <Box component="input" id="theme-primary" type="color" value={primary}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setColor(e.target.value)}
             sx={{ width: 38, height: 38, p: 0, border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', bgcolor: 'transparent', cursor: 'pointer', flexShrink: 0, '&::-webkit-color-swatch-wrapper': { p: '3px' }, '&::-webkit-color-swatch': { border: 'none', borderRadius: 6 } }}
@@ -99,8 +99,8 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
           <InputBase value={primary} onChange={(e) => setColor(e.target.value)}
             sx={{ flex: 1, px: 1.25, py: 0.75, fontSize: 'var(--text-md)', fontFamily: 'var(--font-mono, monospace)', color: 'var(--ink)', bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', '&.Mui-focused': { borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-soft)' } }}
           />
-        </Box>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1 }}>
+        </div>
+        <div className="flex flex-wrap gap-1 mt-1.5">
           {SWATCHES.map((c) => (
             <Box key={c} component="button" type="button" aria-label={`Couleur ${c}`} onClick={() => setColor(c)}
               sx={{ width: 22, height: 22, borderRadius: '50%', bgcolor: c, cursor: 'pointer', p: 0,
@@ -108,13 +108,13 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
                 boxShadow: '0 0 0 1px var(--line)', '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 } }}
             />
           ))}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Couleur de fond de la page (site publié). L'éditeur GrapesJS garde, lui, un canvas blanc neutre. */}
-      <Box>
+      <div>
         <Box component="label" htmlFor="theme-bg" sx={labelSx}>Couleur de fond</Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.75 }}>
+        <div className="flex items-center gap-1.5 mt-1">
           <Box component="input" id="theme-bg" type="color" value={bg}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => writeTokens({ backgroundColor: e.target.value })}
             sx={{ width: 38, height: 38, p: 0, border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', bgcolor: 'transparent', cursor: 'pointer', flexShrink: 0, '&::-webkit-color-swatch-wrapper': { p: '3px' }, '&::-webkit-color-swatch': { border: 'none', borderRadius: 6 } }}
@@ -126,8 +126,8 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
             sx={{ px: 1.25, py: 0.75, fontSize: 'var(--text-sm)', color: 'var(--body)', bgcolor: 'transparent', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap', '&:hover': { bgcolor: 'var(--hover)' } }}>
             Blanc
           </Box>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       <Field label="Police du corps" htmlFor="theme-bodyfont">
         <SelectControl id="theme-bodyfont" value={bodyFont} onChange={setBodyFont} options={FONT_OPTIONS} />
@@ -156,19 +156,19 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
         <SelectControl id="theme-btn" value={buttonStyle} onChange={(v) => writeTokens({ buttonStyle: v })} options={BUTTON_OPTIONS} />
       </Field>
 
-      <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--faint)', lineHeight: 1.5 }}>
+      <div className="text-[var(--text-2xs)] text-[var(--faint)] leading-[1.5]">
         Couleur, polices, rayon et ombre se reflètent dans l’aperçu. Taille, densité et style de bouton s’appliquent au widget de réservation sur la page publiée.
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
 function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
   return (
-    <Box>
+    <div>
       <Box component="label" htmlFor={htmlFor} sx={{ ...labelSx, display: 'block', mb: 0.75 }}>{label}</Box>
       {children}
-    </Box>
+    </div>
   );
 }
 

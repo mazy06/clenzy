@@ -1,18 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Grid,
-  CircularProgress,
-  Paper,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Divider,
-  Avatar,
-  Chip,
-} from '@mui/material';
+import { Grid, CircularProgress, Paper, List, ListItem, ListItemText, ListItemIcon, Divider, Avatar, Chip } from '@mui/material';
 import {
   Business,
   People,
@@ -62,36 +49,36 @@ const PortfolioStatsTab: React.FC = () => {
 
   if (statsQuery.isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
+      <div className="flex justify-center items-center min-h-[200px]">
         <CircularProgress size={32} />
-      </Box>
+      </div>
     );
   }
 
   if (statsQuery.isError) {
     return (
-      <Typography color="error" sx={{ textAlign: 'center', py: 4, fontSize: '0.85rem' }}>
+      <p className="cn-text-body1 text-destructive text-center py-6 text-[0.85rem]">
         {t('portfolios.errors.connectionError')}
-      </Typography>
+      </p>
     );
   }
 
   if (!stats) {
     return (
-      <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4, fontSize: '0.85rem' }}>
+      <p className="cn-text-body1 text-muted-foreground text-center py-6 text-[0.85rem]">
         {t('portfolios.statistics.noDataAvailable')}
-      </Typography>
+      </p>
     );
   }
 
   return (
-    <Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.95rem', mb: 0.5 }}>
+    <div>
+      <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem] mb-0.5">
         {t('portfolios.statistics.title')}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.82rem', mb: 3 }}>
+      </h6>
+      <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-4">
         {t('portfolios.subtitle')}
-      </Typography>
+      </p>
 
       {/* Stat tiles (primitive partagée) */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -134,9 +121,9 @@ const PortfolioStatsTab: React.FC = () => {
         {/* Portfolio breakdown */}
         <Grid item xs={12} md={6}>
           <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2, height: '100%' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 1.5 }}>
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-2">
               {t('portfolios.statistics.title')}
-            </Typography>
+            </h6>
             {stats.portfolioBreakdown.length > 0 ? (
               <List disablePadding>
                 {stats.portfolioBreakdown.map((portfolio, index) => (
@@ -157,19 +144,19 @@ const PortfolioStatsTab: React.FC = () => {
                       </ListItemIcon>
                       <ListItemText
                         primary={
-                          <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                          <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold">
                             {portfolio.portfolioName}
-                          </Typography>
+                          </h6>
                         }
                         secondary={
-                          <Box sx={{ display: 'flex', gap: 1.5, mt: 0.25 }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                          <div className="flex gap-2 mt-0.5">
+                            <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
                               {portfolio.clientCount} client{portfolio.clientCount > 1 ? 's' : ''}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                            </span>
+                            <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
                               {portfolio.teamMemberCount} {t('portfolios.fields.members')}
-                            </Typography>
-                          </Box>
+                            </span>
+                          </div>
                         }
                       />
                       <Chip
@@ -184,9 +171,9 @@ const PortfolioStatsTab: React.FC = () => {
                 ))}
               </List>
             ) : (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3, fontSize: '0.82rem' }}>
+              <p className="cn-text-body2 text-muted-foreground text-center py-4 text-[0.82rem]">
                 {t('portfolios.statistics.noDataAvailable')}
-              </Typography>
+              </p>
             )}
           </Paper>
         </Grid>
@@ -194,9 +181,9 @@ const PortfolioStatsTab: React.FC = () => {
         {/* Recent assignments */}
         <Grid item xs={12} md={6}>
           <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2, height: '100%' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 1.5 }}>
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-2">
               {t('portfolios.fields.associatedOn')}
-            </Typography>
+            </h6>
             {stats.recentAssignments.length > 0 ? (
               <List disablePadding>
                 {stats.recentAssignments.slice(0, 5).map((assignment, index) => (
@@ -221,22 +208,22 @@ const PortfolioStatsTab: React.FC = () => {
                       </ListItemIcon>
                       <ListItemText
                         primary={
-                          <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                          <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold">
                             {assignment.name}
-                          </Typography>
+                          </h6>
                         }
                         secondary={
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.7rem' }}>
+                          <div>
+                            <span className="cn-text-caption text-muted-foreground block text-[0.7rem]">
                               {assignment.portfolioName}
-                            </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={12} strokeWidth={1.75} /></Box>
-                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                            </span>
+                            <div className="flex items-center gap-0.5 mt-0.5">
+                              <span className="inline-flex text-muted-foreground"><Schedule size={12} strokeWidth={1.75} /></span>
+                              <span className="cn-text-caption text-muted-foreground text-[0.65rem]">
                                 {formatDate(assignment.assignedAt)}
-                              </Typography>
-                            </Box>
-                          </Box>
+                              </span>
+                            </div>
+                          </div>
                         }
                       />
                     </ListItem>
@@ -245,14 +232,14 @@ const PortfolioStatsTab: React.FC = () => {
                 ))}
               </List>
             ) : (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3, fontSize: '0.82rem' }}>
+              <p className="cn-text-body2 text-muted-foreground text-center py-4 text-[0.82rem]">
                 {t('portfolios.fields.noClientAssociated')}
-              </Typography>
+              </p>
             )}
           </Paper>
         </Grid>
       </Grid>
-    </Box>
+    </div>
   );
 };
 

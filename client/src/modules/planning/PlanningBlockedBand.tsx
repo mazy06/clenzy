@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Box, Tooltip, Typography, ClickAwayListener } from '@mui/material';
+import { Box, Tooltip, ClickAwayListener } from '@mui/material';
 import { Lock as LockIcon } from '../../icons';
 
 interface PlanningBlockedBandProps {
@@ -32,20 +32,20 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({ left, width, 
 
   const isExternal = !!source && source.toUpperCase().startsWith('ICAL');
   const tooltip = (
-    <Box sx={{ py: 0.25 }}>
-      <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, mb: 0.25 }}>
+    <div className="py-0.5">
+      <p className="cn-text-body1 text-[0.75rem] font-bold mb-0.5">
         Période bloquée
-      </Typography>
-      <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.35 }}>
+      </p>
+      <p className="cn-text-body1 text-[0.6875rem] leading-[1.35]">
         Ces dates sont indisponibles à la réservation.
         {isExternal && ' Synchronisée depuis un calendrier externe (OTA).'}
-      </Typography>
+      </p>
       {notes && (
-        <Typography sx={{ fontSize: '0.6875rem', mt: 0.5, opacity: 0.85, fontStyle: 'italic' }}>
+        <p className="cn-text-body1 text-[0.6875rem] mt-0.5 opacity-85 italic">
           {notes}
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   );
 
   // Largeur minimale pour afficher l'icône / le label sans tronquer.
@@ -104,18 +104,9 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({ left, width, 
         >
           {showIcon && <LockIcon size={12} strokeWidth={1.75} />}
           {showLabel && (
-            <Typography
-              sx={{
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                color: 'var(--muted)',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
+            <p className="cn-text-body1 text-[0.6875rem] font-semibold text-[var(--muted)] whitespace-nowrap overflow-hidden text-ellipsis">
               Bloqué
-            </Typography>
+            </p>
           )}
         </Box>
       </Tooltip>

@@ -70,7 +70,7 @@ export default function TemplateGalleryPage() {
 
   return (
     <Box className="be-home" data-accent="indigo" sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'var(--bg)', px: { xs: 2, md: 4 }, py: { xs: 2, md: 3 } }}>
-      <Box sx={{ flexShrink: 0 }}>
+      <div className="shrink-0">
         <PageHeader
           title="Tous les templates"
           subtitle="Choisissez un modèle pour démarrer votre booking engine"
@@ -90,9 +90,9 @@ export default function TemplateGalleryPage() {
           onBack={() => navigate(-1)}
           backLabel="Retour"
         />
-      </Box>
+      </div>
 
-      <Box ref={areaRef} sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <div className="flex-1 min-h-0 overflow-hidden" ref={areaRef}>
         <div className="tpl-grid tpl-grid--quad">
           {items.map((tpl) => {
             const c1 = tpl.theme?.primaryColor || 'var(--accent)';
@@ -126,12 +126,12 @@ export default function TemplateGalleryPage() {
             );
           })}
         </div>
-      </Box>
+      </div>
 
       {pageCount > 1 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', pt: 2, flexShrink: 0 }}>
+        <div className="flex justify-center pt-3 shrink-0">
           <PagePagination totalPages={pageCount} page={page - 1} onPageChange={(p) => setPage(p + 1)} />
-        </Box>
+        </div>
       )}
     </Box>
   );

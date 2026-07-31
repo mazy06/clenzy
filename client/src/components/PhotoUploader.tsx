@@ -201,12 +201,12 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   const acceptAttribute = acceptedFormats.join(',');
 
   return (
-    <Box>
+    <div>
       {/* Label */}
       {label && (
-        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+        <h6 className="cn-text-subtitle2 font-semibold mb-1.5">
           {label}
-        </Typography>
+        </h6>
       )}
 
       {/* Zone de dépôt (drag-and-drop) */}
@@ -248,12 +248,12 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         >
           <CloudUploadIcon size={40} strokeWidth={1.5} />
         </Box>
-        <Typography variant="body2" color="text.secondary">
+        <p className="cn-text-body2 text-muted-foreground">
           Glissez-déposez vos photos ici
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
+        </p>
+        <span className="cn-text-caption text-muted-foreground">
           ou cliquez pour parcourir
-        </Typography>
+        </span>
       </Box>
 
       {/* Input fichier caché */}
@@ -269,9 +269,9 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
       {/* Texte d'aide */}
       {helperText && (
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+        <span className="cn-text-caption text-muted-foreground mt-0.5 block">
           {helperText}
-        </Typography>
+        </span>
       )}
 
       {/* Compteur */}
@@ -286,18 +286,18 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
       {/* Erreur de validation */}
       {(validationError || error) && (
         <Alert severity="error" sx={{ mt: 1, py: 0.5 }}>
-          <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
+          <span className="cn-text-caption text-[0.75rem]">
             {error || validationError}
-          </Typography>
+          </span>
         </Alert>
       )}
 
       {/* Prévisualisation des photos existantes (URLs) */}
       {existingPhotos.length > 0 && (
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+        <div className="mt-3">
+          <span className="cn-text-caption text-muted-foreground mb-1.5 block">
             Photos existantes
-          </Typography>
+          </span>
           <ImageList cols={columns} gap={8}>
             {existingPhotos.map((url, index) => (
               <ImageListItem key={url}>
@@ -338,15 +338,15 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
               </ImageListItem>
             ))}
           </ImageList>
-        </Box>
+        </div>
       )}
 
       {/* Prévisualisation des nouveaux fichiers */}
       {photos.length > 0 && (
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+        <div className="mt-3">
+          <span className="cn-text-caption text-muted-foreground mb-1.5 block">
             Nouvelles photos
-          </Typography>
+          </span>
           <ImageList cols={columns} gap={8}>
             {photos.map((file, index) => (
               <ImageListItem key={`new-${index}`}>
@@ -385,22 +385,22 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                 <ImageListItemBar
                   position="below"
                   title={
-                    <Typography variant="caption" noWrap sx={{ fontSize: '0.7rem' }}>
+                    <span className="cn-text-caption truncate text-[0.7rem]">
                       {file.name}
-                    </Typography>
+                    </span>
                   }
                   subtitle={
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                    <span className="cn-text-caption text-muted-foreground text-[0.65rem]">
                       {formatFileSize(file.size)}
-                    </Typography>
+                    </span>
                   }
                 />
               </ImageListItem>
             ))}
           </ImageList>
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

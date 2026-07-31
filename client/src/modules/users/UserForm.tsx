@@ -1,23 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  Chip,
-  IconButton,
-  Alert,
-  CircularProgress,
-  Box as MuiBox,
-} from '@mui/material';
+import { Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText, Chip, IconButton, Alert, CircularProgress, Box as MuiBox } from '@mui/material';
 import {
   Save,
   Cancel,
@@ -150,18 +132,18 @@ const UserForm: React.FC = () => {
   // Vérifier les permissions - accès uniquement aux utilisateurs avec la permission users:manage
   if (!canManageUsers) {
     return (
-      <Box sx={{ p: 2 }}>
+      <div className="p-3">
         <Alert severity="info" sx={{ p: 2, py: 1 }}>
-          <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}>
+          <h6 className="cn-text-subtitle1 mb-[0.35em] mb-1.5">
             Accès non autorisé
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+          </h6>
+          <p className="cn-text-body2 text-[0.85rem]">
             Vous n'avez pas les permissions nécessaires pour créer des utilisateurs.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </Typography>
+          </p>
         </Alert>
-      </Box>
+      </div>
     );
   }
 
@@ -196,7 +178,7 @@ const UserForm: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 2 }}>
+    <div className="p-3">
       <PageHeader
         title="Nouvel utilisateur"
         subtitle="Créez un nouveau compte utilisateur pour la gestion des utilisateurs"
@@ -248,9 +230,9 @@ const UserForm: React.FC = () => {
         <CardContent sx={{ p: 2 }}>
           <form onSubmit={handleSubmit(onSubmit)}>
             {/* Informations personnelles */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
+            <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
               Informations personnelles
-            </Typography>
+            </h6>
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={6}>
@@ -263,7 +245,7 @@ const UserForm: React.FC = () => {
                   helperText={errors.firstName?.message}
                   placeholder="Ex: Jean"
                   InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Person size={18} strokeWidth={1.75} /></Box>,
+                    startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><Person size={18} strokeWidth={1.75} /></span>,
                   }}
                 />
               </Grid>
@@ -278,16 +260,16 @@ const UserForm: React.FC = () => {
                   helperText={errors.lastName?.message}
                   placeholder="Ex: Dupont"
                   InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Person size={18} strokeWidth={1.75} /></Box>,
+                    startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><Person size={18} strokeWidth={1.75} /></span>,
                   }}
                 />
               </Grid>
             </Grid>
 
             {/* Informations de contact */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
+            <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
               Informations de contact
-            </Typography>
+            </h6>
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={8}>
@@ -301,7 +283,7 @@ const UserForm: React.FC = () => {
                   helperText={errors.email?.message}
                   placeholder="Ex: jean.dupont@clenzy.fr"
                   InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Email size={18} strokeWidth={1.75} /></Box>,
+                    startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><Email size={18} strokeWidth={1.75} /></span>,
                   }}
                 />
               </Grid>
@@ -316,16 +298,16 @@ const UserForm: React.FC = () => {
                   helperText={errors.phoneNumber?.message}
                   placeholder="Ex: +33 6 12 34 56 78"
                   InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Phone size={18} strokeWidth={1.75} /></Box>,
+                    startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><Phone size={18} strokeWidth={1.75} /></span>,
                   }}
                 />
               </Grid>
             </Grid>
 
             {/* Sécurité */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
+            <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
               Sécurité
-            </Typography>
+            </h6>
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={6}>
@@ -338,7 +320,7 @@ const UserForm: React.FC = () => {
                   error={!!errors.password}
                   placeholder="Minimum 8 caractères"
                   InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Lock size={18} strokeWidth={1.75} /></Box>,
+                    startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><Lock size={18} strokeWidth={1.75} /></span>,
                   }}
                   FormHelperTextProps={{ sx: { fontSize: '0.7rem' } }}
                   helperText={errors.password?.message || 'Le mot de passe doit contenir au moins 8 caractères'}
@@ -355,7 +337,7 @@ const UserForm: React.FC = () => {
                   error={!!errors.confirmPassword || (watchedPassword !== watchedConfirmPassword && watchedConfirmPassword !== '')}
                   placeholder="Retapez le mot de passe"
                   InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Lock size={18} strokeWidth={1.75} /></Box>,
+                    startAdornment: <span className="inline-flex text-muted-foreground me-1.5"><Lock size={18} strokeWidth={1.75} /></span>,
                   }}
                   FormHelperTextProps={{ sx: { fontSize: '0.7rem' } }}
                   helperText={
@@ -370,9 +352,9 @@ const UserForm: React.FC = () => {
             </Grid>
 
             {/* Rôle et statut */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
+            <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
               Rôle et statut
-            </Typography>
+            </h6>
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={6}>
@@ -389,8 +371,8 @@ const UserForm: React.FC = () => {
                         {userRoles.map((role) => (
                           <MenuItem key={role.value} value={role.value}>
                             <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Box sx={{ fontSize: 18 }}>{role.icon}</Box>
-                              <Typography variant="body2">{role.label}</Typography>
+                              <div className="text-[18px]">{role.icon}</div>
+                              <p className="cn-text-body2">{role.label}</p>
                             </MuiBox>
                           </MenuItem>
                         ))}
@@ -437,11 +419,11 @@ const UserForm: React.FC = () => {
 
             {/* Aperçu du rôle sélectionné */}
             {watchedRole && (
-              <Box sx={{ mb: 2, p: 1.5, bgcolor: 'var(--field)', border: '1px solid var(--field-line)', borderRadius: '8px' }}>
-                <Typography variant="caption" color="primary" sx={{ mb: 0.75, fontWeight: 600, fontSize: '0.75rem' }}>
+              <div className="mb-3 p-2 bg-[var(--field)] border border-[var(--field-line)] rounded-[8px]">
+                <span className="cn-text-caption text-primary mb-1 font-semibold text-[0.75rem]">
                   📋 Rôle sélectionné : {userRoles.find(r => r.value === watchedRole)?.label}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                </span>
+                <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
                   {watchedRole === 'SUPER_ADMIN' && 'Super administrateur avec accès complet multi-organisations'}
                   {watchedRole === 'SUPER_MANAGER' && 'Super manager avec gestion étendue multi-équipes'}
                   {watchedRole === 'SUPERVISOR' && 'Supervision des interventions et du personnel'}
@@ -450,14 +432,14 @@ const UserForm: React.FC = () => {
                   {watchedRole === 'HOST' && 'Gestion de ses propres propriétés'}
                   {watchedRole === 'LAUNDRY' && 'Gestion du linge et de la blanchisserie'}
                   {watchedRole === 'EXTERIOR_TECH' && 'Entretien des espaces extérieurs'}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             )}
 
             {/* Organisation */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
+            <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
               Organisation
-            </Typography>
+            </h6>
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={6}>
@@ -472,14 +454,14 @@ const UserForm: React.FC = () => {
                         label="Organisation"
                       >
                         <MenuItem value="">
-                          <Typography variant="body2" color="text.secondary">Aucune</Typography>
+                          <p className="cn-text-body2 text-muted-foreground">Aucune</p>
                         </MenuItem>
                         {organizations.map((org) => (
                           <MenuItem key={org.id} value={String(org.id)}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Business size={18} strokeWidth={1.75} /></Box>
-                              <Typography variant="body2">{org.name}</Typography>
-                            </Box>
+                            <div className="flex items-center gap-1.5">
+                              <span className="inline-flex text-muted-foreground"><Business size={18} strokeWidth={1.75} /></span>
+                              <p className="cn-text-body2">{org.name}</p>
+                            </div>
                           </MenuItem>
                         ))}
                       </Select>
@@ -511,14 +493,14 @@ const UserForm: React.FC = () => {
                         label={`Rôle dans l'organisation ${watchedOrganizationId && watchedOrganizationId !== '' ? '*' : ''}`}
                       >
                         <MenuItem value="">
-                          <Typography variant="body2" color="text.secondary">Aucun</Typography>
+                          <p className="cn-text-body2 text-muted-foreground">Aucun</p>
                         </MenuItem>
                         {orgMemberRoles.map((role) => (
                           <MenuItem key={role.value} value={role.value}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Group size={18} strokeWidth={1.75} /></Box>
-                              <Typography variant="body2">{role.label}</Typography>
-                            </Box>
+                            <div className="flex items-center gap-1.5">
+                              <span className="inline-flex text-muted-foreground"><Group size={18} strokeWidth={1.75} /></span>
+                              <p className="cn-text-body2">{role.label}</p>
+                            </div>
                           </MenuItem>
                         ))}
                       </Select>
@@ -535,7 +517,7 @@ const UserForm: React.FC = () => {
           </form>
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

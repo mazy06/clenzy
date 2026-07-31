@@ -130,36 +130,36 @@ const ReviewsPage: React.FC = () => {
       {error && <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.8125rem' }}>{error}</Alert>}
 
       {/* Stats bar */}
-      <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5, flexWrap: 'wrap' }}>
+      <div className="flex gap-2 mb-2 flex-wrap">
         <Paper sx={{ ...CARD_SX, flex: 1, minWidth: 120, textAlign: 'center', p: 1.5 }}>
-          <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.06em' }}>
+          <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] uppercase font-bold tracking-[0.06em]">
             {t('channels.reviews.avgRating')}
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
+          </p>
+          <div className="flex items-center justify-center gap-0.5 mt-0.5">
             <StarIcon size={'1.25rem'} strokeWidth={1.75} color='var(--warn)' />
-            <Typography sx={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', fontSize: '1.375rem', fontWeight: 600, color: 'var(--ink)' }}>
+            <p className="cn-text-body1 font-[var(--font-display)] tabular-nums text-[1.375rem] font-semibold text-[var(--ink)]">
               {avgRating > 0 ? avgRating.toFixed(1) : '—'}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         </Paper>
         <Paper sx={{ ...CARD_SX, flex: 1, minWidth: 120, textAlign: 'center', p: 1.5 }}>
-          <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.06em' }}>
+          <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] uppercase font-bold tracking-[0.06em]">
             {t('channels.reviews.totalReviews')}
-          </Typography>
-          <Typography sx={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', fontSize: '1.375rem', fontWeight: 600, mt: 0.5, color: 'var(--ink)' }}>{reviews.length}</Typography>
+          </p>
+          <p className="cn-text-body1 font-[var(--font-display)] tabular-nums text-[1.375rem] font-semibold mt-0.5 text-[var(--ink)]">{reviews.length}</p>
         </Paper>
         {Object.entries(reviewsByRating).map(([cat, count]) => (
           <Paper key={cat} sx={{ ...CARD_SX, flex: 1, minWidth: 100, textAlign: 'center', p: 1.5 }}>
-            <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.06em' }}>
+            <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] uppercase font-bold tracking-[0.06em]">
               {t(`channels.reviews.${cat}`)}
-            </Typography>
+            </p>
             <Typography sx={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', fontSize: '1.25rem', fontWeight: 600, mt: 0.5, color: RATING_COLORS[cat] }}>{count}</Typography>
           </Paper>
         ))}
-      </Box>
+      </div>
 
       {/* Filter */}
-      <Box sx={{ mb: 1.5 }}>
+      <div className="mb-2">
         <FormControl size="small" sx={{ minWidth: 200 }}>
           <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('channels.reviews.filterByProperty')}</InputLabel>
           <Select
@@ -174,20 +174,20 @@ const ReviewsPage: React.FC = () => {
             ))}
           </Select>
         </FormControl>
-      </Box>
+      </div>
 
       {/* Reviews list */}
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+        <div className="flex justify-center py-6">
           <CircularProgress size={28} />
-        </Box>
+        </div>
       ) : reviews.length === 0 ? (
         <EmptyState
           icon={<StarIcon />}
           title={t('channels.reviews.noReviews')}
         />
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {reviews.map((review) => (
             <ReviewCard
               key={review.id}
@@ -202,7 +202,7 @@ const ReviewsPage: React.FC = () => {
               t={t}
             />
           ))}
-        </Box>
+        </div>
       )}
     </Box>
   );
@@ -236,10 +236,10 @@ function ReviewCard({
 
   return (
     <Paper sx={{ ...CARD_SX, p: 1.5 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.75 }}>
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
-            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }}>{review.guestName}</Typography>
+      <div className="flex justify-between items-start mb-1">
+        <div>
+          <div className="flex items-center gap-1 mb-0.5">
+            <p className="cn-text-body1 text-[0.8125rem] font-bold">{review.guestName}</p>
             <Rating value={review.rating} readOnly size="small" precision={0.5} sx={{ fontSize: '0.875rem' }} />
             <Chip
               label={review.source}
@@ -248,32 +248,32 @@ function ReviewCard({
               color={review.source === 'airbnb' ? 'error' : 'default'}
               variant="outlined"
             />
-          </Box>
-          <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+          </div>
+          <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
             {review.propertyName} · {new Date(review.createdAt).toLocaleDateString('fr-FR')}
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
 
-      <Typography sx={{ fontSize: '0.8125rem', mb: 0.75, lineHeight: 1.5 }}>
+      <p className="cn-text-body1 text-[0.8125rem] mb-1 leading-[1.5]">
         {review.comment}
-      </Typography>
+      </p>
 
       {/* Host reply */}
       {review.hostReply && (
-        <Box sx={{ bgcolor: 'var(--field)', borderRadius: '8px', p: 1, mb: 0.75 }}>
-          <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', fontWeight: 700, mb: 0.25, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <div className="bg-[var(--field)] rounded-[8px] p-1.5 mb-1">
+          <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] font-bold mb-0.5 uppercase tracking-[0.06em]">
             {t('channels.reviews.yourReply')}
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem' }}>{review.hostReply}</Typography>
-        </Box>
+          </p>
+          <p className="cn-text-body1 text-[0.75rem]">{review.hostReply}</p>
+        </div>
       )}
 
       {/* Reply form */}
       {!review.hostReply && (
         <>
           <Collapse in={isReplying}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 0.5 }}>
+            <div className="flex flex-col gap-1 mt-0.5">
               <TextField
                 multiline
                 rows={2}
@@ -284,7 +284,7 @@ function ReviewCard({
                 size="small"
                 sx={{ '& .MuiInputBase-input': { fontSize: '0.8125rem' } }}
               />
-              <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+              <div className="flex gap-0.5 justify-end">
                 <Button size="small" variant="outlined" onClick={onCancelReply} sx={{ fontSize: '0.6875rem' }}>
                   {t('common.cancel')}
                 </Button>
@@ -297,8 +297,8 @@ function ReviewCard({
                 >
                   {replyLoading ? <CircularProgress size={12} /> : t('channels.reviews.sendReply')}
                 </Button>
-              </Box>
-            </Box>
+              </div>
+            </div>
           </Collapse>
           {!isReplying && (
             <Button

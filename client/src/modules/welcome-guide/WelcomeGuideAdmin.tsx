@@ -879,7 +879,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             </div>
 
             {isLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+              <div className="flex justify-center py-9"><CircularProgress /></div>
             ) : guides.length === 0 ? (
               <EmptyState
                 icon={<LinkIcon />}
@@ -1072,30 +1072,26 @@ const WelcomeGuideAdmin: React.FC = () => {
 
   // ─── Stepper compact (haut de la colonne 1) ─────────────────────────────────
   const renderStepper = () => (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, mb: 1 }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
+    <div>
+      <div className="flex items-baseline justify-between gap-1.5 mb-1.5">
+        <h6 className="cn-text-subtitle2 font-bold truncate">
           {WIZARD_STEPS[step]}
-        </Typography>
+        </h6>
         {step < LAST_STEP ? (
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
-          >
+          <span className="cn-text-caption text-muted-foreground shrink-0 tabular-nums">
             {t('welcomeGuide.wizard.stepCounter', 'Étape {{current}} / {{total}}', {
               current: step + 1,
               total: LAST_STEP,
             })}
-          </Typography>
+          </span>
         ) : null}
-      </Box>
+      </div>
       {/* Précédent | numéros d'étape (centrés, cliquables → saut direct) | Suivant/Enregistrer */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <div className="flex items-center gap-1.5">
         <Button variant="outlined" size="small" onClick={goBack} disabled={step === 0} sx={{ flexShrink: 0 }}>
           {t('welcomeGuide.wizard.previous', 'Précédent')}
         </Button>
-        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+        <div className="flex-1 flex items-center justify-center gap-1 flex-wrap">
           {WIZARD_STEPS.map((label, i) => {
             const active = i === step;
             const done = i < step;
@@ -1145,7 +1141,7 @@ const WelcomeGuideAdmin: React.FC = () => {
               </Tooltip>
             );
           })}
-        </Box>
+        </div>
         {step < LAST_STEP ? (
           <Button variant="contained" size="small" onClick={goNext} sx={{ flexShrink: 0 }}>
             {t('welcomeGuide.wizard.next', 'Suivant')}
@@ -1179,8 +1175,8 @@ const WelcomeGuideAdmin: React.FC = () => {
             </span>
           </Tooltip>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 
   // ─── Récapitulatif (étape finale) ───────────────────────────────────────────
@@ -1221,20 +1217,17 @@ const WelcomeGuideAdmin: React.FC = () => {
           </Typography>
           <Stack divider={<Divider />} spacing={0}>
             {rows.map((r) => (
-              <Box
-                key={r.label}
-                sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 2, py: 0.85 }}
-              >
-                <Typography variant="body2" color="text.secondary">
+              <div className="flex items-baseline justify-between gap-3 py-1.5" key={r.label}>
+                <p className="cn-text-body2 text-muted-foreground">
                   {r.label}
-                </Typography>
+                </p>
                 <Typography
                   variant="body2"
                   sx={{ fontWeight: 600, textAlign: 'right', minWidth: 0, ...(r.num ? { fontVariantNumeric: 'tabular-nums' } : {}) }}
                 >
                   {r.value}
                 </Typography>
-              </Box>
+              </div>
             ))}
           </Stack>
         </CardContent>
@@ -1254,11 +1247,11 @@ const WelcomeGuideAdmin: React.FC = () => {
       ? t('welcomeGuide.reservationLink.noneCreate', 'Aucune réservation en cours ou à venir')
       : t('welcomeGuide.reservationLink.none', 'Aucune réservation liée');
     return (
-      <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+      <div>
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <h6 className="cn-text-subtitle2 font-semibold">
             {t('welcomeGuide.reservationLink.title', 'Réservation en cours / à venir')}
-          </Typography>
+          </h6>
           <Chip
             size="small"
             icon={linked ? <Link2 size={13} strokeWidth={1.9} /> : <Unlink size={13} strokeWidth={1.9} />}
@@ -1269,23 +1262,23 @@ const WelcomeGuideAdmin: React.FC = () => {
             }
             sx={softChipSx(semanticToHex(linked ? 'success' : 'default'))}
           />
-        </Box>
+        </div>
         {linked && linkedReservation ? (
           <Card variant="outlined">
             <CardContent sx={{ py: 1.25, '&:last-child': { pb: 1.25 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <div className="flex items-center gap-1.5">
                 <CalendarDays size={18} strokeWidth={1.75} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                <div className="min-w-0">
+                  <p className="cn-text-body2 font-semibold truncate">
                     {linkedReservation.guestName || t('welcomeGuide.reservationLink.guestUnknown', 'Voyageur')}
-                  </Typography>
+                  </p>
                   {dates ? (
-                    <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    <span className="cn-text-caption text-muted-foreground tabular-nums">
                       {dates}
-                    </Typography>
+                    </span>
                   ) : null}
-                </Box>
-              </Box>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ) : (
@@ -1293,22 +1286,22 @@ const WelcomeGuideAdmin: React.FC = () => {
         )}
         {/* Garde-fous de création (étape Logement uniquement) */}
         {isCreate && !isStaff ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1, color: 'text.secondary' }}>
+          <div className="flex items-center gap-1 mt-1.5 text-muted-foreground">
             <Lock size={14} strokeWidth={1.75} style={{ flexShrink: 0 }} />
-            <Typography variant="caption">
+            <span className="cn-text-caption">
               {t('welcomeGuide.reservationLink.staffOnly', 'La création d’un livret est réservée au staff Clenzy.')}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         ) : null}
         {isCreate && isStaff && propertyId && !linked ? (
-          <Typography variant="caption" color="warning.main" sx={{ display: 'block', mt: 1 }}>
+          <span className="cn-text-caption text-[var(--bui-warning-ink)] block mt-1.5">
             {t(
               'welcomeGuide.reservationLink.noReservation',
               'Aucune réservation en cours ou à venir pour ce logement : livret non créable.',
             )}
-          </Typography>
+          </span>
         ) : null}
-      </Box>
+      </div>
     );
   };
 
@@ -1356,7 +1349,7 @@ const WelcomeGuideAdmin: React.FC = () => {
         placeholder={t('welcomeGuide.fields.titlePlaceholder', 'Bienvenue à l’Appartement du Vieux-Port')}
       />
 
-      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+      <div className="flex gap-3 flex-wrap">
         <TextField
           select
           label={t('welcomeGuide.fields.language', 'Langue')}
@@ -1380,7 +1373,7 @@ const WelcomeGuideAdmin: React.FC = () => {
           sx={{ flex: 1, minWidth: 220 }}
           placeholder="https://…"
         />
-      </Box>
+      </div>
 
       {/* Réservation rattachée (lecture seule) + badge Lié/Non lié */}
       {renderReservationLink()}
@@ -1391,17 +1384,17 @@ const WelcomeGuideAdmin: React.FC = () => {
       {step === 2 && (
       <>
       {/* Message d'accueil de l'hôte : note dédiée (serif italique) affichée sous le hero. */}
-      <Box>
+      <div>
         <SectionHeading
           icon={<Quote size={17} strokeWidth={1.75} />}
           title={t('welcomeGuide.welcomeNote.title', "Message d'accueil")}
         />
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+        <span className="cn-text-caption text-muted-foreground block mb-2">
           {t(
             'welcomeGuide.welcomeNote.guestHint',
             "Le prénom du voyageur s'affiche automatiquement en haut de l'accueil, chargé depuis la réservation.",
           )}
-        </Typography>
+        </span>
         <Stack spacing={1.5}>
           <TextField
             label={t('welcomeGuide.welcomeNote.message', "Mot d'accueil")}
@@ -1419,10 +1412,10 @@ const WelcomeGuideAdmin: React.FC = () => {
           />
           {/* Nom du voyageur chargé depuis la réservation (lecture seule), insérable dans le
               message via un tag. Remplace l'ancienne signature d'hôte (champ libre). */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Typography variant="caption" color="text.secondary">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="cn-text-caption text-muted-foreground">
               {t('welcomeGuide.welcomeNote.guestLabel', 'Voyageur (chargé depuis la réservation)')} :
-            </Typography>
+            </span>
             <Chip
               size="small"
               label={loadedGuestName || t('welcomeGuide.welcomeNote.guestPending', 'chargé à l’arrivée')}
@@ -1437,10 +1430,10 @@ const WelcomeGuideAdmin: React.FC = () => {
             >
               {t('welcomeGuide.welcomeNote.insertFirstName', 'Insérer le prénom dans le message')}
             </Button>
-          </Box>
-          <Typography variant="caption" color="text.secondary">
+          </div>
+          <span className="cn-text-caption text-muted-foreground">
             {t('welcomeGuide.welcomeNote.tagHint', 'Le tag {prénom} sera remplacé par le prénom du voyageur.')}
-          </Typography>
+          </span>
           <TextField
             label={t('welcomeGuide.welcomeNote.signature', 'Signature (vos noms)')}
             value={hostNames}
@@ -1450,7 +1443,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             placeholder={t('welcomeGuide.welcomeNote.signaturePlaceholder', 'ex : Camille & Antoine')}
           />
         </Stack>
-      </Box>
+      </div>
       </>
       )}
 
@@ -1459,11 +1452,11 @@ const WelcomeGuideAdmin: React.FC = () => {
       <>
       {/* Thème du livret : carrés de couleur seuls, nom + description en tooltip.
           Taille fixe → le retour à la ligne s'adapte à la largeur (flex-wrap). */}
-      <Box>
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.25 }}>
+      <div>
+        <h6 className="cn-text-subtitle2 font-semibold mb-2">
           {t('welcomeGuide.themes.sectionTitle', 'Thème du livret')}
-        </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25 }}>
+        </h6>
+        <div className="flex flex-wrap gap-2">
           {WELCOME_BOOK_THEMES.map((th) => {
             const on = theme === th.id;
             return (
@@ -1471,14 +1464,14 @@ const WelcomeGuideAdmin: React.FC = () => {
                 key={th.id}
                 arrow
                 title={
-                  <Box sx={{ textAlign: 'center', py: 0.25 }}>
-                    <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>
+                  <div className="text-center py-0.5">
+                    <span className="cn-text-caption font-bold block">
                       {t(`welcomeGuide.themes.${th.id}.name`, th.name)}
-                    </Typography>
-                    <Typography variant="caption" sx={{ opacity: 0.85 }}>
+                    </span>
+                    <span className="cn-text-caption opacity-85">
                       {t(`welcomeGuide.themes.${th.id}.desc`, th.desc)}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 }
               >
                 <Box
@@ -1506,7 +1499,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                   <Box sx={{ flex: 1, bgcolor: th.swatch.surface }} />
                   <Box sx={{ height: 16, bgcolor: th.swatch.accent }} />
                   {on ? (
-                    <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="absolute inset-[0px] flex items-center justify-center">
                       <Box
                         sx={{
                           width: 22,
@@ -1521,17 +1514,17 @@ const WelcomeGuideAdmin: React.FC = () => {
                       >
                         <Check size={14} strokeWidth={2.75} style={{ color: 'var(--accent)' }} />
                       </Box>
-                    </Box>
+                    </div>
                   ) : null}
                 </Box>
               </Tooltip>
             );
           })}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Photo de couverture (hero) : choix parmi les photos du logement */}
-      <Box>
+      <div>
         <SectionHeading
           icon={<ImageIcon size={17} strokeWidth={1.75} />}
           title={t('welcomeGuide.hero.title', 'Photos de couverture')}
@@ -1587,31 +1580,25 @@ const WelcomeGuideAdmin: React.FC = () => {
                     transition: 'border-color .15s',
                   }}
                 >
-                  <Box
-                    component="img"
-                    src={propertyPhotosApi.getPhotoUrl(Number(propertyId), ph.id)}
-                    alt={ph.caption || ''}
-                    loading="lazy"
-                    sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  />
+                  <img className="w-full h-full object-cover block" src={propertyPhotosApi.getPhotoUrl(Number(propertyId), ph.id)} alt={ph.caption || ''} loading="lazy" />
                   {on ? (
-                    <Box sx={{ position: 'absolute', top: 4, right: 4, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="absolute top-[4px] end-[4px] bg-[var(--accent)] text-[var(--on-accent)] rounded-[50%] w-[22px] h-[22px] flex items-center justify-center">
                       <Check size={14} strokeWidth={2.5} />
-                    </Box>
+                    </div>
                   ) : null}
                 </Box>
               );
             })}
           </Box>
         )}
-      </Box>
+      </div>
       </>
       )}
 
       {/* ── Étape 3 — Contenu (sections + autour de moi) ── */}
       {step === 3 && (
       <>
-      <Box>
+      <div>
         <SectionHeading
           icon={<FileText size={17} strokeWidth={1.75} />}
           title={t('welcomeGuide.form.sectionsTitle', 'Sections du livret')}
@@ -1632,7 +1619,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             {sections.map((s, idx) => (
               <Card key={s.id} variant="outlined">
                 <CardContent sx={{ '&:last-child': { pb: 2 } }}>
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', mb: 1, flexWrap: 'wrap' }}>
+                  <div className="flex gap-1.5 items-start mb-1.5 flex-wrap">
                     <IconSelect value={s.icon} onChange={(v) => updateSection(idx, { icon: v })} label={t('welcomeGuide.fields.sectionIcon', 'Icône')} />
                     <TextField
                       label={t('welcomeGuide.fields.sectionTitle', 'Titre')}
@@ -1656,7 +1643,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                     <IconButton size="small" color="error" onClick={() => removeSection(idx)} sx={{ mt: 0.5 }}>
                       <Delete size={16} strokeWidth={1.75} />
                     </IconButton>
-                  </Box>
+                  </div>
                   <TextField
                     label={t('welcomeGuide.fields.sectionSubtitle', 'Sous-titre (liste de navigation)')}
                     value={s.subtitle}
@@ -1676,11 +1663,11 @@ const WelcomeGuideAdmin: React.FC = () => {
                       minRows={3}
                     />
                   ) : (
-                    <Box>
+                    <div>
                       {s.items.map((item, iIdx) => (
-                        <Box key={item.id} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', mb: 1, p: 1, borderRadius: 1.5, bgcolor: 'action.hover' }}>
+                        <div className="flex gap-1.5 items-start mb-1.5 p-1.5 rounded-[1.5px] bg-[action.hover]" key={item.id}>
                           <IconSelect value={item.icon} onChange={(v) => updateSectionItem(idx, iIdx, { icon: v })} />
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <div className="flex-1 min-w-0">
                             <TextField
                               label={t('welcomeGuide.sectionItems.label', 'Intitulé')}
                               value={item.label}
@@ -1710,25 +1697,25 @@ const WelcomeGuideAdmin: React.FC = () => {
                                 sx={{ mt: 1 }}
                               />
                             ) : null}
-                          </Box>
+                          </div>
                           <IconButton size="small" color="error" onClick={() => removeSectionItem(idx, iIdx)}>
                             <Delete size={15} strokeWidth={1.75} />
                           </IconButton>
-                        </Box>
+                        </div>
                       ))}
                       <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={() => addSectionItem(idx)}>
                         {t('welcomeGuide.sectionItems.add', 'Ajouter un élément')}
                       </Button>
-                    </Box>
+                    </div>
                   )}
                 </CardContent>
               </Card>
             ))}
           </Stack>
         )}
-      </Box>
+      </div>
 
-      <Box>
+      <div>
         <SectionHeading
           icon={<MapPin size={17} strokeWidth={1.75} />}
           title={t('welcomeGuide.pois.title', 'Autour de moi')}
@@ -1754,9 +1741,9 @@ const WelcomeGuideAdmin: React.FC = () => {
             {pois.map((p, idx) => (
               <Card key={p.id} variant="outlined">
                 <CardContent sx={{ '&:last-child': { pb: 2 } }}>
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+                  <div className="flex gap-1.5 items-start">
+                    <div className="flex-1">
+                      <div className="flex gap-1.5 mb-1.5 flex-wrap">
                         <TextField
                           select
                           size="small"
@@ -1778,8 +1765,8 @@ const WelcomeGuideAdmin: React.FC = () => {
                           onChange={(e) => updatePoi(idx, { name: e.target.value })}
                           sx={{ flex: 1, minWidth: 180 }}
                         />
-                      </Box>
-                      <Box sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
+                      </div>
+                      <div className="flex gap-1.5 mb-1.5 items-center">
                         <TextField
                           size="small"
                           label={t('welcomeGuide.pois.address', 'Adresse')}
@@ -1798,7 +1785,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                             </IconButton>
                           </span>
                         </Tooltip>
-                      </Box>
+                      </div>
                       <TextField
                         size="small"
                         label={t('welcomeGuide.pois.note', 'Note (optionnel)')}
@@ -1806,7 +1793,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                         onChange={(e) => updatePoi(idx, { note: e.target.value })}
                         fullWidth
                       />
-                      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', mt: 1, flexWrap: 'wrap' }}>
+                      <div className="flex gap-2 items-center mt-1.5 flex-wrap">
                         <TextField
                           size="small"
                           label={t('welcomeGuide.pois.type', 'Type (ex : Bistrot)')}
@@ -1818,26 +1805,23 @@ const WelcomeGuideAdmin: React.FC = () => {
                           control={<Switch size="small" checked={p.featured} onChange={(e) => updatePoi(idx, { featured: e.target.checked })} />}
                           label={t('welcomeGuide.pois.featured', 'Coup de cœur')}
                         />
-                      </Box>
+                      </div>
                       {p.lat != null && p.lng != null ? (
-                        <Typography
-                          variant="caption"
-                          sx={{ color: 'success.main', display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 0.75 }}
-                        >
+                        <span className="cn-text-caption text-[var(--bui-success-ink)] inline-flex items-center gap-0.5 mt-1">
                           <MapPin size={12} strokeWidth={2} /> {t('welcomeGuide.pois.located', 'Position trouvée')}
-                        </Typography>
+                        </span>
                       ) : null}
-                    </Box>
+                    </div>
                     <IconButton size="small" color="error" onClick={() => removePoi(idx)} sx={{ mt: 0.5 }}>
                       <Delete size={16} strokeWidth={1.75} />
                     </IconButton>
-                  </Box>
+                  </div>
                 </CardContent>
               </Card>
             ))}
           </Stack>
         )}
-      </Box>
+      </div>
 
       </>
       )}
@@ -1845,7 +1829,7 @@ const WelcomeGuideAdmin: React.FC = () => {
       {/* ── Étape 4 — Expériences & services ── */}
       {step === 4 && (
       <>
-      <Box>
+      <div>
         <SectionHeading
           icon={<Ticket size={17} strokeWidth={1.75} />}
           title={t('welcomeGuide.curation.title', 'Activités à proposer')}
@@ -1855,12 +1839,12 @@ const WelcomeGuideAdmin: React.FC = () => {
             </Button>
           }
         />
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+        <span className="cn-text-caption text-muted-foreground block mb-2">
           {t(
             'welcomeGuide.curation.affiliateHint',
             "Collez un lien Klook, GetYourGuide ou Viator : si le fournisseur est connecté (onglet Intégrations), votre identifiant d'affiliation est ajouté automatiquement au lien pour toucher votre commission.",
           )}
-        </Typography>
+        </span>
 
         {curatedActivities.length === 0 ? (
           <EmptyHint
@@ -1872,9 +1856,9 @@ const WelcomeGuideAdmin: React.FC = () => {
             {curatedActivities.map((a, idx) => (
               <Card key={a.id} variant="outlined" sx={a.featured ? { borderColor: 'var(--warn)' } : undefined}>
                 <CardContent sx={{ '&:last-child': { pb: 2 } }}>
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+                  <div className="flex gap-1.5 items-start">
+                    <div className="flex-1">
+                      <div className="flex gap-1.5 mb-1.5 flex-wrap">
                         <TextField
                           size="small"
                           label={t('welcomeGuide.curation.activityTitle', 'Titre')}
@@ -1890,7 +1874,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                           sx={{ width: 120 }}
                           placeholder="ex : 29 €"
                         />
-                      </Box>
+                      </div>
                       <TextField
                         size="small"
                         label={t('welcomeGuide.curation.bookingUrl', 'Lien de réservation')}
@@ -1929,17 +1913,17 @@ const WelcomeGuideAdmin: React.FC = () => {
                         }
                         label={t('welcomeGuide.curation.featured', 'Mettre en avant')}
                       />
-                    </Box>
+                    </div>
                     <IconButton size="small" color="error" onClick={() => removeActivity(idx)} sx={{ mt: 0.5 }}>
                       <Delete size={16} strokeWidth={1.75} />
                     </IconButton>
-                  </Box>
+                  </div>
                 </CardContent>
               </Card>
             ))}
           </Stack>
         )}
-      </Box>
+      </div>
 
       {/* Activation des sections « Activités » et « Services payants » (split de la carte Fonctionnalités) */}
       <Card variant="outlined">
@@ -1980,12 +1964,12 @@ const WelcomeGuideAdmin: React.FC = () => {
               />
             ) : (
               <>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                <span className="cn-text-caption text-muted-foreground block mb-1.5">
                   {t(
                     'welcomeGuide.fields.upsellSelectionHint',
                     'Décochez un service pour le masquer sur ce livret uniquement.',
                   )}
-                </Typography>
+                </span>
                 <Stack spacing={0}>
                   {applicableOffers.map((o) => (
                     <FormControlLabel
@@ -1998,16 +1982,12 @@ const WelcomeGuideAdmin: React.FC = () => {
                         />
                       }
                       label={
-                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                          <Typography variant="body2">{o.title}</Typography>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ fontVariantNumeric: 'tabular-nums' }}
-                          >
+                        <div className="flex items-baseline gap-1.5">
+                          <p className="cn-text-body2">{o.title}</p>
+                          <span className="cn-text-caption text-muted-foreground tabular-nums">
                             {o.price.toFixed(0)} {o.currency}
-                          </Typography>
-                        </Box>
+                          </span>
+                        </div>
                       }
                     />
                   ))}
@@ -2047,32 +2027,20 @@ const WelcomeGuideAdmin: React.FC = () => {
       {/* Publication déplacée sur la liste des livrets (toggle par carte) : ici on informe seulement. */}
       <Card variant="outlined">
         <CardContent sx={{ '&:last-child': { pb: 1.5 }, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              flexShrink: 0,
-              width: 34,
-              height: 34,
-              borderRadius: 1.25,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: 'action.hover',
-              color: 'text.secondary',
-            }}
-          >
+          <div className="shrink-0 w-[34px] h-[34px] rounded-[1.25px] flex items-center justify-center bg-[action.hover] text-muted-foreground">
             <Globe size={18} strokeWidth={1.75} />
-          </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h6 className="cn-text-subtitle2 font-semibold">
               {t('welcomeGuide.fields.publishTitle', 'Publier le livret')}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
+            </h6>
+            <span className="cn-text-caption text-muted-foreground">
               {t(
                 'welcomeGuide.actions.publishFromListHint',
                 'La publication se fait depuis la liste des livrets, via le bouton sur chaque carte.',
               )}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         </CardContent>
       </Card>
       </>
@@ -2114,19 +2082,19 @@ const WelcomeGuideAdmin: React.FC = () => {
   );
 
   return (
-    <Box>
+    <div>
       {headerActions}
       {view === 'list' ? renderList() : renderForm()}
 
       <Dialog open={linkDialog.open} onClose={() => setLinkDialog({ open: false, link: '', qrCode: '' })} maxWidth="sm" fullWidth>
         <DialogTitle>{t('welcomeGuide.link.dialogTitle', "Lien du livret d'accueil")}</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <p className="cn-text-body2 text-muted-foreground mb-3">
             {t(
               'welcomeGuide.link.note',
               'Lien de partage manuel (aperçu). La diffusion automatique d’un lien propre à chaque réservation — valable uniquement le temps du séjour — arrive prochainement.',
             )}
-          </Typography>
+          </p>
           <TextField
             value={linkDialog.link}
             fullWidth
@@ -2135,12 +2103,12 @@ const WelcomeGuideAdmin: React.FC = () => {
             onFocus={(e) => e.target.select()}
           />
           {linkDialog.qrCode ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2, gap: 1 }}>
-              <Box component="img" src={linkDialog.qrCode} alt="QR code" sx={{ width: 200, height: 200 }} />
+            <div className="flex flex-col items-center mt-3 gap-1.5">
+              <img className="w-[200px] h-[200px]" src={linkDialog.qrCode} alt="QR code" />
               <Button size="small" href={linkDialog.qrCode} download="livret-qr.png">
                 {t('welcomeGuide.link.downloadQr', 'Télécharger le QR')}
               </Button>
-            </Box>
+            </div>
           ) : null}
         </DialogContent>
         <DialogActions>
@@ -2205,40 +2173,40 @@ const WelcomeGuideAdmin: React.FC = () => {
         </DialogTitle>
         <DialogContent dividers>
           {guestbook.loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+            <div className="flex justify-center py-4">
               <CircularProgress />
-            </Box>
+            </div>
           ) : guestbook.entries.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
+            <p className="cn-text-body2 text-muted-foreground">
               {t('welcomeGuide.guestbook.empty', 'Aucun message pour le moment.')}
-            </Typography>
+            </p>
           ) : (
             <Stack spacing={1.5}>
               {guestbook.entries.map((e) => (
-                <Box key={e.id} sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 1.5 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                <div className="border-b border-[divider] pb-2" key={e.id}>
+                  <div className="flex justify-between items-center">
+                    <h6 className="cn-text-subtitle2 font-semibold">
                       {e.authorName || '—'}
-                    </Typography>
+                    </h6>
                     {e.rating ? (
-                      <Box sx={{ display: 'flex', gap: 0.25 }}>
+                      <div className="flex gap-0.5">
                         {Array.from({ length: e.rating }).map((_, i) => (
                           <Star key={i} size={14} strokeWidth={1.75} fill="currentColor" style={{ color: 'var(--warn)' }} />
                         ))}
-                      </Box>
+                      </div>
                     ) : null}
-                  </Box>
+                  </div>
                   {e.message ? (
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-line', mt: 0.5 }}>
+                    <p className="cn-text-body2 whitespace-pre-line mt-0.5">
                       {e.message}
-                    </Typography>
+                    </p>
                   ) : null}
                   {e.createdAt ? (
-                    <Typography variant="caption" color="text.secondary">
+                    <span className="cn-text-caption text-muted-foreground">
                       {new Date(e.createdAt).toLocaleDateString()}
-                    </Typography>
+                    </span>
                   ) : null}
-                </Box>
+                </div>
               ))}
             </Stack>
           )}
@@ -2256,13 +2224,13 @@ const WelcomeGuideAdmin: React.FC = () => {
         </DialogTitle>
         <DialogContent dividers>
           {stats.loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+            <div className="flex justify-center py-4">
               <CircularProgress />
-            </Box>
+            </div>
           ) : !stats.data ? (
-            <Typography variant="body2" color="text.secondary">
+            <p className="cn-text-body2 text-muted-foreground">
               {t('welcomeGuide.stats.empty', 'Aucune donnée pour le moment.')}
-            </Typography>
+            </p>
           ) : (
             <Stack spacing={2.5}>
               <Box
@@ -2279,28 +2247,28 @@ const WelcomeGuideAdmin: React.FC = () => {
                   { key: 'activities', icon: <MapPin size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.activities', 'Clics activités'), value: stats.data.activityClicks },
                   { key: 'checkin', icon: <DoorOpen size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.checkin', 'Clics check-in'), value: stats.data.checkinClicks },
                 ].map((tile) => (
-                  <Box key={tile.key} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.25 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: 'text.secondary', mb: 0.5 }}>
+                  <div className="border border-[divider] rounded-[2px] p-2" key={tile.key}>
+                    <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
                       {tile.icon}
-                      <Typography variant="caption">{tile.label}</Typography>
-                    </Box>
-                    <Typography variant="h6" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                      <span className="cn-text-caption">{tile.label}</span>
+                    </div>
+                    <h6 className="cn-text-h6 font-bold tabular-nums">
                       {tile.value}
-                    </Typography>
-                  </Box>
+                    </h6>
+                  </div>
                 ))}
               </Box>
 
-              <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              <div>
+                <h6 className="cn-text-subtitle2 font-semibold mb-1.5">
                   {t('welcomeGuide.stats.trend', 'Ouvertures (30 derniers jours)')}
-                </Typography>
+                </h6>
                 {stats.data.dailyOpens.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">
+                  <p className="cn-text-body2 text-muted-foreground">
                     {t('welcomeGuide.stats.noTrend', 'Pas encore d’ouvertures.')}
-                  </Typography>
+                  </p>
                 ) : (
-                  <Box sx={{ width: '100%', height: 200 }}>
+                  <div className="w-full h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={stats.data.dailyOpens.map((d) => ({ day: d.date.slice(5), count: d.count }))}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -2310,26 +2278,26 @@ const WelcomeGuideAdmin: React.FC = () => {
                         <Bar dataKey="count" fill={DEFAULT_COLOR} radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
-                  </Box>
+                  </div>
                 )}
-              </Box>
+              </div>
 
               {stats.data.topActivities.length > 0 ? (
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                <div>
+                  <h6 className="cn-text-subtitle2 font-semibold mb-1.5">
                     {t('welcomeGuide.stats.topActivities', 'Activités les plus cliquées')}
-                  </Typography>
+                  </h6>
                   <Stack spacing={0.75}>
                     {stats.data.topActivities.map((a) => (
-                      <Box key={a.label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="body2" noWrap>
+                      <div className="flex justify-between items-center gap-1.5" key={a.label}>
+                        <p className="cn-text-body2 truncate">
                           {a.label}
-                        </Typography>
+                        </p>
                         <Chip size="small" label={a.count} sx={softChipSx(DEFAULT_COLOR)} />
-                      </Box>
+                      </div>
                     ))}
                   </Stack>
-                </Box>
+                </div>
               ) : null}
             </Stack>
           )}
@@ -2346,13 +2314,13 @@ const WelcomeGuideAdmin: React.FC = () => {
         <DialogTitle>{t('welcomeGuide.pois.suggestTitle', 'Suggestions autour du logement')}</DialogTitle>
         <DialogContent dividers>
           {suggest.loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+            <div className="flex justify-center py-4">
               <CircularProgress />
-            </Box>
+            </div>
           ) : suggest.items.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
+            <p className="cn-text-body2 text-muted-foreground">
               {t('welcomeGuide.pois.suggestEmpty', 'Aucune suggestion trouvée autour du logement.')}
-            </Typography>
+            </p>
           ) : (
             <Stack spacing={0.25}>
               {suggest.items.map((sug, i) => {
@@ -2364,19 +2332,19 @@ const WelcomeGuideAdmin: React.FC = () => {
                     sx={{ alignItems: 'flex-start', m: 0, py: 0.5 }}
                     control={<Checkbox size="small" checked={suggest.selected.has(i)} onChange={() => toggleSuggest(i)} />}
                     label={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.5 }}>
+                      <div className="flex items-center gap-1 mt-0.5">
                         <CatIcon size={14} strokeWidth={1.9} style={{ color: cat.color, flexShrink: 0 }} />
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        <div>
+                          <p className="cn-text-body2 font-semibold">
                             {sug.name}
-                          </Typography>
+                          </p>
                           {sug.address ? (
-                            <Typography variant="caption" color="text.secondary">
+                            <span className="cn-text-caption text-muted-foreground">
                               {sug.address}
-                            </Typography>
+                            </span>
                           ) : null}
-                        </Box>
-                      </Box>
+                        </div>
+                      </div>
                     }
                   />
                 );
@@ -2408,7 +2376,7 @@ const WelcomeGuideAdmin: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 };
 

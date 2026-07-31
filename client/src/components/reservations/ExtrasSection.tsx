@@ -38,9 +38,9 @@ const ExtrasSection: React.FC<Props> = ({ form }) => {
           disabled={locked}
           disableRipple
         />
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
+        <span className="inline-flex text-[var(--accent)]">
           <CleaningServices size={16} strokeWidth={1.75} />
-        </Box>
+        </span>
         {t('reservations.dialog.cleaningAtCheckout')}
       </Box>
 
@@ -72,9 +72,9 @@ const ExtrasSection: React.FC<Props> = ({ form }) => {
           InputProps={{
             startAdornment: <AdornIcon><ReceiptIcon size={15} strokeWidth={1.75} /></AdornIcon>,
             endAdornment: form.touristTaxAmount > 0 ? (
-              <Typography sx={{ fontSize: '11.5px', fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+              <p className="cn-text-body1 text-[11.5px] font-semibold whitespace-nowrap text-[var(--muted)] tabular-nums">
                 = {form.touristTaxAmount.toFixed(2)} €
-              </Typography>
+              </p>
             ) : undefined,
           }}
           InputLabelProps={{ shrink: true }}

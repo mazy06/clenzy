@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Box, Paper, Typography, Button, Chip, CircularProgress, Snackbar, Alert } from '@mui/material';
+import { Paper, Button, Chip, CircularProgress, Snackbar, Alert } from '@mui/material';
 import { Refresh } from '../../../icons';
 import { environmentSensorsApi, type EnvironmentSensorDto } from '../../../services/api/environmentSensorsApi';
 import { STATUS_TOKENS } from '../deviceRegistry';
@@ -25,10 +25,10 @@ const statusPillSx = (level: DeviceStatusLevel) => {
 
 function InfoRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, py: 0.625 }}>
-      <Typography variant="caption" sx={{ color: 'text.secondary' }}>{label}</Typography>
-      <Box sx={{ fontWeight: 600, color: 'text.primary', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{value}</Box>
-    </Box>
+    <div className="flex justify-between items-center gap-3 py-1">
+      <span className="cn-text-caption text-muted-foreground">{label}</span>
+      <div className="font-semibold text-foreground text-end tabular-nums">{value}</div>
+    </div>
   );
 }
 
@@ -81,10 +81,10 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
   })();
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="flex flex-col gap-3">
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>État du capteur</Typography>
+        <div className="flex justify-between items-center mb-1.5">
+          <h6 className="cn-text-subtitle2 font-bold">État du capteur</h6>
           <Button
             size="small"
             variant="outlined"
@@ -94,7 +94,7 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
           >
             Rafraîchir
           </Button>
-        </Box>
+        </div>
 
         {primary && <InfoRow label={primary.label} value={primary.node} />}
         {sensor.sensorType === 'TEMP_HUMIDITY' && (
@@ -119,22 +119,22 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
       </Paper>
 
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Identité</Typography>
+        <h6 className="cn-text-subtitle2 font-bold mb-1.5">Identité</h6>
         <InfoRow label="Pièce" value={device.roomName || '—'} />
         <InfoRow label="Fournisseur" value={sensor.brand || '—'} />
         <InfoRow label="Logement" value={device.propertyName} />
       </Paper>
 
       {(sensor.sensorType === 'SMOKE' || sensor.sensorType === 'MOTION') && (
-        <Typography variant="caption" sx={{ color: 'text.secondary', px: 0.5 }}>
+        <span className="cn-text-caption text-muted-foreground px-0.5">
           Une notification est envoyée aux administrateurs et managers de l'organisation à chaque détection
           {sensor.sensorType === 'SMOKE' ? ' de fumée ou de vape' : ' de mouvement'} (avec anti-spam).
-        </Typography>
+        </span>
       )}
 
       <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         {snack ? <Alert severity={snack.severity} variant="filled" onClose={() => setSnack(null)} sx={{ width: '100%' }}>{snack.msg}</Alert> : undefined}
       </Snackbar>
-    </Box>
+    </div>
   );
 }

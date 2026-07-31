@@ -1,18 +1,5 @@
 import React from 'react';
-import {
-  Alert,
-  Box,
-  CircularProgress,
-  Grid,
-  Paper,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-} from '@mui/material';
+import { Alert, CircularProgress, Grid, Paper, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useVoucherAnalytics } from '../../hooks/useBookingVouchers';
 import type { VoucherStats } from '../../services/api/bookingVouchersApi';
@@ -57,9 +44,9 @@ export default function VoucherAnalyticsPanel() {
   // un compteur d'actifs (utile meme sans historique).
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+      <div className="flex justify-center py-3">
         <CircularProgress size={24} />
-      </Box>
+      </div>
     );
   }
 
@@ -77,9 +64,9 @@ export default function VoucherAnalyticsPanel() {
   if (data.totalUsages === 0) {
     return (
       <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: '14px', borderColor: 'var(--line)', bgcolor: 'var(--card)' }}>
-        <Typography variant="body2" color="text.secondary">
+        <p className="cn-text-body2 text-muted-foreground">
           {t('vouchers.analytics.noUsageYet', { active: data.activeVouchersCount })}
-        </Typography>
+        </p>
       </Paper>
     );
   }
@@ -89,14 +76,14 @@ export default function VoucherAnalyticsPanel() {
   const periodLabel = formatPeriod(data.from, data.to, currentLanguage);
 
   return (
-    <Box sx={{ mb: 3 }}>
+    <div className="mb-4">
       <Stack direction="row" alignItems="baseline" justifyContent="space-between" sx={{ mb: 1 }}>
-        <Typography variant="overline" sx={{ letterSpacing: '0.06em', fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)' }}>
+        <span className="cn-text-overline tracking-[0.06em] text-[10.5px] font-bold text-[var(--faint)]">
           {t('vouchers.analytics.title')}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
+        </span>
+        <span className="cn-text-caption text-muted-foreground">
           {periodLabel}
-        </Typography>
+        </span>
       </Stack>
 
       {/* KPI cards */}
@@ -127,9 +114,9 @@ export default function VoucherAnalyticsPanel() {
       {/* Top vouchers */}
       {data.topVouchers.length > 0 && (
         <Paper variant="outlined" sx={{ p: 1.5, borderRadius: '14px', borderColor: 'var(--line)', bgcolor: 'var(--card)' }}>
-          <Typography variant="overline" sx={{ fontSize: '10.5px', letterSpacing: '0.06em', fontWeight: 700, color: 'var(--faint)' }}>
+          <span className="cn-text-overline text-[10.5px] tracking-[0.06em] font-bold text-[var(--faint)]">
             {t('vouchers.analytics.topVouchersTitle')}
-          </Typography>
+          </span>
           <Table size="small" sx={{ mt: 0.5 }}>
             <TableHead>
               <TableRow>
@@ -146,9 +133,9 @@ export default function VoucherAnalyticsPanel() {
               {data.topVouchers.map((v: VoucherStats) => (
                 <TableRow key={v.voucherId} hover>
                   <TableCell>
-                    <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8125rem' }}>
+                    <p className="cn-text-body2 font-semibold text-[0.8125rem]">
                       {v.voucherName}
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell>
                     {v.voucherCode ? (
@@ -161,9 +148,9 @@ export default function VoucherAnalyticsPanel() {
                         {v.voucherCode}
                       </Typography>
                     ) : (
-                      <Typography variant="caption" color="text.secondary">
+                      <span className="cn-text-caption text-muted-foreground">
                         {t('vouchers.autoCampaign')}
-                      </Typography>
+                      </span>
                     )}
                   </TableCell>
                   <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -187,7 +174,7 @@ export default function VoucherAnalyticsPanel() {
           </Table>
         </Paper>
       )}
-    </Box>
+    </div>
   );
 }
 
@@ -212,19 +199,9 @@ const KpiCard: React.FC<KpiCardProps> = ({ label, value, color, emphasis }) => (
         '&:hover': { borderColor: 'var(--line-2)' },
       }}
     >
-      <Typography
-        sx={{
-          fontSize: '10.5px',
-          fontWeight: 700,
-          color: 'var(--faint)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          lineHeight: 1.2,
-          display: 'block',
-        }}
-      >
+      <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em] leading-[1.2] block">
         {label}
-      </Typography>
+      </p>
       <Typography
         variant="h6"
         sx={{

@@ -252,24 +252,20 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
   const selectedDatesSet = new Set(selectedDates);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, flex: 1 }}>
+    <div className="flex flex-col gap-2 flex-1">
       {/* ── Month navigation ── */}
       <Paper sx={CARD_SX}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+        <div className="flex items-center justify-center gap-0.5">
           <IconButton onClick={onPrevMonth} size="small">
             <ChevronLeftIcon size={20} strokeWidth={1.75} />
           </IconButton>
-          <Typography
-            variant="body2"
-            fontWeight={600}
-            sx={{ minWidth: 140, textAlign: 'center', textTransform: 'capitalize', fontSize: '0.8125rem' }}
-          >
+          <p className="cn-text-body2 font-semibold min-w-[140px] text-center capitalize text-[0.8125rem]">
             {formatMonth(currentMonth, isFrench)}
-          </Typography>
+          </p>
           <IconButton onClick={onNextMonth} size="small">
             <ChevronRightIcon size={20} strokeWidth={1.75} />
           </IconButton>
-        </Box>
+        </div>
       </Paper>
 
       {/* ── No property selected — état vide standardisé ── */}
@@ -305,11 +301,11 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
           {/* Day headers — overline (pattern entête planning) */}
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', mb: '2px' }}>
             {dayHeaders.map((label) => (
-              <Box key={label} sx={{ textAlign: 'center', py: 0.5 }}>
-                <Typography variant="caption" sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <div className="text-center py-0.5" key={label}>
+                <span className="cn-text-caption text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em]">
                   {label}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             ))}
           </Box>
 
@@ -353,30 +349,13 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
                 >
                   {/* Pastille « aujourd'hui » — pattern planning (carré accent r8) */}
                   {isToday ? (
-                    <Box
-                      component="span"
-                      sx={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 20,
-                        height: 20,
-                        borderRadius: '7px',
-                        bgcolor: 'var(--accent)',
-                        color: 'var(--on-accent)',
-                        fontFamily: 'var(--font-display)',
-                        fontWeight: 600,
-                        fontSize: '0.6875rem',
-                        lineHeight: 1,
-                        alignSelf: 'flex-start',
-                      }}
-                    >
+                    <span className="inline-flex items-center justify-center w-[20px] h-[20px] rounded-[7px] bg-[var(--accent)] text-[var(--on-accent)] font-[var(--font-display)] font-semibold text-[0.6875rem] leading-[1] self-start">
                       {cell.date.getDate()}
-                    </Box>
+                    </span>
                   ) : (
-                    <Typography variant="caption" fontWeight={600} sx={{ lineHeight: 1, fontSize: '0.6875rem', fontVariantNumeric: 'tabular-nums' }}>
+                    <span className="cn-text-caption font-semibold leading-[1] text-[0.6875rem] tabular-nums">
                       {cell.date.getDate()}
-                    </Typography>
+                    </span>
                   )}
 
                   {pricing && pricing.nightlyPrice !== null && (
@@ -407,19 +386,19 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
           </Box>
 
           {/* Legend */}
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, mt: 1.5, pt: 1, borderTop: '1px solid', borderColor: 'var(--line)' }}>
+          <div className="flex flex-wrap items-center gap-2 mt-2 pt-1.5 border-t border-[var(--line)]">
             {Object.entries(SOURCE_COLORS).map(([key, color]) => (
-              <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <div className="flex items-center gap-0.5" key={key}>
                 <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: color }} />
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+                <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
                   {t(`dynamicPricing.priceSource.${key}`)}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             ))}
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem', ml: 'auto', fontStyle: 'italic' }}>
+            <span className="cn-text-caption text-muted-foreground text-[0.625rem] ms-auto italic">
               {t('dynamicPricing.calendar.rangeHint', 'Cliquez-glissez pour sélectionner une plage')}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         </Paper>
       )}
 
@@ -435,10 +414,10 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
             borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)',
           }}
         >
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontVariantNumeric: 'tabular-nums' }}>
+          <p className="cn-text-body2 text-[0.8125rem] tabular-nums">
             {selectedDates.length} {t('common.date')}(s)
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          </p>
+          <div className="flex gap-1.5">
             <Button
               variant="text"
               size="small"
@@ -461,7 +440,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
             >
               {t('dynamicPricing.calendar.editPrice')}
             </Button>
-          </Box>
+          </div>
         </Paper>
       )}
 
@@ -483,7 +462,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
         selectedDates={selectedDates}
         loading={minNightsMutation.isPending}
       />
-    </Box>
+    </div>
   );
 };
 

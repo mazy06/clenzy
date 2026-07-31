@@ -1,10 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Box, Paper, Typography, Button, TextField, Chip, IconButton, Tooltip,
-  Table, TableHead, TableBody, TableRow, TableCell, TableContainer, CircularProgress,
-  Skeleton, Snackbar, Alert,
-} from '@mui/material';
+import { Paper, Button, TextField, Chip, IconButton, Tooltip, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, CircularProgress, Skeleton, Snackbar, Alert } from '@mui/material';
 import { VpnKey, History, Add, Delete as Trash, LocationOn } from '../../../icons';
 import EmptyState from '../../../components/EmptyState';
 import { keyExchangeApi, type KeyExchangeCodeDto } from '../../../services/api/keyExchangeApi';
@@ -37,10 +33,10 @@ const codeStatusPillSx = (status: string) => {
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.5 }}>
-      <Typography variant="caption" sx={{ color: 'text.secondary' }}>{label}</Typography>
-      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary', textAlign: 'right' }}>{value}</Typography>
-    </Box>
+    <div className="flex justify-between gap-3 py-0.5">
+      <span className="cn-text-caption text-muted-foreground">{label}</span>
+      <span className="cn-text-caption font-semibold text-foreground text-end">{value}</span>
+    </div>
   );
 }
 
@@ -96,12 +92,12 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
   const codes: KeyExchangeCodeDto[] = codesQuery.data ?? [];
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="flex flex-col gap-3">
       {/* Infos du point */}
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
-        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <h6 className="cn-text-subtitle2 mb-1.5 font-bold flex items-center gap-0.5">
           <LocationOn size={15} strokeWidth={1.75} /> Point de remise
-        </Typography>
+        </h6>
         <InfoRow label="Fournisseur" value={point?.provider ?? device.provider} />
         <InfoRow label="Commerce" value={point?.storeName ?? device.name} />
         <InfoRow label="Adresse" value={point?.storeAddress} />
@@ -111,7 +107,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
       </Paper>
 
       {/* Codes | Mouvements */}
-      <Box>
+      <div>
         <PageTabs
           options={[
             { label: 'Codes', icon: <VpnKey /> },
@@ -124,11 +120,11 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
           trail={false}
         />
 
-        <Box sx={{ pt: 2 }}>
+        <div className="pt-3">
           {subTab === 0 && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <div className="flex flex-col gap-2">
               {/* Génération */}
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <div className="flex gap-1.5 items-center">
                 <TextField
                   size="small"
                   label="Nom du voyageur (optionnel)"
@@ -145,7 +141,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                 >
                   Générer un code
                 </Button>
-              </Box>
+              </div>
 
               {/* Liste */}
               {codesQuery.isLoading ? (
@@ -168,23 +164,9 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                         <TableRow key={c.id}>
                           <TableCell>
                             {/* Code PIN : display (Space Grotesk) tabular-nums sur fond --field */}
-                            <Box
-                              component="span"
-                              sx={{
-                                fontFamily: 'var(--font-display)',
-                                fontVariantNumeric: 'tabular-nums',
-                                fontWeight: 600,
-                                letterSpacing: '0.06em',
-                                color: 'var(--ink)',
-                                bgcolor: 'var(--field)',
-                                borderRadius: '9px',
-                                px: 1,
-                                py: 0.375,
-                                display: 'inline-block',
-                              }}
-                            >
+                            <span className="font-[var(--font-display)] tabular-nums font-semibold tracking-[0.06em] text-[var(--ink)] bg-[var(--field)] rounded-[9px] px-1.5 py-0.5 inline-block">
                               {c.code}
-                            </Box>
+                            </span>
                           </TableCell>
                           <TableCell>{c.guestName || '—'}</TableCell>
                           <TableCell>
@@ -205,7 +187,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                   </Table>
                 </TableContainer>
               )}
-            </Box>
+            </div>
           )}
 
           {subTab === 1 && (
@@ -240,12 +222,12 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
               </TableContainer>
             )
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         {snack ? <Alert severity={snack.severity} variant="filled" onClose={() => setSnack(null)} sx={{ width: '100%' }}>{snack.msg}</Alert> : undefined}
       </Snackbar>
-    </Box>
+    </div>
   );
 }

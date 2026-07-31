@@ -1,18 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-  Box,
-  Skeleton,
-  Alert,
-  Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
-  Paper,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+import { Skeleton, Alert, FormControl, InputLabel, Select, MenuItem, Button, Paper, useMediaQuery, useTheme } from '@mui/material';
 import { FilterAltOff as FilterAltOffIcon, CalendarMonth } from '../../icons';
 import EmptyState from '../../components/EmptyState';
 import './calendarSignature.css';
@@ -206,7 +193,7 @@ export default function CalendarPage() {
   // Filtres : portés par le slot `filters` du PageHeader (pattern des écrans
   // finalisés — pas de Paper de filtres orphelin).
   const filterBar = (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', width: '100%' }}>
+    <div className="flex flex-wrap gap-2 items-center w-full">
       <FormControl size="small" sx={{ minWidth: 160 }}>
         <InputLabel>Statut</InputLabel>
         <Select
@@ -258,19 +245,16 @@ export default function CalendarPage() {
         </Button>
       )}
 
-      <Box sx={{ ml: 'auto' }}>
-        <Typography
-          variant="body2"
-          sx={{ color: 'var(--muted)', fontSize: '0.8125rem', fontVariantNumeric: 'tabular-nums' }}
-        >
+      <div className="ms-auto">
+        <p className="cn-text-body2 text-[var(--muted)] text-[0.8125rem] tabular-nums">
           {events.length} intervention{events.length > 1 ? 's' : ''}
-        </Typography>
-      </Box>
-    </Box>
+        </p>
+      </div>
+    </div>
   );
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title="Planning des interventions"
         subtitle="Vue calendrier de toutes les interventions planifiees"
@@ -348,6 +332,6 @@ export default function CalendarPage() {
         }}
         intervention={selectedIntervention}
       />
-    </Box>
+    </div>
   );
 }

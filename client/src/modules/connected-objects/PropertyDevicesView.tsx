@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, Skeleton } from '@mui/material';
+import { Box, Button, Skeleton } from '@mui/material';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, GridView, ChevronLeft } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
@@ -47,7 +47,7 @@ export default function PropertyDevicesView() {
   };
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={propertyName}
         subtitle="Objets connectés de ce logement"
@@ -81,20 +81,20 @@ export default function PropertyDevicesView() {
         />
       ) : (
         rooms.map(([room, list]) => (
-          <Box key={room} sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.875 }}>
-              <Box component="span" sx={{ color: 'text.secondary', display: 'inline-flex' }}>
+          <div className="mb-3" key={room}>
+            <div className="flex items-center gap-1 mb-1.5">
+              <span className="text-muted-foreground inline-flex">
                 <GridView size={15} strokeWidth={1.75} />
-              </Box>
-              <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'text.primary' }}>
+              </span>
+              <p className="cn-text-body1 font-semibold text-[0.9375rem] text-foreground">
                 {room === '__none__' ? 'Sans pièce attribuée' : room}
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>· {list.length}</Typography>
-            </Box>
+              </p>
+              <span className="cn-text-caption text-muted-foreground opacity-60">· {list.length}</span>
+            </div>
             <Box sx={GRID}>
               {list.map((d) => <DeviceCard key={d.uid} device={d} onAction={handleAction} acting={actingUid === d.uid} />)}
             </Box>
-          </Box>
+          </div>
         ))
       )}
 
@@ -108,6 +108,6 @@ export default function PropertyDevicesView() {
       <Button variant="text" size="small" startIcon={<ChevronLeft size={16} strokeWidth={1.75} />} onClick={() => navigate('/connected-objects')} sx={{ mt: 1, color: 'text.secondary' }}>
         Tous les objets
       </Button>
-    </Box>
+    </div>
   );
 }

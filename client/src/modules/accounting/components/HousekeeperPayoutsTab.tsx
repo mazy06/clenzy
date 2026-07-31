@@ -9,11 +9,7 @@
    ============================================================ */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  Box, Paper, Typography, Button, Chip, IconButton, Tooltip, Link,
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, Skeleton, CircularProgress,
-} from '@mui/material';
+import { Paper, Typography, Button, Chip, IconButton, Tooltip, Link, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, Skeleton, CircularProgress } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { Build as RetryIcon, AccountBalance as PayoutIcon } from '../../../icons';
 import FilterChipRow from '../../../components/FilterChipRow';
@@ -171,11 +167,11 @@ export const HousekeeperPayoutsTab: React.FC = () => {
 
       {/* ── Table ── */}
       {isLoading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} variant="rounded" height={44} sx={{ borderRadius: 'var(--radius-sm)' }} />
           ))}
-        </Box>
+        </div>
       ) : isError ? (
         <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
           {t('accounting.housekeeperPayouts.error', 'Erreur lors du chargement des versements prestataires')}
@@ -227,7 +223,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                       {r.commissionAmount > 0 ? fmtCurrency(r.commissionAmount) : '—'}
                     </TableCell>
                     <TableCell align="center">
-                      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                      <div className="inline-flex items-center gap-0.5">
                         <Chip
                           label={t(`accounting.housekeeperPayouts.statuses.${r.status}`, r.status)}
                           size="small"
@@ -240,7 +236,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                             </Typography>
                           </Tooltip>
                         )}
-                      </Box>
+                      </div>
                     </TableCell>
                     <TableCell sx={{ ...CELL_SX, fontSize: '0.75rem' }}>{fmtDate(r.createdAt)}</TableCell>
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
@@ -282,13 +278,13 @@ export const HousekeeperPayoutsTab: React.FC = () => {
         <DialogTitle>{t('accounting.housekeeperPayouts.retryTitle', 'Relancer le versement')}</DialogTitle>
         <DialogContent sx={{ pt: '16px !important' }}>
           {retryTarget && (
-            <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+            <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground">
               {t(
                 'accounting.housekeeperPayouts.retryConfirm',
                 'Relancer le versement de {{amount}} à {{provider}} ?',
                 { amount: fmtCurrency(retryTarget.amount), provider: providerName(retryTarget) },
               )}
-            </Typography>
+            </p>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

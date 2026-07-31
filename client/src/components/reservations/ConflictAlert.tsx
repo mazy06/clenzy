@@ -20,9 +20,9 @@ const ConflictAlert: React.FC<{ form: UseReservationFormResult; fullWidth?: bool
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '13.5px', fontWeight: 700, color: 'var(--ink)' }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}>
+        <span className="inline-flex text-[var(--warn)]">
           <WarningIcon size={17} strokeWidth={1.75} />
-        </Box>
+        </span>
         {t('reservations.dialog.conflictTitle')}
       </Box>
       {form.conflictWarnings.map((w, i) => (

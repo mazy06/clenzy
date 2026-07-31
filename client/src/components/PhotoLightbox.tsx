@@ -1,10 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Dialog,
-  Box,
-  IconButton,
-  Typography,
-} from '@mui/material';
+import { Dialog, IconButton } from '@mui/material';
 import {
   Close as CloseIcon,
   ChevronLeft as ChevronLeftIcon,
@@ -83,39 +78,17 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
       }}
     >
       {/* Barre supérieure : compteur + bouton fermer */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          p: 2,
-          zIndex: 10,
-        }}
-      >
-        <Typography variant="body1" sx={{ color: 'white', fontWeight: 600 }}>
+      <div className="absolute top-[0px] start-[0px] end-[0px] flex justify-between items-center p-3 z-[10]">
+        <p className="cn-text-body1 text-[white] font-semibold">
           {currentIndex + 1} / {photos.length}
-        </Typography>
+        </p>
         <IconButton onClick={onClose} sx={{ color: 'white' }}>
           <CloseIcon size={24} strokeWidth={1.75} />
         </IconButton>
-      </Box>
+      </div>
 
       {/* Image principale */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100%',
-          height: '100%',
-          px: 8,
-          py: 8,
-        }}
-      >
+      <div className="flex items-center justify-center w-full h-full px-12 py-12">
         <img
           src={photos[currentIndex]}
           alt={`Aperçu ${currentIndex + 1}`}
@@ -125,7 +98,7 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
             objectFit: 'contain',
           }}
         />
-      </Box>
+      </div>
 
       {/* Flèche gauche */}
       {photos.length > 1 && (

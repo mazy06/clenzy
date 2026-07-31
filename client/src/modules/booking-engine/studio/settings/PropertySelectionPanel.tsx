@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Box, ButtonBase, Checkbox, Skeleton } from '@mui/material';
+import { ButtonBase, Checkbox, Skeleton } from '@mui/material';
 import { AlertTriangle, Home, Info } from 'lucide-react';
 import { propertiesApi, type Property } from '../../../../services/api/propertiesApi';
 import type { StudioConfigState } from '../useStudioConfig';
@@ -68,29 +68,29 @@ export default function PropertySelectionPanel({ cfg }: PropertySelectionPanelPr
 
   if (!properties && !loadError) {
     return (
-      <Box sx={{ maxWidth: 720, mx: 'auto', px: 4, py: 4 }}>
+      <div className="max-w-[720px] mx-auto px-6 py-6">
         <Skeleton variant="rounded" height={220} sx={{ borderRadius: 'var(--radius-lg)', bgcolor: 'var(--hover)' }} />
-      </Box>
+      </div>
     );
   }
 
   if (loadError) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, m: 4, p: 2, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
+      <div className="flex items-center gap-1.5 m-6 p-3 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
         <AlertTriangle size={18} strokeWidth={2} /> {loadError}
-      </Box>
+      </div>
     );
   }
 
   if (properties && properties.length === 0) {
     return (
-      <Box sx={{ textAlign: 'center', py: 8, px: 4 }}>
-        <Box sx={{ width: 56, height: 56, mx: 'auto', mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-lg)', bgcolor: 'var(--accent-soft)', color: 'var(--accent)' }}>
+      <div className="text-center py-12 px-6">
+        <div className="w-[56px] h-[56px] mx-auto mb-3 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--accent-soft)] text-[var(--accent)]">
           <Home size={26} strokeWidth={1.85} />
-        </Box>
-        <Box sx={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)', mb: 0.5 }}>Aucune propriété</Box>
-        <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--muted)' }}>Ajoutez des propriétés pour les proposer à la réservation.</Box>
-      </Box>
+        </div>
+        <div className="text-[var(--text-lg)] font-[var(--fw-semibold)] mb-0.5">Aucune propriété</div>
+        <div className="text-[var(--text-md)] text-[var(--muted)]">Ajoutez des propriétés pour les proposer à la réservation.</div>
+      </div>
     );
   }
 
@@ -113,11 +113,11 @@ export default function PropertySelectionPanel({ cfg }: PropertySelectionPanelPr
       {!showAll && (
         <SettingCard title={`Propriétés (${selected.size} sélectionnée${selected.size > 1 ? 's' : ''})`} description="Cochez les biens à afficher.">
           {selected.size === 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1.25, fontSize: 'var(--text-sm)', color: 'var(--muted)' }}>
+            <div className="flex items-center gap-1.5 py-2 text-[var(--text-sm)] text-[var(--muted)]">
               <Info size={15} strokeWidth={2} /> Aucune sélection : toutes les propriétés restent affichées.
-            </Box>
+            </div>
           )}
-          <Box sx={{ py: 0.5 }}>
+          <div className="py-0.5">
             {list.map((p) => {
               const checked = selected.has(p.id);
               return (
@@ -132,14 +132,14 @@ export default function PropertySelectionPanel({ cfg }: PropertySelectionPanelPr
                   }}
                 >
                   <Checkbox checked={checked} tabIndex={-1} disableRipple size="small" sx={{ p: 0.5, color: 'var(--faint)', '&.Mui-checked': { color: 'var(--accent)' } }} />
-                  <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</Box>
-                    {p.city && <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--faint)' }}>{p.city}</Box>}
-                  </Box>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[var(--text-md)] text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis">{p.name}</div>
+                    {p.city && <div className="text-[var(--text-2xs)] text-[var(--faint)]">{p.city}</div>}
+                  </div>
                 </ButtonBase>
               );
             })}
-          </Box>
+          </div>
         </SettingCard>
       )}
     </SettingsPage>

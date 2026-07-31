@@ -1,28 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  Box,
-  Typography,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Collapse,
-  IconButton,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  Tooltip,
-  useTheme,
-  Button,
-  CircularProgress,
-  SelectChangeEvent,
-} from '@mui/material';
+import { Box, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Collapse, IconButton, MenuItem, Select, FormControl, InputLabel, Tooltip, useTheme, Button, CircularProgress, SelectChangeEvent } from '@mui/material';
 import {
   ExpandMore,
   ExpandLess,
@@ -170,7 +148,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
 
   // ── Action buttons (portal into PageHeader when embedded) ──
   const actionButtons = (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+    <div className="flex items-center gap-1.5">
       <Button
         variant="contained"
         size="small"
@@ -185,20 +163,20 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
         size="small"
         sx={{ fontWeight: 600, fontSize: '0.75rem' }}
       />
-    </Box>
+    </div>
   );
 
   // ── Loading state ──
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+      <div className="flex justify-center py-12">
         <CircularProgress />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
 
       {/* ── Header standalone (hors Annuaire multi-tabs) ── */}
@@ -218,7 +196,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
 
       {/* ── Filters bar ── */}
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="flex gap-3 flex-wrap items-center">
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel sx={{ fontSize: '0.8125rem' }}>
               <Box component="span" sx={{ display: 'inline-flex', mr: 0.5, verticalAlign: 'middle' }}><FilterList size={14} strokeWidth={1.75} /></Box>
@@ -250,15 +228,15 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
               <MenuItem value="all">Tous</MenuItem>
               {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
                 <MenuItem key={key} value={key}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <div className="flex items-center gap-1.5">
                     <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: cfg.color }} />
                     {cfg.label}
-                  </Box>
+                  </div>
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
-        </Box>
+        </div>
       </Paper>
 
       {/* ── Empty state ── */}
@@ -285,7 +263,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
           variant="plain"
         />
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="flex flex-col gap-3">
           {filteredCategories.map((cat) => {
             const isExpanded = expandedCategories.has(cat.key);
             return (
@@ -308,9 +286,9 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                   <Box sx={{ color: cat.color, display: 'flex', alignItems: 'center' }}>
                     {cat.icon}
                   </Box>
-                  <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', flex: 1 }}>
+                  <p className="cn-text-body1 font-bold text-[0.875rem] flex-1">
                     {cat.label}
-                  </Typography>
+                  </p>
                   <Chip
                     label={`${cat.prospects.length}`}
                     size="small"
@@ -354,51 +332,51 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                               sx={{ '&:last-child td': { borderBottom: 0 } }}
                             >
                               <TableCell>
-                                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                                <p className="cn-text-body1 text-[0.8125rem] font-semibold">
                                   {p.name}
-                                </Typography>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, mt: 0.25 }}>
+                                </p>
+                                <div className="flex flex-col gap-0.5 mt-0.5">
                                   {p.email && (
                                     <Tooltip title={p.email}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><Email size={11} strokeWidth={1.75} /></Box>
-                                        <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
+                                      <div className="flex items-center gap-0.5">
+                                        <span className="inline-flex text-muted-foreground opacity-60"><Email size={11} strokeWidth={1.75} /></span>
+                                        <p className="cn-text-body1 text-[0.625rem] text-muted-foreground">
                                           {p.email}
-                                        </Typography>
-                                      </Box>
+                                        </p>
+                                      </div>
                                     </Tooltip>
                                   )}
                                   {p.phone && (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><Phone size={11} strokeWidth={1.75} /></Box>
-                                      <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
+                                    <div className="flex items-center gap-0.5">
+                                      <span className="inline-flex text-muted-foreground opacity-60"><Phone size={11} strokeWidth={1.75} /></span>
+                                      <p className="cn-text-body1 text-[0.625rem] text-muted-foreground">
                                         {p.phone}
-                                      </Typography>
-                                    </Box>
+                                      </p>
+                                    </div>
                                   )}
-                                </Box>
+                                </div>
                               </TableCell>
                               <TableCell>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LocationOn size={12} strokeWidth={1.75} /></Box>
-                                  <Typography sx={{ fontSize: '0.75rem' }}>{p.city || '\u2014'}</Typography>
-                                </Box>
+                                <div className="flex items-center gap-0.5">
+                                  <span className="inline-flex text-muted-foreground"><LocationOn size={12} strokeWidth={1.75} /></span>
+                                  <p className="cn-text-body1 text-[0.75rem]">{p.city || '\u2014'}</p>
+                                </div>
                               </TableCell>
                               <TableCell>
-                                <Typography sx={{ fontSize: '0.75rem' }}>{p.specialty || '\u2014'}</Typography>
+                                <p className="cn-text-body1 text-[0.75rem]">{p.specialty || '\u2014'}</p>
                               </TableCell>
                               <TableCell>
-                                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                                   {p.employees || '\u2014'}
-                                </Typography>
+                                </p>
                               </TableCell>
                               <TableCell>
-                                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground whitespace-nowrap">
                                   {p.revenue ? `${p.revenue} \u20AC` : '\u2014'}
-                                </Typography>
+                                </p>
                               </TableCell>
                               <TableCell>
-                                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                <div className="flex gap-0.5">
                                   {p.website && (
                                     <Tooltip title={p.website}>
                                       <IconButton
@@ -409,7 +387,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                                         rel="noopener noreferrer"
                                         sx={{ p: 0.25 }}
                                       >
-                                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Language size={16} strokeWidth={1.75} /></Box>
+                                        <span className="inline-flex text-muted-foreground"><Language size={16} strokeWidth={1.75} /></span>
                                       </IconButton>
                                     </Tooltip>
                                   )}
@@ -427,7 +405,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                                       </IconButton>
                                     </Tooltip>
                                   )}
-                                </Box>
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <Select
@@ -447,27 +425,18 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                                 >
                                   {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
                                     <MenuItem key={key} value={key} sx={{ fontSize: '0.75rem' }}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                      <div className="flex items-center gap-1">
                                         <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: cfg.color }} />
                                         {cfg.label}
-                                      </Box>
+                                      </div>
                                     </MenuItem>
                                   ))}
                                 </Select>
                               </TableCell>
                               <TableCell>
-                                <Typography
-                                  sx={{
-                                    fontSize: '0.6875rem',
-                                    color: 'text.secondary',
-                                    maxWidth: 220,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                >
+                                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
                                   {p.notes || '\u2014'}
-                                </Typography>
+                                </p>
                               </TableCell>
                             </TableRow>
                           );
@@ -479,9 +448,9 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
               </Paper>
             );
           })}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

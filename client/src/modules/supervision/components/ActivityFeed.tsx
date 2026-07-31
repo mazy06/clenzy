@@ -57,7 +57,7 @@ function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEnt
   };
   return (
     <>
-    <Box data-activity-feed sx={{ display: 'flex', flexDirection: 'column' }}>
+    <div className="flex flex-col" data-activity-feed>
       {entries.map((entry) => {
         // Entrée orchestrateur (réponse chat) : identité d'accent + icône assistant.
         const isOrchestrator = 'orchestrator' in entry && entry.orchestrator;
@@ -132,12 +132,12 @@ function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEnt
             >
               {isOrchestrator ? <AutoAwesome size={14} strokeWidth={1.75} /> : (toolIcon ?? <AgentIcon token={meta.icon} size={14} />)}
             </Box>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
+            <div className="min-w-0 flex-1">
               <Box sx={{ fontSize: 11, color: 'var(--muted, #6b7196)', fontVariantNumeric: 'tabular-nums' }}>
                 {hhmm(entry.at)}
                 {propertyName ? ` · ${propertyName}` : ''}
               </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'space-between' }}>
+              <div className="flex items-center gap-0.5 justify-between">
                 <Box sx={{ fontSize: 12.5, color: 'var(--ink, #1b2240)', lineHeight: 1.4, minWidth: 0 }}>
                   {labelFor(entry)}
                 </Box>
@@ -160,17 +160,17 @@ function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEnt
                     <ChevronDown size={14} />
                   </IconButton>
                 )}
-              </Box>
+              </div>
               {detail && isOpen && (
                 <Box sx={{ fontSize: 11.5, color: 'var(--muted, #6b7196)', lineHeight: 1.35, mt: 0.25, wordBreak: 'break-word' }}>
                   {detail}
                 </Box>
               )}
-            </Box>
+            </div>
           </Box>
         );
       })}
-    </Box>
+    </div>
     <FeedMessageModal logId={openMessageLogId} onClose={() => setOpenMessageLogId(null)} />
     <FeedInvoiceModal invoiceId={openInvoiceId} onClose={() => setOpenInvoiceId(null)} />
     </>

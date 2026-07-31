@@ -1,20 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  Grid,
-  MenuItem,
-  Paper,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Grid, MenuItem, Paper, TextField, Typography } from '@mui/material';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -197,9 +182,9 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
 
       <DialogContent dividers>
         {isLoading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+          <div className="flex justify-center p-6">
             <CircularProgress />
-          </Box>
+          </div>
         )}
 
         {error && (
@@ -262,17 +247,7 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                         <MenuItem key={lang.value} value={lang.value} disabled={!tpl}>
                           {lang.label}
                           {isCustom && (
-                            <Box
-                              component="span"
-                              sx={{
-                                ml: 1,
-                                width: 6,
-                                height: 6,
-                                borderRadius: '50%',
-                                bgcolor: 'var(--accent)',
-                                display: 'inline-block',
-                              }}
-                            />
+                            <span className="ms-1.5 w-[6px] h-[6px] rounded-[50%] bg-[var(--accent)] inline-block" />
                           )}
                         </MenuItem>
                       );
@@ -314,14 +289,14 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
               </Grid>
 
               {/* ── Preview (apercu plain text avec variables remplacees) ── */}
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <div className="mt-4">
+                <h6 className="cn-text-subtitle2 text-muted-foreground mb-[0.35em]">
                   {t('messaging.templates.editor.preview')}
-                </Typography>
+                </h6>
                 <Paper variant="outlined" sx={{ p: 2, bgcolor: 'var(--surface-2)', borderColor: 'var(--line)' }}>
-                  <Typography variant="subtitle2" gutterBottom>
+                  <h6 className="cn-text-subtitle2 mb-[0.35em]">
                     {t('messaging.templates.editor.previewSubject')}: {getPreviewText(subject) || '—'}
-                  </Typography>
+                  </h6>
                   <Divider sx={{ my: 1 }} />
                   <Typography
                     variant="body2"
@@ -334,21 +309,21 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                     {getPreviewText(body) || '—'}
                   </Typography>
                 </Paper>
-                <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>
+                <span className="cn-text-caption text-muted-foreground opacity-60 block mt-0.5">
                   {t('systemEmailTemplates.dialog.previewNote')}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             </Grid>
 
             {/* ── Sidebar variables (droite, 5/12) ── */}
             <Grid item xs={12} md={5}>
               <Paper variant="outlined" sx={{ p: 2, position: 'sticky', top: 16 }}>
-                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                <h6 className="cn-text-subtitle2 font-semibold mb-[0.35em]">
                   {t('messaging.templates.editor.variables')}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                </h6>
+                <span className="cn-text-caption text-muted-foreground block mb-2">
                   {t('messaging.templates.editor.variablesDesc')}
-                </Typography>
+                </span>
                 <VariablePicker
                   variables={userVariables}
                   usedKeys={usedVariables}
@@ -373,7 +348,7 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
             {t('systemEmailTemplates.dialog.resetToSystem')}
           </Button>
         )}
-        <Box sx={{ flex: 1 }} />
+        <div className="flex-1" />
         <Button onClick={onClose} disabled={saving}>
           {t('common.cancel')}
         </Button>

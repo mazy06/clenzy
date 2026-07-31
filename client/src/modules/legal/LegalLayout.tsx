@@ -41,19 +41,11 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
+      <div className="min-h-[100vh] bg-[background.default] flex flex-col">
         {/* Header */}
-        <Box
-          component="header"
-          sx={{
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-            bgcolor: 'background.paper',
-            py: 1.5,
-          }}
-        >
+        <header className="border-b border-[divider] bg-[background.paper] py-2">
           <Container maxWidth="md">
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="flex items-center justify-between">
               <Link component={RouterLink} to="/login" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
                 <BaitlyMarkLogo variant="full" size={30} />
               </Link>
@@ -74,9 +66,9 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
                 <ArrowBack size={16} strokeWidth={1.75} />
                 {t('auth.legal.back', 'Retour')}
               </Link>
-            </Box>
+            </div>
           </Container>
-        </Box>
+        </header>
 
         {/* Corps */}
         <Container maxWidth="md" sx={{ flex: 1, py: { xs: 4, md: 6 } }}>
@@ -94,9 +86,9 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
           >
             {title}
           </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 4 }}>
+          <span className="cn-text-caption text-muted-foreground block mb-6">
             {t('auth.legal.lastUpdated', `Dernière mise à jour : ${lastUpdated}`, { date: lastUpdated })}
-          </Typography>
+          </span>
           <Divider sx={{ mb: 4 }} />
           <Box
             sx={{
@@ -142,17 +134,9 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
         </Container>
 
         {/* Footer minimal */}
-        <Box
-          component="footer"
-          sx={{
-            borderTop: '1px solid',
-            borderColor: 'divider',
-            py: 3,
-            bgcolor: 'background.paper',
-          }}
-        >
+        <footer className="border-t border-[divider] py-4 bg-[background.paper]">
           <Container maxWidth="md">
-            <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div className="flex gap-4 justify-center flex-wrap">
               <Link component={RouterLink} to="/cgu" sx={{ color: 'text.secondary', fontSize: '0.8125rem', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}>
                 {t('auth.legal.footerCgu', 'CGU')}
               </Link>
@@ -162,10 +146,10 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
               <Link component={RouterLink} to="/support" sx={{ color: 'text.secondary', fontSize: '0.8125rem', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}>
                 {t('auth.legal.footerSupport', 'Support')}
               </Link>
-            </Box>
+            </div>
           </Container>
-        </Box>
-      </Box>
+        </footer>
+      </div>
     </ThemeProvider>
   );
 }

@@ -123,14 +123,14 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
         }}
       >
         <BaitlyMarkLogo variant="mark" size={22} idleAnimation={false} active={isWorking} />
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+        <div className="flex-1 min-w-0">
+          <h6 className="cn-text-subtitle1 font-semibold leading-[1.2]">
             Assistant
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
+          </h6>
+          <span className="cn-text-caption text-muted-foreground leading-[1]">
             Pose tes questions, reponses en temps reel sur tes donnees.
-          </Typography>
-        </Box>
+          </span>
+        </div>
         <AssistantUsageBadge usage={usage} loading={usageLoading} error={usageError} />
         <Tooltip title="Reduire">
           <IconButton size="small" onClick={onMinimize} aria-label="Reduire" sx={{ cursor: 'pointer' }}>
@@ -195,34 +195,11 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
           <MessageList
             messages={messages}
             emptyState={
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 3,
-                  py: 6,
-                  px: 3,
-                  textAlign: 'center',
-                  height: '100%',
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: '50%',
-                    bgcolor: 'var(--accent-soft)',
-                    color: 'var(--accent)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
+              <div className="flex flex-col items-center justify-center gap-4 py-9 px-4 text-center h-full">
+                <div className="w-[64px] h-[64px] rounded-[50%] bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center">
                   <BaitlyMarkLogo variant="mark" size={52} />
-                </Box>
-                <Box>
+                </div>
+                <div>
                   <Typography
                     sx={{
                       mb: 0.5,
@@ -235,12 +212,12 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
                   >
                     Comment puis-je t&apos;aider ?
                   </Typography>
-                  <Typography sx={{ maxWidth: 480, fontSize: 13, lineHeight: 1.55, color: 'var(--muted)' }}>
+                  <p className="cn-text-body1 max-w-[480px] text-[13px] leading-[1.55] text-[var(--muted)]">
                     Pose-moi une question sur tes proprietes, reservations, menages ou KPIs.
                     J&apos;utilise tes donnees Baitly en temps reel.
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', maxWidth: 640 }}>
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1.5 justify-center max-w-[640px]">
                   {SUGGESTED_PROMPTS.map((prompt) => (
                     <Box
                       key={prompt}
@@ -268,8 +245,8 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
                       {prompt}
                     </Box>
                   ))}
-                </Box>
-              </Box>
+                </div>
+              </div>
             }
           />
 

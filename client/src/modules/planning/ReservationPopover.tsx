@@ -60,9 +60,9 @@ function InfoRow({
 }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: '14px', py: '7px' }}>
-      <Box sx={{ display: 'inline-flex', alignItems: 'center', color: 'var(--muted)', flexShrink: 0 }}>
+      <div className="inline-flex items-center text-[var(--muted)] shrink-0">
         {icon}
-      </Box>
+      </div>
       <Box component="span" sx={{ fontSize: ROW_LABEL_FS, color: 'var(--muted)', flexShrink: 0 }}>
         {label}
       </Box>
@@ -158,36 +158,19 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
           size={40}
           sx={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)', fontSize: '0.8125rem' }}
         />
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Box
-            component="span"
-            sx={{
-              display: 'block',
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              color: 'var(--ink)',
-              lineHeight: 1.25,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+        <div className="min-w-0 flex-1">
+          <span className="block text-[0.8125rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
             {event.label}
-          </Box>
+          </span>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: '2px' }}>
             {sourceLogo && (
-              <Box
-                component="img"
-                src={sourceLogo}
-                alt=""
-                sx={{ width: 12, height: 12, objectFit: 'contain', display: 'block' }}
-              />
+              <img className="w-[12px] h-[12px] object-contain block" src={sourceLogo} alt="" />
             )}
-            <Box component="span" sx={{ fontSize: '0.65625rem', color: 'var(--muted)' }}>
+            <span className="text-[0.65625rem] text-[var(--muted)]">
               {channelLabel}
-            </Box>
+            </span>
           </Box>
-        </Box>
+        </div>
       </Box>
 
       {/* Lignes séparées hairline (la 1ère est séparée de l'entête) */}

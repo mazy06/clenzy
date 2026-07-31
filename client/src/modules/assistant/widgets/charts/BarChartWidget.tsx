@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import {
   ResponsiveContainer,
   BarChart,
@@ -56,15 +56,11 @@ export const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data }) => {
   }));
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
+    <div className="mt-1.5 mb-2">
       {data.title && (
-        <Typography sx={{
-          display: 'block', mb: 1, fontSize: '10.5px', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '.05em',
-          color: 'var(--faint)',
-        }}>
+        <p className="cn-text-body1 block mb-1.5 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
           {data.title}
-        </Typography>
+        </p>
       )}
 
       <Box sx={{
@@ -96,7 +92,7 @@ export const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data }) => {
           </BarChart>
         </ResponsiveContainer>
       </Box>
-    </Box>
+    </div>
   );
 };
 

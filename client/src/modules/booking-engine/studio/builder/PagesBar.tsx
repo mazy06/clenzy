@@ -37,7 +37,7 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
   };
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, height: 38, flexShrink: 0, borderBottom: '1px solid var(--line)', bgcolor: 'var(--bg)', overflowX: 'auto' }}>
+    <div className="flex items-center gap-0.5 px-1.5 h-[38px] shrink-0 border-b border-[var(--line)] bg-[var(--bg)] overflow-x-auto">
       {pages.map((p, index) => {
         const active = p.id === selectedId;
         const isHome = p.type === 'HOME';
@@ -120,10 +120,10 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
       </Tooltip>
 
       {onReset && (
-        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, flexShrink: 0, ml: 0.5, pl: 0.5, borderLeft: '1px solid var(--line)' }}>
+        <div className="inline-flex items-center gap-0.5 shrink-0 ms-0.5 ps-0.5 border-s border-[var(--line)]">
           {confirmReset ? (
             <>
-              <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', whiteSpace: 'nowrap' }}>Tout effacer ?</Box>
+              <div className="text-[var(--text-2xs)] text-[var(--muted)] whitespace-nowrap">Tout effacer ?</div>
               <ButtonBase
                 onClick={() => { setConfirmReset(false); onReset(); }}
                 sx={{ height: 24, px: 1, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', color: 'var(--on-accent)', bgcolor: 'var(--err, #C97A7A)', cursor: 'pointer', whiteSpace: 'nowrap' }}
@@ -154,9 +154,9 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
               </ButtonBase>
             </Tooltip>
           )}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }
 

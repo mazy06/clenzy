@@ -73,22 +73,13 @@ const KpiTile: React.FC<{ kpi: Kpi; idx: number }> = ({ kpi, idx }) => (
     >
       {kpi.name ?? kpi.id ?? `KPI ${idx + 1}`}
     </Overline>
-    <Typography
-      sx={{
-        fontFamily: 'var(--font-display)',
-        fontSize: '1.05rem',
-        fontWeight: 600,
-        lineHeight: 1.2,
-        fontVariantNumeric: 'tabular-nums',
-        color: 'var(--ink)',
-      }}
-    >
+    <p className="cn-text-body1 font-[var(--font-display)] text-[1.05rem] font-semibold leading-[1.2] tabular-nums text-[var(--ink)]">
       {kpi.value ?? '—'}
-    </Typography>
+    </p>
     {kpi.target && (
-      <Typography sx={{ display: 'block', color: 'var(--muted)', fontSize: '10.5px', mt: 0.25, fontVariantNumeric: 'tabular-nums' }}>
+      <p className="cn-text-body1 block text-[var(--muted)] text-[10.5px] mt-0.5 tabular-nums">
         cible {kpi.target}
-      </Typography>
+      </p>
     )}
   </Box>
 );
@@ -101,7 +92,7 @@ export const KpiSummaryResult: React.FC<{ data: KpiData }> = ({ data }) => {
   const kpis = Array.isArray(data.kpis) ? data.kpis : [];
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
+    <div className="mt-1.5 mb-2">
       {scorePct !== null && (
         <Box
           sx={{
@@ -127,17 +118,17 @@ export const KpiSummaryResult: React.FC<{ data: KpiData }> = ({ data }) => {
             }}
           >
             {scorePct}
-            <Box component="span" sx={{ fontSize: '1.25rem', fontWeight: 500, ml: 0.25 }}>
+            <span className="text-[1.25rem] font-medium ms-0.5">
               %
-            </Box>
+            </span>
           </Typography>
-          <Box>
+          <div>
             <Overline>Readiness score</Overline>
-            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>
+            <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">
               {critical ? 'KPI critique en défaut' : 'Tous les KPI critiques OK'}
               {data.kpiCount !== undefined && ` · ${data.kpiCount} indicateurs`}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         </Box>
       )}
 
@@ -154,6 +145,6 @@ export const KpiSummaryResult: React.FC<{ data: KpiData }> = ({ data }) => {
           ))}
         </Box>
       )}
-    </Box>
+    </div>
   );
 };

@@ -77,11 +77,11 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
   const portfolio: PortfolioSnapshot = snapshot;
 
   return (
-    <Box sx={{ position: 'relative' }}>
+    <div className="relative">
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'stretch', flexWrap: { xs: 'wrap', md: 'nowrap' } }}>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
+        <div className="flex-1 min-w-0">
           <AgentConstellation snapshot={portfolio} online={status === 'live'} onSelectAgent={setSelected} />
-        </Box>
+        </div>
 
         <Box sx={{ width: { xs: '100%', md: 330 }, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <SupervisionReportStrip />
@@ -91,9 +91,9 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
               <Typography sx={{ p: '14px 16px 8px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
                 {t('supervision.orgAlerts.title', 'Alertes portefeuille')}
               </Typography>
-              <Box sx={{ px: 1.5, pb: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+              <div className="px-2 pb-2 flex flex-col gap-2">
                 {portfolio.orgAlerts!.map((a, i) => (
-                  <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                  <div className="flex gap-1.5 items-start" key={i}>
                     <Box
                       sx={{
                         width: 8,
@@ -109,17 +109,17 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
                               : 'var(--info, #4a90a4)',
                       }}
                     />
-                    <Box sx={{ minWidth: 0 }}>
+                    <div className="min-w-0">
                       <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink, #1b2240)', lineHeight: 1.3 }}>
                         {a.title}
                       </Typography>
                       <Typography sx={{ fontSize: 11.5, color: 'var(--muted, #6b7280)', lineHeight: 1.35 }}>
                         {a.description}
                       </Typography>
-                    </Box>
-                  </Box>
+                    </div>
+                  </div>
                 ))}
-              </Box>
+              </div>
             </Box>
           )}
 
@@ -146,27 +146,27 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
                 {portfolio.pending.length}
               </Box>
             </Box>
-            <Box sx={{ p: 1.5, maxHeight: 320, overflowY: 'auto' }}>
+            <div className="p-2 max-h-[320px] overflow-y-auto">
               <PendingQueue actions={portfolio.pending} onValidate={handleValidate} onEdit={handleEdit} onAdjustPrice={handleAdjustPrice} variant="panel" />
-            </Box>
+            </div>
           </Box>
 
           <Box sx={cardSx}>
             <Typography sx={{ p: '14px 16px 8px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
               {t('supervision.feed.title')}
             </Typography>
-            <Box sx={{ px: 1, pb: 1, maxHeight: 220, overflowY: 'auto' }}>
+            <div className="px-1.5 pb-1.5 max-h-[220px] overflow-y-auto">
               {portfolio.feed.length > 0 ? (
                 <ActivityFeed entries={portfolio.feed} />
               ) : (
-                <Box sx={{ px: 1.5, py: 2, textAlign: 'center', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+                <div className="px-2 py-3 text-center text-[12px] text-[var(--muted)] leading-[1.5]">
                   {t(
                     'supervision.feed.emptyOnboarding',
                     'Les agents observent vos logements. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord.',
                   )}
-                </Box>
+                </div>
               )}
-            </Box>
+            </div>
           </Box>
         </Box>
       </Box>
@@ -203,6 +203,6 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
           }}
         />
       )}
-    </Box>
+    </div>
   );
 }

@@ -1,24 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  Grid,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  InputAdornment,
-  IconButton,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
+import { Typography, TextField, Grid, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   AutoAwesome,
   Group,
@@ -198,9 +179,9 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
     const eligibleTeamIdSet = new Set(forfait.eligibleTeamIds || []);
 
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      <div className="flex flex-col gap-3.5">
         {/* ─── Coefficients ─────────────────────────────────────────────── */}
-        <Box>
+        <div>
           <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.priceCoefficients')}</Typography>
           <Grid container spacing={1.5}>
             <Grid item xs={6}>
@@ -228,12 +209,12 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
               />
             </Grid>
           </Grid>
-        </Box>
+        </div>
 
         {/* ─── Types de service associés ────────────────────────────────── */}
-        <Box>
+        <div>
           <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.serviceTypes')}</Typography>
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+          <div className="flex gap-1 flex-wrap">
             {ALL_CLEANING_SERVICE_TYPE_KEYS.map((stKey) => {
               const isSelected = (forfait.serviceTypes || []).includes(stKey);
               return (
@@ -264,19 +245,19 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                 />
               );
             })}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* ─── Prestations incluses / en supplément ─────────────────────── */}
-        <Box>
+        <div>
           <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.prestations')}</Typography>
-          <Box sx={{ display: 'flex', gap: 3 }}>
+          <div className="flex gap-4">
             {/* Incluses */}
-            <Box sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: '0.5625rem', fontWeight: 600, color: 'success.main', mb: 0.5 }}>
+            <div className="flex-1">
+              <p className="cn-text-body1 text-[0.5625rem] font-semibold text-[var(--bui-success-ink)] mb-0.5">
                 {t('tarification.forfaitSection.includedInPrice')}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+              </p>
+              <div className="flex gap-0.5 flex-wrap">
                 {availablePrestations.map((p) => {
                   const isIncluded = includedPrestationSet.has(p.key);
                   return (
@@ -297,14 +278,14 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                     />
                   );
                 })}
-              </Box>
-            </Box>
+              </div>
+            </div>
             {/* En supplément */}
-            <Box sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: '0.5625rem', fontWeight: 600, color: 'warning.main', mb: 0.5 }}>
+            <div className="flex-1">
+              <p className="cn-text-body1 text-[0.5625rem] font-semibold text-[var(--bui-warning-ink)] mb-0.5">
                 {t('tarification.forfaitSection.extraCharge')}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+              </p>
+              <div className="flex gap-0.5 flex-wrap">
                 {availablePrestations.map((p) => {
                   const isExtra = extraPrestationSet.has(p.key);
                   return (
@@ -325,12 +306,12 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                     />
                   );
                 })}
-              </Box>
-            </Box>
-          </Box>
+              </div>
+            </div>
+          </div>
           {/* Add prestation button */}
           {canEdit && (
-            <Box sx={{ mt: 1 }}>
+            <div className="mt-1.5">
               <Button
                 variant="outlined"
                 size="small"
@@ -340,23 +321,23 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
               >
                 {t('tarification.addPrestation')}
               </Button>
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
 
         {/* ─── Équipes éligibles ────────────────────────────────────────── */}
-        <Box>
+        <div>
           <Typography sx={SECTION_TITLE_SX}>
             {t('tarification.forfaitSection.eligibleTeams')}
-            <Typography component="span" sx={{ fontSize: '0.5625rem', fontWeight: 400, color: 'text.disabled', ml: 1 }}>
+            <span className="text-[0.5625rem] font-normal text-muted-foreground opacity-60 ms-1.5">
               {t('tarification.forfaitSection.eligibleTeamsHint')}
-            </Typography>
+            </span>
           </Typography>
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+          <div className="flex gap-1 flex-wrap">
             {teams.length === 0 ? (
-              <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', fontStyle: 'italic' }}>
+              <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60 italic">
                 {t('tarification.forfaitSection.noTeamsAvailable')}
-              </Typography>
+              </p>
             ) : (
               teams.map((team) => {
                 const isSelected = eligibleTeamIdSet.has(team.id);
@@ -389,11 +370,11 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                 );
               })
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* ─── Tarification par surface ─────────────────────────────────── */}
-        <Box>
+        <div>
           <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.surfacePricing')}</Typography>
           <TableContainer>
             <Table size="small">
@@ -448,7 +429,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
             </Table>
           </TableContainer>
           {canEdit && (
-            <Box sx={{ mt: 0.5 }}>
+            <div className="mt-0.5">
               <Chip
                 icon={<Add size={14} strokeWidth={1.75} />}
                 label={t('tarification.forfaitSection.addTier')}
@@ -457,12 +438,12 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                 size="small"
                 sx={{ ...CHIP_SX, cursor: 'pointer', borderStyle: 'dashed' }}
               />
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
 
         {/* ─── Surcharges ───────────────────────────────────────────────── */}
-        <Box>
+        <div>
           <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.surcharges')}</Typography>
           <Grid container spacing={1}>
             {availableSurcharges.map((s) => (
@@ -483,7 +464,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
           </Grid>
           {/* Add surcharge button */}
           {canEdit && (
-            <Box sx={{ mt: 1 }}>
+            <div className="mt-1.5">
               <Button
                 variant="outlined"
                 size="small"
@@ -493,9 +474,9 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
               >
                 {t('tarification.addSurcharge')}
               </Button>
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
 
         {/* ─── Add prestation dialog ───────────────────────────────────── */}
         <Dialog open={addPrestationOpen} onClose={() => setAddPrestationOpen(false)} maxWidth="xs" fullWidth>
@@ -554,7 +535,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
             </Button>
           </DialogActions>
         </Dialog>
-      </Box>
+      </div>
     );
   }
 );

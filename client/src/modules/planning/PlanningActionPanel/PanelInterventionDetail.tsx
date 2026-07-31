@@ -1,19 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Chip,
-  Divider,
-  Button,
-  TextField,
-  IconButton,
-  LinearProgress,
-  CircularProgress,
-  Alert,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-} from '@mui/material';
+import { Chip, Divider, Button, TextField, IconButton, LinearProgress, CircularProgress, Alert, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import {
   AutoAwesome,
   Handyman,
@@ -178,24 +164,24 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
     : [];
 
   return (
-    <Box>
+    <div>
       {/* Header with icon + title */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+      <div className="flex items-center gap-1.5 mb-2">
         {isCleaning
           ? <AutoAwesome size={20} strokeWidth={1.75} color='#9B7FC4' />
           : <Handyman size={20} strokeWidth={1.75} color='#F59E0B' />}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div className="flex-1 min-w-0">
+          <p className="cn-text-body1 font-bold text-[0.875rem] overflow-hidden text-ellipsis whitespace-nowrap">
             {intervention.title}
-          </Typography>
-          <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
+          </p>
+          <p className="cn-text-body1 text-[0.625rem] text-muted-foreground">
             {intervention.propertyName}
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
 
       {/* Chips row */}
-      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1.5 }}>
+      <div className="flex gap-0.5 flex-wrap mb-2">
         {(() => { const c = STATUS_HEX[intervention.status] ?? '#757575'; return (
         <Chip
           label={intervention.status}
@@ -228,12 +214,12 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
           size="small"
           sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#4A9B8E18', color: '#4A9B8E', border: '1px solid #4A9B8E40', borderRadius: '6px', cursor: 'pointer', '& .MuiChip-label': { px: 0.75 }, '& .MuiChip-deleteIcon': { color: '#4A9B8E', fontSize: 12 } }}
         />
-      </Box>
+      </div>
 
       {/* Édition du montant : nouveau montant / remise € / remise % */}
       {amountEditOpen && (
-        <Box sx={{ mb: 1.5, p: 1.25, borderRadius: '10px', border: '1px solid var(--line)', bgcolor: 'var(--field)' }}>
-          <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
+        <div className="mb-2 p-2 rounded-[10px] border border-[var(--line)] bg-[var(--field)]">
+          <div className="flex gap-0.5 mb-1.5 flex-wrap">
             {([
               ['SET', 'Nouveau montant'],
               ['DISCOUNT_AMOUNT', 'Remise €'],
@@ -256,8 +242,8 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
                 />
               );
             })}
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          </div>
+          <div className="flex items-center gap-1">
             <TextField
               type="number"
               size="small"
@@ -268,9 +254,9 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
               disabled={amountSaving}
               inputProps={{ min: 0, step: amountMode === 'DISCOUNT_PERCENT' ? 1 : 5, style: { textAlign: 'right' } }}
               InputProps={{ endAdornment: (
-                <Typography sx={{ fontSize: '0.75rem', color: 'var(--faint)', pl: 0.5 }}>
+                <p className="cn-text-body1 text-[0.75rem] text-[var(--faint)] ps-0.5">
                   {amountMode === 'DISCOUNT_PERCENT' ? '%' : '€'}
-                </Typography>
+                </p>
               ) }}
               sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.8125rem', bgcolor: 'var(--card)' } }}
             />
@@ -283,40 +269,40 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
             >
               {amountSaving ? <CircularProgress size={16} /> : <EnterKey size={16} strokeWidth={1.75} />}
             </IconButton>
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* Dates */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 1.5, alignItems: 'center' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CalendarMonth size={14} strokeWidth={1.75} /></Box>
-          <Typography sx={{ fontSize: '0.6875rem' }}>
+      <div className="flex gap-3 mb-2 items-center">
+        <div className="flex items-center gap-0.5">
+          <span className="inline-flex text-muted-foreground"><CalendarMonth size={14} strokeWidth={1.75} /></span>
+          <p className="cn-text-body1 text-[0.6875rem]">
             {intervention.startDate}
             {intervention.startTime && ` ${intervention.startTime}`}
-          </Typography>
-        </Box>
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>→</Typography>
-        <Typography sx={{ fontSize: '0.6875rem' }}>
+          </p>
+        </div>
+        <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">→</p>
+        <p className="cn-text-body1 text-[0.6875rem]">
           {intervention.endDate}
           {intervention.endTime && ` ${intervention.endTime}`}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       <Divider sx={{ my: 1.5 }} />
 
       {/* Progress section */}
-      <Box sx={{ mb: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>
+      <div className="mb-3">
+        <div className="flex justify-between items-center mb-0.5">
+          <p className="cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-muted-foreground">
             Progression
-          </Typography>
+          </p>
           {(() => { const c = progress === 100 ? '#4A9B8E' : '#757575'; return (
           <Chip label={`${progress}%`} size="small" sx={{ fontSize: '0.5625rem', height: 18, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }} />
           ); })()}
-        </Box>
+        </div>
         <LinearProgress variant="determinate" value={progress} sx={{ height: 6, borderRadius: 3 }} />
-        <Box sx={{ display: 'flex', gap: 0.5, mt: 0.75 }}>
+        <div className="flex gap-0.5 mt-1">
           {['inspection', 'rooms', 'after_photos'].map((step) => {
             const done = completedSteps.has(step);
             const labels: Record<string, string> = { inspection: 'Inspection', rooms: 'Pièces', after_photos: 'Photos' };
@@ -330,8 +316,8 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
               />
             );
           })}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {error && <Alert severity="error" sx={{ fontSize: '0.6875rem', mb: 1 }}>{error}</Alert>}
 
@@ -370,15 +356,15 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
       {/* Photos preview */}
       <Accordion disableGutters elevation={0} sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', borderRadius: '8px !important', mb: 1 }}>
         <AccordionSummary expandIcon={<ExpandMore size={16} strokeWidth={1.75} />} sx={{ minHeight: 36, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>Photos ({beforePhotos.length + afterPhotos.length})</Typography>
+          <p className="cn-text-body1 text-[0.75rem] font-semibold">Photos ({beforePhotos.length + afterPhotos.length})</p>
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0 }}>
           {beforePhotos.length > 0 && <PanelPhotoGallery photos={beforePhotos} label="Avant" maxVisible={2} />}
           {afterPhotos.length > 0 && <PanelPhotoGallery photos={afterPhotos} label="Après" maxVisible={2} />}
           {beforePhotos.length === 0 && afterPhotos.length === 0 && (
-            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontStyle: 'italic' }}>
+            <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground italic">
               Aucune photo
-            </Typography>
+            </p>
           )}
         </AccordionDetails>
       </Accordion>
@@ -387,14 +373,14 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
       {intervention.notes && (
         <Accordion disableGutters elevation={0} sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', borderRadius: '8px !important' }}>
           <AccordionSummary expandIcon={<ExpandMore size={16} strokeWidth={1.75} />} sx={{ minHeight: 36, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>Notes</Typography>
+            <p className="cn-text-body1 text-[0.75rem] font-semibold">Notes</p>
           </AccordionSummary>
           <AccordionDetails sx={{ pt: 0 }}>
-            <Typography sx={{ fontSize: '0.6875rem', whiteSpace: 'pre-wrap' }}>{intervention.notes}</Typography>
+            <p className="cn-text-body1 text-[0.6875rem] whitespace-pre-wrap">{intervention.notes}</p>
           </AccordionDetails>
         </Accordion>
       )}
-    </Box>
+    </div>
   );
 };
 

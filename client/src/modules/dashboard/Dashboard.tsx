@@ -1,12 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Box,
-  Paper,
-  Chip,
-  Tooltip,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+import { Paper, Chip, Tooltip, useMediaQuery, useTheme } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
   Calculate as CalculateIcon,
@@ -172,16 +165,9 @@ const Dashboard: React.FC = () => {
 
   return (
     <PageHeaderActionsProvider slot={headerActionsSlot}>
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
-          minHeight: 0,
-        }}
-      >
+      <div className="flex flex-col h-full min-h-0">
         {/* ─── Header ────────────────────────────────────────────────────── */}
-        <Box sx={{ flexShrink: 0 }}>
+        <div className="shrink-0">
           <PageHeader
             title={title}
             subtitle={subtitle}
@@ -204,7 +190,7 @@ const Dashboard: React.FC = () => {
             backPath="/"
             showBackButton={false}
             actions={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <div className="flex items-center gap-1">
                 {headerActionsPortal}
                 {dateFilterElement}
                 {/* Action primaire de la projection : créer une réservation. */}
@@ -215,10 +201,10 @@ const Dashboard: React.FC = () => {
                   <PlusIcon className="size-4" />
                   {t('dashboard.newReservation', 'Réservation')}
                 </Button>
-              </Box>
+              </div>
             }
           />
-        </Box>
+        </div>
 
         {/* ─── Tabs (dynamic per role) ──────────────────────────────────── */}
         {visibleTabs.length > 1 && (
@@ -238,23 +224,19 @@ const Dashboard: React.FC = () => {
 
         {/* ─── Tab content ────────────────────────────────────────────────── */}
         {activeTabKey === 'overview' && (
-          <Box
-            role="tabpanel"
-            id="dashboard-tabpanel-0"
-            sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
-          >
+          <div className="flex-1 min-h-0 flex flex-col overflow-auto pt-1.5" role="tabpanel" id="dashboard-tabpanel-0">
             {isHost && user?.forfait?.toLowerCase() === 'essentiel' && (
               <UpgradeBanner currentForfait={user.forfait} />
             )}
             <DashboardOverview period={period} />
-          </Box>
+          </div>
         )}
 
 
         {/* Channel Manager : modale guidee de distribution OTA (Channex).
             Mode guided = formulation end-user + degradation gracieuse. */}
         <ChannexMappingDialog open={cmOpen} guided onClose={() => setCmOpen(false)} />
-      </Box>
+      </div>
     </PageHeaderActionsProvider>
   );
 };

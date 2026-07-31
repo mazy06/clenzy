@@ -464,7 +464,7 @@ const AssistantWidget: React.FC = () => {
       >
         {({ TransitionProps }) => (
           <Grow {...TransitionProps} timeout={220} style={{ transformOrigin: growOrigin }}>
-            <Box sx={{ position: 'relative' }}>
+            <div className="relative">
               {/* Fleche retiree : la bulle est collee tout pres de l'orbe et
                   l'animation de retrecissement du logo suffit a les relier. */}
               <ClickAwayListener
@@ -505,15 +505,7 @@ const AssistantWidget: React.FC = () => {
             flexShrink: 0,
           }}
         >
-          <Box
-            sx={{
-              width: 28,
-              height: 28,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+          <div className="w-[28px] h-[28px] flex items-center justify-center">
             {/* Header du drawer : pas de bg circulaire (le mark se suffit
                 a lui-meme). active={isWorking} declenche l'animation
                 hover-equivalent quand l'IA travaille. */}
@@ -523,15 +515,15 @@ const AssistantWidget: React.FC = () => {
               idleAnimation={false}
               active={isWorking}
             />
-          </Box>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle2" sx={{ lineHeight: 1.2, fontWeight: 600 }}>
+          </div>
+          <div className="flex-1">
+            <h6 className="cn-text-subtitle2 leading-[1.2] font-semibold">
               Assistant
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
+            </h6>
+            <span className="cn-text-caption text-muted-foreground leading-[1]">
               {messages.length === 0 ? 'Que veux-tu savoir ?' : `${messages.length} message${messages.length > 1 ? 's' : ''}`}
-            </Typography>
-          </Box>
+            </span>
+          </div>
           <Tooltip title="Agrandir">
             <IconButton
               size="small"
@@ -558,17 +550,7 @@ const AssistantWidget: React.FC = () => {
         <MessageList
           messages={messages}
           emptyState={
-            <Box sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 1.5,
-              py: 4,
-              px: 3,
-              height: '100%',
-              textAlign: 'center',
-            }}>
+            <div className="flex flex-col items-center justify-center gap-2 py-6 px-4 h-full text-center">
               <Box sx={{
                 width: 48,
                 height: 48,
@@ -583,14 +565,14 @@ const AssistantWidget: React.FC = () => {
                     en cours), mais animation idle gardee pour le wow d'arrivee. */}
                 <BaitlyMarkLogo variant="mark" size={26} />
               </Box>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              <p className="cn-text-body2 font-semibold">
                 Pose ta question
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 280 }}>
+              </p>
+              <span className="cn-text-caption text-muted-foreground max-w-[280px]">
                 J&apos;utilise tes donnees Baitly en temps reel. Pour un historique
                 complet, ouvre la page Assistant.
-              </Typography>
-            </Box>
+              </span>
+            </div>
           }
         />
 
@@ -659,7 +641,7 @@ const AssistantWidget: React.FC = () => {
         )}
                 </Paper>
               </ClickAwayListener>
-            </Box>
+            </div>
           </Grow>
         )}
       </Popper>

@@ -1,23 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  IconButton,
-  TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Tooltip,
-  Chip,
-  ToggleButton,
-  ToggleButtonGroup,
-  Stack,
-} from '@mui/material';
+import { Box, Button, IconButton, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tooltip, Chip, ToggleButton, ToggleButtonGroup, Stack } from '@mui/material';
 import {
   Add,
   Edit,
@@ -119,23 +101,10 @@ interface Props {
 // ─── Field label helper ──────────────────────────────────────────────────────
 
 const FieldLabel = ({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) => (
-  <Typography
-    variant="caption"
-    sx={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 0.5,
-      fontWeight: 700,
-      color: 'var(--faint)',
-      mb: 0.5,
-      textTransform: 'uppercase',
-      letterSpacing: '.06em',
-      fontSize: '10.5px',
-    }}
-  >
+  <span className="cn-text-caption flex items-center gap-0.5 font-bold text-[var(--faint)] mb-0.5 uppercase tracking-[.06em] text-[10.5px]">
     {icon}
     {children}
-  </Typography>
+  </span>
 );
 
 // ─── Inline form (used both for "add" at top and "edit" inline on a row) ─────
@@ -174,7 +143,7 @@ function PhotoUpload({ photoUrl, onChange }: { photoUrl: string | null; onChange
   };
 
   return (
-    <Box>
+    <div>
       <FieldLabel icon={<PhotoCamera size={12} strokeWidth={1.75} />}>
         Photo
       </FieldLabel>
@@ -252,17 +221,17 @@ function PhotoUpload({ photoUrl, onChange }: { photoUrl: string | null; onChange
           }}
         >
           <PhotoCamera size={20} strokeWidth={1.75} />
-          <Typography sx={{ fontSize: '0.5625rem', fontWeight: 600, lineHeight: 1 }}>
+          <p className="cn-text-body1 text-[0.5625rem] font-semibold leading-[1]">
             Ajouter
-          </Typography>
+          </p>
         </Box>
       )}
       {error && (
-        <Typography sx={{ fontSize: '0.625rem', color: 'error.main', mt: 0.5 }}>
+        <p className="cn-text-body1 text-[0.625rem] text-destructive mt-0.5">
           {error}
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   );
 }
 
@@ -290,7 +259,7 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
         />
 
         {/* Designation */}
-        <Box>
+        <div>
           <FieldLabel icon={<Label size={12} strokeWidth={1.75} />}>Designation</FieldLabel>
           <TextField
             value={value.name}
@@ -306,10 +275,10 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
               }
             }}
           />
-        </Box>
+        </div>
 
         {/* Categorie */}
-        <Box sx={{ minWidth: 0 }}>
+        <div className="min-w-0">
           <FieldLabel icon={<Category size={12} strokeWidth={1.75} />}>Categorie</FieldLabel>
           <ToggleButtonGroup
             value={value.category}
@@ -360,10 +329,10 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
               );
             })}
           </ToggleButtonGroup>
-        </Box>
+        </div>
 
         {/* Quantite */}
-        <Box>
+        <div>
           <FieldLabel icon={<Numbers size={12} strokeWidth={1.75} />}>Quantite</FieldLabel>
           <Stack direction="row" alignItems="center" spacing={0.5}>
             <IconButton
@@ -395,10 +364,10 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
               <Add size={14} strokeWidth={1.75} />
             </IconButton>
           </Stack>
-        </Box>
+        </div>
 
         {/* Notes */}
-        <Box>
+        <div>
           <FieldLabel icon={<StickyNote2 size={12} strokeWidth={1.75} />}>
             Notes <Box component="span" sx={{ fontWeight: 400, ml: 0.5, textTransform: 'none', letterSpacing: 0 }}>(optionnel)</Box>
           </FieldLabel>
@@ -409,10 +378,10 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
             fullWidth
             placeholder="Marque, modele, emplacement..."
           />
-        </Box>
+        </div>
       </Box>
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1.5 }}>
+      <div className="flex justify-end gap-1.5 mt-2">
         {onCancel && (
           <Button
             onClick={onCancel}
@@ -433,7 +402,7 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
         >
           {submitLabel}
         </Button>
-      </Box>
+      </div>
     </Paper>
   );
 }
@@ -527,21 +496,21 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
   }, [items]);
 
   return (
-    <Box>
+    <div>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
+      <div className="flex items-center gap-1.5 mb-3">
+        <span className="inline-flex text-[var(--accent)]">
           <Inventory2 size={22} strokeWidth={1.75} />
-        </Box>
-        <Box>
-          <Typography variant="subtitle1" fontWeight={600}>
+        </span>
+        <div>
+          <h6 className="cn-text-subtitle1 font-semibold">
             Inventaire du logement
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+          </h6>
+          <p className="cn-text-body2 text-muted-foreground text-[0.8rem]">
             Mobilier, electromenager et equipements presents dans la propriete
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
 
       {/* Inline add form */}
       {canEdit && (
@@ -560,15 +529,15 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
           variant="outlined"
           sx={{ p: 4, textAlign: 'center', border: '1px dashed var(--line-2)', borderRadius: '14px', bgcolor: 'var(--card)', boxShadow: 'none' }}
         >
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}>
+          <span className="inline-flex text-muted-foreground opacity-60 mb-1.5">
             <Inventory2 size={36} strokeWidth={1.5} />
-          </Box>
-          <Typography color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+          </span>
+          <p className="cn-text-body1 text-muted-foreground text-[0.875rem]">
             Aucun objet reference pour cette propriete
-          </Typography>
-          <Typography color="text.disabled" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
+          </p>
+          <p className="cn-text-body1 text-muted-foreground opacity-60 text-[0.75rem] mt-0.5">
             Remplis le formulaire ci-dessus pour ajouter ton premier objet
-          </Typography>
+          </p>
         </Paper>
       ) : (
         <TableContainer component={Paper} variant="outlined">
@@ -672,6 +641,6 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
           </Table>
         </TableContainer>
       )}
-    </Box>
+    </div>
   );
 }

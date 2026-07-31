@@ -143,9 +143,9 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
   const defaultEndLabel = isFrench ? 'Fin' : 'End';
 
   return (
-    <Box>
+    <div>
       {/* Selecting indicator */}
-      <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+      <div className="flex gap-1.5 mb-1.5">
         <Box
           onClick={() => setSelectingField('start')}
           sx={{
@@ -160,12 +160,12 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
             transition: 'all 0.15s',
           }}
         >
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.5625rem', display: 'block' }}>
+          <span className="cn-text-caption text-muted-foreground text-[0.5625rem] block">
             {startLabel ?? defaultStartLabel}
-          </Typography>
-          <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.75rem' }}>
+          </span>
+          <p className="cn-text-body2 font-semibold text-[0.75rem]">
             {startDate || '—'}
-          </Typography>
+          </p>
         </Box>
         <Box
           onClick={() => setSelectingField('end')}
@@ -181,17 +181,17 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
             transition: 'all 0.15s',
           }}
         >
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.5625rem', display: 'block' }}>
+          <span className="cn-text-caption text-muted-foreground text-[0.5625rem] block">
             {endLabel ?? defaultEndLabel}
-          </Typography>
-          <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.75rem' }}>
+          </span>
+          <p className="cn-text-body2 font-semibold text-[0.75rem]">
             {endDate || '—'}
-          </Typography>
+          </p>
         </Box>
-      </Box>
+      </div>
 
       {/* Month nav */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5 }}>
+      <div className="flex items-center justify-center gap-0.5 mb-0.5">
         <IconButton
           size="small"
           onClick={() => setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
@@ -199,13 +199,9 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
         >
           <ChevronLeftIcon size={16} strokeWidth={1.75} />
         </IconButton>
-        <Typography
-          variant="caption"
-          fontWeight={600}
-          sx={{ minWidth: 90, textAlign: 'center', textTransform: 'capitalize', fontSize: '0.6875rem' }}
-        >
+        <span className="cn-text-caption font-semibold min-w-[90px] text-center capitalize text-[0.6875rem]">
           {formatMiniMonth(viewMonth, isFrench)}
-        </Typography>
+        </span>
         <IconButton
           size="small"
           onClick={() => setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
@@ -213,16 +209,16 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
         >
           <ChevronRightIcon size={16} strokeWidth={1.75} />
         </IconButton>
-      </Box>
+      </div>
 
       {/* Day headers */}
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px' }}>
         {dayHeaders.map((label, i) => (
-          <Box key={`${label}-${i}`} sx={{ textAlign: 'center', py: 0.25 }}>
-            <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ fontSize: '0.5625rem' }}>
+          <div className="text-center py-0.5" key={`${label}-${i}`}>
+            <span className="cn-text-caption font-semibold text-muted-foreground text-[0.5625rem]">
               {label}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         ))}
       </Box>
 
@@ -273,7 +269,7 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
 
       {/* Clear button */}
       {(startDate || endDate) && (
-        <Box sx={{ textAlign: 'right', mt: 0.5 }}>
+        <div className="text-end mt-0.5">
           <Button
             size="small"
             onClick={() => {
@@ -285,9 +281,9 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
           >
             {isFrench ? 'Effacer' : 'Clear'}
           </Button>
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

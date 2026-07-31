@@ -365,31 +365,31 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
   const addressLine = [p.address, p.city].filter(Boolean).join(', ') + (p.postalCode ? ` ${p.postalCode}` : '');
 
   return (
-    <Box sx={{ pt: 1, flex: 1, minHeight: 0, overflow: 'auto' }}>
+    <div className="pt-1.5 flex-1 min-h-0 overflow-auto">
 
       {/* ── Status progress bar ──────────────────────────────────────── */}
       <Paper sx={{ ...CARD_SX, p: 1.5, mb: 1.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
+        <div className="flex items-center justify-between mb-1">
           <Typography sx={{ ...SECTION_TITLE_SX, mb: 0 }}>
             {t('serviceRequests.details.progression')}
           </Typography>
           <Typography sx={{ fontSize: '12px', fontWeight: 700, color: `${statusProgressColor}.main` }}>
             {vm.statusLabel}
           </Typography>
-        </Box>
+        </div>
         <LinearProgress
           variant="determinate"
           value={statusProgress}
           color={statusProgressColor}
           sx={{ height: 6, borderRadius: 3, bgcolor: 'var(--field)' }}
         />
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+        <div className="flex justify-between mt-0.5">
           {progressSteps.map((label, i) => (
             <Typography key={label} sx={{ fontSize: '10px', color: statusProgress >= PROGRESS_VALUES[i] ? `${statusProgressColor}.main` : 'var(--faint)', fontWeight: statusProgress >= PROGRESS_VALUES[i] ? 600 : 400 }}>
               {label}
             </Typography>
           ))}
-        </Box>
+        </div>
       </Paper>
 
       {/* ── Key metrics grid ─────────────────────────────────────────── */}
@@ -406,7 +406,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
         {vm.estimatedDurationHours != null && (
           <Grid item xs={6} sm={4} md={2}>
             <Box sx={METRIC_CARD_SX}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mb: 0.25 }}><AccessTime size={18} strokeWidth={1.75} /></Box>
+              <span className="inline-flex text-[var(--accent)] mb-0.5"><AccessTime size={18} strokeWidth={1.75} /></span>
               <Typography sx={METRIC_VALUE_SX}>
                 {formatDuration(vm.estimatedDurationHours)}
               </Typography>
@@ -416,7 +416,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
         )}
         <Grid item xs={6} sm={4} md={2}>
           <Box sx={METRIC_CARD_SX}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mb: 0.25 }}><CalendarToday size={18} strokeWidth={1.75} /></Box>
+            <span className="inline-flex text-[var(--accent)] mb-0.5"><CalendarToday size={18} strokeWidth={1.75} /></span>
             <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px' }}>
               {formatDateTime(vm.dueDate) || '—'}
             </Typography>
@@ -426,7 +426,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
         {vm.estimatedCost != null && (
           <Grid item xs={6} sm={4} md={2}>
             <Box sx={METRIC_CARD_SX}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mb: 0.25 }}><Euro size={18} strokeWidth={1.75} /></Box>
+              <span className="inline-flex text-[var(--accent)] mb-0.5"><Euro size={18} strokeWidth={1.75} /></span>
               <Typography sx={METRIC_VALUE_SX}>
                 <Money value={vm.estimatedCost} from="EUR" />
               </Typography>
@@ -468,7 +468,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
         {vm.actualCost != null && vm.actualCost > 0 && (
           <Grid item xs={6} sm={4} md={2}>
             <Box sx={METRIC_CARD_SX}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)', mb: 0.25 }}><AttachMoney size={18} strokeWidth={1.75} /></Box>
+              <span className="inline-flex text-[var(--ok)] mb-0.5"><AttachMoney size={18} strokeWidth={1.75} /></span>
               <Typography sx={{ ...METRIC_VALUE_SX, color: 'var(--ok)' }}>
                 <Money value={vm.actualCost} from="EUR" />
               </Typography>
@@ -479,7 +479,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
         {vm.createdAt && (
           <Grid item xs={6} sm={4} md={2}>
             <Box sx={METRIC_CARD_SX}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mb: 0.25 }}><Schedule size={18} strokeWidth={1.75} /></Box>
+              <span className="inline-flex text-[var(--accent)] mb-0.5"><Schedule size={18} strokeWidth={1.75} /></span>
               <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px' }}>
                 {formatDateTime(vm.createdAt)}
               </Typography>
@@ -512,7 +512,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                 <Description size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
                 {t('serviceRequests.fields.detailedDescription')}
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+              <div className="flex items-start gap-1.5">
                 {vm.importSource && ICAL_SOURCE_LOGOS[vm.importSource.toLowerCase()] && (
                   <Box
                     sx={{
@@ -539,40 +539,40 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                     />
                   </Box>
                 )}
-                <Typography sx={{ fontSize: '13px', color: 'var(--body)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                <p className="cn-text-body1 text-[13px] text-[var(--body)] leading-[1.6] whitespace-pre-line">
                   {vm.description}
-                </Typography>
-              </Box>
+                </p>
+              </div>
             </Paper>
           )}
 
           {/* Propriété */}
           <Paper sx={CARD_SX}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <div className="flex items-center justify-between mb-1.5">
               <Typography sx={{ ...SECTION_TITLE_SX, mb: 0 }}>
                 <Home size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
                 {t('serviceRequests.sections.property')}
               </Typography>
               {propertyAction}
-            </Box>
+            </div>
 
             <Box sx={INFO_ROW_SX}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><LocationOn size={16} strokeWidth={1.75} /></Box>
-              <Box sx={{ flex: 1 }}>
+              <span className="inline-flex text-[var(--muted)]"><LocationOn size={16} strokeWidth={1.75} /></span>
+              <div className="flex-1">
                 <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.propertyNameLabel')}</Typography>
                 <Typography sx={INFO_VALUE_SX}>{p.name}</Typography>
-              </Box>
+              </div>
             </Box>
 
             {(p.address || p.city) && (
               <>
                 <Divider sx={{ my: 0.5 }} />
                 <Box sx={INFO_ROW_SX}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><LocationOn size={16} strokeWidth={1.75} /></Box>
-                  <Box sx={{ flex: 1 }}>
+                  <span className="inline-flex text-[var(--muted)]"><LocationOn size={16} strokeWidth={1.75} /></span>
+                  <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.fullAddressLabel')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{addressLine}</Typography>
-                  </Box>
+                  </div>
                 </Box>
               </>
             )}
@@ -581,11 +581,11 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               <>
                 <Divider sx={{ my: 0.5 }} />
                 <Box sx={INFO_ROW_SX}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Flag size={16} strokeWidth={1.75} /></Box>
-                  <Box sx={{ flex: 1 }}>
+                  <span className="inline-flex text-[var(--muted)]"><Flag size={16} strokeWidth={1.75} /></span>
+                  <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('properties.country')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{p.country}</Typography>
-                  </Box>
+                  </div>
                 </Box>
               </>
             )}
@@ -593,7 +593,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
             {propertyTags.length > 0 && (
               <>
                 <Divider sx={{ my: 0.75 }} />
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                <div className="flex flex-wrap gap-0.5 mt-0.5">
                   {propertyTags.map((tag) => (
                     <Chip
                       key={tag.label}
@@ -604,7 +604,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                       sx={PROPERTY_TAG_SX}
                     />
                   ))}
-                </Box>
+                </div>
               </>
             )}
           </Paper>
@@ -624,26 +624,26 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               />
 
               {vm.specialInstructions && (
-                <Box sx={{ mt: 1.5 }}>
-                  <Typography sx={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', mb: 0.5 }}>
+                <div className="mt-2">
+                  <p className="cn-text-body1 text-[11px] font-semibold text-[var(--muted)] mb-0.5">
                     {t('serviceRequests.details.specialInstructions')}
-                  </Typography>
-                  <Typography sx={{ fontSize: '13px', color: 'var(--body)', lineHeight: 1.5, whiteSpace: 'pre-line', bgcolor: 'var(--field)', p: 1.25, borderRadius: '9px', border: '1px solid var(--field-line)' }}>
+                  </p>
+                  <p className="cn-text-body1 text-[13px] text-[var(--body)] leading-[1.5] whitespace-pre-line bg-[var(--field)] p-2 rounded-[9px] border border-[var(--field-line)]">
                     {vm.specialInstructions}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
               )}
 
               {vm.accessNotes && (
-                <Box sx={{ mt: 1.5 }}>
-                  <Typography sx={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', mb: 0.5 }}>
+                <div className="mt-2">
+                  <p className="cn-text-body1 text-[11px] font-semibold text-[var(--muted)] mb-0.5">
                     <VpnKey size={12} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
                     {t('serviceRequests.details.accessNotes')}
-                  </Typography>
+                  </p>
                   <Typography sx={{ fontSize: '13px', color: 'var(--body)', lineHeight: 1.5, whiteSpace: 'pre-line', bgcolor: 'var(--warn-soft)', p: 1.25, borderRadius: '9px', border: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)' }}>
                     {vm.accessNotes}
                   </Typography>
-                </Box>
+                </div>
               )}
             </Paper>
           )}
@@ -661,10 +661,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
               {vm.requestor && (
                 <Box sx={INFO_ROW_SX}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Person size={16} strokeWidth={1.75} /></Box>
-                  <Box sx={{ flex: 1 }}>
+                  <span className="inline-flex text-[var(--muted)]"><Person size={16} strokeWidth={1.75} /></span>
+                  <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.fields.requestor')}</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    <div className="flex items-center gap-1">
                       <Typography sx={INFO_VALUE_SX}>{vm.requestor.name}</Typography>
                       {vm.requestor.roleLabel && (
                         <Chip
@@ -674,13 +674,13 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                           sx={{ height: 18, fontSize: '0.5625rem', '& .MuiChip-label': { px: 0.5 } }}
                         />
                       )}
-                    </Box>
+                    </div>
                     {vm.requestor.email && (
-                      <Typography sx={{ fontSize: '11px', color: 'var(--muted)' }}>
+                      <p className="cn-text-body1 text-[11px] text-[var(--muted)]">
                         {vm.requestor.email}
-                      </Typography>
+                      </p>
                     )}
-                  </Box>
+                  </div>
                 </Box>
               )}
 
@@ -689,14 +689,14 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               {vm.assignee && (
                 <Box sx={INFO_ROW_SX}>
                   {vm.assignee.type === 'team' ? (
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Group size={16} strokeWidth={1.75} /></Box>
+                    <span className="inline-flex text-[var(--muted)]"><Group size={16} strokeWidth={1.75} /></span>
                   ) : (
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Assignment size={16} strokeWidth={1.75} /></Box>
+                    <span className="inline-flex text-[var(--muted)]"><Assignment size={16} strokeWidth={1.75} /></span>
                   )}
-                  <Box sx={{ flex: 1 }}>
+                  <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.assignedTo')}</Typography>
                     {vm.assignee.name ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      <div className="flex items-center gap-1">
                         <Typography sx={INFO_VALUE_SX}>{vm.assignee.name}</Typography>
                         {vm.assignee.typeLabel && (
                           <Chip
@@ -707,18 +707,18 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                             sx={{ height: 20, fontSize: '0.6rem', '& .MuiChip-label': { px: 0.5 } }}
                           />
                         )}
-                      </Box>
+                      </div>
                     ) : (
                       <Typography sx={{ ...INFO_VALUE_SX, color: 'var(--faint)', fontStyle: 'italic' }}>
                         {t('serviceRequests.fields.noAssignment')}
                       </Typography>
                     )}
                     {vm.assignee.email && vm.assignee.type === 'user' && (
-                      <Typography sx={{ fontSize: '11px', color: 'var(--muted)' }}>
+                      <p className="cn-text-body1 text-[11px] text-[var(--muted)]">
                         {vm.assignee.email}
-                      </Typography>
+                      </p>
                     )}
-                  </Box>
+                  </div>
                 </Box>
               )}
             </Paper>
@@ -732,22 +732,22 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
             </Typography>
 
             <Box sx={INFO_ROW_SX}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><CalendarToday size={16} strokeWidth={1.75} /></Box>
-              <Box sx={{ flex: 1 }}>
+              <span className="inline-flex text-[var(--muted)]"><CalendarToday size={16} strokeWidth={1.75} /></span>
+              <div className="flex-1">
                 <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.dueDateLabel')}</Typography>
                 <Typography sx={INFO_VALUE_SX}>{formatDateTime(vm.dueDate) || '—'}</Typography>
-              </Box>
+              </div>
             </Box>
 
             {vm.estimatedDurationHours != null && (
               <>
                 <Divider sx={{ my: 0.5 }} />
                 <Box sx={INFO_ROW_SX}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Schedule size={16} strokeWidth={1.75} /></Box>
-                  <Box sx={{ flex: 1 }}>
+                  <span className="inline-flex text-[var(--muted)]"><Schedule size={16} strokeWidth={1.75} /></span>
+                  <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.estimatedDurationLabel')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{formatDuration(vm.estimatedDurationHours)}</Typography>
-                  </Box>
+                  </div>
                 </Box>
               </>
             )}
@@ -756,15 +756,15 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               <>
                 <Divider sx={{ my: 0.5 }} />
                 <Box sx={INFO_ROW_SX}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Schedule size={16} strokeWidth={1.75} /></Box>
-                  <Box sx={{ flex: 1 }}>
+                  <span className="inline-flex text-[var(--muted)]"><Schedule size={16} strokeWidth={1.75} /></span>
+                  <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.layout.propertyCleaningDuration', 'Durée ménage (propriété)')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>
                       {vm.property.cleaningDurationMinutes >= 60
                         ? `${Math.floor(vm.property.cleaningDurationMinutes / 60)}h${vm.property.cleaningDurationMinutes % 60 > 0 ? String(vm.property.cleaningDurationMinutes % 60).padStart(2, '0') : ''}`
                         : `${vm.property.cleaningDurationMinutes} min`}
                     </Typography>
-                  </Box>
+                  </div>
                 </Box>
               </>
             )}
@@ -773,11 +773,11 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               <React.Fragment key={`time-row-${row.label}`}>
                 <Divider sx={{ my: 0.5 }} />
                 <Box sx={INFO_ROW_SX}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}>{row.icon}</Box>
-                  <Box sx={{ flex: 1 }}>
+                  <span className="inline-flex text-[var(--muted)]">{row.icon}</span>
+                  <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{row.label}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{row.value}</Typography>
-                  </Box>
+                  </div>
                 </Box>
               </React.Fragment>
             ))}
@@ -786,11 +786,11 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               <>
                 <Divider sx={{ my: 0.5 }} />
                 <Box sx={INFO_ROW_SX}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
-                  <Box sx={{ flex: 1 }}>
+                  <span className="inline-flex text-[var(--muted)]"><CalendarMonth size={16} strokeWidth={1.75} /></span>
+                  <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.createdDateLabel')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{formatDateTime(vm.createdAt)}</Typography>
-                  </Box>
+                  </div>
                 </Box>
               </>
             )}
@@ -800,7 +800,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
       {/* ── Extra rich section (ex: intervention stepper) ─────────────── */}
       {extraSection}
-    </Box>
+    </div>
   );
 };
 

@@ -68,16 +68,16 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+      <div className="flex justify-center p-6">
         <CircularProgress />
-      </Box>
+      </div>
     );
   }
 
   const displayError = actionError || (error ? 'Erreur lors du chargement des templates' : null);
 
   return (
-    <Box>
+    <div>
       {displayError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>{displayError}</Alert>}
 
       {templates.length === 0 ? (
@@ -116,10 +116,10 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
               onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/documents/templates/${t.id}`); }}
             >
               {/* Overline type + statut -soft */}
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
+              <div className="flex items-center justify-between gap-1.5">
+                <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
                   {t.documentType}
-                </Typography>
+                </p>
                 <Chip
                   label={t.active ? 'Actif' : 'Inactif'}
                   size="small"
@@ -127,31 +127,28 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
                     ? { color: 'var(--ok)', bgcolor: 'var(--ok-soft)' }
                     : { color: 'var(--muted)', bgcolor: 'var(--hover)' }}
                 />
-              </Box>
+              </div>
 
               {/* Nom + description */}
-              <Box sx={{ minWidth: 0 }}>
-                <Typography noWrap sx={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>
+              <div className="min-w-0">
+                <p className="cn-text-body1 truncate text-[13.5px] font-semibold text-[var(--ink)]">
                   {t.name}
-                </Typography>
+                </p>
                 {t.description && (
                   <Typography noWrap sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: '1px' }}>
                     {t.description}
                   </Typography>
                 )}
-              </Box>
+              </div>
 
               {/* Méta muted */}
-              <Typography noWrap sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>
+              <p className="cn-text-body1 truncate text-[11.5px] text-[var(--muted)]">
                 {[t.originalFilename, `v${t.version}`, `${t.tags?.length || 0} tags`, t.createdBy]
                   .filter(Boolean).join(' · ')}
-              </Typography>
+              </p>
 
               {/* Pied : action accent + actions secondaires */}
-              <Box
-                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.5 }}
-                onClick={(e) => e.stopPropagation()}
-              >
+              <div className="flex items-center justify-between mt-0.5" onClick={(e) => e.stopPropagation()}>
                 <Box
                   component="span"
                   onClick={() => navigate(`/documents/templates/${t.id}`)}
@@ -165,7 +162,7 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
                   Aperçu
                   <ArrowRightIcon size={14} strokeWidth={1.75} />
                 </Box>
-                <Box sx={{ display: 'flex', gap: 0.25 }}>
+                <div className="flex gap-0.5">
                   {!t.active && (
                     <Tooltip title="Activer" arrow>
                       <IconButton
@@ -196,8 +193,8 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
                       <Delete size={16} strokeWidth={1.75} />
                     </IconButton>
                   </Tooltip>
-                </Box>
-              </Box>
+                </div>
+              </div>
             </Box>
           ))}
         </Box>
@@ -218,7 +215,7 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
         icon={<Delete size={22} strokeWidth={1.75} />}
         confirmIcon={<Delete size={18} strokeWidth={1.75} />}
       />
-    </Box>
+    </div>
   );
 });
 

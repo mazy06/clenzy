@@ -119,10 +119,10 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
     body = (
       <Centered>
         <Wand2 size={30} strokeWidth={1.6} />
-        <Box sx={{ fontSize: 'var(--text-md)', maxWidth: 360, textAlign: 'center' }}>
+        <div className="text-[var(--text-md)] max-w-[360px] text-center">
           Lance d’abord <strong>Analyse du design</strong> (⌘K) avec l’URL du site du client :
           le site sera capturé ici et le widget posé dessus.
-        </Box>
+        </div>
       </Centered>
     );
   } else if (loading) {
@@ -131,7 +131,7 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
     body = (
       <Centered>
         <AlertTriangle size={28} strokeWidth={1.75} />
-        <Box sx={{ fontSize: 'var(--text-md)' }}>{error ?? 'Site indisponible.'}</Box>
+        <div className="text-[var(--text-md)]">{error ?? 'Site indisponible.'}</div>
       </Centered>
     );
   } else {
@@ -155,11 +155,11 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div className="flex flex-col h-full min-h-0">
       {/* Barre : sélecteur de placement du widget (bas / flottant / haut). */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1.25, flexShrink: 0, borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
-        <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', mr: 0.5 }}>Position du widget</Box>
-        <Box sx={{ display: 'inline-flex', gap: 0.5, p: 0.5, borderRadius: 'var(--radius-md)', bgcolor: 'var(--bg)', border: '1px solid var(--line)' }}>
+      <div className="flex items-center gap-1.5 px-3 py-2 shrink-0 border-b border-[var(--line)] bg-[var(--card)]">
+        <div className="text-[var(--text-sm)] text-[var(--muted)] me-0.5">Position du widget</div>
+        <div className="inline-flex gap-0.5 p-0.5 rounded-[var(--radius-md)] bg-[var(--bg)] border border-[var(--line)]">
           {PLACEMENTS.map((p) => (
             <ButtonBase
               key={p.value}
@@ -177,17 +177,17 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
               {p.label}
             </ButtonBase>
           ))}
-        </Box>
-      </Box>
+        </div>
+      </div>
       {body}
-    </Box>
+    </div>
   );
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, color: 'var(--muted)', p: 3 }}>
+    <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-2 text-[var(--muted)] p-4">
       {children}
-    </Box>
+    </div>
   );
 }

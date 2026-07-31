@@ -52,23 +52,23 @@ const GridSection: React.FC<GridSectionProps> = React.memo(({
   badge,
   children,
 }) => (
-  <Box sx={{ mb: 2 }}>
+  <div className="mb-3">
     {/* Header */}
-    <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
+    <div className="flex items-center mb-1">
       <Typography sx={SECTION_TITLE_SX}>{title}</Typography>
       {badge !== undefined && badge > 0 && (
         <Box sx={BADGE_SX}>{badge}</Box>
       )}
-    </Box>
+    </div>
     {subtitle && (
       <Typography sx={SUBTITLE_SX}>{subtitle}</Typography>
     )}
 
     {/* Grid content (children handle their own Grid layout) */}
-    <Box sx={{ mt: 0.75 }}>
+    <div className="mt-1">
       {children}
-    </Box>
-  </Box>
+    </div>
+  </div>
 ));
 
 GridSection.displayName = 'GridSection';

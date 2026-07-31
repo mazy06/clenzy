@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, Typography, Chip, Tooltip, IconButton } from '@mui/material';
+import { Paper, Chip, Tooltip, IconButton } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, LocationOn, Build as BuildIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -27,7 +27,7 @@ const ServiceRequestsMapView: React.FC<ServiceRequestsMapViewProps> = ({
   const { t } = useTranslation();
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+    <div className="flex flex-col flex-1 min-h-0">
       <Paper sx={{ ...LIST_PAPER_SX, p: 0, overflow: 'hidden', flexShrink: 0 }}>
         {mapMarkers.length > 0 ? (
           <MapboxPropertyMap
@@ -39,36 +39,29 @@ const ServiceRequestsMapView: React.FC<ServiceRequestsMapViewProps> = ({
             onBoundsChange={onBoundsChange}
           />
         ) : (
-          <Box sx={{ height: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><BuildIcon size={36} strokeWidth={1.5} /></Box>
-            <Typography sx={{ fontSize: '13px', color: 'var(--muted)' }}>
+          <div className="h-[400px] flex flex-col items-center justify-center gap-1.5">
+            <span className="inline-flex text-[var(--faint)]"><BuildIcon size={36} strokeWidth={1.5} /></span>
+            <p className="cn-text-body1 text-[13px] text-[var(--muted)]">
               Aucune demande avec coordonnées GPS
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
       </Paper>
 
       {mapMarkers.length > 0 && (
-        <Box sx={{ mt: 1.5, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-          <Typography
-            sx={{
-              mb: 1, flexShrink: 0,
-              fontSize: '10.5px', fontWeight: 700, letterSpacing: '.05em',
-              textTransform: 'uppercase', color: 'var(--faint)',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
+        <div className="mt-2 flex-1 min-h-0 flex flex-col">
+          <p className="cn-text-body1 mb-1.5 shrink-0 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)] tabular-nums">
             {viewportRequests.length} {viewportRequests.length > 1 ? 'demandes' : 'demande'} dans la zone visible
-          </Typography>
+          </p>
 
           {viewportRequests.length === 0 ? (
             <Paper sx={{ ...LIST_PAPER_SX, p: 2, textAlign: 'center' }}>
-              <Typography sx={{ fontSize: '13px', color: 'var(--muted)' }}>
+              <p className="cn-text-body1 text-[13px] text-[var(--muted)]">
                 Aucune demande dans cette zone. Déplacez ou dézoomez la carte.
-              </Typography>
+              </p>
             </Paper>
           ) : (
-            <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1, pr: 0.5 }}>
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 pe-0.5">
               {viewportRequests.map((request) => {
                 return (
                   <Paper
@@ -86,23 +79,19 @@ const ServiceRequestsMapView: React.FC<ServiceRequestsMapViewProps> = ({
                     }}
                     onClick={() => navigate(`/service-requests/${request.id}`)}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                          sx={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                        >
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] overflow-hidden text-ellipsis whitespace-nowrap">
                           {stripPropertySuffix(request.title, request.propertyName)}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', flexShrink: 0 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
-                          <Typography
-                            sx={{ fontSize: '11.5px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                          >
+                        </p>
+                        <div className="flex items-center gap-0.5 mt-0.5">
+                          <span className="inline-flex text-[var(--accent)] shrink-0"><LocationOn size={13} strokeWidth={1.75} /></span>
+                          <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] overflow-hidden text-ellipsis whitespace-nowrap">
                             {request.propertyName} — {request.propertyAddress}
-                          </Typography>
-                        </Box>
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-0.5 shrink-0">
                         <Chip
                           label={getServiceRequestStatusLabel(request.status, t)}
                           size="small"
@@ -114,25 +103,25 @@ const ServiceRequestsMapView: React.FC<ServiceRequestsMapViewProps> = ({
                           sx={srPriorityChipSx(request.priority)}
                         />
                         {request.assignedToName && (
-                          <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', ml: 0.5 }}>
+                          <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] ms-0.5">
                             {request.assignedToName}
-                          </Typography>
+                          </p>
                         )}
                         <Tooltip title="Voir">
                           <IconButton size="small" sx={{ ml: 0.5 }}>
                             <Visibility size={16} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
                   </Paper>
                 );
               })}
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

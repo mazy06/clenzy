@@ -1,13 +1,5 @@
 import React, { useMemo } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Box,
-  Typography,
-} from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box } from '@mui/material';
 import { Warning as AlertIcon } from '../../../icons';
 import type { PendingToolConfirmation } from '../../../hooks/useAgent';
 
@@ -45,49 +37,26 @@ export const ToolConfirmationDialog: React.FC<ToolConfirmationDialogProps> = ({
   return (
     <Dialog open onClose={onCancel} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-        <Box
-          sx={{
-            width: 32,
-            height: 32,
-            borderRadius: '9px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: 'var(--warn-soft)',
-            color: 'var(--warn)',
-            flexShrink: 0,
-          }}
-        >
+        <div className="w-[32px] h-[32px] rounded-[9px] flex items-center justify-center bg-[var(--warn-soft)] text-[var(--warn)] shrink-0">
           <AlertIcon size={16} strokeWidth={2} />
-        </Box>
-        <Box>
-          <Box component="span" sx={{ display: 'block', lineHeight: 1.2 }}>
+        </div>
+        <div>
+          <span className="block leading-[1.2]">
             Confirmer l&apos;action
-          </Box>
-          <Typography
-            component="span"
-            sx={{ color: 'var(--muted)', fontFamily: 'monospace', fontSize: '11px', fontWeight: 500 }}
-          >
+          </span>
+          <span className="text-[var(--muted)] font-mono text-[11px] font-medium">
             {pending.toolName}
-          </Typography>
-        </Box>
+          </span>
+        </div>
       </DialogTitle>
 
       <DialogContent>
-        <Typography sx={{ mb: 2, fontSize: 13, lineHeight: 1.55, color: 'var(--muted)' }}>
+        <p className="cn-text-body1 mb-3 text-[13px] leading-[1.55] text-[var(--muted)]">
           {pending.toolDescription}
-        </Typography>
+        </p>
 
         {parsedArgs && Object.keys(parsedArgs).length > 0 && (
-          <Box
-            sx={{
-              // Table cle/valeur : carte hairline, rangees au filet --line.
-              borderRadius: '10px',
-              overflow: 'hidden',
-              border: '1px solid var(--line)',
-              bgcolor: 'var(--field)',
-            }}
-          >
+          <div className="rounded-[10px] overflow-hidden border border-[var(--line)] bg-[var(--field)]">
             {Object.entries(parsedArgs).map(([key, value], index) => (
               <Box
                 key={key}
@@ -99,39 +68,21 @@ export const ToolConfirmationDialog: React.FC<ToolConfirmationDialogProps> = ({
                   borderTop: index > 0 ? '1px solid var(--line)' : 'none',
                 }}
               >
-                <Typography
-                  component="span"
-                  sx={{
-                    minWidth: 100,
-                    fontFamily: 'monospace',
-                    color: 'var(--muted)',
-                    fontSize: '11.5px',
-                    lineHeight: 1.6,
-                  }}
-                >
+                <span className="min-w-[100px] font-mono text-[var(--muted)] text-[11.5px] leading-[1.6]">
                   {key}
-                </Typography>
-                <Typography
-                  component="span"
-                  sx={{
-                    fontSize: '12.5px',
-                    fontWeight: 500,
-                    color: 'var(--body)',
-                    wordBreak: 'break-word',
-                    flex: 1,
-                  }}
-                >
+                </span>
+                <span className="text-[12.5px] font-medium text-[var(--body)] break-words flex-1">
                   {formatArgValue(value)}
-                </Typography>
+                </span>
               </Box>
             ))}
-          </Box>
+          </div>
         )}
 
         {!parsedArgs && (
-          <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>
+          <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">
             Pas d&apos;argument structure (le LLM execute sans parametre).
-          </Typography>
+          </p>
         )}
       </DialogContent>
 

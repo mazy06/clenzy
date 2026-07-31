@@ -1,21 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  Grid,
-  InputAdornment,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  MenuItem,
-  Alert,
-  Skeleton,
-  Switch,
-  FormControlLabel,
-  IconButton,
-  Button,
-} from '@mui/material';
+import { Box, TextField, Grid, InputAdornment, Accordion, AccordionSummary, AccordionDetails, MenuItem, Alert, Skeleton, Switch, FormControlLabel, IconButton, Button } from '@mui/material';
 import { ExpandMore, Timer, Euro, CleaningServices, Speed, CalendarMonth, AutoAwesome, Add, Close } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
@@ -280,7 +264,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
   );
 
   return (
-    <Box>
+    <div>
       <Alert severity="info" icon={false} sx={{ mb: 2, fontSize: '12.5px' }}>
         {t('tarification.cleaning.intro')}
       </Alert>
@@ -288,15 +272,15 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
       {/* ─── Temps de travail (minutes normées par composant) ─────────────── */}
       <Accordion expanded={expandedSection === 'workTime'} onChange={handleAccordionChange('workTime')}>
         <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={18} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>{t('tarification.cleaning.workTime')}</Typography>
-          </Box>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.workTime')}</p>
+          </div>
         </AccordionSummary>
         <AccordionDetails>
-          <Typography sx={{ fontSize: '12px', color: 'var(--muted)', mb: 1.5 }}>
+          <p className="cn-text-body1 text-[12px] text-[var(--muted)] mb-2">
             {t('tarification.cleaning.baseByBedrooms')}
-          </Typography>
+          </p>
           <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
             {BEDROOM_KEYS.map((key) => (
               <Grid item xs={6} sm={4} md={2} key={key}>
@@ -342,10 +326,10 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
       {/* ─── Taux & arrondis ───────────────────────────────────────────────── */}
       <Accordion expanded={expandedSection === 'rates'} onChange={handleAccordionChange('rates')}>
         <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Euro size={18} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>{t('tarification.cleaning.ratesAndRounding')}</Typography>
-          </Box>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--accent)]"><Euro size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.ratesAndRounding')}</p>
+          </div>
         </AccordionSummary>
         <AccordionDetails>
           <Grid container spacing={1.5}>
@@ -368,10 +352,10 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
       {/* ─── Types de ménage (multiplicateurs) ─────────────────────────────── */}
       <Accordion expanded={expandedSection === 'types'} onChange={handleAccordionChange('types')}>
         <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CleaningServices size={18} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>{t('tarification.cleaning.cleaningTypes')}</Typography>
-          </Box>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--accent)]"><CleaningServices size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.cleaningTypes')}</p>
+          </div>
         </AccordionSummary>
         <AccordionDetails>
           <Grid container spacing={1.5}>
@@ -394,21 +378,21 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
       {/* ─── Majorations saisonnières (conseil moteur uniquement) ──────────── */}
       <Accordion expanded={expandedSection === 'seasonal'} onChange={handleAccordionChange('seasonal')}>
         <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CalendarMonth size={18} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>{t('tarification.cleaning.seasonal.title')}</Typography>
-          </Box>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--accent)]"><CalendarMonth size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.seasonal.title')}</p>
+          </div>
         </AccordionSummary>
         <AccordionDetails>
-          <Typography sx={{ fontSize: '12px', color: 'var(--muted)', mb: 1.5 }}>
+          <p className="cn-text-body1 text-[12px] text-[var(--muted)] mb-2">
             {t('tarification.cleaning.seasonal.hint')}
-          </Typography>
+          </p>
           {seasonalModifiers.map((mod, index) => {
             const fromInvalid = mod.from != null && mod.from !== '' && !MONTH_DAY_RE.test(mod.from);
             const toInvalid = mod.to != null && mod.to !== '' && !MONTH_DAY_RE.test(mod.to);
             const percentInvalid = mod.percent != null && !isValidPercent(mod.percent);
             return (
-              <Box key={index} sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start', mb: 1.25, flexWrap: 'wrap' }}>
+              <div className="flex gap-2 items-start mb-2 flex-wrap" key={index}>
                 <TextField
                   label={t('tarification.cleaning.seasonal.from')}
                   size="small"
@@ -467,13 +451,13 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
                     <Close size={16} strokeWidth={1.75} />
                   </IconButton>
                 )}
-              </Box>
+              </div>
             );
           })}
           {seasonalModifiers.length === 0 && (
-            <Typography sx={{ fontSize: '12.5px', color: 'var(--faint)', mb: 1.5 }}>
+            <p className="cn-text-body1 text-[12.5px] text-[var(--faint)] mb-2">
               {t('tarification.cleaning.seasonal.empty')}
-            </Typography>
+            </p>
           )}
           {canEdit && (
             <Button size="small" variant="text" startIcon={<Add size={15} strokeWidth={1.75} />} onClick={addSeasonalModifier}>
@@ -481,9 +465,9 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
             </Button>
           )}
           {seasonalModifiers.length > 1 && (
-            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: 1 }}>
+            <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mt-1.5">
               {t('tarification.cleaning.seasonal.firstMatchHint')}
-            </Typography>
+            </p>
           )}
         </AccordionDetails>
       </Accordion>
@@ -491,10 +475,10 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
       {/* ─── Assignation (auto-assignation du meilleur pro) ────────────────── */}
       <Accordion expanded={expandedSection === 'assignment'} onChange={handleAccordionChange('assignment')}>
         <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>{t('tarification.cleaning.assignment.title')}</Typography>
-          </Box>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--accent)]"><AutoAwesome size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.assignment.title')}</p>
+          </div>
         </AccordionSummary>
         <AccordionDetails>
           <FormControlLabel
@@ -506,10 +490,10 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
               />
             }
             label={
-              <Box>
-                <Typography sx={{ fontSize: '13.5px', fontWeight: 600 }}>{t('tarification.cleaning.assignment.autoBestPro')}</Typography>
-                <Typography sx={{ fontSize: '12px', color: 'var(--muted)' }}>{t('tarification.cleaning.assignment.autoBestProHint')}</Typography>
-              </Box>
+              <div>
+                <p className="cn-text-body1 text-[13.5px] font-semibold">{t('tarification.cleaning.assignment.autoBestPro')}</p>
+                <p className="cn-text-body1 text-[12px] text-[var(--muted)]">{t('tarification.cleaning.assignment.autoBestProHint')}</p>
+              </div>
             }
           />
         </AccordionDetails>
@@ -518,10 +502,10 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
       {/* ─── Simulateur (grille ENREGISTRÉE côté serveur) ──────────────────── */}
       <Accordion expanded={expandedSection === 'simulator'} onChange={handleAccordionChange('simulator')}>
         <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Speed size={18} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>{t('tarification.cleaning.simulator')}</Typography>
-          </Box>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--accent)]"><Speed size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.simulator')}</p>
+          </div>
         </AccordionSummary>
         <AccordionDetails>
           {/* La preview backend calcule avec la config SAUVEGARDÉE — pas la grille en cours d'édition. */}
@@ -529,7 +513,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
             {t('tarification.cleaning.simulatorSavedConfigHint')}
           </Alert>
 
-          <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
+          <div className="flex gap-2 mb-3 flex-wrap">
             <TextField
               select
               size="small"
@@ -554,7 +538,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
               InputLabelProps={{ shrink: true }}
               sx={{ width: 180, ...NUM_FIELD_SX }}
             />
-          </Box>
+          </div>
 
           {typeof simPropertyId === 'number' && (estimateQuery.isPending || previewQuery.isPending) && (
             <Skeleton variant="rounded" height={140} sx={{ borderRadius: '11px' }} />
@@ -573,21 +557,21 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
           )}
 
           {estimateQuery.data && (
-            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.25, mb: 1.5, flexWrap: 'wrap' }}>
-              <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 600, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
+            <div className="flex items-baseline gap-2 mb-2 flex-wrap">
+              <p className="cn-text-body1 font-[var(--font-display)] text-[22px] font-semibold text-[var(--accent)] tabular-nums">
                 {estimateQuery.data.estimate} {currencySymbol}
-              </Typography>
-              <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+              </p>
+              <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
                 {estimateQuery.data.min}–{estimateQuery.data.max} {currencySymbol} · {estimateQuery.data.durationMinutes} min
-              </Typography>
-              <Typography sx={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+              </p>
+              <p className="cn-text-body1 text-[11px] font-semibold text-[var(--muted)] uppercase tracking-[.04em]">
                 {estimateQuery.data.source === 'PROPERTY_OVERRIDE'
                   ? t('tarification.cleaning.sourceOverride')
                   : estimateQuery.data.source === 'HOUSEKEEPER_RATE'
                     ? t('tarification.cleaning.sourceHousekeeperRate')
                     : t('tarification.cleaning.sourceEngine')}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
 
           {previewQuery.data && (
@@ -598,47 +582,47 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
                   const q = previewQuery.data.quotes?.[type];
                   if (!q) return null;
                   return (
-                    <Box key={type} sx={{ border: '1px solid var(--line)', borderRadius: '11px', px: 1.75, py: 1.25 }}>
-                      <Typography sx={{ fontSize: '11px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '.05em', mb: 0.5 }}>
+                    <div className="border border-[var(--line)] rounded-[11px] px-2.5 py-2" key={type}>
+                      <p className="cn-text-body1 text-[11px] font-bold text-[var(--faint)] uppercase tracking-[.05em] mb-0.5">
                         {t(`properties.priceEstimation.cleaningTypes.${type}`)}
-                      </Typography>
-                      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+                      </p>
+                      <p className="cn-text-body1 font-[var(--font-display)] text-[18px] font-semibold text-[var(--ink)] tabular-nums">
                         {q.recommended} {currencySymbol}
-                      </Typography>
-                      <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                      </p>
+                      <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums">
                         {q.min}–{q.max} {currencySymbol} · {q.durationMinutes} min
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                   );
                 })}
               </Box>
 
               {/* Décomposition minutes */}
-              <Box sx={{ border: '1px solid var(--line)', borderRadius: '11px', overflow: 'hidden', maxWidth: 420 }}>
-                <Box sx={{ px: 1.75, py: 0.75, bgcolor: 'var(--surface-2)' }}>
-                  <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
+              <div className="border border-[var(--line)] rounded-[11px] overflow-hidden max-w-[420px]">
+                <div className="px-2.5 py-1 bg-[var(--surface-2)]">
+                  <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
                     {t('properties.cleaningEstimator.breakdownTitle')}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
                 {BREAKDOWN_KEYS.flatMap((key) => {
                   const minutes = previewQuery.data.minutesBreakdown?.[key] ?? 0;
                   if (!(key === 'base' || minutes > 0)) return [];
                   return [
-                    <Box key={key} sx={{ display: 'flex', justifyContent: 'space-between', px: 1.75, py: 0.6, borderTop: '1px solid var(--line)' }}>
-                      <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                    <div className="flex justify-between px-2.5 py-1 border-t border-[var(--line)]" key={key}>
+                      <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                         {t(`properties.cleaningEstimator.breakdown.${key}`)}
-                      </Typography>
-                      <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+                      </p>
+                      <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] tabular-nums">
                         {minutes} min
-                      </Typography>
-                    </Box>,
+                      </p>
+                    </div>,
                   ];
                 })}
-              </Box>
+              </div>
             </>
           )}
         </AccordionDetails>
       </Accordion>
-    </Box>
+    </div>
   );
 }

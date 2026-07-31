@@ -269,14 +269,14 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
   };
 
   return (
-    <Box sx={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column', bgcolor: 'var(--bg)' }}>
+    <div className="absolute inset-[0px] z-[20] flex flex-col bg-[var(--bg)]">
       {/* En-tête */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2.5, py: 1.5, borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)', flexShrink: 0 }}>
-        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, color: 'var(--ink)' }}>
+      <div className="flex items-center gap-2 px-3.5 py-2 border-b border-[var(--line)] bg-[var(--card)] shrink-0">
+        <div className="inline-flex items-center gap-1.5 text-[var(--ink)]">
           <Boxes size={18} strokeWidth={2} />
-          <Box component="span" sx={{ fontSize: 'var(--text-md)', fontWeight: 'var(--fw-semibold)' }}>{initial ? 'Modifier le composite' : 'Constructeur de composite'}</Box>
-        </Box>
-        <Box sx={{ flex: 1 }} />
+          <span className="text-[var(--text-md)] font-[var(--fw-semibold)]">{initial ? 'Modifier le composite' : 'Constructeur de composite'}</span>
+        </div>
+        <div className="flex-1" />
         <ButtonBase onClick={toggleInteractive} aria-pressed={interactive}
           title={interactive ? 'Revenir au mode édition (sélection / déplacement des widgets)' : 'Mode interagir : ouvrir le filtre, voir le contenu caché, tester'}
           sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 32, px: 1.5, borderRadius: 'var(--radius-md)', border: '1px solid', borderColor: interactive ? 'var(--accent)' : 'var(--line)', color: interactive ? 'var(--accent)' : 'var(--body)', bgcolor: interactive ? 'var(--accent-soft)' : 'transparent', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', cursor: 'pointer', '&:hover': { borderColor: 'var(--accent)', color: interactive ? 'var(--accent)' : 'var(--ink)' } }}>
@@ -293,48 +293,48 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
         <ButtonBase onClick={onClose} aria-label="Fermer" sx={{ ml: 0.5, width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', color: 'var(--muted)', display: 'grid', placeItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'var(--hover)', color: 'var(--ink)' } }}>
           <X size={18} strokeWidth={2} />
         </ButtonBase>
-      </Box>
+      </div>
 
       {/* Corps : canvas DnD (gauche) + palette de blocs (droite) */}
-      <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
-        <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, bgcolor: 'var(--bg)' }}>
-          <Box ref={canvasElRef} sx={{ width: '100%', height: '100%' }} />
-        </Box>
+      <div className="flex-1 min-h-0 flex">
+        <div className="flex-1 min-w-0 min-h-0 bg-[var(--bg)]">
+          <div className="w-full h-full" ref={canvasElRef} />
+        </div>
 
-        <Box sx={{ flexShrink: 0, width: 300, height: '100%', display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
+        <div className="shrink-0 w-[300px] h-full flex flex-col border-s border-[var(--line)] bg-[var(--card)]">
           {/* En-tête fixe : nom + onglets Blocs / Style. */}
-          <Box sx={{ p: 2, pb: 1, display: 'flex', flexDirection: 'column', gap: 1.25, flexShrink: 0 }}>
+          <div className="p-3 pb-1.5 flex flex-col gap-2 shrink-0">
             <TextField value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom du composite" size="small" fullWidth
               sx={{ '& .MuiInputBase-root': { bgcolor: 'var(--field)', color: 'var(--ink)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--line)' }, '& .Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--accent)' } }} />
-            <Box sx={{ display: 'flex', gap: 0.5, p: 0.5, bgcolor: 'var(--field)', borderRadius: 'var(--radius-md)' }}>
+            <div className="flex gap-0.5 p-0.5 bg-[var(--field)] rounded-[var(--radius-md)]">
               {(['blocks', 'style'] as const).map((tab) => (
                 <ButtonBase key={tab} onClick={() => setRightTab(tab)}
                   sx={{ flex: 1, height: 30, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', cursor: 'pointer', bgcolor: rightTab === tab ? 'var(--card)' : 'transparent', color: rightTab === tab ? 'var(--ink)' : 'var(--muted)', '&:hover': { color: 'var(--ink)' } }}>
                   {tab === 'blocks' ? 'Blocs' : 'Style'}
                 </ButtonBase>
               ))}
-            </Box>
-          </Box>
+            </div>
+          </div>
 
           {/* Onglet BLOCS : aide + palette de blocs GrapesJS (montée via `appendTo`, toujours montée). */}
           <Box sx={{ display: rightTab === 'blocks' ? 'flex' : 'none', flexDirection: 'column', gap: 1.25, flex: 1, minHeight: 0, px: 2, pb: 2, overflowY: 'auto' }}>
-            <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', lineHeight: 1.4 }}>
+            <div className="text-[var(--text-2xs)] text-[var(--muted)] leading-[1.4]">
               Glisse les blocs sur le canvas (ou dans une « Ligne » pour les aligner). L'agencement que tu crées EST le composite.
-              Sélectionne le widget « Filtre » puis l'icône <Box component="span" sx={{ color: 'var(--body)', fontWeight: 'var(--fw-medium)' }}>⧉ Ouvrir le groupe</Box> : le filtre est <Box component="span" sx={{ color: 'var(--body)', fontWeight: 'var(--fw-medium)' }}>conservé</Box> et ses sous-filtres deviennent de vrais widgets éditables (déplacer, aligner, styler). L'icône <Box component="span" sx={{ color: 'var(--body)', fontWeight: 'var(--fw-medium)' }}>⮂ compact/déplié</Box> bascule entre filtre compact (icône → menu) et critères en ligne.
-            </Box>
-            <Box ref={blocksElRef} sx={{ flex: 1, minHeight: 0 }} />
+              Sélectionne le widget « Filtre » puis l'icône <span className="text-[var(--body)] font-[var(--fw-medium)]">⧉ Ouvrir le groupe</span> : le filtre est <span className="text-[var(--body)] font-[var(--fw-medium)]">conservé</span> et ses sous-filtres deviennent de vrais widgets éditables (déplacer, aligner, styler). L'icône <span className="text-[var(--body)] font-[var(--fw-medium)]">⮂ compact/déplié</span> bascule entre filtre compact (icône → menu) et critères en ligne.
+            </div>
+            <div className="flex-1 min-h-0" ref={blocksElRef} />
           </Box>
 
           {/* Onglet STYLE : sélecteurs (classes) + Style Manager. Toujours montés (cibles `appendTo`). */}
           <Box sx={{ display: rightTab === 'style' ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: 'auto' }}>
-            <Box sx={{ px: 2, pb: 1, fontSize: 'var(--text-2xs)', color: 'var(--muted)', lineHeight: 1.4 }}>
-              Sélectionne un élément (groupe, champ…) puis édite layout & style. Les règles s'appliquent <Box component="span" sx={{ color: 'var(--body)', fontWeight: 'var(--fw-medium)' }}>par classe</Box> → elles rejoignent le CSS du template à l'enregistrement.
-            </Box>
-            <Box ref={selectorElRef} sx={{ flexShrink: 0 }} />
-            <Box ref={styleElRef} sx={{ flex: 1, minHeight: 0 }} />
+            <div className="px-3 pb-1.5 text-[var(--text-2xs)] text-[var(--muted)] leading-[1.4]">
+              Sélectionne un élément (groupe, champ…) puis édite layout & style. Les règles s'appliquent <span className="text-[var(--body)] font-[var(--fw-medium)]">par classe</span> → elles rejoignent le CSS du template à l'enregistrement.
+            </div>
+            <div className="shrink-0" ref={selectorElRef} />
+            <div className="flex-1 min-h-0" ref={styleElRef} />
           </Box>
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }

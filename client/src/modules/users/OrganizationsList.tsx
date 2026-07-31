@@ -1,29 +1,6 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  Box,
-  Typography,
-  Button,
-  Grid,
-  Card,
-  CardContent,
-  CardActions,
-  Chip,
-  IconButton,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  Alert,
-  Skeleton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-} from '@mui/material';
+import { Box, Button, Grid, Card, CardContent, CardActions, Chip, IconButton, Menu, MenuItem, ListItemIcon, Alert, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select } from '@mui/material';
 import {
   MoreVert,
   Edit,
@@ -274,7 +251,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
   );
 
   return (
-    <Box>
+    <div>
       {/* Portal des actions dans le header parent */}
       {embedded && actionsContainer && actionButtons && createPortal(actionButtons, actionsContainer)}
 
@@ -291,7 +268,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
       )}
 
       {/* Statistiques — StatTile (carte plate hairline, valeur display) */}
-      <Box sx={{ mb: 2 }}>
+      <div className="mb-3">
         <Grid container spacing={2}>
           <Grid item xs={6} sm={4} md>
             <StatTile
@@ -315,12 +292,12 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
             );
           })}
         </Grid>
-      </Box>
+      </div>
 
       {/* Filtres : portales dans le PageHeader parent, sinon inline en standalone */}
       {filtersContainer
         ? createPortal(filtersBar, filtersContainer)
-        : !embedded && <Box sx={{ mb: 2 }}>{filtersBar}</Box>}
+        : !embedded && <div className="mb-3">{filtersBar}</div>}
 
       {/* Liste des organisations */}
       <Grid container spacing={2}>
@@ -361,8 +338,8 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                 >
                   <CardContent sx={{ flexGrow: 1, p: 1.75, pb: 1.25 }}>
                     {/* Header — badge icône fond soft (pattern .mg-avt) */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.25, gap: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flex: 1, minWidth: 0 }}>
+                    <div className="flex justify-between items-start mb-2 gap-1.5">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
                         <Box
                           sx={{
                             width: 38,
@@ -378,37 +355,15 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                         >
                           <TypeIcon size={18} strokeWidth={1.75} />
                         </Box>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography
-                            fontWeight={600}
-                            sx={{
-                              fontSize: '0.9rem',
-                              lineHeight: 1.25,
-                              color: 'text.primary',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                            title={org.name}
-                          >
+                        <div className="flex-1 min-w-0">
+                          <p className="cn-text-body1 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={org.name}>
                             {org.name}
-                          </Typography>
-                          <Typography
-                            color="text.secondary"
-                            sx={{
-                              fontSize: '0.7rem',
-                              lineHeight: 1.3,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              display: 'block',
-                              fontVariantNumeric: 'tabular-nums',
-                            }}
-                          >
+                          </p>
+                          <p className="cn-text-body1 text-muted-foreground text-[0.7rem] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap block tabular-nums">
                             {org.slug}
-                          </Typography>
-                        </Box>
-                      </Box>
+                          </p>
+                        </div>
+                      </div>
                       <IconButton
                         size="small"
                         onClick={(e) => handleMenuOpen(e, org)}
@@ -417,10 +372,10 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                       >
                         <MoreVert size={16} strokeWidth={1.75} />
                       </IconButton>
-                    </Box>
+                    </div>
 
                     {/* Type et membres — chips -soft (pilule/typo via thème global MuiChip) */}
-                    <Box sx={{ display: 'flex', gap: 0.5, mb: 1.25, flexWrap: 'wrap' }}>
+                    <div className="flex gap-0.5 mb-2 flex-wrap">
                       <Chip
                         icon={<TypeIcon size={11} strokeWidth={2} />}
                         label={typeInfo.label}
@@ -445,23 +400,17 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                           '&:hover': { backgroundColor: `${MEMBER_CHIP_COLOR}28` },
                         }}
                       />
-                    </Box>
+                    </div>
 
                     {/* Date de creation */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+                    <div className="flex items-center gap-1.5">
+                      <div className="inline-flex text-muted-foreground shrink-0">
                         <Person size={13} strokeWidth={1.75} />
-                      </Box>
-                      <Typography
-                        sx={{
-                          fontSize: '0.72rem',
-                          color: 'text.secondary',
-                          fontVariantNumeric: 'tabular-nums',
-                        }}
-                      >
+                      </div>
+                      <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums">
                         Creee le {formatDate(org.createdAt)}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                   </CardContent>
 
                   {/* Actions */}
@@ -526,7 +475,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
         {isAdmin() && (
           <MenuItem onClick={handleDelete} sx={{ color: 'var(--err)' }}>
             <ListItemIcon>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Delete size={18} strokeWidth={1.75} /></Box>
+              <span className="inline-flex text-[var(--err)]"><Delete size={18} strokeWidth={1.75} /></span>
             </ListItemIcon>
             Supprimer
           </MenuItem>
@@ -571,12 +520,12 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                     const TypeIcon = t.Icon;
                     return (
                       <MenuItem key={t.value} value={t.value}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <div className="flex items-center gap-1.5">
                           <Box sx={{ display: 'inline-flex', color: t.hex }}>
                             <TypeIcon size={16} strokeWidth={1.75} />
                           </Box>
-                          <Typography variant="body2">{t.label}</Typography>
-                        </Box>
+                          <p className="cn-text-body2">{t.label}</p>
+                        </div>
                       </MenuItem>
                     );
                   })}
@@ -610,9 +559,9 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle sx={{ pb: 1 }}>Confirmer la suppression</DialogTitle>
         <DialogContent sx={{ pt: 1.5 }}>
-          <Typography variant="body2">
+          <p className="cn-text-body2">
             Etes-vous sur de vouloir supprimer l'organisation "{selectedOrg?.name}" ?
-          </Typography>
+          </p>
           {selectedOrg && selectedOrg.memberCount > 0 && (
             <Alert severity="warning" sx={{ mt: 1 }}>
               Cette organisation contient {selectedOrg.memberCount} membre(s).
@@ -644,13 +593,13 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
         {membersDialogOrg && (
           <>
             <DialogTitle sx={{ pb: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><People size={20} strokeWidth={1.75} /></Box>
-                <Box>
-                  <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex text-[var(--accent)]"><People size={20} strokeWidth={1.75} /></span>
+                <div>
+                  <h6 className="cn-text-h6 text-[1rem] font-semibold">
                     Membres de {membersDialogOrg.name}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
+                  </h6>
+                  <div className="flex gap-0.5 mt-0.5">
                     {(() => { const ti = getTypeInfo(membersDialogOrg.type); const c = ti.hex; return (
                       <Chip
                         label={ti.label}
@@ -663,9 +612,9 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                       size="small"
                       sx={{ backgroundColor: `${MEMBER_CHIP_COLOR}18`, color: MEMBER_CHIP_COLOR, fontVariantNumeric: 'tabular-nums' }}
                     />
-                  </Box>
-                </Box>
-              </Box>
+                  </div>
+                </div>
+              </div>
             </DialogTitle>
             <DialogContent sx={{ pt: 1 }}>
               <MembersList
@@ -688,7 +637,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
           </>
         )}
       </Dialog>
-    </Box>
+    </div>
   );
 });
 

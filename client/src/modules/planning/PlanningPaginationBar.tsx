@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, IconButton, Typography } from '@mui/material';
+import { Box, IconButton } from '@mui/material';
 import { ChevronLeft, ChevronRight } from '../../icons';
 import { PAGINATION_BAR_HEIGHT } from './constants';
 
@@ -53,19 +53,9 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
       </IconButton>
 
       {/* Page indicator */}
-      <Typography
-        variant="body2"
-        sx={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '11.5px',
-          fontWeight: 600,
-          color: 'var(--ink)',
-          fontVariantNumeric: 'tabular-nums',
-          userSelect: 'none',
-        }}
-      >
+      <p className="cn-text-body2 font-[var(--font-display)] text-[11.5px] font-semibold text-[var(--ink)] tabular-nums select-none">
         Page {currentPage + 1} / {totalPages}
-      </Typography>
+      </p>
 
       {/* Next */}
       <IconButton
@@ -83,17 +73,9 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
       </IconButton>
 
       {/* Range info */}
-      <Typography
-        variant="caption"
-        sx={{
-          fontSize: '10.5px',
-          color: 'var(--muted)',
-          fontVariantNumeric: 'tabular-nums',
-          ml: 1,
-        }}
-      >
+      <span className="cn-text-caption text-[10.5px] text-[var(--muted)] tabular-nums ms-1.5">
         {rangeStart}-{rangeEnd} sur {totalProperties} logements
-      </Typography>
+      </span>
     </Box>
   );
 });

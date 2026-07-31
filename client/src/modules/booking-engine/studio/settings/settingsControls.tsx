@@ -15,15 +15,15 @@ export function SettingsPage({ title, description, children, footer, intro }: {
   intro?: ReactNode;
 }) {
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      <Box sx={{ flex: 1, overflowY: 'auto' }}>
+    <div className="h-full flex flex-col min-h-0">
+      <div className="flex-1 overflow-y-auto">
         {/* Conteneur élargi (vs 720 auparavant) : récupère les espaces vides
             latéraux du Studio sur écran large. */}
         <Box sx={{ maxWidth: 1120, mx: 'auto', px: { xs: 2.5, md: 4 }, py: { xs: 3, md: 4 } }}>
-          <Box sx={{ mb: 3 }}>
-            <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', fontWeight: 'var(--fw-bold)', color: 'var(--ink)' }}>{title}</Box>
-            {description && <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--muted)', mt: 0.5 }}>{description}</Box>}
-          </Box>
+          <div className="mb-4">
+            <div className="font-[var(--font-display)] text-[var(--text-2xl)] font-[var(--fw-bold)] text-[var(--ink)]">{title}</div>
+            {description && <div className="text-[var(--text-md)] text-[var(--muted)] mt-0.5">{description}</div>}
+          </div>
           {intro}
           {/* Cartes en masonry 2 colonnes au-delà de lg (1 colonne en dessous) :
               remplit la largeur + divise ~par 2 le scroll vertical. break-inside
@@ -39,21 +39,21 @@ export function SettingsPage({ title, description, children, footer, intro }: {
             {children}
           </Box>
         </Box>
-      </Box>
+      </div>
       {footer}
-    </Box>
+    </div>
   );
 }
 
 export function SettingCard({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
-    <Box sx={{ border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', bgcolor: 'var(--card)', mb: 2.5, overflow: 'hidden' }}>
-      <Box sx={{ px: 2.5, pt: 2, pb: 1.5, borderBottom: '1px solid var(--line)' }}>
-        <Box sx={{ fontSize: 'var(--text-md)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>{title}</Box>
-        {description && <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', mt: 0.25 }}>{description}</Box>}
-      </Box>
-      <Box sx={{ px: 2.5, py: 0.5 }}>{children}</Box>
-    </Box>
+    <div className="border border-[var(--line)] rounded-[var(--radius-lg)] bg-[var(--card)] mb-3.5 overflow-hidden">
+      <div className="px-3.5 pt-3 pb-2 border-b border-[var(--line)]">
+        <div className="text-[var(--text-md)] font-[var(--fw-semibold)] text-[var(--ink)]">{title}</div>
+        {description && <div className="text-[var(--text-sm)] text-[var(--muted)] mt-0.5">{description}</div>}
+      </div>
+      <div className="px-3.5 py-0.5">{children}</div>
+    </div>
   );
 }
 
@@ -66,10 +66,10 @@ export function SettingRow({ label, helper, htmlFor, control }: {
       borderBottom: '1px solid var(--line)', '&:last-of-type': { borderBottom: 'none' },
       flexWrap: { xs: 'wrap', sm: 'nowrap' },
     }}>
-      <Box sx={{ flex: 1, minWidth: 180 }}>
-        <Box component="label" htmlFor={htmlFor} sx={{ fontSize: 'var(--text-md)', fontWeight: 'var(--fw-medium)', color: 'var(--ink)', display: 'block' }}>{label}</Box>
-        {helper && <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', mt: 0.25, lineHeight: 1.45 }}>{helper}</Box>}
-      </Box>
+      <div className="flex-1 min-w-[180px]">
+        <label className="text-[var(--text-md)] font-[var(--fw-medium)] text-[var(--ink)] block" htmlFor={htmlFor}>{label}</label>
+        {helper && <div className="text-[var(--text-sm)] text-[var(--muted)] mt-0.5 leading-[1.45]">{helper}</div>}
+      </div>
       <Box sx={{ flexShrink: 0, width: { xs: '100%', sm: 260 }, display: 'flex', justifyContent: 'flex-end' }}>{control}</Box>
     </Box>
   );

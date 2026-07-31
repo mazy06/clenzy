@@ -379,41 +379,41 @@ const PropertyDetails: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+      <div className="flex justify-center items-center h-[50vh]">
         <CircularProgress size={28} />
-      </Box>
+      </div>
     );
   }
 
   if (isError) {
     return (
-      <Box sx={{ p: 2 }}>
+      <div className="p-3">
         <Alert severity="error" sx={{ py: 0.75, fontSize: '0.8125rem' }}>{error || t('properties.loadError')}</Alert>
-      </Box>
+      </div>
     );
   }
 
   if (!property) {
     return (
-      <Box sx={{ p: 2 }}>
+      <div className="p-3">
         <Alert severity="warning" sx={{ py: 0.75, fontSize: '0.8125rem' }}>{t('properties.notFound')}</Alert>
-      </Box>
+      </div>
     );
   }
 
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div className="flex flex-col h-full min-h-0">
       {/* ─── Header ──────────────────────────────────────────────────────── */}
-      <Box sx={{ flexShrink: 0 }}>
+      <div className="shrink-0">
         <PageHeader
           title={property.name}
           subtitle={`${getPropertyTypeLabel(property.propertyType, t)} · ${property.city}`}
           iconBadge={<Home />}
           backPath="/properties"
           actions={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <div className="flex items-center gap-1">
               {canEdit && (
                 <Button
                   variant="outlined"
@@ -436,13 +436,13 @@ const PropertyDetails: React.FC = () => {
                   {t('properties.modify')}
                 </Button>
               )}
-            </Box>
+            </div>
           }
         />
-      </Box>
+      </div>
 
       {/* ─── Tabs (primitive PageTabs — onglets niveau 1 soulignés accent) ── */}
-      <Box sx={{ flexShrink: 0 }}>
+      <div className="shrink-0">
         <PageTabs
           ariaLabel={t('properties.details')}
           mb={0}
@@ -457,16 +457,11 @@ const PropertyDetails: React.FC = () => {
           value={tabValue}
           onChange={setTabValue}
         />
-      </Box>
+      </div>
 
       {/* ─── Tab 0: Vue d'ensemble ───────────────────────────────────────── */}
       {tabValue === 0 && (
-        <Box
-          role="tabpanel"
-          id="property-tabpanel-0"
-          aria-labelledby="property-tab-0"
-          sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
-        >
+        <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-0" aria-labelledby="property-tab-0">
           {/* ── Key metrics grid ──────────────────────────────────────── */}
           <Grid container spacing={1} sx={{ mb: featureChips.length > 0 ? 1 : 1.5 }}>
             <Grid item xs={6} sm={4} md={2}>
@@ -521,7 +516,7 @@ const PropertyDetails: React.FC = () => {
 
           {/* ── Prestations à la carte chips ──────────────────────────── */}
           {featureChips.length > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
+            <div className="flex items-center flex-wrap gap-1 mb-1.5">
               <Typography sx={{ ...SECTION_TITLE_SX, mb: 0, mr: 0.5 }}>
                 {t('properties.addOnServices.title')}
               </Typography>
@@ -533,12 +528,12 @@ const PropertyDetails: React.FC = () => {
                   sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}
                 />
               ))}
-            </Box>
+            </div>
           )}
 
           {/* ── Équipements chips ──────────────────────────────────── */}
           {property.amenities && property.amenities.length > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
+            <div className="flex items-center flex-wrap gap-1 mb-2">
               <Typography sx={{ ...SECTION_TITLE_SX, mb: 0, mr: 0.5 }}>
                 {t('properties.amenities.title')}
               </Typography>
@@ -550,14 +545,14 @@ const PropertyDetails: React.FC = () => {
                   sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}
                 />
               ))}
-            </Box>
+            </div>
           )}
 
           {/* ── Row 1: Photos | Informations + Tarification | Configuration ── */}
           <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'stretch' }}>
+            <div className="flex gap-3 items-stretch">
               {/* ── Col 1: Photos (carrousel + plein ecran au clic) ──── */}
-              <Box sx={{ flex: 1, minWidth: 0, display: 'flex' }}>
+              <div className="flex-1 min-w-0 flex">
                 <PropertyImageCarousel
                   photoUrls={photoUrls}
                   alt={property.name}
@@ -568,53 +563,53 @@ const PropertyDetails: React.FC = () => {
                   showCounter
                   sx={{ width: '100%' }}
                 />
-              </Box>
+              </div>
 
               <Divider orientation="vertical" flexItem />
 
               {/* ── Col 2: Informations generales + Tarification menage ── */}
-              <Box sx={{ flex: 1, minWidth: 0 }}>
+              <div className="flex-1 min-w-0">
                 <Typography sx={SECTION_TITLE_SX}>
                   {t('properties.informationsGeneral')}
                 </Typography>
                 <Box sx={INFO_ROW_SX}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><LocationOn size={16} strokeWidth={1.75} /></Box>
-                  <Box sx={{ flex: 1 }}>
+                  <span className="inline-flex text-[var(--accent)]"><LocationOn size={16} strokeWidth={1.75} /></span>
+                  <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('properties.address')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>
                       {property.address}, {property.city} {property.postalCode}
                     </Typography>
-                  </Box>
+                  </div>
                 </Box>
                 {property.country && (
                   <>
                     <Divider sx={{ my: 0.5 }} />
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Flag size={16} strokeWidth={1.75} /></Box>
-                      <Box sx={{ flex: 1 }}>
+                      <span className="inline-flex text-[var(--accent)]"><Flag size={16} strokeWidth={1.75} /></span>
+                      <div className="flex-1">
                         <Typography sx={INFO_LABEL_SX}>{t('properties.country')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{property.country}</Typography>
-                      </Box>
+                      </div>
                     </Box>
                   </>
                 )}
                 <Divider sx={{ my: 0.5 }} />
                 <Box sx={INFO_ROW_SX}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Home size={16} strokeWidth={1.75} /></Box>
-                  <Box sx={{ flex: 1 }}>
+                  <span className="inline-flex text-[var(--accent)]"><Home size={16} strokeWidth={1.75} /></span>
+                  <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('properties.type')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{getPropertyTypeLabel(property.propertyType, t)}</Typography>
-                  </Box>
+                  </div>
                 </Box>
                 {property.createdAt && (
                   <>
                     <Divider sx={{ my: 0.5 }} />
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
-                      <Box sx={{ flex: 1 }}>
+                      <span className="inline-flex text-[var(--accent)]"><CalendarMonth size={16} strokeWidth={1.75} /></span>
+                      <div className="flex-1">
                         <Typography sx={INFO_LABEL_SX}>{t('properties.createdAt')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{formatDate(property.createdAt)}</Typography>
-                      </Box>
+                      </div>
                     </Box>
                   </>
                 )}
@@ -622,131 +617,131 @@ const PropertyDetails: React.FC = () => {
                 <Typography sx={{ ...SECTION_TITLE_SX, mt: 1.5 }}>
                   {t('properties.cleaningPricing')}
                 </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                <div className="flex flex-col gap-0.5">
                   {property.cleaningBasePrice != null && property.cleaningBasePrice > 0 && (
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Payments size={16} strokeWidth={1.75} /></Box>
-                      <Box>
+                      <span className="inline-flex text-[var(--accent)]"><Payments size={16} strokeWidth={1.75} /></span>
+                      <div>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningBasePrice')}</Typography>
                         <Typography sx={{ ...INFO_VALUE_SX, fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}><Money value={property.cleaningBasePrice} from="EUR" decimals={0} /></Typography>
-                      </Box>
+                      </div>
                     </Box>
                   )}
                   {property.cleaningDurationMinutes != null && property.cleaningDurationMinutes > 0 && (
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={16} strokeWidth={1.75} /></Box>
-                      <Box>
+                      <span className="inline-flex text-[var(--accent)]"><Timer size={16} strokeWidth={1.75} /></span>
+                      <div>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningDuration')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>
                           {property.cleaningDurationMinutes >= 60
                             ? `${Math.floor(property.cleaningDurationMinutes / 60)}h${property.cleaningDurationMinutes % 60 > 0 ? String(property.cleaningDurationMinutes % 60).padStart(2, '0') : ''}`
                             : `${property.cleaningDurationMinutes} min`}
                         </Typography>
-                      </Box>
+                      </div>
                     </Box>
                   )}
                   {property.numberOfFloors != null && property.numberOfFloors > 0 && (
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Stairs size={16} strokeWidth={1.75} /></Box>
-                      <Box>
+                      <span className="inline-flex text-[var(--accent)]"><Stairs size={16} strokeWidth={1.75} /></span>
+                      <div>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.numberOfFloors')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{property.numberOfFloors}</Typography>
-                      </Box>
+                      </div>
                     </Box>
                   )}
                   {property.hasExterior && (
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Deck size={16} strokeWidth={1.75} /></Box>
+                      <span className="inline-flex text-[var(--accent)]"><Deck size={16} strokeWidth={1.75} /></span>
                       <Typography sx={INFO_VALUE_SX}>{t('properties.hasExterior')}</Typography>
                     </Box>
                   )}
                   {property.hasLaundry && (
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><LocalLaundryService size={16} strokeWidth={1.75} /></Box>
+                      <span className="inline-flex text-[var(--accent)]"><LocalLaundryService size={16} strokeWidth={1.75} /></span>
                       <Typography sx={INFO_VALUE_SX}>{t('properties.hasLaundry')}</Typography>
                     </Box>
                   )}
-                </Box>
-              </Box>
+                </div>
+              </div>
 
               <Divider orientation="vertical" flexItem />
 
               {/* ── Col 3: Configuration ───────────────────────────── */}
-              <Box sx={{ flex: 1, minWidth: 0 }}>
+              <div className="flex-1 min-w-0">
                 <Typography sx={SECTION_TITLE_SX}>
                   {t('properties.configuration')}
                 </Typography>
                 <Box sx={INFO_ROW_SX}>
-                  <Box>
+                  <div>
                     <Typography sx={INFO_LABEL_SX}>{t('properties.status')}</Typography>
                     <Chip label={getPropertyStatusLabel(property.status, t)} size="small"
                       sx={{ mt: 0.5, ...propertyStatusChipSx(property.status), '& .MuiChip-label': { px: 1 } }} />
-                  </Box>
+                  </div>
                 </Box>
                 {property.ownerName && (
                   <>
                     <Divider sx={{ my: 0.5 }} />
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
-                      <Box sx={{ flex: 1 }}>
+                      <span className="inline-flex text-[var(--accent)]"><Person size={16} strokeWidth={1.75} /></span>
+                      <div className="flex-1">
                         <Typography sx={INFO_LABEL_SX}>{t('properties.owner')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{property.ownerName}</Typography>
-                      </Box>
+                      </div>
                     </Box>
                   </>
                 )}
                 {(property.defaultCheckInTime || property.defaultCheckOutTime) && (
                   <>
                     <Divider sx={{ my: 0.5 }} />
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    <div className="flex flex-col gap-0.5">
                       {property.defaultCheckInTime && (
                         <Box sx={INFO_ROW_SX}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Login size={16} strokeWidth={1.75} /></Box>
-                          <Box>
+                          <span className="inline-flex text-[var(--accent)]"><Login size={16} strokeWidth={1.75} /></span>
+                          <div>
                             <Typography sx={INFO_LABEL_SX}>{t('properties.checkInTime')}</Typography>
                             <Typography sx={INFO_VALUE_SX}>{formatTime(property.defaultCheckInTime)}</Typography>
-                          </Box>
+                          </div>
                         </Box>
                       )}
                       {property.defaultCheckOutTime && (
                         <Box sx={INFO_ROW_SX}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Logout size={16} strokeWidth={1.75} /></Box>
-                          <Box>
+                          <span className="inline-flex text-[var(--accent)]"><Logout size={16} strokeWidth={1.75} /></span>
+                          <div>
                             <Typography sx={INFO_LABEL_SX}>{t('properties.checkOutTime')}</Typography>
                             <Typography sx={INFO_VALUE_SX}>{formatTime(property.defaultCheckOutTime)}</Typography>
-                          </Box>
+                          </div>
                         </Box>
                       )}
-                    </Box>
+                    </div>
                   </>
                 )}
                 <Divider sx={{ my: 0.5 }} />
                 <Box sx={INFO_ROW_SX}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CleaningServices size={16} strokeWidth={1.75} /></Box>
-                  <Box sx={{ flex: 1 }}>
+                  <span className="inline-flex text-[var(--accent)]"><CleaningServices size={16} strokeWidth={1.75} /></span>
+                  <div className="flex-1">
                     <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningFrequency')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Typography>
-                  </Box>
+                  </div>
                 </Box>
                 {property.lastCleaning && (
                   <>
                     <Divider sx={{ my: 0.5 }} />
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Schedule size={16} strokeWidth={1.75} /></Box>
-                      <Box sx={{ flex: 1 }}>
+                      <span className="inline-flex text-[var(--accent)]"><Schedule size={16} strokeWidth={1.75} /></span>
+                      <div className="flex-1">
                         <Typography sx={INFO_LABEL_SX}>{t('properties.lastCleaning')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{formatDate(property.lastCleaning)}</Typography>
-                      </Box>
+                      </div>
                     </Box>
                   </>
                 )}
-              </Box>
+              </div>
 
-            </Box>
+            </div>
           </Paper>
 
           {/* ── Row 2: Map + Description | Instructions voyageur ────── */}
-          <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5 }}>
+          <div className="flex gap-2 mb-2">
             {/* ── Left column: Map + Description ──────────────────── */}
             <Box sx={{ flex: 6, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               {/* Mini-carte Mapbox */}
@@ -785,14 +780,14 @@ const PropertyDetails: React.FC = () => {
               if (!hasAnyField) return null;
 
               const fields: { icon: React.ReactNode; label: string; value: string | null }[] = [
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><VpnKey size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.accessCode'), value: ci.accessCode },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Wifi size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.wifiName'), value: ci.wifiName },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Wifi size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.wifiPassword'), value: ci.wifiPassword },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><LocalParking size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.parkingInfo'), value: ci.parkingInfo },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Login size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.arrivalInstructions'), value: ci.arrivalInstructions },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Logout size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.departureInstructions'), value: ci.departureInstructions },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Gavel size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.houseRules'), value: ci.houseRules },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Phone size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.emergencyContact'), value: ci.emergencyContact },
+                { icon: <span className="inline-flex text-[var(--accent)]"><VpnKey size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.accessCode'), value: ci.accessCode },
+                { icon: <span className="inline-flex text-[var(--accent)]"><Wifi size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.wifiName'), value: ci.wifiName },
+                { icon: <span className="inline-flex text-[var(--accent)]"><Wifi size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.wifiPassword'), value: ci.wifiPassword },
+                { icon: <span className="inline-flex text-[var(--accent)]"><LocalParking size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.parkingInfo'), value: ci.parkingInfo },
+                { icon: <span className="inline-flex text-[var(--accent)]"><Login size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.arrivalInstructions'), value: ci.arrivalInstructions },
+                { icon: <span className="inline-flex text-[var(--accent)]"><Logout size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.departureInstructions'), value: ci.departureInstructions },
+                { icon: <span className="inline-flex text-[var(--accent)]"><Gavel size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.houseRules'), value: ci.houseRules },
+                { icon: <span className="inline-flex text-[var(--accent)]"><Phone size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.emergencyContact'), value: ci.emergencyContact },
               ];
 
               // Split: first 4 fields in 2-col grid, rest full-width
@@ -804,7 +799,7 @@ const PropertyDetails: React.FC = () => {
               return (
                 <Box sx={{ flex: 6, minWidth: 0 }}>
                   <Paper sx={CARD_SX}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <div className="flex justify-between items-center mb-1.5">
                       <Typography sx={SECTION_TITLE_SX}>
                         {t('channels.checkIn.title')}
                       </Typography>
@@ -817,7 +812,7 @@ const PropertyDetails: React.FC = () => {
                       >
                         {t('properties.modify')}
                       </Button>
-                    </Box>
+                    </div>
 
                     {/* Compact fields: 2 columns */}
                     {compactFields.length > 0 && (
@@ -825,10 +820,10 @@ const PropertyDetails: React.FC = () => {
                         {compactFields.map((field) => (
                           <Box key={field.label} sx={INFO_ROW_SX}>
                             {field.icon}
-                            <Box sx={{ flex: 1 }}>
+                            <div className="flex-1">
                               <Typography sx={INFO_LABEL_SX}>{field.label}</Typography>
                               <Typography sx={INFO_VALUE_SX}>{field.value}</Typography>
-                            </Box>
+                            </div>
                           </Box>
                         ))}
                       </Box>
@@ -840,10 +835,10 @@ const PropertyDetails: React.FC = () => {
                         <Divider sx={{ my: 0.5 }} />
                         <Box sx={INFO_ROW_SX}>
                           {field.icon}
-                          <Box sx={{ flex: 1 }}>
+                          <div className="flex-1">
                             <Typography sx={INFO_LABEL_SX}>{field.label}</Typography>
                             <Typography sx={{ ...INFO_VALUE_SX, whiteSpace: 'pre-line' }}>{field.value}</Typography>
-                          </Box>
+                          </div>
                         </Box>
                       </React.Fragment>
                     ))}
@@ -851,63 +846,53 @@ const PropertyDetails: React.FC = () => {
                 </Box>
               );
             })()}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* ─── Tab 1: Interventions ────────────────────────────────────────── */}
       {tabValue === 1 && (
-        <Box
-          role="tabpanel"
-          id="property-tabpanel-1"
-          aria-labelledby="property-tab-1"
-          sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
-        >
+        <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-1" aria-labelledby="property-tab-1">
           <PropertyInterventionsTab interventions={interventions} propertyId={String(id)} />
-        </Box>
+        </div>
       )}
 
       {/* ─── Tab 2: Channels ──────────────────────────────────────────── */}
       {tabValue === 2 && (
-        <Box
-          role="tabpanel"
-          id="property-tabpanel-2"
-          aria-labelledby="property-tab-2"
-          sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
-        >
+        <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-2" aria-labelledby="property-tab-2">
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 1.5 }}>
             {/* Airbnb — with real status */}
             <Paper sx={CARD_SX}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <Box component="img" src={airbnbLogoSmall} alt="Airbnb" sx={{ width: 21, height: 21, borderRadius: '7px', objectFit: 'contain' }} />
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <img className="w-[21px] h-[21px] rounded-[7px] object-contain" src={airbnbLogoSmall} alt="Airbnb" />
                 <Typography sx={{ ...SECTION_TITLE_SX, mb: 0 }}>Airbnb</Typography>
                 <Chip
                   label={channelStatus?.airbnb?.linked ? t('channels.connected') : t('channels.notConnected')}
                   size="small"
                   sx={{ ml: 'auto', height: 20, bgcolor: channelStatus?.airbnb?.linked ? 'var(--ok-soft)' : 'var(--hover)', color: channelStatus?.airbnb?.linked ? 'var(--ok)' : 'var(--muted)', border: 'none', '& .MuiChip-label': { px: 1 } }}
                 />
-              </Box>
+              </div>
               {channelStatus?.airbnb?.linked ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <div className="flex flex-col gap-0.5">
                   <Box sx={INFO_ROW_SX}>
                     <Box component="span" sx={{ display: 'inline-flex', color: channelStatus.airbnb.syncEnabled ? 'var(--ok)' : 'var(--muted)' }}><Sync size={16} strokeWidth={1.75} /></Box>
-                    <Box sx={{ flex: 1 }}>
+                    <div className="flex-1">
                       <Typography sx={INFO_LABEL_SX}>{t('channels.syncStatus.title')}</Typography>
                       <Typography sx={INFO_VALUE_SX}>
                         {channelStatus.airbnb.syncEnabled ? t('channels.syncStatus.syncOn') : t('channels.syncStatus.syncOff')}
                       </Typography>
-                    </Box>
+                    </div>
                   </Box>
                   {channelStatus.airbnb.lastSyncAt && (
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Schedule size={16} strokeWidth={1.75} /></Box>
-                      <Box sx={{ flex: 1 }}>
+                      <span className="inline-flex text-[var(--accent)]"><Schedule size={16} strokeWidth={1.75} /></span>
+                      <div className="flex-1">
                         <Typography sx={INFO_LABEL_SX}>{t('channels.syncStatus.lastSync')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{new Date(channelStatus.airbnb.lastSyncAt).toLocaleString('fr-FR')}</Typography>
-                      </Box>
+                      </div>
                     </Box>
                   )}
-                </Box>
+                </div>
               ) : (
                 <Button size="small" variant="outlined" startIcon={<Hub size={14} strokeWidth={1.75} />} onClick={() => navigate('/channels')}>
                   {t('channels.listings.linkProperty')}
@@ -925,58 +910,43 @@ const PropertyDetails: React.FC = () => {
               { name: 'Abritel', logo: abritelLogo },
             ].map((ch) => (
               <Paper key={ch.name} sx={CARD_SX}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Box component="img" src={ch.logo} alt={ch.name} sx={{ width: 21, height: 21, borderRadius: '7px', objectFit: 'contain' }} />
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <img className="w-[21px] h-[21px] rounded-[7px] object-contain" src={ch.logo} alt={ch.name} />
                   <Typography sx={{ ...SECTION_TITLE_SX, mb: 0 }}>{ch.name}</Typography>
                   <Chip
                     label={t('channels.notConnected')}
                     size="small"
                     sx={{ ml: 'auto', height: 20, bgcolor: 'var(--hover)', color: 'var(--muted)', border: 'none', '& .MuiChip-label': { px: 1 } }}
                   />
-                </Box>
+                </div>
                 <Button size="small" variant="outlined" startIcon={<Hub size={14} strokeWidth={1.75} />} onClick={() => navigate('/channels')}>
                   {t('channels.listings.linkProperty')}
                 </Button>
               </Paper>
             ))}
           </Box>
-        </Box>
+        </div>
       )}
 
       {/* ─── Tab 3: Instructions voyageur ─────────────────────────────── */}
       {tabValue === 3 && (
-        <Box
-          role="tabpanel"
-          id="property-tabpanel-3"
-          aria-labelledby="property-tab-3"
-          sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
-        >
+        <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-3" aria-labelledby="property-tab-3">
           <CheckInInstructionsForm propertyId={Number(id)} />
-        </Box>
+        </div>
       )}
 
       {/* ─── Tab 4: Photos ─────────────────────────────────────────────── */}
       {tabValue === 4 && (
-        <Box
-          role="tabpanel"
-          id="property-tabpanel-4"
-          aria-labelledby="property-tab-4"
-          sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
-        >
+        <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-4" aria-labelledby="property-tab-4">
           <PropertyPhotosTab propertyId={Number(id)} />
-        </Box>
+        </div>
       )}
 
       {/* ─── Tab 5: Inventaire ───────────────────────────────────────────── */}
       {tabValue === 5 && (
-        <Box
-          role="tabpanel"
-          id="property-tabpanel-5"
-          aria-labelledby="property-tab-5"
-          sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
-        >
+        <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-5" aria-labelledby="property-tab-5">
           <PropertyInventoryTab propertyId={Number(id)} canEdit={canEdit} />
-        </Box>
+        </div>
       )}
 
 
@@ -984,7 +954,7 @@ const PropertyDetails: React.FC = () => {
       <Dialog open={cleaningQuoteDialogOpen} onClose={() => setCleaningQuoteDialogOpen(false)}>
         <DialogTitle>{t('properties.cleaningQuote.confirmTitle')}</DialogTitle>
         <DialogContent>
-          <Typography variant="body2">{t('properties.cleaningQuote.confirmBody')}</Typography>
+          <p className="cn-text-body2">{t('properties.cleaningQuote.confirmBody')}</p>
         </DialogContent>
         <DialogActions>
           <Button size="small" onClick={() => setCleaningQuoteDialogOpen(false)} disabled={cleaningQuoteSending}>
@@ -1012,7 +982,7 @@ const PropertyDetails: React.FC = () => {
           {cleaningQuoteSnackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 };
 

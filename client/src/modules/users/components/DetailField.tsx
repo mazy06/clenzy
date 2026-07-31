@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, IconButton, Tooltip, Typography } from '@mui/material';
+import { IconButton, Tooltip, Typography } from '@mui/material';
 import { ContentCopy, Check } from '../../../icons';
 
 interface DetailFieldProps {
@@ -62,27 +62,18 @@ const DetailField: React.FC<DetailFieldProps> = ({
       : 'text.primary';
 
   return (
-    <Box sx={{ minWidth: 0 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+    <div className="min-w-0">
+      <div className="flex items-center gap-0.5 mb-0.5">
         {icon && (
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+          <span className="inline-flex text-muted-foreground opacity-60">
             {icon}
-          </Box>
+          </span>
         )}
-        <Typography
-          variant="caption"
-          sx={{
-            fontSize: '0.6875rem',
-            fontWeight: 600,
-            letterSpacing: '0.04em',
-            textTransform: 'uppercase',
-            color: 'text.secondary',
-          }}
-        >
+        <span className="cn-text-caption text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-muted-foreground">
           {label}
-        </Typography>
-      </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+        </span>
+      </div>
+      <div className="flex items-center gap-0.5 min-w-0">
         <Typography
           component={href && !isEmpty ? 'a' : 'span'}
           href={href && !isEmpty ? href : undefined}
@@ -121,8 +112,8 @@ const DetailField: React.FC<DetailFieldProps> = ({
             </IconButton>
           </Tooltip>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

@@ -1,26 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  IconButton,
-  Tooltip,
-  TextField,
-  Button,
-  CircularProgress,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
+import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton, Tooltip, TextField, Button, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
   CheckCircle as CheckCircleIcon,
@@ -410,7 +389,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <Box>
+    <div>
       {/* Header + Filters */}
       {!embedded && (
         <PageHeader
@@ -550,62 +529,42 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                   onClick={() => navigate(detailPath)}
                 >
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: '12.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                    <p className="cn-text-body2 text-[12.5px] text-[var(--muted)] tabular-nums">
                       {formatDate(payment.transactionDate)}
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '12.5px', color: 'var(--ink)' }}>
+                    <p className="cn-text-body2 font-semibold text-[12.5px] text-[var(--ink)]">
                       {payment.hostName || '\u2014'}
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell>{getTypeChip(payment)}</TableCell>
                   <TableCell>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.125 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: 600, fontSize: '12.5px', color: 'var(--ink)', lineHeight: 1.3 }}
-                      >
+                    <div className="flex flex-col gap-0">
+                      <p className="cn-text-body2 font-semibold text-[12.5px] text-[var(--ink)] leading-[1.3]">
                         {payment.description}
-                      </Typography>
+                      </p>
                       {payment.subDescription && (
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontSize: '11px',
-                            color: 'var(--muted)',
-                            fontVariantNumeric: 'tabular-nums',
-                            lineHeight: 1.2,
-                          }}
-                        >
+                        <span className="cn-text-caption text-[11px] text-[var(--muted)] tabular-nums leading-[1.2]">
                           {payment.subDescription}
-                        </Typography>
+                        </span>
                       )}
-                    </Box>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                    <p className="cn-text-body2 text-[12.5px] text-[var(--body)]">
                       {payment.propertyName}
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell align="right">
                     {/* Montant : display tabular-nums, encre \u2014 jamais proportional */}
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontFamily: 'var(--font-display)',
-                        fontVariantNumeric: 'tabular-nums',
-                        fontWeight: 600,
-                        fontSize: '0.8125rem',
-                        color: 'var(--ink)',
-                      }}
-                    >
+                    <p className="cn-text-body2 font-[var(--font-display)] tabular-nums font-semibold text-[0.8125rem] text-[var(--ink)]">
                       <Money value={payment.amount} from={payment.currency ?? 'EUR'} />
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell>{getStatusChip(payment.status)}</TableCell>
                   <TableCell align="center">
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                    <div className="flex items-center justify-center gap-0.5">
                       <Tooltip title={payment.type === 'RESERVATION' ? 'Voir la reservation' : payment.type === 'SERVICE_REQUEST' ? 'Voir la demande' : t('payments.history.viewIntervention')}>
                         <IconButton
                           size="small"
@@ -692,7 +651,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                           </span>
                         </Tooltip>
                       )}
-                    </Box>
+                    </div>
                   </TableCell>
                 </TableRow>
                 );
@@ -735,14 +694,14 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         </DialogTitle>
         <DialogContent>
           {refundTarget && (
-            <Typography variant="body2" sx={{ mb: 1 }}>
+            <p className="cn-text-body2 mb-1.5">
               Voulez-vous rembourser <strong><Money value={refundTarget.amount} from={refundTarget.currency ?? 'EUR'} /></strong> pour
               <strong> {refundTarget.description}</strong> ?
-            </Typography>
+            </p>
           )}
-          <Typography variant="caption" color="text.secondary">
+          <span className="cn-text-caption text-muted-foreground">
             Cette action est irréversible. Le montant sera remboursé via Stripe.
-          </Typography>
+          </span>
           {refundError && (
             <Alert severity="error" sx={{ mt: 1.5, py: 0.5 }}>
               {refundError}
@@ -779,9 +738,9 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
           Email du client
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+          <p className="cn-text-body2 mb-3 text-muted-foreground">
             Aucune adresse email n'est renseignée pour cette réservation. Veuillez saisir l'email du client pour envoyer le lien de paiement.
-          </Typography>
+          </p>
           <TextField
             autoFocus
             fullWidth
@@ -813,7 +772,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

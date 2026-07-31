@@ -24,13 +24,10 @@ import { formatFieldValue, toList } from './formatters';
 function FrSection({ title }: { title: string }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: '9px', m: '26px 0 14px' }}>
-      <Typography component="span" sx={{
-        fontSize: '11px', fontWeight: 700, letterSpacing: '.08em',
-        textTransform: 'uppercase', color: 'var(--faint)', whiteSpace: 'nowrap',
-      }}>
+      <span className="text-[11px] font-bold tracking-[.08em] uppercase text-[var(--faint)] whitespace-nowrap">
         {title}
-      </Typography>
-      <Box sx={{ flex: 1, height: '1px', bgcolor: 'var(--line)' }} />
+      </span>
+      <div className="flex-1 h-[1px] bg-[var(--line)]" />
     </Box>
   );
 }
@@ -49,9 +46,9 @@ function Tile({ icon, label, value }: { icon: React.ReactNode; label: string; va
       }}>
         {icon}
       </Box>
-      <Typography sx={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--faint)' }}>
+      <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.04em] uppercase text-[var(--faint)]">
         {label}
-      </Typography>
+      </p>
       <Typography sx={{
         fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 600, color: 'var(--ink)',
         mt: '4px', letterSpacing: '-.01em', fontVariantNumeric: 'tabular-nums',
@@ -108,12 +105,12 @@ function SyncRow({ value }: { value: string }) {
       '& > svg': { color: 'var(--ok)', flexShrink: 0 },
     }}>
       <RefreshIcon size={16} strokeWidth={1.75} />
-      <Typography component="b" sx={{ fontSize: '13px', color: 'var(--ink)', fontWeight: 600 }}>
+      <b className="text-[13px] text-[var(--ink)] font-semibold">
         Synchronisation calendrier
-      </Typography>
-      <Typography component="span" sx={{ ml: 'auto', fontSize: '11px', fontWeight: 700, color: 'var(--ok)' }}>
+      </b>
+      <span className="ms-auto text-[11px] font-bold text-[var(--ok)]">
         {value}
-      </Typography>
+      </span>
     </Box>
   );
 }
@@ -125,20 +122,17 @@ function PlanCard({ icon, label, value }: { icon: React.ReactNode; label: string
       display: 'flex', alignItems: 'center', gap: '13px', bgcolor: 'var(--card)',
       border: '1px solid var(--line)', borderRadius: '13px', p: '14px 16px', minWidth: 0,
     }}>
-      <Box sx={{
-        width: 40, height: 40, borderRadius: '12px', bgcolor: 'var(--accent-soft)', color: 'var(--accent)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-      }}>
+      <div className="w-[40px] h-[40px] rounded-[12px] bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center shrink-0">
         {icon}
-      </Box>
-      <Box sx={{ minWidth: 0 }}>
-        <Typography sx={{ fontSize: '11px', fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--faint)' }}>
+      </div>
+      <div className="min-w-0">
+        <p className="cn-text-body1 text-[11px] font-bold tracking-[.04em] uppercase text-[var(--faint)]">
           {label}
-        </Typography>
+        </p>
         <Typography sx={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--ink)', mt: '2px' }}>
           {value}
         </Typography>
-      </Box>
+      </div>
     </Box>
   );
 }
@@ -146,9 +140,9 @@ function PlanCard({ icon, label, value }: { icon: React.ReactNode; label: string
 /** Paragraphe libre (description / message). */
 function BodyText({ text }: { text: string }) {
   return (
-    <Typography sx={{ fontSize: '13px', color: 'var(--body)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+    <p className="cn-text-body1 text-[13px] text-[var(--body)] leading-[1.6] whitespace-pre-wrap">
       {text}
-    </Typography>
+    </p>
   );
 }
 
@@ -185,7 +179,7 @@ function DevisSections({ data }: { data: Record<string, unknown> }) {
         <>
           <FrSection title="Services souhaités" />
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: '18px' }}>
-            <Box>
+            <div>
               <SvcHeader icon={<SparklesIcon size={15} strokeWidth={1.75} />} label="Services forfait" />
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {forfait.length > 0
@@ -194,8 +188,8 @@ function DevisSections({ data }: { data: Record<string, unknown> }) {
                     ))
                   : <ServiceChip variant="muted" label="Aucun" />}
               </Box>
-            </Box>
-            <Box>
+            </div>
+            <div>
               <SvcHeader icon={<FileTextIcon size={15} strokeWidth={1.75} />} label="Services sur devis" />
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {devis.length > 0
@@ -204,7 +198,7 @@ function DevisSections({ data }: { data: Record<string, unknown> }) {
                     ))
                   : <ServiceChip variant="muted" label="Aucun" />}
               </Box>
-            </Box>
+            </div>
           </Box>
         </>
       )}

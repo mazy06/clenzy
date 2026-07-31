@@ -150,19 +150,19 @@ export default function SiteManagerPage() {
 
   if ((site === null || pages === null) && !error) {
     return (
-      <Box sx={{ p: 3 }}>
+      <div className="p-4">
         <Skeleton variant="rounded" height="80vh" sx={{ borderRadius: '16px', bgcolor: 'var(--hover)' }} />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'var(--bg)' }}>
+    <div className="h-[100vh] flex flex-col bg-[var(--bg)]">
       {/* Barre supérieure */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 3, py: 1.5, borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-[var(--line)] shrink-0">
         <Button onClick={() => navigate('/booking-engine/studio')} sx={{ textTransform: 'none', color: 'var(--muted)', minWidth: 0 }}>← Studio</Button>
-        <Box sx={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{site?.name ?? 'Mon site'}</Box>
-        <Box sx={{ flex: 1 }} />
+        <div className="text-[15px] font-bold text-[var(--ink)]">{site?.name ?? 'Mon site'}</div>
+        <div className="flex-1" />
         {/* Passage en ÉDITION MANUELLE : ouvre l'éditeur GrapesJS sur ce site (config liée). */}
         <Button
           variant="text"
@@ -182,27 +182,27 @@ export default function SiteManagerPage() {
         >
           {publishing ? 'Publication…' : selected?.dirty ? 'Publier cette page' : 'Publié'}
         </Button>
-      </Box>
+      </div>
 
       {error && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mx: 3, mt: 1.5, p: 1.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 13 }}>
+        <div className="flex items-center gap-1.5 mx-4 mt-2 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[13px]">
           <AlertTriangle size={16} strokeWidth={2} /> {error}
-        </Box>
+        </div>
       )}
 
       {/* Corps : aperçu | conversation (la sélection de page vit dans la barre d'adresse de l'aperçu). */}
       <Box sx={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 360px' }, gap: 0 }}>
 
         {/* Aperçu live */}
-        <Box sx={{ p: 2, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <div className="p-3 min-w-0 flex flex-col">
           <Box sx={{ flex: 1, minHeight: 0, border: '1px solid var(--line)', borderRadius: 'var(--radius-lg, 14px)', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 40px -24px rgba(20,30,55,0.35)' }}>
             {/* Chrome navigateur */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1, bgcolor: 'var(--surface-2, #f4f5f8)', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
-              <Box sx={{ display: 'flex', gap: 0.6 }}>
+              <div className="flex gap-1">
                 {['#ff5f57', '#febc2e', '#28c840'].map((c) => <Box key={c} sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: c }} />)}
-              </Box>
+              </div>
               {/* Barre d'adresse = sélecteur de page (remplace la colonne « Pages » retirée). */}
-              <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+              <div className="flex-1 flex justify-center min-w-0">
                 <Box
                   component="button" type="button" onClick={(e: React.MouseEvent<HTMLButtonElement>) => setPageMenuAnchor(e.currentTarget)}
                   aria-label="Changer de page"
@@ -213,13 +213,13 @@ export default function SiteManagerPage() {
                     transition: 'border-color 150ms ease', '&:hover': { borderColor: 'var(--accent)' },
                   }}
                 >
-                  <Box component="span" sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span className="tabular-nums whitespace-nowrap overflow-hidden text-ellipsis">
                     {site?.slug ? `${site.slug}.baitly.site` : 'aperçu'}{selected?.path && selected.path !== '/' ? selected.path : ''}
-                  </Box>
-                  {selected?.dirty && <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'var(--accent)', flexShrink: 0 }} />}
+                  </span>
+                  {selected?.dirty && <div className="w-[6px] h-[6px] rounded-[50%] bg-[var(--accent)] shrink-0" />}
                   <ChevronDown size={13} strokeWidth={2.2} style={{ flexShrink: 0 }} />
                 </Box>
-              </Box>
+              </div>
             </Box>
 
             <Menu
@@ -232,44 +232,44 @@ export default function SiteManagerPage() {
                   onClick={() => { setSelectedId(p.id); setPageMenuAnchor(null); }}
                   sx={{ fontSize: 13, gap: 1.5, minWidth: 240 }}
                 >
-                  <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Box sx={{ fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.title || p.path}</Box>
-                    <Box sx={{ fontSize: 11, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>{p.path}</Box>
-                  </Box>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis">{p.title || p.path}</div>
+                    <div className="text-[11px] text-[var(--muted)] tabular-nums">{p.path}</div>
+                  </div>
                   {p.dirty
-                    ? <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: 'var(--accent)', flexShrink: 0 }} title="Brouillon non publié" />
+                    ? <div className="w-[7px] h-[7px] rounded-[50%] bg-[var(--accent)] shrink-0" title="Brouillon non publié" />
                     : <Check size={14} strokeWidth={2.4} color="var(--muted)" />}
                 </MenuItem>
               ))}
             </Menu>
-            <Box sx={{ position: 'relative', flex: 1, minHeight: 0, bgcolor: '#fff' }}>
+            <div className="relative flex-1 min-h-0 bg-[#fff]">
               {refining && (
                 <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(255,255,255,0.55)', display: 'grid', placeItems: 'center', zIndex: 2, fontSize: 13, color: 'var(--muted)', gap: 1 }}>
                   <Wand2 size={20} strokeWidth={1.8} /> Retouche en cours…
                 </Box>
               )}
               <iframe title="Aperçu de la page" srcDoc={srcDoc} sandbox="" style={{ width: '100%', height: '100%', border: 0, background: '#fff', display: 'block' }} />
-            </Box>
+            </div>
           </Box>
-        </Box>
+        </div>
 
         {/* Conversation d'itération */}
-        <Box sx={{ borderLeft: '1px solid var(--line)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+        <div className="border-s border-[var(--line)] flex flex-col min-h-0">
+          <div className="px-3 py-2 border-b border-[var(--line)] flex items-center gap-1.5 shrink-0">
             <Sparkles size={16} strokeWidth={2} color="var(--accent)" />
-            <Box sx={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Assistant de design</Box>
-          </Box>
+            <div className="text-[13.5px] font-bold text-[var(--ink)]">Assistant de design</div>
+          </div>
 
-          <Box ref={logRef} sx={{ flex: 1, minHeight: 0, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+          <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-2" ref={logRef}>
             {turns.length === 0 && !refining && (
-              <Box sx={{ color: 'var(--muted)', fontSize: 13, lineHeight: 1.6 }}>
+              <div className="text-[var(--muted)] text-[13px] leading-[1.6]">
                 Décrivez une modification de la page <b>{selected?.title || selected?.path}</b> en langage naturel.
-                <Box component="ul" sx={{ pl: 2.5, mt: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <ul className="ps-3.5 mt-1.5 flex flex-col gap-0.5">
                   <li>« Rends le hero plus chaleureux »</li>
                   <li>« Passe la liste des logements en 2 colonnes »</li>
                   <li>« Ajoute une section “à propos” sous le hero »</li>
-                </Box>
-              </Box>
+                </ul>
+              </div>
             )}
             {turns.map((turn, i) => (
               <Box
@@ -288,11 +288,11 @@ export default function SiteManagerPage() {
               </Box>
             ))}
             {refining && (
-              <Box sx={{ alignSelf: 'flex-start', px: 1.5, py: 1, borderRadius: 'var(--radius-md)', bgcolor: 'var(--hover)', color: 'var(--muted)', fontSize: 13 }}>…</Box>
+              <div className="self-start px-2 py-1.5 rounded-[var(--radius-md)] bg-[var(--hover)] text-[var(--muted)] text-[13px]">…</div>
             )}
-          </Box>
+          </div>
 
-          <Box sx={{ p: 1.5, borderTop: '1px solid var(--line)', flexShrink: 0 }}>
+          <div className="p-2 border-t border-[var(--line)] shrink-0">
             <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', px: 1, py: 0.75, bgcolor: 'var(--field, #fff)' }}>
               <Box
                 component="textarea"
@@ -316,9 +316,9 @@ export default function SiteManagerPage() {
                 <ArrowUp size={17} strokeWidth={2.4} />
               </Box>
             </Box>
-          </Box>
-        </Box>
+          </div>
+        </div>
       </Box>
-    </Box>
+    </div>
   );
 }

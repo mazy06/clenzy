@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Chip } from '@mui/material';
+import { Chip } from '@mui/material';
 
 interface EventItem {
   id?: string;
@@ -39,48 +39,36 @@ export const EventsWidget: React.FC<EventsWidgetProps> = ({ data }) => {
 
   if (items.length === 0) {
     return (
-      <Box sx={{ mt: 1, mb: 1.5 }}>
-        <Box sx={{
-          p: 2, borderRadius: '12px',
-          bgcolor: 'var(--field)',
-          textAlign: 'center',
-        }}>
-          <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+      <div className="mt-1.5 mb-2">
+        <div className="p-3 rounded-[12px] bg-[var(--field)] text-center">
+          <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
             Aucun evenement detecte sur cette periode{data.city ? ` a ${data.city}` : ''}.
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
+    <div className="mt-1.5 mb-2">
       {data.title && (
-        <Typography sx={{
-          display: 'block', mb: 0.75, fontSize: '10.5px', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '.05em',
-          color: 'var(--faint)',
-        }}>
+        <p className="cn-text-body1 block mb-1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
           {data.title}
-        </Typography>
+        </p>
       )}
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+      <div className="flex flex-col gap-1">
         {items.map((item, idx) => (
           <EventRow key={item.id ?? `${item.date}-${idx}`} item={item} />
         ))}
-      </Box>
+      </div>
 
       {data.truncated && (
-        <Typography sx={{
-          display: 'block', mt: 0.75, fontSize: '11.5px',
-          color: 'var(--faint)', textAlign: 'right',
-          fontVariantNumeric: 'tabular-nums',
-        }}>
+        <p className="cn-text-body1 block mt-1 text-[11.5px] text-[var(--faint)] text-end tabular-nums">
           {items.length}/{data.totalElements} affiches — affine les dates pour voir le reste
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   );
 };
 
@@ -88,54 +76,21 @@ const EventRow: React.FC<{ item: EventItem }> = ({ item }) => {
   const [typeColor, typeSoft] = typeToColors(item.type);
 
   return (
-    <Box
-      sx={{
-        px: 1.25, py: 1,
-        borderRadius: '10px',
-        bgcolor: 'var(--card)',
-        border: '1px solid var(--line)',
-        display: 'flex',
-        gap: 1,
-        alignItems: 'flex-start',
-      }}
-    >
-      <Box
-        sx={{
-          minWidth: 64,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          pt: 0.25,
-        }}
-      >
-        <Typography sx={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '1rem', fontWeight: 600,
-          lineHeight: 1.1,
-          color: 'var(--ink)',
-          fontVariantNumeric: 'tabular-nums',
-        }}>
+    <div className="px-2 py-1.5 rounded-[10px] bg-[var(--card)] border border-[var(--line)] flex gap-1.5 items-start">
+      <div className="min-w-[64px] flex flex-col items-center pt-0.5">
+        <p className="cn-text-body1 font-[var(--font-display)] text-[1rem] font-semibold leading-[1.1] text-[var(--ink)] tabular-nums">
           {formatDay(item.date)}
-        </Typography>
-        <Typography sx={{
-          fontSize: '10.5px',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '.05em',
-          color: 'var(--faint)',
-        }}>
+        </p>
+        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
           {formatMonth(item.date)}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25, flexWrap: 'wrap' }}>
-          <Typography sx={{
-            fontSize: '13.5px', fontWeight: 600,
-            color: 'var(--ink)',
-          }}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1 mb-0.5 flex-wrap">
+          <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)]">
             {item.title}
-          </Typography>
+          </p>
           {item.type && (
             <Chip
               label={typeLabel(item.type)}
@@ -151,24 +106,18 @@ const EventRow: React.FC<{ item: EventItem }> = ({ item }) => {
             />
           )}
           {item.city && item.city !== '*' && (
-            <Typography sx={{
-              fontSize: '11.5px', color: 'var(--faint)',
-            }}>
+            <p className="cn-text-body1 text-[11.5px] text-[var(--faint)]">
               {item.city}
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
         {item.description && (
-          <Typography sx={{
-            display: 'block', fontSize: '11.5px',
-            color: 'var(--muted)',
-            lineHeight: 1.4,
-          }}>
+          <p className="cn-text-body1 block text-[11.5px] text-[var(--muted)] leading-[1.4]">
             {item.description}
-          </Typography>
+          </p>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

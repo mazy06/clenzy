@@ -57,10 +57,10 @@ export default function ListSkeleton({
       >
         {Array.from({ length: rows }).map((_, idx) => (
           <Paper key={idx} variant="outlined" sx={{ p: 1.25 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <div className="flex items-center gap-1.5 mb-1.5">
               <Skeleton variant="rounded" width={26} height={26} />
               <Skeleton variant="text" width="50%" height={12} />
-            </Box>
+            </div>
             <Skeleton variant="text" width="40%" height={22} />
             <Skeleton variant="text" width="65%" height={12} sx={{ mt: 0.5 }} />
           </Paper>
@@ -71,7 +71,7 @@ export default function ListSkeleton({
 
   // 'row' default
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+    <div className="flex flex-col gap-1">
       {Array.from({ length: rows }).map((_, idx) => (
         <Paper
           key={idx}
@@ -85,14 +85,14 @@ export default function ListSkeleton({
           }}
         >
           <Skeleton variant="rounded" width={36} height={36} />
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <div className="flex-1 flex flex-col gap-0.5">
             <Skeleton variant="text" width="40%" height={14} />
             <Skeleton variant="text" width="65%" height={10} />
-          </Box>
+          </div>
           <Skeleton variant="rounded" width={60} height={18} />
           <Skeleton variant="circular" width={24} height={24} />
         </Paper>
       ))}
-    </Box>
+    </div>
   );
 }

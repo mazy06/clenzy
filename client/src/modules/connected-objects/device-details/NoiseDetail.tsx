@@ -56,7 +56,7 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
       : 'Hors ligne';
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="flex flex-col gap-3">
       {/* 1. Lecture live du capteur — remplace la tuile « Connexion » orpheline */}
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 1 }}>
         <StatTile
@@ -97,7 +97,7 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
       </Box>
 
       {/* 3. Configuration | Historique */}
-      <Box>
+      <div>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
           <PageTabs
             options={[
@@ -112,7 +112,7 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
           />
 
           {subTab === 0 && propertyId != null && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: 0.5 }}>
+            <div className="flex items-center gap-1.5 pe-0.5">
               {configStatus.hasError && (
                 <Alert severity="error" sx={{ py: 0, px: 1, fontSize: '0.6875rem' }}>Erreur</Alert>
               )}
@@ -132,11 +132,11 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
               >
                 {configStatus.isSaving ? 'Sauvegarde…' : 'Sauvegarder'}
               </Button>
-            </Box>
+            </div>
           )}
         </Box>
 
-        <Box sx={{ pt: 2 }}>
+        <div className="pt-3">
           {subTab === 0 && (
             propertyId != null ? (
               <NoiseAlertConfigPanel
@@ -155,8 +155,8 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
             )
           )}
           {subTab === 1 && <NoiseAlertHistory propertyId={propertyId ?? undefined} />}
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }

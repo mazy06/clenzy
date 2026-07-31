@@ -167,17 +167,17 @@ const AssistantDockTab: React.FC = () => {
                   flexShrink: 0,
                 }}
               >
-                <Box sx={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="w-[28px] h-[28px] flex items-center justify-center">
                   <BaitlyMarkLogo variant="mark" size={18} idleAnimation={false} active={isWorking} />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="subtitle2" sx={{ lineHeight: 1.2, fontWeight: 600 }}>
+                </div>
+                <div className="flex-1">
+                  <h6 className="cn-text-subtitle2 leading-[1.2] font-semibold">
                     Assistant
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
+                  </h6>
+                  <span className="cn-text-caption text-muted-foreground leading-[1]">
                     {messages.length === 0 ? 'Que veux-tu savoir ?' : `${messages.length} message${messages.length > 1 ? 's' : ''}`}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
                 <Tooltip title="Agrandir">
                   <IconButton size="small" onClick={handleExpand} aria-label="Agrandir en plein ecran" sx={{ cursor: 'pointer' }}>
                     <FullscreenIcon size={16} />
@@ -194,19 +194,7 @@ const AssistantDockTab: React.FC = () => {
               <MessageList
                 messages={messages}
                 emptyState={
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 1.5,
-                      py: 4,
-                      px: 3,
-                      height: '100%',
-                      textAlign: 'center',
-                    }}
-                  >
+                  <div className="flex flex-col items-center justify-center gap-2 py-6 px-4 h-full text-center">
                     <Box
                       sx={{
                         width: 48,
@@ -221,13 +209,13 @@ const AssistantDockTab: React.FC = () => {
                     >
                       <BaitlyMarkLogo variant="mark" size={26} />
                     </Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    <p className="cn-text-body2 font-semibold">
                       Pose ta question
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 280 }}>
+                    </p>
+                    <span className="cn-text-caption text-muted-foreground max-w-[280px]">
                       J&apos;utilise tes donnees Baitly en temps reel.
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 }
               />
 

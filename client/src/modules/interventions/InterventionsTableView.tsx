@@ -1,7 +1,5 @@
 import React from 'react';
-import {
-  Box, Typography, Chip, Tooltip, IconButton, LinearProgress,
-  Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, } from '@mui/material';
+import { Chip, Tooltip, IconButton, LinearProgress, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility as VisibilityIcon, MoreVert } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -75,12 +73,12 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                   onClick={() => navigate(`/interventions/${intervention.id}`)}
                 >
                   <TableCell>
-                    <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.82rem' }}>
+                    <p className="cn-text-body2 font-semibold text-[0.82rem]">
                       {stripPropertySuffix(intervention.title, intervention.propertyName)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                    </p>
+                    <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
                       {intervention.requestorName}
-                    </Typography>
+                    </span>
                   </TableCell>
                   <TableCell>
                     {(() => { const tk = getTypeTokens(intervention.type); return (
@@ -100,21 +98,21 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                     ); })()}
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                    <p className="cn-text-body2 text-[0.82rem]">
                       {intervention.propertyName}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                    </p>
+                    <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
                       {intervention.propertyAddress}
-                    </Typography>
+                    </span>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                    <p className="cn-text-body2 text-[0.82rem]">
                       {intervention.assignedToName || '—'}
-                    </Typography>
+                    </p>
                     {intervention.assignedToType && (
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                      <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
                         {intervention.assignedToType === 'team' ? 'Équipe' : 'Utilisateur'}
-                      </Typography>
+                      </span>
                     )}
                   </TableCell>
                   <TableCell align="center">
@@ -152,7 +150,7 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                     ); })()}
                   </TableCell>
                   <TableCell align="center">
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 80 }}>
+                    <div className="flex items-center gap-1 min-w-[80px]">
                       <LinearProgress
                         variant="determinate"
                         value={getProgress(intervention)}
@@ -168,19 +166,19 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                           },
                         }}
                       />
-                      <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.68rem', minWidth: 28, fontVariantNumeric: 'tabular-nums' }}>
+                      <span className="cn-text-caption font-semibold text-[0.68rem] min-w-[28px] tabular-nums">
                         {getProgress(intervention)}%
-                      </Typography>
-                    </Box>
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                    <p className="cn-text-body2 text-[0.82rem]">
                       {formatDateShort(intervention.scheduledDate)}
-                    </Typography>
+                    </p>
                     {intervention.estimatedDurationHours > 0 && (
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                      <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
                         ~{intervention.estimatedDurationHours}h
-                      </Typography>
+                      </span>
                     )}
                   </TableCell>
                   <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>

@@ -1,25 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  Chip,
-  CircularProgress,
-  Alert,
-  Button,
-  IconButton,
-  Tooltip,
-  LinearProgress,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Collapse,
-  Divider,
-} from '@mui/material';
+import { Box, Card, CardContent, Grid, Chip, CircularProgress, Alert, Button, IconButton, Tooltip, LinearProgress, List, ListItem, ListItemText, ListItemIcon, Collapse, Divider } from '@mui/material';
 import {
   CheckCircle,
   Error as ErrorIcon,
@@ -70,13 +51,13 @@ const statusHex = (status: string) => STATUS_HEX[status] ?? '#7BA3C2';
 const getStatusIcon = (status: string) => {
   switch (status) {
     case 'UP':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--ok)]"><CheckCircle size={20} strokeWidth={1.75} /></span>;
     case 'DOWN':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><ErrorIcon size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--err)]"><ErrorIcon size={20} strokeWidth={1.75} /></span>;
     case 'DEGRADED':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Warning size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--warn)]"><Warning size={20} strokeWidth={1.75} /></span>;
     default:
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Info size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--info)]"><Info size={20} strokeWidth={1.75} /></span>;
   }
 };
 
@@ -208,7 +189,7 @@ const HealthChecks: React.FC = () => {
   }
 
   return (
-    <Box>
+    <div>
       {/* Vue d'ensemble — StatTile (carte plate hairline, valeur display) */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6}>
@@ -235,9 +216,9 @@ const HealthChecks: React.FC = () => {
       {systemMetrics && (
         <Card variant="outlined" sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ color: 'var(--ink)' }}>
+            <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
               Métriques Système
-            </Typography>
+            </h6>
             <Grid container spacing={3}>
               {([
                 { label: 'CPU', value: systemMetrics.cpuUsage, suffix: '%' },
@@ -248,15 +229,12 @@ const HealthChecks: React.FC = () => {
                 return (
                   <Grid item xs={12} sm={6} md={2} key={metric.label}>
                     <Box textAlign="center">
-                      <Typography
-                        variant="h6"
-                        sx={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', color: 'var(--ink)' }}
-                      >
+                      <h6 className="cn-text-h6 font-[var(--font-display)] tabular-nums text-[var(--ink)]">
                         {metric.value}{metric.suffix}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'var(--muted)' }}>
+                      </h6>
+                      <p className="cn-text-body2 text-[var(--muted)]">
                         {metric.label}
-                      </Typography>
+                      </p>
                       <LinearProgress
                         variant="determinate"
                         value={Math.min(metric.value, 100)}
@@ -274,15 +252,12 @@ const HealthChecks: React.FC = () => {
               })}
               <Grid item xs={12} sm={6} md={3}>
                 <Box textAlign="center">
-                  <Typography
-                    variant="h6"
-                    sx={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', color: 'var(--ok)' }}
-                  >
+                  <h6 className="cn-text-h6 font-[var(--font-display)] tabular-nums text-[var(--ok)]">
                     {formatUptime(systemMetrics.uptimeSeconds)}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'var(--muted)' }}>
+                  </h6>
+                  <p className="cn-text-body2 text-[var(--muted)]">
                     Uptime JVM
-                  </Typography>
+                  </p>
                 </Box>
               </Grid>
             </Grid>
@@ -293,9 +268,9 @@ const HealthChecks: React.FC = () => {
       {/* Vérifications détaillées */}
       <Card variant="outlined">
         <CardContent>
-          <Typography variant="h6" gutterBottom sx={{ color: 'var(--ink)' }}>
+          <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
             Vérifications Détaillées ({healthChecks.length} services)
-          </Typography>
+          </h6>
 
           <List>
             {healthChecks.map((check, index) => (
@@ -307,9 +282,9 @@ const HealthChecks: React.FC = () => {
                   <ListItemText
                     primary={
                       <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                        <Typography variant="subtitle1" component="span">
+                        <span className="cn-text-subtitle1">
                           {check.name}
-                        </Typography>
+                        </span>
                         <Chip
                           label={check.status}
                           size="small"
@@ -333,27 +308,27 @@ const HealthChecks: React.FC = () => {
                     secondary={
                       <Box mt={1}>
                         <Box display="flex" alignItems="center" gap={2} flexWrap="wrap" mb={1}>
-                          <Typography variant="body2" color="text.secondary">
+                          <p className="cn-text-body2 text-muted-foreground">
                             <strong>Temps de réponse:</strong>
                             <Chip
                               label={`${check.responseTimeMs}ms`}
                               size="small"
                               sx={{ ...chipSx(responseTimeToken(check.responseTimeMs).fg, responseTimeToken(check.responseTimeMs).bg), ml: 1, fontVariantNumeric: 'tabular-nums' }}
                             />
-                          </Typography>
+                          </p>
                           {check.lastCheck && (
-                            <Typography variant="body2" color="text.secondary">
+                            <p className="cn-text-body2 text-muted-foreground">
                               <strong>Dernière vérification:</strong> {new Date(check.lastCheck).toLocaleTimeString()}
-                            </Typography>
+                            </p>
                           )}
                         </Box>
 
                         <Collapse in={expandedChecks.has(check.name)}>
                           {/* Détails techniques : mono compact sur fond --field */}
                           <Box mt={1} px={1.5} py={1} sx={{ bgcolor: 'var(--field)', border: '1px solid var(--field-line)', borderRadius: '8px' }}>
-                            <Typography sx={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--body)', wordBreak: 'break-word' }}>
+                            <p className="cn-text-body1 font-mono text-[12px] text-[var(--body)] break-words">
                               {check.details}
-                            </Typography>
+                            </p>
                           </Box>
                         </Collapse>
                       </Box>
@@ -372,7 +347,7 @@ const HealthChecks: React.FC = () => {
           </List>
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

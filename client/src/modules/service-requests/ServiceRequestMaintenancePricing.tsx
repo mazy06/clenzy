@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Box, Typography, TextField, Chip } from '@mui/material';
+import { TextField, Chip } from '@mui/material';
 import { Receipt, Search } from '../../icons';
 import type { QuoteLine } from '../../schemas/serviceRequestSchema';
 import ServiceRequestQuoteEditor from './ServiceRequestQuoteEditor';
@@ -72,13 +72,13 @@ const ServiceRequestMaintenancePricing: React.FC<ServiceRequestMaintenancePricin
     );
 
     return (
-      <Box>
-        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1 }}>
+      <div>
+        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1.5">
           Chiffrage
-        </Typography>
+        </p>
 
         {/* Sélecteur de mode */}
-        <Box sx={{ display: 'flex', gap: 0.75, mb: 1.5, flexWrap: 'wrap' }}>
+        <div className="flex gap-1 mb-2 flex-wrap">
           {MODES.map((m) => {
             const isActive = pricingMode === m.value;
             return (
@@ -106,23 +106,16 @@ const ServiceRequestMaintenancePricing: React.FC<ServiceRequestMaintenancePricin
               />
             );
           })}
-        </Box>
+        </div>
 
         {/* Contenu selon le mode */}
         {pricingMode === 'DIAGNOSTIC' ? (
-          <Box
-            sx={{
-              border: '1px solid var(--line)',
-              borderRadius: '11px',
-              bgcolor: 'var(--field)',
-              p: 1.5,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-              <Box>
-                <Typography sx={{ fontSize: '10px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '.04em', mb: 0.5 }}>
+          <div className="border border-[var(--line)] rounded-[11px] bg-[var(--field)] p-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div>
+                <p className="cn-text-body1 text-[10px] font-bold text-[var(--faint)] uppercase tracking-[.04em] mb-0.5">
                   Montant du diagnostic (€)
-                </Typography>
+                </p>
                 <TextField
                   value={Number.isFinite(diagnosticFee as number) && diagnosticFee !== undefined ? diagnosticFee : ''}
                   onChange={(e) => handleDiagnosticChange(e.target.value)}
@@ -139,17 +132,17 @@ const ServiceRequestMaintenancePricing: React.FC<ServiceRequestMaintenancePricin
                     '& input[type=number]': { MozAppearance: 'textfield' },
                   }}
                 />
-              </Box>
-              <Typography sx={{ flex: 1, minWidth: 180, fontSize: '11.5px', color: 'var(--muted)', lineHeight: 1.4 }}>
+              </div>
+              <p className="cn-text-body1 flex-1 min-w-[180px] text-[11.5px] text-[var(--muted)] leading-[1.4]">
                 L'artisan facture d'abord ce diagnostic pour évaluer sur place, puis
                 établit le devis après la visite. Optionnel — laisse vide pour chiffrer plus tard.
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
         ) : (
           <ServiceRequestQuoteEditor value={quoteLines} onChange={handleQuoteChange} disabled={disabled} />
         )}
-      </Box>
+      </div>
     );
   },
 );

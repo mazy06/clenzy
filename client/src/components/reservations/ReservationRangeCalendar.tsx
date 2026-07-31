@@ -239,7 +239,7 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
   // Rend UN mois : libellé + en-tête jours + grille 7 colonnes. La plage (edges /
   // in-range) fonctionne à cheval sur les deux mois via les mêmes handlers.
   const renderMonth = (cells: CalCell[], label: string) => (
-    <Box sx={{ flex: 1, minWidth: 0 }}>
+    <div className="flex-1 min-w-0">
       <Box
         component="b"
         sx={{
@@ -321,7 +321,7 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
           );
         })}
       </Box>
-    </Box>
+    </div>
   );
 
   return (
@@ -342,7 +342,7 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
         />
       </Box>
 
-      <Box>
+      <div>
         {/* Navigation : décale la paire de mois. Chevrons aux extrémités (style Airbnb). */}
         <Box sx={{ position: 'relative', minHeight: 28, marginBottom: '2px' }}>
           <Box
@@ -398,7 +398,7 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
             </Box>
           </Box>
         )}
-      </Box>
+      </div>
     </Box>
   );
 };

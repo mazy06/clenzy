@@ -1,11 +1,5 @@
 import React, { useCallback } from 'react';
-import {
-  Box,
-  Grid,
-  Typography,
-  TextField,
-  MenuItem,
-} from '@mui/material';
+import { Grid, Typography, TextField, MenuItem } from '@mui/material';
 import { LocationOn } from '../../icons';
 import { Controller, useWatch } from 'react-hook-form';
 import type { Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
@@ -97,7 +91,7 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
     );
 
     return (
-      <Box>
+      <div>
         <Typography sx={SECTION_TITLE_SX}>
           <LocationOn size={14} strokeWidth={1.75} />
           {t('properties.address')}
@@ -250,40 +244,15 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
 
           {/* ─── Position GPS sur la carte ────────────────────────────── */}
           <Grid item xs={12}>
-            <Typography
-              sx={{
-                fontSize: '0.6875rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: 'text.secondary',
-                mt: 0.5,
-                mb: 1,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-              }}
-            >
+            <p className="cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-muted-foreground mt-0.5 mb-1.5 flex items-center gap-0.5">
               <LocationOn size={14} strokeWidth={1.75} />
               Position GPS
               {latitude != null && longitude != null && (
-                <Box
-                  component="span"
-                  sx={{
-                    ml: 0.5,
-                    px: 0.75,
-                    py: 0.1,
-                    borderRadius: 999,
-                    bgcolor: 'var(--ok-soft)',
-                    color: 'var(--ok)',
-                    fontSize: '9.5px',
-                    fontWeight: 700,
-                  }}
-                >
+                <span className="ms-0.5 px-1 py-0 rounded-[999px] bg-[var(--ok-soft)] text-[var(--ok)] text-[9.5px] font-bold">
                   ✓ DÉFINIE
-                </Box>
+                </span>
               )}
-            </Typography>
+            </p>
             <PropertyLocationPicker
               latitude={latitude}
               longitude={longitude}
@@ -293,7 +262,7 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
             />
           </Grid>
         </Grid>
-      </Box>
+      </div>
     );
   }
 );

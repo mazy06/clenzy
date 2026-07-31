@@ -1,24 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Grid,
-  TextField,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Alert,
-  CircularProgress,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Avatar,
-} from '@mui/material';
+import { Box, Card, CardContent, Grid, TextField, Button, FormControl, InputLabel, Select, MenuItem, Alert, CircularProgress, List, ListItem, ListItemAvatar, ListItemText, Avatar } from '@mui/material';
 import {
   Autocomplete,
   IconButton,
@@ -255,25 +236,25 @@ const TeamEdit: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+      <div className="flex justify-center items-center h-[50vh]">
         <CircularProgress />
-      </Box>
+      </div>
     );
   }
 
   if (!canEdit) {
     return (
-      <Box sx={{ p: 3 }}>
+      <div className="p-4">
         <Alert severity="error">
-          <Typography variant="h6" gutterBottom>Accès non autorisé</Typography>
-          <Typography variant="body1">Vous n'avez pas les permissions nécessaires pour modifier des équipes.</Typography>
+          <h6 className="cn-text-h6 mb-[0.35em]">Accès non autorisé</h6>
+          <p className="cn-text-body1">Vous n'avez pas les permissions nécessaires pour modifier des équipes.</p>
         </Alert>
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <div className="p-4">
       <PageHeader
         title="Modifier l'équipe"
         subtitle="Modifiez les détails de l'équipe"
@@ -281,7 +262,7 @@ const TeamEdit: React.FC = () => {
         backLabel="Retour aux détails"
         showBackButton={true}
         actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <div className="flex gap-1.5">
             <Button
               variant="outlined"
               size="small"
@@ -303,7 +284,7 @@ const TeamEdit: React.FC = () => {
             >
               {updateMutation.isPending ? 'Mise à jour...' : 'Mettre à jour'}
             </Button>
-          </Box>
+          </div>
         }
       />
 
@@ -322,9 +303,9 @@ const TeamEdit: React.FC = () => {
       <Card>
         <CardContent sx={{ p: 4 }}>
           <form onSubmit={handleSubmit}>
-            <Typography variant="h6" sx={{ mb: 3, color: 'var(--ink)' }}>
+            <h6 className="cn-text-h6 mb-4 text-[var(--ink)]">
               Informations de base
-            </Typography>
+            </h6>
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
               <Grid item xs={12} md={8}>
@@ -347,10 +328,10 @@ const TeamEdit: React.FC = () => {
                   >
                     {teamServiceCategories.map((cat) => (
                       <MenuItem key={cat.value} value={cat.value}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <div className="flex items-center gap-1">
                           {cat.icon}
-                          <Typography variant="body2">{cat.label}</Typography>
-                        </Box>
+                          <p className="cn-text-body2">{cat.label}</p>
+                        </div>
                       </MenuItem>
                     ))}
                   </Select>
@@ -358,7 +339,7 @@ const TeamEdit: React.FC = () => {
               </Grid>
             </Grid>
 
-            <Typography variant="h6" sx={{ mb: 2, color: 'var(--ink)' }}>Description</Typography>
+            <h6 className="cn-text-h6 mb-3 text-[var(--ink)]">Description</h6>
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
               <Grid item xs={12}>
@@ -375,11 +356,11 @@ const TeamEdit: React.FC = () => {
             </Grid>
 
             {/* ─── Coverage Zones ─────────────────────────────────────── */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="h6" sx={{ color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <div className="flex items-center justify-between mb-3">
+              <h6 className="cn-text-h6 text-[var(--ink)] flex items-center gap-0.5">
                 <MapIcon size={20} strokeWidth={1.75} />
                 Zones de couverture
-              </Typography>
+              </h6>
               <Button
                 size="small"
                 variant="outlined"
@@ -388,17 +369,17 @@ const TeamEdit: React.FC = () => {
               >
                 Ajouter une zone
               </Button>
-            </Box>
+            </div>
 
             {formData.coverageZones.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 3, mb: 4, border: '1px dashed', borderColor: 'divider', borderRadius: 2 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><MapIcon size={32} strokeWidth={1.75} /></Box>
-                <Typography variant="body2" color="text.secondary">
+                <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><MapIcon size={32} strokeWidth={1.75} /></span>
+                <p className="cn-text-body2 text-muted-foreground">
                   Aucune zone de couverture definie
-                </Typography>
+                </p>
               </Box>
             ) : (
-              <Box sx={{ mb: 4 }}>
+              <div className="mb-6">
                 {formData.coverageZones.map((zone, index) => {
                   const countryDef = COVERAGE_COUNTRIES.find(c => c.code === (zone.country || 'FR')) ?? COVERAGE_COUNTRIES[0];
                   const isFr = countryDef.matchMode === 'department';
@@ -501,10 +482,10 @@ const TeamEdit: React.FC = () => {
                     </Grid>
                   );
                 })}
-              </Box>
+              </div>
             )}
 
-            <Typography variant="h6" sx={{ mb: 2, color: 'var(--ink)' }}>Membres de l'équipe</Typography>
+            <h6 className="cn-text-h6 mb-3 text-[var(--ink)]">Membres de l'équipe</h6>
 
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={12} md={4}>
@@ -559,10 +540,10 @@ const TeamEdit: React.FC = () => {
             </Grid>
 
             {(formData.members || []).length > 0 && (
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="subtitle1" sx={{ mb: 2 }}>
+              <div className="mb-6">
+                <h6 className="cn-text-subtitle1 mb-3">
                   Membres actuels ({(formData.members || []).length})
-                </Typography>
+                </h6>
                 <List>
                   {(formData.members || []).map((member) => (
                     <React.Fragment key={member.userId}>
@@ -576,7 +557,7 @@ const TeamEdit: React.FC = () => {
                           primary={`${member.firstName} ${member.lastName}`}
                           secondary={member.email}
                         />
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <div className="flex items-center gap-3">
                           <FormControl size="small" sx={{ minWidth: 120 }}>
                             <Select
                               value={member.role}
@@ -595,17 +576,17 @@ const TeamEdit: React.FC = () => {
                           >
                             Retirer
                           </Button>
-                        </Box>
+                        </div>
                       </ListItem>
                     </React.Fragment>
                   ))}
                 </List>
-              </Box>
+              </div>
             )}
           </form>
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

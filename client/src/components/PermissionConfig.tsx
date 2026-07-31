@@ -123,29 +123,29 @@ const getModuleDisplayName = (module: string): string => {
 // Fonction pour obtenir l'icône appropriée pour chaque module
 const getModuleIcon = (moduleName: string) => {
   const iconMap: { [key: string]: React.ReactNode } = {
-    'Dashboard': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><DashboardIcon size={20} strokeWidth={1.75} /></Box>,
-    'Propriétés': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><HomeIcon size={20} strokeWidth={1.75} /></Box>,
-    'Demandes de Service': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AssignmentIcon size={20} strokeWidth={1.75} /></Box>,
-    'Interventions': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><BuildIcon size={20} strokeWidth={1.75} /></Box>,
-    'Équipes': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><GroupIcon size={20} strokeWidth={1.75} /></Box>,
-    'Portefeuilles': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><BusinessIcon size={20} strokeWidth={1.75} /></Box>,
-    'Contact': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><NotificationsIcon size={20} strokeWidth={1.75} /></Box>,
-    'Utilisateurs': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><PersonIcon size={20} strokeWidth={1.75} /></Box>,
-    'Paramètres': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SettingsIcon size={20} strokeWidth={1.75} /></Box>,
-    'Rapports': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AssessmentIcon size={20} strokeWidth={1.75} /></Box>,
-    'Documents': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><DescriptionIcon size={20} strokeWidth={1.75} /></Box>,
-    'Réservations': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><EventNoteIcon size={20} strokeWidth={1.75} /></Box>,
-    'Prix Dynamiques': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><TrendingUpIcon size={20} strokeWidth={1.75} /></Box>,
-    'Tarification': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><TarificationIcon size={20} strokeWidth={1.75} /></Box>,
-    'Paiements': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><PaymentIcon size={20} strokeWidth={1.75} /></Box>,
-    'Canaux': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><ChannelsIcon size={20} strokeWidth={1.75} /></Box>,
-    'Messagerie': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><ChatIcon size={20} strokeWidth={1.75} /></Box>,
-    'Monitoring': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><MonitorIcon size={20} strokeWidth={1.75} /></Box>,
-    'Synchronisation': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SyncIcon size={20} strokeWidth={1.75} /></Box>,
-    'KPI Readiness': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SpeedIcon size={20} strokeWidth={1.75} /></Box>,
-    'Base de Données': <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><DatabaseIcon size={20} strokeWidth={1.75} /></Box>,
+    'Dashboard': <span className="inline-flex text-muted-foreground"><DashboardIcon size={20} strokeWidth={1.75} /></span>,
+    'Propriétés': <span className="inline-flex text-muted-foreground"><HomeIcon size={20} strokeWidth={1.75} /></span>,
+    'Demandes de Service': <span className="inline-flex text-muted-foreground"><AssignmentIcon size={20} strokeWidth={1.75} /></span>,
+    'Interventions': <span className="inline-flex text-muted-foreground"><BuildIcon size={20} strokeWidth={1.75} /></span>,
+    'Équipes': <span className="inline-flex text-muted-foreground"><GroupIcon size={20} strokeWidth={1.75} /></span>,
+    'Portefeuilles': <span className="inline-flex text-muted-foreground"><BusinessIcon size={20} strokeWidth={1.75} /></span>,
+    'Contact': <span className="inline-flex text-muted-foreground"><NotificationsIcon size={20} strokeWidth={1.75} /></span>,
+    'Utilisateurs': <span className="inline-flex text-muted-foreground"><PersonIcon size={20} strokeWidth={1.75} /></span>,
+    'Paramètres': <span className="inline-flex text-muted-foreground"><SettingsIcon size={20} strokeWidth={1.75} /></span>,
+    'Rapports': <span className="inline-flex text-muted-foreground"><AssessmentIcon size={20} strokeWidth={1.75} /></span>,
+    'Documents': <span className="inline-flex text-muted-foreground"><DescriptionIcon size={20} strokeWidth={1.75} /></span>,
+    'Réservations': <span className="inline-flex text-muted-foreground"><EventNoteIcon size={20} strokeWidth={1.75} /></span>,
+    'Prix Dynamiques': <span className="inline-flex text-muted-foreground"><TrendingUpIcon size={20} strokeWidth={1.75} /></span>,
+    'Tarification': <span className="inline-flex text-muted-foreground"><TarificationIcon size={20} strokeWidth={1.75} /></span>,
+    'Paiements': <span className="inline-flex text-muted-foreground"><PaymentIcon size={20} strokeWidth={1.75} /></span>,
+    'Canaux': <span className="inline-flex text-muted-foreground"><ChannelsIcon size={20} strokeWidth={1.75} /></span>,
+    'Messagerie': <span className="inline-flex text-muted-foreground"><ChatIcon size={20} strokeWidth={1.75} /></span>,
+    'Monitoring': <span className="inline-flex text-muted-foreground"><MonitorIcon size={20} strokeWidth={1.75} /></span>,
+    'Synchronisation': <span className="inline-flex text-muted-foreground"><SyncIcon size={20} strokeWidth={1.75} /></span>,
+    'KPI Readiness': <span className="inline-flex text-muted-foreground"><SpeedIcon size={20} strokeWidth={1.75} /></span>,
+    'Base de Données': <span className="inline-flex text-muted-foreground"><DatabaseIcon size={20} strokeWidth={1.75} /></span>,
   };
-  return iconMap[moduleName] || <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><InfoIcon size={20} strokeWidth={1.75} /></Box>;
+  return iconMap[moduleName] || <span className="inline-flex text-muted-foreground"><InfoIcon size={20} strokeWidth={1.75} /></span>;
 };
 
 const PermissionConfig: React.FC = () => {
@@ -272,36 +272,36 @@ const PermissionConfig: React.FC = () => {
 
   if (!user) {
     return (
-      <Box>
+      <div>
         <Alert severity="warning">
           Aucun utilisateur connecté
         </Alert>
-      </Box>
+      </div>
     );
   }
 
   if (loading || loadingPermissions) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+      <div className="flex justify-center">
         <CircularProgress />
-      </Box>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Box>
+      <div>
         <Alert severity="error">
           Erreur: {error}
         </Alert>
-      </Box>
+      </div>
     );
   }
 
   const rolePermissionSet = new Set(rolePermissions?.permissions ?? []);
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title="Roles & Permissions"
         subtitle={`Utilisateur: ${user.username} (${user.email}) - Rôle: ${user.roles.join(', ')}`}
@@ -309,12 +309,12 @@ const PermissionConfig: React.FC = () => {
         showBackButton={false}
         actions={
           selectedRole && rolePermissions && (
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <div className="flex gap-1.5 items-center">
               <Button
                 variant="outlined"
                 size="small"
                 color="warning"
-                startIcon={<Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><RefreshIcon size={20} strokeWidth={1.75} /></Box>}
+                startIcon={<span className="inline-flex text-muted-foreground"><RefreshIcon size={20} strokeWidth={1.75} /></span>}
                 onClick={async () => {
                   await resetRolePermissions(selectedRole);
                   triggerGlobalRefresh();
@@ -328,7 +328,7 @@ const PermissionConfig: React.FC = () => {
                 variant="outlined"
                 size="small"
                 color="error"
-                startIcon={<Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><StorageIcon size={20} strokeWidth={1.75} /></Box>}
+                startIcon={<span className="inline-flex text-muted-foreground"><StorageIcon size={20} strokeWidth={1.75} /></span>}
                 onClick={async () => {
                   try {
                     await resetToInitialPermissions(selectedRole);
@@ -355,7 +355,7 @@ const PermissionConfig: React.FC = () => {
                 variant="contained"
                 size="small"
                 color="primary"
-                startIcon={<Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SaveIcon size={20} strokeWidth={1.75} /></Box>}
+                startIcon={<span className="inline-flex text-muted-foreground"><SaveIcon size={20} strokeWidth={1.75} /></span>}
                 onClick={async () => {
                   try {
                     await applyLocalChanges(selectedRole);
@@ -382,7 +382,7 @@ const PermissionConfig: React.FC = () => {
               >
                 Sauvegarder
               </Button>
-            </Box>
+            </div>
           )
         }
       />
@@ -403,15 +403,15 @@ const PermissionConfig: React.FC = () => {
       {selectedRole && (
         <Card sx={{ mb: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
           <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-              <Typography variant="body2" color="text.secondary">
+            <div className="flex items-center gap-3 flex-wrap">
+              <p className="cn-text-body2 text-muted-foreground">
                 Rôle sélectionné : <strong>{selectedRole}</strong>
-              </Typography>
+              </p>
               {rolePermissions && (
                 <>
-                  <Typography variant="body2" color="text.secondary">
+                  <p className="cn-text-body2 text-muted-foreground">
                     • {rolePermissions.permissions.length} permissions actives
-                  </Typography>
+                  </p>
                   <Chip
                     label={rolePermissions.isDefault ? 'Par défaut' : 'Modifié'}
                     size="small"
@@ -420,7 +420,7 @@ const PermissionConfig: React.FC = () => {
                   />
                 </>
               )}
-            </Box>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -429,62 +429,62 @@ const PermissionConfig: React.FC = () => {
       {selectedRole && rolePermissions && (
         <Card sx={{ mb: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
           <CardContent sx={{ p: 3 }}>
-            <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 500 }}>
+            <div>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <h6 className="cn-text-subtitle2 text-muted-foreground font-medium">
                   Résumé des permissions
-                </Typography>
-              </Box>
+                </h6>
+              </div>
               
               <Grid container spacing={1}>
                 <Grid item xs={3}>
-                  <Box sx={{ textAlign: 'center', p: 1 }}>
+                  <div className="text-center p-1.5">
                     <Typography variant="h6" color="info.main" sx={{ fontWeight: 600, mb: 0.5 }}>
                       {allPermissions.length}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <span className="cn-text-caption text-muted-foreground">
                       Total
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 </Grid>
                 
                 <Grid item xs={3}>
-                  <Box sx={{ textAlign: 'center', p: 1 }}>
-                    <Typography variant="h6" color="success.main" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  <div className="text-center p-1.5">
+                    <h6 className="cn-text-h6 text-[var(--bui-success-ink)] font-semibold mb-0.5">
                       {rolePermissions.permissions.length}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    </h6>
+                    <span className="cn-text-caption text-muted-foreground">
                       Actives
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 </Grid>
                 
                 <Grid item xs={3}>
-                  <Box sx={{ textAlign: 'center', p: 1 }}>
-                    <Typography variant="h6" color="error.main" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  <div className="text-center p-1.5">
+                    <h6 className="cn-text-h6 text-destructive font-semibold mb-0.5">
                       {allPermissions.filter(p => !rolePermissionSet.has(p)).length}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    </h6>
+                    <span className="cn-text-caption text-muted-foreground">
                       Inactives
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 </Grid>
 
                 <Grid item xs={3}>
-                  <Box sx={{ textAlign: 'center', p: 1 }}>
-                    <Typography variant="h6" color="warning.main" sx={{ fontWeight: 600, mb: 0.5 }}>
+                  <div className="text-center p-1.5">
+                    <h6 className="cn-text-h6 text-[var(--bui-warning-ink)] font-semibold mb-0.5">
                       {Object.keys(permissionsByModule).filter(module => {
                         const modulePermissions = permissionsByModule[module as keyof typeof permissionsByModule];
                         return modulePermissions.some(permission => rolePermissionSet.has(permission));
                       }).length} / {Object.keys(permissionsByModule).length}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    </h6>
+                    <span className="cn-text-caption text-muted-foreground">
                       Menus accessibles
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 </Grid>
               </Grid>
-            </Box>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -492,7 +492,7 @@ const PermissionConfig: React.FC = () => {
       {/* Onglets pour la configuration et la démonstration */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box sx={{ mb: 2 }}>
+          <div className="mb-3">
             <PageTabs
               options={[
                 { label: 'Édition des Permissions', icon: <SettingsIcon />, disabled: !selectedRole || !rolePermissions },
@@ -504,16 +504,16 @@ const PermissionConfig: React.FC = () => {
               mb={0}
               ariaLabel="Configuration des permissions"
             />
-          </Box>
+          </div>
 
           {/* Contenu de l'onglet Édition des Permissions */}
           {activeTab === 0 && selectedRole && rolePermissions && (
-            <Box role="tabpanel" id="tabpanel-0" aria-labelledby="tab-0">
+            <div role="tabpanel" id="tabpanel-0" aria-labelledby="tab-0">
               {/* Configuration des permissions par module */}
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3, color: 'text.primary' }}>
+              <div className="mb-6">
+                <h5 className="cn-text-h5 mb-[0.35em] font-semibold mb-4 text-foreground">
                   Permissions par Module
-                </Typography>
+                </h5>
                 
                 {/* Instructions pour la modification des permissions */}
                 <Alert severity="info" sx={{ mb: 3, fontSize: '1rem' }}>
@@ -529,7 +529,7 @@ const PermissionConfig: React.FC = () => {
                   </Alert>
                 )}
                 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <div className="flex flex-col gap-0.5">
                   {Object.entries(permissionsByModule).map(([moduleName, permissions]) => {
                     const activeCount = permissions.filter(p => rolePermissionSet.has(p)).length;
                     const allActive = activeCount === permissions.length;
@@ -564,19 +564,12 @@ const PermissionConfig: React.FC = () => {
                             },
                           }}
                         >
-                          <Box sx={{
-                            p: 0.5,
-                            bgcolor: 'grey.100',
-                            borderRadius: 0.5,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}>
+                          <div className="p-0.5 bg-[grey.100] rounded-[0.5px] flex items-center justify-center">
                             {getModuleIcon(moduleName)}
-                          </Box>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
+                          </div>
+                          <h6 className="cn-text-subtitle2 font-semibold flex-1">
                             {moduleName}
-                          </Typography>
+                          </h6>
                           <Chip
                             label={`${activeCount}/${permissions.length}`}
                             size="small"
@@ -586,7 +579,7 @@ const PermissionConfig: React.FC = () => {
                           />
                         </AccordionSummary>
                         <AccordionDetails sx={{ px: 2, pt: 0, pb: 2 }}>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                          <div className="flex flex-col gap-1">
                             {permissions.map((permission) => {
                               const isActive = rolePermissionSet.has(permission);
                               return (
@@ -619,11 +612,11 @@ const PermissionConfig: React.FC = () => {
                                       },
                                     }}
                                   />
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
+                                  <div className="flex items-center gap-0.5 ms-auto">
                                     {isActive ? (
-                                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CheckCircleIcon size={16} strokeWidth={1.75} /></Box>
+                                      <span className="inline-flex text-muted-foreground"><CheckCircleIcon size={16} strokeWidth={1.75} /></span>
                                     ) : (
-                                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><ErrorIcon size={16} strokeWidth={1.75} /></Box>
+                                      <span className="inline-flex text-muted-foreground"><ErrorIcon size={16} strokeWidth={1.75} /></span>
                                     )}
                                     <Typography
                                       variant="caption"
@@ -632,39 +625,39 @@ const PermissionConfig: React.FC = () => {
                                     >
                                       {isActive ? 'Actif' : 'Inactif'}
                                     </Typography>
-                                  </Box>
+                                  </div>
                                 </Box>
                               );
                             })}
-                          </Box>
+                          </div>
                         </AccordionDetails>
                       </Accordion>
                     );
                   })}
-                </Box>
-              </Box>
+                </div>
+              </div>
 
-            </Box>
+            </div>
           )}
 
           {/* Contenu de l'onglet Démonstration des Effets */}
           {activeTab === 1 && selectedRole && rolePermissions && (
-            <Box role="tabpanel" id="tabpanel-1" aria-labelledby="tab-1">
+            <div role="tabpanel" id="tabpanel-1" aria-labelledby="tab-1">
               <PermissionEffectsDemo 
                 selectedRole={selectedRole}
                 rolePermissions={rolePermissions}
               />
-            </Box>
+            </div>
           )}
 
 
           {/* Message si aucun rôle n'est sélectionné */}
           {!selectedRole && (
-            <Box sx={{ p: 3, textAlign: 'center' }}>
-              <Typography variant="body1" color="text.secondary">
+            <div className="p-4 text-center">
+              <p className="cn-text-body1 text-muted-foreground">
                 Veuillez sélectionner un rôle pour commencer la configuration des permissions
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -684,7 +677,7 @@ const PermissionConfig: React.FC = () => {
           {saveNotification.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 };
 

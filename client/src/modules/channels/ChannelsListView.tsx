@@ -123,12 +123,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
             }}
           >
             {ota.logo ? (
-              <Box
-                component="img"
-                src={ota.logo}
-                alt={ota.name}
-                sx={{ height: 22, maxWidth: 76, objectFit: 'contain' }}
-              />
+              <img className="h-[22px] max-w-[76px] object-contain" src={ota.logo} alt={ota.name} />
             ) : (
               <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.75rem', fontWeight: 700, color: ota.brandColor, letterSpacing: '-0.02em' }}>
                 {ota.name}
@@ -137,14 +132,14 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
           </Box>
 
           {/* Channel name */}
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink)' }}>
+          <div className="min-w-0">
+            <p className="cn-text-body1 font-[var(--font-display)] text-[0.875rem] font-semibold text-[var(--ink)]">
               {ota.name}
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
           {/* Segment B2B / B2C — chips -soft tokenisés */}
-          <Box>
+          <div>
             <Chip
               icon={ota.segment === 'B2C'
                 ? <PeopleIcon size={14} strokeWidth={1.75} />
@@ -156,10 +151,10 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
                 ? { ...STATUS_CHIP_SX.muted, backgroundColor: 'var(--info-soft)', color: 'var(--info)', '& .MuiChip-icon': { color: 'var(--info)' } }
                 : STATUS_CHIP_SX.muted}
             />
-          </Box>
+          </div>
 
           {/* Status — connecté --ok / à configurer --warn / bientôt muted */}
-          <Box>
+          <div>
             {(() => {
               if (loading) return <CircularProgress size={14} />;
               if (connected) {
@@ -191,10 +186,10 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
                 />
               );
             })()}
-          </Box>
+          </div>
 
           {/* Action */}
-          <Box sx={{ textAlign: 'right' }}>
+          <div className="text-end">
             {ota.available && !connected && (
               <Button
                 size="small"
@@ -225,11 +220,11 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
               </Button>
             )}
             {!ota.available && (
-              <Typography sx={{ fontSize: '0.71875rem', color: 'var(--faint)' }}>
+              <p className="cn-text-body1 text-[0.71875rem] text-[var(--faint)]">
                 {t('channels.ota.comingSoon')}
-              </Typography>
+              </p>
             )}
-          </Box>
+          </div>
         </Box>
       );
     })}

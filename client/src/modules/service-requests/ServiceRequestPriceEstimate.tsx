@@ -255,10 +255,10 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
         {/* Header */}
         <Box sx={HEADER_SX}>
           <Box sx={TITLE_ROW_SX}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)' }}>
+            <span className="inline-flex text-[var(--accent)]"><AutoAwesome size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
               Estimation du prix
-            </Typography>
+            </p>
           </Box>
           <Tooltip title="Estimation indicative basée sur les caractéristiques du logement. Le tarif définitif est soumis à l'acceptation du prestataire." arrow>
             <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', cursor: 'help' }}><Info size={14} strokeWidth={1.75} /></Box>
@@ -268,40 +268,40 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
         {/* Aucune propriété sélectionnée */}
         {!property && (
           <Box sx={NO_DATA_SX}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><InfoOutlined size={16} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', lineHeight: 1.3 }}>
+            <span className="inline-flex text-[var(--faint)]"><InfoOutlined size={16} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] leading-[1.3]">
               Sélectionnez une propriété pour afficher l'estimation du prix et de la durée.
-            </Typography>
+            </p>
           </Box>
         )}
 
         {/* Avertissement données minimales (propriété sélectionnée mais données incomplètes) */}
         {property && !hasRichData && (
           <Box sx={NO_DATA_SX}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><InfoOutlined size={16} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', lineHeight: 1.3 }}>
+            <span className="inline-flex text-[var(--faint)]"><InfoOutlined size={16} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] leading-[1.3]">
               {canEstimate
                 ? 'Estimation approximative — renseignez la surface et le tarif de base dans la fiche logement pour une estimation plus précise.'
                 : 'Renseignez les caractéristiques du logement (chambres, surface, tarif de base) pour afficher une estimation.'}
-            </Typography>
+            </p>
           </Box>
         )}
 
         {/* Duration banner */}
         {property && (
           <Box sx={{ ...DURATION_BANNER_SX, mt: !hasRichData ? 1.5 : 0 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={18} strokeWidth={1.75} /></Box>
-            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-              <Typography sx={{ fontSize: '16px', fontWeight: 600, color: 'var(--accent)', lineHeight: 1.2, fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
+            <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
+            <div className="flex items-baseline gap-0.5">
+              <p className="cn-text-body1 text-[16px] font-semibold text-[var(--accent)] leading-[1.2] font-[var(--font-display)] tabular-nums">
                 {formatDuration(estimatedDuration)}
-              </Typography>
-              <Typography sx={{ fontSize: '10.5px', fontWeight: 500, color: 'var(--muted)' }}>
+              </p>
+              <p className="cn-text-body1 text-[10.5px] font-medium text-[var(--muted)]">
                 durée estimée
-              </Typography>
-            </Box>
-            <Typography sx={{ fontSize: '10px', color: 'var(--faint)', fontStyle: 'italic', ml: 'auto' }}>
+              </p>
+            </div>
+            <p className="cn-text-body1 text-[10px] text-[var(--faint)] italic ms-auto">
               Calculée automatiquement
-            </Typography>
+            </p>
           </Box>
         )}
 
@@ -341,9 +341,9 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                   }}>
                     {min === max ? <Money value={min} from="EUR" /> : `${convertAndFormat(min, 'EUR')} – ${convertAndFormat(max, 'EUR')}`}
                   </Typography>
-                  <Typography sx={{ fontSize: '10px', color: 'var(--faint)', lineHeight: 1 }}>
+                  <p className="cn-text-body1 text-[10px] text-[var(--faint)] leading-[1]">
                     par intervention
-                  </Typography>
+                  </p>
                 </Box>
               );
             })}
@@ -372,9 +372,9 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                   }}>
                     —
                   </Typography>
-                  <Typography sx={{ fontSize: '10px', color: 'var(--faint)', lineHeight: 1 }}>
+                  <p className="cn-text-body1 text-[10px] text-[var(--faint)] leading-[1]">
                     par intervention
-                  </Typography>
+                  </p>
                 </Box>
               );
             })}
@@ -382,12 +382,12 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
         )}
 
         {/* Base note */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><TrendingUp size={11} strokeWidth={1.75} /></Box>
-          <Typography sx={{ fontSize: '10px', color: 'var(--faint)', fontStyle: 'italic' }}>
+        <div className="flex items-center gap-0.5 mt-1.5">
+          <span className="inline-flex text-[var(--faint)]"><TrendingUp size={11} strokeWidth={1.75} /></span>
+          <p className="cn-text-body1 text-[10px] text-[var(--faint)] italic">
             Basé sur les caractéristiques du logement
-          </Typography>
-        </Box>
+          </p>
+        </div>
       </Box>
     );
   }

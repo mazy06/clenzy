@@ -1,13 +1,5 @@
 import React, { useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Stepper,
-  Step,
-  StepLabel,
-  Button,
-  Chip,
-} from '@mui/material';
+import { Box, Stepper, Step, StepLabel, Button, Chip } from '@mui/material';
 import { AssistantMarkdown } from '../components/AssistantMarkdown';
 
 interface StepDef {
@@ -104,23 +96,16 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
   }, [data.currentStep]);
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+    <div className="mt-1.5 mb-2 flex flex-col gap-2">
       {/* Header titre + meta */}
-      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap' }}>
-        <Typography sx={{
-          fontSize: '10.5px', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '.05em',
-          color: 'var(--faint)',
-        }}>
+      <div className="flex items-baseline gap-1.5 flex-wrap">
+        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
           {data.title || 'Workflow'}
-        </Typography>
+        </p>
         {data.estimatedDuration && (
-          <Typography sx={{
-            fontSize: '11.5px', color: 'var(--faint)',
-            fontVariantNumeric: 'tabular-nums',
-          }}>
+          <p className="cn-text-body1 text-[11.5px] text-[var(--faint)] tabular-nums">
             ≈ {data.estimatedDuration} min
-          </Typography>
+          </p>
         )}
         {data.status && data.status !== 'ACTIVE' && (
           <Chip
@@ -140,15 +125,11 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
             }}
           />
         )}
-      </Box>
+      </div>
 
       {/* Stepper visuel */}
       {stepsForStepper.length > 0 && (
-        <Box sx={{
-          px: 1.5, py: 1.25,
-          borderRadius: '12px',
-          bgcolor: 'var(--accent-soft)',
-        }}>
+        <div className="px-2 py-2 rounded-[12px] bg-[var(--accent-soft)]">
           <Stepper
             activeStep={isCompleted ? stepsForStepper.length : currentIdx}
             alternativeLabel
@@ -175,24 +156,16 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
               </Step>
             ))}
           </Stepper>
-        </Box>
+        </div>
       )}
 
       {/* Step courant */}
       {!isCompleted && data.currentStep && data.currentStep.prompt && (
-        <Box sx={{
-          px: 1.5, py: 1.25,
-          borderRadius: '12px',
-          bgcolor: 'var(--field)',
-        }}>
-          <Typography sx={{
-            display: 'block', fontSize: '10.5px', fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '.05em',
-            color: 'var(--accent)', mb: 0.75,
-          }}>
+        <div className="px-2 py-2 rounded-[12px] bg-[var(--field)]">
+          <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--accent)] mb-1">
             Etape {currentIdx + 1}/{total}
             {data.currentStep.title ? ` · ${data.currentStep.title}` : ''}
-          </Typography>
+          </p>
           <Box sx={{
             '& > *:first-of-type': { mt: 0 },
             '& > *:last-of-type': { mb: 0 },
@@ -202,7 +175,7 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
 
           {/* Quick replies pour les booleens + CTA Continuer texte libre */}
           {expectsBool ? (
-            <Box sx={{ display: 'flex', gap: 1, mt: 1.5, flexWrap: 'wrap' }}>
+            <div className="flex gap-1.5 mt-2 flex-wrap">
               <Button
                 variant="contained"
                 size="small"
@@ -219,49 +192,34 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
               >
                 Non
               </Button>
-            </Box>
+            </div>
           ) : (
-            <Typography sx={{
-              display: 'block', mt: 1.5, fontSize: '11.5px', fontStyle: 'italic',
-              color: 'var(--faint)',
-            }}>
+            <p className="cn-text-body1 block mt-2 text-[11.5px] italic text-[var(--faint)]">
               Reponds dans le chat ci-dessous puis j'enchainerai l'etape suivante.
-            </Typography>
+            </p>
           )}
 
           {data.currentStep.suggestTool?.name && (
-            <Typography sx={{
-              display: 'block', mt: 1.25, fontSize: '11.5px',
-              color: 'var(--muted)',
-            }}>
+            <p className="cn-text-body1 block mt-2 text-[11.5px] text-[var(--muted)]">
               Indice : je peux aussi te diriger vers <code>{data.currentStep.suggestTool.name}</code>.
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
       )}
 
       {/* Etat completed */}
       {isCompleted && (
-        <Box sx={{
-          px: 1.5, py: 1.5,
-          borderRadius: '12px',
-          bgcolor: 'var(--ok-soft)',
-        }}>
-          <Typography sx={{
-            fontSize: '12.5px', fontWeight: 600, color: 'var(--ok)',
-          }}>
+        <div className="px-2 py-2 rounded-[12px] bg-[var(--ok-soft)]">
+          <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ok)]">
             Workflow termine.
-          </Typography>
+          </p>
           {data.suggestedAction?.toolName && (
-            <Typography sx={{
-              display: 'block', mt: 0.5, fontSize: '11.5px',
-              color: 'var(--muted)',
-            }}>
+            <p className="cn-text-body1 block mt-0.5 text-[11.5px] text-[var(--muted)]">
               Prochaine action suggeree : <code>{data.suggestedAction.toolName}</code>
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };

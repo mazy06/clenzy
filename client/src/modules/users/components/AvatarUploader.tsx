@@ -1,12 +1,5 @@
 import React, { useRef, useState } from 'react';
-import {
-  Alert,
-  Avatar,
-  Box,
-  Button,
-  CircularProgress,
-  Typography,
-} from '@mui/material';
+import { Alert, Avatar, Box, Button, CircularProgress } from '@mui/material';
 import { Upload, Delete } from '../../../icons';
 import { usersApi, type User } from '../../../services/api/usersApi';
 
@@ -97,7 +90,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+    <div className="flex flex-col gap-1.5">
       <Box
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
@@ -115,7 +108,7 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
           '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
         }}
       >
-        <Box sx={{ position: 'relative', flexShrink: 0 }}>
+        <div className="relative shrink-0">
           <Avatar
             src={photoUrl ?? undefined}
             sx={{
@@ -131,31 +124,21 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
             {!photoUrl && initials}
           </Avatar>
           {uploading && (
-            <Box
-              sx={{
-                position: 'absolute',
-                inset: 0,
-                borderRadius: '50%',
-                bgcolor: 'rgba(15,23,42,0.45)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+            <div className="absolute inset-[0px] rounded-[50%] bg-[rgba(15,23,42,0.45)] flex items-center justify-center">
               <CircularProgress size={22} sx={{ color: 'common.white' }} />
-            </Box>
+            </div>
           )}
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="cn-text-body1 text-[0.875rem] font-semibold">
             Photo de profil
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.25 }}>
+          </p>
+          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mt-0.5">
             Glissez-déposez une image ou utilisez le bouton. JPEG, PNG, WebP ou GIF, 5 Mo max. La photo est
             synchronisée avec les OTA connectées.
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+          </p>
+        </div>
+        <div className="flex gap-1.5 shrink-0">
           <input
             ref={inputRef}
             type="file"
@@ -186,14 +169,14 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
               Retirer
             </Button>
           )}
-        </Box>
+        </div>
       </Box>
       {error && (
         <Alert severity="error" sx={{ py: 0.5, fontSize: '0.8125rem' }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
-    </Box>
+    </div>
   );
 };
 

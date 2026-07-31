@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Button,
-  Menu,
-  MenuItem,
-  ListItemText,
-  Typography,
-  Divider,
-  Box
-} from '@mui/material';
+import { Button, Menu, MenuItem, ListItemText, Typography, Divider } from '@mui/material';
 import {
   Description as TemplateIcon
 } from '../../icons';
@@ -92,11 +84,11 @@ const ContactTemplates: React.FC<ContactTemplatesProps> = ({ onSelectTemplate })
           }
         }}
       >
-        <Box sx={{ px: 2, py: 1 }}>
-          <Typography variant="subtitle2" color="text.secondary">
+        <div className="px-3 py-1.5">
+          <h6 className="cn-text-subtitle2 text-muted-foreground">
             {t('contact.templates')}
-          </Typography>
-        </Box>
+          </h6>
+        </div>
         <Divider />
         {MESSAGE_TEMPLATES.map((template) => (
           <MenuItem

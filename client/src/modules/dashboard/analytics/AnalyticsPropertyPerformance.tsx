@@ -66,7 +66,7 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
             <Grid item xs={12} sm={6} md={4} key={i}>
               <Card sx={{ ...CARD_SX, opacity: 0.5 }}>
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-                  <Box sx={{ height: 120 }} />
+                  <div className="h-[120px]" />
                 </CardContent>
               </Card>
             </Grid>
@@ -75,9 +75,9 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
           <Grid item xs={12}>
             <Card sx={CARD_SX}>
               <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 }, textAlign: 'center' }}>
-                <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', py: 2 }}>
+                <p className="cn-text-body1 text-[0.75rem] text-muted-foreground py-3">
                   {t('dashboard.analytics.noProperties')}
-                </Typography>
+                </p>
               </CardContent>
             </Card>
           </Grid>
@@ -87,7 +87,7 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
               <Card sx={CARD_SX}>
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                   {/* Rank + Name */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+                  <div className="flex items-center gap-1 mb-1">
                     <Box
                       sx={{
                         display: 'flex',
@@ -104,29 +104,19 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
                     >
                       #{index + 1}
                     </Box>
-                    <Typography
-                      sx={{
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        color: 'text.primary',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        flex: 1,
-                      }}
-                    >
+                    <p className="cn-text-body1 text-[0.75rem] font-bold text-foreground overflow-hidden text-ellipsis whitespace-nowrap flex-1">
                       {prop.name}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
 
                   {/* Score bar */}
-                  <Box sx={{ mb: 0.75 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
-                      <Typography sx={{ fontSize: '0.5625rem', color: 'text.disabled' }}>Score</Typography>
+                  <div className="mb-1">
+                    <div className="flex justify-between mb-0.5">
+                      <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground opacity-60">Score</p>
                       <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, color: getScoreColor(prop.score) }}>
                         {prop.score}/100
                       </Typography>
-                    </Box>
+                    </div>
                     <LinearProgress
                       variant="determinate"
                       value={prop.score}
@@ -140,29 +130,29 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
                         },
                       }}
                     />
-                  </Box>
+                  </div>
 
                   {/* Metrics grid */}
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.375 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex justify-between">
                       <Typography sx={LABEL_SX}>RevPAN</Typography>
                       <Typography sx={VALUE_SX}><Money value={prop.revPan} from="EUR" decimals={2} /></Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    </div>
+                    <div className="flex justify-between">
                       <Typography sx={LABEL_SX}>{t('dashboard.analytics.occupancyRate')}</Typography>
                       <Typography sx={VALUE_SX}>{Math.round(prop.occupancyRate)}%</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    </div>
+                    <div className="flex justify-between">
                       <Typography sx={LABEL_SX}>{t('dashboard.analytics.totalRevenue')}</Typography>
                       <Typography sx={VALUE_SX}><Money value={prop.revenue} from="EUR" decimals={0} /></Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    </div>
+                    <div className="flex justify-between">
                       <Typography sx={LABEL_SX}>{t('dashboard.analytics.netMargin')}</Typography>
                       <Typography sx={{ ...VALUE_SX, color: prop.netMargin >= 60 ? 'success.main' : prop.netMargin >= 40 ? 'warning.main' : 'error.main' }}>
                         {Math.round(prop.netMargin)}%
                       </Typography>
-                    </Box>
-                  </Box>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </Grid>

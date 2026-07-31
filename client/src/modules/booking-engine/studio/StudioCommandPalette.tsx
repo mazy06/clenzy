@@ -100,8 +100,8 @@ export default function StudioCommandPalette({
         }}
         onKeyDown={handleKeyDown}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.75, height: 52, borderBottom: '1px solid var(--line)' }}>
-          <Box component="span" sx={{ color: 'var(--muted)', display: 'inline-flex' }}><Search size={18} strokeWidth={2} /></Box>
+        <div className="flex items-center gap-1.5 px-2.5 h-[52px] border-b border-[var(--line)]">
+          <span className="text-[var(--muted)] inline-flex"><Search size={18} strokeWidth={2} /></span>
           <InputBase
             inputRef={inputRef}
             value={query}
@@ -110,13 +110,13 @@ export default function StudioCommandPalette({
             fullWidth
             sx={{ fontSize: 'var(--text-lg)', color: 'var(--ink)', '& input::placeholder': { color: 'var(--faint)', opacity: 1 } }}
           />
-        </Box>
+        </div>
 
-        <Box ref={listRef} role="listbox" sx={{ maxHeight: 340, overflowY: 'auto', py: 0.75 }}>
+        <div className="max-h-[340px] overflow-y-auto py-1" ref={listRef} role="listbox">
           {filtered.length === 0 && (
-            <Box sx={{ px: 2, py: 3, textAlign: 'center', color: 'var(--muted)', fontSize: 'var(--text-sm)' }}>
+            <div className="px-3 py-4 text-center text-[var(--muted)] text-[var(--text-sm)]">
               Aucun résultat
-            </Box>
+            </div>
           )}
           {filtered.map((c, i) => {
             const Icon = c.icon;
@@ -143,13 +143,13 @@ export default function StudioCommandPalette({
                 }}
               >
                 {Icon && <Box component="span" sx={{ display: 'inline-flex', color: isActive ? 'var(--accent)' : 'var(--muted)' }}><Icon size={16} strokeWidth={2} /></Box>}
-                <Box component="span" sx={{ flex: 1, fontSize: 'var(--text-md)' }}>{c.label}</Box>
-                {c.group && <Box component="span" sx={{ fontSize: 'var(--text-2xs)', color: 'var(--faint)' }}>{c.group}</Box>}
-                {isActive && <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><CornerDownLeft size={13} strokeWidth={2} /></Box>}
+                <span className="flex-1 text-[var(--text-md)]">{c.label}</span>
+                {c.group && <span className="text-[var(--text-2xs)] text-[var(--faint)]">{c.group}</span>}
+                {isActive && <span className="inline-flex text-[var(--faint)]"><CornerDownLeft size={13} strokeWidth={2} /></span>}
               </Box>
             );
           })}
-        </Box>
+        </div>
       </Box>
     </Modal>
   );

@@ -149,9 +149,9 @@ const ContractSignPage: React.FC = () => {
         justifyContent: 'center',
       }}
     >
-      <Box sx={{ width: '100%', maxWidth: 760, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <div className="w-full max-w-[760px] flex flex-col gap-4">
         {/* ── En-tête marque ── */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+        <div className="flex items-center gap-2">
           <Box
             component="span"
             sx={{
@@ -162,22 +162,22 @@ const ContractSignPage: React.FC = () => {
           >
             <Handshake size={20} strokeWidth={1.75} />
           </Box>
-          <Box>
-            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 600, lineHeight: 1.2, color: 'var(--ink)' }}>
+          <div>
+            <p className="cn-text-body1 font-[var(--font-display)] text-[1rem] font-semibold leading-[1.2] text-[var(--ink)]">
               Clenzy
-            </Typography>
-            <Typography sx={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+            </p>
+            <p className="cn-text-body1 text-[0.75rem] text-[var(--muted)]">
               {L.brandTagline}
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
 
         {state === 'loading' && (
           <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: 6, textAlign: 'center' }}>
             <CircularProgress size={28} sx={{ color: BRAND }} />
-            <Typography sx={{ mt: 2, fontSize: '0.875rem', color: 'var(--muted)' }}>
+            <p className="cn-text-body1 mt-3 text-[0.875rem] text-[var(--muted)]">
               {L.loadingText}
-            </Typography>
+            </p>
           </Paper>
         )}
 
@@ -217,16 +217,16 @@ const ContractSignPage: React.FC = () => {
             )}
 
             {/* ── Titre + récapitulatif (toujours visibles si contrat lisible) ── */}
-            <Box>
+            <div>
               <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.375rem', fontWeight: 600, color: 'var(--ink)', textWrap: 'balance' }}>
                 {L.title} <Box component="span" sx={{ fontFamily: 'monospace', fontSize: '1.05rem', color: BRAND }}>{view.contractNumber}</Box>
               </Typography>
               {view.status === 'PENDING' && (
-                <Typography sx={{ mt: 0.5, fontSize: '0.875rem', color: 'var(--muted)' }}>
+                <p className="cn-text-body1 mt-0.5 text-[0.875rem] text-[var(--muted)]">
                   {L.subtitle}
-                </Typography>
+                </p>
               )}
-            </Box>
+            </div>
 
             <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: { xs: 2, md: 3 } }}>
               <SectionLabel>{L.summaryTitle}</SectionLabel>
@@ -257,7 +257,7 @@ const ContractSignPage: React.FC = () => {
             {/* ── Document ── */}
             {(view.status === 'PENDING' || view.status === 'SIGNED') && (
               <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: { xs: 2, md: 3 } }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                <div className="flex items-center justify-between mb-2">
                   <SectionLabel sx={{ mb: 0 }}>{L.documentTitle}</SectionLabel>
                   {pdfUrl && (
                     <Button
@@ -271,7 +271,7 @@ const ContractSignPage: React.FC = () => {
                       {L.download}
                     </Button>
                   )}
-                </Box>
+                </div>
                 {pdfUrl ? (
                   <Box
                     component="iframe"
@@ -287,18 +287,18 @@ const ContractSignPage: React.FC = () => {
                     }}
                   />
                 ) : view.documentAvailable ? (
-                  <Box sx={{ py: 4, textAlign: 'center' }}>
+                  <div className="py-6 text-center">
                     <CircularProgress size={22} sx={{ color: BRAND }} />
-                  </Box>
+                  </div>
                 ) : (
                   <Alert severity="info" sx={{ borderRadius: 2, fontSize: '0.8125rem' }}>
                     {L.documentUnavailable}
                   </Alert>
                 )}
                 {view.status === 'PENDING' && (
-                  <Typography sx={{ mt: 1, fontSize: '0.75rem', color: 'var(--faint)' }}>
+                  <p className="cn-text-body1 mt-1.5 text-[0.75rem] text-[var(--faint)]">
                     {L.documentHint}
-                  </Typography>
+                  </p>
                 )}
               </Paper>
             )}
@@ -307,7 +307,7 @@ const ContractSignPage: React.FC = () => {
             {view.status === 'PENDING' && (
               <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', p: { xs: 2, md: 3 }, borderColor: BRAND }}>
                 <SectionLabel>{L.signTitle}</SectionLabel>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div className="flex flex-col gap-3">
                   <TextField
                     label={L.signerNameLabel}
                     placeholder={L.signerNamePlaceholder}
@@ -326,9 +326,9 @@ const ContractSignPage: React.FC = () => {
                       />
                     }
                     label={
-                      <Typography sx={{ fontSize: '0.78rem', color: 'var(--muted)', lineHeight: 1.55 }}>
+                      <p className="cn-text-body1 text-[0.78rem] text-[var(--muted)] leading-[1.55]">
                         {view.consentText}
-                      </Typography>
+                      </p>
                     }
                     sx={{ alignItems: 'flex-start', mx: 0 }}
                   />
@@ -359,17 +359,17 @@ const ContractSignPage: React.FC = () => {
                   >
                     {signing ? L.signing : L.signButton}
                   </Button>
-                </Box>
+                </div>
               </Paper>
             )}
           </>
         )}
 
         {/* ── Pied de page légal ── */}
-        <Typography sx={{ fontSize: '0.6875rem', color: 'var(--faint)', textAlign: 'center', pb: 2 }}>
+        <p className="cn-text-body1 text-[0.6875rem] text-[var(--faint)] text-center pb-3">
           {L.footer}
-        </Typography>
-      </Box>
+        </p>
+      </div>
     </Box>
   );
 };
@@ -393,12 +393,12 @@ const SectionLabel: React.FC<{ children: React.ReactNode; sx?: object }> = ({ ch
 );
 
 const SummaryRow: React.FC<{ label: string; value: string; tabular?: boolean }> = ({ label, value, tabular }) => (
-  <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.875, borderBottom: '1px solid', borderColor: 'var(--line)' }}>
-    <Typography sx={{ fontSize: '0.8125rem', color: 'var(--muted)', flexShrink: 0 }}>{label}</Typography>
+  <div className="flex justify-between gap-3 py-1.5 border-b border-[var(--line)]">
+    <p className="cn-text-body1 text-[0.8125rem] text-[var(--muted)] shrink-0">{label}</p>
     <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink)', textAlign: 'end', ...(tabular ? { fontVariantNumeric: 'tabular-nums' } : {}) }}>
       {value}
     </Typography>
-  </Box>
+  </div>
 );
 
 const StatusCard: React.FC<{ icon: React.ReactNode; iconColor: string; iconSoft: string; title: string; text: string }> = ({
@@ -415,10 +415,10 @@ const StatusCard: React.FC<{ icon: React.ReactNode; iconColor: string; iconSoft:
     >
       {icon}
     </Box>
-    <Box>
+    <div>
       <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 600, color: 'var(--ink)', textWrap: 'balance' }}>{title}</Typography>
-      <Typography sx={{ mt: 0.5, fontSize: '0.85rem', color: 'var(--muted)', lineHeight: 1.55 }}>{text}</Typography>
-    </Box>
+      <p className="cn-text-body1 mt-0.5 text-[0.85rem] text-[var(--muted)] leading-[1.55]">{text}</p>
+    </div>
   </Paper>
 );
 

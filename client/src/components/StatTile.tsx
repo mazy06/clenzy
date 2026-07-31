@@ -78,19 +78,9 @@ export default function StatTile({
               })
             : icon}
         </Box>
-        <Typography
-          component="span"
-          sx={{
-            fontSize: '11.5px',
-            fontWeight: 600,
-            color: 'var(--muted)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <span className="text-[11.5px] font-semibold text-[var(--muted)] overflow-hidden text-ellipsis whitespace-nowrap">
           {label}
-        </Typography>
+        </span>
       </Box>
 
       {/* Valeur */}

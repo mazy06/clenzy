@@ -110,9 +110,9 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
         title={counterpartName}
         subtitle={
           <>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
+            <span className="inline-flex text-[var(--accent)]">
               <badge.Icon size={13} strokeWidth={2} />
-            </Box>
+            </span>
             {t('messagingHub.internalChat', 'Chat interne')}
             {thread.counterpartEmail ? ` · ${thread.counterpartEmail}` : ''}
           </>
@@ -136,7 +136,7 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
         composePlaceholder={t('messagingHub.replyTo', 'Répondre à {{name}}…', { name: counterpartName })}
         composeExtra={
           attachments.length > 0 ? (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, pb: 1 }}>
+            <div className="flex flex-wrap gap-0.5 pb-1.5">
               {attachments.map((file, idx) => (
                 <Chip
                   key={`${file.name}-${idx}`}
@@ -146,7 +146,7 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
                   sx={{ fontSize: '11px', height: 22 }}
                 />
               ))}
-            </Box>
+            </div>
           ) : undefined
         }
         composeTools={

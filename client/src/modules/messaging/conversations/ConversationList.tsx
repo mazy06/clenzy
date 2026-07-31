@@ -123,43 +123,22 @@ function ConversationRow({
         </Box>
       </Box>
 
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-          <Typography
-            component="span"
-            sx={{
-              fontSize: '13.5px',
-              fontWeight: 600,
-              color: 'var(--ink)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1">
+          <span className="text-[13.5px] font-semibold text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis">
             {item.name}
-          </Typography>
-          <Typography
-            component="span"
-            sx={{ ml: 'auto', fontSize: '10.5px', color: 'var(--faint)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
-          >
+          </span>
+          <span className="ms-auto text-[10.5px] text-[var(--faint)] shrink-0 tabular-nums">
             {formatConvTime(item.lastAt)}
-          </Typography>
-        </Box>
+          </span>
+        </div>
         <Typography sx={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, m: '2px 0 3px' }}>
           {item.context}
         </Typography>
-        <Typography
-          sx={{
-            fontSize: '12px',
-            color: 'var(--muted)',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
+        <p className="cn-text-body1 text-[12px] text-[var(--muted)] whitespace-nowrap overflow-hidden text-ellipsis">
           {item.preview}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {/* Badge non-lus (masqué au hover au profit de l'action archiver) */}
       {!onRestore && item.unreadCount > 0 && (
@@ -334,7 +313,7 @@ export default function ConversationList({
             sx={{ flex: 1, fontSize: '12.5px', color: 'var(--body)', '& input': { p: 0 } }}
           />
         </Box>
-        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+        <div className="flex gap-1 flex-wrap">
           {subTabs
             .flatMap((tab) => {
               if (tab.hidden) return [];
@@ -361,21 +340,21 @@ export default function ConversationList({
                 </Box>,
               ];
             })}
-        </Box>
+        </div>
       </Box>
 
       {/* Conversations + formulaires */}
-      <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+      <div className="flex-1 overflow-y-auto min-h-0">
         {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <div className="flex justify-center py-6">
             <CircularProgress size={22} />
-          </Box>
+          </div>
         ) : error ? (
           <Alert severity="error" sx={{ m: 1.5, fontSize: '0.8125rem' }}>
             {t('messagingHub.errorLoading', 'Impossible de charger les conversations.')}
           </Alert>
         ) : filtered.length === 0 ? (
-          <Typography sx={{ px: 2, py: 4, textAlign: 'center', fontSize: '12.5px', color: 'var(--muted)' }}>
+          <p className="cn-text-body1 px-3 py-6 text-center text-[12.5px] text-[var(--muted)]">
             {search.trim()
               ? t('messagingHub.noSearchResults', 'Aucun résultat')
               : isArchivedView
@@ -383,7 +362,7 @@ export default function ConversationList({
                 : filter === 'forms'
                   ? t('messagingHub.noForms', 'Aucun formulaire reçu')
                   : t('messagingHub.noConversations', 'Aucune conversation')}
-          </Typography>
+          </p>
         ) : (
           filtered.map((item) =>
             isArchivedView ? (
@@ -417,7 +396,7 @@ export default function ConversationList({
             ),
           )
         )}
-      </Box>
+      </div>
     </>
   );
 }

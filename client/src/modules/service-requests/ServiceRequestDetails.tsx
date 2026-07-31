@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Skeleton,
-  Alert,
-  Button,
-} from '@mui/material';
+import { Skeleton, Alert, Button } from '@mui/material';
 import {
   Edit,
   Assignment,
@@ -47,38 +42,38 @@ const ServiceRequestDetails: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      <div className="p-3 flex flex-col gap-2">
         <Skeleton variant="rounded" height={64} sx={{ borderRadius: '14px' }} />
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <div className="flex gap-1.5">
           {[...Array(4)].map((_, i) => (
             <Skeleton key={i} variant="rounded" height={72} sx={{ borderRadius: '14px', flex: 1 }} />
           ))}
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1.5 }}>
+        </div>
+        <div className="flex gap-2">
           <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px', flex: 7 }} />
           <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px', flex: 5 }} />
-        </Box>
-      </Box>
+        </div>
+      </div>
     );
   }
 
   if (isError) {
     return (
-      <Box sx={{ p: 2 }}>
+      <div className="p-3">
         <Alert severity="error" sx={{ py: 0.75, fontSize: '0.8125rem' }}>
           {error || t('serviceRequests.loadError')}
         </Alert>
-      </Box>
+      </div>
     );
   }
 
   if (!serviceRequest) {
     return (
-      <Box sx={{ p: 2 }}>
+      <div className="p-3">
         <Alert severity="warning" sx={{ py: 0.75, fontSize: '0.8125rem' }}>
           {t('serviceRequests.notFound')}
         </Alert>
-      </Box>
+      </div>
     );
   }
 
@@ -151,9 +146,9 @@ const ServiceRequestDetails: React.FC = () => {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div className="flex flex-col h-full min-h-0">
       {/* ─── Header ──────────────────────────────────────────────────────── */}
-      <Box sx={{ flexShrink: 0 }}>
+      <div className="shrink-0">
         <PageHeader
           title={sr.title}
           subtitle={`${t('serviceRequests.detail.contextLabel', 'Demande de service')} · ${sr.propertyName}`}
@@ -173,7 +168,7 @@ const ServiceRequestDetails: React.FC = () => {
             ) : undefined
           }
         />
-      </Box>
+      </div>
 
       {/* ─── Content ─────────────────────────────────────────────────────── */}
       <WorkOrderDetailLayout
@@ -188,7 +183,7 @@ const ServiceRequestDetails: React.FC = () => {
           </Button>
         }
       />
-    </Box>
+    </div>
   );
 };
 

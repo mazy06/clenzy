@@ -1,17 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import {
-  Paper,
-  Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Chip,
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-} from '@mui/material';
+import { Paper, Accordion, AccordionSummary, AccordionDetails, Chip, Box, Table, TableBody, TableCell, TableRow } from '@mui/material';
 import { ExpandMore } from '../../icons';
 import { DocumentTemplateTag } from '../../services/api/documentsApi';
 
@@ -102,15 +90,15 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
 
   return (
     <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">Tags détectés</Typography>
+      <div className="flex justify-between items-center mb-3">
+        <h6 className="cn-text-h6">Tags détectés</h6>
         <Chip label={`${tags.length} tags`} size="small" sx={chipSx(TONES.accent)} />
-      </Box>
+      </div>
 
       {categories.length === 0 ? (
-        <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+        <p className="cn-text-body1 text-muted-foreground py-3 text-center">
           Aucun tag détecté dans ce template
-        </Typography>
+        </p>
       ) : (
         categories.map((cat) => (
           <Accordion
@@ -119,20 +107,20 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
             onChange={handleChange(cat)}
           >
             <AccordionSummary expandIcon={<ExpandMore />}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <div className="flex items-center gap-1.5">
                 <Box sx={{
                   width: 12, height: 12, borderRadius: '50%',
                   bgcolor: (CATEGORY_TONES[cat] ?? TONES.muted).c,
                 }} />
-                <Typography fontWeight={500}>
+                <p className="cn-text-body1 font-medium">
                   {CATEGORY_LABELS[cat] || cat}
-                </Typography>
+                </p>
                 <Chip
                   label={groupedTags[cat].length}
                   size="small"
                   sx={{ ml: 1, ...chipSx(CATEGORY_TONES[cat] ?? TONES.muted) }}
                 />
-              </Box>
+              </div>
             </AccordionSummary>
             <AccordionDetails sx={{ p: 0 }}>
               <Table size="small">

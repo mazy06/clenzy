@@ -1,12 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import {
-  Box,
-  Typography,
-  IconButton,
-  Badge,
-  Alert,
-  Snackbar,
-} from '@mui/material';
+import { Box, IconButton, Badge, Alert, Snackbar } from '@mui/material';
 import { ShoppingCartOutlined, Memory, CheckCircleOutline } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import apiClient from '../../services/apiClient';
@@ -124,7 +117,7 @@ const ShopPage: React.FC = () => {
   }, []);
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={t('shop.title')}
         subtitle={t('shop.subtitle')}
@@ -164,9 +157,9 @@ const ShopPage: React.FC = () => {
                 },
               }}
             >
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ink)' }}>
+              <span className="inline-flex text-[var(--ink)]">
                 <ShoppingCartOutlined size={20} strokeWidth={1.75} />
-              </Box>
+              </span>
             </Badge>
           </IconButton>
         )}
@@ -189,27 +182,13 @@ const ShopPage: React.FC = () => {
         <Box sx={{ color: 'var(--info)', display: 'inline-flex', mt: '1px', flexShrink: 0 }}>
           <CheckCircleOutline size={16} strokeWidth={1.75} />
         </Box>
-        <Typography
-          sx={{
-            fontSize: '0.8rem',
-            color: 'var(--body)',
-            lineHeight: 1.5,
-          }}
-        >
+        <p className="cn-text-body1 text-[0.8rem] text-[var(--body)] leading-[1.5]">
           {t('shop.infoBanner')}
-        </Typography>
+        </p>
       </Box>
 
       {/* Category filter — pill row */}
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 0.625,
-          mb: 2.5,
-          flexWrap: 'wrap',
-        }}
-        role="tablist"
-      >
+      <div className="flex gap-1 mb-3.5 flex-wrap" role="tablist">
         {CATEGORIES.map((cat) => {
           const active = selectedCategory === cat.id;
           const count = categoryCounts[cat.id] ?? 0;
@@ -276,7 +255,7 @@ const ShopPage: React.FC = () => {
             </Box>
           );
         })}
-      </Box>
+      </div>
 
       {/* Product grid */}
       <Box
@@ -325,7 +304,7 @@ const ShopPage: React.FC = () => {
           {t('common.processing')}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 };
 
