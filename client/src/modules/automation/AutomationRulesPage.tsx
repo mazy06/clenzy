@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Button, Chip, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListSubheader, Select, FormControl, InputLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Card, CardContent, Grid, Skeleton } from '@mui/material';
+import { Box, Button, Switch, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListSubheader, Select, FormControl, InputLabel, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Card, CardContent, Grid, Skeleton } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -69,18 +69,8 @@ const CHANNEL_OPTIONS: { value: MessageChannelType; label: string; icon: React.R
 const CELL_SX = { py: 1.25 } as const;
 
 // ─── Chips soft (pilule fond -soft + texte couleur — pattern baseline §2) ────
-
-const pillSx = (bg: string, color: string) => ({
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  backgroundColor: bg,
-  color,
-  border: 'none',
-  borderRadius: 'var(--radius-pill)',
-  '& .MuiChip-icon': { color },
-  '& .MuiChip-label': { px: 1 },
-});
+// La géométrie est portée par StatusChip (`pill`) ; il ne reste ici que le
+// mapping statut → tons, qui lui est propre au domaine.
 
 // Canaux : constantes locales VALIDÉES messagerie (baseline §1 — WhatsApp /
 // Email / SMS) ; fond soft dérivé du même hex (texte couleur + fond -soft).
@@ -116,10 +106,10 @@ const channelIcon = (ch: MessageChannelType) => {
 };
 
 // Style du chip de statut d'une automatisation système (carte et liste).
-const systemStatusStyle = (status: string) =>
-  status === 'ACTIVE' ? pillSx('var(--ok-soft)', 'var(--ok)')
-    : status === 'INACTIVE' ? pillSx('var(--field)', 'var(--muted)')
-      : pillSx('var(--info-soft)', 'var(--info)');
+const systemStatusTokens = (status: string): ToneTokens =>
+  status === 'ACTIVE' ? { color: 'var(--ok)', bg: 'var(--ok-soft)' }
+    : status === 'INACTIVE' ? { color: 'var(--muted)', bg: 'var(--field)' }
+      : { color: 'var(--info)', bg: 'var(--info-soft)' };
 
 // Chips par colonne : déclencheur (+ timing), action, canal — pour aligner
 // les colonnes en vue liste et les regrouper en vue carte.
@@ -258,7 +248,7 @@ const AutomationRulesPage: React.FC = () => {
         borderTop: '1px solid var(--hairline)',
       }}
     >
-      <Chip label={sa.statusLabel} size="small" sx={{ ...systemStatusStyle(sa.status), justifySelf: 'start' }} />
+      <StatusChip pill tokens={systemStatusTokens(sa.status)} label={sa.statusLabel} className="justify-self-start" />
       <div className="min-w-0">
         <p className="cn-text-body1 truncate text-[0.8125rem] font-semibold text-[var(--ink)]">{sa.label}</p>
         <p className="cn-text-body1 truncate text-[0.6875rem] text-muted-foreground">{sa.description}</p>
@@ -529,7 +519,7 @@ const AutomationRulesPage: React.FC = () => {
                       <p className="cn-text-body1 text-[0.875rem] font-semibold text-[var(--ink)] flex-1">
                         {sa.label}
                       </p>
-                      <Chip label={sa.statusLabel} size="small" sx={systemStatusStyle(sa.status)} />
+                      <StatusChip pill tokens={systemStatusTokens(sa.status)} label={sa.statusLabel} />
                     </div>
                     <p className="cn-text-body1 text-[0.78rem] text-muted-foreground mb-1.5">
                       {sa.description}

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -6,7 +7,6 @@ import {
   Typography,
   Button,
   Box,
-  Chip,
   IconButton,
   Dialog,
   DialogTitle,
@@ -44,7 +44,7 @@ import {
   getPropertyTypeLabel,
   getCleaningFrequencyLabel,
 } from '../../utils/statusUtils';
-import { FIELD_CHIP_SX, propertyGradientCss } from './propertiesListConstants';
+import { FIELD_TOKENS, FIELD_CHIP_CLASS, propertyGradientCss } from './propertiesListConstants';
 import { Money } from '../../components/Money';
 import type { PropertyKpiSummary } from '../../services/api/propertyKpiApi';
 import ChannexHealthBadge from '../settings/components/ChannexHealthBadge';
@@ -183,12 +183,6 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 0.5,
-  },
-  priceChip: {
-    color: 'var(--body)',
-    borderColor: 'var(--line-2)',
-    bgcolor: 'var(--card)',
-    '& .MuiChip-label': { px: 1 },
   },
   infoContent: {
     flexGrow: 1,
@@ -524,11 +518,10 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               {property.name}
             </Typography>
             {property.nightlyPrice > 0 && (
-              <Chip
+              <StatusChip
+                tokens={{ color: 'var(--body)', bg: 'var(--card)' }}
                 label={<><Money value={property.nightlyPrice} from="EUR" decimals={0} />/nuit</>}
-                size="small"
-                variant="outlined"
-                sx={{ ...styles.priceChip, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
+                className="shrink-0 border border-solid border-[var(--line-2)] tabular-nums"
               />
             )}
           </div>
@@ -718,11 +711,11 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                   </Typography>
                   <div className="flex flex-wrap gap-1">
                     {property.amenities.map((amenity) => (
-                      <Chip
+                      <StatusChip
                         key={amenity}
+                        tokens={FIELD_TOKENS}
                         label={t(`properties.amenities.items.${amenity}`)}
-                        size="small"
-                        sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}
+                        className={FIELD_CHIP_CLASS}
                       />
                     ))}
                   </div>

@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import {
-  Box, Paper, Typography, Chip, Tooltip, IconButton,
+  Box, Paper, Typography, Tooltip, IconButton,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, Edit, BroomFill, Power, Delete, Business } from '../../icons';
@@ -13,7 +13,7 @@ import { Money } from '../../components/Money';
 import MissingContractChip from './MissingContractChip';
 import { estimateCleaningDuration, formatDuration } from './PropertyCard';
 import { toPropertyDetails } from './propertyDetailsMapper';
-import { LIST_PAPER_SX, LIST_ROWS_PER_PAGE_OPTIONS, softDataChipSx, FIELD_TOKENS, FIELD_CHIP_CLASS, propertyGradientCss } from './propertiesListConstants';
+import { LIST_PAPER_SX, LIST_ROWS_PER_PAGE_OPTIONS, FIELD_TOKENS, FIELD_CHIP_CLASS, propertyGradientCss } from './propertiesListConstants';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { ChannexMappingDto } from '../../services/api/channexApi';
 import {
@@ -175,11 +175,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                   </TableCell>
                   <TableCell>
                     {(() => { const c = getPropertyTypeHex(property.type); return (
-                    <Chip
-                      label={getPropertyTypeLabel(property.type, t)}
-                      size="small"
-                      sx={{ ...softDataChipSx(c), '& .MuiChip-label': { px: 1 } }}
-                    />
+                    <StatusChip color={c} label={getPropertyTypeLabel(property.type, t)} />
                     ); })()}
                   </TableCell>
                   <TableCell>
@@ -215,11 +211,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                             arrow
                             placement="top"
                           >
-                            <Chip
-                              label={`+${property.amenities.length - 2}`}
-                              size="small"
-                              sx={{ color: 'var(--muted)', bgcolor: 'var(--hover)', border: 'none', flexShrink: 0, '& .MuiChip-label': { px: 1 }, cursor: 'default' }}
-                            />
+                            <StatusChip tone="neutral" label={`+${property.amenities.length - 2}`} className="shrink-0 cursor-default tabular-nums" />
                           </ThemedTooltip>
                         )}
                       </div>

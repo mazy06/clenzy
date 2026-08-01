@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Paper, Chip, Tooltip, IconButton } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { Box, Paper, Tooltip, IconButton } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Home, LocationOn, Visibility } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -15,7 +16,7 @@ import {
   getPropertyTypeLabel,
   getPropertyTypeHex,
 } from '../../utils/statusUtils';
-import { LIST_PAPER_SX, propertyStatusChipSx, softDataChipSx } from './propertiesListConstants';
+import { LIST_PAPER_SX, propertyStatusTokens } from './propertiesListConstants';
 
 interface PropertiesMapViewProps {
   mapMarkers: PropertyMarker[];
@@ -128,16 +129,8 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
 
                       {/* Type + Statut chips */}
                       <div className="flex items-center gap-0.5 shrink-0">
-                        <Chip
-                          label={getPropertyTypeLabel(property.type, t)}
-                          size="small"
-                          sx={{ ...softDataChipSx(typeColor), '& .MuiChip-label': { px: 1 } }}
-                        />
-                        <Chip
-                          label={getPropertyStatusLabel(property.status, t)}
-                          size="small"
-                          sx={{ ...propertyStatusChipSx(property.status), '& .MuiChip-label': { px: 1 } }}
-                        />
+                        <StatusChip color={typeColor} label={getPropertyTypeLabel(property.type, t)} />
+                        <StatusChip tokens={propertyStatusTokens(property.status)} label={getPropertyStatusLabel(property.status, t)} />
                       </div>
 
                       {/* Prix + Action */}
