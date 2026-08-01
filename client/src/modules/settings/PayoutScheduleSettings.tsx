@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
-import { Spinner } from '../../components/ui';
-import { Switch, Alert, Snackbar } from '@mui/material';
-import { Input } from '../../components/ui';
+import { Spinner, Switch, Input } from '../../components/ui';
+// Snackbar + son Alert restent MUI : porter la notification flottante voudrait
+// dire changer de mecanisme (sonner), ce que ce fichier n'utilise pas.
+import { Alert, Snackbar } from '@mui/material';
 import { cn } from '../../utils/cn';
 import { CalendarMonth } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -149,9 +150,10 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
             </p>
           </div>
           <Switch
-            size="small"
+            size="sm"
+            aria-label={t('settings.payoutSchedule.autoGenerate')}
             checked={autoGenerate}
-            onChange={(e) => setAutoGenerate(e.target.checked)}
+            onCheckedChange={setAutoGenerate}
           />
         </div>
 

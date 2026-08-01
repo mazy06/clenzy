@@ -1,4 +1,3 @@
-import { ButtonBase } from '@mui/material';
 import { LayoutTemplate } from 'lucide-react';
 import { GALLERY_TEMPLATES, type GalleryTemplate } from './import/galleryTemplates';
 
@@ -37,16 +36,17 @@ export default function ImportGallery({ onImportTemplate, onDone }: ImportGaller
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,_minmax(180px,_1fr))] gap-[9px]">
         {GALLERY_TEMPLATES.map((tpl) => (
-          <ButtonBase
+          <button
+            type="button"
             key={tpl.id}
             onClick={() => choose(tpl)}
-            sx={{
-              display: 'flex', flexDirection: 'column', alignItems: 'stretch', textAlign: 'left',
-              border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', overflow: 'hidden', cursor: 'pointer',
-              bgcolor: 'var(--card)', transition: 'border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out)',
-              '&:hover': { borderColor: 'var(--accent)', boxShadow: 'var(--shadow-card)' },
-              '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-            }}
+            className={
+              'flex flex-col items-stretch text-left overflow-hidden cursor-pointer '
+              + 'border border-solid border-[var(--line)] rounded-[var(--radius-md)] bg-[var(--card)] '
+              + '[transition:border-color_var(--duration-fast)_var(--ease-out),box-shadow_var(--duration-fast)_var(--ease-out)] '
+              + 'hover:border-[var(--accent)] hover:shadow-[var(--shadow-card)] '
+              + 'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:[outline-offset:2px]'
+            }
           >
             {/* Aperçu : vignette si fournie, sinon bande d'accent du template. */}
             <div
@@ -57,7 +57,7 @@ export default function ImportGallery({ onImportTemplate, onDone }: ImportGaller
               <div className="text-[var(--text-sm)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">{tpl.name}</div>
               {tpl.description ? <div className="text-[var(--text-2xs)] text-[var(--muted)]">{tpl.description}</div> : null}
             </div>
-          </ButtonBase>
+          </button>
         ))}
       </div>
     </div>

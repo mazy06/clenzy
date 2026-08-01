@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../utils/cn';
-import { Paper, Skeleton } from '@mui/material';
+import { Skeleton } from './ui';
 
 interface StatTileProps {
   /** Icône inline (accent par défaut, ou la couleur passée) à gauche du label. */
@@ -45,29 +45,16 @@ export default function StatTile({
   onClick,
 }: StatTileProps) {
   return (
-    <Paper
-      variant="outlined"
+    <div
       onClick={onClick}
-      sx={{
-        px: '17px',
-        py: '16px',
-        borderRadius: '14px',
-        bgcolor: 'var(--card)',
-        borderColor: 'var(--line)',
-        cursor: onClick ? 'pointer' : 'default',
-        transition: 'border-color 200ms, transform 200ms, box-shadow 200ms',
-        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-        ...(onClick
-          ? {
-              '&:hover': {
-                borderColor: 'var(--line-2)',
-                transform: 'translateY(-1px)',
-                boxShadow: 'var(--shadow-card)',
-              },
-              '&:active': { transform: 'translateY(0)' },
-            }
-          : { '&:hover': { borderColor: 'var(--line-2)' } }),
-      }}
+      className={cn(
+        'px-[17px] py-[16px] rounded-[14px] bg-[var(--card)] border border-solid border-[var(--line)]',
+        'transition-[border-color,transform,box-shadow] duration-200 motion-reduce:transition-none',
+        'hover:border-[var(--line-2)]',
+        onClick
+          ? 'cursor-pointer hover:-translate-y-px hover:shadow-[var(--shadow-card)] active:translate-y-0'
+          : 'cursor-default',
+      )}
     >
       {/* Ligne 1 : icône inline + label */}
       <div className="flex items-center gap-[7px] min-w-0">
@@ -88,7 +75,7 @@ export default function StatTile({
 
       {/* Valeur */}
       {loading ? (
-        <Skeleton variant="text" width={90} height={34} sx={{ mt: '11px' }} />
+        <Skeleton className="mt-[11px] w-[90px] h-[34px] rounded-[4px]" />
       ) : (
         <p className="cn-text-body1 tabular-nums text-[1.375rem] min-[900px]:text-[1.6875rem] font-semibold tracking-[-0.02em] leading-[1.1] text-[var(--ink)] mt-[11px] whitespace-nowrap" style={{ fontFamily: 'var(--font-display)' }}>
           {value}
@@ -106,6 +93,6 @@ export default function StatTile({
           {hint}
         </div>
       )}
-    </Paper>
+    </div>
   );
 }

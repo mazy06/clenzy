@@ -1,6 +1,5 @@
 import React from 'react';
 import { Badge } from '../../components/ui';
-import { Paper } from '@mui/material';
 import {
   Sync as SyncIcon,
   CheckCircle as CheckCircleIcon,
@@ -10,7 +9,10 @@ import {
 } from '../../icons';
 import type { AirbnbListingMapping } from '../../services/api/airbnbApi';
 import type { Property } from '../../services/api/propertiesApi';
-import { CARD_SX } from './channelsPageConstants';
+
+// Pendant en classes du CARD_SX partage (p: 2 = 12 px, theme.spacing vaut 6).
+// La constante reste utilisee telle quelle par les ecrans encore en MUI.
+const CARD_CLASS = 'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-3';
 
 interface AirbnbSyncStatusSectionProps {
   listings: AirbnbListingMapping[];
@@ -26,7 +28,7 @@ const AirbnbSyncStatusSection: React.FC<AirbnbSyncStatusSectionProps> = ({
   dateLocale,
   t,
 }) => (
-  <Paper sx={{ ...CARD_SX }}>
+  <div className={CARD_CLASS}>
     <p className="cn-text-body1 text-[0.875rem] font-bold mb-1.5">
       {t('channels.syncStatus.title')}
     </p>
@@ -44,7 +46,7 @@ const AirbnbSyncStatusSection: React.FC<AirbnbSyncStatusSectionProps> = ({
         );
       })}
     </div>
-  </Paper>
+  </div>
 );
 
 export default AirbnbSyncStatusSection;

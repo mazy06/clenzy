@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Button, Spinner } from '../../../components/ui';
-import { Skeleton } from '@mui/material';
+import { Button, Skeleton, Spinner } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { Refresh } from '../../../icons';
 import { syncAdminApi, ConnectionSummary } from '../../../services/api/syncAdminApi';
@@ -64,7 +63,7 @@ const ConnectionsTab: React.FC = () => {
     return (
       <div className="flex flex-col gap-1.5">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+          <Skeleton key={i} className="h-[36px] w-full rounded-[9px]" />
         ))}
       </div>
     );

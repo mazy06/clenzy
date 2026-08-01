@@ -3,7 +3,13 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Button, Card } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
-import { Paper, IconButton, Tooltip, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import {
   ChevronLeft,
   ChevronRight,
@@ -77,6 +83,15 @@ function statusIcon(status: string, size: number, color: string) {
   return <HourglassEmpty size={size} strokeWidth={2} color={color} />;
 }
 
+// Segmente de vue : l'etat choisi est porte par `data-state=on` cote Radix, la
+// ou MUI utilisait `.Mui-selected`.
+const TOGGLE_ITEM_CLASS =
+  'normal-case text-[12px] font-semibold px-[9px] py-[2.4px] gap-[3px] border-none rounded-[8px] '
+  + 'text-[var(--muted)] transition-[background-color,color] duration-[140ms] '
+  + 'hover:bg-transparent hover:text-[var(--body)] '
+  + 'data-[state=on]:bg-[var(--card)] data-[state=on]:text-[var(--accent)] '
+  + 'data-[state=on]:shadow-[0_1px_3px_color-mix(in_srgb,var(--ink)_10%,transparent)]';
+
 // ─── Stat card ───────────────────────────────────────────────────────────────
 
 interface StatCardProps {
@@ -90,20 +105,7 @@ interface StatCardProps {
 
 function StatCard({ icon, label, value, fg, bg }: StatCardProps) {
   return (
-    <Paper
-      sx={{
-        p: '14px 16px',
-        borderRadius: '13px',
-        border: '1px solid var(--line)',
-        bgcolor: 'var(--card)',
-        boxShadow: 'none',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.25,
-        minWidth: 0,
-        flex: '1 1 0',
-      }}
-    >
+    <div className="px-4 py-[14px] rounded-[13px] border border-solid border-[var(--line)] bg-[var(--card)] shadow-none flex items-center gap-[7.5px] min-w-0 flex-[1_1_0]">
       <div className="w-[36px] h-[36px] rounded-[11px] flex items-center justify-center shrink-0" style={{ color: fg, backgroundColor: bg }}>
         {icon}
       </div>
@@ -115,7 +117,7 @@ function StatCard({ icon, label, value, fg, bg }: StatCardProps) {
           {value}
         </p>
       </div>
-    </Paper>
+    </div>
   );
 }
 
@@ -235,46 +237,25 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
 
       {/* ─── View toggle ─────────────────────────────────────────────────── */}
       <div className="flex justify-between items-center flex-wrap gap-1.5">
-        <ToggleButtonGroup
+        <ToggleGroup
+          type="single"
+          size="sm"
+          spacing={0}
           value={view}
-          exclusive
-          onChange={(_, v) => v && setView(v)}
-          size="small"
-          sx={{
-            bgcolor: 'var(--field)',
-            border: '1px solid var(--field-line)',
-            borderRadius: '10px',
-            p: '3px',
-            gap: '2px',
-            '& .MuiToggleButton-root': {
-              textTransform: 'none',
-              fontSize: '12px',
-              fontWeight: 600,
-              px: 1.5,
-              py: 0.4,
-              gap: 0.5,
-              border: 'none',
-              borderRadius: '8px !important',
-              color: 'var(--muted)',
-              transition: 'background-color .14s, color .14s',
-              '&:hover': { bgcolor: 'transparent', color: 'var(--body)' },
-            },
-            '& .Mui-selected': {
-              bgcolor: 'var(--card) !important',
-              color: 'var(--accent) !important',
-              boxShadow: '0 1px 3px color-mix(in srgb, var(--ink) 10%, transparent)',
-            },
-          }}
+          // Radix renvoie '' quand on re-clique l'option active : le garde-fou
+          // evite de laisser la vue sans mode.
+          onValueChange={(v) => { if (v) setView(v as typeof view); }}
+          className="bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[10px] p-[3px] gap-[2px]"
         >
-          <ToggleButton value="calendar">
+          <ToggleGroupItem value="calendar" className={TOGGLE_ITEM_CLASS}>
             <CalendarMonth size={14} strokeWidth={1.75} />
             Calendrier
-          </ToggleButton>
-          <ToggleButton value="list">
+          </ToggleGroupItem>
+          <ToggleGroupItem value="list" className={TOGGLE_ITEM_CLASS}>
             <ViewList size={14} strokeWidth={1.75} />
             Liste
-          </ToggleButton>
-        </ToggleButtonGroup>
+          </ToggleGroupItem>
+        </ToggleGroup>
 
         <div className="flex items-center gap-1.5">
           {view === 'calendar' && (
@@ -282,15 +263,15 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
               <Button variant="ghost" size="sm" onClick={goToToday}>
                 Aujourd'hui
               </Button>
-              <IconButton size="small" onClick={prevMonth}>
+              <Button variant="ghost" size="icon-sm" aria-label="Mois précédent" onClick={prevMonth}>
                 <ChevronLeft size={18} strokeWidth={1.75} />
-              </IconButton>
+              </Button>
               <p className="cn-text-body1 text-[0.875rem] font-semibold min-w-[130px] text-center capitalize">
                 {MONTH_NAMES_FR[monthAnchor.getMonth()]} {monthAnchor.getFullYear()}
               </p>
-              <IconButton size="small" onClick={nextMonth}>
+              <Button variant="ghost" size="icon-sm" aria-label="Mois suivant" onClick={nextMonth}>
                 <ChevronRight size={18} strokeWidth={1.75} />
-              </IconButton>
+              </Button>
             </>
           )}
         </div>
@@ -430,10 +411,13 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                         ) : (
                           <div />
                         )}
-                        <Tooltip title="Voir le détail">
-                          <div className="inline-flex text-muted-foreground opacity-60">
-                            <ChevronRight size={14} strokeWidth={1.75} />
-                          </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex text-muted-foreground opacity-60">
+                              <ChevronRight size={14} strokeWidth={1.75} />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Voir le détail</TooltipContent>
                         </Tooltip>
                       </div>
                     </div>

@@ -3,13 +3,17 @@ import {
   Alert,
   AlertDescription,
   Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Field,
   FieldDescription,
   FieldLabel,
   Input,
 } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Dialog, DialogActions, DialogContent, DialogTitle, Link } from '@mui/material';
 import { KeyRound } from 'lucide-react';
 import { netatmoApi, type NetatmoConfigStatus } from '../../../services/api/netatmoApi';
 
@@ -78,17 +82,25 @@ export default function NetatmoProjectConfigDialog({ open, onClose, current, onS
   };
 
   return (
-    <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}>
-        <KeyRound size={18} />
-        Configurer l'app Netatmo
-      </DialogTitle>
-      <DialogContent>
+    // maxWidth="sm" MUI = 600 px. L'enregistrement en cours verrouille la fermeture.
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !saving) onClose(); }}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-[6px] font-bold">
+            <KeyRound size={18} />
+            Configurer l'app Netatmo
+          </DialogTitle>
+        </DialogHeader>
         <p className="cn-text-body2 text-muted-foreground mb-3">
           Renseignez le <strong>Client ID</strong> et le <strong>Client Secret</strong> de l'app créée sur{' '}
-          <Link href="https://dev.netatmo.com/apps/" target="_blank" rel="noopener noreferrer">
+          <a
+            href="https://dev.netatmo.com/apps/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--mui-primary)] underline underline-offset-2"
+          >
             dev.netatmo.com
-          </Link>
+          </a>
           . La <strong>Redirect URI</strong> doit être <u>identique</u> à celle déclarée dans l'app Netatmo.
           Les identifiants sont stockés chiffrés en base.
         </p>
@@ -141,13 +153,13 @@ export default function NetatmoProjectConfigDialog({ open, onClose, current, onS
             </FieldDescription>
           </Field>
         </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={saving}>Annuler</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Enregistrement…' : 'Enregistrer'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button variant="ghost" onClick={onClose} disabled={saving}>Annuler</Button>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? 'Enregistrement…' : 'Enregistrer'}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, Button } from '../../components/ui';
+import { Card, Button, Skeleton } from '../../components/ui';
 import {
   Field,
   FieldLabel,
@@ -12,7 +12,10 @@ import {
   InputGroupInput,
   InputGroupText,
 } from '../../components/ui';
-import { Alert, Snackbar, Skeleton } from '@mui/material';
+// Snackbar + son Alert restent en MUI : le kit n'a pas d'equivalent flottant et
+// ce fichier n'utilise pas encore sonner — changer le mecanisme de notification
+// depasserait la migration visuelle.
+import { Alert, Snackbar } from '@mui/material';
 import { Euro, Save, CheckCircle } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -120,8 +123,8 @@ export default function MyRatesSettings() {
   if (ratesQuery.isLoading) {
     return (
       <div className="flex flex-col gap-3">
-        <Skeleton variant="rounded" height={120} sx={{ borderRadius: '13px' }} />
-        <Skeleton variant="rounded" height={260} sx={{ borderRadius: '13px' }} />
+        <Skeleton className="h-[120px] w-full rounded-[13px]" />
+        <Skeleton className="h-[260px] w-full rounded-[13px]" />
       </div>
     );
   }

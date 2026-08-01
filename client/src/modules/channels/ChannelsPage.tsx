@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
+// Snackbar reste MUI : il ne porte plus qu'un contenu du kit, mais remplacer le
+// mecanisme de notification flottante (par un toast sonner) depasse la migration.
 import { Snackbar } from '@mui/material';
 import {
   Link as LinkIcon,

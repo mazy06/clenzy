@@ -9,8 +9,16 @@
  * timestamp formate "il y a Xm/Xh", erreur tronquee en monospace si FAIL.</p>
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { Badge, Button } from '../../../components/ui';
-import { IconButton, Collapse, Stack, Skeleton, Tooltip } from '@mui/material';
+import {
+  Badge,
+  Button,
+  Collapsible,
+  CollapsibleContent,
+  Skeleton,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   History,
   ChevronDown,
@@ -152,17 +160,24 @@ export default function ChannexSyncLogsList({
           )}
         </span>
         {!collapsed && (
-          <Tooltip title="Rafraichir" arrow placement="top">
-            <span>
-              <IconButton
-                size="small"
-                disabled={loading}
-                onClick={(e) => { e.stopPropagation(); void fetchLogs(); }}
-                sx={{ width: 22, height: 22 }}
-              >
-                <RefreshCw size={11} strokeWidth={2.2} color="var(--accent)" />
-              </IconButton>
-            </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* Le span porte le declencheur : un bouton desactive n'emet plus
+                  d'evenement de survol, le tooltip ne s'ouvrirait jamais. */}
+              <span className="inline-flex">
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label="Rafraichir"
+                  disabled={loading}
+                  onClick={(e) => { e.stopPropagation(); void fetchLogs(); }}
+                  className="size-[22px]"
+                >
+                  <RefreshCw size={11} strokeWidth={2.2} color="var(--accent)" />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">Rafraichir</TooltipContent>
           </Tooltip>
         )}
         {collapsed
@@ -170,14 +185,15 @@ export default function ChannexSyncLogsList({
           : <ChevronUp size={14} color="var(--accent)" />}
       </div>
 
-      <Collapse in={!collapsed}>
+      <Collapsible open={!collapsed}>
+        <CollapsibleContent>
         <div className="px-2 pb-2 pt-0.5">
           {loading && logs.length === 0 && (
-            <Stack spacing={0.5}>
-              <Skeleton variant="rounded" height={32} />
-              <Skeleton variant="rounded" height={32} />
-              <Skeleton variant="rounded" height={32} />
-            </Stack>
+            <div className="flex flex-col gap-[3px]">
+              <Skeleton className="h-[32px] rounded-[8px]" />
+              <Skeleton className="h-[32px] rounded-[8px]" />
+              <Skeleton className="h-[32px] rounded-[8px]" />
+            </div>
           )}
           {error && !loading && (
             <div className="py-1.5">
@@ -197,7 +213,8 @@ export default function ChannexSyncLogsList({
             </span>
           )}
           {logs.length > 0 && (
-            <Stack spacing={0.3}>
+            // spacing 0.3 = 1,8 px (theme.spacing vaut 6 dans ce projet).
+            <div className="flex flex-col gap-[1.8px] items-stretch">
               {visibleLogs.map((log) => (
                 <LogRow key={log.id} log={log} />
               ))}
@@ -211,10 +228,11 @@ export default function ChannexSyncLogsList({
                   Voir {hiddenCount} entree{hiddenCount > 1 ? 's' : ''} de plus
                 </Button>
               )}
-            </Stack>
+            </div>
           )}
         </div>
-      </Collapse>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }

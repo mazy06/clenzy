@@ -15,7 +15,6 @@ import { CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Stack, Alert, Link } from '@mui/material';
 import { Visibility, VisibilityOff } from '../../icons';
 import keycloak, { decodeJwt } from '../../keycloak';
 import apiClient, { ApiError } from '../../services/apiClient';
@@ -185,7 +184,9 @@ export default function Login() {
 
       {/* ── Form ── */}
       <form onSubmit={handleSubmit} noValidate>
-        <Stack spacing={2.5}>
+        {/* spacing={2.5} avec un theme.spacing de 6 px = 15 px, pas les 20 px du
+            defaut MUI. */}
+        <div className="flex flex-col gap-[15px]">
           <Field>
             <FieldLabel className="cn-text-body2 font-semibold mb-1 block text-[0.8125rem]" htmlFor="login-email">
               {t('auth.login.emailLabel', "Email ou nom d'utilisateur")}
@@ -209,19 +210,12 @@ export default function Login() {
               <FieldLabel className="cn-text-body2 font-semibold text-[0.8125rem]" htmlFor="login-password">
                 {t('auth.login.passwordLabel', 'Mot de passe')}
               </FieldLabel>
-              <Link
-                component={RouterLink}
+              <RouterLink
                 to="/forgot-password"
-                sx={{
-                  fontSize: '0.75rem',
-                  color: 'primary.main',
-                  textDecoration: 'none',
-                  fontWeight: 500,
-                  '&:hover': { textDecoration: 'underline' },
-                }}
+                className="text-[0.75rem] font-medium no-underline text-[var(--mui-primary)] hover:underline"
               >
                 {t('auth.login.forgotPassword', 'Mot de passe oublié ?')}
-              </Link>
+              </RouterLink>
             </div>
             <InputGroup>
               <InputGroupInput
@@ -255,12 +249,11 @@ export default function Login() {
           </Field>
 
           {error && (
-            <Alert
-              severity={isLocked ? 'warning' : captchaRequired ? 'info' : 'error'}
-              sx={{ borderRadius: 1.5 }}
-            >
-              <p className="cn-text-body2 text-[0.875rem]">{error}</p>
-            </Alert>
+            <UiAlert variant={isLocked ? 'warning' : captchaRequired ? 'info' : 'destructive'}>
+              <AlertDescription>
+                <p className="cn-text-body2 text-[0.875rem]">{error}</p>
+              </AlertDescription>
+            </UiAlert>
           )}
 
           {captchaRequired && (
@@ -283,40 +276,28 @@ export default function Login() {
           >
             {loading ? <Spinner className="size-[22px]" /> : t('auth.login.submit', 'Se connecter')}
           </Button>
-        </Stack>
+        </div>
       </form>
 
       {/* ── Footer : signup + support ── */}
       <div className="mt-6 pt-4 border-t border-[var(--line)]">
         <p className="cn-text-body2 text-muted-foreground text-[0.875rem] text-center mb-2">
           {t('auth.login.noAccount', 'Pas encore de compte ?')}{' '}
-          <Link
-            component={RouterLink}
+          <RouterLink
             to="/inscription"
-            sx={{
-              color: 'primary.main',
-              fontWeight: 600,
-              textDecoration: 'none',
-              '&:hover': { textDecoration: 'underline' },
-            }}
+            className="font-semibold no-underline text-[var(--mui-primary)] hover:underline"
           >
             {t('auth.login.createAccount', 'Crée le tien')}
-          </Link>
+          </RouterLink>
         </p>
         <span className="cn-text-caption text-muted-foreground block text-center text-[0.75rem]">
           {t('auth.login.needHelp', "Besoin d'aide ?")}{' '}
-          <Link
-            component={RouterLink}
+          <RouterLink
             to="/support"
-            sx={{
-              color: 'text.secondary',
-              fontWeight: 500,
-              textDecoration: 'underline',
-              '&:hover': { color: 'primary.main' },
-            }}
+            className="font-medium underline text-[var(--muted)] hover:text-[var(--mui-primary)]"
           >
             {t('auth.login.contactSupport', 'Contactez le support')}
-          </Link>
+          </RouterLink>
         </span>
       </div>
     </AuthLayout>

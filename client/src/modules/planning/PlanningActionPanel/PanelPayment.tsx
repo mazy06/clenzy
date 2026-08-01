@@ -4,7 +4,14 @@ import { Alert, AlertDescription, Button } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Field, FieldLabel, Input } from '../../../components/ui';
-import { Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+} from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
   Payment,
@@ -149,7 +156,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
       {intervention.status === 'awaiting_payment' && (
         <>
           <PanelPaymentCart payment={payment} />
-          <Divider sx={{ my: 2 }} />
+          <Separator className="my-3" />
         </>
       )}
 
@@ -179,7 +186,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
             <CheckCircle size={14} strokeWidth={1.75} />
             Valider l'intervention
           </Button>
-          <Divider sx={{ my: 2 }} />
+          <Separator className="my-3" />
         </>
       )}
 
@@ -233,36 +240,40 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
       )}
 
       {/* Validate dialog */}
-      <Dialog open={validateDialogOpen} onClose={() => setValidateDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Valider l'intervention</DialogTitle>
-        <DialogContent>
-          <p className="cn-text-body1 text-[0.75rem] mb-3">
-            Intervention : <strong>{intervention.title}</strong>
-          </p>
-          <Field>
-            <FieldLabel htmlFor="validate-final-cost">Coût final estimé (EUR)</FieldLabel>
-            <Input
-              id="validate-final-cost"
-              className="w-full tabular-nums"
-              type="number"
-              value={validateCost}
-              onChange={(e) => setValidateCost(e.target.value)}
-              min={0}
-              step={0.01}
-            />
-          </Field>
-          {validateError && <Alert variant="destructive" className="text-[0.6875rem] mt-1.5">
-            <TriangleAlert />
-            <AlertDescription>{validateError}</AlertDescription>
-          </Alert>}
+      <Dialog open={validateDialogOpen} onOpenChange={(next) => { if (!next) setValidateDialogOpen(false); }}>
+        <DialogContent aria-describedby={undefined} className="max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>Valider l'intervention</DialogTitle>
+          </DialogHeader>
+          <div>
+            <p className="cn-text-body1 text-[0.75rem] mb-3">
+              Intervention : <strong>{intervention.title}</strong>
+            </p>
+            <Field>
+              <FieldLabel htmlFor="validate-final-cost">Coût final estimé (EUR)</FieldLabel>
+              <Input
+                id="validate-final-cost"
+                className="w-full tabular-nums"
+                type="number"
+                value={validateCost}
+                onChange={(e) => setValidateCost(e.target.value)}
+                min={0}
+                step={0.01}
+              />
+            </Field>
+            {validateError && <Alert variant="destructive" className="text-[0.6875rem] mt-1.5">
+              <TriangleAlert />
+              <AlertDescription>{validateError}</AlertDescription>
+            </Alert>}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setValidateDialogOpen(false)}>Annuler</Button>
+            <Button size="sm" onClick={handleValidate} disabled={validating}>
+              {validating && <Spinner className="size-3.5" />}
+              Valider
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" size="sm" onClick={() => setValidateDialogOpen(false)}>Annuler</Button>
-          <Button size="sm" onClick={handleValidate} disabled={validating}>
-            {validating && <Spinner className="size-3.5" />}
-            Valider
-          </Button>
-        </DialogActions>
       </Dialog>
     </div>
   );

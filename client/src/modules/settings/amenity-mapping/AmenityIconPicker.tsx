@@ -1,8 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Tooltip, Stack } from '@mui/material';
 import { Search, X, RotateCcw } from 'lucide-react';
-import { Button } from '../../../components/ui';
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '../../../components/ui';
+import { cn } from '../../../utils/cn';
 import { ICON_CATALOG, ICON_REGISTRY, type IconGroup } from './amenityIcons';
 import { useTranslation } from '../../../hooks/useTranslation';
 
@@ -96,7 +107,7 @@ export default function AmenityIconPicker({
 
   // Navigation clavier dans la grille d'icones — accessibilite WCAG AA pour
   // les utilisateurs au clavier (et lecteurs d'ecran). Stop propagation pour
-  // que MUI Dialog ne ferme pas sur Esc avant qu'on l'ait gere.
+  // que le Dialog ne ferme pas sur Esc avant qu'on l'ait gere.
   const handleGridKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (flatIcons.length === 0) return;
     let nextIndex = focusedIndex;
@@ -136,50 +147,31 @@ export default function AmenityIconPicker({
   const CurrentIcon = ICON_REGISTRY[currentIcon];
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{ sx: { boxShadow: 'var(--shadow-pop)' } }}
-    >
-      <DialogTitle sx={{ pb: 1, pr: 6 }}>
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          {/* Preview de l'icone courante */}
-          {CurrentIcon && (
-            <div className="w-[36px] h-[36px] rounded-[8px] inline-flex items-center justify-center bg-[var(--accent-soft)] shrink-0" style={{ color: ACCENT }}>
-              <CurrentIcon size={20} strokeWidth={1.75} />
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      {/* Le bouton Fermer en haut a droite est celui du primitif DialogContent. */}
+      <DialogContent className="max-w-[900px] shadow-[var(--shadow-pop)]">
+        <DialogHeader>
+          <div className="flex flex-row items-center gap-[9px] pe-8">
+            {/* Preview de l'icone courante */}
+            {CurrentIcon && (
+              <div className="w-[36px] h-[36px] rounded-[8px] inline-flex items-center justify-center bg-[var(--accent-soft)] shrink-0" style={{ color: ACCENT }}>
+                <CurrentIcon size={20} strokeWidth={1.75} />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="text-[0.95rem] font-semibold leading-[1.3]">
+                {t('settings.amenities.iconPicker.title', 'Choisir une icône')}
+              </DialogTitle>
+              <DialogDescription className="text-[0.72rem]">
+                {amenityLabel} ·{' '}
+                <span style={{ fontFamily: '"SF Mono", Menlo, Consolas, monospace' }}>
+                  {amenityCode}
+                </span>
+              </DialogDescription>
             </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="cn-text-body1 text-[0.95rem] font-semibold leading-[1.3]">
-              {t('settings.amenities.iconPicker.title', 'Choisir une icône')}
-            </p>
-            <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
-              {amenityLabel} ·{' '}
-              <span style={{ fontFamily: '"SF Mono", Menlo, Consolas, monospace' }}>
-                {amenityCode}
-              </span>
-            </span>
           </div>
-        </Stack>
-        <IconButton
-          onClick={handleClose}
-          aria-label={t('common.close', 'Fermer')}
-          sx={{
-            position: 'absolute',
-            right: 8,
-            top: 8,
-            cursor: 'pointer',
-            color: 'text.secondary',
-            '&:hover': { color: 'text.primary' },
-          }}
-        >
-          <X size={18} />
-        </IconButton>
-      </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 1, pb: 2 }}>
         {/* Search */}
         {/* Champ sans libelle visible (le titre du dialog le couvre) :
             l'aria-label reste la seule etiquette. */}
@@ -219,7 +211,7 @@ export default function AmenityIconPicker({
           // (role=grid + aria-rowcount/colcount serait plus strict mais le
           // layout est dynamique — on garde role implicite).
           <div role="listbox" aria-label={t('settings.amenities.iconPicker.title', 'Choisir une icône')} onKeyDown={handleGridKeyDown}>
-            <Stack spacing={2}>
+            <div className="flex flex-col gap-3">
               {filteredGroups.map((group, groupIdx) => {
                 // Calcule l'offset de ce groupe dans flatIcons pour matcher
                 // l'index global avec la position visuelle.
@@ -237,39 +229,33 @@ export default function AmenityIconPicker({
                         const isSelected = iconName === currentIcon;
                         const isFocused = focusedIndex === globalIdx;
                         return (
-                          <Tooltip key={iconName} title={iconName} arrow placement="top">
-                            <IconButton
-                              ref={(el) => { buttonRefs.current[globalIdx] = el; }}
-                              role="option"
-                              aria-selected={isSelected}
-                              tabIndex={isFocused ? 0 : -1}
-                              onClick={() => handleSelect(iconName)}
-                              onFocus={() => setFocusedIndex(globalIdx)}
-                              aria-label={t('settings.amenities.iconPicker.pickIcon', 'Choisir {{name}}', { name: iconName })}
-                              sx={{
-                                width: 44,
-                                height: 44,
-                                borderRadius: 1,
-                                border: '1px solid',
-                                borderColor: isSelected ? ACCENT : 'divider',
-                                backgroundColor: isSelected ? 'var(--accent-soft)' : 'background.paper',
-                                color: isSelected ? ACCENT : 'text.secondary',
-                                cursor: 'pointer',
-                                transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                                '&:hover': {
-                                  borderColor: ACCENT,
-                                  backgroundColor: `${ACCENT}0A`,
-                                  color: ACCENT,
-                                },
-                                '&:focus-visible': {
-                                  borderColor: ACCENT,
-                                  boxShadow: `0 0 0 3px ${ACCENT}33`,
-                                  outline: 'none',
-                                },
-                              }}
-                            >
-                              <Icon size={18} strokeWidth={1.75} />
-                            </IconButton>
+                          // <button> natif et non le Button du kit : la ref porte
+                          // ici le comportement (focus pilote au clavier).
+                          <Tooltip key={iconName}>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                ref={(el) => { buttonRefs.current[globalIdx] = el; }}
+                                role="option"
+                                aria-selected={isSelected}
+                                tabIndex={isFocused ? 0 : -1}
+                                onClick={() => handleSelect(iconName)}
+                                onFocus={() => setFocusedIndex(globalIdx)}
+                                aria-label={t('settings.amenities.iconPicker.pickIcon', 'Choisir {{name}}', { name: iconName })}
+                                className={cn(
+                                  'inline-flex items-center justify-center size-11 rounded-[8px] border border-solid cursor-pointer',
+                                  '[transition:all_180ms_cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+                                  'hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_4%,transparent)] hover:text-[var(--accent)]',
+                                  'focus-visible:outline-none focus-visible:border-[var(--accent)] focus-visible:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_20%,transparent)]',
+                                  isSelected
+                                    ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                                    : 'border-[var(--line)] bg-[var(--card)] text-[var(--muted)]',
+                                )}
+                              >
+                                <Icon size={18} strokeWidth={1.75} />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">{iconName}</TooltipContent>
                           </Tooltip>
                         );
                       })}
@@ -277,34 +263,34 @@ export default function AmenityIconPicker({
                   </div>
                 );
               })}
-            </Stack>
+            </div>
           </div>
         )}
-      </DialogContent>
 
-      <DialogActions sx={{ px: 2.5, py: 1.5, borderTop: '1px solid', borderColor: 'divider', justifyContent: 'space-between' }}>
-        <div className="flex items-center gap-1.5">
-          {isOverridden && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => { onReset(); onClose(); }}
-            >
-              <RotateCcw size={13} />
-              {t('settings.amenities.iconPicker.resetToDefault', "Revenir à l'icône par défaut")}
-            </Button>
-          )}
-        </div>
-        {/* Le choix se fait au clic sur une icone (qui ferme le dialog) : ce
-            bouton n'est que le congediement de la modale, d'ou outline. */}
-        <Button
-          variant="outline"
-          onClick={handleClose}
-          size="sm"
-        >
-          {t('common.close', 'Fermer')}
-        </Button>
-      </DialogActions>
+        <DialogFooter className="border-t border-solid border-[var(--line)] pt-[9px] sm:justify-between">
+          <div className="flex items-center gap-1.5">
+            {isOverridden && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { onReset(); onClose(); }}
+              >
+                <RotateCcw size={13} />
+                {t('settings.amenities.iconPicker.resetToDefault', "Revenir à l'icône par défaut")}
+              </Button>
+            )}
+          </div>
+          {/* Le choix se fait au clic sur une icone (qui ferme le dialog) : ce
+              bouton n'est que le congediement de la modale, d'ou outline. */}
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            size="sm"
+          >
+            {t('common.close', 'Fermer')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

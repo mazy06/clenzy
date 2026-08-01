@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { Badge } from '../../components/ui';
-import { Paper, Tooltip, useMediaQuery, useTheme } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
   Calculate as CalculateIcon,
@@ -57,8 +56,6 @@ const EMPTY_INTERVENTIONS: Array<{ estimatedCost?: number; actualCost?: number; 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [period, setPeriod] = useState<DashboardPeriod>('month');
   const [tabValue, setTabValue] = useState(0);
@@ -199,7 +196,7 @@ const Dashboard: React.FC = () => {
 
         {/* ─── Tabs (dynamic per role) ──────────────────────────────────── */}
         {visibleTabs.length > 1 && (
-          <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 0, flexShrink: 0 }}>
+          <div className="shrink-0 bg-[var(--card)] border-b border-solid border-[var(--line)]">
             <PageTabs
               options={visibleTabs.map((tab) => ({
                 key: tab.key,
@@ -210,7 +207,7 @@ const Dashboard: React.FC = () => {
               onChange={setTabValue}
               mb={0}
             />
-          </Paper>
+          </div>
         )}
 
         {/* ─── Tab content ────────────────────────────────────────────────── */}

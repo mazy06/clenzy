@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent } from '@mui/material';
-import { Button } from '../../components/ui';
+import { Button, Card, CardContent } from '../../components/ui';
 import { Cancel, ArrowBack } from "../../icons";
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -12,7 +11,8 @@ const PaymentCancel: React.FC = () => {
   return (
     <div className="max-w-[600px] mx-auto mt-6">
       <Card>
-        <CardContent sx={{ textAlign: 'center', p: 4 }}>
+        {/* p: 4 = 24 px (spacing MUI 6). */}
+        <CardContent className="text-center p-6">
           <span className="inline-flex text-[var(--err)] mb-3"><Cancel size={80} strokeWidth={1.5} /></span>
           <h4 className="cn-text-h4 mb-[0.35em]">
             Paiement annulé

@@ -3,7 +3,10 @@ import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Button } from '../../components/ui';
-import { IconButton, Snackbar, Alert, Skeleton, Tooltip } from '@mui/material';
+// Snackbar + Alert MUI conserves : ils portent le mecanisme de notification
+// (pas de `toast` sonner dans ce fichier), le remplacer depasse la migration UI.
+import { Snackbar, Alert } from '@mui/material';
+import { Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Download,
@@ -142,7 +145,7 @@ const DatabaseAdminPage: React.FC = () => {
         {loading ? (
           <div className="flex flex-col gap-1.5 p-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+              <Skeleton key={i} className="h-[36px] rounded-[9px]" />
             ))}
           </div>
         ) : backups.length === 0 ? (
@@ -184,24 +187,42 @@ const DatabaseAdminPage: React.FC = () => {
                       <p className="cn-text-body2">{formatDate(backup.createdAt)}</p>
                     </TableCell>
                     <TableCell className="text-end">
-                      <Tooltip title="Telecharger">
-                        <IconButton size="small" onClick={() => handleDownload(backup.filename)} color="primary">
-                          <Download fontSize="small" />
-                        </IconButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Telecharger"
+                            onClick={() => handleDownload(backup.filename)}
+                            className="text-[var(--mui-primary)]"
+                          >
+                            <Download fontSize="small" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Telecharger</TooltipContent>
                       </Tooltip>
-                      <Tooltip title="Supprimer">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDelete(backup.filename)}
-                          color="error"
-                          disabled={deletingFile === backup.filename}
-                        >
-                          {deletingFile === backup.filename ? (
-                            <Spinner className="size-4" />
-                          ) : (
-                            <Delete fontSize="small" />
-                          )}
-                        </IconButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Le span porte le declencheur : un bouton desactive
+                              n'emet plus d'evenement de survol. */}
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label="Supprimer"
+                              onClick={() => handleDelete(backup.filename)}
+                              disabled={deletingFile === backup.filename}
+                              className="text-[var(--err)]"
+                            >
+                              {deletingFile === backup.filename ? (
+                                <Spinner className="size-4" />
+                              ) : (
+                                <Delete fontSize="small" />
+                              )}
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Supprimer</TooltipContent>
                       </Tooltip>
                     </TableCell>
                   </TableRow>

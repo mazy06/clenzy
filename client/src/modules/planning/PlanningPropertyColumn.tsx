@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { cn } from '../../utils/cn';
-import { Tooltip } from '@mui/material';
+import { Tooltip, TooltipTrigger, TooltipContent } from '../../components/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PropertyPopover from './PropertyPopover';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -217,17 +217,18 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             {/* Indicateur en bas-droite : sync canaux (wifi) */}
             {sync && sync.total > 0 && (
               <div className="absolute end-[6px] bottom-[4px] flex items-center gap-1 pointer-events-none">
-                <Tooltip
-                  title={`${sync.synced} sur ${sync.total} canaux synchronises (sync < 24h)`}
-                  placement="top"
-                  arrow
-                >
-                  <div className="flex items-center gap-[1.5px] pointer-events-auto" style={{ color: syncColor }}>
-                    <ChannelIcon size={11} strokeWidth={1.75} />
-                    <span className="text-[0.5625rem] font-semibold text-inherit leading-[1] tabular-nums">
-                      {sync.synced}/{sync.total}
-                    </span>
-                  </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-[1.5px] pointer-events-auto" style={{ color: syncColor }}>
+                      <ChannelIcon size={11} strokeWidth={1.75} />
+                      <span className="text-[0.5625rem] font-semibold text-inherit leading-[1] tabular-nums">
+                        {sync.synced}/{sync.total}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    {`${sync.synced} sur ${sync.total} canaux synchronises (sync < 24h)`}
+                  </TooltipContent>
                 </Tooltip>
               </div>
             )}

@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
+// Le Dialog reste MUI : il heberge un Autocomplete MUI (son renderInput recoit
+// des props internes). Sous un Dialog Radix, la liste de l'Autocomplete est
+// portee hors du contenu modal et devient inclicable.
 import { Dialog, DialogTitle, DialogContent, DialogActions, Autocomplete, TextField } from '@mui/material';
 import { reservationsApi, type Reservation } from '../../services/api/reservationsApi';
 import { useAttachToReservation } from '../../hooks/useConversations';

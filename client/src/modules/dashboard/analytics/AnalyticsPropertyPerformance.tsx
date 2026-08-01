@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { Card, CardContent, LinearProgress } from '@mui/material';
+import { Card, Progress } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import GridSection from './GridSection';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -17,30 +17,18 @@ function getScoreColor(score: number): string {
   return '#C97A7A'; // error
 }
 
-const CARD_SX = {
-  width: '100%',
-  transition: 'border-color 0.15s ease',
-  '&:hover': { borderColor: 'text.secondary' },
-} as const;
+/**
+ * Gabarit de carte : pleine largeur, liseré qui se révèle au survol.
+ * Le liseré de la carte du kit est un `ring`, pas un `border` — d'où
+ * `hover:ring-[color:…]` (et la syntaxe `color:` sans laquelle Tailwind lirait
+ * la variable comme une largeur d'anneau).
+ */
+const CARD_CLASS =
+  'gap-0 py-0 p-[7.5px] w-full transition-[box-shadow] duration-150 ease-out ' +
+  'motion-reduce:transition-none hover:ring-[color:var(--muted)]';
 
-const LABEL_SX = {
-  fontSize: '0.5625rem',
-  color: 'text.secondary',
-  lineHeight: 1.2,
-} as const;
-
-/** Report en classes de `LABEL_SX`. */
 const LABEL_CLASS = 'text-[0.5625rem] text-[var(--muted)] leading-[1.2]';
 
-const VALUE_SX = {
-  fontSize: '0.6875rem',
-  fontWeight: 700,
-  color: 'text.primary',
-  fontVariantNumeric: 'tabular-nums',
-  textAlign: 'right' as const,
-} as const;
-
-/** Report en classes de `VALUE_SX`. */
 const VALUE_CLASS = 'cn-text-body1 text-[0.6875rem] font-bold text-[var(--ink)] tabular-nums text-right';
 
 interface Props {
@@ -71,31 +59,29 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={i}>
-              <Card sx={{ ...CARD_SX, opacity: 0.5 }}>
-                <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-                  <div className="h-[120px]" />
-                </CardContent>
+              <Card className={cn(CARD_CLASS, 'opacity-50')}>
+                <div className="h-[120px]" />
               </Card>
             </div>
           ))
         ) : items.length === 0 ? (
           <div className="col-span-12">
-            <Card sx={CARD_SX}>
-              <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 }, textAlign: 'center' }}>
-                <p className="cn-text-body1 text-[0.75rem] text-muted-foreground py-3">
-                  {t('dashboard.analytics.noProperties')}
-                </p>
-              </CardContent>
+            <Card className={cn(CARD_CLASS, 'text-center')}>
+              <p className="cn-text-body1 text-[0.75rem] text-muted-foreground py-3">
+                {t('dashboard.analytics.noProperties')}
+              </p>
             </Card>
           </div>
         ) : (
           items.map((prop, index) => (
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={prop.propertyId}>
-              <Card sx={CARD_SX}>
-                <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-                  {/* Rank + Name */}
+              <Card className={CARD_CLASS}>
+                {/* Rank + Name */}
                   <div className="flex items-center gap-1 mb-1">
-                    <div className="flex items-center justify-center min-w-[22px] h-[22px] rounded-[50%] text-[0.625rem] font-bold" style={{ backgroundColor: index < 3 ? `${getScoreColor(prop.score)}15` : 'grey.100', color: index < 3 ? getScoreColor(prop.score) : 'text.disabled' }}>
+                    {/* Teintes du podium calculees a l'execution → style inline.
+                        Hors podium : jetons du kit, pas les alias MUI grey.100 /
+                        text.disabled, qui ne sont pas des valeurs CSS. */}
+                    <div className="flex items-center justify-center min-w-[22px] h-[22px] rounded-[50%] text-[0.625rem] font-bold" style={{ backgroundColor: index < 3 ? `${getScoreColor(prop.score)}15` : 'var(--hover)', color: index < 3 ? getScoreColor(prop.score) : 'var(--faint)' }}>
                       #{index + 1}
                     </div>
                     <p className="cn-text-body1 text-[0.75rem] font-bold text-foreground overflow-hidden text-ellipsis whitespace-nowrap flex-1">
@@ -111,18 +97,12 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
                         {prop.score}/100
                       </p>
                     </div>
-                    <LinearProgress
-                      variant="determinate"
+                    {/* La teinte de la barre depend du score : variable CSS posee
+                        inline, relue par la classe du remplissage. */}
+                    <Progress
                       value={prop.score}
-                      sx={{
-                        height: 4,
-                        borderRadius: 2,
-                        bgcolor: 'grey.100',
-                        '& .MuiLinearProgress-bar': {
-                          bgcolor: getScoreColor(prop.score),
-                          borderRadius: 2,
-                        },
-                      }}
+                      style={{ '--bar': getScoreColor(prop.score) } as React.CSSProperties}
+                      className="h-1 rounded-[8px] bg-[var(--hover)] [&_[data-slot=progress-indicator]]:bg-[var(--bar)] [&_[data-slot=progress-indicator]]:rounded-[8px]"
                     />
                   </div>
 
@@ -152,7 +132,6 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
                       </p>
                     </div>
                   </div>
-                </CardContent>
               </Card>
             </div>
           ))

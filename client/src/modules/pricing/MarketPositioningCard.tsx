@@ -3,15 +3,13 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Skeleton, Tooltip } from '@mui/material';
+import { Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, TrendingDown, Remove as Minus, Info } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { marketPositioningApi, type MarketPositioning } from '../../services/api/marketPositioningApi';
 
-const NUM_SX = { fontVariantNumeric: 'tabular-nums' } as const;
-
-/** Report en classes de `NUM_SX`. */
+/** Chiffres alignes en colonne (KPI, prix). */
 const NUM_CLASS = 'tabular-nums';
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -36,7 +34,7 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
   });
 
   if (isLoading) {
-    return <Skeleton variant="rounded" height={92} sx={{ borderRadius: '12px' }} />;
+    return <Skeleton className="h-[92px] w-full rounded-[12px]" />;
   }
   if (isError || !data) {
     return null; // signal complémentaire : on ne bloque jamais l'écran de pricing
@@ -86,12 +84,19 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
           sx={{ borderColor: `color-mix(in srgb, ${color} 22%, transparent)` }}
         />
         {!noMarket && data.source && (
-          <Tooltip
-            title={t('marketPositioning.sourceHint',
-              'Provenance et fiabilité de la donnée marché. Le « réseau Baitly » est votre réalisé, jamais présenté comme le marché entier.')}
-          >
-            <Badge variant="outline" className="text-[var(--muted)] border-[var(--line)]"><Info size={13} />{`${SOURCE_LABEL[data.source] ?? data.source} · ${
-                data.confidence != null ? `${Math.round(data.confidence * 100)} %` : '—'}`}</Badge>
+          <Tooltip>
+            {/* `span` intercalaire : le declencheur Radix pose une ref, que la
+                primitive Badge (simple fonction) ne transmet pas. */}
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Badge variant="outline" className="text-[var(--muted)] border-[var(--line)]"><Info size={13} />{`${SOURCE_LABEL[data.source] ?? data.source} · ${
+                    data.confidence != null ? `${Math.round(data.confidence * 100)} %` : '—'}`}</Badge>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {t('marketPositioning.sourceHint',
+                'Provenance et fiabilité de la donnée marché. Le « réseau Baitly » est votre réalisé, jamais présenté comme le marché entier.')}
+            </TooltipContent>
           </Tooltip>
         )}
       </div>

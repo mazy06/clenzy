@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { cn } from '../../utils/cn';
-import { Spinner, Button } from '../../components/ui';
-import { Collapse, Divider } from '@mui/material';
+import {
+  Spinner,
+  Button,
+  Collapsible,
+  CollapsibleContent,
+  Separator,
+} from '../../components/ui';
 import { Mail, Rocket, Users, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
@@ -104,8 +109,9 @@ const LaunchSettingsSection: React.FC = () => {
         </Button>
       </div>
 
-      <Collapse in={showList} unmountOnExit>
-        <Divider sx={{ mb: 1 }} />
+      <Collapsible open={showList}>
+        <CollapsibleContent>
+        <Separator className="mb-1.5" />
         <div className="max-h-[320px] overflow-y-auto">
           {(list ?? []).length === 0 ? (
             <p className="cn-text-body1 text-[0.78rem] text-muted-foreground text-center py-3">
@@ -136,7 +142,8 @@ const LaunchSettingsSection: React.FC = () => {
             ))
           )}
         </div>
-      </Collapse>
+        </CollapsibleContent>
+      </Collapsible>
     </SettingsSection>
   );
 };

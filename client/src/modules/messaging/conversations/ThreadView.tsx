@@ -1,7 +1,14 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Spinner } from '../../../components/ui';
-import { InputBase, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material';
-import type { SxProps, Theme } from '@mui/material';
+import React, { useEffect, useMemo, useRef } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Spinner,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import {
   ArrowBack as ArrowBackIcon,
@@ -13,43 +20,11 @@ import { type ThreadMessage, dayLabel, formatMsgTime } from './unified';
 
 // ─── Styles partagés (référence .mg-ico / .mg-ctool / .mg-send) ──────────────
 
-export const mgIcoSx: SxProps<Theme> = {
-  width: 36,
-  height: 36,
-  borderRadius: '11px',
-  border: '1px solid var(--line-2)',
-  bgcolor: 'var(--card)',
-  color: 'var(--muted)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  p: 0,
-  flexShrink: 0,
-  transition: 'color .14s, border-color .14s',
-  '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)' },
-  '&:disabled': { opacity: 0.45, cursor: 'default' },
-};
+// Les anciennes constantes `mgIcoSx` / `composeToolSx` sont supprimees : leurs
+// deux consommateurs (ChannelThread, InternalThread) sont deja passes aux
+// classes equivalentes, plus personne ne les importait.
 
-export const composeToolSx: SxProps<Theme> = {
-  width: 30,
-  height: 30,
-  borderRadius: '8px',
-  border: 0,
-  bgcolor: 'transparent',
-  color: 'var(--muted)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  p: 0,
-  flexShrink: 0,
-  transition: 'background .14s, color .14s',
-  '&:hover': { bgcolor: 'var(--bg)', color: 'var(--accent)' },
-  '&:disabled': { opacity: 0.45, cursor: 'default' },
-};
-
-/** Equivalent en classes de `mgIcoSx` (la constante sx reste exportee pour les containers). */
+/** Boutons d'icone de l'entete (reference .mg-ico). */
 const MG_ICO_CLS =
   'flex items-center justify-center shrink-0 p-0 rounded-[11px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] cursor-pointer [transition:color_.14s,border-color_.14s] hover:text-[var(--accent)] hover:border-[var(--accent)] disabled:opacity-[.45] disabled:cursor-default';
 
@@ -124,7 +99,6 @@ export default function ThreadView({
   onBack,
 }: ThreadViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
 
   // Auto-scroll en bas à l'arrivée de messages.
   useEffect(() => {
@@ -170,40 +144,48 @@ export default function ThreadView({
         </div>
         <div className="ms-auto flex gap-1.5 items-center">
           {actions.map((action) => (
-            <Tooltip key={action.key} title={action.title} arrow>
-              <button onClick={action.onClick} aria-label={action.title} className={cn(MG_ICO_CLS, 'w-9 h-9')}>
-                {action.icon}
-              </button>
+            <Tooltip key={action.key}>
+              <TooltipTrigger asChild>
+                <button type="button" onClick={action.onClick} aria-label={action.title} className={cn(MG_ICO_CLS, 'w-9 h-9')}>
+                  {action.icon}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{action.title}</TooltipContent>
             </Tooltip>
           ))}
           {menuItems.length > 0 && (
-            <button
-              onClick={(e) => setMenuAnchor(e.currentTarget)}
-              aria-label="Plus d'actions"
-              className={cn(MG_ICO_CLS, 'w-9 h-9')}
-            >
-              <MoreHorizIcon size={16} strokeWidth={1.75} />
-            </button>
+            // Le menu flottant devient un DropdownMenu : il s'ancre lui-meme sur
+            // son declencheur, l'etat `menuAnchor` n'a plus lieu d'etre.
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Plus d'actions"
+                  className={cn(MG_ICO_CLS, 'w-9 h-9')}
+                >
+                  <MoreHorizIcon size={16} strokeWidth={1.75} />
+                </button>
+              </DropdownMenuTrigger>
+              {/* `w-auto` : le gabarit cale sinon la largeur du menu sur celle du
+                  declencheur, ici un bouton de 36 px. */}
+              <DropdownMenuContent align="end" className="w-auto min-w-[180px]">
+                {menuItems.map((item) => (
+                  <DropdownMenuItem
+                    key={item.key}
+                    disabled={item.disabled}
+                    onSelect={() => item.onClick()}
+                    className="text-[12.5px] font-semibold gap-1.5"
+                  >
+                    {item.icon && (
+                      <span className="inline-flex min-w-[28px] items-center text-[var(--muted)]">{item.icon}</span>
+                    )}
+                    {item.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
-        <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
-          {menuItems.map((item) => (
-            <MenuItem
-              key={item.key}
-              disabled={item.disabled}
-              onClick={() => {
-                setMenuAnchor(null);
-                item.onClick();
-              }}
-              sx={{ fontSize: '12.5px', fontWeight: 600 }}
-            >
-              {item.icon && <ListItemIcon sx={{ minWidth: 28, color: 'var(--muted)' }}>{item.icon}</ListItemIcon>}
-              <ListItemText primaryTypographyProps={{ fontSize: '12.5px', fontWeight: 600 }}>
-                {item.label}
-              </ListItemText>
-            </MenuItem>
-          ))}
-        </Menu>
       </div>
 
       {/* ── Messages ────────────────────────────────────────────────────── */}
@@ -260,9 +242,13 @@ export default function ThreadView({
         <div className="p-[14px 20px]">
           {composeExtra}
           <div className="flex items-end gap-[7.5px] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[13px] p-[8px 8px 8px 14px]">
-            <InputBase
-              multiline
-              maxRows={4}
+            {/* `textarea` nu plutot que le primitif Textarea : la boite .mg-cbox
+                porte deja le cadre, le fond et le padding 8/8/8/14 — le gabarit
+                du primitif les doublerait. InputBase etait deja l'input MUI SANS
+                habillage, la transposition est donc a l'identique.
+                `field-sizing-content` + `max-h` reproduisent `maxRows={4}`. */}
+            <textarea
+              rows={1}
               placeholder={composePlaceholder}
               value={draft}
               disabled={composeDisabled}
@@ -273,9 +259,7 @@ export default function ThreadView({
                   handleSend();
                 }
               }}
-              // Réf .mg-cbox textarea : aucun padding propre (la boîte porte le
-              // padding 8/8/8/14), 12.5px lh 1.5, max-height 80.
-              sx={{ flex: 1, fontSize: '12.5px', color: 'var(--body)', lineHeight: 1.5, py: 0, '& textarea': { p: 0, maxHeight: 80 } }}
+              className="flex-1 min-w-0 p-0 border-none bg-transparent outline-none resize-none field-sizing-content max-h-[80px] text-[12.5px] leading-[1.5] text-[var(--body)] placeholder:text-[var(--faint)] disabled:opacity-50"
             />
             {composeTools}
             <button

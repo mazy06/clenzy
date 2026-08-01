@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
+import { Alert, AlertAction, AlertDescription, AlertTitle, Button, Spinner } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { LinearProgress, Alert, Stack } from '@mui/material';
 import { Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
 import { AutoFixHighRounded } from '../../icons';
 import { CheckCircleOutlineRounded } from '../../icons';
@@ -95,7 +94,7 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
   return (
     <div className="mb-4">
       {/* URL input + button */}
-      <Stack direction="row" spacing={1.5} alignItems="flex-start">
+      <div className="flex flex-row items-start gap-[9px]">
         <Field className="flex-1">
           <FieldLabel htmlFor="ai-design-website-url">{t('bookingEngine.ai.websiteUrl')}</FieldLabel>
           <Input
@@ -119,13 +118,15 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
           <AutoFixHighRounded />
           {t('bookingEngine.ai.analyzeDesign')}
         </Button>
-      </Stack>
+      </div>
 
       {/* Loading state */}
+      {/* Le kit n'a pas de barre indeterminee : le Spinner porte la meme
+          information (analyse en cours, duree inconnue). */}
       {isLoading && (
-        <div className="mt-3">
-          <LinearProgress />
-          <p className="cn-text-body2 text-muted-foreground mt-1.5">
+        <div className="mt-3 flex items-center gap-1.5">
+          <Spinner className="size-4 text-[var(--muted)]" />
+          <p className="cn-text-body2 text-muted-foreground">
             {t('bookingEngine.ai.analyzing')}
           </p>
         </div>
@@ -133,31 +134,32 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
 
       {/* Success state */}
       {success && !isLoading && (
-        <Alert
-          severity="success"
-          icon={<CheckCircleOutlineRounded />}
-          sx={{ mt: 2 }}
-        >
-          <p className={cn('cn-text-body2 font-semibold', extractedColors.length > 0 ? 'mb-1.5' : 'mb-0')}>
+        <Alert variant="success" className="mt-3">
+          <CheckCircleOutlineRounded />
+          <AlertTitle className={cn('cn-text-body2 font-semibold', extractedColors.length > 0 ? 'mb-1.5' : 'mb-0')}>
             {t('bookingEngine.ai.analyzeSuccess')}
-          </p>
+          </AlertTitle>
           {extractedColors.length > 0 && (
-            <Stack direction="row" spacing={0.5} flexWrap="wrap">
+            <AlertDescription className="flex flex-row flex-wrap gap-0.5">
               {extractedColors.map((color, idx) => (
                 <StatusChip tokens={{ color: isLightColor(color) ? '#000' : '#fff', bg: color }} label={color} className="font-mono text-[0.75rem]" key={idx} />
               ))}
-            </Stack>
+            </AlertDescription>
           )}
         </Alert>
       )}
 
       {/* AI not configured — actionable message */}
       {aiNotConfigured && !isLoading && (
-        <Alert
-          severity="warning"
-          icon={<SettingsRounded />}
-          sx={{ mt: 2 }}
-          action={
+        <Alert variant="warning" className="mt-3">
+          <SettingsRounded />
+          <AlertTitle className="cn-text-body2 font-semibold">
+            {t('bookingEngine.ai.aiNotConfiguredTitle')}
+          </AlertTitle>
+          <AlertDescription className="cn-text-body2">
+            {t('bookingEngine.ai.aiNotConfiguredMessage', { provider: aiNotConfigured })}
+          </AlertDescription>
+          <AlertAction>
             <Button
               variant="outline"
               size="sm"
@@ -166,24 +168,21 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
             >
               {t('bookingEngine.ai.goToSettings')}
             </Button>
-          }
-        >
-          <p className="cn-text-body2 font-semibold">
-            {t('bookingEngine.ai.aiNotConfiguredTitle')}
-          </p>
-          <p className="cn-text-body2 text-muted-foreground">
-            {t('bookingEngine.ai.aiNotConfiguredMessage', { provider: aiNotConfigured })}
-          </p>
+          </AlertAction>
         </Alert>
       )}
 
       {/* Budget exceeded — actionable message */}
       {budgetExceeded && !isLoading && (
-        <Alert
-          severity="warning"
-          icon={<SettingsRounded />}
-          sx={{ mt: 2 }}
-          action={
+        <Alert variant="warning" className="mt-3">
+          <SettingsRounded />
+          <AlertTitle className="cn-text-body2 font-semibold">
+            {t('bookingEngine.ai.budgetExceededTitle')}
+          </AlertTitle>
+          <AlertDescription className="cn-text-body2">
+            {t('bookingEngine.ai.budgetExceededMessage')}
+          </AlertDescription>
+          <AlertAction>
             <Button
               variant="outline"
               size="sm"
@@ -192,23 +191,16 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
             >
               {t('bookingEngine.ai.goToSettings')}
             </Button>
-          }
-        >
-          <p className="cn-text-body2 font-semibold">
-            {t('bookingEngine.ai.budgetExceededTitle')}
-          </p>
-          <p className="cn-text-body2 text-muted-foreground">
-            {t('bookingEngine.ai.budgetExceededMessage')}
-          </p>
+          </AlertAction>
         </Alert>
       )}
 
       {/* Generic error state */}
       {analyzeMutation.isError && !isLoading && !aiNotConfigured && !budgetExceeded && (
-        <UiAlert variant="destructive" className="mt-3">
+        <Alert variant="destructive" className="mt-3">
           <TriangleAlert />
           <AlertDescription>{t('bookingEngine.ai.analyzeError')}</AlertDescription>
-        </UiAlert>
+        </Alert>
       )}
     </div>
   );

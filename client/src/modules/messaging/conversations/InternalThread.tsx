@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import StatusChip from '../../../components/StatusChip';
 import {
   Archive as ArchiveIcon,
@@ -155,32 +155,39 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
         }
         composeTools={
           <>
-            <Tooltip title={t('messagingHub.attachFile', 'Joindre un fichier')} arrow>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                aria-label={t('messagingHub.attachFile', 'Joindre un fichier')}
-                className={COMPOSE_TOOL_CLASS}
-              >
-                <AttachFileIcon size={15} strokeWidth={1.75} />
-              </button>
-            </Tooltip>
-            {lastInbound && (
-              <Tooltip
-                title={
-                  aiSuggestMutation.isError
-                    ? t('messagingHub.aiUnavailable', 'Suggestion IA indisponible')
-                    : t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')
-                }
-                arrow
-              >
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <button
-                  onClick={handleAiSuggest}
-                  disabled={aiSuggestMutation.isPending}
-                  aria-label={t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')}
+                  onClick={() => fileInputRef.current?.click()}
+                  aria-label={t('messagingHub.attachFile', 'Joindre un fichier')}
                   className={COMPOSE_TOOL_CLASS}
                 >
-                  <SparklesIcon size={15} strokeWidth={1.75} />
+                  <AttachFileIcon size={15} strokeWidth={1.75} />
                 </button>
+              </TooltipTrigger>
+              <TooltipContent>{t('messagingHub.attachFile', 'Joindre un fichier')}</TooltipContent>
+            </Tooltip>
+            {lastInbound && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/* Le span porte le declencheur : un bouton desactive n'emet
+                      plus d'evenement de survol. */}
+                  <span className="inline-flex">
+                    <button
+                      onClick={handleAiSuggest}
+                      disabled={aiSuggestMutation.isPending}
+                      aria-label={t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')}
+                      className={COMPOSE_TOOL_CLASS}
+                    >
+                      <SparklesIcon size={15} strokeWidth={1.75} />
+                    </button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {aiSuggestMutation.isError
+                    ? t('messagingHub.aiUnavailable', 'Suggestion IA indisponible')
+                    : t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')}
+                </TooltipContent>
               </Tooltip>
             )}
           </>

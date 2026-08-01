@@ -1,6 +1,5 @@
 import React from 'react';
-import { Spinner } from '../../components/ui';
-import { MenuItem, Select } from '@mui/material';
+import { NativeSelect, NativeSelectOption, Spinner } from '../../components/ui';
 import { Bot, PenLine, Send, Gem } from 'lucide-react';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
@@ -71,19 +70,22 @@ const ConciergePlatformSection: React.FC = () => {
             description="Forfait minimal requis pour qu'un org bénéficie de l'auto-envoi concierge."
             divider={false}
             control={
-              <Select
-                size="small"
+              // Le libelle de la rangee (« Palier minimal… ») nomme la saisie :
+              // le select le reprend en aria-label, faute d'etiquette propre.
+              <NativeSelect
+                size="sm"
+                aria-label="Palier minimal pour l'auto-envoi"
+                className="min-w-[130px]"
                 value={FORFAITS.includes(minForfait as (typeof FORFAITS)[number]) ? minForfait : 'premium'}
                 onChange={(e) => save({ minForfait: e.target.value })}
                 disabled={setConcierge.isPending || !autosendEnabled}
-                sx={{ minWidth: 130, fontSize: '0.8125rem' }}
               >
                 {FORFAITS.map((f) => (
-                  <MenuItem key={f} value={f} sx={{ fontSize: '0.8125rem' }}>
+                  <NativeSelectOption key={f} value={f}>
                     {FORFAIT_LABELS[f]}
-                  </MenuItem>
+                  </NativeSelectOption>
                 ))}
-              </Select>
+              </NativeSelect>
             }
           />
           {settings?.updatedBy && (

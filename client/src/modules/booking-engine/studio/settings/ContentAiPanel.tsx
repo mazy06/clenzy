@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ButtonBase, Skeleton } from '@mui/material';
+import { Skeleton } from '../../../../components/ui';
 import { Wand2, Search, Copy, Check, AlertTriangle, Sparkles } from 'lucide-react';
 import { propertiesApi, type Property } from '../../../../services/api/propertiesApi';
 import { propertyContentAiApi, type GeneratedContent } from '../../../../services/api/propertyContentAiApi';
@@ -82,7 +82,7 @@ export default function ContentAiPanel() {
   if (properties === null && !loadError) {
     return (
       <div className="max-w-[720px] mx-auto px-6 py-6">
-        <Skeleton variant="rounded" height={220} sx={{ borderRadius: 'var(--radius-lg)', bgcolor: 'var(--hover)' }} />
+        <Skeleton className="h-[220px] w-full rounded-[var(--radius-lg)] bg-[var(--hover)]" />
       </div>
     );
   }
@@ -148,10 +148,10 @@ export default function ContentAiPanel() {
             </div>
             <div className="text-[var(--text-md)] text-[var(--body)] leading-[1.6] whitespace-pre-wrap">{result.content}</div>
             <div className="flex justify-end mt-3">
-              <ButtonBase onClick={copy} sx={ghostBtnSx}>
+              <button type="button" onClick={copy} className={GHOST_BTN_CLASS}>
                 {copied ? <Check size={15} strokeWidth={2.4} /> : <Copy size={15} strokeWidth={2} />}
                 {copied ? 'Copié' : 'Copier'}
-              </ButtonBase>
+              </button>
             </div>
           </div>
         </SettingCard>
@@ -164,29 +164,34 @@ function GenButton({ icon: Icon, label, onClick, loading, disabled, variant = 's
   icon: typeof Wand2; label: string; onClick: () => void; loading: boolean; disabled: boolean; variant?: 'solid' | 'ghost';
 }) {
   return (
-    <ButtonBase onClick={onClick} disabled={disabled} sx={variant === 'solid' ? solidBtnSx : ghostBtnSx}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={variant === 'solid' ? SOLID_BTN_CLASS : GHOST_BTN_CLASS}
+    >
       <Icon size={16} strokeWidth={2} />
       {loading ? 'Génération…' : label}
-    </ButtonBase>
+    </button>
   );
 }
 
-const solidBtnSx = {
-  display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 40, px: 2.25,
-  borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)',
-  fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-sm)', cursor: 'pointer',
-  transition: 'background var(--duration-fast) var(--ease-out)',
-  '&:hover': { bgcolor: 'var(--accent-deep)' },
-  '&.Mui-disabled': { opacity: 0.45, cursor: 'default' },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-} as const;
+// Boutons maison du Studio (l'ancien ButtonBase + sx) : le kit n'a pas de
+// variante calee sur les tokens `--text-sm`/`--fw-semibold` du Studio.
+// `font-[number:…]` et la transition en propriete brute `[transition:…]` : Tailwind
+// v4 n'infere pas le type derriere `var(`, ni pour une graisse ni pour une duree.
+const BTN_BASE_CLASS =
+  'inline-flex items-center gap-[4.5px] h-10 px-[13.5px] rounded-[var(--radius-md)] ' +
+  'font-[number:var(--fw-semibold)] text-[var(--text-sm)] cursor-pointer ' +
+  'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2 ' +
+  'disabled:opacity-45 disabled:cursor-default';
 
-const ghostBtnSx = {
-  display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 40, px: 2.25,
-  borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--card)', color: 'var(--body)',
-  fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-sm)', cursor: 'pointer',
-  transition: 'border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
-  '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' },
-  '&.Mui-disabled': { opacity: 0.45, cursor: 'default' },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-} as const;
+const SOLID_BTN_CLASS =
+  `${BTN_BASE_CLASS} border-none bg-[var(--accent)] text-[var(--on-accent)] ` +
+  '[transition:background_var(--duration-fast)_var(--ease-out)] ' +
+  'hover:bg-[var(--accent-deep)]';
+
+const GHOST_BTN_CLASS =
+  `${BTN_BASE_CLASS} border border-solid border-[var(--line)] bg-[var(--card)] text-[var(--body)] ` +
+  '[transition:border-color_var(--duration-fast)_var(--ease-out),color_var(--duration-fast)_var(--ease-out)] ' +
+  'hover:border-[var(--accent)] hover:text-[var(--ink)]';

@@ -1,6 +1,19 @@
 import React, { useState } from 'react';
-import { Button, Card, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
-import { IconButton, Collapse, Tooltip } from '@mui/material';
+import {
+  Button,
+  Card,
+  Collapsible,
+  CollapsibleContent,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import {
   Receipt, Add, CheckCircle, ExpandMore, ExpandLess,
@@ -102,9 +115,11 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                   <React.Fragment key={quote.id}>
                     <TableRow className="cursor-pointer" onClick={() => toggleExpand(quote.id)}>
                       <TableCell>
-                        <IconButton size="small">
+                        {/* La ligne entiere porte deja le toggle : ce bouton est
+                            l'affordance visuelle, d'ou tabIndex -1 et aria-hidden. */}
+                        <Button variant="ghost" size="icon-sm" tabIndex={-1} aria-hidden>
                           {isExpanded ? <ExpandLess size={16} strokeWidth={1.75} /> : <ExpandMore size={16} strokeWidth={1.75} />}
-                        </IconButton>
+                        </Button>
                       </TableCell>
                       <TableCell className="font-medium">#{quote.id}</TableCell>
                       <TableCell>{formatDate(quote.generatedAt)}</TableCell>
@@ -116,22 +131,25 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                       </TableCell>
                       {canEdit && (
                         <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
-                          {/* Le Button du kit ne transmet pas de ref : span sous le Tooltip MUI.
+                          {/* Le Button du kit ne transmet pas de ref : span d'ancrage.
                               Action de ligne repetee -> taille xs, teinte --ok (pas de variante
                               « success » dans le kit). */}
                           {quote.status === 'DRAFT' && (
-                            <Tooltip title="Confirmer le devis">
-                              <span className="inline-flex">
-                                <Button
-                                  variant="outline"
-                                  size="xs"
-                                  className="text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]"
-                                  onClick={() => onConfirm(quote.id)}
-                                >
-                                  <CheckCircle size={14} strokeWidth={1.75} />
-                                  Confirmer
-                                </Button>
-                              </span>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  <Button
+                                    variant="outline"
+                                    size="xs"
+                                    className="text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]"
+                                    onClick={() => onConfirm(quote.id)}
+                                  >
+                                    <CheckCircle size={14} strokeWidth={1.75} />
+                                    Confirmer
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>Confirmer le devis</TooltipContent>
                             </Tooltip>
                           )}
                         </TableCell>
@@ -141,7 +159,10 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                     {/* Expanded detail */}
                     <TableRow>
                       <TableCell colSpan={canEdit ? 6 : 5} className={cn('p-0', !isExpanded && 'border-b-0')}>
-                        <Collapse in={isExpanded}>
+                        {/* Collapsible pilote en lecture seule : le declencheur est
+                            la ligne du tableau, pas un CollapsibleTrigger. */}
+                        <Collapsible open={isExpanded}>
+                          <CollapsibleContent>
                           <div className="p-3 bg-[var(--hover)]">
                             <Table>
                               <TableHeader>
@@ -176,7 +197,8 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                               </span>
                             )}
                           </div>
-                        </Collapse>
+                          </CollapsibleContent>
+                        </Collapsible>
                       </TableCell>
                     </TableRow>
                   </React.Fragment>

@@ -1,9 +1,15 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
+import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Button } from '../../../components/ui';
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Field,
   FieldDescription,
   FieldLabel,
@@ -12,7 +18,6 @@ import {
   NativeSelectOption,
 } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Paper, alpha } from '@mui/material';
 import { ChevronRight } from '../../../icons';
 import { propertiesApi, type Property } from '../../../services/api/propertiesApi';
 import { smartLockApi, type SmartLockBrand, type SmartLockAccessCodeMode } from '../../../services/api/smartLockApi';
@@ -129,9 +134,13 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Ajouter un objet connecté</DialogTitle>
-      <DialogContent>
+    // maxWidth="sm" + fullWidth MUI = pleine largeur plafonnee a 600 px.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="w-full sm:max-w-[600px] max-h-[85vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle>Ajouter un objet connecté</DialogTitle>
+        </DialogHeader>
+        <div className="min-h-0 overflow-y-auto">
         {/* Étape 1 — Type */}
         {step === 0 && (
           <div className="grid grid-cols-[repeat(auto-fit,_minmax(140px,_1fr))] gap-1.5 mt-1.5">
@@ -139,22 +148,28 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
               const meta = DEVICE_KINDS[k];
               const selected = kind === k;
               return (
-                <Paper
+                // `meta.color` est une valeur runtime : elle passe par la variable
+                // CSS `--kind-color` pour rester utilisable dans une classe (bordure
+                // au survol, fond teinte) — une classe Tailwind ne peut pas naitre
+                // d'une variable.
+                <button
                   key={k}
-                  variant="outlined"
+                  type="button"
+                  aria-pressed={selected}
                   onClick={() => { setKind(k); setProvider(''); }}
-                  sx={{
-                    p: 1.5, borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'center',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.75,
-                    borderColor: selected ? meta.color : 'divider',
-                    bgcolor: selected ? alpha(meta.color, 0.08) : 'transparent',
-                    transition: 'border-color 150ms, background-color 150ms',
-                    '&:hover': { borderColor: meta.color },
-                  }}
+                  style={{ '--kind-color': meta.color } as CSSProperties}
+                  className={cn(
+                    'p-[9px] rounded-[var(--radius-md)] cursor-pointer text-center',
+                    'flex flex-col items-center gap-[4.5px] border border-solid',
+                    'transition-[border-color,background-color] duration-150 hover:border-[var(--kind-color)]',
+                    selected
+                      ? 'border-[var(--kind-color)] bg-[color-mix(in_srgb,var(--kind-color)_8%,transparent)]'
+                      : 'border-[var(--line)] bg-transparent',
+                  )}
                 >
-                  <div className="inline-flex" style={{ color: meta.color }}>{meta.icon(22)}</div>
-                  <p className="cn-text-body2 font-semibold">{meta.label}</p>
-                </Paper>
+                  <span className="inline-flex text-[var(--kind-color)]">{meta.icon(22)}</span>
+                  <span className="cn-text-body2 font-semibold">{meta.label}</span>
+                </button>
               );
             })}
           </div>
@@ -306,25 +321,26 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
             </Alert>}
           </div>
         )}
-      </DialogContent>
-      <DialogActions>
+        </div>
         {/* Trois niveaux dans la meme zone : « Annuler » abandonne (ghost),
             « Retour » navigue dans l'assistant et merite un cadre (outline),
             l'action de progression reste la seule encre pleine. */}
-        <Button variant="ghost" onClick={handleClose}>Annuler</Button>
-        {step > 0 && <Button variant="outline" onClick={() => setStep((s) => s - 1)} disabled={submitting}>Retour</Button>}
-        {step < 2 ? (
-          <Button variant="default" disabled={!canNext} onClick={() => setStep((s) => s + 1)}>
-            Continuer
-            <ChevronRight size={16} strokeWidth={2} />
-          </Button>
-        ) : (
-          <Button variant="default" disabled={!canNext || submitting} onClick={submit}>
-            {submitting ? <Spinner className="size-3.5" /> : null}
-            Ajouter
-          </Button>
-        )}
-      </DialogActions>
+        <DialogFooter>
+          <Button variant="ghost" onClick={handleClose}>Annuler</Button>
+          {step > 0 && <Button variant="outline" onClick={() => setStep((s) => s - 1)} disabled={submitting}>Retour</Button>}
+          {step < 2 ? (
+            <Button variant="default" disabled={!canNext} onClick={() => setStep((s) => s + 1)}>
+              Continuer
+              <ChevronRight size={16} strokeWidth={2} />
+            </Button>
+          ) : (
+            <Button variant="default" disabled={!canNext || submitting} onClick={submit}>
+              {submitting ? <Spinner className="size-3.5" /> : null}
+              Ajouter
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

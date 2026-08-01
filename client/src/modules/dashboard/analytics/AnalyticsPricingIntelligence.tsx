@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent } from '@mui/material';
+import { Card, CardContent } from '../../../components/ui';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar,
@@ -16,18 +16,10 @@ const AXIS_TICK = { fontSize: 10, fill: '#94A3B8' } as const;
 const TOOLTIP_STYLE = { fontSize: 11, borderRadius: 6, border: '1px solid #E2E8F0', boxShadow: 'none' } as const;
 const GRID_STROKE = '#F1F5F9';
 
-const CHART_CARD_SX = {
-  width: '100%',
-  height: 220,
-} as const;
+const CHART_CARD_CLASS = 'w-full h-[220px]';
 
-const CHART_CONTENT_SX = {
-  p: 1.25,
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  '&:last-child': { pb: 1.25 },
-} as const;
+/** p: 1.25 = 7,5 px (theme.spacing vaut 6). */
+const CHART_CONTENT_CLASS = 'p-[7.5px] h-full flex flex-col';
 
 /** Report en classes de l'ancien `SECTION_LABEL_SX` (variante body1 par defaut). */
 const SECTION_LABEL_CLASS =
@@ -50,8 +42,8 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
       <div className="grid grid-cols-12 gap-[9px]">
         {/* Avg Price vs RevPAN dual-axis line chart */}
         <div className="col-span-12 min-[600px]:col-span-6">
-          <Card sx={CHART_CARD_SX}>
-            <CardContent sx={CHART_CONTENT_SX}>
+          <Card className={CHART_CARD_CLASS}>
+            <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.priceVsRevPAN')}
               </p>
@@ -79,8 +71,8 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
 
         {/* Price by property type */}
         <div className="col-span-12 min-[600px]:col-span-6">
-          <Card sx={CHART_CARD_SX}>
-            <CardContent sx={CHART_CONTENT_SX}>
+          <Card className={CHART_CARD_CLASS}>
+            <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.priceByType')}
               </p>

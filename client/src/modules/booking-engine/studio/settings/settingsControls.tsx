@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '../../../../utils/cn';
-import { ButtonBase, InputBase, Switch } from '@mui/material';
+import { Input, Switch, Textarea } from '../../../../components/ui';
 import { Check } from 'lucide-react';
 
 /**
@@ -73,70 +73,72 @@ export function SaveBar({ dirty, saving, onSave, error }: { dirty: boolean; savi
       <div className={cn('flex-1 text-[var(--text-sm)]', error ? 'text-[var(--err)]' : 'text-[var(--muted)]')}>
         {error ? error : dirty ? 'Modifications non enregistrées.' : 'À jour.'}
       </div>
-      <ButtonBase
+      <button
+        type="button"
         onClick={onSave}
         disabled={!dirty || saving}
-        sx={{
-          display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 38, px: 2,
-          borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)',
-          fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-sm)', cursor: 'pointer',
-          transition: 'background var(--duration-fast) var(--ease-out)',
-          '&:hover': { bgcolor: 'var(--accent-deep)' },
-          '&.Mui-disabled': { opacity: 0.45, cursor: 'default' },
-          '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-        }}
+        className={cn(
+          'inline-flex items-center justify-center gap-[4.5px] h-[38px] px-3 shrink-0',
+          'rounded-[var(--radius-md)] border-none appearance-none bg-[var(--accent)] text-[var(--on-accent)]',
+          'text-[var(--text-sm)] font-semibold cursor-pointer',
+          'transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-out)]',
+          'hover:bg-[var(--accent-deep)] disabled:opacity-45 disabled:cursor-default',
+          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]',
+        )}
       >
         {!saving && <Check size={16} strokeWidth={2.4} />}
         {saving ? 'Enregistrement…' : 'Enregistrer'}
-      </ButtonBase>
+      </button>
     </div>
   );
 }
 
 // ─── Contrôles ───────────────────────────────────────────────────────────────
 
-const fieldSx = {
-  width: '100%', px: 1.25, py: 0.75, fontSize: 'var(--text-md)', color: 'var(--ink)',
-  bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)',
-  transition: 'border-color var(--duration-fast) var(--ease-out)',
-  '&.Mui-focused': { borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-soft)' },
-} as const;
+// Le gabarit des champs (fond --field, lisere --line, rayon, anneau de focus)
+// vient desormais des primitifs : l'ancien `fieldSx` ne faisait que le redire.
 
 export function TextControl({ id, value, onChange, placeholder, type = 'text' }: {
   id?: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
 }) {
-  return <InputBase id={id} type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} sx={fieldSx} />;
+  return <Input id={id} type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />;
 }
 
 export function TextAreaControl({ id, value, onChange, placeholder, rows = 3 }: {
   id?: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number;
 }) {
-  return <InputBase id={id} multiline minRows={rows} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} sx={{ ...fieldSx, '& textarea': { lineHeight: 1.5 } }} />;
+  return (
+    <Textarea
+      id={id}
+      value={value}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value)}
+      className="leading-[1.5]"
+      // Le primitif pose `field-sizing: content`, qui neutralise `rows` : la
+      // hauteur minimale se garantit en lignes, et `rows` est une prop runtime.
+      style={{ minHeight: `${rows}lh` }}
+    />
+  );
 }
 
 export function NumberControl({ id, value, onChange, min, max }: {
   id?: string; value: number; onChange: (v: number) => void; min?: number; max?: number;
 }) {
   return (
-    <InputBase
+    <Input
       id={id}
       type="number"
       value={Number.isFinite(value) ? value : 0}
-      inputProps={{ min, max }}
+      min={min}
+      max={max}
       onChange={(e) => { const n = Number(e.target.value); onChange(Number.isFinite(n) ? n : 0); }}
-      sx={{ ...fieldSx, maxWidth: 120 }}
+      className="max-w-[120px]"
     />
   );
 }
 
 export function ToggleControl({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <Switch
-      checked={checked}
-      onChange={(e) => onChange(e.target.checked)}
-      sx={{ '& .Mui-checked': { color: 'var(--accent)' }, '& .Mui-checked + .MuiSwitch-track': { bgcolor: 'var(--accent) !important', opacity: 0.5 } }}
-    />
-  );
+  return <Switch checked={checked} onCheckedChange={onChange} />;
 }
 
 export interface SelectOption { value: string; label: string }

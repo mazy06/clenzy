@@ -5,7 +5,9 @@ import {
   CardContent,
   Skeleton,
   Tooltip,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   TrendingUp,
   TrendingDown,
@@ -33,20 +35,6 @@ interface AnalyticsWidgetCardProps {
 }
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
-
-const CARD_SX = {
-  width: '100%',
-  transition: 'border-color 0.15s ease',
-  '&:hover': { borderColor: 'var(--line-2)' },
-} as const;
-
-const CARD_CONTENT_SX = {
-  p: 1.25,
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  '&:last-child': { pb: 1.25 },
-} as const;
 
 const VALUE_SX = {
   fontFamily: 'var(--font-display)',
@@ -135,26 +123,24 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
   const sizingText = typeof value === 'string' ? value : valueText;
 
   const cardContent = (
+    // `--card-spacing` porte le p:1.25 d'origine : la Card du kit applique deja
+    // le padding vertical, CardContent l'horizontal — inutile de le reposer.
     <Card
-      sx={{
-        ...CARD_SX,
-        minWidth,
-        height: height || '100%',
-        cursor: onClick ? 'pointer' : 'default',
-      }}
+      className="w-full transition-[box-shadow] duration-150 hover:ring-[var(--line-2)] [--card-spacing:7.5px]"
+      style={{ minWidth, height: height || '100%', cursor: onClick ? 'pointer' : 'default' }}
       onClick={onClick}
     >
-      <CardContent sx={CARD_CONTENT_SX}>
+      <CardContent className="h-full flex flex-col min-h-0">
         {loading ? (
           <div>
             <div className="flex items-center gap-1 mb-0.5">
-              <Skeleton variant="rectangular" width={28} height={28} sx={{ borderRadius: 1 }} />
+              <Skeleton className="w-[28px] h-[28px] rounded-lg" />
               <div className="flex-1">
-                <Skeleton variant="text" width="60%" height={14} />
-                <Skeleton variant="text" width="40%" height={20} />
+                <Skeleton className="w-[60%] h-[14px]" />
+                <Skeleton className="w-[40%] h-[20px] mt-0.5" />
               </div>
             </div>
-            <Skeleton variant="text" width="50%" height={10} />
+            <Skeleton className="w-[50%] h-[10px] mt-0.5" />
           </div>
         ) : (
           <>
@@ -214,8 +200,13 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
 
   if (resolvedTooltip) {
     return (
-      <Tooltip title={resolvedTooltip} arrow placement="top">
-        {cardContent}
+      <Tooltip>
+        {/* Le <div> intermediaire porte la ref exigee par `asChild` : la Card du
+            kit est une fonction simple et ne la transmet pas. */}
+        <TooltipTrigger asChild>
+          <div className="w-full h-full">{cardContent}</div>
+        </TooltipTrigger>
+        <TooltipContent side="top">{resolvedTooltip}</TooltipContent>
       </Tooltip>
     );
   }

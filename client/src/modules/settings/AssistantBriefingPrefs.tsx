@@ -2,9 +2,19 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner, Button, Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
-import { Box, Switch, FormControlLabel, Select, MenuItem, Checkbox, Divider } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import {
+  Spinner,
+  Button,
+  Checkbox,
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+  Separator,
+  Switch,
+} from '../../components/ui';
 import apiClient from '../../services/apiClient';
 import { useNotification } from '../../hooks/useNotification';
 import AiSettingsCard from './AiSettingsCard';
@@ -158,51 +168,48 @@ export const AssistantBriefingPrefs: React.FC = () => {
       title="Briefings IA"
       subtitle="Reçois automatiquement un résumé proactif de ton activité aux horaires choisis. Sans configuration, l'assistant reste réactif uniquement."
       action={
-        <FormControlLabel
-          control={
-            <Switch
-              checked={prefs.enabled}
-              onChange={(e) => update('enabled', e.target.checked)}
-              size="small"
-            />
-          }
-          label={
-            <p className="cn-text-body2 font-semibold">
-              {prefs.enabled ? 'Activé' : 'Désactivé'}
-            </p>
-          }
-          sx={{ m: 0, gap: 0.5 }}
-        />
+        <Field orientation="horizontal" className="w-auto gap-1">
+          <Switch
+            id="briefing-enabled"
+            size="sm"
+            checked={prefs.enabled}
+            onCheckedChange={(checked) => update('enabled', checked)}
+          />
+          <FieldLabel htmlFor="briefing-enabled" className="cn-text-body2 font-semibold">
+            {prefs.enabled ? 'Activé' : 'Désactivé'}
+          </FieldLabel>
+        </Field>
       }
     >
       <div className={cn(prefs.enabled ? 'opacity-100' : 'opacity-50', prefs.enabled ? 'pointer-events-auto' : 'pointer-events-none')} style={{ transition: 'opacity 150ms ease' }}>
         {/* ── Ligne 1 : Frequence + Heure + Fuseau ─────────────────────── */}
         <div className="mb-[18px] grid grid-cols-[1fr] items-start gap-3 min-[600px]:grid-cols-[1fr_1fr] min-[900px]:grid-cols-[minmax(240px,_2fr)_140px_minmax(220px,_1fr)]">
-          <div>
-            <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
+          <Field>
+            <FieldLabel
+              htmlFor="briefing-frequency"
+              className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]"
+            >
               Fréquence
-            </span>
-            <Select
+            </FieldLabel>
+            <NativeSelect
+              id="briefing-frequency"
+              className="w-full"
               value={prefs.frequency}
               onChange={(e) => update('frequency', e.target.value as Frequency)}
-              size="small"
-              fullWidth
-              sx={{ mt: 0.5 }}
             >
               {FREQUENCY_OPTIONS.map((o) => (
-                <MenuItem key={o.value} value={o.value}>
+                <NativeSelectOption key={o.value} value={o.value}>
                   {o.label}
-                </MenuItem>
+                </NativeSelectOption>
               ))}
-            </Select>
-            <span className="cn-text-caption text-muted-foreground block mt-1 leading-[1.4]">
+            </NativeSelect>
+            <FieldDescription className="leading-[1.4]">
               {FREQUENCY_OPTIONS.find((o) => o.value === prefs.frequency)?.description}
-            </span>
-          </div>
+            </FieldDescription>
+          </Field>
 
           <Field>
-            {/* Le libelle garde la typo overline de la ligne : le bloc voisin
-                « Frequence » est un Select MUI encore habille de cette facon. */}
+            {/* La typo overline est celle de toute la ligne (Frequence / Heure / Fuseau). */}
             <FieldLabel
               htmlFor="briefing-time-local"
               className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]"
@@ -245,33 +252,23 @@ export const AssistantBriefingPrefs: React.FC = () => {
             {CHANNEL_OPTIONS.map((opt) => {
               const checked = prefs.channels.includes(opt.value);
               return (
-                <Box
+                <div
                   key={opt.value}
                   onClick={() => toggleChannel(opt.value)}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 1,
-                    p: 1.25,
-                    borderRadius: 1.5,
-                    border: '1px solid',
-                    borderColor: checked ? 'primary.main' : 'divider',
-                    bgcolor: checked
-                      ? (theme) => alpha(theme.palette.primary.main, 0.04)
-                      : 'transparent',
-                    cursor: 'pointer',
-                    transition: 'border-color 150ms ease, background-color 150ms ease',
-                    '&:hover': {
-                      borderColor: 'primary.light',
-                    },
-                  }}
+                  className={cn(
+                    'flex items-start gap-1.5 p-[7.5px] rounded-[12px] border border-solid cursor-pointer',
+                    'transition-[border-color,background-color] duration-150 ease-out motion-reduce:transition-none',
+                    'hover:border-[color-mix(in_srgb,var(--mui-primary)_50%,transparent)]',
+                    checked
+                      ? 'border-[var(--mui-primary)] bg-[color-mix(in_srgb,var(--mui-primary)_4%,transparent)]'
+                      : 'border-[var(--line)] bg-transparent',
+                  )}
                 >
                   <Checkbox
                     checked={checked}
-                    onChange={() => toggleChannel(opt.value)}
+                    onCheckedChange={() => toggleChannel(opt.value)}
                     onClick={(e) => e.stopPropagation()}
-                    size="small"
-                    sx={{ p: 0, mt: 0.25 }}
+                    className="mt-[1.5px]"
                   />
                   <div className="min-w-0">
                     <p className="cn-text-body2 font-semibold leading-[1.3]">
@@ -281,7 +278,7 @@ export const AssistantBriefingPrefs: React.FC = () => {
                       {opt.description}
                     </span>
                   </div>
-                </Box>
+                </div>
               );
             })}
           </div>
@@ -289,7 +286,7 @@ export const AssistantBriefingPrefs: React.FC = () => {
       </div>
 
       {/* ── Actions ───────────────────────────────────────────────────── */}
-      <Divider sx={{ my: 3 }} />
+      <Separator className="my-[18px]" />
       <div className="flex gap-1.5 justify-end flex-wrap">
         <Button
           variant="outline"

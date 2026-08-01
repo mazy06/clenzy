@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { cn } from '../utils/cn';
-import { IconButton } from '@mui/material';
+import { Button } from './ui';
 import { Close as CloseIcon } from '../icons';
 import { useUserPreference } from '../hooks/useUserPreference';
 
@@ -193,19 +193,16 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
         <p className="cn-text-body1 [font-family:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] leading-[1.3] tracking-[-.01em] flex-1 [text-wrap:balance]">
           {title}
         </p>
-        <IconButton
-          size="small"
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
           onClick={handleDismiss}
           aria-label={dismissLabel}
-          sx={{
-            color: 'var(--faint)',
-            p: 0.5,
-            flexShrink: 0,
-            '&:hover': { color: 'var(--ink)', bgcolor: 'var(--hover)' },
-          }}
+          className="text-[var(--faint)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
         >
           <CloseIcon size={16} strokeWidth={1.75} />
-        </IconButton>
+        </Button>
       </div>
 
       {/* Description */}

@@ -1,7 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Card, MenuItem, Select, Skeleton } from '@mui/material';
+import {
+  Card,
+  CardContent,
+  NativeSelect,
+  NativeSelectOption,
+  Skeleton,
+} from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { useQuery } from '@tanstack/react-query';
@@ -113,12 +119,13 @@ const PaceReport: React.FC = () => {
       </div>
 
       {/* ── Tableau mensuel ── */}
-      <Card variant="outlined" sx={{ p: 1.5 }}>
+      <Card size="sm">
+        <CardContent>
         <h6 className="cn-text-subtitle2 mb-1.5">
           {t('reports.pace.byMonth', 'On-the-books par mois de séjour')}
         </h6>
         {loading ? (
-          <Skeleton variant="rounded" height={220} />
+          <Skeleton className="h-[220px] w-full rounded-[var(--radius-sm)]" />
         ) : months.length === 0 ? (
           <EmptyState
             icon={<CalendarIcon />}
@@ -163,28 +170,31 @@ const PaceReport: React.FC = () => {
             </TableBody>
           </Table>
         )}
+        </CardContent>
       </Card>
 
       {/* ── Booking curve ── */}
-      <Card variant="outlined" sx={{ p: 1.5 }}>
+      <Card size="sm">
+        <CardContent>
         <div className="flex items-center justify-between mb-1.5">
           <h6 className="cn-text-subtitle2">
             {t('reports.pace.bookingCurve', 'Montée des réservations (booking curve)')}
           </h6>
           {months.length > 0 && (
-            <Select
-              size="small"
+            <NativeSelect
+              size="sm"
+              aria-label={t('reports.pace.month', 'Mois')}
               value={effectiveCurveMonth ?? ''}
               onChange={(e) => setCurveMonth(e.target.value)}
             >
               {months.map((m) => (
-                <MenuItem key={m.month} value={m.month}>{m.month}</MenuItem>
+                <NativeSelectOption key={m.month} value={m.month}>{m.month}</NativeSelectOption>
               ))}
-            </Select>
+            </NativeSelect>
           )}
         </div>
         {curveQuery.isLoading ? (
-          <Skeleton variant="rounded" height={240} />
+          <Skeleton className="h-[240px] w-full rounded-[var(--radius-sm)]" />
         ) : curveData.length === 0 ? (
           <EmptyState
             icon={<TrendingUp />}
@@ -224,6 +234,7 @@ const PaceReport: React.FC = () => {
             </ResponsiveContainer>
           </div>
         )}
+        </CardContent>
       </Card>
     </div>
   );

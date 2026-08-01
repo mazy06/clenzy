@@ -1,7 +1,15 @@
 import { createElement, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../../utils/cn';
-import { ButtonBase, Dialog, Tooltip } from '@mui/material';
-import { Input } from '../../../../components/ui';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  Input,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../../components/ui';
 import { X, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, Check, Save, Workflow, Pencil, RotateCcw, AlertTriangle, Info } from 'lucide-react';
 import {
   BUILTIN_FUNNEL_PRESETS,
@@ -111,29 +119,34 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
   const activeTab: TabKey = tab === 'saved' && !showSavedTab ? 'models' : tab;
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth={false}
-      fullWidth
-      PaperProps={{ sx: { width: '100%', maxWidth: 1040, m: 2, bgcolor: 'var(--card)', color: 'var(--body)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' } }}
-    >
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* La croix du gabarit est masquee : l'en-tete en porte deja une, calee
+          sur le vocabulaire de tokens de ce module. */}
+      <DialogContent
+        showCloseButton={false}
+        className="w-[calc(100%-24px)] max-w-[1040px] max-h-[92vh] bg-[var(--card)] text-[var(--body)] rounded-[var(--radius-lg)] border border-solid border-[var(--line)] overflow-hidden flex flex-col p-0 gap-0"
+      >
       {/* ── En-tête ── */}
-      <div className="flex items-start gap-2 px-4 py-3 border-b border-[var(--line)]">
-        <div className="shrink-0 w-[42px] h-[42px] rounded-[var(--radius-md)] bg-[var(--accent)] text-[var(--on-accent)] grid place-items-[center]">
+      <div className="flex items-start gap-2 px-4 py-3 border-b border-solid border-[var(--line)]">
+        <div className="shrink-0 w-[42px] h-[42px] rounded-[var(--radius-md)] bg-[var(--accent)] text-[var(--on-accent)] grid place-items-center">
           <Workflow size={20} strokeWidth={2} />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="m-0 text-[var(--text-md)] font-[family-name:var(--fw-semibold)] text-[var(--ink)] tracking-[-.01em]">
+          <DialogTitle className="m-0 text-[var(--text-md)] font-[family-name:var(--fw-semibold)] text-[var(--ink)] tracking-[-.01em]">
             Parcours de réservation
-          </h2>
-          <p className="m-[4px 0 0] text-[var(--text-2xs)] text-[var(--muted)] leading-[1.45] max-w-[62ch]">
+          </DialogTitle>
+          <DialogDescription className="mt-1 text-[var(--text-2xs)] text-[var(--muted)] leading-[1.45] max-w-[62ch]">
             Démarrez avec un modèle prêt à l'emploi, ou composez votre propre parcours, écran par écran.
-          </p>
+          </DialogDescription>
         </div>
-        <ButtonBase onClick={onClose} aria-label="Fermer" sx={{ flexShrink: 0, width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', color: 'var(--muted)', display: 'grid', placeItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'var(--hover)', color: 'var(--ink)' } }}>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Fermer"
+          className="shrink-0 w-[34px] h-[34px] rounded-[var(--radius-sm)] border border-solid border-[var(--line)] bg-transparent text-[var(--muted)] grid place-items-center cursor-pointer hover:bg-[var(--hover)] hover:text-[var(--ink)]"
+        >
           <X size={18} strokeWidth={2} />
-        </ButtonBase>
+        </button>
       </div>
 
       {/* ── Onglets ── */}
@@ -202,17 +215,17 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
                       {g.items.map((w) => {
                         const on = selectedSet.has(w.id);
                         return (
-                          <ButtonBase
+                          <button
+                            type="button"
                             key={w.id}
                             onClick={() => toggleWidget(w.id)}
-                            sx={{
-                              display: 'flex', alignItems: 'center', gap: 1.25, width: '100%', justifyContent: 'flex-start',
-                              px: 1.25, py: 1, borderRadius: 'var(--radius-md)', textAlign: 'left', cursor: 'pointer',
-                              border: '1px solid', borderColor: on ? 'var(--accent)' : 'transparent',
-                              bgcolor: on ? 'var(--accent-soft)' : 'transparent',
-                              transition: 'background var(--duration-fast) var(--ease-out)',
-                              '&:hover': { bgcolor: on ? 'var(--accent-soft)' : 'var(--hover)' },
-                            }}
+                            className={cn(
+                              'flex items-center gap-[7.5px] w-full justify-start px-[7.5px] py-1.5 rounded-[var(--radius-md)] text-start cursor-pointer border border-solid',
+                              '[transition:background_var(--duration-fast)_var(--ease-out)]',
+                              on
+                                ? 'border-[var(--accent)] bg-[var(--accent-soft)] hover:bg-[var(--accent-soft)]'
+                                : 'border-transparent bg-transparent hover:bg-[var(--hover)]',
+                            )}
                           >
                             <div className={cn('shrink-0 w-[32px] h-[32px] rounded-[var(--radius-sm)] grid place-items-[center]', on ? 'bg-[var(--card)]' : 'bg-[var(--hover)]', on ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}>
                               <WidgetGlyph id={w.id} size={17} />
@@ -224,7 +237,7 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
                             <div className={cn('shrink-0 w-[20px] h-[20px] rounded-[var(--radius-xs,_5px)] text-[var(--on-accent)] grid place-items-[center]', on ? 'bg-[var(--accent)]' : 'bg-[transparent]')} style={{ border: `1.5px solid ${on ? 'var(--accent)' : 'var(--line)'}` }}>
                               {on && <Check size={12} strokeWidth={3} />}
                             </div>
-                          </ButtonBase>
+                          </button>
                         );
                       })}
                     </div>
@@ -304,6 +317,7 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
           </>
         )}
       </div>
+      </DialogContent>
     </Dialog>
   );
 }
@@ -312,21 +326,25 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
 
 function TabBtn({ label, count, active, onClick }: { label: string; count?: number; active: boolean; onClick: () => void }) {
   return (
-    <ButtonBase
+    <button
+      type="button"
       onClick={onClick}
-      sx={{
-        display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.5, py: 1, borderRadius: 'var(--radius-md)',
-        fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', cursor: 'pointer',
-        color: active ? 'var(--accent)' : 'var(--muted)', bgcolor: active ? 'var(--accent-soft)' : 'transparent',
-        transition: 'background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
-        '&:hover': { bgcolor: active ? 'var(--accent-soft)' : 'var(--hover)', color: active ? 'var(--accent)' : 'var(--ink)' },
-      }}
+      // La graisse reste en style : `font-[var(--…)]` est ambigu pour Tailwind,
+      // qui ne devine pas s'il s'agit d'une famille ou d'un poids.
+      style={{ fontWeight: 'var(--fw-medium)' }}
+      className={cn(
+        'inline-flex items-center gap-[4.5px] px-[9px] py-1.5 rounded-[var(--radius-md)] text-[var(--text-sm)] cursor-pointer border-none',
+        '[transition:background_var(--duration-fast)_var(--ease-out),color_var(--duration-fast)_var(--ease-out)]',
+        active
+          ? 'text-[var(--accent)] bg-[var(--accent-soft)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]'
+          : 'text-[var(--muted)] bg-transparent hover:bg-[var(--hover)] hover:text-[var(--ink)]',
+      )}
     >
       {label}
       {typeof count === 'number' && (
         <span className={cn('text-[var(--text-2xs)] rounded-[var(--radius-xs,_5px)] px-[4.5px] py-px text-[inherit] tabular-nums', active ? 'bg-[var(--card)]' : 'bg-[var(--hover)]')} style={{ fontWeight: 'var(--fw-semibold)' }}>{count}</span>
       )}
-    </ButtonBase>
+    </button>
   );
 }
 
@@ -416,23 +434,29 @@ function WidgetGlyph({ id, size = 17 }: { id: string; size?: number }) {
 
 function IconAction({ title, icon: Icon, onClick, disabled, danger }: { title: string; icon: typeof X; onClick: () => void; disabled?: boolean; danger?: boolean }) {
   return (
-    <Tooltip title={title}>
-      <span>
-        <ButtonBase
-          onClick={onClick}
-          disabled={disabled}
-          aria-label={title}
-          sx={{
-            width: 26, height: 24, borderRadius: 'var(--radius-sm)', color: 'var(--muted)', cursor: 'pointer',
-            '&:hover': danger
-              ? { color: 'var(--danger, #d4453f)', bgcolor: 'var(--danger-soft, rgba(212,69,63,.12))' }
-              : { color: 'var(--ink)', bgcolor: 'var(--hover)' },
-            '&.Mui-disabled': { opacity: 0.35 },
-          }}
-        >
-          <Icon size={14} strokeWidth={2} />
-        </ButtonBase>
-      </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {/* span : un bouton desactive n'emet pas d'evenement de survol, l'ancre du
+            tooltip doit donc vivre au-dessus de lui. */}
+        <span className="inline-flex">
+          <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            aria-label={title}
+            className={cn(
+              'w-[26px] h-[24px] rounded-[var(--radius-sm)] border-none bg-transparent text-[var(--muted)] cursor-pointer grid place-items-center',
+              'disabled:opacity-35 disabled:pointer-events-none',
+              danger
+                ? 'hover:text-[var(--danger,#d4453f)] hover:bg-[var(--danger-soft,rgba(212,69,63,.12))]'
+                : 'hover:text-[var(--ink)] hover:bg-[var(--hover)]',
+            )}
+          >
+            <Icon size={14} strokeWidth={2} />
+          </button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{title}</TooltipContent>
     </Tooltip>
   );
 }
@@ -440,34 +464,46 @@ function IconAction({ title, icon: Icon, onClick, disabled, danger }: { title: s
 /** Bouton « Insérer » (outline accent → plein au survol), façon CTA de carte. */
 function InsertBtn({ onClick }: { onClick: () => void }) {
   return (
-    <ButtonBase
+    <button
+      type="button"
       onClick={onClick}
-      sx={{
-        display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 32, px: 1.5, borderRadius: 'var(--radius-md)',
-        border: '1px solid var(--accent)', color: 'var(--accent)', bgcolor: 'transparent',
-        fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', cursor: 'pointer',
-        transition: 'background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
-        '&:hover': { bgcolor: 'var(--accent)', color: 'var(--on-accent)' },
-        '&:active': { transform: 'translateY(1px)' },
-      }}
+      style={{ fontWeight: 'var(--fw-semibold)' }}
+      className={cn(
+        'inline-flex items-center gap-[4.5px] h-[32px] px-[9px] rounded-[var(--radius-md)] cursor-pointer',
+        'border border-solid border-[var(--accent)] text-[var(--accent)] bg-transparent text-[var(--text-sm)]',
+        '[transition:background_var(--duration-fast)_var(--ease-out),color_var(--duration-fast)_var(--ease-out)]',
+        'hover:bg-[var(--accent)] hover:text-[var(--on-accent)] active:translate-y-px',
+      )}
     >
       <Plus size={15} strokeWidth={2} /> Insérer
-    </ButtonBase>
+    </button>
   );
 }
 
 function PrimaryBtn({ icon: Icon, label, onClick, disabled }: { icon: typeof X; label: string; onClick: () => void; disabled?: boolean }) {
   return (
-    <ButtonBase onClick={onClick} disabled={disabled} sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 34, px: 1.75, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', cursor: 'pointer', '&:hover': { bgcolor: 'var(--accent-deep)' }, '&.Mui-disabled': { opacity: 0.45 } }}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{ fontWeight: 'var(--fw-semibold)' }}
+      className="inline-flex items-center gap-[4.5px] h-[34px] px-[10.5px] rounded-[var(--radius-md)] border-none bg-[var(--accent)] text-[var(--on-accent)] text-[var(--text-sm)] cursor-pointer hover:bg-[var(--accent-deep)] disabled:opacity-45 disabled:pointer-events-none"
+    >
       <Icon size={15} strokeWidth={2} /> {label}
-    </ButtonBase>
+    </button>
   );
 }
 
 function SecondaryBtn({ icon: Icon, label, onClick, disabled }: { icon: typeof X; label: string; onClick: () => void; disabled?: boolean }) {
   return (
-    <ButtonBase onClick={onClick} disabled={disabled} sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 30, px: 1.25, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', color: 'var(--body)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', cursor: 'pointer', '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' }, '&.Mui-disabled': { opacity: 0.45 } }}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{ fontWeight: 'var(--fw-medium)' }}
+      className="inline-flex items-center gap-[3px] h-[30px] px-[7.5px] rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-transparent text-[var(--body)] text-[var(--text-sm)] cursor-pointer hover:border-[var(--accent)] hover:text-[var(--ink)] disabled:opacity-45 disabled:pointer-events-none"
+    >
       <Icon size={14} strokeWidth={2} /> {label}
-    </ButtonBase>
+    </button>
   );
 }

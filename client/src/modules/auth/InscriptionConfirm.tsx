@@ -6,7 +6,10 @@ import { Spinner, Button } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Box, Paper, Stack, ThemeProvider, CssBaseline } from '@mui/material';
+// Restent en MUI : infrastructure de theme, pas du vocabulaire UI. Le
+// ThemeProvider local porte la langue GEO-detectee (pas les prefs user) et le
+// CssBaseline le reset global de cette page autonome.
+import { ThemeProvider, CssBaseline } from '@mui/material';
 import { Field, FieldLabel, FieldDescription, FieldError, Input } from '../../components/ui';
 import {
   CheckCircle as CheckCircleIcon,
@@ -156,18 +159,9 @@ export default function InscriptionConfirm() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)' }}>
-        <Paper
-          elevation={8}
-          sx={{
-            p: { xs: 3, sm: 4 },
-            width: '100%',
-            maxWidth: 480,
-            borderRadius: 3,
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            textAlign: 'center',
-          }}
+        {/* Report de `elevation={8}` : l'ombre exacte de theme.shadows[8]. */}
+        <div
+          className="w-full max-w-[480px] rounded-[24px] border border-solid border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.95)] p-[18px] text-center backdrop-blur-[10px] min-[600px]:p-6 shadow-[0_5px_5px_-3px_rgba(0,0,0,0.2),0_8px_10px_1px_rgba(0,0,0,0.14),0_3px_14px_2px_rgba(0,0,0,0.12)]"
         >
           {/* Logo */}
           <div className="mb-3">
@@ -216,7 +210,7 @@ export default function InscriptionConfirm() {
                 </Alert>
               )}
 
-              <Stack spacing={2}>
+              <div className="flex flex-col gap-3">
                 <Field>
                   <FieldLabel htmlFor="inscription-password">
                     {t('auth.inscriptionConfirm.passwordLabel', 'Mot de passe *')}
@@ -268,29 +262,18 @@ export default function InscriptionConfirm() {
                     ? t('auth.inscriptionConfirm.submitting', 'Creation en cours...')
                     : t('auth.inscriptionConfirm.submit', 'Creer mon mot de passe')}
                 </Button>
-              </Stack>
+              </div>
             </div>
           )}
 
           {/* Succes */}
           {status === 'success' && (
             <div className="py-4">
-              <Box
-                component="span"
-                sx={{
-                  display: 'inline-flex',
-                  color: 'success.main',
-                  mb: 2,
-                  animation: 'scaleIn 0.4s ease-out',
-                  '@keyframes scaleIn': {
-                    '0%': { transform: 'scale(0)', opacity: 0 },
-                    '60%': { transform: 'scale(1.15)' },
-                    '100%': { transform: 'scale(1)', opacity: 1 },
-                  },
-                }}
-              >
+              {/* L'entree n'etait qu'un scale + fade : les utilitaires
+                  d'animation du kit la rendent sans @keyframes ad hoc. */}
+              <span className="inline-flex mb-3 text-[var(--ok)] animate-in zoom-in-50 fade-in-0 duration-500 ease-out motion-reduce:animate-none">
                 <CheckCircleIcon size={72} strokeWidth={1.75} />
-              </Box>
+              </span>
               <h5 className="cn-text-h5 font-bold mb-1.5 text-foreground">
                 {t('auth.inscriptionConfirm.successTitle', 'Inscription finalisee !')}
               </h5>
@@ -349,7 +332,7 @@ export default function InscriptionConfirm() {
               </Button>
             </div>
           )}
-        </Paper>
+        </div>
       </div>
     </ThemeProvider>
   );

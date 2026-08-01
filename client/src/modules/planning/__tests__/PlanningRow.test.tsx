@@ -196,7 +196,9 @@ describe('PlanningRow', () => {
     it('renders bars inside the row with absolute positioning', () => {
       const { container } = renderRow();
       const bar = container.querySelector('[data-planning-bar]') as HTMLElement;
-      expect(window.getComputedStyle(bar).position).toBe('absolute');
+      // Classe Tailwind depuis la migration : jsdom n'ayant pas de CSS,
+    // getComputedStyle ne verrait rien. (Rendu reel controle au navigateur.)
+    expect(bar.className).toContain('absolute');
     });
   });
 

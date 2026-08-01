@@ -1,6 +1,6 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Card, CardContent } from '@mui/material';
+import { Card, CardContent } from '../../../components/ui';
 import {
   PriceChange, CalendarMonth, Savings, Warning,
 } from '../../../icons';
@@ -31,11 +31,9 @@ const TYPE_COLORS: Record<RecommendationType, string> = {
   risk: '#C97A7A',
 };
 
-const CARD_SX = {
-  width: '100%',
-  transition: 'border-color 0.15s ease',
-  '&:hover': { borderColor: 'text.secondary' },
-} as const;
+// La carte du kit se cerne d'un `ring`, pas d'un `border` : le survol teinte
+// donc l'anneau, sans quoi la reaction au survol serait invisible.
+const CARD_CLASS = 'w-full transition-[box-shadow] duration-150 hover:ring-[var(--muted)]';
 
 interface Props {
   data: Recommendation[] | null;
@@ -58,8 +56,8 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
           // Skeleton placeholders
           Array.from({ length: 3 }).map((_, i) => (
             <div className="col-span-12" key={i}>
-              <Card sx={{ ...CARD_SX, opacity: 0.5 }}>
-                <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
+              <Card className={`${CARD_CLASS} [--card-spacing:7.5px] opacity-50`}>
+                <CardContent>
                   <div className="h-[80px]" />
                 </CardContent>
               </Card>
@@ -67,8 +65,8 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
           ))
         ) : recs.length === 0 ? (
           <div className="col-span-12">
-            <Card sx={CARD_SX}>
-              <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
+            <Card className={`${CARD_CLASS} [--card-spacing:7.5px]`}>
+              <CardContent>
                 <p className="cn-text-body1 text-[0.75rem] text-muted-foreground text-center py-3">
                   {t('dashboard.analytics.noRecommendations')}
                 </p>
@@ -78,8 +76,8 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
         ) : (
           recs.map((rec) => (
             <div className="col-span-12" key={rec.id}>
-              <Card sx={CARD_SX}>
-                <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
+              <Card className={`${CARD_CLASS} [--card-spacing:7.5px]`}>
+                <CardContent>
                   {/* Header: icon + title */}
                   <div className="flex items-start gap-1 mb-0.5">
                     {/* bg et couleur derivent du type a l'execution : style inline obligatoire */}
@@ -108,7 +106,8 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
                     <p className="cn-text-body1 text-[0.6875rem] font-bold text-[var(--bui-success-ink)] tabular-nums">
                       +<Money value={rec.estimatedImpact} from="EUR" decimals={0} />
                     </p>
-                    <StatusChip size="sm" tokens={{ color: 'text.secondary', bg: 'rgba(107, 138, 154, 0.08)' }} label={`${rec.confidence}%`} className="text-[0.5625rem]" />
+                    {/* `text.secondary` etait un jeton de theme MUI passe en couleur CSS : invalide, donc ignore. */}
+                    <StatusChip size="sm" tokens={{ color: 'var(--muted)', bg: 'rgba(107, 138, 154, 0.08)' }} label={`${rec.confidence}%`} className="text-[0.5625rem]" />
                     <div className="w-[6px] h-[6px] rounded-[50%] ms-auto" style={{ backgroundColor: PRIORITY_COLORS[rec.priority] }} title={rec.priority} />
                   </div>
                 </CardContent>

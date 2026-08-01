@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Skeleton } from '@mui/material';
-import { Button } from '../../components/ui';
+import { Button, Skeleton } from '../../components/ui';
 import {
   Edit,
   Assignment,
@@ -46,15 +45,15 @@ const ServiceRequestDetails: React.FC = () => {
   if (isLoading) {
     return (
       <div className="p-3 flex flex-col gap-2">
-        <Skeleton variant="rounded" height={64} sx={{ borderRadius: '14px' }} />
+        <Skeleton className="h-[64px] rounded-[14px]" />
         <div className="flex gap-1.5">
           {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={72} sx={{ borderRadius: '14px', flex: 1 }} />
+            <Skeleton key={i} className="h-[72px] flex-1 rounded-[14px]" />
           ))}
         </div>
         <div className="flex gap-2">
-          <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px', flex: 7 }} />
-          <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px', flex: 5 }} />
+          <Skeleton className="h-[260px] flex-[7] rounded-[14px]" />
+          <Skeleton className="h-[260px] flex-[5] rounded-[14px]" />
         </div>
       </div>
     );

@@ -1,8 +1,14 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
-import { Info } from 'lucide-react';
-import { Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { CircleCheck, Info } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
 import { Textarea } from '../../components/ui';
 import {
   PhotoCamera as PhotoCameraIcon,
@@ -48,18 +54,16 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
         ? t('interventions.dialogs.notesRoomsTitle')
         : t('interventions.dialogs.notesAfterTitle');
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-    >
-      <DialogTitle>
-        {currentStep === 'inspection' && t('interventions.dialogs.notesInspectionTitle')}
-        {currentStep === 'rooms' && t('interventions.dialogs.notesRoomsTitle')}
-        {currentStep === 'after_photos' && t('interventions.dialogs.notesAfterTitle')}
-      </DialogTitle>
-      <DialogContent>
+    // maxWidth="md" MUI = 900 px.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[900px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {currentStep === 'inspection' && t('interventions.dialogs.notesInspectionTitle')}
+            {currentStep === 'rooms' && t('interventions.dialogs.notesRoomsTitle')}
+            {currentStep === 'after_photos' && t('interventions.dialogs.notesAfterTitle')}
+          </DialogTitle>
+        </DialogHeader>
         <UiAlert variant="info" className="mb-3 mt-1.5">
           <Info />
           <AlertDescription><p className="cn-text-body2 text-[0.85rem]">
@@ -72,7 +76,9 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
           id="intervention-notes"
           aria-label={notesAriaLabel}
           rows={6}
-          className="w-full mt-[6px]"
+          // Le primitif pose field-sizing:content, qui neutralise `rows` :
+          // la hauteur de depart se garantit en min-h.
+          className="w-full mt-[6px] min-h-[6lh]"
           value={notesValue}
           onChange={(e) => {
             onNotesChange(e.target.value);
@@ -103,15 +109,15 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
             {t('interventions.dialogs.notesAutoSave')}
           </span></AlertDescription>
         </UiAlert>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            {t('interventions.dialogs.cancel')}
+          </Button>
+          <Button onClick={onSubmit} disabled={updating}>
+            {updating ? t('interventions.dialogs.saving') : t('interventions.dialogs.save')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button variant="ghost" onClick={onClose}>
-          {t('interventions.dialogs.cancel')}
-        </Button>
-        <Button onClick={onSubmit} disabled={updating}>
-          {updating ? t('interventions.dialogs.saving') : t('interventions.dialogs.save')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };
@@ -141,32 +147,25 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
 }) => {
   const { t } = useTranslation();
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle>
-        <div className="flex items-center gap-1.5">
-          <span className={cn('inline-flex', photoType === 'before' ? 'text-[var(--accent)]' : 'text-[var(--ok)]')}><PhotoCameraIcon size={20} strokeWidth={1.75} /></span>
-          <h6 className="cn-text-h6">
+    // maxWidth="sm" MUI = 600 px.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          {/* Le titre porte deja la typo h6 du gabarit : plus de <h6> imbrique. */}
+          <DialogTitle className="flex items-center gap-1.5">
+            <span className={cn('inline-flex', photoType === 'before' ? 'text-[var(--accent)]' : 'text-[var(--ok)]')}><PhotoCameraIcon size={20} strokeWidth={1.75} /></span>
             {photoType === 'before' ? t('interventions.dialogs.photosBeforeTitle') : t('interventions.dialogs.photosAfterTitle')}
-          </h6>
-        </div>
-      </DialogTitle>
-      <DialogContent>
+          </DialogTitle>
+        </DialogHeader>
         <div className="pt-3">
-          <Alert
-            severity={photoType === 'before' ? 'info' : 'success'}
-            sx={{ mb: 2 }}
-          >
-            <p className="cn-text-body2 text-[0.85rem]">
+          <UiAlert variant={photoType === 'before' ? 'info' : 'success'} className="mb-3">
+            {photoType === 'before' ? <Info /> : <CircleCheck />}
+            <AlertDescription><p className="cn-text-body2 text-[0.85rem]">
               {photoType === 'before'
                 ? t('interventions.dialogs.photosBeforeAlert')
                 : t('interventions.dialogs.photosAfterAlert')}
-            </p>
-          </Alert>
+            </p></AlertDescription>
+          </UiAlert>
           <PhotoUploader
             photos={selectedPhotos}
             onPhotosChange={onPhotosChange}
@@ -181,15 +180,15 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
             columns={2}
           />
         </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            {t('interventions.dialogs.cancel')}
+          </Button>
+          <Button onClick={onSubmit} disabled={uploading || selectedPhotos.length === 0}>
+            {uploading ? t('interventions.dialogs.uploading') : t('interventions.dialogs.add')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button variant="ghost" onClick={onClose}>
-          {t('interventions.dialogs.cancel')}
-        </Button>
-        <Button onClick={onSubmit} disabled={uploading || selectedPhotos.length === 0}>
-          {uploading ? t('interventions.dialogs.uploading') : t('interventions.dialogs.add')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

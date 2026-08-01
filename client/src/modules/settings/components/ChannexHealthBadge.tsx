@@ -17,8 +17,8 @@
  * <p>Le badge est cliquable (curseur pointer) si {@code onClick} est fourni.</p>
  */
 import React from 'react';
-import { Box, Tooltip } from '@mui/material';
 import { Cable, AlertCircle, Pause, Clock, CheckCircle2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 
 import { cn } from '../../../utils/cn';
 
@@ -108,46 +108,29 @@ export default function ChannexHealthBadge({
       : 'cursor-default',
   );
 
+  // Le clignotement d'erreur passe par `animate-pulse` (2s, meme cadence que
+  // l'ancien keyframe local), neutralise si l'utilisateur refuse le mouvement.
+  const pulseClass = mapping.syncStatus === 'ERROR' ? 'animate-pulse motion-reduce:animate-none' : '';
+
   const badgeContent = (
     <>
       {variant === 'icon' ? (
-          <div className="relative rounded-[50%] inline-flex items-center justify-center" style={{ width: size + 8, height: size + 8, backgroundColor: `color-mix(in srgb, ${meta.color} 10%, transparent)` }}>
+          <span className="relative rounded-[50%] inline-flex items-center justify-center" style={{ width: size + 8, height: size + 8, backgroundColor: `color-mix(in srgb, ${meta.color} 10%, transparent)` }}>
             <Cable size={size} strokeWidth={2.2} />
             {/* Dot exposant en bas a droite */}
-            <Box
-              sx={{
-                position: 'absolute',
-                bottom: -1,
-                right: -1,
-                width: size * 0.5,
-                height: size * 0.5,
-                borderRadius: '50%',
-                bgcolor: meta.color,
-                border: '1.5px solid white',
-                animation: mapping.syncStatus === 'ERROR' ? 'pulse 2s infinite' : undefined,
-                '@keyframes pulse': {
-                  '0%, 100%': { opacity: 1 },
-                  '50%': { opacity: 0.55 },
-                },
-                '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-              }}
+            <span
+              className={cn('absolute -bottom-px -right-px rounded-[50%] border-[1.5px] border-solid border-white', pulseClass)}
+              style={{ width: size * 0.5, height: size * 0.5, backgroundColor: meta.color }}
             />
-          </div>
+          </span>
         ) : (
-          <Box
-            sx={{
+          <span
+            className={cn('inline-block shrink-0 rounded-[50%]', pulseClass)}
+            style={{
               width: size,
               height: size,
-              borderRadius: '50%',
-              bgcolor: meta.color,
-              flexShrink: 0,
+              backgroundColor: meta.color,
               boxShadow: `0 0 0 2px color-mix(in srgb, ${meta.color} 15%, transparent)`,
-              animation: mapping.syncStatus === 'ERROR' ? 'pulse 2s infinite' : undefined,
-              '@keyframes pulse': {
-                '0%, 100%': { opacity: 1 },
-                '50%': { opacity: 0.55 },
-              },
-              '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
             }}
           />
         )}
@@ -155,21 +138,24 @@ export default function ChannexHealthBadge({
   );
 
   return (
-    <Tooltip title={tooltipContent} arrow placement="top">
-      {onClick ? (
-        <button
-          className={badgeClass}
-          style={badgeStyle}
-          onClick={(e: React.MouseEvent) => { e.stopPropagation(); onClick(); }}
-          aria-label={meta.label}
-        >
-          {badgeContent}
-        </button>
-      ) : (
-        <span className={badgeClass} style={badgeStyle} aria-label={meta.label}>
-          {badgeContent}
-        </span>
-      )}
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {onClick ? (
+          <button
+            className={badgeClass}
+            style={badgeStyle}
+            onClick={(e: React.MouseEvent) => { e.stopPropagation(); onClick(); }}
+            aria-label={meta.label}
+          >
+            {badgeContent}
+          </button>
+        ) : (
+          <span className={badgeClass} style={badgeStyle} aria-label={meta.label}>
+            {badgeContent}
+          </span>
+        )}
+      </TooltipTrigger>
+      <TooltipContent side="top">{tooltipContent}</TooltipContent>
     </Tooltip>
   );
 }

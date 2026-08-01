@@ -1,5 +1,5 @@
 import React, { useCallback, useRef } from 'react';
-import { Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { Lock, LockOpen } from '../../../icons';
 import { cn } from '../../../utils/cn';
 import {
@@ -149,19 +149,22 @@ export default function SplitBarEditor({
         style={{ height: BAR_HEIGHT }}
       >
         {upstream && upstreamPct > 0 && (
-          <Tooltip title={`${upstream.label} · ${formatPct(upstreamPct)}`}>
-            <div
-              className="flex items-center justify-center text-[0.72rem] font-bold tabular-nums text-white"
-              style={{
-                width: `${upstreamPct}%`,
-                // Hachures : cette part sort du circuit avant tout partage,
-                // elle ne se lit pas comme les trois autres.
-                backgroundImage:
-                  'repeating-linear-gradient(45deg, var(--muted) 0 4px, color-mix(in srgb, var(--muted) 80%, black) 4px 8px)',
-              }}
-            >
-              {upstreamPct >= 8 ? formatPct(upstreamPct) : ''}
-            </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                className="flex items-center justify-center text-[0.72rem] font-bold tabular-nums text-white"
+                style={{
+                  width: `${upstreamPct}%`,
+                  // Hachures : cette part sort du circuit avant tout partage,
+                  // elle ne se lit pas comme les trois autres.
+                  backgroundImage:
+                    'repeating-linear-gradient(45deg, var(--muted) 0 4px, color-mix(in srgb, var(--muted) 80%, black) 4px 8px)',
+                }}
+              >
+                {upstreamPct >= 8 ? formatPct(upstreamPct) : ''}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>{`${upstream.label} · ${formatPct(upstreamPct)}`}</TooltipContent>
           </Tooltip>
         )}
 
@@ -231,46 +234,47 @@ export default function SplitBarEditor({
               {formatPct(segment.value)}
             </p>
             {onToggleLock && (
-            <Tooltip
-              title={
-                segment.locked
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => onToggleLock(segment.key)}
+                  disabled={disabled}
+                  aria-pressed={Boolean(segment.locked)}
+                  aria-label={
+                    segment.locked ? `Déverrouiller ${segment.label}` : `Verrouiller ${segment.label}`
+                  }
+                  className={cn(
+                    'inline-flex size-5 items-center justify-center rounded-[5px] border border-solid p-0',
+                    'transition-[color,background-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                    'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]',
+                    disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+                    // Verrouille : teinte et fond derives de la couleur du segment,
+                    // connue seulement a l'execution — passes en style inline.
+                    !segment.locked && 'text-[var(--faint)] hover:text-[var(--muted)]',
+                  )}
+                  style={{
+                    borderColor: segment.locked
+                      ? `color-mix(in srgb, ${segment.color} 45%, transparent)`
+                      : 'transparent',
+                    backgroundColor: segment.locked
+                      ? `color-mix(in srgb, ${segment.color} 12%, transparent)`
+                      : 'transparent',
+                    color: segment.locked ? segment.color : undefined,
+                  }}
+                >
+                  {segment.locked ? (
+                    <Lock size={11} strokeWidth={2} />
+                  ) : (
+                    <LockOpen size={11} strokeWidth={1.75} />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {segment.locked
                   ? `Déverrouiller ${segment.label} — cette part pourra de nouveau absorber les ajustements`
-                  : `Verrouiller ${segment.label} — cette part ne bougera plus, les autres serviront de variable d’ajustement`
-              }
-            >
-              <button
-                type="button"
-                onClick={() => onToggleLock(segment.key)}
-                disabled={disabled}
-                aria-pressed={Boolean(segment.locked)}
-                aria-label={
-                  segment.locked ? `Déverrouiller ${segment.label}` : `Verrouiller ${segment.label}`
-                }
-                className={cn(
-                  'inline-flex size-5 items-center justify-center rounded-[5px] border border-solid p-0',
-                  'transition-[color,background-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]',
-                  'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]',
-                  disabled ? 'cursor-not-allowed' : 'cursor-pointer',
-                  // Verrouille : teinte et fond derives de la couleur du segment,
-                  // connue seulement a l'execution — passes en style inline.
-                  !segment.locked && 'text-[var(--faint)] hover:text-[var(--muted)]',
-                )}
-                style={{
-                  borderColor: segment.locked
-                    ? `color-mix(in srgb, ${segment.color} 45%, transparent)`
-                    : 'transparent',
-                  backgroundColor: segment.locked
-                    ? `color-mix(in srgb, ${segment.color} 12%, transparent)`
-                    : 'transparent',
-                  color: segment.locked ? segment.color : undefined,
-                }}
-              >
-                {segment.locked ? (
-                  <Lock size={11} strokeWidth={2} />
-                ) : (
-                  <LockOpen size={11} strokeWidth={1.75} />
-                )}
-              </button>
+                  : `Verrouiller ${segment.label} — cette part ne bougera plus, les autres serviront de variable d’ajustement`}
+              </TooltipContent>
             </Tooltip>
             )}
           </div>

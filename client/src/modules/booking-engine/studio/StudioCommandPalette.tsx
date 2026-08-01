@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Box, InputBase, Modal } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle } from '../../../components/ui';
 import { Search, CornerDownLeft, type LucideIcon } from 'lucide-react';
 
 /**
@@ -78,38 +78,26 @@ export default function StudioCommandPalette({
   };
 
   return (
-    <Modal open={open} onClose={onClose} aria-label="Palette de commandes" sx={{ '& .MuiBackdrop-root': { bgcolor: 'rgba(21,36,45,.45)' } }}>
-      <Box
-        sx={{
-          position: 'absolute',
-          top: '14%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: 'min(560px, 92vw)',
-          bgcolor: 'var(--card)',
-          color: 'var(--ink)',
-          border: '1px solid var(--line)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-pop)',
-          overflow: 'hidden',
-          outline: 'none',
-          animation: 'studioCmdIn .18s var(--ease-out)',
-          '@keyframes studioCmdIn': {
-            from: { opacity: 0, transform: 'translateX(-50%) translateY(-6px)' },
-            to: { opacity: 1, transform: 'translateX(-50%) translateY(0)' },
-          },
-        }}
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* Ancree haut d'ecran (14 %) et non centree : on neutralise le centrage
+          vertical du gabarit. Pas de bouton de fermeture — Echap suffit. */}
+      <DialogContent
+        showCloseButton={false}
         onKeyDown={handleKeyDown}
+        className="top-[14%] translate-y-0 w-[min(560px,92vw)] max-w-none overflow-hidden rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] p-0 text-[var(--ink)] shadow-[var(--shadow-pop)]"
       >
-        <div className="flex items-center gap-1.5 px-2.5 h-[52px] border-b border-[var(--line)]">
+        <DialogTitle className="sr-only">Palette de commandes</DialogTitle>
+        <div className="flex items-center gap-1.5 px-2.5 h-[52px] border-b border-solid border-[var(--line)]">
           <span className="text-[var(--muted)] inline-flex"><Search size={18} strokeWidth={2} /></span>
-          <InputBase
-            inputRef={inputRef}
+          {/* input natif (et non le primitif Input) pour DEUX raisons : le champ
+              est nu dans une rangee deja filetee, et `inputRef` porte le focus a
+              l'ouverture — une fonction React 18 ne transmet pas de ref. */}
+          <input
+            ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={placeholder}
-            fullWidth
-            sx={{ fontSize: 'var(--text-lg)', color: 'var(--ink)', '& input::placeholder': { color: 'var(--faint)', opacity: 1 } }}
+            className="w-full min-w-0 flex-1 border-0 bg-transparent outline-none text-[length:var(--text-lg)] text-[var(--ink)] placeholder:text-[var(--faint)] placeholder:opacity-100"
           />
         </div>
 
@@ -143,7 +131,7 @@ export default function StudioCommandPalette({
             );
           })}
         </div>
-      </Box>
-    </Modal>
+      </DialogContent>
+    </Dialog>
   );
 }

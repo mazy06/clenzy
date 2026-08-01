@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, alpha } from '@mui/material';
+import { Card, CardContent } from '../../../components/ui';
 
 interface DetailSectionProps {
   /** Overline title — uppercase, short. */
@@ -43,25 +43,13 @@ const DetailSection: React.FC<DetailSectionProps> = ({
 
   return (
     <Card
-      variant="outlined"
-      sx={{
-        position: 'relative',
-        borderRadius: 'var(--radius-lg)',
-        bgcolor: 'var(--card)',
-        borderColor: 'var(--line)',
-        overflow: 'hidden',
-        transition: 'border-color 200ms ease',
-        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-        '&:hover': {
-          borderColor: 'var(--line-2)',
-        },
-      }}
+      className="relative overflow-hidden rounded-[var(--radius-lg)] bg-[var(--card)] ring-0 border border-solid border-[var(--line)] p-0 transition-[border-color] duration-200 ease-out hover:border-[var(--line-2)] motion-reduce:transition-none"
     >
-      <CardContent sx={{ p: 2.25, '&:last-child': { pb: 2.25 } }}>
+      <CardContent className="p-3.5">
         {/* Section header */}
         <div className="flex items-center gap-1.5 mb-3">
           {icon && (
-            <div className="w-[24px] h-[24px] rounded-[6px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: alpha(accent, 0.12), color: accent }}>
+            <div className="w-[24px] h-[24px] rounded-[6px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: `color-mix(in srgb, ${accent} 12%, transparent)`, color: accent }}>
               {icon}
             </div>
           )}

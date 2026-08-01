@@ -6,6 +6,10 @@
    Clenzy via tokens CSS (var(--card), var(--ink), …) — dark/light OK.
    ============================================================ */
 import React from 'react';
+// Box + Typography restent MUI : `SurfaceCard` et `Overline` exposent un prop
+// `sx` que neuf renderers voisins alimentent avec des raccourcis d'espacement
+// MUI (mb: 1, mb: 0.75). Ces raccourcis n'ont pas d'equivalent en style inline :
+// les porter en <div>/<span> ferait disparaitre ces marges en silence.
 import { Box, Typography } from '@mui/material';
 
 /** Couleurs accent Clenzy validées (réutilisées par le bar chart & les chips). */

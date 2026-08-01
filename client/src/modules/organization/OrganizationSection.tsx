@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner, Button } from '../../components/ui';
-import { Alert, Autocomplete, TextField } from '@mui/material';
+// Autocomplete + son renderInput restent MUI : le TextField y recoit des props
+// internes (ref, InputProps, inputProps) que le kit ne sait pas porter.
+import { Autocomplete, TextField } from '@mui/material';
 import {
   Business,
   PersonAdd,
@@ -100,12 +102,11 @@ export default function OrganizationSection({ organizationId }: Props) {
   if (!orgsLoading && organizations.length === 0 && !orgsError) {
     return (
       <SettingsSection title="Organisations" icon={Business} accent="primary">
-        <Alert
-          severity="info"
-          icon={<InfoOutlined size={16} strokeWidth={1.75} />}
-          sx={{ borderRadius: '8px' }}
-        >
-          Aucune organisation n'existe dans le systeme pour le moment.
+        <Alert variant="info">
+          <InfoOutlined size={16} strokeWidth={1.75} />
+          <AlertDescription>
+            Aucune organisation n'existe dans le systeme pour le moment.
+          </AlertDescription>
         </Alert>
       </SettingsSection>
     );
@@ -142,10 +143,10 @@ export default function OrganizationSection({ organizationId }: Props) {
             action={inviteAction}
           >
             {orgsError && (
-              <UiAlert variant="destructive" className="mb-2">
+              <Alert variant="destructive" className="mb-2">
                 <TriangleAlert />
                 <AlertDescription>{orgsError}</AlertDescription>
-              </UiAlert>
+              </Alert>
             )}
 
             <Autocomplete
@@ -210,12 +211,11 @@ export default function OrganizationSection({ organizationId }: Props) {
                 />
               </>
             ) : (
-              <Alert
-                severity="info"
-                icon={<InfoOutlined size={16} strokeWidth={1.75} />}
-                sx={{ borderRadius: '8px' }}
-              >
-                Sélectionnez une organisation pour voir ses membres et invitations.
+              <Alert variant="info">
+                <InfoOutlined size={16} strokeWidth={1.75} />
+                <AlertDescription>
+                  Sélectionnez une organisation pour voir ses membres et invitations.
+                </AlertDescription>
               </Alert>
             )}
           </SettingsSection>

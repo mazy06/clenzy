@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from './ui';
 import { TriangleAlert, X } from 'lucide-react';
-import { Spinner } from './ui';
-import { Alert, Tooltip } from '@mui/material';
+import { Spinner, Tooltip, TooltipContent, TooltipTrigger } from './ui';
 import { cn } from '../utils/cn';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -181,14 +180,13 @@ export function PropertyLocationPicker({
     <div className="flex flex-col gap-1.5">
       {/* Helper / status text */}
       {!hasCoords && (
-        <Alert
-          severity="warning"
-          icon={<LocationOn size={16} strokeWidth={2} />}
-          sx={{ fontSize: '0.8125rem', py: 0.5 }}
-        >
-          {helperText ||
-            "Aucune coordonnée GPS n'a été trouvée pour cette adresse. Cliquez sur la carte ou faites glisser le pin pour positionner manuellement le logement."}
-        </Alert>
+        <BuiAlert variant="warning" className="text-[0.8125rem] py-[3px]">
+          <LocationOn size={16} strokeWidth={2} />
+          <AlertDescription>
+            {helperText ||
+              "Aucune coordonnée GPS n'a été trouvée pour cette adresse. Cliquez sur la carte ou faites glisser le pin pour positionner manuellement le logement."}
+          </AlertDescription>
+        </BuiAlert>
       )}
 
       {/* Map container */}
@@ -219,37 +217,43 @@ export function PropertyLocationPicker({
           {/* Commandes flottantes de la carte : outline (cadre sur surface) plutot
               que default — ce sont des outils, pas l'action de l'ecran. Le span
               porte la ref que Tooltip pose sur son enfant (Button = fonction). */}
-          <Tooltip title="Utiliser ma position actuelle" placement="right">
-            <span className="inline-flex">
-              <BuiButton
-                variant="outline"
-                size="icon-sm"
-                aria-label="Utiliser ma position actuelle"
-                onClick={handleGeolocate}
-                disabled={geoLoading}
-                className="shadow-[0_2px_6px_rgba(0,0,0,0.12)]"
-              >
-                {geoLoading ? (
-                  <Spinner className="size-4" />
-                ) : (
-                  <DirectionsWalk size={16} strokeWidth={1.75} />
-                )}
-              </BuiButton>
-            </span>
-          </Tooltip>
-          {hasCoords && (
-            <Tooltip title="Centrer sur le marqueur" placement="right">
+          <Tooltip>
+            <TooltipTrigger asChild>
               <span className="inline-flex">
                 <BuiButton
                   variant="outline"
                   size="icon-sm"
-                  aria-label="Centrer sur le marqueur"
-                  onClick={handleRecenter}
+                  aria-label="Utiliser ma position actuelle"
+                  onClick={handleGeolocate}
+                  disabled={geoLoading}
                   className="shadow-[0_2px_6px_rgba(0,0,0,0.12)]"
                 >
-                  <LocationOn size={16} strokeWidth={1.75} />
+                  {geoLoading ? (
+                    <Spinner className="size-4" />
+                  ) : (
+                    <DirectionsWalk size={16} strokeWidth={1.75} />
+                  )}
                 </BuiButton>
               </span>
+            </TooltipTrigger>
+            <TooltipContent side="right">Utiliser ma position actuelle</TooltipContent>
+          </Tooltip>
+          {hasCoords && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <BuiButton
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label="Centrer sur le marqueur"
+                    onClick={handleRecenter}
+                    className="shadow-[0_2px_6px_rgba(0,0,0,0.12)]"
+                  >
+                    <LocationOn size={16} strokeWidth={1.75} />
+                  </BuiButton>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="right">Centrer sur le marqueur</TooltipContent>
             </Tooltip>
           )}
         </div>

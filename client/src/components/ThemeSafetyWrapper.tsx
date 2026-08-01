@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Spinner } from './ui';
-import { Alert } from '@mui/material';
+import { Spinner, Alert, AlertTitle, AlertDescription } from './ui';
+// useTheme reste importe : ce composant a pour raison d'etre de valider le
+// theme MUI lui-meme, l'enlever viderait le fichier de son role.
 import { useTheme } from '@mui/material/styles';
 
 interface ThemeSafetyWrapperProps {
@@ -53,16 +54,16 @@ export default function ThemeSafetyWrapper({ children }: ThemeSafetyWrapperProps
   if (themeError) {
     return (
       <div className="flex flex-col items-center justify-center h-[100vh] p-4">
-        <Alert severity="error" sx={{ mb: 2, maxWidth: 600 }}>
-          <h6 className="cn-text-h6 mb-[0.35em]">
+        <Alert variant="destructive" className="mb-3 max-w-[600px]">
+          <AlertTitle className="cn-text-h6 mb-[0.35em]">
             Erreur de thème détectée
-          </h6>
-          <p className="cn-text-body1">
-            {themeError}
-          </p>
-          <p className="cn-text-body2 mt-1.5">
-            Veuillez rafraîchir la page ou contacter l'administrateur.
-          </p>
+          </AlertTitle>
+          <AlertDescription className="flex flex-col gap-1.5">
+            <span className="cn-text-body1">{themeError}</span>
+            <span className="cn-text-body2">
+              Veuillez rafraîchir la page ou contacter l'administrateur.
+            </span>
+          </AlertDescription>
         </Alert>
       </div>
     );

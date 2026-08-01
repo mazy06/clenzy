@@ -2,9 +2,18 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Button, Card, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Field, FieldLabel, Input } from '../../components/ui';
-import { FormControl, InputLabel, LinearProgress, MenuItem, Select, Skeleton, Switch } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+  Progress,
+  Skeleton,
+  Switch,
+} from '../../components/ui';
 import { ShieldCheck, Gauge } from 'lucide-react';
+import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
@@ -131,8 +140,8 @@ export default function AiAutonomySection() {
   if (loading) {
     return (
       <div className="flex flex-col gap-2 mb-3">
-        <Skeleton variant="rounded" height={140} />
-        <Skeleton variant="rounded" height={96} />
+        <Skeleton className="h-[140px] w-full rounded-lg" />
+        <Skeleton className="h-[96px] w-full rounded-lg" />
       </div>
     );
   }
@@ -169,16 +178,18 @@ export default function AiAutonomySection() {
               {t('aiAutonomy.credits', 'crédits')}
             </span>
           </div>
-          <LinearProgress
-            variant="determinate"
+          {/* Branches LITTERALES : une classe Tailwind est emise a la compilation,
+              elle ne peut pas naitre d'une valeur d'execution. */}
+          <Progress
             value={gaugeRatio}
-            sx={{
-              height: 6,
-              borderRadius: 3,
-              '& .MuiLinearProgress-bar': {
-                backgroundColor: gaugeRatio >= 100 ? '#C97A7A' : gaugeRatio >= 80 ? '#D4A574' : '#4A9B8E',
-              },
-            }}
+            className={cn(
+              'h-1.5 rounded-full',
+              gaugeRatio >= 100
+                ? '[&_[data-slot=progress-indicator]]:bg-[#C97A7A]'
+                : gaugeRatio >= 80
+                  ? '[&_[data-slot=progress-indicator]]:bg-[#D4A574]'
+                  : '[&_[data-slot=progress-indicator]]:bg-[#4A9B8E]',
+            )}
           />
         </div>
 
@@ -196,21 +207,24 @@ export default function AiAutonomySection() {
               onChange={(e) => setCapCredits(e.target.value)}
             />
           </Field>
-          <FormControl size="small" sx={{ minWidth: 220 }}>
-            <InputLabel>{t('aiAutonomy.onCapLabel', 'Au plafond')}</InputLabel>
-            <Select
+          <Field className="w-[260px]">
+            <FieldLabel htmlFor="ai-autonomy-on-cap">
+              {t('aiAutonomy.onCapLabel', 'Au plafond')}
+            </FieldLabel>
+            <NativeSelect
+              id="ai-autonomy-on-cap"
+              className="w-full"
               value={onCap}
-              label={t('aiAutonomy.onCapLabel', 'Au plafond')}
               onChange={(e) => setOnCap(e.target.value)}
             >
-              <MenuItem value="NOTIFY_ONLY">
+              <NativeSelectOption value="NOTIFY_ONLY">
                 {t('aiAutonomy.onCapNotify', 'Notifier seulement (suggestions sans exécution)')}
-              </MenuItem>
-              <MenuItem value="PAUSE">
+              </NativeSelectOption>
+              <NativeSelectOption value="PAUSE">
                 {t('aiAutonomy.onCapPause', "Mettre l'autonomie en pause")}
-              </MenuItem>
-            </Select>
-          </FormControl>
+              </NativeSelectOption>
+            </NativeSelect>
+          </Field>
           {/* Seule action de la carte budget, elle valide la saisie : c'est l'action
               principale de la zone, d'ou `default` la ou MUI n'avait qu'un outlined. */}
           <Button
@@ -233,16 +247,17 @@ export default function AiAutonomySection() {
             </span>
           ) : (
             behaviorKeys.map((key) => (
-              <div className="flex items-center gap-0.5" key={key}>
+              <Field orientation="horizontal" className="gap-1.5" key={key}>
                 <Switch
-                  size="small"
+                  id={`ai-autonomy-behavior-${key}`}
+                  size="sm"
                   checked={Boolean(behaviors[key])}
-                  onChange={(e) => setBehaviors((cur) => ({ ...cur, [key]: e.target.checked }))}
+                  onCheckedChange={(next) => setBehaviors((cur) => ({ ...cur, [key]: next }))}
                 />
-                <p className="cn-text-body2">
+                <FieldLabel htmlFor={`ai-autonomy-behavior-${key}`} className="cn-text-body2">
                   {t(`aiAutonomy.behavior.${key}`, key)}
-                </p>
-              </div>
+                </FieldLabel>
+              </Field>
             ))
           )}
         </div>

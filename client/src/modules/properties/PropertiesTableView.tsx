@@ -1,8 +1,18 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Paper, Tooltip, IconButton } from '@mui/material';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import {
+  Button,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, Edit, BroomFill, Power, Delete, Business } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -12,7 +22,7 @@ import { Money } from '../../components/Money';
 import MissingContractChip from './MissingContractChip';
 import { estimateCleaningDuration, formatDuration } from './PropertyCard';
 import { toPropertyDetails } from './propertyDetailsMapper';
-import { LIST_PAPER_SX, LIST_ROWS_PER_PAGE_OPTIONS, FIELD_TOKENS, FIELD_CHIP_CLASS, propertyGradientCss } from './propertiesListConstants';
+import { LIST_ROWS_PER_PAGE_OPTIONS, FIELD_TOKENS, FIELD_CHIP_CLASS, propertyGradientCss } from './propertiesListConstants';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { ChannexMappingDto } from '../../services/api/channexApi';
 import {
@@ -53,16 +63,8 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
   const { t } = useTranslation();
 
   return (
-    <Paper
-      sx={{
-        ...LIST_PAPER_SX,
-        flex: 1,
-        minHeight: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}
-    >
+    // Equivalent classes de LIST_PAPER_SX (hairline --line, r14, fond --card).
+    <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] shadow-none">
       <div className="flex-1 overflow-hidden">
         <Table className="table-fixed w-full">
           <TableHeader>
@@ -183,10 +185,13 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                   <TableCell>
                     <div className="flex items-center gap-1">
                       {(() => { const freq = property.cleaningFrequency || 'ON_DEMAND'; return (
-                        <Tooltip title={`Ménage auto : ${getCleaningFrequencyLabel(freq, t)}`}>
-                          <span className="inline-flex shrink-0" style={{ color: getCleaningFrequencyHex(freq) }}>
-                            <BroomFill size={16} />
-                          </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex shrink-0" style={{ color: getCleaningFrequencyHex(freq) }}>
+                              <BroomFill size={16} />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{`Ménage auto : ${getCleaningFrequencyLabel(freq, t)}`}</TooltipContent>
                         </Tooltip>
                       ); })()}
                       {price != null ? (
@@ -207,41 +212,74 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                   </TableCell>
                   <TableCell className="text-center">
                     {(() => { const sc = getPropertyStatusHex(property.status); return (
-                      <Tooltip title={`${getPropertyStatusLabel(property.status, t)} — cliquer pour ${property.status === 'active' ? 'désactiver' : 'activer'}`}>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => { e.stopPropagation(); onToggleStatus(property); }}
-                          sx={{ color: sc, mr: 0.25 }}
-                        >
-                          <Power size={16} strokeWidth={2} />
-                        </IconButton>
+                      <Tooltip>
+                        {/* Le trigger enveloppe un <span> (element hote) : Radix y pose sa
+                            ref d'ancrage, qu'un composant fonction React 18 ne recoit pas. */}
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={getPropertyStatusLabel(property.status, t)}
+                              onClick={(e) => { e.stopPropagation(); onToggleStatus(property); }}
+                              style={{ color: sc }}
+                              className="me-[1.5px]"
+                            >
+                              <Power size={16} strokeWidth={2} />
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {`${getPropertyStatusLabel(property.status, t)} — cliquer pour ${property.status === 'active' ? 'désactiver' : 'activer'}`}
+                        </TooltipContent>
                       </Tooltip>
                     ); })()}
-                    <Tooltip title="Détails">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}`); }}
-                      >
-                        <Visibility size={18} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Détails"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}`); }}
+                          >
+                            <Visibility size={18} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Détails</TooltipContent>
                     </Tooltip>
-                    <Tooltip title="Modifier">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}/edit`); }}
-                      >
-                        <Edit size={18} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Modifier"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}/edit`); }}
+                          >
+                            <Edit size={18} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Modifier</TooltipContent>
                     </Tooltip>
                     {canManageContracts ? (
-                      <Tooltip title="Supprimer">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => { e.stopPropagation(); onDelete(property); }}
-                          sx={{ color: 'error.main' }}
-                        >
-                          <Delete size={18} strokeWidth={1.75} />
-                        </IconButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label="Supprimer"
+                              onClick={(e) => { e.stopPropagation(); onDelete(property); }}
+                              className="text-[var(--err)]"
+                            >
+                              <Delete size={18} strokeWidth={1.75} />
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Supprimer</TooltipContent>
                       </Tooltip>
                     ) : null}
                   </TableCell>
@@ -259,7 +297,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
         rowsPerPageOptions={LIST_ROWS_PER_PAGE_OPTIONS}
         onRowsPerPageChange={(rows) => onRowsPerPageChange(rows)}
       />
-    </Paper>
+    </div>
   );
 };
 

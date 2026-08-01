@@ -5,8 +5,7 @@
    = répartition de l'activité de l'agent par logement (openPortfolioAgent).
    ============================================================ */
 
-import { Drawer, IconButton } from '@mui/material';
-import { cn } from '../../../utils/cn';
+import { Button, Sheet, SheetContent, SheetDescription, SheetTitle } from '../../../components/ui';
 import { Close, HomeWork } from '../../../icons';
 import { AGENT_META, STATUS } from '../constants';
 import { AgentIcon } from '../renderers/agentIcon';
@@ -40,7 +39,13 @@ export function AgentDrawer({
   const meta = detail ? AGENT_META[detail.id] : null;
 
   return (
-    <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: 360, maxWidth: '90vw', p: 2.5 } }}>
+    <Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* Le panneau porte deja son propre bouton Fermer dans l'en-tete. */}
+      <SheetContent
+        side="right"
+        showCloseButton={false}
+        className="w-[360px] max-w-[90vw] p-[15px] gap-0 overflow-y-auto"
+      >
       {detail && meta && (
         <div data-agent-drawer>
           <div className="flex items-center gap-2 mb-3">
@@ -48,12 +53,12 @@ export function AgentDrawer({
               <AgentIcon token={meta.icon} size={20} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="cn-text-body1 text-[15px] font-extrabold text-[var(--ink,_#1b2240)]">{t(meta.nameKey)}</p>
-              <p className="cn-text-body1 text-[12px] text-[var(--muted,_#6b7196)]">{t(meta.roleKey)}</p>
+              <SheetTitle className="cn-text-body1 text-[15px] font-extrabold text-[var(--ink,_#1b2240)]">{t(meta.nameKey)}</SheetTitle>
+              <SheetDescription className="cn-text-body1 text-[12px] text-[var(--muted,_#6b7196)]">{t(meta.roleKey)}</SheetDescription>
             </div>
-            <IconButton onClick={onClose} size="small" aria-label={t('supervision.states.retry')}>
+            <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label={t('supervision.states.retry')}>
               <Close size={18} />
-            </IconButton>
+            </Button>
           </div>
 
           <div className="flex items-center gap-1 mb-2">
@@ -113,6 +118,7 @@ export function AgentDrawer({
           )}
         </div>
       )}
-    </Drawer>
+      </SheetContent>
+    </Sheet>
   );
 }

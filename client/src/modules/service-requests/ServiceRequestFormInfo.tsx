@@ -2,12 +2,7 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { SELECT_CHIP_CLASS } from './serviceRequestsListConstants';
-import {
-  Typography,
-  InputBase,
-  FormHelperText,
-  IconButton,
-} from '@mui/material';
+import { Button, FieldError } from '../../components/ui';
 import {
   AutoAwesome,
   Build,
@@ -487,7 +482,9 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                       {isAddingCustom ? (
                         <div className="inline-flex items-center gap-[1.5px] h-[30px] ps-1.5 pe-[1.5px] rounded-[15px]" style={{ border: `1px solid ${catFg}`, backgroundColor: catBg }}>
                           <span className="inline-flex shrink-0" style={{ color: catFg }}><MoreHoriz size={14} strokeWidth={1.75} /></span>
-                          <InputBase
+                          {/* Champ nu (ancien InputBase) : il vit DANS la puce,
+                              le gabarit du primitif Input casserait la pilule. */}
+                          <input
                             autoFocus
                             value={newCustomText}
                             onChange={(e) => setNewCustomText(e.target.value)}
@@ -497,17 +494,20 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                             }}
                             onBlur={() => { if (!newCustomText.trim()) cancelAddCustom(); }}
                             placeholder="Nouveau type…"
-                            sx={{ fontSize: '11.5px', color: catFg, width: 150, '& input': { p: 0 }, '& input::placeholder': { color: 'var(--faint)', opacity: 1 } }}
+                            className="w-[150px] p-0 border-none bg-transparent outline-none text-[11.5px] placeholder:text-[var(--faint)] placeholder:opacity-100"
+                            style={{ color: catFg }}
                           />
-                          <IconButton
-                            size="small"
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={confirmAddCustom}
                             aria-label="Enregistrer le type de service"
-                            sx={{ p: 0.25, color: catFg }}
+                            className="size-[22px] hover:bg-transparent"
+                            style={{ color: catFg }}
                           >
                             <EnterKey size={14} strokeWidth={1.75} />
-                          </IconButton>
+                          </Button>
                         </div>
                       ) : (
                         <StatusChip
@@ -529,9 +529,9 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
 
               {/* Erreur de validation */}
               {fieldState.error && (
-                <FormHelperText error sx={{ mt: 0.5 }}>
+                <FieldError className="mt-[3px]">
                   {fieldState.error.message}
-                </FormHelperText>
+                </FieldError>
               )}
             </div>
           )}

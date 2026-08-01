@@ -1,7 +1,6 @@
 import React from 'react';
-import { Alert, AlertDescription } from './ui';
+import { Alert, AlertDescription, Card, CardContent } from './ui';
 import { Info } from 'lucide-react';
-import { Box, Card, CardContent, Typography } from '@mui/material';
 import { cn } from '../utils/cn';
 import StatusChip from './StatusChip';
 import {
@@ -133,22 +132,17 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
           
           return (
             <div className="col-span-12 min-[1200px]:col-span-6" key={menu.name}>
-              <Card 
-                variant="outlined" 
-                sx={{ 
-                  height: '100%',
-                  transition: 'all 0.2s ease-in-out',
-                  '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: 2,
-                    borderColor: 'primary.main'
-                  },
-                  borderColor: status.accessible ? 'success.main' : 'grey.300',
-                  borderWidth: 1,
-                  bgcolor: 'background.paper'
-                }}
+              {/* Le liseré remplace l'anneau du primitif (`ring-0`) : c'est lui qui
+                  porte l'etat accessible / inaccessible. `grey.300` n'ayant pas
+                  d'equivalent direct, il devient la hairline forte --line-2. */}
+              <Card
+                className={cn(
+                  'h-full py-0 ring-0 border border-solid bg-[var(--card)]',
+                  'transition-all duration-200 ease-out hover:-translate-y-[2px] hover:border-[var(--mui-primary)]',
+                  status.accessible ? 'border-[var(--ok)]' : 'border-[var(--line-2)]',
+                )}
               >
-                <CardContent sx={{ p: 2.5 }}>
+                <CardContent className="p-[15px]">
                   {/* En-tête avec icône et statut */}
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-1.5 bg-[var(--hover)] rounded-[1px] flex items-center justify-center text-muted-foreground">
@@ -180,17 +174,27 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
                   </div>
                   
                   {/* Raison du statut */}
-                  <Box sx={{ 
-                    p: 1.5, 
-                    bgcolor: status.accessible ? 'success.50' : 'error.50', 
-                    borderRadius: 1,
-                    border: '1px solid',
-                    borderColor: status.accessible ? 'success.200' : 'error.200'
-                  }}>
-                    <Typography variant="caption" color={status.accessible ? 'success.dark' : 'error.dark'} sx={{ fontWeight: 500 }}>
+                  {/* Bandeau -soft + hairline 30 % : le couple soft/ink du kit
+                      remplace les nuances `.50` / `.200` / `.dark` de MUI. */}
+                  <div
+                    className={cn(
+                      'p-[9px] rounded-[8px] border border-solid',
+                      status.accessible
+                        ? 'bg-[var(--bui-success-soft)] border-[color-mix(in_srgb,var(--bui-success)_30%,transparent)]'
+                        : 'bg-[var(--bui-destructive-soft)] border-[color-mix(in_srgb,var(--bui-destructive)_30%,transparent)]',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'cn-text-caption font-medium',
+                        status.accessible
+                          ? 'text-[var(--bui-success-ink)]'
+                          : 'text-[var(--bui-destructive-ink)]',
+                      )}
+                    >
                       {status.reason}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -202,16 +206,7 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
       <div className="mt-6">
         <div className="grid grid-cols-12 gap-3">
           <div className="col-span-12 min-[900px]:col-span-6">
-            <Card 
-              variant="outlined" 
-              sx={{ 
-                p: 2.5, 
-                textAlign: 'center',
-                bgcolor: 'background.paper',
-                borderColor: 'success.main',
-                borderWidth: 1.5
-              }}
-            >
+            <Card className="p-[15px] text-center ring-0 border-[1.5px] border-solid border-[var(--ok)] bg-[var(--card)]">
               <h4 className="cn-text-h4 text-[var(--bui-success-ink)] font-bold mb-1.5">
                 {rolePermissions.permissions.length}
               </h4>
@@ -222,15 +217,11 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
           </div>
           
           <div className="col-span-12 min-[900px]:col-span-6">
-            <Card 
-              variant="outlined" 
-              sx={{ 
-                p: 2.5, 
-                textAlign: 'center',
-                bgcolor: 'background.paper',
-                borderColor: rolePermissions.isDefault ? 'success.main' : 'warning.main',
-                borderWidth: 1.5
-              }}
+            <Card
+              className={cn(
+                'p-[15px] text-center ring-0 border-[1.5px] border-solid bg-[var(--card)]',
+                rolePermissions.isDefault ? 'border-[var(--ok)]' : 'border-[var(--warn)]',
+              )}
             >
               <h4
                 className={cn(

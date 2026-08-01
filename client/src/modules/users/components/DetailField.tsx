@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { IconButton, Tooltip } from '@mui/material';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { ContentCopy, Check } from '../../../icons';
 import { cn } from '../../../utils/cn';
 
@@ -95,19 +95,26 @@ const DetailField: React.FC<DetailFieldProps> = ({
           <span className={valueClass}>{isEmpty ? '—' : value}</span>
         )}
         {canCopy && (
-          <Tooltip title={copied ? 'Copié' : 'Copier'} arrow>
-            <IconButton
-              size="small"
-              onClick={handleCopy}
-              sx={{ p: 0.25, color: copied ? 'var(--ok)' : 'text.disabled' }}
-              aria-label={copied ? 'Copié' : `Copier ${label}`}
-            >
-              {copied ? (
-                <Check size={14} strokeWidth={2} />
-              ) : (
-                <ContentCopy size={13} strokeWidth={1.75} />
-              )}
-            </IconButton>
+          <Tooltip>
+            {/* Le Button du kit ne transmet pas de ref : span intermediaire pour l'ancrage du tooltip. */}
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className={cn('size-5', copied ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}
+                  onClick={handleCopy}
+                  aria-label={copied ? 'Copié' : `Copier ${label}`}
+                >
+                  {copied ? (
+                    <Check size={14} strokeWidth={2} />
+                  ) : (
+                    <ContentCopy size={13} strokeWidth={1.75} />
+                  )}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{copied ? 'Copié' : 'Copier'}</TooltipContent>
           </Tooltip>
         )}
       </div>

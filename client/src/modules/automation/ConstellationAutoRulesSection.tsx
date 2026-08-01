@@ -17,8 +17,19 @@
 
 import React, { useCallback } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Button, Field, FieldLabel, Input } from '../../components/ui';
-import { Switch, Select, MenuItem, FormControl, Card, Tooltip } from '@mui/material';
+import {
+  Button,
+  Card,
+  Field,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+  Switch,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -30,18 +41,6 @@ import {
 import { useSupervisionReport } from '../supervision/core/useSupervisionReport';
 
 // Chips soft (pilule fond -soft + texte couleur — même pattern que la page).
-
-// Switch compact identique à la vue liste des règles.
-const switchSx = {
-  justifySelf: 'start',
-  width: 30, height: 18, p: 0, display: 'flex',
-  '& .MuiSwitch-switchBase': {
-    p: 0, m: '2px',
-    '&.Mui-checked': { transform: 'translateX(12px)' },
-  },
-  '& .MuiSwitch-thumb': { width: 14, height: 14, boxShadow: 'none' },
-  '& .MuiSwitch-track': { borderRadius: 9, opacity: 1 },
-} as const;
 
 /** Lit une borne entière de l'enveloppe JSON (repli sur le défaut serveur). */
 function envelopeInt(envelope: string | null, key: string, defaultValue: number): number {
@@ -132,7 +131,7 @@ const ConstellationAutoRulesSection: React.FC = () => {
         )}
       </p>
 
-      <Card sx={{ overflowX: 'auto' }}>
+      <Card className="overflow-x-auto">
         {rules.map((rule, idx) => {
           const ceiling = rule.moduleCeiling; // 'suggest' | 'notify' | 'full'
           const cappedToSuggest = ceiling === 'suggest';
@@ -140,24 +139,33 @@ const ConstellationAutoRulesSection: React.FC = () => {
           const decided = acceptance ? acceptance.applied + acceptance.dismissed : 0;
           const moduleLabel = t(`supervision.agents.${rule.moduleKey}.name`, rule.moduleKey);
 
+          // Le Switch du kit ne transmet pas de ref : span d'ancrage pour le Tooltip.
+          const switchCell = (
+            <span className="inline-flex justify-self-start">
+              <Switch
+                size="sm"
+                aria-label={t(`automation.constellation.types.${rule.actionType}.label`, rule.actionType)}
+                checked={rule.enabled}
+                onCheckedChange={(checked) => saveRule(rule, { enabled: checked })}
+                disabled={!canEdit || cappedToSuggest || updateMutation.isPending}
+              />
+            </span>
+          );
+
           return (
             <div className="grid grid-cols-[auto_minmax(220px,_1.6fr)_auto_minmax(150px,_auto)_auto_auto] items-center gap-x-[9px] px-3 py-[7.5px] min-w-[760px]" style={{ borderTop: idx === 0 ? 'none' : '1px solid var(--hairline)' }} key={rule.actionType}>
-              <Tooltip
-                title={cappedToSuggest
-                  ? t('automation.constellation.cappedTooltip',
+              {cappedToSuggest ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>{switchCell}</TooltipTrigger>
+                  <TooltipContent>
+                    {t('automation.constellation.cappedTooltip',
                       'Niveau de l’agent {{agent}} : Suggestion — passez-le en « Agir puis notifier » ou « Auto » pour activer.',
-                      { agent: moduleLabel })
-                  : ''}
-              >
-                <span>
-                  <Switch
-                    checked={rule.enabled}
-                    onChange={(e) => saveRule(rule, { enabled: e.target.checked })}
-                    disabled={!canEdit || cappedToSuggest || updateMutation.isPending}
-                    sx={switchSx}
-                  />
-                </span>
-              </Tooltip>
+                      { agent: moduleLabel })}
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                switchCell
+              )}
 
               <div className="min-w-0">
                 <p className="cn-text-body1 truncate text-[0.8125rem] font-semibold text-[var(--ink)]">
@@ -222,35 +230,41 @@ const ConstellationAutoRulesSection: React.FC = () => {
               <StatusChip pill tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={moduleLabel} />
 
               {/* Taux d'acceptation du type (30 j) — aide à la décision d'activation. */}
-              <Tooltip
-                title={t('automation.constellation.acceptanceTooltip',
-                  'Taux d’acceptation des cartes de ce type sur 30 jours ({{count}} décisions). Activez quand il est durablement élevé.',
-                  { count: decided })}
-              >
-                <StatusChip pill tokens={{ color: decided > 0 ? 'var(--body)' : 'var(--muted)', bg: 'var(--field)' }} label={decided > 0
-                    ? `${t('automation.constellation.acceptance', 'Acceptation')} ${Math.round((acceptance?.acceptanceRate ?? 0) * 100)} % · ${decided}`
-                    : t('automation.constellation.noDecisions', 'Pas encore de décision')} className="tabular-nums" />
+              <Tooltip>
+                {/* StatusChip ne transmet pas de ref : span d'ancrage. */}
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <StatusChip pill tokens={{ color: decided > 0 ? 'var(--body)' : 'var(--muted)', bg: 'var(--field)' }} label={decided > 0
+                        ? `${t('automation.constellation.acceptance', 'Acceptation')} ${Math.round((acceptance?.acceptanceRate ?? 0) * 100)} % · ${decided}`
+                        : t('automation.constellation.noDecisions', 'Pas encore de décision')} className="tabular-nums" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {t('automation.constellation.acceptanceTooltip',
+                    'Taux d’acceptation des cartes de ce type sur 30 jours ({{count}} décisions). Activez quand il est durablement élevé.',
+                    { count: decided })}
+                </TooltipContent>
               </Tooltip>
 
-              <FormControl size="small" sx={{ minWidth: 168 }}>
-                <Select
-                  value={rule.level}
-                  onChange={(e) => saveRule(rule, { level: e.target.value as 'notify' | 'full' })}
-                  disabled={!canEdit || cappedToSuggest || updateMutation.isPending}
-                  sx={{ fontSize: '0.8125rem' }}
-                >
-                  <MenuItem value="notify" sx={{ fontSize: '0.8125rem' }}>
-                    {t('automation.constellation.levelNotify', 'Appliquer et notifier')}
-                  </MenuItem>
-                  {/* « Silencieux » : borné par le plafond du module ET le max du type
-                      (cautions / blocage calendrier = notify max, jamais proposé). */}
-                  {rule.maxLevel === 'full' && (
-                    <MenuItem value="full" disabled={ceiling !== 'full'} sx={{ fontSize: '0.8125rem' }}>
-                      {t('automation.constellation.levelFull', 'Appliquer en silence')}
-                    </MenuItem>
-                  )}
-                </Select>
-              </FormControl>
+              <NativeSelect
+                size="sm"
+                aria-label={t('automation.constellation.levelLabel', 'Niveau d’automatisation')}
+                className="min-w-[168px] [&>select]:w-full [&>select]:text-[0.8125rem]"
+                value={rule.level}
+                onChange={(e) => saveRule(rule, { level: e.target.value as 'notify' | 'full' })}
+                disabled={!canEdit || cappedToSuggest || updateMutation.isPending}
+              >
+                <NativeSelectOption value="notify">
+                  {t('automation.constellation.levelNotify', 'Appliquer et notifier')}
+                </NativeSelectOption>
+                {/* « Silencieux » : borné par le plafond du module ET le max du type
+                    (cautions / blocage calendrier = notify max, jamais proposé). */}
+                {rule.maxLevel === 'full' && (
+                  <NativeSelectOption value="full" disabled={ceiling !== 'full'}>
+                    {t('automation.constellation.levelFull', 'Appliquer en silence')}
+                  </NativeSelectOption>
+                )}
+              </NativeSelect>
 
               {/* Enveloppe éditable du type (défauts serveur AutoApplyGate) ; les
                   conditions non éditables sont affichées en texte informatif. */}

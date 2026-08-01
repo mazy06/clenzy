@@ -3,7 +3,14 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Button } from '../../components/ui';
-import { IconButton, Paper, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
   CloudUpload,
@@ -47,13 +54,7 @@ const SECTION_TITLE_SX = {
 const SECTION_TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-1.5';
 
 // .pd-card — carte hairline r14 plate.
-const CARD_SX = {
-  border: '1px solid var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: '16px 18px',
-} as const;
+const CARD_CLASS = 'border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] px-[18px] py-4';
 
 // Dropzone — pattern manquant au baseline (signalé) : dérivé minimal en tokens
 // (tirets --line-2, hover/drag accent + accent-soft), aucun style inventé au-delà.
@@ -203,7 +204,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
       </Alert>
 
       {/* ── Upload zone ──────────────────────────────────────────────────── */}
-      <Paper sx={CARD_SX}>
+      <div className={CARD_CLASS}>
         <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('properties.photos.upload')}</p>
         <div
           className={cn(DROP_ZONE_CLASS, isDragOver && 'border-[var(--accent)] bg-[var(--accent-soft)]')}
@@ -228,7 +229,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
           hidden
           onChange={handleFileChange}
         />
-      </Paper>
+      </div>
 
       {/* ── Loading state ────────────────────────────────────────────────── */}
       {loading && (
@@ -239,7 +240,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
 
       {/* ── Photo grid or empty state ────────────────────────────────────── */}
       {!loading && hasPhotos ? (
-        <Paper sx={CARD_SX}>
+        <div className={CARD_CLASS}>
           <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
             {t('properties.photos.title')} ({photos.length})
           </p>
@@ -251,20 +252,15 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
               >
                 <img className="w-full h-full object-cover block" src={photo.url} alt={photo.name} />
                 <div className="photo-overlay absolute inset-0 bg-[rgba(10,18,24,0.42)] opacity-0 transition-opacity duration-200 flex items-start justify-end p-[3px]">
-                  <IconButton
-                    size="small"
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={t('common.delete')}
                     onClick={() => setDeleteTarget(photo)}
-                    sx={{
-                      bgcolor: 'rgba(255,255,255,0.92)',
-                      color: '#2A3942',
-                      borderRadius: '10px',
-                      '&:hover': { bgcolor: '#fff', color: 'var(--err)' },
-                      width: 28,
-                      height: 28,
-                    }}
+                    className="rounded-[10px] bg-[rgba(255,255,255,0.92)] text-[#2A3942] hover:bg-[rgba(255,255,255,1)] hover:text-[var(--err)]"
                   >
                     <Delete size={16} strokeWidth={1.75} />
-                  </IconButton>
+                  </Button>
                 </div>
               </div>
             ))}
@@ -278,7 +274,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
               <span className="inline-flex text-muted-foreground opacity-60"><AddPhotoAlternate size={28} strokeWidth={1.5} /></span>
             </div>
           </div>
-        </Paper>
+        </div>
       ) : !loading ? (
         <EmptyState
           icon={<PhotoLibrary />}
@@ -298,23 +294,22 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
       ) : null}
 
       {/* ── Delete confirmation dialog ───────────────────────────────────── */}
-      <Dialog open={deleteTarget !== null} onClose={() => setDeleteTarget(null)} maxWidth="xs">
-        <DialogTitle sx={{ fontSize: '0.875rem', fontWeight: 600 }}>
-          {t('properties.photos.deleteConfirm')}
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ fontSize: '0.8125rem' }}>
-            {deleteTarget?.name}
-          </DialogContentText>
+      {/* maxWidth="xs" MUI = 444 px. */}
+      <Dialog open={deleteTarget !== null} onOpenChange={(next) => { if (!next) setDeleteTarget(null); }}>
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>{t('properties.photos.deleteConfirm')}</DialogTitle>
+            <DialogDescription>{deleteTarget?.name}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleDeleteConfirm}>
+              {t('common.delete')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(null)}>
-            {t('common.cancel')}
-          </Button>
-          <Button variant="destructive" size="sm" onClick={handleDeleteConfirm}>
-            {t('common.delete')}
-          </Button>
-        </DialogActions>
       </Dialog>
     </div>
   );

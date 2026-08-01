@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AlertDescription, Field, FieldLabel, Input } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Skeleton } from '@mui/material';
+import { Skeleton } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { syncAdminApi, CalendarCommand, CalendarConflict } from '../../../services/api/syncAdminApi';
 import { useSyncAdminHeader } from '../SyncAdminPage';
@@ -133,7 +133,7 @@ const CalendarAuditTab: React.FC = () => {
       {loading ? (
         <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+            <Skeleton key={i} className="h-9 w-full rounded-[9px]" />
           ))}
         </div>
       ) : (

@@ -10,7 +10,13 @@ import {
   InputGroupAddon,
   InputGroupText,
 } from '../../../components/ui';
-import { Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -104,12 +110,16 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
   const score = data?.score;
 
   return (
-    <Dialog open={userId != null} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ pb: 1 }}>
-        {t('users.ratesDialog.title', 'Tarifs & score')}
-        {userName ? ` — ${userName}` : ''}
-      </DialogTitle>
-      <DialogContent dividers>
+    <Dialog open={userId != null} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {t('users.ratesDialog.title', 'Tarifs & score')}
+            {userName ? ` — ${userName}` : ''}
+          </DialogTitle>
+        </DialogHeader>
+        {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+        <div className="border-y border-solid border-[var(--line)] py-3">
         {ratesQuery.isPending && (
           <div className="flex justify-center py-6">
             <Spinner className="size-[26px]" />
@@ -237,16 +247,17 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
             )}
           </div>
         )}
+        </div>
+        <DialogFooter>
+          <Button onClick={onClose} variant="ghost">{t('common.close', 'Fermer')}</Button>
+          <Button
+            onClick={() => saveMutation.mutate()}
+            disabled={ratesQuery.isPending || saveMutation.isPending || data == null}
+          >
+            {t('common.save', 'Enregistrer')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} variant="ghost">{t('common.close', 'Fermer')}</Button>
-        <Button
-          onClick={() => saveMutation.mutate()}
-          disabled={ratesQuery.isPending || saveMutation.isPending || data == null}
-        >
-          {t('common.save', 'Enregistrer')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

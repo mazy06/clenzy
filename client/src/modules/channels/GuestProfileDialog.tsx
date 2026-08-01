@@ -4,7 +4,13 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner, Button } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, IconButton, Divider } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+} from '../../components/ui';
 import { Textarea } from '../../components/ui';
 import {
   Close as CloseIcon,
@@ -68,18 +74,24 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
   }, [guestId, notes]);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 0.5 }}>
-        <div className="flex items-center gap-1.5">
-          <span className="inline-flex text-primary"><PersonIcon size={'1.25rem'} strokeWidth={1.75} /></span>
-          <p className="cn-text-body1 text-[0.9375rem] font-bold">
-            {t('channels.guest.title')}
-          </p>
-        </div>
-        <IconButton size="small" onClick={onClose}><CloseIcon size={'1rem'} strokeWidth={1.75} /></IconButton>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* `sm` MUI = 600px, r16 : deux valeurs hors echelle Tailwind, ecrites en litteral. */}
+      <DialogContent
+        className="sm:max-w-[600px] rounded-2xl max-h-[85vh] overflow-y-auto"
+        showCloseButton={false}
+      >
+        <DialogHeader className="flex-row items-center justify-between gap-1.5">
+          <DialogTitle className="flex items-center gap-1.5">
+            <span className="inline-flex text-primary"><PersonIcon size={'1.25rem'} strokeWidth={1.75} /></span>
+            <span className="text-[0.9375rem] font-bold">
+              {t('channels.guest.title')}
+            </span>
+          </DialogTitle>
+          <Button variant="ghost" size="icon-sm" aria-label={t('common.close')} onClick={onClose}>
+            <CloseIcon size={'1rem'} strokeWidth={1.75} />
+          </Button>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 1 }}>
         {loading && (
           <div className="flex justify-center py-6">
             <Spinner className="size-7" />
@@ -140,7 +152,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
             {/* Special requests */}
             {guest.specialRequests && (
               <>
-                <Divider />
+                <Separator />
                 <div>
                   <p className="cn-text-body1 text-[0.6875rem] font-semibold mb-0.5 uppercase text-muted-foreground">
                     {t('channels.guest.specialRequests')}
@@ -153,7 +165,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
             )}
 
             {/* Notes */}
-            <Divider />
+            <Separator />
             <div>
               <div className="flex items-center justify-between mb-0.5">
                 {/* Le titre de section fait office de libelle : le champ MUI n'en
@@ -197,7 +209,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
             {/* Reservation history */}
             {guest.reservations.length > 0 && (
               <>
-                <Divider />
+                <Separator />
                 <div>
                   <p className="cn-text-body1 text-[0.6875rem] font-semibold mb-1 uppercase text-muted-foreground">
                     <span className="inline-flex me-[1.5px] align-[middle]"><CalendarIcon size={'0.75rem'} strokeWidth={1.75} /></span>

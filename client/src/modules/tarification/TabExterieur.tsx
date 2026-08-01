@@ -1,7 +1,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Switch, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Button } from '../../components/ui';
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Field,
   FieldLabel,
   Input,
@@ -9,6 +13,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
   InputGroupText,
+  Switch,
 } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Yard, Add, Delete } from '../../icons';
@@ -103,10 +108,11 @@ export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol
                 </TableCell>
                 <TableCell className="text-center">
                   <Switch
+                    aria-label={t(`tarification.exterieur.types.${item.interventionType}`, item.interventionType)}
                     checked={item.enabled}
-                    onChange={(e) => updateItem(index, { enabled: e.target.checked })}
+                    onCheckedChange={(checked) => updateItem(index, { enabled: checked })}
+                    size="sm"
                     disabled={!canEdit}
-                    size="small"
                   />
                 </TableCell>
                 <TableCell className="text-end w-[140px]">
@@ -135,9 +141,15 @@ export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol
                 </TableCell>
                 {canEdit && (
                   <TableCell className="text-center">
-                    <IconButton size="small" onClick={() => removeItem(index)} color="error">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t('tarification.delete', 'Supprimer')}
+                      onClick={() => removeItem(index)}
+                      className="text-[var(--err)] hover:text-[var(--err)]"
+                    >
                       <Delete size={16} strokeWidth={1.75} />
-                    </IconButton>
+                    </Button>
                   </TableCell>
                 )}
               </TableRow>
@@ -161,40 +173,45 @@ export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol
       )}
 
       {/* ─── Add dialog ──────────────────────────────────────────────── */}
-      <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('tarification.addPrestation')}</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-          <Field>
-            <FieldLabel htmlFor="exterieur-new-name">{t('tarification.newItem.name')}</FieldLabel>
-            <Input
-              id="exterieur-new-name"
-              autoFocus
-              value={newItemName}
-              onChange={(e) => setNewItemName(e.target.value)}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="exterieur-new-price">{t('tarification.newItem.price')}</FieldLabel>
-            <InputGroup>
-              <InputGroupInput
-                id="exterieur-new-price"
-                type="number"
-                className="tabular-nums"
-                value={newItemPrice}
-                onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
+      {/* maxWidth="xs" + fullWidth MUI = pleine largeur plafonnee a 444 px. */}
+      <Dialog open={addDialogOpen} onOpenChange={(next) => { if (!next) setAddDialogOpen(false); }}>
+        <DialogContent className="w-full sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>{t('tarification.addPrestation')}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            <Field>
+              <FieldLabel htmlFor="exterieur-new-name">{t('tarification.newItem.name')}</FieldLabel>
+              <Input
+                id="exterieur-new-name"
+                autoFocus
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
               />
-              <InputGroupAddon align="inline-end">
-                <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
-              </InputGroupAddon>
-            </InputGroup>
-          </Field>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="exterieur-new-price">{t('tarification.newItem.price')}</FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="exterieur-new-price"
+                  type="number"
+                  className="tabular-nums"
+                  value={newItemPrice}
+                  onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>
+            <Button variant="default" onClick={handleAdd} disabled={!newItemName.trim()}>
+              {t('tarification.add')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>
-          <Button variant="default" onClick={handleAdd} disabled={!newItemName.trim()}>
-            {t('tarification.add')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* ─── Commission ──────────────────────────────────────────────── */}

@@ -1,8 +1,18 @@
 import React, { useState } from 'react';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Field, FieldLabel, NativeSelect, NativeSelectOption, Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
+  Spinner,
+} from '../../components/ui';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
 import { ASSIGNABLE_ORG_ROLES, getOrgRoleLabel } from '../../utils/orgRoleLabels';
 
@@ -48,9 +58,12 @@ export default function ChangeRoleDialog({ open, onClose, member, organizationId
   const memberName = member ? `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email : '';
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Changer le role</DialogTitle>
-      <DialogContent>
+    // maxWidth="xs" MUI = 444 px.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[444px]">
+        <DialogHeader>
+          <DialogTitle>Changer le role</DialogTitle>
+        </DialogHeader>
         <p className="cn-text-body2 text-muted-foreground mb-3">
           Modifier le role de <strong>{memberName}</strong> dans l'organisation.
           Role actuel : <strong>{member ? getOrgRoleLabel(member.roleInOrg) : ''}</strong>
@@ -82,19 +95,19 @@ export default function ChangeRoleDialog({ open, onClose, member, organizationId
             ))}
           </NativeSelect>
         </Field>
+        <DialogFooter>
+          <Button onClick={onClose} variant="ghost" disabled={loading}>
+            Annuler
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={loading || !role || role === member?.roleInOrg}
+          >
+            {loading && <Spinner className="size-4" />}
+            {loading ? 'Modification...' : 'Modifier'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} variant="ghost" disabled={loading}>
-          Annuler
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          disabled={loading || !role || role === member?.roleInOrg}
-        >
-          {loading && <Spinner className="size-4" />}
-          {loading ? 'Modification...' : 'Modifier'}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

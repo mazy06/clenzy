@@ -1,7 +1,9 @@
 import React, { useEffect, useId, useState } from 'react';
 import { Spinner, Button } from '../../../components/ui';
-import { Alert, FormControlLabel, Snackbar, Switch } from '@mui/material';
-import { Field, FieldLabel, Input } from '../../../components/ui';
+// Snackbar + son Alert flottante restent MUI : changer le mecanisme de
+// notification de ce formulaire depasse la migration des primitives.
+import { Alert, Snackbar } from '@mui/material';
+import { Field, FieldLabel, Input, Switch } from '../../../components/ui';
 import type { AlertColor } from '@mui/material';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { activitiesApi, type ActivityProvider } from '../../../services/api/activitiesApi';
@@ -79,10 +81,17 @@ export default function ActivityProviderConfigForm({ provider }: { provider: Act
 
   return (
     <div className="border border-[var(--line)] rounded-[2px] p-2 mb-2">
-      <FormControlLabel
-        control={<Switch size="small" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />}
-        label={t('welcomeGuide.activities.enabled', 'Actif')}
-      />
+      <Field orientation="horizontal" className="w-[fit-content] gap-2">
+        <Switch
+          id={`${fieldId}-enabled`}
+          size="sm"
+          checked={enabled}
+          onCheckedChange={(checked) => setEnabled(checked)}
+        />
+        <FieldLabel htmlFor={`${fieldId}-enabled`} className="cursor-pointer">
+          {t('welcomeGuide.activities.enabled', 'Actif')}
+        </FieldLabel>
+      </Field>
       <Field className="mt-[3px] mb-1.5">
         <FieldLabel htmlFor={`${fieldId}-api-key`}>
           {hasKey

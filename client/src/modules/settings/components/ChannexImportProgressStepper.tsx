@@ -22,7 +22,6 @@
  */
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { Stack } from '@mui/material';
 import { Cable, Search, Check, ArrowRight } from 'lucide-react';
 
 interface ChannexImportProgressStepperProps {
@@ -141,17 +140,14 @@ export default function ChannexImportProgressStepper(props: ChannexImportProgres
   const steps = computeSteps(props);
   return (
     <div className="rounded-[8px] p-[7.5px]" style={{ border: `1px solid ${ACCENT}22`, backgroundColor: `${ACCENT}06` }}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={{ xs: 1, sm: 1.25 }}
-        alignItems={{ xs: 'flex-start', sm: 'center' }}
-      >
+      {/* `sm` MUI = 600 px, pas le 640 de Tailwind. spacing 1/1.25 = 6 px/7,5 px. */}
+      <div className="flex flex-col gap-1.5 items-start min-[600px]:flex-row min-[600px]:gap-[7.5px] min-[600px]:items-center">
         <StepBubble step={steps[0]} />
         <Connector next={steps[1].status} />
         <StepBubble step={steps[1]} />
         <Connector next={steps[2].status} />
         <StepBubble step={steps[2]} />
-      </Stack>
+      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Alert, AlertDescription, Button } from '../../components/ui';
 import {
   Field,
   FieldLabel,
+  FieldSeparator,
   Input,
   NativeSelect,
   NativeSelectOption,
@@ -11,7 +12,13 @@ import {
 } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Divider } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
 import { CloudUpload } from '../../icons';
 import { useDocumentTypes, useUploadTemplate } from './hooks/useDocuments';
 
@@ -90,9 +97,11 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
   const loading = uploadMutation.isPending;
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Nouveau template de document</DialogTitle>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Nouveau template de document</DialogTitle>
+        </DialogHeader>
         {error && <Alert variant="destructive" className="mb-3">
           <TriangleAlert />
           <AlertDescription>{error}</AlertDescription>
@@ -158,9 +167,11 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
             />
           </Field>
 
-          <Divider sx={{ my: 1 }}>
+          {/* FieldSeparator = le primitif « filet a legende centree » du kit,
+              equivalent direct du <Divider> a enfant. */}
+          <FieldSeparator className="my-1.5">
             <span className="cn-text-caption text-muted-foreground">Configuration email (optionnel)</span>
-          </Divider>
+          </FieldSeparator>
 
           <Field>
             <FieldLabel htmlFor="template-email-subject">Objet de l'email</FieldLabel>
@@ -185,18 +196,18 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
             />
           </Field>
         </div>
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={handleClose} disabled={loading}>Annuler</Button>
+          <Button
+            size="sm"
+            onClick={handleSubmit}
+            disabled={loading || !file || !name || !documentType}
+          >
+            {loading ? <Spinner className="size-4" /> : <CloudUpload />}
+            {loading ? 'Upload...' : 'Uploader & scanner'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button variant="ghost" size="sm" onClick={handleClose} disabled={loading}>Annuler</Button>
-        <Button
-          size="sm"
-          onClick={handleSubmit}
-          disabled={loading || !file || !name || !documentType}
-        >
-          {loading ? <Spinner className="size-4" /> : <CloudUpload />}
-          {loading ? 'Upload...' : 'Uploader & scanner'}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

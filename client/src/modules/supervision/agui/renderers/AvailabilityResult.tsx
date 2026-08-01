@@ -8,7 +8,7 @@
      colorée (vert=libre, ambre=bloqué/maintenance, rouge=réservé).
    ============================================================ */
 import React from 'react';
-import { Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../../components/ui';
 import { SurfaceCard, Overline } from './shared';
 
 interface Day {
@@ -92,10 +92,13 @@ export const AvailabilityResult: React.FC<{ data: AvailabilityData }> = ({ data 
             const d = new Date(day.date);
             const dayNum = Number.isNaN(d.getTime()) ? '?' : d.getDate();
             return (
-              <Tooltip key={day.date} title={`${day.date} · ${statusLabel(day)}`} arrow disableInteractive>
-                <div className="w-[26px] h-[26px] rounded-[6px] inline-flex items-center justify-center text-[11px] font-semibold tabular-nums" style={{ backgroundColor: color.bg, color: color.fg }}>
-                  {dayNum}
-                </div>
+              <Tooltip key={day.date}>
+                <TooltipTrigger asChild>
+                  <div className="w-[26px] h-[26px] rounded-[6px] inline-flex items-center justify-center text-[11px] font-semibold tabular-nums" style={{ backgroundColor: color.bg, color: color.fg }}>
+                    {dayNum}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>{`${day.date} · ${statusLabel(day)}`}</TooltipContent>
               </Tooltip>
             );
           })}

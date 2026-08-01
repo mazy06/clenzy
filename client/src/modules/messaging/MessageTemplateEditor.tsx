@@ -3,8 +3,23 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Paper, Divider } from '@mui/material';
-import { Field, FieldLabel, Input, NativeSelect, NativeSelectOption } from '../../components/ui';
+// TextField reste MUI : `inputRef` porte l'insertion de variable A LA POSITION
+// DU CURSEUR ; les primitifs du kit sont de simples fonctions et ne recoivent
+// pas de ref sous React 18 — la convertir casserait le comportement en silence.
+import { TextField } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+  Separator,
+} from '../../components/ui';
 import { Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -148,20 +163,18 @@ export default function MessageTemplateEditor({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="lg"
-      fullWidth
-      PaperProps={{ sx: { minHeight: '70vh' } }}
-    >
-      <DialogTitle>
-        {isEditing
-          ? t('messaging.templates.editor.editTitle')
-          : t('messaging.templates.editor.createTitle')}
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[1200px] min-h-[70vh] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {isEditing
+              ? t('messaging.templates.editor.editTitle')
+              : t('messaging.templates.editor.createTitle')}
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent dividers>
+        {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+        <div className="border-y border-solid border-[var(--line)] py-3">
         {error && (
           <BuiAlert variant="destructive" className="mb-3">
             <TriangleAlert />
@@ -266,7 +279,7 @@ export default function MessageTemplateEditor({
                 <h6 className="cn-text-subtitle2 mb-[0.35em]">
                   {t('messaging.templates.editor.previewSubject')}: {getPreviewText(subject) || '—'}
                 </h6>
-                <Divider sx={{ my: 1 }} />
+                <Separator className="my-1.5" />
                 {body ? (
                   <div className="cn-text-body2 font-[inherit]">
                     {/* Rendu identique à l'email envoyé (gras, puces, paragraphes) */}
@@ -283,7 +296,7 @@ export default function MessageTemplateEditor({
               par categorie, palette Baitly). Composant partage avec
               SystemTemplateEditDialog pour coherence visuelle. */}
           <div className="col-span-12 min-[900px]:col-span-5">
-            <Paper variant="outlined" sx={{ p: 2, position: 'sticky', top: 16 }}>
+            <div className="sticky top-4 p-3 rounded-xl border border-solid border-[var(--line)] bg-[var(--card)]">
               <h6 className="cn-text-subtitle2 font-semibold mb-[0.35em]">
                 {t('messaging.templates.editor.variables')}
               </h6>
@@ -296,21 +309,22 @@ export default function MessageTemplateEditor({
                 onInsert={handleInsertVariable}
                 showDetails
               />
-            </Paper>
+            </div>
           </div>
         </div>
-      </DialogContent>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 1.5 }}>
-        <BuiButton variant="ghost" onClick={onClose}>{t('common.cancel')}</BuiButton>
-        <BuiButton
-          onClick={handleSave}
-          disabled={saving || !name.trim() || !subject.trim() || !body.trim()}
-        >
-          {saving ? <Spinner className="size-4" /> : <Save />}
-          {saving ? t('common.processing') : t('common.save')}
-        </BuiButton>
-      </DialogActions>
+        <DialogFooter>
+          <BuiButton variant="ghost" onClick={onClose}>{t('common.cancel')}</BuiButton>
+          <BuiButton
+            onClick={handleSave}
+            disabled={saving || !name.trim() || !subject.trim() || !body.trim()}
+          >
+            {saving ? <Spinner className="size-4" /> : <Save />}
+            {saving ? t('common.processing') : t('common.save')}
+          </BuiButton>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

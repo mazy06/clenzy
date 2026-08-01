@@ -4,7 +4,7 @@ import { Alert, AlertDescription, Button, Field, FieldLabel, Input } from '../..
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Card, MenuItem, Select } from '@mui/material';
+import { Card, NativeSelect, NativeSelectOption } from '../../components/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarChart as BarChartIcon, Delete as DeleteIcon } from '../../icons';
 import EmptyState from '../../components/EmptyState';
@@ -93,7 +93,7 @@ const CustomReport: React.FC = () => {
   return (
     <div className="flex flex-col gap-2">
       {/* ── Définition ── */}
-      <Card variant="outlined" sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+      <Card className="p-[9px] gap-[7.5px] [--card-spacing:0px]">
         <div>
           <span className="cn-text-caption text-[var(--muted)]">
             {t('reports.custom.dimensionsLabel', 'Dimensions')}
@@ -133,11 +133,18 @@ const CustomReport: React.FC = () => {
         {/* items-end : les libelles passent AU-DESSUS des champs, les boutons
             doivent donc s'aligner sur le bas de la rangee, plus sur son milieu. */}
         <div className="flex gap-1.5 flex-wrap items-end">
-          <Select size="small" value={granularity} onChange={(e) => setGranularity(e.target.value as ReportGranularity)}>
+          {/* Le champ n'a jamais porte de libelle visible : l'intitule reste
+              accessible par aria-label, comme cote MUI. */}
+          <NativeSelect
+            size="sm"
+            aria-label={t('reports.custom.granularityLabel', 'Granularité')}
+            value={granularity}
+            onChange={(e) => setGranularity(e.target.value as ReportGranularity)}
+          >
             {GRANULARITIES.map((g) => (
-              <MenuItem key={g} value={g}>{t(`reports.custom.granularities.${g}`, g)}</MenuItem>
+              <NativeSelectOption key={g} value={g}>{t(`reports.custom.granularities.${g}`, g)}</NativeSelectOption>
             ))}
-          </Select>
+          </NativeSelect>
           <Field className="w-40">
             <FieldLabel htmlFor="custom-report-from">{t('reports.custom.from', 'Du')}</FieldLabel>
             <Input
@@ -216,7 +223,7 @@ const CustomReport: React.FC = () => {
         </div>
       )}
       {result && !runMutation.isPending && (
-        <Card variant="outlined" sx={{ p: 1.5 }}>
+        <Card className="p-[9px] [--card-spacing:0px]">
           <span className="cn-text-caption text-[var(--muted)]">
             {t('reports.custom.resultCurrency', 'Montants en')} {result.currency}
           </span>

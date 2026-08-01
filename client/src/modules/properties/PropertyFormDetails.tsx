@@ -8,7 +8,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from '../../components/ui';
-import { Checkbox, FormControlLabel } from '@mui/material';
+import { Checkbox } from '../../components/ui';
 import {
   Euro,
   Bed,
@@ -280,25 +280,24 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                         const checked = field.value?.includes(amenity) || false;
                         return (
                           <div className="col-span-6 min-[900px]:col-span-4" key={amenity}>
-                            <FormControlLabel
-                              control={
-                                <Checkbox
-                                  checked={checked}
-                                  onChange={(e) => {
-                                    const newValue = e.target.checked
-                                      ? [...(field.value || []), amenity]
-                                      : (field.value || []).filter((v: string) => v !== amenity);
-                                    field.onChange(newValue);
-                                  }}
-                                  size="small"
-                                />
-                              }
-                              label={
-                                <p className={cn(CHECKBOX_LABEL_CLASS, 'cn-text-body1')}>
-                                  {t(`properties.amenities.items.${amenity}`)}
-                                </p>
-                              }
-                            />
+                            <Field orientation="horizontal">
+                              <Checkbox
+                                id={`property-amenity-${amenity}`}
+                                checked={checked}
+                                onCheckedChange={(next) => {
+                                  const newValue = next === true
+                                    ? [...(field.value || []), amenity]
+                                    : (field.value || []).filter((v: string) => v !== amenity);
+                                  field.onChange(newValue);
+                                }}
+                              />
+                              <FieldLabel
+                                htmlFor={`property-amenity-${amenity}`}
+                                className={cn(CHECKBOX_LABEL_CLASS, 'cn-text-body1 font-normal')}
+                              >
+                                {t(`properties.amenities.items.${amenity}`)}
+                              </FieldLabel>
+                            </Field>
                           </div>
                         );
                       })}

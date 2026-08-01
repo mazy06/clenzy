@@ -1,6 +1,6 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { LinearProgress } from '@mui/material';
+import { Progress } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import {
   TrendingUp as TrendUpIcon,
@@ -257,17 +257,9 @@ const TopPerformerCard: React.FC<{ performer: TopPerformer }> = ({ performer }) 
         </p>
       </div>
       <div className="mt-1">
-        <LinearProgress
-          variant="determinate"
+        <Progress
           value={occupancyPct}
-          sx={{
-            height: 4, borderRadius: 2,
-            bgcolor: 'color-mix(in srgb, var(--ok) 14%, transparent)',
-            '& .MuiLinearProgress-bar': {
-              bgcolor: 'var(--ok)',
-              borderRadius: 2,
-            },
-          }}
+          className="h-1 rounded-[2px] bg-[color-mix(in_srgb,var(--ok)_14%,transparent)] [&>[data-slot=progress-indicator]]:rounded-[2px] [&>[data-slot=progress-indicator]]:bg-[var(--ok)]"
         />
         <p className="cn-text-body1 block text-[10.5px] mt-0.5 text-[var(--muted)] tabular-nums">
           Occupation {occupancyPct}%

@@ -1,8 +1,11 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Button } from '../../components/ui';
-import { LinearProgress, Popover, useMediaQuery } from '@mui/material';
+import { Button, Progress } from '../../components/ui';
+// Popover reste MUI : il est ancre par un `anchorEl` imperatif (noeud DOM fourni
+// par le parent), la ref PORTE le comportement — le Popover Radix du kit veut un
+// ancrage declaratif. `useMediaQuery` n'a pas d'equivalent dans le kit.
+import { Popover, useMediaQuery } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   Business,
@@ -231,16 +234,12 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
               {perf.score}/100
             </span>
           </div>
-          <LinearProgress
-            variant="determinate"
+          {/* La teinte du score est calculee : elle passe par une custom property,
+              une classe Tailwind ne pouvant pas naitre d'une valeur d'execution. */}
+          <Progress
             value={Math.max(0, Math.min(100, perf.score))}
-            sx={{
-              height: 4,
-              borderRadius: 2,
-              mb: '10px',
-              bgcolor: 'var(--line)',
-              '& .MuiLinearProgress-bar': { bgcolor: scoreColor(perf.score), borderRadius: 2, transition: reduceMotion ? 'none' : undefined },
-            }}
+            style={{ '--score-tint': scoreColor(perf.score) } as React.CSSProperties}
+            className="h-1 rounded-[2px] mb-[10px] bg-[var(--line)] [&>[data-slot=progress-indicator]]:rounded-[2px] [&>[data-slot=progress-indicator]]:bg-[var(--score-tint)] [&>[data-slot=progress-indicator]]:motion-reduce:transition-none"
           />
 
           {/* Lignes label / valeur */}

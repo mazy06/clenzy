@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Dialog, IconButton } from '@mui/material';
+import { Button, Dialog, DialogContent, DialogTitle } from '../../../components/ui';
 import {
   Close,
   ChevronLeft,
@@ -67,54 +67,56 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
       </div>
 
       {/* Lightbox dialog */}
-      <Dialog
-        open={lightboxOpen}
-        onClose={() => setLightboxOpen(false)}
-        maxWidth={false}
-        PaperProps={{
-          sx: {
-            backgroundColor: 'rgba(21,36,45,.96)',
-            maxWidth: '90vw',
-            maxHeight: '90vh',
-            p: 0,
-            overflow: 'hidden',
-          },
-        }}
-      >
-        <div className="relative flex items-center justify-center min-w-[400px] min-h-[300px]">
-          <IconButton
-            onClick={() => setLightboxOpen(false)}
-            aria-label="Fermer"
-            sx={{ position: 'absolute', top: 8, right: 8, color: 'var(--on-accent)', zIndex: 2, '&:hover': { backgroundColor: 'rgba(255,255,255,.12)' } }}
-          >
-            <Close />
-          </IconButton>
+      <Dialog open={lightboxOpen} onOpenChange={(next) => { if (!next) setLightboxOpen(false); }}>
+        <DialogContent
+          showCloseButton={false}
+          aria-describedby={undefined}
+          className="w-auto max-w-[90vw] max-h-[90vh] p-0 overflow-hidden border-none bg-[rgba(21,36,45,.96)]"
+        >
+          {/* Radix exige un titre : la visionneuse n'en affiche pas, il reste
+              reserve aux technologies d'assistance. */}
+          <DialogTitle className="sr-only">{label}</DialogTitle>
+          <div className="relative flex items-center justify-center min-w-[400px] min-h-[300px]">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setLightboxOpen(false)}
+              aria-label="Fermer"
+              className="absolute top-2 right-2 z-[2] text-[var(--on-accent)] hover:text-[var(--on-accent)] hover:bg-[rgba(255,255,255,.12)]"
+            >
+              <Close />
+            </Button>
 
-          {photos.length > 1 && (
-            <>
-              <IconButton
-                onClick={() => setLightboxIndex((p) => (p > 0 ? p - 1 : photos.length - 1))}
-                aria-label="Photo precedente"
-                sx={{ position: 'absolute', left: 8, color: 'var(--on-accent)', zIndex: 2, '&:hover': { backgroundColor: 'rgba(255,255,255,.12)' } }}
-              >
-                <ChevronLeft />
-              </IconButton>
-              <IconButton
-                onClick={() => setLightboxIndex((p) => (p < photos.length - 1 ? p + 1 : 0))}
-                aria-label="Photo suivante"
-                sx={{ position: 'absolute', right: 8, color: 'var(--on-accent)', zIndex: 2, '&:hover': { backgroundColor: 'rgba(255,255,255,.12)' } }}
-              >
-                <ChevronRight />
-              </IconButton>
-            </>
-          )}
+            {photos.length > 1 && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setLightboxIndex((p) => (p > 0 ? p - 1 : photos.length - 1))}
+                  aria-label="Photo precedente"
+                  className="absolute left-2 z-[2] text-[var(--on-accent)] hover:text-[var(--on-accent)] hover:bg-[rgba(255,255,255,.12)]"
+                >
+                  <ChevronLeft />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setLightboxIndex((p) => (p < photos.length - 1 ? p + 1 : 0))}
+                  aria-label="Photo suivante"
+                  className="absolute right-2 z-[2] text-[var(--on-accent)] hover:text-[var(--on-accent)] hover:bg-[rgba(255,255,255,.12)]"
+                >
+                  <ChevronRight />
+                </Button>
+              </>
+            )}
 
-          <img className="max-w-[85vw] max-h-[85vh] object-contain" src={photos[lightboxIndex]} alt={`${label} ${lightboxIndex + 1}`} />
+            <img className="max-w-[85vw] max-h-[85vh] object-contain" src={photos[lightboxIndex]} alt={`${label} ${lightboxIndex + 1}`} />
 
-          <p className="cn-text-body1 absolute bottom-[12px] text-[var(--on-accent)] text-[0.75rem] tabular-nums">
-            {lightboxIndex + 1} / {photos.length}
-          </p>
-        </div>
+            <p className="cn-text-body1 absolute bottom-[12px] text-[var(--on-accent)] text-[0.75rem] tabular-nums">
+              {lightboxIndex + 1} / {photos.length}
+            </p>
+          </div>
+        </DialogContent>
       </Dialog>
     </>
   );

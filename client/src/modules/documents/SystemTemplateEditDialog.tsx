@@ -3,8 +3,22 @@ import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Dialog, DialogActions, DialogContent, DialogTitle, Divider, Paper, TextField } from '@mui/material';
-import { Field, FieldDescription, FieldLabel, Input, NativeSelect } from '../../components/ui';
+// TextField reste MUI : l'insertion de variable a la position du curseur a
+// besoin d'une ref sur l'element de saisie (cf. commentaire au point d'usage).
+import { TextField } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  Separator,
+} from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -183,10 +197,18 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
   const saving = upsertMutation.isPending || removeMutation.isPending;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth PaperProps={{ sx: { minHeight: '70vh' } }}>
-      <DialogTitle>{t('messaging.templates.editor.editSystemTitle')}</DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        aria-describedby={undefined}
+        className="max-w-[1200px] min-h-[70vh] max-h-[90vh] overflow-y-auto"
+      >
+        <DialogHeader>
+          <DialogTitle>{t('messaging.templates.editor.editSystemTitle')}</DialogTitle>
+        </DialogHeader>
 
-      <DialogContent dividers>
+        {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+        <div className="border-y border-solid border-[var(--line)] py-3">
         {isLoading && (
           <div className="flex justify-center p-6">
             <Spinner className="size-10" />
@@ -304,7 +326,7 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                   <h6 className="cn-text-subtitle2 mb-[0.35em]">
                     {t('messaging.templates.editor.previewSubject')}: {getPreviewText(subject) || '—'}
                   </h6>
-                  <Divider sx={{ my: 1 }} />
+                  <Separator className="my-1.5" />
                   <p
                     className={cn(
                       'cn-text-body2 whitespace-pre-wrap font-[inherit]',
@@ -322,7 +344,7 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
 
             {/* ── Sidebar variables (droite, 5/12) ── */}
             <div className="col-span-12 min-[900px]:col-span-5">
-              <Paper variant="outlined" sx={{ p: 2, position: 'sticky', top: 16 }}>
+              <div className="sticky top-4 rounded-[11px] border border-solid border-[var(--line)] bg-[var(--card)] p-3">
                 <h6 className="cn-text-subtitle2 font-semibold mb-[0.35em]">
                   {t('messaging.templates.editor.variables')}
                 </h6>
@@ -336,13 +358,13 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                   systemVariablesUsed={systemVarsUsed}
                   showDetails
                 />
-              </Paper>
+              </div>
             </div>
           </div>
         )}
-      </DialogContent>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 1.5 }}>
+        <DialogFooter>
         {isOverride && (
           <Button
             variant="outline"
@@ -365,7 +387,8 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
           {saving ? <Spinner className="size-4" /> : <Save />}
           {saving ? t('common.processing') : t('common.save')}
         </Button>
-      </DialogActions>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

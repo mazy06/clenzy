@@ -12,10 +12,6 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from '../../components/ui';
-// Seul rescape MUI du fichier : la barre INDETERMINEE de progression. Le
-// primitif Progress du kit n'a pas de mode indetermine (il traduit un
-// pourcentage), une conversion afficherait une barre vide.
-import { LinearProgress } from '@mui/material';
 import { cn } from '../../utils/cn';
 import {
   CloudUpload,
@@ -188,8 +184,18 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
           )}
         </div>
 
-        {/* Progress */}
-        {importMutation.isPending && <LinearProgress sx={{ mt: 2 }} />}
+        {/* Progress. Le primitif Progress traduit un POURCENTAGE et l'import n'en
+            expose aucun : une barre pulsee dit « en cours » sans mentir sur une
+            avancee, la ou un Progress serait fige a 0 %. */}
+        {importMutation.isPending && (
+          <div
+            role="progressbar"
+            aria-label="Import en cours"
+            className="mt-3 h-1 w-full overflow-hidden rounded-full bg-[var(--line)]"
+          >
+            <div className="h-full w-full bg-[var(--accent)] animate-pulse motion-reduce:animate-none" />
+          </div>
+        )}
 
         <DialogFooter className="gap-2">
           <Button onClick={handleClose} variant="outline" disabled={importMutation.isPending}>

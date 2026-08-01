@@ -1,7 +1,7 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { cn } from '../../../utils/cn';
-import { Card, CardContent } from '@mui/material';
+import { Card, CardContent } from '../../../components/ui';
 import {
   ErrorOutline, WarningAmber, InfoOutlined,
 } from '../../../icons';
@@ -35,11 +35,10 @@ const SEVERITY_LABELS: Record<AlertSeverity, string> = {
   info: 'Info',
 };
 
-const CARD_SX = {
-  width: '100%',
-  transition: 'border-color 0.15s ease',
-  '&:hover': { borderColor: 'text.secondary' },
-} as const;
+// Le `py` du gabarit Card est neutralise : la carte d'alerte porte tout son
+// espacement dans son CardContent (7,5 px), comme le `p: 1.25` d'origine.
+const CARD_CLASS = 'w-full py-0 transition-[border-color] duration-150';
+const CARD_CONTENT_CLASS = 'p-[7.5px]';
 
 interface Props {
   data: BusinessAlert[] | null;
@@ -62,8 +61,8 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
         {loading ? (
           Array.from({ length: 2 }).map((_, i) => (
             <div className="col-span-12" key={i}>
-              <Card sx={{ ...CARD_SX, opacity: 0.5 }}>
-                <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
+              <Card className={cn(CARD_CLASS, 'opacity-50')}>
+                <CardContent className={CARD_CONTENT_CLASS}>
                   <div className="h-[60px]" />
                 </CardContent>
               </Card>
@@ -71,8 +70,8 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
           ))
         ) : alerts.length === 0 ? (
           <div className="col-span-12">
-            <Card sx={CARD_SX}>
-              <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
+            <Card className={CARD_CLASS}>
+              <CardContent className={CARD_CONTENT_CLASS}>
                 <div className="flex items-center gap-1 py-1.5">
                   <div className="flex items-center justify-center min-w-[28px] h-[28px] rounded-[6px] bg-[rgba(74,_155,_142,_0.08)] text-[#4A9B8E] [&_.MuiSvgIcon-root]:text-[16px]">
                     <InfoOutlined />
@@ -87,13 +86,21 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
         ) : (
           alerts.map((alert) => (
             <div className="col-span-12" key={alert.id}>
+              {/* Le liseré porte la couleur de sévérité, choisie a l'execution :
+                  style inline obligatoire (une classe Tailwind ne nait pas d'une variable). */}
               <Card
-                sx={{
-                  ...CARD_SX,
-                  borderLeft: `3px solid ${SEVERITY_COLORS[alert.severity]}`,
+                className={CARD_CLASS}
+                style={{
+                  // Largeur et style dans le meme `style` que la couleur : poser
+                  // `border-solid` en classe donnerait un style `solid` aux QUATRE
+                  // cotes, dont la largeur par defaut (`medium`) n'est pas nulle
+                  // faute de preflight Tailwind — soit un cadre complet non voulu.
+                  borderInlineStartWidth: 3,
+                  borderInlineStartStyle: 'solid',
+                  borderInlineStartColor: SEVERITY_COLORS[alert.severity],
                 }}
               >
-                <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
+                <CardContent className={CARD_CONTENT_CLASS}>
                   {/* Header */}
                   <div className="flex items-start gap-1 mb-0.5">
                     {/* bg et couleur dependent de la severite a l'execution : style inline obligatoire */}

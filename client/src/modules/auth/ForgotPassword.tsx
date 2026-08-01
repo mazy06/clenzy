@@ -4,7 +4,6 @@ import { CircleCheck, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Stack, Link } from '@mui/material';
 import apiClient, { ApiError } from '../../services/apiClient';
 import AuthLayout from './AuthLayout';
 
@@ -63,7 +62,7 @@ export default function ForgotPassword() {
       </div>
 
       {sent ? (
-        <Stack spacing={2.5}>
+        <div className="flex flex-col gap-[15px]">
           <Alert variant="success">
             <CircleCheck />
             <AlertDescription><p className="cn-text-body2 text-[0.875rem] font-medium">
@@ -78,10 +77,10 @@ export default function ForgotPassword() {
               {t('auth.forgotPassword.backToLogin', 'Retour à la connexion')}
             </RouterLink>
           </Button>
-        </Stack>
+        </div>
       ) : (
         <form onSubmit={handleSubmit} noValidate>
-          <Stack spacing={2.5}>
+          <div className="flex flex-col gap-[15px]">
             <Field>
               <FieldLabel
                 className="cn-text-body2 font-semibold mb-1 block text-[0.8125rem]"
@@ -120,7 +119,7 @@ export default function ForgotPassword() {
                 ? <Spinner className="size-[22px]" />
                 : t('auth.forgotPassword.submit', 'Envoyer le lien de réinitialisation')}
             </Button>
-          </Stack>
+          </div>
         </form>
       )}
 
@@ -128,33 +127,21 @@ export default function ForgotPassword() {
       <div className="mt-6 pt-4 border-t border-[var(--line)]">
         <p className="cn-text-body2 text-muted-foreground text-[0.875rem] text-center mb-2">
           {t('auth.forgotPassword.rememberedPassword', 'Tu te souviens de ton mot de passe ?')}{' '}
-          <Link
-            component={RouterLink}
+          <RouterLink
             to="/login"
-            sx={{
-              color: 'primary.main',
-              fontWeight: 600,
-              textDecoration: 'none',
-              '&:hover': { textDecoration: 'underline' },
-            }}
+            className="font-semibold text-[var(--mui-primary)] no-underline hover:underline"
           >
             {t('auth.forgotPassword.loginLink', 'Se connecter')}
-          </Link>
+          </RouterLink>
         </p>
         <span className="cn-text-caption text-muted-foreground block text-center text-[0.75rem]">
           {t('auth.login.needHelp', "Besoin d'aide ?")}{' '}
-          <Link
-            component={RouterLink}
+          <RouterLink
             to="/support"
-            sx={{
-              color: 'text.secondary',
-              fontWeight: 500,
-              textDecoration: 'underline',
-              '&:hover': { color: 'primary.main' },
-            }}
+            className="font-medium text-[var(--muted)] underline hover:text-[var(--mui-primary)]"
           >
             {t('auth.login.contactSupport', 'Contactez le support')}
-          </Link>
+          </RouterLink>
         </span>
       </div>
     </AuthLayout>

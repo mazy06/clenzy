@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Spinner } from '../../../components/ui';
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, Spinner } from '../../../components/ui';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogContent, IconButton, ButtonBase } from '@mui/material';
 import { X, Languages, AlertTriangle } from 'lucide-react';
 import type { AutoTranslateResult } from '../../../services/api/sitesApi';
 
@@ -57,24 +56,29 @@ export default function TranslateModal({ open, onClose, targetName, availableTar
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={() => { if (!translating) onClose(); }}
-      maxWidth="xs"
-      fullWidth
-      PaperProps={{ sx: { borderRadius: 'var(--radius-lg)' } }}
-    >
-      <div className="flex items-center gap-1.5 px-3.5 pt-3 pb-1.5">
-        <div className="flex items-center justify-center w-[32px] h-[32px] rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--accent)] shrink-0">
-          <Languages size={18} strokeWidth={2} />
-        </div>
-        <div className="flex-1 font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">
-          {k('title', 'Traduire par IA')}
-        </div>
-        <IconButton onClick={onClose} size="small" aria-label={t('common.close', 'Fermer')} disabled={translating}><X size={18} /></IconButton>
-      </div>
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !translating) onClose(); }}>
+      <DialogContent className="sm:max-w-md rounded-[var(--radius-lg)]" showCloseButton={false}>
+        <DialogHeader>
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-center w-[32px] h-[32px] rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--accent)] shrink-0">
+              <Languages size={18} strokeWidth={2} />
+            </div>
+            <DialogTitle className="flex-1 font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">
+              {k('title', 'Traduire par IA')}
+            </DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onClose}
+              aria-label={t('common.close', 'Fermer')}
+              disabled={translating}
+            >
+              <X size={18} />
+            </Button>
+          </div>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="flex flex-col gap-3">
         <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.5]">
           {targetName
             ? k('introNamed', 'Choisissez les langues vers lesquelles traduire « {{name}} ». Les variantes sont créées en brouillon, à relire avant publication.', { name: targetName })
@@ -90,23 +94,27 @@ export default function TranslateModal({ open, onClose, targetName, availableTar
             {availableTargets.map((code) => {
               const checked = selected.includes(code);
               return (
-                <ButtonBase
+                // Branches litterales : une classe Tailwind ne peut pas naitre
+                // d'une valeur d'execution.
+                <button
+                  type="button"
                   key={code}
                   onClick={() => toggle(code)}
                   aria-pressed={checked}
-                  sx={{
-                    height: 34, px: 1.5, borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)',
-                    fontWeight: 'var(--fw-medium)', cursor: 'pointer',
-                    border: '1px solid', borderColor: checked ? 'var(--accent)' : 'var(--line)',
-                    color: checked ? 'var(--on-accent)' : 'var(--body)',
-                    bgcolor: checked ? 'var(--accent)' : 'transparent',
-                    transition: 'background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out)',
-                    '&:hover': { borderColor: 'var(--accent)' },
-                    '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                  }}
+                  className={
+                    'inline-flex items-center justify-center h-[34px] px-2.5 cursor-pointer '
+                    + 'rounded-[var(--radius-md)] text-[var(--text-sm)] font-[family-name:var(--fw-medium)] '
+                    + 'border border-solid '
+                    + '[transition:background-color_var(--duration-fast)_var(--ease-out),border-color_var(--duration-fast)_var(--ease-out)] '
+                    + 'hover:border-[var(--accent)] '
+                    + 'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:[outline-offset:2px] '
+                    + (checked
+                      ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]'
+                      : 'border-[var(--line)] bg-transparent text-[var(--body)]')
+                  }
                 >
                   {localeLabel(code)}
-                </ButtonBase>
+                </button>
               );
             })}
           </div>
@@ -119,34 +127,17 @@ export default function TranslateModal({ open, onClose, targetName, availableTar
         )}
 
         <div className="flex justify-end gap-1.5 pt-0.5">
-          <ButtonBase onClick={onClose} disabled={translating} sx={ghostBtnSx}>
+          <Button variant="outline" onClick={onClose} disabled={translating}>
             {t('common.cancel', 'Annuler')}
-          </ButtonBase>
-          <ButtonBase onClick={handleSubmit} disabled={!canSubmit} sx={primaryBtnSx}>
+          </Button>
+          <Button onClick={handleSubmit} disabled={!canSubmit}>
             {translating
-              ? <><Spinner className="size-[15px] text-[var(--on-accent)]" /> {k('translating', 'Traduction…')}</>
+              ? <><Spinner className="size-[15px]" /> {k('translating', 'Traduction…')}</>
               : <><Languages size={16} strokeWidth={2.2} /> {k('submit', 'Traduire')}</>}
-          </ButtonBase>
+          </Button>
+        </div>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
-
-const primaryBtnSx = {
-  display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 38, px: 2, flexShrink: 0,
-  borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)',
-  fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-sm)', cursor: 'pointer',
-  transition: 'background var(--duration-fast) var(--ease-out)',
-  '&:hover': { bgcolor: 'var(--accent-deep)' }, '&.Mui-disabled': { opacity: 0.5, cursor: 'not-allowed' },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-} as const;
-
-const ghostBtnSx = {
-  display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 38, px: 1.75, flexShrink: 0,
-  borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', color: 'var(--body)',
-  fontWeight: 'var(--fw-medium)', fontSize: 'var(--text-sm)', cursor: 'pointer',
-  transition: 'border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
-  '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' }, '&.Mui-disabled': { opacity: 0.5 },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-} as const;

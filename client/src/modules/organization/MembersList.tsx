@@ -3,7 +3,15 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { IconButton, Tooltip, Avatar } from '@mui/material';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  Button,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Edit as EditIcon,
@@ -155,23 +163,20 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                   {/* Membre (avatar + nom + email) */}
                   <TableCell className={CELL_MEMBER_CLASS}>
                     <div className="flex items-center gap-2 min-w-0">
-                      <Avatar
-                        src={usersApi.profilePictureUrl(member.userId)}
-                        alt={`${member.firstName} ${member.lastName}`.trim() || member.email}
-                        sx={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: '10px',
-                          fontSize: '0.78rem',
-                          fontFamily: 'var(--font-display)',
-                          fontWeight: 600,
-                          letterSpacing: '0.02em',
-                          bgcolor: `${roleColor}1F`,
-                          color: roleColor,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {getInitials(member)}
+                      <Avatar className="size-8 shrink-0 rounded-[10px]">
+                        <AvatarImage
+                          src={usersApi.profilePictureUrl(member.userId)}
+                          alt={`${member.firstName} ${member.lastName}`.trim() || member.email}
+                          className="rounded-[10px]"
+                        />
+                        {/* La teinte derive du role (valeur runtime) : elle ne peut
+                            pas naitre d'une classe, d'ou le style inline. */}
+                        <AvatarFallback
+                          className="rounded-[10px] text-[0.78rem] font-[family-name:var(--font-display)] font-semibold tracking-[0.02em]"
+                          style={{ backgroundColor: `${roleColor}1F`, color: roleColor }}
+                        >
+                          {getInitials(member)}
+                        </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
                         <p className="cn-text-body1 text-[0.82rem] font-semibold text-foreground leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap" title={getMemberName(member)}>
@@ -187,25 +192,31 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                   {/* Role : org + plateforme (les deux, parite avec l'Annuaire) */}
                   <TableCell className={CELL_NOWRAP_CLASS}>
                     <div className="flex gap-0.5 flex-wrap">
-                      <Tooltip title="Rôle dans l'organisation">
-                        {/* Le `span` porte la ref que Tooltip pose sur son enfant :
-                            StatusChip est une fonction et n'en transmet pas. */}
-                        <span className="inline-flex">
-                          <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={getOrgRoleLabel(member.roleInOrg)} icon={<RoleIcon size={11} strokeWidth={2} />} />
-                        </span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Le `span` porte la ref que Tooltip pose sur son enfant :
+                              StatusChip est une fonction et n'en transmet pas. */}
+                          <span className="inline-flex">
+                            <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={getOrgRoleLabel(member.roleInOrg)} icon={<RoleIcon size={11} strokeWidth={2} />} />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Rôle dans l'organisation</TooltipContent>
                       </Tooltip>
                       {member.userRole && member.userRole !== member.roleInOrg && (() => {
                         const pHex = getPlatformRoleHex(member.userRole);
                         const PlatformIcon = getPlatformRoleIcon(member.userRole);
                         return (
-                          <Tooltip title="Rôle sur la plateforme">
-                            <span className="inline-flex">
-                              <StatusChip
-                                color={pHex}
-                                icon={<PlatformIcon size={11} strokeWidth={2} />}
-                                label={getPlatformRoleLabel(member.userRole)}
-                              />
-                            </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <StatusChip
+                                  color={pHex}
+                                  icon={<PlatformIcon size={11} strokeWidth={2} />}
+                                  label={getPlatformRoleLabel(member.userRole)}
+                                />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Rôle sur la plateforme</TooltipContent>
                           </Tooltip>
                         );
                       })()}
@@ -226,63 +237,39 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                     <TableCell className={CELL_ACTIONS_CLASS}>
                       {!isOwner && (
                         <div className="inline-flex items-center gap-0.5">
-                          <Tooltip title="Changer le rôle">
-                            <IconButton
-                              size="small"
-                              onClick={() => setChangeRoleMember(member)}
-                              aria-label="Changer le rôle"
-                              sx={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: '7px',
-                                color: 'var(--muted)',
-                                border: '1px solid var(--line-2)',
-                                backgroundColor: 'var(--card)',
-                                transition:
-                                  'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                                '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                                '&:hover': {
-                                  color: 'var(--accent)',
-                                  borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
-                                  backgroundColor: 'var(--accent-soft)',
-                                },
-                                '&:focus-visible': {
-                                  outline: '2px solid var(--accent)',
-                                  outlineOffset: 2,
-                                },
-                              }}
-                            >
-                              <EditIcon size={13} strokeWidth={1.75} />
-                            </IconButton>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon-sm"
+                                  onClick={() => setChangeRoleMember(member)}
+                                  aria-label="Changer le rôle"
+                                  className="rounded-[7px] border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] transition-[border-color,background-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:bg-[var(--accent-soft)]"
+                                >
+                                  <EditIcon size={13} strokeWidth={1.75} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Changer le rôle</TooltipContent>
                           </Tooltip>
-                          <Tooltip title="Retirer de l'organisation">
-                            <IconButton
-                              size="small"
-                              onClick={() => setRemoveMember(member)}
-                              aria-label="Retirer de l'organisation"
-                              sx={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: '7px',
-                                color: 'var(--muted)',
-                                border: '1px solid var(--line-2)',
-                                backgroundColor: 'var(--card)',
-                                transition:
-                                  'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                                '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                                '&:hover': {
-                                  color: 'var(--err)',
-                                  borderColor: 'color-mix(in srgb, var(--err) 40%, transparent)',
-                                  backgroundColor: 'var(--err-soft)',
-                                },
-                                '&:focus-visible': {
-                                  outline: '2px solid var(--err)',
-                                  outlineOffset: 2,
-                                },
-                              }}
-                            >
-                              <PersonRemoveIcon size={13} strokeWidth={1.75} />
-                            </IconButton>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon-sm"
+                                  onClick={() => setRemoveMember(member)}
+                                  aria-label="Retirer de l'organisation"
+                                  className="rounded-[7px] border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] transition-[border-color,background-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none hover:text-[var(--err)] hover:border-[color-mix(in_srgb,var(--err)_40%,transparent)] hover:bg-[var(--err-soft)]"
+                                >
+                                  <PersonRemoveIcon size={13} strokeWidth={1.75} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Retirer de l'organisation</TooltipContent>
                           </Tooltip>
                         </div>
                       )}

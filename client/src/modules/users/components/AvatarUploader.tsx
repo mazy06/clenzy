@@ -1,8 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
-import { Spinner } from '../../../components/ui';
-import { Avatar } from '@mui/material';
+import { Avatar, AvatarFallback, AvatarImage, Spinner } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import { Upload, Delete } from '../../../icons';
 import { usersApi, type User } from '../../../services/api/usersApi';
@@ -107,19 +106,13 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
         )}
       >
         <div className="relative shrink-0">
-          <Avatar
-            src={photoUrl ?? undefined}
-            sx={{
-              width: 72,
-              height: 72,
-              fontSize: '1.5rem',
-              fontFamily: 'var(--font-display)',
-              fontWeight: 600,
-              color: 'var(--on-accent)',
-              bgcolor: photoUrl ? 'transparent' : 'var(--accent)',
-            }}
-          >
-            {!photoUrl && initials}
+          {/* Le fond accent est porte par le seul repli : l'image, quand elle
+              existe, couvre entierement l'avatar. */}
+          <Avatar className="size-[72px] rounded-full">
+            {photoUrl && <AvatarImage src={photoUrl} alt="" />}
+            <AvatarFallback className="text-[1.5rem] font-[family-name:var(--font-display)] font-semibold text-[var(--on-accent)] bg-[var(--accent)] rounded-full">
+              {initials}
+            </AvatarFallback>
           </Avatar>
           {uploading && (
             <div className="absolute inset-[0px] rounded-[50%] bg-[rgba(15,23,42,0.45)] flex items-center justify-center">

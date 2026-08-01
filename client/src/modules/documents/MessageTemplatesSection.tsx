@@ -2,8 +2,7 @@ import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandl
 import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
-import { Spinner } from '../../components/ui';
-import { IconButton, Tooltip } from '@mui/material';
+import { Spinner, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Add,
@@ -303,30 +302,40 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
         <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">—</p>
       </TableCell>
       <TableCell className="text-end">
-        <Tooltip title={t('common.edit')} arrow>
-          <IconButton
-            size="small"
-            onClick={() => onEdit(template)}
-            aria-label={t('common.edit')}
-            sx={{ cursor: 'pointer', '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' } }}
-          >
-            <Edit size={16} strokeWidth={1.75} />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title={t('common.delete')} arrow>
-          <IconButton
-            size="small"
-            onClick={() => onDelete(template.id)}
-            aria-label={t('common.delete')}
-            sx={{
-              cursor: 'pointer',
-              color: 'var(--muted)',
-              '&:hover': { color: 'var(--err)', backgroundColor: 'var(--err-soft)' },
-            }}
-          >
-            <Delete size={16} strokeWidth={1.75} />
-          </IconButton>
-        </Tooltip>
+        <div className="inline-flex items-center gap-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <BuiButton
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => onEdit(template)}
+                  aria-label={t('common.edit')}
+                  className="hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
+                >
+                  <Edit size={16} strokeWidth={1.75} />
+                </BuiButton>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('common.edit')}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <BuiButton
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => onDelete(template.id)}
+                  aria-label={t('common.delete')}
+                  className="text-[var(--muted)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+                >
+                  <Delete size={16} strokeWidth={1.75} />
+                </BuiButton>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('common.delete')}</TooltipContent>
+          </Tooltip>
+        </div>
       </TableCell>
     </TableRow>
   );
@@ -391,15 +400,21 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
         </p>
       </TableCell>
       <TableCell className="text-end">
-        <Tooltip title={t('common.edit')} arrow>
-          <IconButton
-            size="small"
-            onClick={() => onEdit(group.templateKey)}
-            aria-label={t('common.edit')}
-            sx={{ cursor: 'pointer', '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' } }}
-          >
-            <Edit size={16} strokeWidth={1.75} />
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <BuiButton
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => onEdit(group.templateKey)}
+                aria-label={t('common.edit')}
+                className="hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
+              >
+                <Edit size={16} strokeWidth={1.75} />
+              </BuiButton>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('common.edit')}</TooltipContent>
         </Tooltip>
       </TableCell>
     </TableRow>

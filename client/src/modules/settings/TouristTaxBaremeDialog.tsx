@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, FormControlLabel, Switch } from '@mui/material';
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Switch,
   Button,
   Field,
   FieldLabel,
@@ -123,13 +128,16 @@ export default function TouristTaxBaremeDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {config
-          ? t('touristTax.dialog.editTitle', 'Modifier le barème')
-          : t('touristTax.dialog.createTitle', 'Nouveau barème de taxe de séjour')}
-      </DialogTitle>
-      <DialogContent>
+    // maxWidth="sm" MUI = 600 px.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>
+            {config
+              ? t('touristTax.dialog.editTitle', 'Modifier le barème')
+              : t('touristTax.dialog.createTitle', 'Nouveau barème de taxe de séjour')}
+          </DialogTitle>
+        </DialogHeader>
         <div className="grid grid-cols-12 gap-3 mt-0">
           <div className="col-span-12">
             <Field>
@@ -328,36 +336,38 @@ export default function TouristTaxBaremeDialog({
               />
             </Field>
           </div>
-          <div className="col-span-12 min-[600px]:col-span-6 flex flex-col">
-            <FormControlLabel
-              control={
-                <Switch
-                  size="small"
-                  checked={form.exemptMinors}
-                  onChange={(e) => set('exemptMinors', e.target.checked)}
-                />
-              }
-              label={t('touristTax.dialog.exemptMinors', 'Exonérer les mineurs (<18 ans)')}
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  size="small"
-                  checked={form.enabled}
-                  onChange={(e) => set('enabled', e.target.checked)}
-                />
-              }
-              label={t('touristTax.dialog.enabled', 'Barème actif')}
-            />
+          <div className="col-span-12 min-[600px]:col-span-6 flex flex-col gap-1.5 justify-center">
+            <Field orientation="horizontal" className="w-[fit-content] gap-2">
+              <Switch
+                id="tourist-tax-exempt-minors"
+                size="sm"
+                checked={form.exemptMinors}
+                onCheckedChange={(checked) => set('exemptMinors', checked)}
+              />
+              <FieldLabel htmlFor="tourist-tax-exempt-minors" className="cursor-pointer">
+                {t('touristTax.dialog.exemptMinors', 'Exonérer les mineurs (<18 ans)')}
+              </FieldLabel>
+            </Field>
+            <Field orientation="horizontal" className="w-[fit-content] gap-2">
+              <Switch
+                id="tourist-tax-enabled"
+                size="sm"
+                checked={form.enabled}
+                onCheckedChange={(checked) => set('enabled', checked)}
+              />
+              <FieldLabel htmlFor="tourist-tax-enabled" className="cursor-pointer">
+                {t('touristTax.dialog.enabled', 'Barème actif')}
+              </FieldLabel>
+            </Field>
           </div>
         </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>{t('common.cancel', 'Annuler')}</Button>
+          <Button onClick={handleSave} disabled={!canSubmit}>
+            {t('common.save', 'Enregistrer')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button variant="ghost" onClick={onClose}>{t('common.cancel', 'Annuler')}</Button>
-        <Button onClick={handleSave} disabled={!canSubmit}>
-          {t('common.save', 'Enregistrer')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

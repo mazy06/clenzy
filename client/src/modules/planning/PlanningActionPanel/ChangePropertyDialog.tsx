@@ -5,9 +5,15 @@ import { Badge, Button } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Divider } from '@mui/material';
 import {
-  Close,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+} from '../../../components/ui';
+import {
   Home,
   CalendarMonth,
   Person,
@@ -107,40 +113,19 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          maxHeight: '80vh',
-        },
-      }}
-    >
-      {/* Header */}
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          pb: 1,
-          pt: 2,
-          px: 2.5,
-        }}
-      >
-        <div className="flex items-center gap-1.5">
-          <span className="inline-flex text-[var(--accent)]"><SwapHoriz size={20} strokeWidth={1.75} /></span>
-          <h6 className="cn-text-h6 font-bold text-[1rem]">
+    // maxWidth="sm" + fullWidth MUI = pleine largeur plafonnee a 600 px. La
+    // croix de fermeture est celle du primitif (DialogContent), l'ancien
+    // IconButton du titre fait doublon.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="w-full sm:max-w-[600px] max-h-[80vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-1.5 pe-8">
+            <span className="inline-flex text-[var(--accent)]"><SwapHoriz size={20} strokeWidth={1.75} /></span>
             Changer de logement
-          </h6>
-        </div>
-        <IconButton size="small" onClick={handleClose}>
-          <Close size={18} strokeWidth={1.75} />
-        </IconButton>
-      </DialogTitle>
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
+        <div className="min-h-0 overflow-y-auto">
         {/* Current reservation summary */}
         <div className="p-2 rounded-[10px] bg-[var(--surface-2)] border border-[var(--line)] mb-3">
           <span className="cn-text-caption font-bold text-[10.5px] uppercase tracking-[0.05em] text-[var(--faint)]">
@@ -167,7 +152,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
           </div>
         </div>
 
-        <Divider sx={{ mb: 2 }} />
+        <Separator className="mb-3" />
 
         {/* Available properties */}
         <div className="flex items-center justify-between mb-2">
@@ -243,26 +228,27 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-      </DialogContent>
+        </div>
 
-      <DialogActions sx={{ px: 2.5, pb: 2, pt: 1 }}>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleClose}
-        >
-          Annuler
-        </Button>
-        <Button
-          variant="default"
-          size="sm"
-          onClick={handleConfirm}
-          disabled={!selectedProperty || loading}
-        >
-          {loading ? <Spinner className="size-3.5" /> : <SwapHoriz size={16} strokeWidth={1.75} />}
-          Confirmer le changement
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClose}
+          >
+            Annuler
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleConfirm}
+            disabled={!selectedProperty || loading}
+          >
+            {loading ? <Spinner className="size-3.5" /> : <SwapHoriz size={16} strokeWidth={1.75} />}
+            Confirmer le changement
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

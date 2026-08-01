@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { InputBase } from '@mui/material';
+import { Input } from '../../../../components/ui';
 import { cn } from '../../../../utils/cn';
 import type { BookingEngineConfig, DesignTokens } from '../../../../services/api/bookingEngineApi';
 import { SelectControl } from '../settings/settingsControls';
@@ -97,8 +97,11 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setColor(e.target.value)}
             className={COLOR_INPUT_CLS}
           />
-          <InputBase value={primary} onChange={(e) => setColor(e.target.value)}
-            sx={{ flex: 1, px: 1.25, py: 0.75, fontSize: 'var(--text-md)', fontFamily: 'var(--font-mono, monospace)', color: 'var(--ink)', bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', '&.Mui-focused': { borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-soft)' } }}
+          <Input
+            aria-label="Couleur principale (hexadécimal)"
+            value={primary}
+            onChange={(e) => setColor(e.target.value)}
+            className={HEX_INPUT_CLS}
           />
         </div>
         <div className="flex flex-wrap gap-1 mt-1.5">
@@ -125,8 +128,11 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => writeTokens({ backgroundColor: e.target.value })}
             className={COLOR_INPUT_CLS}
           />
-          <InputBase value={bg} onChange={(e) => writeTokens({ backgroundColor: e.target.value })}
-            sx={{ flex: 1, px: 1.25, py: 0.75, fontSize: 'var(--text-md)', fontFamily: 'var(--font-mono, monospace)', color: 'var(--ink)', bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', '&.Mui-focused': { borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-soft)' } }}
+          <Input
+            aria-label="Couleur de fond (hexadécimal)"
+            value={bg}
+            onChange={(e) => writeTokens({ backgroundColor: e.target.value })}
+            className={HEX_INPUT_CLS}
           />
           <button className="px-[7.5px] py-[4.5px] text-[var(--text-sm)] text-[var(--body)] bg-[transparent] border border-solid border-[var(--line)] rounded-[var(--radius-md)] cursor-pointer shrink-0 whitespace-nowrap hover:bg-[var(--hover)]" type="button" onClick={() => writeTokens({ backgroundColor: '#FFFFFF' })}>
             Blanc
@@ -181,6 +187,12 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor: string; c
 // `text-[var(...)]` / `font-[var(...)]` sont ambigus (taille vs couleur, famille vs
 // graisse) : la propriete explicite garantit la declaration attendue.
 const LABEL_CLS = '[font-size:var(--text-sm)] [font-weight:var(--fw-medium)] text-[var(--body)]';
+
+// Saisie hexadecimale a cote du pastilleur : le focus ring vient du gabarit du
+// primitif, on ne garde que ce que le sx ajoutait vraiment (mono, teintes, px/py).
+const HEX_INPUT_CLS =
+  'flex-1 min-w-0 px-[7.5px] py-[4.5px] [font-size:var(--text-md)] [font-family:var(--font-mono,monospace)] '
+  + 'text-[var(--ink)] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[var(--radius-md)]';
 
 // Le rayon 6 du sx d'origine passait par theme.shape.borderRadius (8) → 48px.
 const COLOR_INPUT_CLS =

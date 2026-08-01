@@ -1,11 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { cn } from '../../utils/cn';
-import {
-  Box,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
-import { Button } from '../../components/ui';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import {
   Build,
   Description,
@@ -258,29 +253,20 @@ export default function NotificationsPage() {
       >
         <div ref={listRef}>
           {notifications.map((notification, index) => (
-            <Box
+            // `group` : c'est le survol de la LIGNE qui revele la corbeille.
+            // action.selected de MUI = l'encre a 8 % (deux fois action.hover).
+            <div
               key={notification.id}
               data-notif-row
               onClick={() => handleClick(notification)}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                px: 2,
-                py: 1.5,
-                cursor: 'pointer',
-                borderBottom: index < notifications.length - 1 ? '1px solid' : 'none',
-                borderColor: 'divider',
-                transition: 'background-color 0.15s',
-                bgcolor: notification.read ? 'transparent' : 'action.hover',
-                '&:hover': {
-                  bgcolor: 'action.selected',
-                },
-                '&:hover .delete-btn': {
-                  opacity: 1,
-                },
-                borderRadius: index === 0 ? '8px 8px 0 0' : index === notifications.length - 1 ? '0 0 8px 8px' : 0,
-              }}
+              className={cn(
+                'group flex items-center gap-[9px] px-3 py-[9px] cursor-pointer transition-colors duration-150',
+                'hover:bg-[color-mix(in_srgb,var(--ink)_8%,transparent)]',
+                index < notifications.length - 1 && 'border-b border-solid border-[var(--line)]',
+                notification.read ? 'bg-transparent' : 'bg-[var(--hover)]',
+                index === 0 && 'rounded-t-lg',
+                index === notifications.length - 1 && 'rounded-b-lg',
+              )}
             >
               {/* Icon */}
               <div className="w-[36px] h-[36px] rounded-[50%] flex items-center justify-center bg-[var(--hover)] shrink-0">
@@ -315,23 +301,25 @@ export default function NotificationsPage() {
               </span>
 
               {/* Delete — visible on hover */}
-              <Tooltip title={t('common.delete')}>
-                <IconButton
-                  className="delete-btn"
-                  size="small"
-                  onClick={(e) => handleDelete(e, notification.id)}
-                  sx={{
-                    flexShrink: 0,
-                    opacity: 0,
-                    transition: 'opacity 0.15s',
-                    color: 'text.disabled',
-                    '&:hover': { color: 'error.main' },
-                  }}
-                >
-                  <DeleteOutline size={17} strokeWidth={1.75} />
-                </IconButton>
+              {/* span intermediaire : TooltipTrigger asChild pose une ref DOM,
+                  que le Button du kit (fonction, React 18) ne transmet pas. */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex shrink-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t('common.delete')}
+                      onClick={(e) => handleDelete(e, notification.id)}
+                      className="text-[var(--faint)] hover:text-[var(--err)]"
+                    >
+                      <DeleteOutline size={17} strokeWidth={1.75} />
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{t('common.delete')}</TooltipContent>
               </Tooltip>
-            </Box>
+            </div>
           ))}
         </div>
         {totalElements > perPage && (

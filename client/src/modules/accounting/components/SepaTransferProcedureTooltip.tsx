@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import {
   Article as FileTextIcon,
   Download as DownloadIcon,
@@ -77,12 +77,15 @@ export default function SepaTransferProcedureTooltip({
   placement = 'top',
 }: SepaTransferProcedureTooltipProps) {
   return (
-    <Tooltip
-      arrow
-      placement={placement}
-      enterDelay={300}
-      leaveDelay={100}
-      title={
+    <Tooltip delayDuration={300}>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      {/* Tooltip riche = pattern Menus/Popovers Signature : surface --card,
+          hairline --line, r12, --shadow-pop (tokens → dark auto). La fleche est
+          l'enfant direct SVG du contenu : on la reteinte au meme jeton. */}
+      <TooltipContent
+        side={placement}
+        className="max-w-[380px] p-[9px] rounded-[12px] text-[0.75rem] bg-[var(--card)] text-[var(--body)] border border-solid border-[var(--line)] shadow-[var(--shadow-pop)] [&>svg]:bg-[var(--card)] [&>svg]:fill-[var(--card)]"
+      >
         <div className="min-w-[280px] max-w-[360px]">
           {/* Header */}
           <div className="flex items-center gap-1 mb-1">
@@ -135,32 +138,7 @@ export default function SepaTransferProcedureTooltip({
             </span>
           </div>
         </div>
-      }
-      // Tooltip riche = pattern Menus/Popovers Signature : surface --card,
-      // hairline --line, r12, --shadow-pop (tokens → dark auto).
-      slotProps={{
-        tooltip: {
-          sx: {
-            bgcolor: 'var(--card)',
-            color: 'var(--body)',
-            border: '1px solid var(--line)',
-            borderRadius: '12px',
-            maxWidth: 380,
-            p: 1.5,
-            fontSize: '0.75rem',
-            boxShadow: 'var(--shadow-pop)',
-            '& .MuiTooltip-arrow': {
-              color: 'var(--card)',
-              '&::before': {
-                border: '1px solid var(--line)',
-                backgroundColor: 'var(--card)',
-              },
-            },
-          },
-        },
-      }}
-    >
-      {children}
+      </TooltipContent>
     </Tooltip>
   );
 }

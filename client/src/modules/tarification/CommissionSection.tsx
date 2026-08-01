@@ -1,8 +1,9 @@
 import React from 'react';
-import { Switch, FormControlLabel, Divider } from '@mui/material';
 import {
   Field,
   FieldLabel,
+  Separator,
+  Switch,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
@@ -23,7 +24,7 @@ export default function CommissionSection({ commission, canEdit, onChange }: Com
 
   return (
     <>
-      <Divider sx={{ my: 2.5 }} />
+      <Separator className="my-4" />
       <div className="flex items-center gap-1.5 mb-2">
         <span className="inline-flex text-primary"><Percent size={20} strokeWidth={1.75} /></span>
         <h6 className="cn-text-subtitle1 font-semibold">
@@ -35,17 +36,17 @@ export default function CommissionSection({ commission, canEdit, onChange }: Com
       </p>
       <div className="grid grid-cols-12 gap-3 items-center">
         <div className="col-span-6">
-          <FormControlLabel
-            control={
-              <Switch
-                checked={commission.enabled}
-                onChange={(e) => onChange({ ...commission, enabled: e.target.checked })}
-                disabled={!canEdit}
-                color="primary"
-              />
-            }
-            label={t('tarification.commission.enable')}
-          />
+          <Field orientation="horizontal">
+            <Switch
+              id="commission-enabled"
+              checked={commission.enabled}
+              onCheckedChange={(checked) => onChange({ ...commission, enabled: checked })}
+              disabled={!canEdit}
+            />
+            <FieldLabel htmlFor="commission-enabled">
+              {t('tarification.commission.enable')}
+            </FieldLabel>
+          </Field>
         </div>
         <div className="col-span-6">
           <Field>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Alert } from '@mui/material';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
   complianceConnectionApi,
   COMPLIANCE_PROVIDER_META,
@@ -32,18 +33,17 @@ const ComplianceProviderCard: React.FC<Props> = ({ provider, onStatusChange }) =
     </span>
   );
 
+  // Le ton `warning` du kit est plein ; l'ancienne alerte etait « outlined » :
+  // fond transparent + liseré teinte, restitue ici en classes.
   const bodyAlert = (
     <Alert
-      severity="warning"
-      variant="outlined"
-      sx={{
-        borderRadius: '8px',
-        fontSize: '0.74rem',
-        py: 0.5,
-        '& .MuiAlert-message': { padding: '4px 0' },
-      }}
+      variant="warning"
+      className="rounded-[8px] py-[3px] bg-transparent border border-solid border-[color-mix(in_srgb,var(--bui-warning)_50%,transparent)]"
     >
-      <strong>Obligation légale :</strong> {meta.legalNote}
+      <TriangleAlert />
+      <AlertDescription className="text-[0.74rem]">
+        <strong>Obligation légale :</strong> {meta.legalNote}
+      </AlertDescription>
     </Alert>
   );
 

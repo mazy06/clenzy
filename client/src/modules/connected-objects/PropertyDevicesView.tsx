@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Skeleton } from '@mui/material';
-import { Button } from '../../components/ui';
+import { Button, Skeleton } from '../../components/ui';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, GridView, ChevronLeft } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
@@ -72,7 +71,7 @@ export default function PropertyDevicesView() {
 
       {loading ? (
         <div className={GRID}>
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} variant="rounded" height={132} sx={{ borderRadius: 'var(--radius-lg)' }} />)}
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[132px] w-full rounded-[var(--radius-lg)]" />)}
         </div>
       ) : propertyDevices.length === 0 ? (
         <EmptyState

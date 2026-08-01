@@ -7,7 +7,13 @@
    « Channel Manager » du Dashboard.
    ============================================================ */
 
-import { Dialog, DialogContent, DialogTitle } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
 import { CalendarMonth, Hub } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -75,14 +81,18 @@ export default function ImportSourceChooserDialog({
 }: ImportSourceChooserDialogProps) {
   const { t } = useTranslation();
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {t('planning.importChooser.title', 'Importer des réservations')}
-        <p className="cn-text-body2 text-muted-foreground mt-0.5">
-          {t('planning.importChooser.subtitle', 'Choisissez comment connecter vos canaux de réservation.')}
-        </p>
-      </DialogTitle>
-      <DialogContent sx={{ pb: 3 }}>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>
+            {t('planning.importChooser.title', 'Importer des réservations')}
+          </DialogTitle>
+          {/* Le sous-titre etait un <p> imbrique dans le DialogTitle MUI ; la
+              primitive rend un <h2>, ou un <p> serait du HTML invalide. */}
+          <DialogDescription>
+            {t('planning.importChooser.subtitle', 'Choisissez comment connecter vos canaux de réservation.')}
+          </DialogDescription>
+        </DialogHeader>
         <div className="flex gap-[9px] flex-col min-[600px]:flex-row">
           <ChoiceCard
             icon={<CalendarMonth size={20} strokeWidth={1.75} />}

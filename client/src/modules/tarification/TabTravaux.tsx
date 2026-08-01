@@ -1,7 +1,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Switch, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '../../components/ui';
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Field,
   FieldLabel,
   Input,
@@ -9,6 +13,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
   InputGroupText,
+  Switch,
 } from '../../components/ui';
 import { Build, Add, Delete } from '../../icons';
 import type { ServicePriceConfig, CommissionConfig } from '../../services/api/pricingConfigApi';
@@ -124,11 +129,14 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
                   <TableRow key={item.interventionType}>
                     <TableCell>{labelOf(item)}</TableCell>
                     <TableCell className="text-center">
+                      {/* Pas de libelle visible : l'en-tete de colonne le porte,
+                          l'interrupteur reprend le nom de la ligne en aria-label. */}
                       <Switch
+                        aria-label={labelOf(item)}
                         checked={item.enabled}
-                        onChange={(e) => updateItem(index, { enabled: e.target.checked })}
+                        onCheckedChange={(checked) => updateItem(index, { enabled: checked })}
                         disabled={!canEdit}
-                        size="small"
+                        size="sm"
                       />
                     </TableCell>
                     <TableCell className="text-end w-[140px]">
@@ -157,9 +165,15 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
                     </TableCell>
                     {canEdit && (
                       <TableCell className="text-center">
-                        <IconButton size="small" onClick={() => removeItem(index)} color="error">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t('tarification.travaux.remove', 'Supprimer') + ' — ' + labelOf(item)}
+                          onClick={() => removeItem(index)}
+                          className="text-[var(--err)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+                        >
                           <Delete size={16} strokeWidth={1.75} />
-                        </IconButton>
+                        </Button>
                       </TableCell>
                     )}
                   </TableRow>
@@ -181,51 +195,55 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
       )}
 
       {/* ─── Add dialog ──────────────────────────────────────────────── */}
-      <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('tarification.addPrestation')}</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-          <Field>
-            <FieldLabel htmlFor="travaux-new-name">{t('tarification.newItem.name')}</FieldLabel>
-            <Input
-              id="travaux-new-name"
-              autoFocus
-              value={newItemName}
-              onChange={(e) => setNewItemName(e.target.value)}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="travaux-new-domain">
-              {t('tarification.newItem.domain', 'Domaine')}
-            </FieldLabel>
-            <Input
-              id="travaux-new-domain"
-              placeholder={t('tarification.travaux.otherDomain', 'Autre')}
-              value={newItemDomain}
-              onChange={(e) => setNewItemDomain(e.target.value)}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="travaux-new-price">{t('tarification.newItem.price')}</FieldLabel>
-            <InputGroup>
-              <InputGroupInput
-                id="travaux-new-price"
-                type="number"
-                className="tabular-nums"
-                value={newItemPrice}
-                onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
+      <Dialog open={addDialogOpen} onOpenChange={(next) => { if (!next) setAddDialogOpen(false); }}>
+        <DialogContent aria-describedby={undefined} className="max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>{t('tarification.addPrestation')}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 pt-1">
+            <Field>
+              <FieldLabel htmlFor="travaux-new-name">{t('tarification.newItem.name')}</FieldLabel>
+              <Input
+                id="travaux-new-name"
+                autoFocus
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
               />
-              <InputGroupAddon align="inline-end">
-                <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
-              </InputGroupAddon>
-            </InputGroup>
-          </Field>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="travaux-new-domain">
+                {t('tarification.newItem.domain', 'Domaine')}
+              </FieldLabel>
+              <Input
+                id="travaux-new-domain"
+                placeholder={t('tarification.travaux.otherDomain', 'Autre')}
+                value={newItemDomain}
+                onChange={(e) => setNewItemDomain(e.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="travaux-new-price">{t('tarification.newItem.price')}</FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="travaux-new-price"
+                  type="number"
+                  className="tabular-nums"
+                  value={newItemPrice}
+                  onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>
+            <Button onClick={handleAdd} disabled={!newItemName.trim()}>
+              {t('tarification.add')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="outline" onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>
-          <Button onClick={handleAdd} disabled={!newItemName.trim()}>
-            {t('tarification.add')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* ─── Commission (admin uniquement) ───────────────────────────── */}

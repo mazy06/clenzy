@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Spinner } from '../../components/ui';
-import { Alert } from '@mui/material';
+import { Alert, AlertDescription, Button, Spinner } from '../../components/ui';
+import { CircleCheck, TriangleAlert } from 'lucide-react';
 import { Security } from '../../icons';
 import apiClient from '../../services/apiClient';
 import SettingsSection from './components/SettingsSection';
@@ -62,8 +62,11 @@ export default function AccountSecuritySection() {
         </Button>
       </div>
       {feedback && (
-        <Alert severity={feedback.severity} sx={{ mt: 1.5, borderRadius: 1.5 }}>
-          <p className="cn-text-body2 text-[0.8125rem]">{feedback.message}</p>
+        <Alert variant={feedback.severity === 'success' ? 'success' : 'destructive'} className="mt-[9px]">
+          {feedback.severity === 'success' ? <CircleCheck /> : <TriangleAlert />}
+          <AlertDescription>
+            <p className="cn-text-body2 text-[0.8125rem]">{feedback.message}</p>
+          </AlertDescription>
         </Alert>
       )}
     </SettingsSection>

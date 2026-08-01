@@ -2,8 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../../components/ui';
-import { InputBase, Tooltip } from '@mui/material';
+import { Input, Spinner, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import {
   Search as SearchIcon,
   Archive as ArchiveIcon,
@@ -108,29 +107,35 @@ function ConversationRow({
 
       {/* Archiver — visible au hover */}
       {onArchive && archiveTitle && (
-        <Tooltip title={archiveTitle} arrow>
-          <button className="mg-archive absolute end-[12px] bottom-[12px] w-[26px] h-[26px] rounded-[8px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] flex items-center justify-center cursor-pointer p-0 opacity-0 pointer-events-none hover:text-[var(--accent)] hover:border-[var(--accent)]" style={{ transition: 'opacity .12s, color .14s, border-color .14s' }} aria-label={archiveTitle} onClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-              onArchive();
-            }}>
-            <ArchiveIcon size={13} strokeWidth={1.75} />
-          </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button className="mg-archive absolute end-[12px] bottom-[12px] w-[26px] h-[26px] rounded-[8px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] flex items-center justify-center cursor-pointer p-0 opacity-0 pointer-events-none hover:text-[var(--accent)] hover:border-[var(--accent)]" style={{ transition: 'opacity .12s, color .14s, border-color .14s' }} aria-label={archiveTitle} onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                onArchive();
+              }}>
+              <ArchiveIcon size={13} strokeWidth={1.75} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{archiveTitle}</TooltipContent>
         </Tooltip>
       )}
 
       {/* Rouvrir / Restaurer — toujours visible (vue Archivés) */}
       {onRestore && restoreTitle && (
-        <Tooltip title={restoreTitle} arrow>
-          <button className="self-center shrink-0 w-[30px] h-[30px] rounded-[8px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] flex items-center justify-center cursor-pointer p-0 hover:text-[var(--accent)] hover:border-[var(--accent)]" style={{ transition: 'color .14s, border-color .14s' }} aria-label={restoreTitle} onClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-              onRestore();
-            }}>
-            {item.kind === 'form' ? (
-              <RestoreIcon size={14} strokeWidth={1.75} />
-            ) : (
-              <UnarchiveIcon size={14} strokeWidth={1.75} />
-            )}
-          </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button className="self-center shrink-0 w-[30px] h-[30px] rounded-[8px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] flex items-center justify-center cursor-pointer p-0 hover:text-[var(--accent)] hover:border-[var(--accent)]" style={{ transition: 'color .14s, border-color .14s' }} aria-label={restoreTitle} onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                onRestore();
+              }}>
+              {item.kind === 'form' ? (
+                <RestoreIcon size={14} strokeWidth={1.75} />
+              ) : (
+                <UnarchiveIcon size={14} strokeWidth={1.75} />
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{restoreTitle}</TooltipContent>
         </Tooltip>
       )}
     </div>
@@ -184,7 +189,14 @@ export default function ConversationList({
       <div className="p-[14px 16px] flex flex-col gap-[8.25px]" style={{ borderBottom: '1px solid var(--line)' }}>
         <div className="flex items-center gap-[6.75px] h-[38px] px-[13px] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[11px] text-[var(--faint)]">
           <SearchIcon size={15} strokeWidth={1.75} />
-          <InputBase
+          {/* Champ NU : la boite de recherche (fond, liseré, hauteur) est le div
+              parent — le gabarit du kit est donc entierement neutralise ici. */}
+          <Input
+            aria-label={
+              isArchivedView
+                ? t('messagingHub.searchArchivedPlaceholder', 'Rechercher dans les archives…')
+                : t('messagingHub.searchPlaceholder', 'Rechercher une conversation…')
+            }
             placeholder={
               isArchivedView
                 ? t('messagingHub.searchArchivedPlaceholder', 'Rechercher dans les archives…')
@@ -192,7 +204,9 @@ export default function ConversationList({
             }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            sx={{ flex: 1, fontSize: '12.5px', color: 'var(--body)', '& input': { p: 0 } }}
+            // `md:text-[12.5px]` est indispensable : le gabarit pose `md:text-sm`,
+            // qui gagnerait sur une taille sans variante des 768 px.
+            className="flex-1 h-auto rounded-none border-0 bg-transparent p-0 text-[12.5px] md:text-[12.5px] text-[var(--body)] shadow-none focus-visible:border-0 focus-visible:ring-0"
           />
         </div>
         <div className="flex gap-1 flex-wrap">

@@ -2,7 +2,6 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip, { STATUS_TONES } from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-import { Paper } from '@mui/material';
 import { Button } from '../../components/ui';
 import {
   LinkOff as LinkOffIcon,
@@ -15,7 +14,7 @@ import type { AirbnbConnectionStatus } from '../../services/api/airbnbApi';
 import { CHANNEL_BACKEND_MAP } from '../../services/api/channelConnectionApi';
 import type { ChannelId, ChannelConnectionStatus } from '../../services/api/channelConnectionApi';
 import { type OtaChannel } from '../../services/channels/otaChannels';
-import { CARD_SX, STATUS_CHIP_TOKENS, STATUS_CHIP_CLASS, channelSoftBg } from './channelsPageConstants';
+import { STATUS_CHIP_TOKENS, STATUS_CHIP_CLASS, channelSoftBg } from './channelsPageConstants';
 
 /** Report en classes de `OVERLINE_SX` (la constante vit dans un .ts partage). */
 const OVERLINE_CLASS = 'text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em]';
@@ -56,7 +55,9 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
   onOtaDisconnectRequest,
   t,
 }) => (
-  <Paper sx={{ ...CARD_SX, mb: 1.5, p: 0, overflow: 'hidden' }}>
+  // Report de `CARD_SX` sans son `p: 2` (surcharge `p: 0` a l'appel) : hairline
+  // --line, surface --card, r14, aucune ombre.
+  <div className="mb-[9px] overflow-hidden rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
     {/* Table header */}
     <div className="grid grid-cols-[110px_1.6fr_0.8fr_1fr_1.4fr] gap-3 px-3 py-[7.5px] border-[var(--line)] bg-[var(--surface-2)]" style={{ borderBottom: '1px solid' }}>
       <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>
@@ -189,7 +190,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
         </div>
       );
     })}
-  </Paper>
+  </div>
 );
 
 export default ChannelsListView;

@@ -3,7 +3,14 @@ import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
 import { Alert, AlertDescription, Button, InputGroup, InputGroupAddon, InputGroupInput } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Divider, IconButton, LinearProgress, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+  Progress,
+  Separator,
+} from '../../../components/ui';
 import {
   AutoAwesome,
   Handyman,
@@ -12,7 +19,6 @@ import {
   CalendarMonth,
   PlayArrow,
   CheckCircle,
-  ExpandMore,
   AttachMoney,
   Edit,
   EnterKey,
@@ -58,6 +64,11 @@ const STATUS_HEX: Record<string, string> = {
   SCHEDULED: '#0288d1',
   CANCELLED: '#d32f2f',
 };
+
+/** Coque de l'accordeon : le liseré et le rayon que portait le `sx` MUI. */
+const ACCORDION_CLASS = 'rounded-[8px] border border-solid border-[var(--line)] overflow-hidden';
+/** En-tete d'accordeon : hauteur 36 et gouttieres reprises du gabarit MUI. */
+const ACCORDION_TRIGGER_CLASS = 'min-h-9 items-center px-2 py-1';
 
 const parseCompletedSteps = (steps?: string): Set<string> => {
   if (!steps) return new Set();
@@ -260,15 +271,17 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
                 </span>
               </InputGroupAddon>
             </InputGroup>
-            <IconButton
-              size="small"
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
               onClick={applyAmount}
               disabled={amountSaving || !amountValue.trim()}
               aria-label="Appliquer"
-              sx={{ color: 'var(--accent)' }}
+              className="text-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
             >
               {amountSaving ? <Spinner className="size-4" /> : <EnterKey size={16} strokeWidth={1.75} />}
-            </IconButton>
+            </Button>
           </div>
         </div>
       )}
@@ -289,7 +302,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
         </p>
       </div>
 
-      <Divider sx={{ my: 1.5 }} />
+      <Separator className="my-[9px]" />
 
       {/* Progress section */}
       <div className="mb-3">
@@ -301,7 +314,10 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
           <StatusChip size="sm" tokens={{ color: c, bg: `${c}18` }} label={`${progress}%`} className="text-[0.5625rem]" />
           ); })()}
         </div>
-        <LinearProgress variant="determinate" value={progress} sx={{ height: 6, borderRadius: 3 }} />
+        <Progress
+          value={progress}
+          className="h-1.5 rounded-[3px] [&_[data-slot=progress-indicator]]:rounded-[3px]"
+        />
         <div className="flex gap-0.5 mt-1">
           {['inspection', 'rooms', 'after_photos'].map((step) => {
             const done = completedSteps.has(step);
@@ -347,33 +363,38 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
         </Button>
       )}
 
-      <Divider sx={{ my: 1.5 }} />
+      <Separator className="my-[9px]" />
 
       {/* Photos preview */}
-      <Accordion disableGutters elevation={0} sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', borderRadius: '8px !important', mb: 1 }}>
-        <AccordionSummary expandIcon={<ExpandMore size={16} strokeWidth={1.75} />} sx={{ minHeight: 36, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
-          <p className="cn-text-body1 text-[0.75rem] font-semibold">Photos ({beforePhotos.length + afterPhotos.length})</p>
-        </AccordionSummary>
-        <AccordionDetails sx={{ pt: 0 }}>
-          {beforePhotos.length > 0 && <PanelPhotoGallery photos={beforePhotos} label="Avant" maxVisible={2} />}
-          {afterPhotos.length > 0 && <PanelPhotoGallery photos={afterPhotos} label="Après" maxVisible={2} />}
-          {beforePhotos.length === 0 && afterPhotos.length === 0 && (
-            <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground italic">
-              Aucune photo
-            </p>
-          )}
-        </AccordionDetails>
+      {/* Le chevron est fourni par AccordionTrigger : plus d'expandIcon a passer. */}
+      <Accordion type="single" collapsible className={ACCORDION_CLASS + ' mb-1'}>
+        <AccordionItem value="photos" className="border-b-0">
+          <AccordionTrigger className={ACCORDION_TRIGGER_CLASS}>
+            <p className="cn-text-body1 text-[0.75rem] font-semibold">Photos ({beforePhotos.length + afterPhotos.length})</p>
+          </AccordionTrigger>
+          <AccordionContent className="px-2 pt-0">
+            {beforePhotos.length > 0 && <PanelPhotoGallery photos={beforePhotos} label="Avant" maxVisible={2} />}
+            {afterPhotos.length > 0 && <PanelPhotoGallery photos={afterPhotos} label="Après" maxVisible={2} />}
+            {beforePhotos.length === 0 && afterPhotos.length === 0 && (
+              <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground italic">
+                Aucune photo
+              </p>
+            )}
+          </AccordionContent>
+        </AccordionItem>
       </Accordion>
 
       {/* Notes */}
       {intervention.notes && (
-        <Accordion disableGutters elevation={0} sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', borderRadius: '8px !important' }}>
-          <AccordionSummary expandIcon={<ExpandMore size={16} strokeWidth={1.75} />} sx={{ minHeight: 36, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
-            <p className="cn-text-body1 text-[0.75rem] font-semibold">Notes</p>
-          </AccordionSummary>
-          <AccordionDetails sx={{ pt: 0 }}>
-            <p className="cn-text-body1 text-[0.6875rem] whitespace-pre-wrap">{intervention.notes}</p>
-          </AccordionDetails>
+        <Accordion type="single" collapsible className={ACCORDION_CLASS}>
+          <AccordionItem value="notes" className="border-b-0">
+            <AccordionTrigger className={ACCORDION_TRIGGER_CLASS}>
+              <p className="cn-text-body1 text-[0.75rem] font-semibold">Notes</p>
+            </AccordionTrigger>
+            <AccordionContent className="px-2 pt-0">
+              <p className="cn-text-body1 text-[0.6875rem] whitespace-pre-wrap">{intervention.notes}</p>
+            </AccordionContent>
+          </AccordionItem>
         </Accordion>
       )}
     </div>

@@ -7,7 +7,7 @@ import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Button } from '../../components/ui';
-import { Skeleton } from '@mui/material';
+import { Skeleton } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { AccountBalance, CheckCircle, Refresh } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -100,8 +100,8 @@ export default function MyProPayoutsSettings() {
   if (payoutsQuery.isLoading) {
     return (
       <div className="flex flex-col gap-3">
-        <Skeleton variant="rounded" height={140} sx={{ borderRadius: '13px' }} />
-        <Skeleton variant="rounded" height={220} sx={{ borderRadius: '13px' }} />
+        <Skeleton className="h-[140px] w-full rounded-[13px]" />
+        <Skeleton className="h-[220px] w-full rounded-[13px]" />
       </div>
     );
   }

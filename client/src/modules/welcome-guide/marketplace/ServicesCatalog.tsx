@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Skeleton } from '@mui/material';
+import { Skeleton } from '../../../components/ui';
 import {
   LayoutGrid, List, Star, Plus, Check, Clock, Users, Globe, Calendar,
   ShieldCheck, ArrowLeft, BookOpen, Boxes, MoreHorizontal,
@@ -272,16 +272,17 @@ export default function ServicesCatalog({
           <div className="mp-grid">
             {Array.from({ length: 8 }).map((_, i) => (
               <div className="mp-card" key={i}>
-                <Skeleton variant="rectangular" height={138} sx={{ bgcolor: 'var(--hover)' }} />
+                <Skeleton className="h-[138px] w-full rounded-none bg-[var(--hover)]" />
                 <div className="mp-card__body">
-                  <Skeleton width="80%" height={18} /><Skeleton width="60%" height={14} />
-                  <Skeleton width="40%" height={24} sx={{ mt: 1 }} />
+                  <Skeleton className="h-[18px] w-[80%]" /><Skeleton className="h-[14px] w-[60%]" />
+                  {/* mt: 1 = 6 px (theme.spacing vaut 6). */}
+                  <Skeleton className="h-[24px] w-[40%] mt-[6px]" />
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="tbl mp-tbl">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} height={60} sx={{ bgcolor: 'var(--hover)' }} />)}</div>
+          <div className="tbl mp-tbl">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[60px] w-full bg-[var(--hover)]" />)}</div>
         )
       ) : visible.length === 0 ? (
         <p className="mp-empty">Aucun service pour ce filtre.</p>

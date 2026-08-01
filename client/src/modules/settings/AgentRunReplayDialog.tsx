@@ -3,9 +3,16 @@ import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Dialog, DialogContent, DialogTitle, IconButton, Skeleton, useTheme } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  Skeleton,
+} from '../../components/ui';
 import { Field, FieldLabel, Input } from '../../components/ui';
-import { Brain, Wrench, GitBranch, PauseCircle, FileText, X } from 'lucide-react';
+import { Brain, Wrench, GitBranch, PauseCircle, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { agentRunApi, type AgentRunReplay, type AgentRunStep } from '../../services/api/agentRunApi';
 
@@ -30,7 +37,6 @@ const KIND_ICON: Record<AgentRunStep['kind'], typeof Brain> = {
 
 export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
   const { t } = useTranslation();
-  const theme = useTheme();
   const [replay, setReplay] = useState<AgentRunReplay | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,37 +56,31 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
       .finally(() => setLoading(false));
   }, [open, runId, t]);
 
+  // `theme.palette.error.main` -> jeton Signature equivalent (plus de useTheme).
   const statusColor = (status: string): string => {
-    if (status === 'ERROR') return theme.palette.error.main;
+    if (status === 'ERROR') return 'var(--err)';
     if (status === 'PAUSED') return '#D4A574';
     return '#4A9B8E';
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
-        <div>
-          <h6 className="cn-text-h6 leading-[1.2]">
-            {t('agentReplay.title', 'Replay du run')}
-          </h6>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{t('agentReplay.title', 'Replay du run')}</DialogTitle>
           {replay && (
-            <span className="cn-text-caption text-muted-foreground">
+            <DialogDescription>
               {t(`agentReplay.origin.${replay.origin}`, replay.origin)}
               {' · '}
               {new Date(replay.startedAt).toLocaleString()}
-            </span>
+            </DialogDescription>
           )}
-        </div>
-        <IconButton onClick={onClose} size="small" aria-label={t('common.close', 'Fermer')}>
-          <X size={18} />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent dividers>
+        </DialogHeader>
         {loading && (
           <div className="flex flex-col gap-1.5">
-            <Skeleton variant="rounded" height={48} />
-            <Skeleton variant="rounded" height={48} />
-            <Skeleton variant="rounded" height={48} />
+            <Skeleton className="h-12 rounded-[8px]" />
+            <Skeleton className="h-12 rounded-[8px]" />
+            <Skeleton className="h-12 rounded-[8px]" />
           </div>
         )}
         {error && <Alert variant="warning">
@@ -107,14 +107,14 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
                   <div
                     key={step.seq}
                     className="flex items-start gap-[7.5px] p-1.5 rounded-[8px] border border-solid border-[var(--line)] border-l-2"
-                    // Teinte d'erreur lue dans le theme a l'execution ; sinon le
-                    // liseré garde la couleur de bordure posee par la classe.
-                    style={{ borderLeftColor: step.status === 'ERROR' ? theme.palette.error.main : undefined }}
+                    // Teinte d'erreur decidee a l'execution ; sinon le lisere
+                    // garde la couleur de bordure posee par la classe.
+                    style={{ borderLeftColor: step.status === 'ERROR' ? 'var(--err)' : undefined }}
                   >
                     <Icon
                       size={16}
                       style={{ marginTop: 2, flexShrink: 0 }}
-                      color={theme.palette.text.secondary}
+                      color="var(--muted)"
                       aria-hidden
                     />
                     <div className="min-w-0 flex-1">

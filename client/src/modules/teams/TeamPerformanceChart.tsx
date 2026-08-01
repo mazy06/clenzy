@@ -1,7 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Spinner } from '../../components/ui';
-import { Card, CardContent } from '@mui/material';
+import { Spinner, Card, CardContent } from '../../components/ui';
 import {
   TrendingUp,
   CalendarMonth,
@@ -41,8 +40,8 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
 
   if (loading) {
     return (
-      <Card sx={{ height: '100%' }}>
-        <CardContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
+      <Card className="h-full">
+        <CardContent className="flex justify-center items-center min-h-[300px]">
           <Spinner className="size-7" />
         </CardContent>
       </Card>
@@ -105,8 +104,9 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
   ];
 
   return (
-    <Card sx={{ height: '100%' }}>
-      <CardContent sx={{ p: 3 }}>
+    <Card className="h-full">
+      {/* p: 3 = 18 px (theme.spacing vaut 6 dans ce projet). */}
+      <CardContent className="p-[18px]">
         <h6 className="cn-text-h6 text-[var(--ink)] font-semibold mb-3">
           {t('teams.performance.title')}
         </h6>

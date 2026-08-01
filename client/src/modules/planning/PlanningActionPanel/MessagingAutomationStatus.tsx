@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { IconButton, Tooltip } from '@mui/material';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Bolt, CheckCircle, Close, Settings, Warning, AccessTime } from '../../../icons';
@@ -66,14 +66,23 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
           <Bolt size={13} strokeWidth={1.75} />
         </span>
         <span className="flex-1 text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]">Messagerie automatique</span>
-        <Tooltip title="Configurer dans Automatisations">
-          <IconButton
-            size="small"
-            onClick={() => navigate('/automation-rules')}
-            sx={{ p: 0.375, color: 'var(--muted)', '&:hover': { color: 'var(--ink)', backgroundColor: 'var(--hover)' } }}
-          >
-            <Settings size={13} strokeWidth={1.75} />
-          </IconButton>
+        <Tooltip>
+          {/* Le trigger enveloppe un <span> (element hote) : Radix y pose sa ref
+              d'ancrage, ce qu'un composant fonction React 18 ne peut pas recevoir. */}
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label="Configurer dans Automatisations"
+                onClick={() => navigate('/automation-rules')}
+                className="text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
+              >
+                <Settings size={13} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Configurer dans Automatisations</TooltipContent>
         </Tooltip>
       </div>
 

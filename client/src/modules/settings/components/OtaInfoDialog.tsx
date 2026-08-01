@@ -5,7 +5,6 @@ import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { Button, Field, FieldLabel, Input } from '../../../components/ui';
-import { Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle as CheckCircleIcon,
@@ -238,14 +237,12 @@ export default function OtaInfoDialog({
           {/* Cas 2 : Deja connecte (form OTA ou Airbnb), mode consultation */}
           {ota.available && isConnected && !editingForm && (
             <div>
-              <Alert
-                severity="success"
-                variant="outlined"
-                icon={<CheckCircleIcon size={16} strokeWidth={2} />}
-                sx={{ borderRadius: '8px', fontSize: '0.78rem', mb: 1.5 }}
-              >
-                Cette intégration est <strong>active</strong>. Vous pouvez gérer la connexion ici ou depuis l'onglet Channels.
-              </Alert>
+              <UiAlert variant="success" className="text-[0.78rem] mb-2">
+                <CheckCircleIcon size={16} strokeWidth={2} />
+                <AlertDescription>
+                  Cette intégration est <strong>active</strong>. Vous pouvez gérer la connexion ici ou depuis l'onglet Channels.
+                </AlertDescription>
+              </UiAlert>
 
               <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-[7.5px] mb-[9px]">
                 {isChannelConnected && channelStatus && (
@@ -378,16 +375,14 @@ export default function OtaInfoDialog({
 
               {/* Resultat test */}
               {testResult && (
-                <Alert
-                  severity={testResult.success ? 'success' : 'error'}
-                  variant="outlined"
-                  icon={testResult.success ? <CheckCircleIcon size={14} strokeWidth={2} /> : undefined}
-                  sx={{ borderRadius: '8px', fontSize: '0.76rem' }}
-                >
-                  {testResult.success
-                    ? `Credentials valides${testResult.channelPropertyName ? ` (${testResult.channelPropertyName})` : ''}.`
-                    : testResult.message}
-                </Alert>
+                <UiAlert variant={testResult.success ? 'success' : 'destructive'} className="text-[0.76rem]">
+                  {testResult.success ? <CheckCircleIcon size={14} strokeWidth={2} /> : <TriangleAlert />}
+                  <AlertDescription>
+                    {testResult.success
+                      ? `Credentials valides${testResult.channelPropertyName ? ` (${testResult.channelPropertyName})` : ''}.`
+                      : testResult.message}
+                  </AlertDescription>
+                </UiAlert>
               )}
 
               <div className="flex gap-1.5 flex-wrap mt-0.5">

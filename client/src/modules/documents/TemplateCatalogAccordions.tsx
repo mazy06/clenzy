@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
-import { Button } from '../../components/ui';
-import { Accordion, AccordionSummary, AccordionDetails, Divider } from '@mui/material';
 import {
-  ExpandMore,
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+  Button,
+  Separator,
+} from '../../components/ui';
+import {
   EventAvailable,
   Hotel,
   ExitToApp,
@@ -390,32 +395,22 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
         Catalogue des templates par étape du parcours
       </h6>
 
+      {/* Un seul Accordion « single » remplace les N Accordion MUI : c'est deja
+          la semantique de `expandedGroup` (un seul groupe ouvert a la fois). */}
+      <Accordion
+        type="single"
+        collapsible
+        value={expandedGroup === false ? '' : expandedGroup}
+        onValueChange={(v) => setExpandedGroup(v ? v : false)}
+        className="gap-0"
+      >
       {CATALOG_GROUPS.map((group) => (
-        <Accordion
+        <AccordionItem
           key={group.id}
-          expanded={expandedGroup === group.id}
-          onChange={(_, isExpanded) => setExpandedGroup(isExpanded ? group.id : false)}
-          disableGutters
-          elevation={0}
-          sx={{
-            mb: 1,
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: '8px !important',
-            '&:before': { display: 'none' },
-            '&.Mui-expanded': { mb: 1 },
-            transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-            '&:hover': { borderColor: 'text.disabled' },
-          }}
+          value={group.id}
+          className="mb-1.5 border border-solid border-[var(--line)] rounded-[8px] transition-[border-color] duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[var(--faint)]"
         >
-          <AccordionSummary
-            expandIcon={<ExpandMore size={18} strokeWidth={1.75} />}
-            sx={{
-              borderRadius: '8px',
-              cursor: 'pointer',
-              '&.Mui-expanded': { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: '1px solid', borderColor: 'divider' },
-            }}
-          >
+          <AccordionTrigger className="px-3 py-2 rounded-[8px] cursor-pointer data-[state=open]:rounded-b-none data-[state=open]:border-b data-[state=open]:border-solid data-[state=open]:border-b-[var(--line)]">
             <div className="flex items-center gap-2 w-full">
               {/* Badge icone Baitly (tile 26x26, accent color, contraste WCAG AA+) */}
               <div className="w-[26px] h-[26px] rounded-[8px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: group.tone.bg, color: group.tone.color }}>
@@ -431,8 +426,8 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
               </p>
               <StatusChip tokens={group.tone} label={`${group.items.length} template${group.items.length > 1 ? 's' : ''}`} />
             </div>
-          </AccordionSummary>
-          <AccordionDetails sx={{ p: 0 }}>
+          </AccordionTrigger>
+          <AccordionContent className="p-0">
             {group.items.map((item, idx) => {
               const linkedTemplate = findLinkedTemplate(item);
               const trigger = TRIGGER_CONFIG[item.trigger] || TRIGGER_CONFIG.manual;
@@ -440,7 +435,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
 
               return (
                 <div key={item.id}>
-                  {idx > 0 && <Divider />}
+                  {idx > 0 && <Separator />}
                   <div className="p-3">
                     {/* Header : titre + chips meta uniformes (toutes en softChipSx) */}
                     <div className="flex items-center gap-1 mb-1.5 flex-wrap">
@@ -592,9 +587,10 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                 </div>
               );
             })}
-          </AccordionDetails>
-        </Accordion>
+          </AccordionContent>
+        </AccordionItem>
       ))}
+      </Accordion>
     </div>
   );
 };

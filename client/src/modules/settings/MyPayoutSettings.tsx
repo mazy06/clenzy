@@ -7,7 +7,9 @@ import { Card } from '../../components/ui';
 import { Field, FieldError, FieldLabel, Input } from '../../components/ui';
 import { useSearchParams } from 'react-router-dom';
 import { accountingApi } from '../../services/api/accountingApi';
-import { Alert, Snackbar, Divider } from '@mui/material';
+// Snackbar reste MUI : changer le MECANISME de notification (vers sonner, non
+// utilise dans ce fichier) depasse la migration de vocabulaire visuel.
+import { Snackbar } from '@mui/material';
 import {
   AccountBalance,
   Save,
@@ -244,11 +246,14 @@ export default function MyPayoutSettings() {
         </div>
 
         {hasSepaConfig && (
-          <Alert severity="info" sx={{ mb: 2, fontSize: '0.8125rem' }} icon={<CheckCircle size={18} strokeWidth={1.75} />}>
-            {t('settings.myPayout.currentIban', 'IBAN actuel')} : <strong>{config.maskedIban}</strong>
-            {config.bic ? ` — BIC : ${config.bic}` : ''}
-            {config.bankAccountHolder ? ` — ${config.bankAccountHolder}` : ''}
-          </Alert>
+          <BuiAlert variant="info" className="mb-3 text-[0.8125rem]">
+            <CheckCircle size={18} strokeWidth={1.75} />
+            <AlertDescription>
+              {t('settings.myPayout.currentIban', 'IBAN actuel')} : <strong>{config.maskedIban}</strong>
+              {config.bic ? ` — BIC : ${config.bic}` : ''}
+              {config.bankAccountHolder ? ` — ${config.bankAccountHolder}` : ''}
+            </AlertDescription>
+          </BuiAlert>
         )}
 
         <div className="flex flex-col gap-2">
@@ -326,9 +331,12 @@ export default function MyPayoutSettings() {
         </p>
 
         {isStripeComplete && (
-          <Alert severity="success" sx={{ fontSize: '0.8125rem' }} icon={<CheckCircle size={18} strokeWidth={1.75} />}>
-            {t('settings.myPayout.stripeConnected', 'Votre compte Stripe est connecte et actif.')}
-          </Alert>
+          <BuiAlert variant="success" className="text-[0.8125rem]">
+            <CheckCircle size={18} strokeWidth={1.75} />
+            <AlertDescription>
+              {t('settings.myPayout.stripeConnected', 'Votre compte Stripe est connecte et actif.')}
+            </AlertDescription>
+          </BuiAlert>
         )}
 
         {isStripeInProgress && (
@@ -372,13 +380,27 @@ export default function MyPayoutSettings() {
         autoHideDuration={4000}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
       >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
+        {/* `div` intercalaire : le Snackbar MUI clone son enfant avec une ref pour
+            l'animer, et la primitive Alert (simple fonction) ne la recoit pas. */}
+        <div className="w-full">
+        <BuiAlert
+          variant={snackbar.severity === 'error' ? 'destructive' : 'success'}
+          className="w-full"
         >
-          {snackbar.message}
-        </Alert>
+          {snackbar.severity === 'error' ? <TriangleAlert /> : <CheckCircle />}
+          <AlertDescription>{snackbar.message}</AlertDescription>
+          <AlertAction>
+            <BuiButton
+              variant="ghost"
+              size="icon-xs"
+              aria-label="Fermer"
+              onClick={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+            >
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
+        </div>
       </Snackbar>
 
       <PayoutMethodEditDialog

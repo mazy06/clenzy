@@ -427,7 +427,9 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
             handleMenuClose();
           }}>
             <ListItemIcon>
-              <Assignment fontSize="small" color="primary" />
+              {/* `fontSize`/`color="primary"` etaient des props d'icone MUI passees a
+                  une icone lucide : sans effet. Aligne sur les entrees voisines. */}
+              <Assignment size={20} strokeWidth={1.75} color="var(--mui-primary)" />
             </ListItemIcon>
             {t('serviceRequests.assign')}
           </MenuItem>
@@ -447,7 +449,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
         {selectedServiceRequest && canDeleteServiceRequest(selectedServiceRequest) && (
           <MenuItem onClick={handleDelete}>
             <ListItemIcon>
-              <Delete fontSize="small" />
+              <Delete size={20} strokeWidth={1.75} />
             </ListItemIcon>
             {t('serviceRequests.delete')}
           </MenuItem>
@@ -462,7 +464,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
             handleMenuClose();
           }}>
             <ListItemIcon>
-              <Cancel fontSize="small" color="warning" />
+              <Cancel size={20} strokeWidth={1.75} color="var(--warn)" />
             </ListItemIcon>
             <ListItemText
               primary={t('serviceRequests.cancel')}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '../utils/cn';
 import { useTranslation } from '../hooks/useTranslation';
@@ -119,10 +119,13 @@ export default function HubScreenSwitcher({ identity }: HubScreenSwitcherProps) 
 
   return (
     <div className="flex items-center gap-1.5 min-w-0">
-      <Tooltip title={badgeLabel} arrow placement="bottom-start">
-        <div className="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center bg-[var(--accent-soft)] text-[var(--accent)] shrink-0" aria-hidden>
-          {sizedIcon(badgeIcon, badgeSize)}
-        </div>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center bg-[var(--accent-soft)] text-[var(--accent)] shrink-0" aria-hidden>
+            {sizedIcon(badgeIcon, badgeSize)}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" align="start">{badgeLabel}</TooltipContent>
       </Tooltip>
 
       {identity.kind === 'single' ? (

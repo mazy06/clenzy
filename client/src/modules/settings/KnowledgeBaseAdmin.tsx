@@ -1,13 +1,21 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Button } from '../../components/ui';
-import { Divider, IconButton, Tooltip } from '@mui/material';
+import { Separator, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Input } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+// `useTheme`/`alpha` restent : les pastilles lisent `info.dark` / `success.dark` /
+// `warning.dark`, teintes qui n'ont aucune variable CSS equivalente et qui
+// different entre le theme clair et le theme sombre.
 import { useTheme, alpha } from '@mui/material/styles';
+
+/** Surface « tuile » : report en classes des `alpha(text.primary, .03/.08)`. */
+const TILE_CLASS =
+  'rounded-[12px] bg-[color-mix(in_srgb,var(--ink)_3%,transparent)] border border-solid border-[color-mix(in_srgb,var(--ink)_8%,transparent)]';
 import { AttachFile, Delete } from '../../icons';
 import apiClient from '../../services/apiClient';
 import { useNotification } from '../../hooks/useNotification';
@@ -256,7 +264,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                 detail: `lists · optimal ${stats.index.optimalLists ?? '—'}${stats.index.autoTuneEnabled ? ' · auto-tune actif' : ''}`,
               },
             ].map((kpi) => (
-              <div className="px-[10.5px] py-1.5 min-w-[150px] rounded-[12px]" style={{ backgroundColor: alpha(theme.palette.text.primary, 0.03), border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}` }} key={kpi.label}>
+              <div className={cn(TILE_CLASS, 'px-[10.5px] py-1.5 min-w-[150px]')} key={kpi.label}>
                 <div className="cn-text-caption text-muted-foreground">
                   {kpi.label}
                 </div>
@@ -323,7 +331,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
           <Spinner className="size-6" />
         </div>
       ) : docs.length === 0 ? (
-        <div className="p-[18px] text-center rounded-[12px]" style={{ backgroundColor: alpha(theme.palette.text.primary, 0.03) }}>
+        <div className="p-[18px] text-center rounded-[12px] bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]">
           <p className="cn-text-body2 text-muted-foreground">
             Aucun document indexe. Upload ton premier markdown pour activer le RAG.
           </p>
@@ -361,14 +369,22 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                   </TableCell>
                   <TableCell className="text-end">
                     {canEdit && (
-                      <Tooltip title="Supprimer">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDelete(doc)}
-                          sx={{ cursor: 'pointer' }}
-                        >
-                          <Delete size={16} />
-                        </IconButton>
+                      // span intermediaire : TooltipTrigger asChild pose une ref DOM,
+                      // que le Button du kit (fonction, React 18) ne transmet pas.
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label="Supprimer"
+                              onClick={() => handleDelete(doc)}
+                            >
+                              <Delete size={16} />
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Supprimer</TooltipContent>
                       </Tooltip>
                     )}
                   </TableCell>
@@ -381,7 +397,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
 
       {canUploadGlobal && (
         <>
-          <Divider sx={{ my: 3 }} />
+          <Separator className="my-[18px]" />
           <div className="flex gap-1.5 items-start flex-wrap">
             <div className="flex-1 min-w-[240px]">
               <h6 className="cn-text-subtitle2 font-semibold mb-0.5">
@@ -431,7 +447,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                     detail: 'position moyenne du bon résultat',
                   },
                 ].map((kpi) => (
-                  <div className="px-[10.5px] py-1.5 min-w-[170px] rounded-[12px]" style={{ backgroundColor: alpha(theme.palette.text.primary, 0.03), border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}` }} key={kpi.label}>
+                  <div className={cn(TILE_CLASS, 'px-[10.5px] py-1.5 min-w-[170px]')} key={kpi.label}>
                     <div className="cn-text-caption text-muted-foreground">
                       {kpi.label}
                     </div>
@@ -456,7 +472,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                   </div>
                   <div className="flex flex-col gap-1">
                     {evalReport.misses.map((miss, idx) => (
-                      <div className="px-[9px] py-1.5 rounded-[12px]" style={{ backgroundColor: alpha(theme.palette.warning.main, 0.08), border: `1px solid ${alpha(theme.palette.warning.main, 0.25)}` }} key={idx}>
+                      <div className="px-[9px] py-1.5 rounded-[12px] bg-[color-mix(in_srgb,var(--warn)_8%,transparent)] border border-solid border-[color-mix(in_srgb,var(--warn)_25%,transparent)]" key={idx}>
                         <p className="cn-text-body2 font-semibold">
                           {miss.question}
                         </p>
@@ -475,7 +491,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
 
       {canEdit && (
         <>
-          <Divider sx={{ my: 3 }} />
+          <Separator className="my-[18px]" />
           <h6 className="cn-text-subtitle2 font-semibold mb-0.5">
             Tester la recherche
           </h6>
@@ -519,7 +535,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
               {testResult.items.map((hit, idx) => {
                 const aboveThreshold = hit.relevance >= testResult.relevanceThreshold;
                 return (
-                  <div className="p-[9px] rounded-[12px]" style={{ backgroundColor: alpha(theme.palette.text.primary, 0.03), border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}` }} key={`${hit.documentId}-${idx}`}>
+                  <div className={cn(TILE_CLASS, 'p-[9px]')} key={`${hit.documentId}-${idx}`}>
                     <div className="flex gap-1.5 items-center mb-0.5 flex-wrap">
                       <p className="cn-text-body2 font-semibold">
                         {hit.title || hit.sourcePath}

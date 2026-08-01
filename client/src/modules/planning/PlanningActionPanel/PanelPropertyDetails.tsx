@@ -3,7 +3,15 @@ import { cn } from '../../../utils/cn';
 import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
 import { Button } from '../../../components/ui';
-import { Divider, Accordion, AccordionSummary, AccordionDetails, Alert } from '@mui/material';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+  Alert,
+  AlertDescription,
+  Separator,
+} from '../../../components/ui';
 import {
   Apartment,
   Bed,
@@ -14,7 +22,6 @@ import {
   Schedule,
   AttachMoney,
   CleaningServices,
-  ExpandMore,
   OpenInNew,
   Handyman,
   Assignment,
@@ -195,7 +202,13 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
   }
 
   if (isError || !property) {
-    return <Alert severity="error" sx={{ fontSize: BODY_FS }}>{error || 'Impossible de charger le logement'}</Alert>;
+    return (
+      <Alert variant="destructive">
+        <AlertDescription className="text-[0.75rem]">
+          {error || 'Impossible de charger le logement'}
+        </AlertDescription>
+      </Alert>
+    );
   }
 
   const metrics = [
@@ -366,28 +379,20 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
 
       {/* ─── CONFIGURATION MÉNAGE (accordion) ─────────────────────── */}
       <Accordion
-        disableGutters
-        elevation={0}
-        sx={{
-          '&:before': { display: 'none' },
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: '8px !important',
-          mb: 1.5,
-        }}
+        type="single"
+        collapsible
+        className="border border-solid border-[var(--line)] rounded-lg mb-[9px] px-[7.5px]"
       >
-        <AccordionSummary
-          expandIcon={<ExpandMore size={14} strokeWidth={1.75} />}
-          sx={{ minHeight: 34, '& .MuiAccordionSummary-content': { my: 0.5 } }}
-        >
-          <div className="flex items-center gap-1">
-            <span className="inline-flex text-primary">
-              <CleaningServices size={14} strokeWidth={1.75} />
-            </span>
-            <p className="cn-text-body1 font-semibold" style={{ fontSize: BODY_FS }}>Configuration ménage</p>
-          </div>
-        </AccordionSummary>
-        <AccordionDetails sx={{ pt: 0, pb: 1.25, px: 1.25 }}>
+        <AccordionItem value="cleaning-config" className="border-b-0">
+          <AccordionTrigger className="py-1 min-h-[34px] no-underline hover:no-underline">
+            <div className="flex items-center gap-1">
+              <span className="inline-flex text-primary">
+                <CleaningServices size={14} strokeWidth={1.75} />
+              </span>
+              <p className="cn-text-body1 font-semibold" style={{ fontSize: BODY_FS }}>Configuration ménage</p>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pt-0 pb-[7.5px]">
           <div className="flex flex-col gap-0.5">
             <ConfigRow icon={<Schedule size={12} strokeWidth={1.75} />} label="Fréquence">
               {property.cleaningFrequency ? getCleaningFrequencyLabel(property.cleaningFrequency, t) : '—'}
@@ -425,37 +430,31 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
               </div>
             )}
           </div>
-        </AccordionDetails>
+          </AccordionContent>
+        </AccordionItem>
       </Accordion>
 
       {/* ─── NOTES MÉNAGE (accordion optionnel) ───────────────────── */}
       {property.cleaningNotes && (
         <Accordion
-          disableGutters
-          elevation={0}
-          sx={{
-            '&:before': { display: 'none' },
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: '8px !important',
-            mb: 1.5,
-          }}
+          type="single"
+          collapsible
+          className="border border-solid border-[var(--line)] rounded-lg mb-[9px] px-[7.5px]"
         >
-          <AccordionSummary
-            expandIcon={<ExpandMore size={14} strokeWidth={1.75} />}
-            sx={{ minHeight: 34, '& .MuiAccordionSummary-content': { my: 0.5 } }}
-          >
-            <p className="cn-text-body1 font-semibold" style={{ fontSize: BODY_FS }}>Notes ménage</p>
-          </AccordionSummary>
-          <AccordionDetails sx={{ pt: 0, px: 1.25, pb: 1.25 }}>
-            <p className="cn-text-body1 text-[var(--muted)] whitespace-pre-wrap leading-[1.5]" style={{ fontSize: BODY_FS }}>
-              {property.cleaningNotes}
-            </p>
-          </AccordionDetails>
+          <AccordionItem value="cleaning-notes" className="border-b-0">
+            <AccordionTrigger className="py-1 min-h-[34px] no-underline hover:no-underline">
+              <p className="cn-text-body1 font-semibold" style={{ fontSize: BODY_FS }}>Notes ménage</p>
+            </AccordionTrigger>
+            <AccordionContent className="pt-0 pb-[7.5px]">
+              <p className="cn-text-body1 text-[var(--muted)] whitespace-pre-wrap leading-[1.5]" style={{ fontSize: BODY_FS }}>
+                {property.cleaningNotes}
+              </p>
+            </AccordionContent>
+          </AccordionItem>
         </Accordion>
       )}
 
-      <Divider sx={{ my: 1.5 }} />
+      <Separator className="my-[9px]" />
 
       {/* ─── SUB-TABS : Demandes / Interventions ──────────────────── */}
       <PageTabs
@@ -564,7 +563,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         </>
       )}
 
-      <Divider sx={{ my: 1.5 }} />
+      <Separator className="my-[9px]" />
 
       {/* ─── CTA : page complète ──────────────────────────────────── */}
       <Button

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Skeleton, Card, CardContent } from '@mui/material';
+import { Skeleton, Card, CardContent } from '../../../components/ui';
 import { Field, FieldLabel, Input } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { syncAdminApi, SyncLog, SyncEventStats } from '../../../services/api/syncAdminApi';
@@ -150,7 +150,7 @@ const EventsTab: React.FC = () => {
       {stats && (
         <div className="grid grid-cols-12 gap-3 mb-[18px]">
           <div className="col-span-12 min-[600px]:col-span-4">
-            <Card variant="outlined">
+            <Card>
               <CardContent>
                 <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>Total (24h)</p>
                 <h4 className="cn-text-h4 text-[var(--ink)] tabular-nums">
@@ -160,7 +160,7 @@ const EventsTab: React.FC = () => {
             </Card>
           </div>
           <div className="col-span-12 min-[600px]:col-span-4">
-            <Card variant="outlined">
+            <Card>
               <CardContent>
                 <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-[3px]')}>Par Channel</p>
                 {Object.entries(stats.byChannel).map(([ch, count]) => (
@@ -175,7 +175,7 @@ const EventsTab: React.FC = () => {
             </Card>
           </div>
           <div className="col-span-12 min-[600px]:col-span-4">
-            <Card variant="outlined">
+            <Card>
               <CardContent>
                 <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-[3px]')}>Par Status</p>
                 {Object.entries(stats.byStatus).map(([s, count]) => (
@@ -200,7 +200,7 @@ const EventsTab: React.FC = () => {
       {loading ? (
         <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+            <Skeleton key={i} className="h-9 w-full rounded-[9px]" />
           ))}
         </div>
       ) : (

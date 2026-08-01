@@ -3,6 +3,8 @@ import { cn } from '../../utils/cn';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
+// Snackbar MUI conserve : le fichier n'utilise pas sonner, et changer le
+// mecanisme de notification depasse le perimetre de cette migration.
 import { Snackbar } from '@mui/material';
 import {
   Edit as EditIcon,

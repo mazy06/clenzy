@@ -1,8 +1,7 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
-import { Button, Card } from '../../components/ui';
-import { IconButton, Divider } from '@mui/material';
+import { Button, Card, Separator } from '../../components/ui';
 import {
   Add,
   Remove,
@@ -150,7 +149,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
-        <Divider sx={{ mb: 1.25, borderColor: 'divider' }} />
+        <Separator className="mb-[7.5px]" />
 
         {/* Add to cart / quantity controls */}
         {quantity === 0 ? (
@@ -161,39 +160,27 @@ const ProductCard: React.FC<ProductCardProps> = ({
         ) : (
           /* Compteur — pattern .rm-count : conteneur --field r10 p3, boutons --card r8, valeur display */
           <div className="flex items-center justify-between gap-[3px] p-[3px] rounded-[10px] bg-[var(--field)] border border-solid border-[var(--field-line)]">
-            <IconButton
-              size="small"
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onRemoveFromCart}
-              sx={{
-                width: 30,
-                height: 30,
-                bgcolor: 'var(--card)',
-                borderRadius: '8px',
-                color: 'var(--body)',
-                '&:hover': { bgcolor: 'var(--card)', color: 'var(--accent)' },
-              }}
+              className="size-[30px] rounded-lg bg-[var(--card)] text-[var(--body)] hover:bg-[var(--card)] hover:text-[var(--accent)]"
               aria-label="Diminuer la quantité"
             >
               <Remove size={14} strokeWidth={2} />
-            </IconButton>
+            </Button>
             <p className="cn-text-body1 font-[family-name:var(--font-display)] font-semibold text-[15px] text-[var(--ink)] tabular-nums min-w-[24px] text-center">
               {quantity}
             </p>
-            <IconButton
-              size="small"
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onAddToCart}
-              sx={{
-                width: 30,
-                height: 30,
-                bgcolor: 'var(--card)',
-                borderRadius: '8px',
-                color: 'var(--body)',
-                '&:hover': { bgcolor: 'var(--card)', color: 'var(--accent)' },
-              }}
+              className="size-[30px] rounded-lg bg-[var(--card)] text-[var(--body)] hover:bg-[var(--card)] hover:text-[var(--accent)]"
               aria-label="Augmenter la quantité"
             >
               <Add size={14} strokeWidth={2} />
-            </IconButton>
+            </Button>
           </div>
         )}
       </div>

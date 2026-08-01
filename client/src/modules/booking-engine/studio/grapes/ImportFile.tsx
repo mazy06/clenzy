@@ -1,6 +1,5 @@
 import { useRef, useState, type DragEvent, type ChangeEvent } from 'react';
-import { ButtonBase } from '@mui/material';
-import { keyframes } from '@mui/system';
+import { cn } from '../../../../utils/cn';
 import { FileUp, Loader2, FileText } from 'lucide-react';
 import type { Editor } from 'grapesjs';
 import { loadHtmlIntoEditor } from './loadIntoEditor';
@@ -31,9 +30,6 @@ export interface ImportFileProps {
   /** Appelé après un import réussi (ferme le panneau). */
   onDone: () => void;
 }
-
-/** Rotation continue de l'indicateur de chargement (respecte `prefers-reduced-motion` via le navigateur). */
-const spin = keyframes`from { transform: rotate(0deg); } to { transform: rotate(360deg); }`;
 
 /** Extensions acceptées par le sélecteur de fichier (filtre UI, non contraignant côté lecture). */
 const ACCEPT = '.html,.htm,.json,.md';
@@ -98,7 +94,7 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
     if (file) handleFile(file);
   };
 
-  const onDrop = (e: DragEvent<HTMLButtonElement>) => {
+  const onDrop = (e: DragEvent<HTMLElement>) => {
     e.preventDefault();
     setDragOver(false);
     if (loading) return;
@@ -106,12 +102,12 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
     if (file) handleFile(file);
   };
 
-  const onDragOver = (e: DragEvent<HTMLButtonElement>) => {
+  const onDragOver = (e: DragEvent<HTMLElement>) => {
     e.preventDefault();
     if (!loading) setDragOver(true);
   };
 
-  const onDragLeave = (e: DragEvent<HTMLButtonElement>) => {
+  const onDragLeave = (e: DragEvent<HTMLElement>) => {
     e.preventDefault();
     setDragOver(false);
   };
@@ -138,27 +134,25 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
       />
 
       {/* Zone de dépôt / sélection cliquable. */}
-      <ButtonBase
+      <button
+        type="button"
         onClick={openPicker}
         disabled={loading}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
-        sx={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          gap: 1, width: '100%', minHeight: 168, px: 2, py: 3, textAlign: 'center', cursor: 'pointer',
-          color: 'var(--muted)', bgcolor: dragOver ? 'var(--hover)' : 'var(--field)',
-          border: `1.5px dashed ${dragOver ? 'var(--accent)' : 'var(--line)'}`,
-          borderRadius: 'var(--radius-lg)',
-          transition:
-            'border-color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out)',
-          '&:hover': { borderColor: 'var(--accent)', bgcolor: 'var(--hover)' },
-          '&.Mui-disabled': { opacity: 0.6, cursor: 'default' },
-          '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-        }}
+        className={cn(
+          'flex flex-col items-center justify-center gap-1.5 w-full min-h-[168px] px-3 py-[18px] text-center cursor-pointer',
+          'text-[var(--muted)] border-[1.5px] border-dashed rounded-[var(--radius-lg)]',
+          'transition-[border-color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-out)]',
+          'hover:border-[var(--accent)] hover:bg-[var(--hover)]',
+          'focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+          'disabled:opacity-60 disabled:cursor-default',
+          dragOver ? 'bg-[var(--hover)] border-[var(--accent)]' : 'bg-[var(--field)] border-[var(--line)]',
+        )}
       >
         {loading ? (
-          <div className="inline-flex text-[var(--accent)]" style={{ animation: `${spin} 0.8s linear infinite` }}>
+          <div className="inline-flex text-[var(--accent)] animate-spin [animation-duration:0.8s]">
             <Loader2 size={28} strokeWidth={1.75} />
           </div>
         ) : fileName ? (
@@ -178,7 +172,7 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
             .html · .htm · .json · .md
           </div>
         ) : null}
-      </ButtonBase>
+      </button>
 
       {error ? (
         <div className="text-[var(--text-sm)] text-[var(--err,_#c0392b)]" role="alert">
@@ -200,25 +194,26 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
       ) : null}
 
       <div className="flex justify-end">
-        <ButtonBase
+        <button
+          type="button"
           onClick={openPicker}
           disabled={loading}
-          sx={{
-            display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 2.5, height: 40,
-            borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)',
-            fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-md)', cursor: 'pointer',
-            '&.Mui-disabled': { opacity: 0.5 }, '&:hover': { bgcolor: 'var(--accent-deep, var(--accent))' },
-          }}
+          className={
+            'inline-flex items-center gap-[4.5px] px-[15px] h-10 rounded-[var(--radius-md)] cursor-pointer '
+            + 'bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-deep,var(--accent))] disabled:opacity-50 '
+            + 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2'
+          }
+          style={{ fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-md)' }}
         >
           {loading ? (
-            <div className="inline-flex" style={{ animation: `${spin} 0.8s linear infinite` }}>
+            <div className="inline-flex animate-spin [animation-duration:0.8s]">
               <Loader2 size={15} strokeWidth={2} />
             </div>
           ) : (
             <FileUp size={15} strokeWidth={2} />
           )}
           {loading ? 'Lecture en cours…' : 'Choisir un fichier'}
-        </ButtonBase>
+        </button>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Switch } from '@mui/material';
+import { Switch } from '../../components/ui';
 
 /**
  * Primitives de formulaire partagées par les onglets « Réservation & accueil »
@@ -52,6 +52,8 @@ export const ToggleRow: React.FC<{
         {description}
       </span>
     </div>
-    <Switch checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    {/* Le libelle de la ligne nomme le reglage : il est repris en aria-label,
+        faute d'etiquette <label> associable dans ce gabarit. */}
+    <Switch aria-label={label} checked={checked} onCheckedChange={onChange} />
   </div>
 );

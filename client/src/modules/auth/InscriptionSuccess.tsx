@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Box, Paper, Alert, ThemeProvider, CssBaseline } from '@mui/material';
-import { Button } from '../../components/ui';
+// ThemeProvider / CssBaseline restent MUI : cette page est montee hors du shell
+// applicatif et BaitlyMarkLogo lit encore le theme MUI (useTheme).
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { MarkEmailRead, ErrorOutline, Send as SendIcon } from '../../icons';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
@@ -63,16 +65,7 @@ export default function InscriptionSuccess() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)' }}>
-        <Paper elevation={8} sx={{
-          p: { xs: 3, sm: 4 },
-          width: '100%',
-          maxWidth: 480,
-          borderRadius: 3,
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          textAlign: 'center',
-        }}>
+        <div className="p-[18px] min-[600px]:p-6 w-full max-w-[480px] rounded-[24px] bg-[rgba(255,255,255,0.95)] backdrop-blur-[10px] border border-solid border-[rgba(255,255,255,0.2)] shadow-[0_8px_24px_rgba(0,0,0,0.16)] text-center">
           {/* Logo */}
           <div className="mb-3">
             <BaitlyMarkLogo scale={1.1} />
@@ -89,19 +82,11 @@ export default function InscriptionSuccess() {
 
           {status === 'success' && (
             <div className="py-4">
-              <Box component="span" sx={{
-                display: 'inline-flex',
-                color: 'primary.main',
-                mb: 2,
-                animation: 'scaleIn 0.4s ease-out',
-                '@keyframes scaleIn': {
-                  '0%': { transform: 'scale(0)', opacity: 0 },
-                  '60%': { transform: 'scale(1.15)' },
-                  '100%': { transform: 'scale(1)', opacity: 1 },
-                },
-              }}>
+              {/* Le rebond du keyframe maison n'a pas d'equivalent en classe :
+                  l'entree zoom+fade du kit rend la meme intention. */}
+              <span className="inline-flex text-[var(--mui-primary)] mb-3 animate-in zoom-in-50 fade-in-0 duration-[400ms] ease-out">
                 <MarkEmailRead size={72} strokeWidth={1.75} />
-              </Box>
+              </span>
               <h5 className="cn-text-h5 font-bold mb-1.5 text-foreground">
                 {t('auth.inscriptionSuccess.successTitle', 'Verifiez votre boite email')}
               </h5>
@@ -121,8 +106,8 @@ export default function InscriptionSuccess() {
               </p>
 
               {resendMessage && (
-                <Alert severity="success" sx={{ mb: 2, textAlign: 'left' }}>
-                  {resendMessage}
+                <Alert variant="success" className="mb-3 text-start">
+                  <AlertDescription>{resendMessage}</AlertDescription>
                 </Alert>
               )}
 
@@ -162,7 +147,7 @@ export default function InscriptionSuccess() {
               </Button>
             </div>
           )}
-        </Paper>
+        </div>
       </div>
     </ThemeProvider>
   );

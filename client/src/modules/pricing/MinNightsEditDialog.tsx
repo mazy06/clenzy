@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Spinner, Field, FieldLabel, FieldDescription, FieldError, Input } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui';
 import { NightsStay } from '../../icons';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -53,13 +53,16 @@ const MinNightsEditDialog: React.FC<MinNightsEditDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <NightsStay size={18} strokeWidth={1.75} />
-        Définir le minimum de nuits
-      </DialogTitle>
-      <DialogContent>
-        <div className="pt-1.5 flex flex-col gap-3">
+    // maxWidth="xs" + fullWidth MUI = pleine largeur plafonnee a 444 px.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="w-full sm:max-w-[444px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-1.5 pe-8">
+            <NightsStay size={18} strokeWidth={1.75} />
+            Définir le minimum de nuits
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-3">
           <p className="cn-text-body2 text-muted-foreground">
             {formatDateRange(selectedDates)}
             {selectedDates.length > 1 && (
@@ -95,19 +98,19 @@ const MinNightsEditDialog: React.FC<MinNightsEditDialogProps> = ({
             les dates sélectionnées.
           </span>
         </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose} disabled={loading}>
+            Annuler
+          </Button>
+          <Button
+            onClick={handleApply}
+            disabled={loading || !minNights}
+          >
+            {loading && <Spinner className="size-4" />}
+            Appliquer
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button variant="outline" onClick={handleClose} disabled={loading}>
-          Annuler
-        </Button>
-        <Button
-          onClick={handleApply}
-          disabled={loading || !minNights}
-        >
-          {loading && <Spinner className="size-4" />}
-          Appliquer
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

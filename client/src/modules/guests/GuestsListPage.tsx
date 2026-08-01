@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Paper, Skeleton } from '@mui/material';
+import { Skeleton } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Field,
@@ -26,12 +27,7 @@ import PagePagination from '../../components/PagePagination';
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 // Carte hairline plate (pattern .pd-card — tokens, r14, aucune ombre au repos).
-const CARD_SX = {
-  border: '1px solid var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-} as const;
+const CARD_CLS = 'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px]';
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
 
@@ -152,7 +148,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
       )}
 
       {/* Filters */}
-      <Paper sx={{ ...CARD_SX, p: 2, mb: 2 }}>
+      <div className={cn(CARD_CLS, 'p-3 mb-3')}>
         <div className="flex gap-3 flex-wrap">
           <Field className="min-w-[260px] flex-1">
             <FieldLabel htmlFor="guests-search">Rechercher</FieldLabel>
@@ -182,22 +178,22 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
             </NativeSelect>
           </Field>
         </div>
-      </Paper>
+      </div>
 
       {/* Loading skeletons */}
       {isLoading && (
-        <Paper sx={{ ...CARD_SX, p: 2 }}>
+        <div className={cn(CARD_CLS, 'p-3')}>
           {[...Array(6)].map((_, i) => (
             <div className="flex items-center gap-2 py-1.5" key={i}>
-              <Skeleton variant="rounded" width={34} height={34} sx={{ borderRadius: '13px' }} />
+              <Skeleton className="w-[34px] h-[34px] rounded-[13px] shrink-0" />
               <div className="flex-1">
-                <Skeleton variant="text" width="32%" height={18} />
-                <Skeleton variant="text" width="48%" height={14} />
+                <Skeleton className="w-[32%] h-[18px]" />
+                <Skeleton className="w-[48%] h-[14px] mt-1" />
               </div>
-              <Skeleton variant="rounded" width={64} height={22} sx={{ borderRadius: 999 }} />
+              <Skeleton className="w-16 h-[22px] rounded-full shrink-0" />
             </div>
           ))}
-        </Paper>
+        </div>
       )}
 
       {isError && (
@@ -220,7 +216,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
 
       {/* Table */}
       {!isLoading && !isError && guests.length > 0 && (
-        <Paper sx={CARD_SX}>
+        <div className={CARD_CLS}>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -315,7 +311,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
               setPage(0);
             }}
           />
-        </Paper>
+        </div>
       )}
     </div>
   );

@@ -1,5 +1,8 @@
 import React from 'react';
 import { Spinner } from './ui';
+// Autocomplete + TextField restent MUI et ensemble : `renderInput` recoit des
+// props internes de l'Autocomplete (ref d'ancrage, handlers de clavier, etat de
+// popup) qu'aucun primitif du kit ne sait accepter.
 import { Autocomplete, TextField } from '@mui/material';
 import { LocationCity as LocationCityIcon } from '../icons';
 import { useCityAutocomplete } from '../hooks/useCityAutocomplete';

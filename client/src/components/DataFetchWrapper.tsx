@@ -1,7 +1,6 @@
 import React, { ReactNode } from 'react';
-import { Spinner, Button } from './ui';
-import { CircularProgress, Alert, Skeleton, Card, CardContent } from '@mui/material';
-import { Refresh as RefreshIcon } from '../icons';
+import { Spinner, Button, Alert, Skeleton, Card, CardContent } from './ui';
+import { Refresh as RefreshIcon, ErrorOutline, Close as CloseIcon } from '../icons';
 
 /**
  * Wrapper réutilisable pour le rendu conditionnel basé sur l'état de chargement/erreur.
@@ -49,14 +48,14 @@ interface DataFetchWrapperProps {
 
 // Composant skeleton pour les cartes
 const CardSkeleton: React.FC = () => (
-  <Card sx={{ mb: 2 }}>
+  <Card className="mb-3">
     <CardContent>
-      <Skeleton variant="text" width="60%" height={28} sx={{ mb: 1 }} />
-      <Skeleton variant="text" width="100%" height={20} />
-      <Skeleton variant="text" width="80%" height={20} />
+      <Skeleton className="h-7 w-[60%] mb-1.5" />
+      <Skeleton className="h-5 w-full mb-1" />
+      <Skeleton className="h-5 w-[80%]" />
       <div className="flex gap-1.5 mt-2">
-        <Skeleton variant="rounded" width={80} height={24} />
-        <Skeleton variant="rounded" width={60} height={24} />
+        <Skeleton className="h-6 w-20 rounded-md" />
+        <Skeleton className="h-6 w-[60px] rounded-md" />
       </div>
     </CardContent>
   </Card>
@@ -70,7 +69,8 @@ const CenteredSpinner: React.FC<{ size: number; message?: string; minHeight: str
 }) => (
   // minHeight vient des props (runtime) : style inline, pas de classe Tailwind.
   <div className="flex flex-col justify-center items-center gap-[9px]" style={{ minHeight }}>
-    <CircularProgress size={size} thickness={3.5} sx={{ color: 'var(--accent)' }} />
+    {/* La taille vient des props (runtime) : style inline, pas de classe Tailwind. */}
+    <Spinner className="text-[var(--accent)]" style={{ width: size, height: size }} />
     {message && (
       <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
         {message}
@@ -85,31 +85,29 @@ const ErrorDisplay: React.FC<{
   onRetry?: () => void;
   onClearError?: () => void;
 }> = ({ error, onRetry, onClearError }) => (
+  // Alerte -soft hairline (pattern .rm-conflict). Le contenu est pose dans une
+  // rangee flex plutot que dans AlertAction : le libelle « Reessayer » depasse
+  // la gouttiere de 72px que le primitif reserve a une action absolue.
   <Alert
-    severity="error"
-    sx={{
-      mb: 2,
-      py: 1,
-      // Alerte -soft hairline (pattern .rm-conflict)
-      bgcolor: 'var(--err-soft)',
-      border: '1px solid color-mix(in srgb, var(--err) 30%, transparent)',
-      borderRadius: '12px',
-      color: 'var(--body)',
-      fontSize: '12.5px',
-      '& .MuiAlert-icon': { color: 'var(--err)' },
-    }}
-    onClose={onClearError}
-    action={
-      onRetry ? (
+    variant="destructive"
+    className="mb-3 py-1.5 bg-[var(--err-soft)] border border-solid border-[color-mix(in_srgb,var(--err)_30%,transparent)] rounded-[12px]"
+  >
+    <div className="flex items-center gap-2 w-full">
+      <ErrorOutline size={16} strokeWidth={1.75} className="text-[var(--err)] shrink-0" />
+      <span className="flex-1 text-[12.5px] text-[var(--body)]">{error}</span>
+      {onRetry && (
         // Action d'appoint dans une alerte : ghost, pas de cadre au repos.
         <Button variant="ghost" size="sm" onClick={onRetry}>
           <RefreshIcon size={13} strokeWidth={1.75} />
           Réessayer
         </Button>
-      ) : undefined
-    }
-  >
-    {error}
+      )}
+      {onClearError && (
+        <Button variant="ghost" size="icon-sm" aria-label="Fermer l'erreur" onClick={onClearError}>
+          <CloseIcon size={14} strokeWidth={1.75} />
+        </Button>
+      )}
+    </div>
   </Alert>
 );
 

@@ -13,7 +13,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Box, IconButton, Tooltip } from '@mui/material';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { Send, SmartToy } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { ConversationTurn } from '../types';
@@ -105,32 +105,29 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
             'disabled:cursor-not-allowed disabled:text-[var(--faint)]'
           }
         />
-        <Tooltip title={t('supervision.chat.send', 'Envoyer')} arrow>
-          {/* span : Tooltip a besoin d'un enfant montable même quand le bouton est désactivé */}
-          <span>
-            <IconButton
-              onClick={submit}
-              disabled={busy || value.trim().length === 0}
-              aria-label={t('supervision.chat.send', 'Envoyer')}
-              size="small"
-              sx={{
+        <Tooltip>
+          {/* span : le trigger a besoin d'un enfant montable qui porte une ref,
+              meme quand le bouton est desactive */}
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button
+                onClick={submit}
+                disabled={busy || value.trim().length === 0}
+                aria-label={t('supervision.chat.send', 'Envoyer')}
                 // Token d'accent de la session (var(--accent)) — pas le primary
                 // MUI figé sur l'indigo par défaut.
-                color: 'var(--on-accent)',
-                bgcolor: 'var(--accent)',
-                width: 34,
-                height: 34,
-                transition: 'background-color 180ms ease, opacity 180ms ease',
-                '&:hover': { bgcolor: 'var(--accent-deep)' },
-                '&.Mui-disabled': {
-                  bgcolor: 'var(--accent-soft)',
-                  color: 'var(--accent)',
-                },
-              }}
-            >
-              <Send size={16} strokeWidth={2} />
-            </IconButton>
-          </span>
+                className={
+                  'size-[34px] rounded-full bg-[var(--accent)] text-[var(--on-accent)] ' +
+                  'transition-[background-color,opacity] duration-[180ms] ' +
+                  'hover:bg-[var(--accent-deep)] ' +
+                  'disabled:opacity-100 disabled:bg-[var(--accent-soft)] disabled:text-[var(--accent)]'
+                }
+              >
+                <Send size={16} strokeWidth={2} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('supervision.chat.send', 'Envoyer')}</TooltipContent>
         </Tooltip>
       </div>
     </div>
@@ -163,40 +160,21 @@ function ConversationBubble({ turn }: { turn: ConversationTurn }) {
 
 function ThinkingRow({ label }: { label: string }) {
   return (
-    <Box
-      role="status"
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 0.75,
-        color: 'var(--accent)',
-        fontSize: 12,
-        fontWeight: 600,
-        '@keyframes supervisionDotPulse': {
-          '0%, 80%, 100%': { opacity: 0.25 },
-          '40%': { opacity: 1 },
-        },
-      }}
-    >
+    <div role="status" className="flex items-center gap-[4.5px] text-[var(--accent)] text-[12px] font-semibold">
       <SmartToy size={14} />
       <span>{label}</span>
       <span className="inline-flex gap-[3px] ms-[1.5px]">
+        {/* Les keyframes maison vivaient dans le `sx` Emotion : on reprend la
+            pulsation `pulse` fournie par Tailwind, au meme rythme (1,2 s). Le
+            decalage depend de l'index a l'execution → style inline. */}
         {[0, 1, 2].map((i) => (
-          <Box
+          <span
             key={i}
-            component="span"
-            sx={{
-              width: 4,
-              height: 4,
-              borderRadius: '50%',
-              bgcolor: 'var(--accent)',
-              animation: 'supervisionDotPulse 1.2s infinite ease-in-out',
-              animationDelay: `${i * 0.16}s`,
-              '@media (prefers-reduced-motion: reduce)': { animation: 'none', opacity: 0.6 },
-            }}
+            className="size-[4px] rounded-full bg-[var(--accent)] animate-[pulse_1.2s_ease-in-out_infinite] motion-reduce:animate-none motion-reduce:opacity-60"
+            style={{ animationDelay: `${i * 0.16}s` }}
           />
         ))}
       </span>
-    </Box>
+    </div>
   );
 }

@@ -1,6 +1,13 @@
 import React from 'react';
-import { Button, Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import {
+  Button,
+  Spinner,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../../components/ui';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 
 interface PropertyStatusToggleDialogProps {
@@ -23,38 +30,40 @@ const PropertyStatusToggleDialog: React.FC<PropertyStatusToggleDialogProps> = ({
   return (
     <Dialog
       open={!!property}
-      onClose={pending ? undefined : onClose}
+      onOpenChange={(next) => { if (!next && !pending) onClose(); }}
     >
-      <DialogTitle>
-        {isActive ? 'Désactiver cette propriété ?' : 'Réactiver cette propriété ?'}
-      </DialogTitle>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {isActive ? 'Désactiver cette propriété ?' : 'Réactiver cette propriété ?'}
+          </DialogTitle>
+        </DialogHeader>
         <p className="cn-text-body1 text-[13px] text-[var(--body)]">
           {property && <><strong>{property.name}</strong>{' '}</>}
           {isActive
             ? 'ne sera plus visible dans le planning, les recherches et le booking engine. Tu pourras la réactiver à tout moment.'
             : 'réapparaîtra dans le planning, les recherches et le booking engine.'}
         </p>
+        <DialogFooter>
+          {/* « Annuler » passe en ghost pour que l'action de droite reste la seule
+              cadree, y compris quand la desactivation la teinte en --warn. */}
+          <Button onClick={onClose} size="sm" variant="ghost" disabled={pending}>
+            Annuler
+          </Button>
+          {/* La desactivation est un geste a avertir : outline teinte --warn.
+              La reactivation est benigne : encre pleine. */}
+          <Button
+            onClick={onConfirm}
+            variant={isActive ? 'outline' : 'default'}
+            size="sm"
+            className={isActive ? 'text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]' : undefined}
+            disabled={pending}
+          >
+            {pending ? <Spinner className="size-3.5" /> : null}
+            {isActive ? 'Désactiver' : 'Réactiver'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        {/* « Annuler » passe en ghost pour que l'action de droite reste la seule
-            cadree, y compris quand la desactivation la teinte en --warn. */}
-        <Button onClick={onClose} size="sm" variant="ghost" disabled={pending}>
-          Annuler
-        </Button>
-        {/* La desactivation est un geste a avertir : outline teinte --warn.
-            La reactivation est benigne : encre pleine. */}
-        <Button
-          onClick={onConfirm}
-          variant={isActive ? 'outline' : 'default'}
-          size="sm"
-          className={isActive ? 'text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]' : undefined}
-          disabled={pending}
-        >
-          {pending ? <Spinner className="size-3.5" /> : null}
-          {isActive ? 'Désactiver' : 'Réactiver'}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

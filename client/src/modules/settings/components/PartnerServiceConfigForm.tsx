@@ -1,9 +1,8 @@
 import React, { useEffect, useId, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
-import { Info } from 'lucide-react';
+import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
 import { Spinner, Button, Field, FieldLabel, Input } from '../../../components/ui';
-import { Alert } from '@mui/material';
 import {
   partnerConnectionApi,
   type PartnerServiceProvider,
@@ -162,9 +161,10 @@ export default function PartnerServiceConfigForm({
       )}
 
       {message && (
-        <Alert severity={message.type} variant="outlined" sx={{ borderRadius: '8px', fontSize: '0.74rem', mt: 1.25 }}>
-          {message.text}
-        </Alert>
+        <UiAlert variant={message.type === 'success' ? 'success' : 'destructive'} className="text-[0.74rem] mt-[7.5px]">
+          {message.type === 'success' ? <CircleCheck /> : <TriangleAlert />}
+          <AlertDescription>{message.text}</AlertDescription>
+        </UiAlert>
       )}
     </div>
   );

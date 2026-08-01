@@ -1,7 +1,8 @@
 /* ============================================================
    <TaskDeckQueue> — file « Attend ta validation » en PILES par type
 
-   Refonte (handoff « Cartes empilées par type »), adaptée à MUI + tokens maison.
+   Refonte (handoff « Cartes empilées par type »), sur les primitifs Baitly UI
+   et les tokens maison.
    Les cartes sont regroupées par type (Finance / Opérations / Communication /
    Revenue / Avis) et empilées en « deck » ; une pile se déplie au clic (une
    seule à la fois), les autres sont floutées. Cartes restylées + en-tête (tri,
@@ -16,8 +17,7 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Box, Collapse, IconButton } from '@mui/material';
-import { Button } from '../../../components/ui';
+import { Button, Collapsible, CollapsibleContent } from '../../../components/ui';
 import {
   Check, ChevronDown, Timer, CreditCard, Schedule, VisibilityOff, Undo, OpenInNew,
 } from '../../../icons';
@@ -151,19 +151,27 @@ function TaskCard({
           {payment ? <Schedule size={13} /> : <VisibilityOff size={13} />}
           {payment ? t('supervision.payment.later', 'Plus tard') : reminder ? t('supervision.reminder.mute', 'Ne plus afficher') : t('supervision.apply.dismiss', 'Ignorer')}
         </Button>
-        <IconButton
-          size="small" onClick={() => setWhy((w) => !w)} aria-expanded={why} aria-label={t('supervision.hitl.why')}
-          sx={{ width: 34, borderRadius: '10px', border: '1px solid var(--line-2)', color: 'var(--accent)', '&:hover': { bgcolor: 'transparent' } }}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setWhy((w) => !w)}
+          aria-expanded={why}
+          aria-label={t('supervision.hitl.why')}
+          className="w-[34px] rounded-[10px] border border-solid border-[var(--line-2)] text-[var(--accent)] hover:bg-transparent"
         >
           <ChevronDown size={16} style={{ transform: why ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
-        </IconButton>
+        </Button>
       </div>
 
-      <Collapse in={why} unmountOnExit>
-        <div className="mt-2 pt-2 border-t border-[var(--line)] text-[11.5px] leading-[1.5] text-[var(--muted)]">
-          {action.reasoning}
-        </div>
-      </Collapse>
+      {/* Collapsible pilote (pas de trigger interne) : le bouton « Pourquoi ? »
+          ci-dessus porte deja l'etat `why`. */}
+      <Collapsible open={why}>
+        <CollapsibleContent>
+          <div className="mt-2 pt-2 border-t border-solid border-t-[var(--line)] text-[11.5px] leading-[1.5] text-[var(--muted)]">
+            {action.reasoning}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
@@ -354,21 +362,21 @@ function TaskDeckQueueInner({ actions, onValidate, onEdit, onAdjustPrice, varian
   if (variant === 'floating' && groups.length === 0 && !undo) return null;
 
   return (
-    <Box
+    <div
       ref={rootRef}
       data-pending-queue
       data-vertical-scroll
-      sx={{
-        display: 'flex', flexDirection: 'column', gap: '14px',
-        width: variant === 'floating' ? 320 : '100%',
-        pt: '10px', pr: '9px', pb: '12px',
-        ...(variant === 'floating'
-          ? { maxHeight: 'max(220px, calc(100vh - 300px))', overflowY: 'auto', '&::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none', msOverflowStyle: 'none' }
-          : { overflowY: 'visible' }),
-        overscrollBehavior: 'contain',
-        '@keyframes deckCascadeIn': { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'none' } },
-      }}
+      className={cn(
+        'flex flex-col gap-[14px] pt-[10px] pe-[9px] pb-3 overscroll-contain',
+        variant === 'floating'
+          ? 'w-[320px] max-h-[max(220px,calc(100vh_-_300px))] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+          : 'w-full overflow-y-visible',
+      )}
     >
+      {/* La keyframe vivait dans le `sx` du conteneur ; elle est consommee par les
+          `style` inline des cartes et du toast, donc elle doit rester declaree. */}
+      <style>{'@keyframes deckCascadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}'}</style>
+
       {groups.map(({ type, actions: list }) => (
         <TaskStack
           key={type}
@@ -403,6 +411,6 @@ function TaskDeckQueueInner({ actions, onValidate, onEdit, onAdjustPrice, varian
           </Button>
         </div>
       )}
-    </Box>
+    </div>
   );
 }

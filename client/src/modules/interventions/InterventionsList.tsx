@@ -3,7 +3,11 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { MenuItem, Alert, Menu, IconButton, Tooltip } from '@mui/material';
+// Menu MUI conserve : son ancre est l'`anchorEl` memorise par le hook
+// `useInterventionsList` (hors de ce composant). Un DropdownMenu Radix exige
+// que son declencheur vive dans son propre arbre.
+import { MenuItem, Menu } from '@mui/material';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
@@ -34,15 +38,13 @@ interface InterventionsListProps {
   filtersContainer?: HTMLElement | null;
 }
 
-const iconButtonSx = {
-  p: 0.5,
-  borderRadius: '9px',
-  border: '1px solid',
-  borderColor: 'var(--line-2)',
-  color: 'var(--muted)',
-  '&:hover': { bgcolor: 'var(--hover)', borderColor: 'var(--faint)', color: 'var(--ink)' },
-  '& .MuiSvgIcon-root': { fontSize: 18 },
-} as const;
+const ICON_BUTTON_CLASS =
+  'p-[3px] rounded-[9px] border border-solid border-[var(--line-2)] text-[var(--muted)] '
+  + 'hover:bg-[var(--hover)] hover:border-[var(--faint)] hover:text-[var(--ink)]';
+
+const ICON_BUTTON_ACCENT_CLASS =
+  'p-[3px] rounded-[9px] border border-solid border-[var(--accent)] text-[var(--accent)] '
+  + 'hover:bg-[var(--accent-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)]';
 
 export default function InterventionsList({ embedded = false, actionsContainer, filtersContainer }: InterventionsListProps) {
   const {
@@ -290,26 +292,42 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
         fileName="interventions"
         variant="icon"
       />
-      <Tooltip title={t('common.refresh')}>
-        <IconButton
-          onClick={loadInterventions}
-          disabled={loading}
-          size="small"
-          sx={iconButtonSx}
-        >
-          <Refresh size={18} strokeWidth={1.75} />
-        </IconButton>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {/* span : un bouton desactive n'emet pas d'evenement de survol, et le
+              Button du kit (fonction, React 18) ne transmet pas de ref. */}
+          <span className="inline-flex">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('common.refresh')}
+              onClick={loadInterventions}
+              disabled={loading}
+              className={ICON_BUTTON_CLASS}
+            >
+              <Refresh size={18} strokeWidth={1.75} />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{t('common.refresh')}</TooltipContent>
       </Tooltip>
       {/* Seuls les ADMIN et MANAGER peuvent créer des interventions manuellement */}
       {canCreateInterventions && (isAdmin() || isManager()) && (
-        <Tooltip title={t('interventions.create')}>
-          <IconButton
-            size="small"
-            onClick={() => navigate('/interventions/new')}
-            sx={{ ...iconButtonSx, color: 'var(--accent)', borderColor: 'var(--accent)', '&:hover': { bgcolor: 'var(--accent-soft)', borderColor: 'var(--accent)', color: 'var(--accent)' } }}
-          >
-            <AddIcon size={20} strokeWidth={1.75} />
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t('interventions.create')}
+                onClick={() => navigate('/interventions/new')}
+                className={ICON_BUTTON_ACCENT_CLASS}
+              >
+                <AddIcon size={20} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('interventions.create')}</TooltipContent>
         </Tooltip>
       )}
     </div>
@@ -377,9 +395,10 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
       )}
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1, flexShrink: 0 }}>
-          {error}
-        </Alert>
+        <UiAlert variant="destructive" className="mb-3 py-1.5 shrink-0">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </UiAlert>
       )}
 
       {/* ─── Liste des interventions ─────────────────────────────────────────── */}

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Alert, AlertDescription, Button } from '../../components/ui';
+import { Alert, AlertDescription, Button, Card, CardContent } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent } from '@mui/material';
 import {
   Group,
   Edit,
@@ -129,8 +128,10 @@ const TeamDetails: React.FC = () => {
       />
 
       {/* Row 1: Carte principale avec résumé */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent sx={{ p: 4 }}>
+      {/* `--card-spacing` porte le p:4 d'origine (24 px) : la Card du kit pose le
+          padding vertical, CardContent l'horizontal. */}
+      <Card className="mb-[18px] [--card-spacing:24px]">
+        <CardContent>
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-3">
               {getInterventionTypeIcon(team.interventionType)}

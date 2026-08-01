@@ -1,11 +1,22 @@
 import React from 'react';
-import { Typography, Tooltip } from '@mui/material';
-import { Field, FieldLabel, FieldDescription, InputGroup, InputGroupInput, InputGroupAddon } from '../ui';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  InputGroup,
+  InputGroupInput,
+  InputGroupAddon,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../ui';
 import { CheckCircle, CreditCard, Mail } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-import { SEC_SX } from './reservationDialogStyles';
+
+/** Transcription de `SEC_SX` (reservationDialogStyles) — overline de section .rm-sec. */
+const SEC_CLASS = 'text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)]';
 
 interface Props {
   form: UseReservationFormResult;
@@ -44,25 +55,31 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
     <>
       {/* Intention : confirmer maintenant / demander le paiement (déplacé de l'entête) */}
       <div className="inline-flex w-full gap-[2px] p-[3px] rounded-[10px] border border-solid border-[var(--field-line)] bg-[var(--field)]">
-        <Tooltip title={t('reservations.dialog.confirmNowHint')} arrow>
-          <button
-            type="button"
-            onClick={() => form.setPaymentIntent('confirm_now')}
-            className={segBtnClass(form.paymentIntent === 'confirm_now')}
-          >
-            <CheckCircle size={14} strokeWidth={1.75} />
-            {t('reservations.dialog.confirmNow')}
-          </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => form.setPaymentIntent('confirm_now')}
+              className={segBtnClass(form.paymentIntent === 'confirm_now')}
+            >
+              <CheckCircle size={14} strokeWidth={1.75} />
+              {t('reservations.dialog.confirmNow')}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{t('reservations.dialog.confirmNowHint')}</TooltipContent>
         </Tooltip>
-        <Tooltip title={t('reservations.dialog.requestPaymentHint')} arrow>
-          <button
-            type="button"
-            onClick={() => form.setPaymentIntent('request_payment')}
-            className={segBtnClass(form.paymentIntent === 'request_payment')}
-          >
-            <CreditCard size={14} strokeWidth={1.75} />
-            {t('reservations.dialog.requestPayment')}
-          </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => form.setPaymentIntent('request_payment')}
+              className={segBtnClass(form.paymentIntent === 'request_payment')}
+            >
+              <CreditCard size={14} strokeWidth={1.75} />
+              {t('reservations.dialog.requestPayment')}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{t('reservations.dialog.requestPaymentHint')}</TooltipContent>
         </Tooltip>
       </div>
 
@@ -91,7 +108,7 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
 
       {/* Récapitulatif lecture seule */}
       <div className="flex flex-col gap-[10px] rounded-[12px] border border-solid border-[var(--line)] bg-[var(--surface-2)] px-[18px] py-4">
-        <Typography sx={SEC_SX}>{t('reservations.dialog.recapTitle')}</Typography>
+        <p className={SEC_CLASS}>{t('reservations.dialog.recapTitle')}</p>
         {recapRows.map((row) => (
           <div className="flex items-baseline justify-between gap-3" key={row.label}>
             <p className="cn-text-body1 text-[12px] font-semibold text-[var(--muted)] shrink-0">{row.label}</p>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent } from '@mui/material';
+import { Card, CardContent } from '../../../components/ui';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -13,30 +13,7 @@ import type { BenchmarkMetrics } from '../../../hooks/useAnalyticsEngine';
 
 const LEGEND_STYLE = { fontSize: 10, letterSpacing: '0.02em' } as const;
 
-const CHART_CARD_SX = {
-  width: '100%',
-  height: 240,
-} as const;
-
-const CHART_CONTENT_SX = {
-  p: 1.25,
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  '&:last-child': { pb: 1.25 },
-} as const;
-
-const SECTION_LABEL_SX = {
-  fontSize: '0.6875rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.04em',
-  color: 'text.secondary',
-  mb: 0.5,
-  flexShrink: 0,
-} as const;
-
-/** Report en classes de `SECTION_LABEL_SX` (mb 0.5 = 3 px, theme.spacing vaut 6). */
+/** Intitule de section (mb 0.5 de l'ancien sx = 3 px, theme.spacing valait 6). */
 const SECTION_LABEL_CLASS =
   'cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.04em] text-[var(--muted)] mb-[3px] shrink-0';
 
@@ -57,8 +34,8 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
       <div className="grid grid-cols-12 gap-[9px]">
         {/* Radar chart */}
         <div className="col-span-12 min-[900px]:col-span-6">
-          <Card sx={CHART_CARD_SX}>
-            <CardContent sx={CHART_CONTENT_SX}>
+          <Card className="w-full h-[240px] gap-0 p-0">
+            <CardContent className="p-2 h-full flex flex-col">
               <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.portfolioVsBest')}
               </p>

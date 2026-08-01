@@ -1,6 +1,12 @@
 import React from 'react';
-import { Drawer, IconButton, Divider } from '@mui/material';
-import { Button } from '../../components/ui';
+import {
+  Button,
+  Separator,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from '../../components/ui';
 import {
   Close,
   Add,
@@ -46,38 +52,32 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
   const isEmpty = cartItems.length === 0;
 
   return (
-    <Drawer
-      anchor="right"
-      open={open}
-      onClose={onClose}
-      PaperProps={{
-        sx: { width: { xs: '100%', sm: 420 }, maxWidth: '100vw' },
-      }}
-    >
+    <Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* Le panneau porte deja son propre bouton Fermer dans l'en-tete. */}
+      <SheetContent side="right" showCloseButton={false} className="w-full min-[600px]:w-[420px] max-w-[100vw] p-0 gap-0">
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="flex items-center justify-between px-3.5 py-3 border-b border-[var(--line)]">
+        <div className="flex items-center justify-between px-3.5 py-3 border-b border-solid border-[var(--line)]">
           <div className="flex items-center gap-1.5">
-            <h6 className="cn-text-h6 font-semibold font-[family-name:var(--font-display)] text-[1.05rem] tracking-[-0.01em] text-[var(--ink)]">
+            <SheetTitle className="cn-text-h6 font-semibold font-[family-name:var(--font-display)] text-[1.05rem] tracking-[-0.01em] text-[var(--ink)]">
               {t('shop.cart')}
-            </h6>
+            </SheetTitle>
+            <SheetDescription className="sr-only">{t('shop.cart')}</SheetDescription>
             {totalItems > 0 && (
               <div className="text-[0.6875rem] font-bold px-1.5 py-0 rounded-[5px] bg-[var(--accent-soft)] text-[var(--accent)] tabular-nums tracking-[0.02em]">
                 {totalItems}
               </div>
             )}
           </div>
-          <IconButton
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={onClose}
-            size="small"
             aria-label="Fermer"
-            sx={{
-              color: 'text.secondary',
-              '&:hover': { color: 'text.primary' },
-            }}
+            className="text-[var(--muted)] hover:text-[var(--ink)]"
           >
             <Close size={18} strokeWidth={1.75} />
-          </IconButton>
+          </Button>
         </div>
 
         {/* Cart items */}
@@ -118,58 +118,41 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                           {product.sku}
                         </p>
                       </div>
-                      <IconButton
-                        size="small"
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
                         onClick={() => onRemoveItem(product.id)}
                         aria-label="Retirer du panier"
-                        sx={{
-                          color: 'text.disabled',
-                          p: 0.25,
-                          '&:hover': { color: 'var(--err)', backgroundColor: 'var(--err-soft)' },
-                        }}
+                        className="text-[var(--faint)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
                       >
                         <Delete size={14} strokeWidth={1.75} />
-                      </IconButton>
+                      </Button>
                     </div>
 
                     <div className="flex items-center justify-between mt-auto pt-0.5">
                       {/* Quantity controls */}
                       <div className="flex items-center gap-0.5">
-                        <IconButton
-                          size="small"
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
                           onClick={() => onUpdateQuantity(product.id, -1)}
                           aria-label="Diminuer"
-                          sx={{
-                            width: 24,
-                            height: 24,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            borderRadius: '6px',
-                            color: 'text.primary',
-                            '&:hover': { borderColor: 'var(--faint)', backgroundColor: 'var(--hover)' },
-                          }}
+                          className="size-6 rounded-[6px] border border-solid border-[var(--line)] text-[var(--ink)] hover:border-[var(--faint)] hover:bg-[var(--hover)]"
                         >
                           <Remove size={12} strokeWidth={2} />
-                        </IconButton>
+                        </Button>
                         <p className="cn-text-body1 font-bold min-w-[22px] text-center text-[0.78rem] text-foreground tabular-nums">
                           {quantity}
                         </p>
-                        <IconButton
-                          size="small"
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
                           onClick={() => onUpdateQuantity(product.id, 1)}
                           aria-label="Augmenter"
-                          sx={{
-                            width: 24,
-                            height: 24,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            borderRadius: '6px',
-                            color: 'text.primary',
-                            '&:hover': { borderColor: 'var(--faint)', backgroundColor: 'var(--hover)' },
-                          }}
+                          className="size-6 rounded-[6px] border border-solid border-[var(--line)] text-[var(--ink)] hover:border-[var(--faint)] hover:bg-[var(--hover)]"
                         >
                           <Add size={12} strokeWidth={2} />
-                        </IconButton>
+                        </Button>
                       </div>
 
                       {/* Line total */}
@@ -208,7 +191,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
               {t('shop.shippingIntl')}
             </p>
 
-            <Divider sx={{ mb: 1.25, borderColor: 'divider' }} />
+            <Separator className="mb-[7.5px]" />
 
             <div className="flex justify-between items-baseline mb-3">
               <p className="cn-text-body1 font-bold text-[0.95rem]">
@@ -229,7 +212,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
           </div>
         )}
       </div>
-    </Drawer>
+      </SheetContent>
+    </Sheet>
   );
 };
 

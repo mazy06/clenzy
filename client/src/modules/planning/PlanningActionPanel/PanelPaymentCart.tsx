@@ -1,8 +1,7 @@
 import React from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Button, Spinner } from '../../../components/ui';
-import { Box, Checkbox, Divider, Alert } from '@mui/material';
+import { Button, Checkbox, Separator, Spinner } from '../../../components/ui';
 import {
   ShoppingCart,
   Payment,
@@ -63,28 +62,22 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
       {/* Cart items */}
       <div className="flex flex-col gap-0.5 mb-2">
         {cartItems.map((item) => (
-          <Box
+          // action.selected de MUI = l'encre a 8 % (soit deux fois action.hover) :
+          // c'est cette valeur qui est reecrite ici, la bordure portant deja la selection.
+          <div
             key={item.interventionId}
             onClick={() => toggleCartItem(item.interventionId)}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.75,
-              p: 0.75,
-              border: '1px solid',
-              borderColor: item.selected ? 'primary.main' : 'divider',
-              borderRadius: 1,
-              cursor: 'pointer',
-              backgroundColor: item.selected ? 'action.selected' : 'transparent',
-              '&:hover': { backgroundColor: 'action.hover' },
-            }}
+            className={
+              'flex items-center gap-1 p-1 rounded-lg border border-solid cursor-pointer hover:bg-[var(--hover)] '
+              + (item.selected
+                ? 'border-[var(--mui-primary)] bg-[color-mix(in_srgb,var(--ink)_8%,transparent)]'
+                : 'border-[var(--line)] bg-transparent')
+            }
           >
             <Checkbox
               checked={item.selected}
-              size="small"
-              sx={{ p: 0.25 }}
               onClick={(e) => e.stopPropagation()}
-              onChange={() => toggleCartItem(item.interventionId)}
+              onCheckedChange={() => toggleCartItem(item.interventionId)}
             />
             <div className="flex-1 min-w-0">
               <p className="cn-text-body1 text-[0.6875rem] font-medium overflow-hidden text-ellipsis whitespace-nowrap">
@@ -94,11 +87,11 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
             <p className="cn-text-body1 text-[0.75rem] font-bold">
               <Money value={item.cost} decimals={0} />
             </p>
-          </Box>
+          </div>
         ))}
       </div>
 
-      <Divider sx={{ mb: 1.5 }} />
+      <Separator className="mb-2.5" />
 
       {/* Total */}
       <div className="flex justify-between items-center mb-2">
@@ -116,9 +109,10 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
         </UiAlert>
       )}
       {paymentSuccess && (
-        <Alert severity="success" icon={<CheckCircle size={18} strokeWidth={1.75} />} sx={{ fontSize: '0.6875rem', mb: 1 }}>
-          Paiement effectué avec succès !
-        </Alert>
+        <UiAlert variant="success" className="text-[0.6875rem] mb-1.5">
+          <CheckCircle size={18} strokeWidth={1.75} />
+          <AlertDescription>Paiement effectué avec succès !</AlertDescription>
+        </UiAlert>
       )}
 
       {/* Pay button */}

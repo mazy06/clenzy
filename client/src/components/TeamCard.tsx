@@ -1,7 +1,14 @@
 import React from 'react';
 import StatusChip from './StatusChip';
-import { Card, CardContent, CardActions, IconButton, Avatar, AvatarGroup } from '@mui/material';
-import { Button } from './ui';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarGroup,
+  AvatarGroupCount,
+  Button,
+  Card,
+  CardContent,
+} from './ui';
 import {
   MoreVert,
   Visibility,
@@ -105,6 +112,9 @@ const getStatusLabel = (status: string): string => {
 
 const INTERVENTION_BLUE = '#6B8A9A';
 
+/** Pastilles d'avatars affichees au maximum, compteur de surplus inclus. */
+const MAX_AVATARS = 4;
+
 const TeamCard: React.FC<TeamCardProps> = React.memo(({
   team,
   onMenuOpen,
@@ -118,6 +128,10 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
   const typeOption = INTERVENTION_TYPE_OPTIONS.find(t => t.value === team.interventionType);
   const typeLabel = typeOption?.label || team.interventionType;
   const members = team.members ?? [];
+  // Le groupe d'avatars du kit ne tronque pas : on reproduit le `max={4}` de MUI
+  // (4 pastilles au total, la derniere devenant le compteur de surplus).
+  const shownMembers = members.slice(0, members.length > MAX_AVATARS ? MAX_AVATARS - 1 : MAX_AVATARS);
+  const surplusMembers = members.length - shownMembers.length;
   const accent = getAccentColor(team.interventionType);
   const TypeIcon = getTypeIconComponent(team.interventionType);
 
@@ -132,28 +146,15 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
       : INTERVENTION_BLUE;
 
   return (
+    // La bordure de survol derive de l'accent de categorie, connu a l'execution :
+    // Tailwind ne peut pas en emettre la classe, on la fait transiter par une
+    // custom property posee en style, que la classe de survol consomme.
     <Card
       onClick={handleViewDetails}
-      sx={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        cursor: 'pointer',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--line)',
-        bgcolor: 'var(--card)',
-        boxShadow: 'none',
-        overflow: 'hidden',
-        transition: 'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 200ms cubic-bezier(0.22, 1, 0.36, 1)',
-        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-        '&:hover': {
-          borderColor: `${accent}66`,
-          boxShadow: 'var(--shadow-card)',
-          transform: 'translateY(-1px)',
-        },
-      }}
+      style={{ '--team-accent': `${accent}66` } as React.CSSProperties}
+      className="h-full cursor-pointer overflow-hidden rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] ring-0 shadow-none [--card-spacing:0px] transition-[border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none hover:border-[var(--team-accent)] hover:shadow-[var(--shadow-card)] hover:-translate-y-px"
     >
-      <CardContent sx={{ flexGrow: 1, p: 1.75, pb: 1.25 }}>
+      <CardContent className="grow p-[10.5px] pb-[7.5px]">
         {/* Header */}
         <div className="flex justify-between items-start mb-2 gap-1.5">
           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -169,14 +170,15 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
               </p>
             </div>
           </div>
-          <IconButton
-            size="small"
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={(e) => { e.stopPropagation(); onMenuOpen(e, team); }}
-            sx={{ p: 0.5, ml: 0.25, color: 'text.secondary' }}
+            className="ms-[1.5px] text-[var(--muted)]"
             aria-label="Options"
           >
             <MoreVert size={16} strokeWidth={1.75} />
-          </IconButton>
+          </Button>
         </div>
 
         {/* Type, statut, charge */}
@@ -192,26 +194,25 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
         <div className="flex items-center justify-between gap-1.5 mb-1">
           {members.length > 0 ? (
             <div className="flex items-center gap-1">
-              <AvatarGroup
-                max={4}
-                sx={{
-                  '& .MuiAvatar-root': {
-                    width: 24,
-                    height: 24,
-                    fontSize: '0.625rem',
-                    fontFamily: 'var(--font-display)',
-                    fontWeight: 600,
-                    border: '2px solid var(--card)',
-                    bgcolor: `${accent}1F`,
-                    color: accent,
-                  },
-                }}
-              >
-                {members.map((member) => (
-                  <Avatar key={member.id}>
-                    {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
+              <AvatarGroup className="*:data-[slot=avatar]:ring-[var(--card)]">
+                {shownMembers.map((member) => (
+                  <Avatar key={member.id} size="sm">
+                    <AvatarFallback
+                      className="text-[0.625rem] font-[family-name:var(--font-display)] font-semibold"
+                      style={{ backgroundColor: `${accent}1F`, color: accent }}
+                    >
+                      {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
+                    </AvatarFallback>
                   </Avatar>
                 ))}
+                {surplusMembers > 0 && (
+                  <AvatarGroupCount
+                    className="text-[0.625rem] font-[family-name:var(--font-display)] font-semibold ring-[var(--card)] tabular-nums"
+                    style={{ backgroundColor: `${accent}1F`, color: accent }}
+                  >
+                    +{surplusMembers}
+                  </AvatarGroupCount>
+                )}
               </AvatarGroup>
               <p className="cn-text-body1 text-[0.7rem] text-muted-foreground tabular-nums ms-0.5">
                 {members.length} {members.length > 1 ? 'membres' : 'membre'}
@@ -252,15 +253,16 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
         )}
       </CardContent>
 
-      {/* Actions */}
-      <CardActions sx={{ pt: 0, px: 1.75, pb: 1.5, gap: 0.75 }}>
-        {/* Pied de carte : deux actions de meme rang, la carte entiere etant
-            deja cliquable. Le survol teinte a l'accent de categorie disparait
-            au profit du survol du kit — il dependait d'une valeur calculee. */}
+      {/* Actions — pied de carte : deux actions de meme rang, la carte entiere
+          etant deja cliquable. Le survol teinte a l'accent de categorie
+          disparait au profit du survol du kit — il dependait d'une valeur
+          calculee. `shrink` neutralise le `shrink-0` du Button, sans quoi deux
+          boutons `w-full` freres deborderaient. */}
+      <div className="flex items-center gap-[4.5px] px-[10.5px] pt-0 pb-[9px]">
         <Button
           variant="outline"
           size="sm"
-          className="w-full"
+          className="w-full shrink"
           onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
         >
           <Visibility strokeWidth={1.75} />
@@ -270,14 +272,14 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
           <Button
             variant="outline"
             size="sm"
-            className="w-full"
+            className="w-full shrink"
             onClick={(e) => { e.stopPropagation(); navigate(`/teams/${team.id}/edit`); }}
           >
             <Edit strokeWidth={1.75} />
             Modifier
           </Button>
         )}
-      </CardActions>
+      </div>
     </Card>
   );
 });

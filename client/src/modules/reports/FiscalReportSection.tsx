@@ -2,8 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Paper, Skeleton } from '@mui/material';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Skeleton, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Field, FieldLabel, NativeSelect, NativeSelectOption } from '../../components/ui';
 import {
   AccountBalance,
@@ -30,12 +29,7 @@ type PeriodMode = 'monthly' | 'quarterly' | 'annual';
 const CELL_CLASS = 'py-[7.5px] tabular-nums';
 
 // Carte/panneau : hairline --line, r14 (baseline §2 Cartes), aucune ombre.
-const PANEL_SX = {
-  border: '1px solid var(--line)',
-  boxShadow: 'none',
-  borderRadius: 'var(--radius-lg)',
-  bgcolor: 'var(--card)',
-} as const;
+const PANEL_CLASS = 'border border-solid border-[var(--line)] shadow-none rounded-[var(--radius-lg)] bg-[var(--card)]';
 
 const PERIOD_MODE_OPTIONS: { value: PeriodMode; label: string }[] = [
   { value: 'monthly', label: 'Mensuel' },
@@ -100,7 +94,7 @@ const FiscalReportSection: React.FC = () => {
       {helpAction}
 
       {/* Period selector */}
-      <Paper sx={{ ...PANEL_SX, p: 2, mb: 2 }}>
+      <div className={cn(PANEL_CLASS, 'p-3 mb-3')}>
         <div className="flex gap-3 flex-wrap items-center">
           <PeriodSegmented<PeriodMode>
             value={mode}
@@ -158,13 +152,13 @@ const FiscalReportSection: React.FC = () => {
             </Field>
           )}
         </div>
-      </Paper>
+      </div>
 
       {/* Loading / Error */}
       {activeQuery.isLoading ? (
         <div className="flex flex-col gap-2">
-          <Skeleton variant="rounded" height={76} sx={{ borderRadius: 'var(--radius-lg)' }} />
-          <Skeleton variant="rounded" height={200} sx={{ borderRadius: 'var(--radius-lg)' }} />
+          <Skeleton className="h-[76px] w-full rounded-[var(--radius-lg)]" />
+          <Skeleton className="h-[200px] w-full rounded-[var(--radius-lg)]" />
         </div>
       ) : activeQuery.error ? (
         <Alert variant="destructive" className="mb-3">
@@ -189,17 +183,14 @@ const FiscalReportSection: React.FC = () => {
               { label: 'Total TVA', value: <Money value={summary.totalTax} from={summary.currency} /> },
               { label: 'Total TTC', value: <Money value={summary.totalTtc} from={summary.currency} />, primary: true },
             ].map(card => (
-              <Paper
+              <div
                 key={card.label}
-                sx={{
-                  ...PANEL_SX,
-                  p: 1.5, flex: 1, minWidth: 130,
+                className={cn(
+                  PANEL_CLASS,
+                  'p-[9px] flex-1 min-w-[130px]',
                   // KPI accentué (Total TTC) : fond accent-soft + hairline accent 30 %
-                  ...(card.primary && {
-                    bgcolor: 'var(--accent-soft)',
-                    borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)',
-                  }),
-                }}
+                  card.primary && 'bg-[var(--accent-soft)] border-[color-mix(in_srgb,var(--accent)_30%,transparent)]',
+                )}
               >
                 <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-0.5">
                   {card.label}
@@ -207,7 +198,7 @@ const FiscalReportSection: React.FC = () => {
                 <p className={cn('cn-text-body1 font-semibold tracking-[-0.025em] tabular-nums', card.isText ? 'text-[0.9rem]' : 'text-[1.1rem]', card.primary ? 'text-[var(--accent)]' : 'text-[var(--ink)]')} style={{ fontFamily: 'var(--font-display)' }}>
                   {card.value}
                 </p>
-              </Paper>
+              </div>
             ))}
           </div>
 

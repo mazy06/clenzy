@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import BaitlyMarkLogo from '../../../components/BaitlyMarkLogo';
 import type { DisplayMessage } from '../../../hooks/useAgent';
@@ -83,14 +83,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         {/* Modal full-size — declenche par clic sur un thumbnail */}
         <Dialog
           open={fullSizeUrl !== null}
-          onClose={() => setFullSizeUrl(null)}
-          maxWidth="lg"
-          aria-labelledby="attachment-fullsize-title"
+          onOpenChange={(next) => { if (!next) setFullSizeUrl(null); }}
         >
-          <DialogContent sx={{ p: 1.5 }}>
-            <span className="cn-text-caption block mb-1.5 text-[var(--muted)]" id="attachment-fullsize-title">
+          {/* Le titre porte desormais lui-meme l'etiquetage de la modale : le
+              aria-labelledby manuel du Dialog MUI n'a plus lieu d'etre. */}
+          <DialogContent aria-describedby={undefined} className="max-w-[1200px] p-[9px]">
+            <DialogTitle className="cn-text-caption block mb-1.5 text-[var(--muted)]">
               {fullSizeAlt}
-            </span>
+            </DialogTitle>
             {fullSizeUrl && (
               <img className="max-w-full max-h-[80vh] block mx-auto rounded-[10px]" src={fullSizeUrl} alt={fullSizeAlt} />
             )}

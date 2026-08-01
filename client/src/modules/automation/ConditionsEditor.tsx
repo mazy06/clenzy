@@ -1,6 +1,8 @@
 import React from 'react';
 import TagChip from '../../components/TagChip';
-import { Autocomplete, Stack, TextField } from '@mui/material';
+// Autocomplete + son renderInput restent MUI : le TextField y recoit des props
+// internes (ref, InputProps, inputProps) que le kit ne sait pas porter.
+import { Autocomplete, TextField } from '@mui/material';
 import { Field, FieldLabel, Input, NativeSelect } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
@@ -51,7 +53,7 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
         {t('automation.form.conditionsSection', 'Conditions (optionnel)')}
       </span>
 
-      <Stack spacing={1.5}>
+      <div className="flex flex-col gap-[9px]">
         <Autocomplete
           multiple
           size="small"
@@ -78,7 +80,7 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
           )}
         />
 
-        <Stack direction="row" spacing={1.5}>
+        <div className="flex flex-row gap-[9px]">
           <Field>
             <FieldLabel htmlFor="automation-cond-min-nights">
               {t('automation.form.minNights', 'Nuits min.')}
@@ -107,7 +109,7 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
               }
             />
           </Field>
-        </Stack>
+        </div>
 
         <Field>
           <FieldLabel htmlFor="automation-cond-language">
@@ -131,7 +133,7 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
             ))}
           </NativeSelect>
         </Field>
-      </Stack>
+      </div>
     </div>
   );
 };

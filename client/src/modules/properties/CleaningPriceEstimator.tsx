@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Skeleton } from '@mui/material';
+import { Skeleton } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { CleaningServices, TrendingUp, Timer, CheckCircle } from '../../icons';
@@ -295,7 +295,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
       {loading && (
         <div className={CARDS_ROW_CLASS}>
           {CLEANING_TYPES.map((ct) => (
-            <Skeleton key={ct} variant="rounded" height={118} sx={{ borderRadius: '13px' }} />
+            <Skeleton key={ct} className="h-[118px] rounded-[13px]" />
           ))}
         </div>
       )}

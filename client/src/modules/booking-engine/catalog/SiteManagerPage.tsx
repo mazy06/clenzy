@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button } from '../../../components/ui';
-import { Skeleton, Menu, MenuItem } from '@mui/material';
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Skeleton,
+} from '../../../components/ui';
 import { Sparkles, Rocket, AlertTriangle, Check, ArrowUp, Wand2, SquarePen, ChevronDown } from 'lucide-react';
 import { sitesApi, type Site, type SitePage } from '../../../services/api/sitesApi';
 
@@ -84,7 +90,6 @@ export default function SiteManagerPage() {
   const [refining, setRefining] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [turnsByPage, setTurnsByPage] = useState<Record<number, Turn[]>>({});
-  const [pageMenuAnchor, setPageMenuAnchor] = useState<HTMLElement | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
@@ -153,7 +158,7 @@ export default function SiteManagerPage() {
   if ((site === null || pages === null) && !error) {
     return (
       <div className="p-4">
-        <Skeleton variant="rounded" height="80vh" sx={{ borderRadius: '16px', bgcolor: 'var(--hover)' }} />
+        <Skeleton className="h-[80vh] w-full rounded-[16px] bg-[var(--hover)]" />
       </div>
     );
   }
@@ -203,36 +208,37 @@ export default function SiteManagerPage() {
               </div>
               {/* Barre d'adresse = sélecteur de page (remplace la colonne « Pages » retirée). */}
               <div className="flex-1 flex justify-center min-w-0">
-                <button className="inline-flex items-center gap-[4.5px] max-w-full cursor-pointer border border-solid border-[var(--line)] bg-[var(--field,_#fff)] rounded-[var(--radius-pill,_999px)] px-[9px] py-[2.4000000000000004px] text-[var(--muted)] text-[12px] hover:border-[var(--accent)]" style={{ transition: 'border-color 150ms ease' }} type="button" onClick={(e: React.MouseEvent<HTMLButtonElement>) => setPageMenuAnchor(e.currentTarget)} aria-label="Changer de page">
-                  <span className="tabular-nums whitespace-nowrap overflow-hidden text-ellipsis">
-                    {site?.slug ? `${site.slug}.baitly.site` : 'aperçu'}{selected?.path && selected.path !== '/' ? selected.path : ''}
-                  </span>
-                  {selected?.dirty && <div className="w-[6px] h-[6px] rounded-[50%] bg-[var(--accent)] shrink-0" />}
-                  <ChevronDown size={13} strokeWidth={2.2} style={{ flexShrink: 0 }} />
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="inline-flex items-center gap-[4.5px] max-w-full cursor-pointer border border-solid border-[var(--line)] bg-[var(--field,_#fff)] rounded-[var(--radius-pill,_999px)] px-[9px] py-[2.4000000000000004px] text-[var(--muted)] text-[12px] hover:border-[var(--accent)]" style={{ transition: 'border-color 150ms ease' }} type="button" aria-label="Changer de page">
+                      <span className="tabular-nums whitespace-nowrap overflow-hidden text-ellipsis">
+                        {site?.slug ? `${site.slug}.baitly.site` : 'aperçu'}{selected?.path && selected.path !== '/' ? selected.path : ''}
+                      </span>
+                      {selected?.dirty && <div className="w-[6px] h-[6px] rounded-[50%] bg-[var(--accent)] shrink-0" />}
+                      <ChevronDown size={13} strokeWidth={2.2} style={{ flexShrink: 0 }} />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center">
+                    {pages?.map((p) => (
+                      <DropdownMenuItem
+                        key={p.id}
+                        onSelect={() => setSelectedId(p.id)}
+                        className="text-[13px] gap-[9px] min-w-[240px]"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis">{p.title || p.path}</div>
+                          <div className="text-[11px] text-[var(--muted)] tabular-nums">{p.path}</div>
+                        </div>
+                        {p.dirty
+                          ? <div className="w-[7px] h-[7px] rounded-[50%] bg-[var(--accent)] shrink-0" title="Brouillon non publié" />
+                          : <Check size={14} strokeWidth={2.4} color="var(--muted)" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
 
-            <Menu
-              anchorEl={pageMenuAnchor} open={!!pageMenuAnchor} onClose={() => setPageMenuAnchor(null)}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} transformOrigin={{ vertical: 'top', horizontal: 'center' }}
-            >
-              {pages?.map((p) => (
-                <MenuItem
-                  key={p.id} selected={p.id === selectedId}
-                  onClick={() => { setSelectedId(p.id); setPageMenuAnchor(null); }}
-                  sx={{ fontSize: 13, gap: 1.5, minWidth: 240 }}
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis">{p.title || p.path}</div>
-                    <div className="text-[11px] text-[var(--muted)] tabular-nums">{p.path}</div>
-                  </div>
-                  {p.dirty
-                    ? <div className="w-[7px] h-[7px] rounded-[50%] bg-[var(--accent)] shrink-0" title="Brouillon non publié" />
-                    : <Check size={14} strokeWidth={2.4} color="var(--muted)" />}
-                </MenuItem>
-              ))}
-            </Menu>
             <div className="relative flex-1 min-h-0 bg-[#fff]">
               {refining && (
                 <div className="absolute inset-0 bg-[rgba(255,255,255,0.55)] grid place-items-[center] z-[2] text-[13px] text-[var(--muted)] gap-1.5">

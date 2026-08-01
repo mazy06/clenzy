@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent } from '@mui/material';
+import { Card, CardContent } from '../../../components/ui';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -13,18 +13,11 @@ const AXIS_TICK = { fontSize: 10, fill: '#94A3B8' } as const;
 const TOOLTIP_STYLE = { fontSize: 11, borderRadius: 6, border: '1px solid #E2E8F0', boxShadow: 'none' } as const;
 const GRID_STROKE = '#F1F5F9';
 
-const CHART_CARD_SX = {
-  width: '100%',
-  height: 220,
-} as const;
-
-const CHART_CONTENT_SX = {
-  p: 1.25,
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  '&:last-child': { pb: 1.25 },
-} as const;
+// Report en classes des anciens `sx` : p: 1.25 = 7,5 px (theme.spacing vaut 6).
+// `py-0` neutralise la gouttiere verticale du primitif, la carte porte son
+// propre padding de 7,5 px sur le contenu.
+const CHART_CARD_CLS = 'w-full h-[220px] py-0';
+const CHART_CONTENT_CLS = 'p-[7.5px] h-full flex flex-col';
 
 // `mb: 0.5` avec theme.spacing = 6 vaut 3 px, pas un pas nomme de Tailwind.
 const SECTION_LABEL_CLS =
@@ -55,8 +48,8 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
       <div className="grid grid-cols-12 gap-[9px]">
         {/* Stacked bar: occupied vs vacant by month */}
         <div className="col-span-12 min-[600px]:col-span-6">
-          <Card sx={CHART_CARD_SX}>
-            <CardContent sx={CHART_CONTENT_SX}>
+          <Card className={CHART_CARD_CLS}>
+            <CardContent className={CHART_CONTENT_CLS}>
               <p className={SECTION_LABEL_CLS}>
                 {t('dashboard.analytics.occupancyByMonth')}
               </p>
@@ -84,8 +77,8 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
 
         {/* By property horizontal bar */}
         <div className="col-span-12 min-[600px]:col-span-6">
-          <Card sx={CHART_CARD_SX}>
-            <CardContent sx={CHART_CONTENT_SX}>
+          <Card className={CHART_CARD_CLS}>
+            <CardContent className={CHART_CONTENT_CLS}>
               <p className={SECTION_LABEL_CLS}>
                 {t('dashboard.analytics.occupancyByProperty')}
               </p>
@@ -123,8 +116,8 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
 
         {/* Heatmap calendar */}
         <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-9">
-          <Card sx={{ width: '100%' }}>
-            <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
+          <Card className="w-full py-0">
+            <CardContent className="p-[7.5px]">
               <p className={SECTION_LABEL_CLS}>
                 {t('dashboard.analytics.heatmap')}
               </p>

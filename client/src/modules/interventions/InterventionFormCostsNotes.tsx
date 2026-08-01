@@ -1,6 +1,5 @@
 import React from 'react';
-import { Card, CardContent } from '@mui/material';
-import { Field, FieldLabel, FieldError, Input, Textarea } from '../../components/ui';
+import { Card, CardContent, Field, FieldLabel, FieldError, Input, Textarea } from '../../components/ui';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -20,8 +19,8 @@ const InterventionFormCostsNotes: React.FC<InterventionFormCostsNotesProps> = Re
       <>
         {/* Couts - Seulement pour les admins et managers, pas pour les HOST */}
         {!isHost() && (
-          <Card>
-            <CardContent sx={{ p: 2 }}>
+          <Card size="sm">
+            <CardContent>
               <h6 className="cn-text-subtitle1 font-semibold mb-2">
                 {t('interventions.sections.costs')}
               </h6>
@@ -55,8 +54,8 @@ const InterventionFormCostsNotes: React.FC<InterventionFormCostsNotesProps> = Re
         )}
 
         {/* Notes et photos */}
-        <Card sx={{ mt: isHost() ? 0 : 1.5 }}>
-          <CardContent sx={{ p: 2 }}>
+        <Card size="sm" className={isHost() ? undefined : 'mt-[9px]'}>
+          <CardContent>
             <h6 className="cn-text-subtitle1 font-semibold mb-2">
               {t('interventions.sections.notesPhotos')}
             </h6>

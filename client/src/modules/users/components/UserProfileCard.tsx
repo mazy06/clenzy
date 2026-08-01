@@ -1,6 +1,6 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Avatar, Card, CardContent } from '@mui/material';
+import { Avatar, AvatarFallback, AvatarImage, Card, CardContent } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import { Mail as MailIcon, Phone as PhoneIcon, Business } from '../../../icons';
 import { semanticToHex } from '../../../utils/statusUtils';
@@ -48,36 +48,18 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
     : null;
 
   return (
-    <Card
-      variant="outlined"
-      sx={{
-        mb: 2,
-        borderRadius: 'var(--radius-lg)',
-        bgcolor: 'var(--card)',
-        borderColor: 'var(--line)',
-        overflow: 'hidden',
-        position: 'relative',
-      }}
-    >
-      <CardContent sx={{ p: { xs: 2, md: 2.75 }, '&:last-child': { pb: { xs: 2, md: 2.75 } } }}>
+    // mb: 2 = 12 px ; p: 2 / 2.75 = 12 / 16,5 px (theme.spacing vaut 6).
+    <Card className="relative mb-3 overflow-hidden rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+      <CardContent className="p-3 min-[900px]:p-[16.5px]">
         <div className="flex items-start min-[900px]:items-center justify-between gap-3 flex-wrap">
           {/* Identity */}
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="relative shrink-0">
-              <Avatar
-                src={photoUrl ?? undefined}
-                sx={{
-                  width: 60,
-                  height: 60,
-                  fontSize: '1.25rem',
-                  fontFamily: 'var(--font-display)',
-                  fontWeight: 600,
-                  color: 'var(--on-accent)',
-                  bgcolor: photoUrl ? 'transparent' : 'var(--accent)',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                {!photoUrl && `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`}
+              <Avatar className="size-[60px] rounded-full">
+                {photoUrl && <AvatarImage src={photoUrl} alt={`${user.firstName} ${user.lastName}`} />}
+                <AvatarFallback className="bg-[var(--accent)] text-[var(--on-accent)] text-[1.25rem] font-semibold tracking-[0.04em] font-[family-name:var(--font-display)]">
+                  {`${user.firstName.charAt(0)}${user.lastName.charAt(0)}`}
+                </AvatarFallback>
               </Avatar>
               {/* Tiny active dot — green pulse if status === ACTIVE. */}
               {isActive && (

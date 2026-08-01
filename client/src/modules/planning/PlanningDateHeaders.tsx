@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { isToday, isWeekend, formatDayNumber, formatDayShort, formatFullDate } from './utils/dateUtils';
 import { DATE_HEADER_HEIGHT, WEEKEND_HEADER_BG } from './constants';
 import type { ZoomLevel } from './types';
@@ -45,19 +45,10 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
             const today = isToday(day);
             const weekend = isWeekend(day);
             return (
-              <Tooltip
-                key={day.getTime()}
-                title={formatFullDate(day)}
-                placement="top"
-                arrow
-                enterDelay={250}
-                enterNextDelay={100}
-                slotProps={{
-                  tooltip: {
-                    sx: { textTransform: 'capitalize', fontSize: '0.6875rem' },
-                  },
-                }}
-              >
+              <Tooltip key={day.getTime()} delayDuration={250}>
+                {/* Le trigger cible directement la cellule : un <div> natif accepte
+                    la ref d'ancrage de Radix, aucun span intermediaire requis. */}
+                <TooltipTrigger asChild>
                 {/* border-e-[1px_solid_var(--line)] laisse par le codemod ne produisait
                     rien : une largeur de bordure n'accepte pas une valeur raccourcie. */}
                 <div className="flex flex-col items-center justify-center gap-px py-2 border-e border-solid border-e-[var(--line)] last:border-e-0 cursor-default select-none" style={{ width: dayWidth, minWidth: dayWidth, backgroundColor: weekend ? WEEKEND_HEADER_BG : 'transparent' }}>
@@ -83,6 +74,10 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                     {formatDayNumber(day)}
                   </p>
                 </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="capitalize text-[0.6875rem]">
+                  {formatFullDate(day)}
+                </TooltipContent>
               </Tooltip>
             );
           })}

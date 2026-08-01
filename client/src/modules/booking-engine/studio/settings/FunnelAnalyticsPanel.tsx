@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Card, Skeleton, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Skeleton, ToggleGroup, ToggleGroupItem } from '../../../../components/ui';
 import { CalendarX2, Eye, MousePointerClick, Search, ShoppingCart } from 'lucide-react';
 import StatTile from '../../../../components/StatTile';
 import EmptyState from '../../../../components/EmptyState';
@@ -89,15 +89,19 @@ export default function FunnelAnalyticsPanel() {
               'Demande captée par votre moteur de réservation — y compris la demande refusée.')}
           </span>
         </div>
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={days}
-          onChange={(_, v) => { if (v) setDays(v); }}
+        {/* Radix ne connait que des valeurs texte : la fenetre reste un nombre
+            cote etat, on ne convertit qu'aux frontieres du composant. */}
+        <ToggleGroup
+          type="single"
+          size="sm"
+          variant="outline"
+          spacing={0}
+          value={String(days)}
+          onValueChange={(v) => { if (v) setDays(Number(v) as 30 | 90); }}
         >
-          <ToggleButton value={30}>30 j</ToggleButton>
-          <ToggleButton value={90}>90 j</ToggleButton>
-        </ToggleButtonGroup>
+          <ToggleGroupItem value="30">30 j</ToggleGroupItem>
+          <ToggleGroupItem value="90">90 j</ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       {error && <Alert variant="destructive">
@@ -119,7 +123,7 @@ export default function FunnelAnalyticsPanel() {
         ))}
       </div>
 
-      <Card variant="outlined" sx={{ p: 1.5 }}>
+      <div className="rounded-xl border border-solid border-[var(--line)] bg-[var(--card)] p-2.5">
         <h6 className="cn-text-subtitle2 mb-1.5">
           {t('bookingEngine.funnel.topDeniedTitle', 'Séjours demandés sans disponibilité')}
         </h6>
@@ -128,7 +132,7 @@ export default function FunnelAnalyticsPanel() {
             'Ces dates ont été recherchées mais aucun logement n’était disponible — un signal pour revoir prix, min-stay ou inventaire.')}
         </span>
         {loading ? (
-          <Skeleton variant="rounded" height={160} />
+          <Skeleton className="h-[160px] w-full rounded-lg" />
         ) : (data?.topDenied.length ?? 0) === 0 ? (
           <EmptyState
             icon={<CalendarX2 />}
@@ -157,7 +161,7 @@ export default function FunnelAnalyticsPanel() {
             </TableBody>
           </Table>
         )}
-      </Card>
+      </div>
     </div>
   );
 }

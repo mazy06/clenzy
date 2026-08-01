@@ -1,7 +1,7 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Card } from '../../components/ui';
-import { Paper, Tooltip, IconButton } from '@mui/material';
+import { Button, Card, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, LocationOn, Build as BuildIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -13,7 +13,10 @@ import {
   getServiceRequestPriorityLabel,
 } from '../../utils/statusUtils';
 import { stripPropertySuffix } from './serviceRequestDisplayMapper';
-import { LIST_PAPER_SX, srStatusTokens, srPriorityTokens } from './serviceRequestsListConstants';
+import { srStatusTokens, srPriorityTokens } from './serviceRequestsListConstants';
+
+/** Report en classes de `LIST_PAPER_SX` (hairline, rayon 14, fond --card). */
+const LIST_SURFACE_CLASS = 'border border-solid border-[var(--line)] shadow-none rounded-[14px] bg-[var(--card)]';
 
 interface ServiceRequestsMapViewProps {
   mapMarkers: PropertyMarker[];
@@ -30,7 +33,7 @@ const ServiceRequestsMapView: React.FC<ServiceRequestsMapViewProps> = ({
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <Paper sx={{ ...LIST_PAPER_SX, p: 0, overflow: 'hidden', flexShrink: 0 }}>
+      <div className={cn(LIST_SURFACE_CLASS, 'p-0 overflow-hidden shrink-0')}>
         {mapMarkers.length > 0 ? (
           <MapboxPropertyMap
             properties={mapMarkers}
@@ -48,7 +51,7 @@ const ServiceRequestsMapView: React.FC<ServiceRequestsMapViewProps> = ({
             </p>
           </div>
         )}
-      </Paper>
+      </div>
 
       {mapMarkers.length > 0 && (
         <div className="mt-2 flex-1 min-h-0 flex flex-col">
@@ -57,11 +60,11 @@ const ServiceRequestsMapView: React.FC<ServiceRequestsMapViewProps> = ({
           </p>
 
           {viewportRequests.length === 0 ? (
-            <Paper sx={{ ...LIST_PAPER_SX, p: 2, textAlign: 'center' }}>
+            <div className={cn(LIST_SURFACE_CLASS, 'p-3 text-center')}>
               <p className="cn-text-body1 text-[13px] text-[var(--muted)]">
                 Aucune demande dans cette zone. Déplacez ou dézoomez la carte.
               </p>
-            </Paper>
+            </div>
           ) : (
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 pe-0.5">
               {viewportRequests.map((request) => {
@@ -87,10 +90,16 @@ const ServiceRequestsMapView: React.FC<ServiceRequestsMapViewProps> = ({
                             {request.assignedToName}
                           </p>
                         )}
-                        <Tooltip title="Voir">
-                          <IconButton size="small" sx={{ ml: 0.5 }}>
-                            <Visibility size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex ms-0.5">
+                              {/* Sans onClick : le clic remonte a la carte, qui navigue. */}
+                              <Button variant="ghost" size="icon-sm" aria-label="Voir">
+                                <Visibility size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Voir</TooltipContent>
                         </Tooltip>
                       </div>
                     </div>

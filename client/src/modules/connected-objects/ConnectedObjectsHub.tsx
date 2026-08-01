@@ -1,13 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, X } from 'lucide-react';
-import { Card } from '../../components/ui';
+import { Card, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Box, Skeleton, Paper, Tooltip, alpha, Snackbar } from '@mui/material';
+// Snackbar reste MUI : changer le mecanisme de notification de la page
+// depasse la migration des primitives.
+import { Snackbar } from '@mui/material';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, Warning, Home, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
@@ -135,12 +137,15 @@ export default function ConnectedObjectsHub({
               ? { color: 'var(--ok)', soft: 'var(--ok-soft)' }
               : { color: 'var(--warn)', soft: 'var(--warn-soft)' };
             return (
-              <Tooltip key={p.provider} title={p.connected ? 'Connecté' : 'Déconnecté — à reconnecter dans les intégrations'} arrow>
-                {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
-                    (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
-                <span className="inline-flex">
-                  <StatusChip tokens={{ color: tokens.color, bg: tokens.soft }} label={`${PROVIDER_LABELS[p.provider] ?? p.provider} · ${p.deviceCount}`} className="h-[24px] tabular-nums" />
-                </span>
+              <Tooltip key={p.provider}>
+                {/* Le declencheur pose une ref sur son enfant, que StatusChip ne transmet
+                    pas (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <StatusChip tokens={{ color: tokens.color, bg: tokens.soft }} label={`${PROVIDER_LABELS[p.provider] ?? p.provider} · ${p.deviceCount}`} className="h-[24px] tabular-nums" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{p.connected ? 'Connecté' : 'Déconnecté — à reconnecter dans les intégrations'}</TooltipContent>
               </Tooltip>
             );
           })
@@ -195,7 +200,7 @@ export default function ConnectedObjectsHub({
       {loading ? (
         <div className={GRID}>
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={132} sx={{ borderRadius: 'var(--radius-lg)' }} />
+            <Skeleton key={i} className="h-[132px] rounded-[var(--radius-lg)]" />
           ))}
         </div>
       ) : filteredGroups.length === 0 ? (
@@ -213,26 +218,30 @@ export default function ConnectedObjectsHub({
       ) : (
         filteredGroups.map((group) => (
           <div className="mb-3" key={group.propertyId ?? 'none'}>
-            <Box
+            <div
               onClick={group.propertyId != null ? () => navigate(`/connected-objects/property/${group.propertyId}`) : undefined}
-              sx={{
-                display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.875,
-                cursor: group.propertyId != null ? 'pointer' : 'default',
-                width: 'fit-content',
-                '&:hover .co-prop-name': { color: group.propertyId != null ? 'var(--accent)' : 'text.primary' },
-              }}
+              className={cn(
+                'group flex items-center gap-[4.5px] mb-[5.25px] w-fit',
+                group.propertyId != null ? 'cursor-pointer' : 'cursor-default',
+              )}
             >
               <span className="text-muted-foreground inline-flex">
                 <Home size={15} strokeWidth={1.75} />
               </span>
-              <p className="cn-text-body1 co-prop-name font-semibold text-[0.9375rem] text-[var(--ink)]" style={{ transition: 'color 150ms' }}>{group.propertyName}</p>
+              <p
+                className={cn(
+                  'cn-text-body1 font-semibold text-[0.9375rem] text-[var(--ink)]',
+                  group.propertyId != null && 'group-hover:text-[var(--accent)]',
+                )}
+                style={{ transition: 'color 150ms' }}
+              >{group.propertyName}</p>
               <span className="cn-text-caption text-muted-foreground opacity-60">· {group.devices.length} objet{group.devices.length > 1 ? 's' : ''}</span>
               {group.propertyId != null && (
                 <span className="text-muted-foreground opacity-60 inline-flex ms-0.5">
                   <ChevronRight size={15} strokeWidth={1.75} />
                 </span>
               )}
-            </Box>
+            </div>
             <div className={GRID}>
               {group.devices.map((d) => (
                 <DeviceCard key={d.uid} device={d} onAction={handleAction} acting={actingUid === d.uid} />
@@ -253,30 +262,38 @@ export default function ConnectedObjectsHub({
               const meta = DEVICE_KINDS[k];
               const previewRoute = PREVIEW_ROUTES[k];
               return (
-                <Tooltip key={k} title={previewRoute ? `Aperçu — ${meta.label} (Phase 2)` : 'À venir'} arrow>
-                  <Paper
-                    variant="outlined"
-                    onClick={previewRoute ? () => navigate(previewRoute) : undefined}
-                    sx={{
-                      px: 1.25, py: 0.875, borderRadius: 'var(--radius-md)', borderStyle: 'dashed',
-                      display: 'inline-flex', alignItems: 'center', gap: 0.875,
-                      opacity: previewRoute ? 1 : 0.7,
-                      cursor: previewRoute ? 'pointer' : 'default',
-                      transition: 'border-color 200ms, background-color 200ms',
-                      ...(previewRoute && { '&:hover': { borderColor: meta.color, bgcolor: alpha(meta.color, 0.05) } }),
-                    }}
-                  >
-                    <span className="inline-flex" style={{ color: meta.color }}>{meta.icon(16)}</span>
-                    <p className="cn-text-body2 text-muted-foreground font-medium">{meta.label}</p>
-                    {previewRoute ? (
-                      <>
-                        <StatusChip size="sm" tokens={{ color: meta.color, bg: alpha(meta.color, 0.15) }} label="Aperçu" className="text-[0.65rem]" />
-                        <span className="text-muted-foreground opacity-60 inline-flex"><ChevronRight size={14} strokeWidth={1.75} /></span>
-                      </>
-                    ) : (
-                      <Badge variant="secondary" className="h-[18px] text-[0.65rem]">Bientôt</Badge>
-                    )}
-                  </Paper>
+                <Tooltip key={k}>
+                  <TooltipTrigger asChild>
+                    <div
+                      onClick={previewRoute ? () => navigate(previewRoute) : undefined}
+                      className={cn(
+                        'inline-flex items-center gap-[5.25px] px-[7.5px] py-[5.25px]',
+                        'rounded-[var(--radius-md)] border border-dashed border-[var(--line)] bg-[var(--card)]',
+                        'transition-[border-color,background-color] duration-200',
+                        previewRoute
+                          ? 'opacity-100 cursor-pointer hover:border-[var(--co-preview)] hover:bg-[var(--co-preview-soft)]'
+                          : 'opacity-70 cursor-default',
+                      )}
+                      // Teintes derivees de la couleur du type d'objet, connue a
+                      // l'execution : variables CSS plutot que classes.
+                      style={{
+                        '--co-preview': meta.color,
+                        '--co-preview-soft': `color-mix(in srgb, ${meta.color} 5%, transparent)`,
+                      } as CSSProperties}
+                    >
+                      <span className="inline-flex" style={{ color: meta.color }}>{meta.icon(16)}</span>
+                      <p className="cn-text-body2 text-muted-foreground font-medium">{meta.label}</p>
+                      {previewRoute ? (
+                        <>
+                          <StatusChip size="sm" tokens={{ color: meta.color, bg: `color-mix(in srgb, ${meta.color} 15%, transparent)` }} label="Aperçu" className="text-[0.65rem]" />
+                          <span className="text-muted-foreground opacity-60 inline-flex"><ChevronRight size={14} strokeWidth={1.75} /></span>
+                        </>
+                      ) : (
+                        <Badge variant="secondary" className="h-[18px] text-[0.65rem]">Bientôt</Badge>
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>{previewRoute ? `Aperçu — ${meta.label} (Phase 2)` : 'À venir'}</TooltipContent>
                 </Tooltip>
               );
             })}

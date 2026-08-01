@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { useDraggable } from '@dnd-kit/core';
 import { Lock as LockIcon, Close, Warning, BroomFill, WrenchFill, CreditCardFill, CheckBold } from '../../icons';
@@ -23,6 +23,22 @@ import { useCurrency } from '../../hooks/useCurrency';
 import { Money } from '../../components/Money';
 import GuestAvatar from '../../components/GuestAvatar';
 import './planningUrgency.css';
+
+// Les trois @keyframes de la brique vivaient dans le `sx` MUI, qui les injectait
+// lui-meme dans le document. Sans MUI il faut une vraie feuille de style : on la
+// pose une seule fois au chargement du module (idempotent), les classes
+// `animate-[nom_…]` peuvent alors s'y referer.
+const BAR_KEYFRAMES_ID = 'planning-bar-keyframes';
+if (typeof document !== 'undefined' && !document.getElementById(BAR_KEYFRAMES_ID)) {
+  const styleEl = document.createElement('style');
+  styleEl.id = BAR_KEYFRAMES_ID;
+  styleEl.textContent = [
+    '@keyframes radar-pulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(2.6);opacity:0}}',
+    '@keyframes select-pop{0%{transform:scale(1) translateY(0)}40%{transform:scale(1.05) translateY(-2px)}100%{transform:scale(1) translateY(-1px)}}',
+    '@keyframes pulse-conflict{0%,100%{box-shadow:0 0 0 2px var(--err)}50%{box-shadow:0 0 0 2px color-mix(in srgb, var(--err) 50%, transparent)}}',
+  ].join('\n');
+  document.head.appendChild(styleEl);
+}
 
 /** Montant compact pour la brique : sans décimales, « ~ » si converti
  *  (même normalisation que les prix par cellule dans PlanningRow). */
@@ -82,39 +98,24 @@ const RadarPastille: React.FC<{
   tooltip: string;
   right?: number;
 }> = ({ color, tooltip, right = -4 }) => (
-  <Tooltip title={tooltip} arrow>
-    <div className="absolute top-[-3px] w-[10px] h-[10px] z-[12]" style={{ right }}>
-      {/* Anneau 1 (pulse continu) */}
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          borderRadius: '50%',
-          backgroundColor: color,
-          pointerEvents: 'none',
-          animation: 'radar-pulse 1.6s cubic-bezier(0,0,0.2,1) infinite',
-          '@keyframes radar-pulse': {
-            '0%':   { transform: 'scale(1)', opacity: 0.55 },
-            '100%': { transform: 'scale(2.6)', opacity: 0 },
-          },
-          '@media (prefers-reduced-motion: reduce)': { animation: 'none', opacity: 0 },
-        }}
-      />
-      {/* Anneau 2 (decale de 0.8s pour un effet continu) */}
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          borderRadius: '50%',
-          backgroundColor: color,
-          pointerEvents: 'none',
-          animation: 'radar-pulse 1.6s cubic-bezier(0,0,0.2,1) 0.8s infinite',
-          '@media (prefers-reduced-motion: reduce)': { animation: 'none', opacity: 0 },
-        }}
-      />
-      {/* Point central solide */}
-      <div className="absolute inset-0 rounded-[50%] border-[1.5px] border-solid border-[var(--card)]" style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}` }} />
-    </div>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <div className="absolute top-[-3px] w-[10px] h-[10px] z-[12]" style={{ right }}>
+        {/* Anneau 1 (pulse continu) */}
+        <div
+          className="absolute inset-0 rounded-[50%] pointer-events-none animate-[radar-pulse_1.6s_cubic-bezier(0,0,0.2,1)_infinite] motion-reduce:animate-none motion-reduce:opacity-0"
+          style={{ backgroundColor: color }}
+        />
+        {/* Anneau 2 (decale de 0.8s pour un effet continu) */}
+        <div
+          className="absolute inset-0 rounded-[50%] pointer-events-none animate-[radar-pulse_1.6s_cubic-bezier(0,0,0.2,1)_0.8s_infinite] motion-reduce:animate-none motion-reduce:opacity-0"
+          style={{ backgroundColor: color }}
+        />
+        {/* Point central solide */}
+        <div className="absolute inset-0 rounded-[50%] border-[1.5px] border-solid border-[var(--card)]" style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}` }} />
+      </div>
+    </TooltipTrigger>
+    <TooltipContent>{tooltip}</TooltipContent>
   </Tooltip>
 );
 
@@ -234,7 +235,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
       event.sublabel,
     ].filter(Boolean).join(' — ');
     return (
-      <Tooltip title={tooltipTitle} arrow>
+      <Tooltip>
+        <TooltipTrigger asChild>
         <div
           ref={setNodeRef}
           data-planning-bar
@@ -272,6 +274,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             ? <BroomFill size={14} />
             : <WrenchFill size={13} />}
         </div>
+        </TooltipTrigger>
+        <TooltipContent>{tooltipTitle}</TooltipContent>
       </Tooltip>
     );
   }
@@ -429,12 +433,51 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
 
   return (
     <>
-    <Box
+    <div
       ref={setNodeRef}
       data-planning-bar
       data-reservation-id={isReservation && event.reservation ? String(event.reservation.id) : undefined}
-      className={urgencyClass}
-      style={isUrgent ? ({ '--bc': barColor } as React.CSSProperties) : undefined}
+      className={cn(
+        urgencyClass,
+        'absolute flex touch-none select-none overflow-visible',
+        isCancelled
+          ? 'bg-[var(--surface-2)] border-[1.5px] border-dashed border-[var(--line-2)]'
+          : 'border-none',
+        isResizing ? 'cursor-col-resize' : 'cursor-pointer',
+        // Reservations en COLUMN (nuits + nom), interventions ROW.
+        isReservation ? 'flex-col items-stretch justify-center gap-0' : 'flex-row items-center',
+        !isReservation && (showLabel ? 'justify-start gap-[3px]' : 'justify-center gap-0'),
+        // Spec .pl-bar : padding 0 7px 0 5px (avatar colle a gauche, pastilles a droite).
+        isReservation ? 'p-[0_7px_0_5px]' : (showLabel ? 'px-[6px] py-0' : 'p-0'),
+        // Spec .pl-bar : transition transform .12s, box-shadow .12s (+ width pour le resize).
+        (isDragging || isResizing)
+          ? 'transition-none'
+          : 'transition-[transform,box-shadow,width] duration-[120ms] motion-reduce:transition-none',
+        // Spec .pl-bar.sel : z-index 7 (au-dessus de la ligne « maintenant »).
+        isSelected ? 'z-[7]' : isIntervention ? 'z-[2]' : 'z-[3]',
+        // Spec .pl-bar:hover : translateY(-1px) + shadow, z-5.
+        'hover:shadow-[0_7px_16px_-8px_var(--shadow-pop)] hover:-translate-y-px hover:z-[5] motion-reduce:hover:translate-y-0',
+        // Brique active (popover ouvert) : anneau accent + offset blanc.
+        (isPopoverActive && !isSelected) && 'shadow-[0_0_0_2px_var(--card),0_0_0_4px_var(--accent)]',
+        isSelected && 'shadow-[0_0_0_2px_var(--card),0_0_0_4px_var(--accent)] -translate-y-px animate-[select-pop_0.3s_ease-out] motion-reduce:animate-none motion-reduce:translate-y-0',
+        (isConflict || resizeConflict) && 'shadow-[0_0_0_2px_var(--err)] animate-[pulse-conflict_2s_ease-in-out_infinite] motion-reduce:animate-none',
+        // Spec .pl-bar.cancelled:hover : brique fantome inerte (ni lift ni ombre).
+        isCancelled && 'hover:translate-y-0 hover:shadow-none',
+      )}
+      // Geometrie, couleur de statut et opacite de drag sont resolues a
+      // l'execution : aucune classe Tailwind ne peut les porter.
+      style={{
+        left,
+        top,
+        width: displayWidth,
+        height,
+        borderRadius: `${isCompactBar ? 3 : BAR_BORDER_RADIUS}px`,
+        opacity: draggedOpacity,
+        ...(isCancelled
+          ? { backgroundImage: 'repeating-linear-gradient(135deg, color-mix(in srgb, var(--muted) 22%, transparent) 0 1.5px, transparent 1.5px 8px)' }
+          : { backgroundColor: barColor }),
+        ...(isUrgent ? ({ '--bc': barColor } as React.CSSProperties) : {}),
+      }}
       {...(!isDragDisabled ? listeners : {})}
       {...(!isDragDisabled ? attributes : {})}
       onClick={(e) => {
@@ -448,93 +491,6 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           return;
         }
         onClick(event);
-      }}
-      sx={{
-        position: 'absolute',
-        left,
-        top,
-        width: displayWidth,
-        height,
-        // Couleur = statut/type (tokens). Annulée = hachuré gris (maquette).
-        ...(isCancelled
-          ? {
-              backgroundColor: 'var(--surface-2)',
-              backgroundImage: 'repeating-linear-gradient(135deg, color-mix(in srgb, var(--muted) 22%, transparent) 0 1.5px, transparent 1.5px 8px)',
-              border: '1.5px dashed var(--line-2)',
-            }
-          : {
-              backgroundColor: barColor,
-              // Aucune border ni liseré : fond opaque uniforme (anti-pattern
-              // side-stripe Impeccable).
-              border: 'none',
-            }),
-        borderRadius: `${isCompactBar ? 3 : BAR_BORDER_RADIUS}px`,
-        // Spec .s-brick : cursor pointer (le drag reste actif via dnd-kit).
-        cursor: isResizing ? 'col-resize' : 'pointer',
-        touchAction: 'none',
-        // visible : laisse les pastilles (warning, payment, hide) deborder
-        // de -6px. Le clipping du texte est fait sur le wrapper interne.
-        overflow: 'visible',
-        display: 'flex',
-        // Layout : reservations en COLUMN (nuits + nom), interventions ROW.
-        flexDirection: isReservation ? 'column' : 'row',
-        alignItems: isReservation ? 'stretch' : 'center',
-        justifyContent: isReservation
-          ? 'center'
-          : showLabel ? 'flex-start' : 'center',
-        gap: isReservation ? 0 : (showLabel ? 0.5 : 0),
-        // Spec .pl-bar : padding 0 7px 0 5px (avatar collé à gauche,
-        // pastilles collées à droite).
-        padding: isReservation ? '0 7px 0 5px' : (showLabel ? '0 6px' : 0),
-        // Spec .pl-bar : transition transform .12s, box-shadow .12s
-        // (+ width pour le feedback resize, spécifique timeline).
-        transition: (isDragging || isResizing) ? 'none' : 'transform .12s, box-shadow .12s, width .12s',
-        userSelect: 'none',
-        opacity: draggedOpacity,
-        // Spec .pl-bar.sel : z-index 7 (au-dessus de la ligne « maintenant »)
-        zIndex: isSelected ? 7 : isIntervention ? 2 : 3,
-        // Spec .pl-bar:hover : translateY(-1px) + shadow, z-5.
-        '&:hover': {
-          boxShadow: '0 7px 16px -8px var(--shadow-pop)',
-          transform: 'translateY(-1px)',
-          zIndex: 5,
-        },
-        '@media (prefers-reduced-motion: reduce)': {
-          transition: 'none',
-          '&:hover': { transform: 'none' },
-        },
-        // Spec .pl-bar.cancelled:hover : brique fantôme inerte (pas de lift
-        // ni d'ombre au survol).
-        ...(isCancelled && {
-          '&:hover': { transform: 'none', boxShadow: 'none' },
-        }),
-        // Brique active (popover ouvert) : anneau accent + offset blanc.
-        ...(isPopoverActive && !isSelected && {
-          boxShadow: '0 0 0 2px var(--card), 0 0 0 4px var(--accent)',
-        }),
-        ...(isSelected && {
-          boxShadow: '0 0 0 2px var(--card), 0 0 0 4px var(--accent)',
-          transform: 'translateY(-1px)',
-          animation: 'select-pop 0.3s ease-out',
-          '@keyframes select-pop': {
-            '0%': { transform: 'scale(1) translateY(0)' },
-            '40%': { transform: 'scale(1.05) translateY(-2px)' },
-            '100%': { transform: 'scale(1) translateY(-1px)' },
-          },
-          '@media (prefers-reduced-motion: reduce)': { animation: 'none', transform: 'none' },
-        }),
-        ...((isConflict || resizeConflict) && {
-          boxShadow: '0 0 0 2px var(--err)',
-          animation: 'pulse-conflict 2s ease-in-out infinite',
-          '@keyframes pulse-conflict': {
-            '0%, 100%': { boxShadow: '0 0 0 2px var(--err)' },
-            '50%': { boxShadow: '0 0 0 2px color-mix(in srgb, var(--err) 50%, transparent)' },
-          },
-          '@media (prefers-reduced-motion: reduce)': {
-            animation: 'none',
-            boxShadow: '0 0 0 2px var(--err)',
-          },
-        }),
       }}
     >
       {/* ── RESERVATION : avatar + 2 lignes (nuits + nom) + pastilles ────── */}
@@ -592,10 +548,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
               brique a la place ; couleur = état paiement. Sous PRICE_AMOUNT_MIN
               le montant se masque (icône d'état seule, .is-narrow). */}
           {priceInline && (
-            <Tooltip
-              arrow
-              title={priceUnpaid ? `${paymentTooltip} · ${priceFull}` : `Réglé · ${priceFull}`}
-            >
+            <Tooltip>
+              <TooltipTrigger asChild>
               <div
                 // PILL_UNPAID / PILL_UNPAID_ICON sont des constantes locales :
                 // posees en style pour ne pas dupliquer leur valeur en classe.
@@ -628,6 +582,10 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                   </span>
                 )}
               </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                {priceUnpaid ? `${paymentTooltip} · ${priceFull}` : `Réglé · ${priceFull}`}
+              </TooltipContent>
             </Tooltip>
           )}
           {/* Pastilles a droite : indicateurs (+N) + logo canal */}
@@ -638,7 +596,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                 // brique est large ; sinon carré-icône d'origine (.is-narrow).
                 const asFeePill = !!it.fee && displayWidth >= FEE_PILL_MIN;
                 return (
-                  <Tooltip key={it.key} title={it.tooltip} arrow>
+                  <Tooltip key={it.key}>
+                    <TooltipTrigger asChild>
                     <div
                       onClick={it.onClick}
                       {...(it.onClick && {
@@ -668,33 +627,19 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                         </span>
                       )}
                     </div>
+                    </TooltipTrigger>
+                    <TooltipContent>{it.tooltip}</TooltipContent>
                   </Tooltip>
                 );
               })}
               {showBadgeGroup && overflowItems.length > 0 && (
                 <Tooltip
-                  arrow
-                  // Contrôlé : le survol (onOpen/onClose MUI) ET le clic /
-                  // clavier ouvrent le même tooltip thémé Signature (style
-                  // MuiTooltip global : fond var(--ink), texte var(--bg), r8).
+                  // Contrôlé : le survol (onOpenChange) ET le clic / clavier
+                  // ouvrent le même tooltip.
                   open={overflowOpen}
-                  onOpen={() => setOverflowOpen(true)}
-                  onClose={() => setOverflowOpen(false)}
-                  title={
-                    <ul className="list-none m-0 p-[2px_0] flex flex-col gap-[5px]">
-                      {overflowItems.map((it) => (
-                        <li className="flex items-center gap-[7px]" key={it.key}>
-                          <div className="flex items-center justify-center w-[16px] shrink-0" style={{ color: it.color }}>
-                            {it.icon}
-                          </div>
-                          <span className="whitespace-nowrap">
-                            {it.label}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  }
+                  onOpenChange={setOverflowOpen}
                 >
+                  <TooltipTrigger asChild>
                   <div
                     role="button"
                     tabIndex={0}
@@ -721,10 +666,25 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                   >
                     +{overflowItems.length}
                   </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <ul className="list-none m-0 p-[2px_0] flex flex-col gap-[5px]">
+                      {overflowItems.map((it) => (
+                        <li className="flex items-center gap-[7px]" key={it.key}>
+                          <div className="flex items-center justify-center w-[16px] shrink-0" style={{ color: it.color }}>
+                            {it.icon}
+                          </div>
+                          <span className="whitespace-nowrap">
+                            {it.label}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </TooltipContent>
                 </Tooltip>
               )}
-              {sourceLogo && displayWidth > 60 && !compactRightZone && (
-                <Tooltip title={event.sublabel || ''} arrow>
+              {sourceLogo && displayWidth > 60 && !compactRightZone && (() => {
+                const logoBadge = (
                   <div className={BAR_BADGE_CLS}>
                     <img
                       src={sourceLogo}
@@ -735,8 +695,17 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                       )}
                     />
                   </div>
-                </Tooltip>
-              )}
+                );
+                // Sans libelle de canal, pas de tooltip : Radix afficherait une
+                // bulle vide la ou MUI n'affichait rien.
+                if (!event.sublabel) return logoBadge;
+                return (
+                  <Tooltip>
+                    <TooltipTrigger asChild>{logoBadge}</TooltipTrigger>
+                    <TooltipContent>{event.sublabel}</TooltipContent>
+                  </Tooltip>
+                );
+              })()}
             </div>
           )}
         </div>
@@ -760,21 +729,27 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
 
       {/* Hide button for cancelled reservations — always visible, badge-style top-right */}
       {isReservation && event.status === 'cancelled' && onHide && (
-        <Tooltip title="Masquer du planning" arrow>
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onHide(event);
-            }}
-            className={
-              'absolute top-[-6px] right-[-6px] w-[16px] h-[16px] rounded-[50%] bg-[var(--muted)] flex items-center justify-center cursor-pointer z-[12] '
-              + 'shadow-[0_1px_3px_color-mix(in_srgb,var(--ink)_30%,transparent)] border-[1.5px] border-solid border-[var(--card)] text-[var(--on-accent)] '
-              + 'transition-[transform,background-color] duration-150 ease-[ease] hover:bg-[var(--body)] hover:scale-110 '
-              + 'motion-reduce:transition-none motion-reduce:hover:scale-100'
-            }
-          >
-            <Close size={10} strokeWidth={1.75} />
-          </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label="Masquer du planning"
+              onClick={(e) => {
+                e.stopPropagation();
+                onHide(event);
+              }}
+              className={
+                'absolute top-[-6px] right-[-6px] w-[16px] h-[16px] rounded-[50%] bg-[var(--muted)] flex items-center justify-center cursor-pointer z-[12] '
+                + 'shadow-[0_1px_3px_color-mix(in_srgb,var(--ink)_30%,transparent)] border-[1.5px] border-solid border-[var(--card)] text-[var(--on-accent)] '
+                + 'transition-[transform,background-color] duration-150 ease-[ease] hover:bg-[var(--body)] hover:scale-110 '
+                + 'motion-reduce:transition-none motion-reduce:hover:scale-100'
+              }
+            >
+              <Close size={10} strokeWidth={1.75} />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>Masquer du planning</TooltipContent>
         </Tooltip>
       )}
 
@@ -801,7 +776,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
       {!isDragDisabled && !isDragging && (
         <ResizeHandle eventId={event.id} event={event} layout={layout} />
       )}
-    </Box>
+    </div>
 
     {/* Popover récap réservation (portail — hors de la zone draggable) */}
     {isReservation && event.reservation && popoverAnchor && (

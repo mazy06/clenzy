@@ -1,6 +1,7 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Paper, Tooltip, IconButton } from '@mui/material';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import type { NavigateFunction } from 'react-router-dom';
 import { Home, LocationOn, Visibility } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -16,7 +17,10 @@ import {
   getPropertyTypeLabel,
   getPropertyTypeHex,
 } from '../../utils/statusUtils';
-import { LIST_PAPER_SX, propertyStatusTokens } from './propertiesListConstants';
+import { propertyStatusTokens } from './propertiesListConstants';
+
+/** Report en classes de `LIST_PAPER_SX` (surface « carte » de la liste). */
+const LIST_SURFACE_CLASS = 'border border-solid border-[var(--line)] rounded-[14px] bg-[var(--card)]';
 
 interface PropertiesMapViewProps {
   mapMarkers: PropertyMarker[];
@@ -41,7 +45,7 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
   return (
     <div className="flex flex-col h-[calc(100vh_-_140px)] min-h-[500px]">
       {/* Carte fixe en haut */}
-      <Paper sx={{ ...LIST_PAPER_SX, p: 0, overflow: 'hidden', flexShrink: 0 }}>
+      <div className={cn(LIST_SURFACE_CLASS, 'overflow-hidden shrink-0')}>
         {mapMarkers.length > 0 ? (
           <MapboxPropertyMap
             properties={mapMarkers}
@@ -62,7 +66,7 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
             </span>
           </div>
         )}
-      </Paper>
+      </div>
 
       {/* Liste scrollable en dessous */}
       {mapMarkers.length > 0 && (
@@ -72,29 +76,22 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
           </h6>
 
           {viewportProperties.length === 0 ? (
-            <Paper sx={{ ...LIST_PAPER_SX, p: 2, textAlign: 'center' }}>
+            <div className={cn(LIST_SURFACE_CLASS, 'p-3 text-center')}>
               <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
                 Aucune propriété dans cette zone. Déplacez ou dézoomez la carte.
               </p>
-            </Paper>
+            </div>
           ) : (
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 pe-0.5">
               {viewportProperties.map((property) => {
                 const typeColor = getPropertyTypeHex(property.type);
                 return (
-                  <Paper
+                  <div
                     key={property.id}
-                    sx={{
-                      ...LIST_PAPER_SX,
-                      p: 1.5,
-                      cursor: 'pointer',
-                      transition: 'border-color .14s, box-shadow .14s',
-                      flexShrink: 0,
-                      '&:hover': {
-                        borderColor: 'var(--line-2)',
-                        boxShadow: 'var(--shadow-card)',
-                      },
-                    }}
+                    className={cn(
+                      LIST_SURFACE_CLASS,
+                      'p-2 cursor-pointer shrink-0 transition-[border-color,box-shadow] duration-150 hover:border-[var(--line-2)] hover:shadow-[var(--shadow-card)]',
+                    )}
                     onClick={() => navigate(`/properties/${property.id}`)}
                   >
                     <div className="flex items-center gap-2">
@@ -143,18 +140,26 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
                             </span>
                           </p>
                         )}
-                        <Tooltip title="Détails">
-                          <IconButton
-                            size="small"
-                            onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}`); }}
-                            sx={{ p: 0.5 }}
-                          >
-                            <Visibility size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        {/* span intermediaire : TooltipTrigger asChild pose une ref DOM,
+                            que le Button du kit (fonction, React 18) ne transmet pas. */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="Détails"
+                                onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}`); }}
+                              >
+                                <Visibility size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Détails</TooltipContent>
                         </Tooltip>
                       </div>
                     </div>
-                  </Paper>
+                  </div>
                 );
               })}
             </div>

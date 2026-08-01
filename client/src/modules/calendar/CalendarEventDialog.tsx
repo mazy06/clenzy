@@ -1,7 +1,15 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Button } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Divider } from '@mui/material';
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+} from '../../components/ui';
 import {
   LocationOn as LocationIcon,
   Person as PersonIcon,
@@ -103,11 +111,13 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      {/* Titre display + filets : portés par le thème global */}
-      <DialogTitle>{intervention.title}</DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle className="pe-8">{intervention.title}</DialogTitle>
+          <DialogDescription>{intervention.propertyName}</DialogDescription>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: '16px !important' }}>
         {/* Chips: Status, Priority, Type — pilules soft (jamais d'aplat plein) */}
         <div className="flex gap-[4.5px] mb-3 flex-wrap">
           <StatusChip pill tokens={chipColorTokens(getStatusChipColor(intervention.status))} label={getStatusLabel(intervention.status)} />
@@ -115,7 +125,7 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
           <StatusChip pill tokens={chipColorTokens('primary')} label={getTypeLabel(intervention.type, t)} />
         </div>
 
-        <Divider sx={{ mb: 2 }} />
+        <Separator className="mb-3" />
 
         {/* Property */}
         <div className="flex items-center mb-[9px]">
@@ -161,7 +171,7 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
         {/* Description */}
         {intervention.description && (
           <>
-            <Divider sx={{ my: 1.5 }} />
+            <Separator className="my-[9px]" />
             <div className="flex items-start mb-1.5">
               <span className="inline-flex text-muted-foreground me-1.5 mt-0.5"><AssignmentIcon size={18} strokeWidth={1.75} /></span>
               <p className="cn-text-body2 line-clamp-3 text-[var(--muted)]">
@@ -170,16 +180,16 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
             </div>
           </>
         )}
-      </DialogContent>
 
-      <DialogActions>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          Fermer
-        </Button>
-        <Button size="sm" onClick={handleViewDetails}>
-          Voir les details
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            Fermer
+          </Button>
+          <Button size="sm" onClick={handleViewDetails}>
+            Voir les details
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

@@ -13,7 +13,6 @@
    ============================================================ */
 
 import { useState } from 'react';
-import { Box } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import { Gavel, Check, Close } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -41,26 +40,14 @@ export function SupervisionPendingAction({ action, onResolve }: SupervisionPendi
   };
 
   return (
-    <Box
+    // Entree discrete (tw-animate-css), desactivee si l'utilisateur prefere
+    // moins d'animation. Surface et bordure restent en style inline : elles
+    // viennent de constantes runtime, dont aucune classe ne peut naitre.
+    <div
       role="alertdialog"
       aria-label={t('supervision.approval.title', 'Validation requise')}
-      sx={{
-        width: 300,
-        borderRadius: '14px',
-        bgcolor: SURFACE,
-        border: BORDER,
-        backdropFilter: 'blur(10px)',
-        boxShadow: '0 16px 40px -22px rgba(0,0,0,.7)',
-        overflow: 'hidden',
-        color: '#E7E9FB',
-        // Entrée discrète, désactivée si l'utilisateur préfère moins d'animation.
-        '@keyframes supervisionApprovalIn': {
-          from: { opacity: 0, transform: 'translateY(-4px)' },
-          to: { opacity: 1, transform: 'translateY(0)' },
-        },
-        animation: 'supervisionApprovalIn 200ms ease-out',
-        '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-      }}
+      className="w-[300px] rounded-[14px] overflow-hidden backdrop-blur-[10px] shadow-[0_16px_40px_-22px_rgba(0,0,0,.7)] text-[#E7E9FB] animate-in fade-in-0 slide-in-from-top-1 duration-200 ease-out motion-reduce:animate-none"
+      style={{ backgroundColor: SURFACE, border: BORDER }}
     >
       {/* En-tête : intention (validation requise) + outil concerné */}
       <div className="flex items-center gap-1.5 px-2 pt-2 pb-1">
@@ -103,7 +90,7 @@ export function SupervisionPendingAction({ action, onResolve }: SupervisionPendi
           }
         />
       </div>
-    </Box>
+    </div>
   );
 }
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ButtonBase } from '@mui/material';
+import { cn } from '../../../../utils/cn';
 import type { StudioConfigState } from '../useStudioConfig';
 import PropertySelectionPanel from './PropertySelectionPanel';
 import ContentAiPanel from './ContentAiPanel';
@@ -21,22 +21,23 @@ export default function ContentSection({ cfg }: { cfg: StudioConfigState }) {
           {([{ value: 'properties', label: 'Propriétés affichées' }, { value: 'ai', label: 'Génération IA' }] as const).map((o) => {
             const active = o.value === tab;
             return (
-              <ButtonBase
+              <button
                 key={o.value}
+                type="button"
+                aria-pressed={active}
                 onClick={() => setTab(o.value)}
-                sx={{
-                  height: 28, px: 1.75, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)', cursor: 'pointer',
-                  fontWeight: active ? 'var(--fw-semibold)' : 'var(--fw-medium)',
-                  color: active ? 'var(--ink)' : 'var(--muted)',
-                  bgcolor: active ? 'var(--card)' : 'transparent',
-                  boxShadow: active ? 'var(--shadow-card)' : 'none',
-                  transition: 'color var(--duration-fast) var(--ease-out)',
-                  '&:hover': { color: 'var(--ink)' },
-                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                }}
+                className={cn(
+                  'inline-flex h-7 items-center justify-center px-[10.5px] rounded-[var(--radius-sm)]',
+                  'text-[var(--text-sm)] cursor-pointer appearance-none border-none',
+                  'transition-[color] duration-[var(--duration-fast)] ease-[var(--ease-out)]',
+                  'hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]',
+                  active
+                    ? 'font-semibold text-[var(--ink)] bg-[var(--card)] shadow-[var(--shadow-card)]'
+                    : 'font-medium text-[var(--muted)] bg-transparent shadow-none',
+                )}
               >
                 {o.label}
-              </ButtonBase>
+              </button>
             );
           })}
         </div>

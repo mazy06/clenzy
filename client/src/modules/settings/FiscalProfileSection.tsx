@@ -1,14 +1,20 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-import { Switch, FormControlLabel, Alert, Snackbar } from '@mui/material';
+// Snackbar reste MUI : changer de mecanisme de notification depasse la migration.
+import { Alert, Snackbar } from '@mui/material';
 import { Button } from '../../components/ui';
 import { Card } from '../../components/ui';
 import {
+  Alert as BuiAlert,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
   Field,
   FieldLabel,
   FieldDescription,
   Input,
+  Switch,
   Textarea,
   NativeSelect,
   NativeSelectOption,
@@ -187,12 +193,12 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
   if (error && !profile) {
     return (
       <div>
-        <Alert
-          severity="warning"
-          icon={<InfoIcon />}
-          action={
-            // `color="inherit"` n'a pas d'equivalent au kit : on pose
-            // explicitement la teinte --warn de l'alerte qui l'heberge.
+        <BuiAlert variant="warning" className="mb-3">
+          <InfoIcon />
+          <AlertDescription>{t('fiscal.profile.loadError')}</AlertDescription>
+          <AlertAction>
+            {/* `color="inherit"` n'a pas d'equivalent au kit : on pose
+                explicitement la teinte --warn de l'alerte qui l'heberge. */}
             <Button
               variant="outline"
               size="sm"
@@ -201,11 +207,8 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
             >
               Réessayer
             </Button>
-          }
-          sx={{ mb: 2 }}
-        >
-          {t('fiscal.profile.loadError')}
-        </Alert>
+          </AlertAction>
+        </BuiAlert>
       </div>
     );
   }
@@ -214,21 +217,20 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
     <div>
       {/* First-time setup banner */}
       {isFirstSetup && (
-        <Alert
-          severity="info"
-          icon={<InfoIcon />}
-          sx={{ mb: 2, '& .MuiAlert-message': { width: '100%' } }}
-        >
-          <h6 className="cn-text-subtitle2 font-semibold mb-0.5">
+        <BuiAlert variant="info" className="mb-3">
+          <InfoIcon />
+          <AlertTitle className="cn-text-subtitle2 font-semibold mb-0.5">
             {t('fiscal.profile.setupTitle')}
-          </h6>
-          <p className="cn-text-body2 text-[0.8rem]">
-            {t('fiscal.profile.setupDescription')}
-          </p>
-          <span className="cn-text-caption text-muted-foreground block mt-0.5 text-[0.7rem]">
-            {t('fiscal.profile.setupNotice')}
-          </span>
-        </Alert>
+          </AlertTitle>
+          <AlertDescription>
+            <p className="cn-text-body2 text-[0.8rem]">
+              {t('fiscal.profile.setupDescription')}
+            </p>
+            <span className="cn-text-caption text-muted-foreground block mt-0.5 text-[0.7rem]">
+              {t('fiscal.profile.setupNotice')}
+            </span>
+          </AlertDescription>
+        </BuiAlert>
       )}
 
       <div className="grid grid-cols-12 gap-3">
@@ -366,15 +368,16 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
               </div>
 
               <div className="col-span-12">
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={form.vatRegistered}
-                      onChange={(e) => handleChange('vatRegistered', e.target.checked)}
-                    />
-                  }
-                  label={<p className="cn-text-body2">{t('fiscal.profile.vatRegistered')}</p>}
-                />
+                <Field orientation="horizontal">
+                  <Switch
+                    id="fiscal-vat-registered"
+                    checked={form.vatRegistered}
+                    onCheckedChange={(checked) => handleChange('vatRegistered', checked)}
+                  />
+                  <FieldLabel htmlFor="fiscal-vat-registered" className="cn-text-body2 font-normal">
+                    {t('fiscal.profile.vatRegistered')}
+                  </FieldLabel>
+                </Field>
               </div>
             </div>
           </Card>

@@ -5,8 +5,21 @@ import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Button, Field, FieldLabel, Input } from '../../../components/ui';
-import { Skeleton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Skeleton,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../../../components/ui';
 import {
   PlayArrow,
   CompareArrows,
@@ -210,7 +223,7 @@ const ReconciliationTab: React.FC = () => {
       {loading ? (
         <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+            <Skeleton key={i} className="h-[36px] w-full rounded-[9px]" />
           ))}
         </div>
       ) : (
@@ -296,13 +309,16 @@ const ReconciliationTab: React.FC = () => {
       )}
 
       {/* Trigger Dialog */}
-      <Dialog open={triggerDialogOpen} onClose={() => setTriggerDialogOpen(false)}>
-        <DialogTitle>Trigger Reconciliation</DialogTitle>
+      <Dialog open={triggerDialogOpen} onOpenChange={(next) => { if (!next) setTriggerDialogOpen(false); }}>
         <DialogContent>
-          <p className="cn-text-body2 mb-3">
+        <DialogHeader>
+          <DialogTitle>Trigger Reconciliation</DialogTitle>
+          <DialogDescription>
             Declencher une reconciliation manuelle pour une propriete.
             Tous les mappings actifs de cette propriete seront reconcilies.
-          </p>
+          </DialogDescription>
+        </DialogHeader>
+        <div>
           <Field className="mt-1.5">
             <FieldLabel htmlFor="reconciliation-trigger-property">Property ID</FieldLabel>
             <Input
@@ -313,8 +329,8 @@ const ReconciliationTab: React.FC = () => {
               onChange={(e) => setTriggerPropertyId(e.target.value)}
             />
           </Field>
-        </DialogContent>
-        <DialogActions>
+        </div>
+        <DialogFooter>
           <Button variant="outline" onClick={() => setTriggerDialogOpen(false)}>Annuler</Button>
           <Button
             onClick={handleTrigger}
@@ -323,7 +339,8 @@ const ReconciliationTab: React.FC = () => {
             {triggerLoading ? <Spinner className="size-4" /> : <PlayArrow />}
             Lancer
           </Button>
-        </DialogActions>
+        </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   );

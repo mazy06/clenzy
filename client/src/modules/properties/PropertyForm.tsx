@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
-import { CircleCheck } from 'lucide-react';
+import { CircleCheck, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Paper, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import type { Property } from '../../services/api';
@@ -18,15 +17,10 @@ import PropertyFormDetails from './PropertyFormDetails';
 import PropertyFormSettings from './PropertyFormSettings';
 import CleaningPriceEstimator from './CleaningPriceEstimator';
 
-// ─── Stable sx constants ────────────────────────────────────────────────────
+// ─── Stable classes ─────────────────────────────────────────────────────────
 
-const FORM_PAPER_SX = {
-  border: '1px solid var(--line)',
-  bgcolor: 'var(--card)',
-  borderRadius: '14px',
-  boxShadow: 'none',
-  p: 2.5,
-} as const;
+// Carte hairline r14 plate — p: 2.5 = 15 px (spacing MUI 6).
+const FORM_PANEL_CLASS = 'border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] p-[15px] min-w-0 overflow-auto';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -151,16 +145,19 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
       >
         <div className="flex gap-3 flex-1 min-h-0">
           {/* ── Colonne gauche : Infos principales ──────────────────── */}
-          <Paper sx={{ ...FORM_PAPER_SX, flex: 7, minWidth: 0, overflow: 'auto' }}>
+          {/* `flex: 7` / `flex: 5` MUI = flex-grow/shrink 1 avec basis 0 : la
+              repartition 7/5 des colonnes passe par un style (valeur numerique,
+              pas de classe Tailwind equivalente). */}
+          <div className={FORM_PANEL_CLASS} style={{ flex: 7 }}>
             <div className="flex flex-col gap-4">
               <PropertyFormBasicInfo control={control} errors={errors} propertyTypes={propertyTypes} />
               <PropertyFormAddress control={control} errors={errors} setValue={setValue} />
               <PropertyFormDetails control={control} errors={errors} />
             </div>
-          </Paper>
+          </div>
 
           {/* ── Colonne droite : Configuration & Ménage ─────────────── */}
-          <Paper sx={{ ...FORM_PAPER_SX, flex: 5, minWidth: 0, overflow: 'auto' }}>
+          <div className={FORM_PANEL_CLASS} style={{ flex: 5 }}>
             <PropertyFormSettings
               control={control}
               errors={errors}
@@ -170,12 +167,15 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
               isAdmin={isAdmin}
               isManager={isManager}
             />
-          </Paper>
+          </div>
         </div>
 
         {/* Error message */}
         {submitError && (
-          <Alert severity="error" sx={{ fontSize: '0.8125rem', py: 0.5, mt: 1.5, flexShrink: 0 }}>{submitError}</Alert>
+          <UiAlert variant="destructive" className="text-[0.8125rem] py-0.5 mt-2 shrink-0">
+            <TriangleAlert />
+            <AlertDescription>{submitError}</AlertDescription>
+          </UiAlert>
         )}
 
         {/* Hidden submit button for PageHeader trigger */}

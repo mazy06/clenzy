@@ -1,6 +1,6 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Paper, Tooltip, IconButton } from '@mui/material';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, MoreVert } from '../../icons';
@@ -11,7 +11,7 @@ import {
   getServiceRequestPriorityLabel,
 } from '../../utils/statusUtils';
 import { stripPropertySuffix, formatDateShort } from './serviceRequestDisplayMapper';
-import { LIST_PAPER_SX, srStatusTokens, srPriorityTokens } from './serviceRequestsListConstants';
+import { srStatusTokens, srPriorityTokens } from './serviceRequestsListConstants';
 import { Money } from '../../components/Money';
 import PagePagination from '../../components/PagePagination';
 
@@ -33,8 +33,12 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  // Report en classes de LIST_PAPER_SX (hairline, r14, fond --card, sans ombre).
   return (
-    <Paper ref={containerRef} sx={{ ...LIST_PAPER_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div
+      ref={containerRef}
+      className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] shadow-none"
+    >
       <div className="flex-1 overflow-hidden">
         <Table>
           <TableHeader>
@@ -103,21 +107,38 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
                   </p>
                 </TableCell>
                 <TableCell className="text-center">
-                  <Tooltip title="Détails">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/service-requests/${request.id}`); }}
-                    >
-                      <Visibility size={18} strokeWidth={1.75} />
-                    </IconButton>
+                  {/* Declencheur = <span> natif : les primitives du kit ne
+                      transmettent pas de ref (React 18), le tooltip n'aurait
+                      pas d'ancre. */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Détails"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/service-requests/${request.id}`); }}
+                        >
+                          <Visibility size={18} strokeWidth={1.75} />
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Détails</TooltipContent>
                   </Tooltip>
-                  <Tooltip title="Actions">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => { e.stopPropagation(); onMenuOpen(e, request); }}
-                    >
-                      <MoreVert size={18} strokeWidth={1.75} />
-                    </IconButton>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Actions"
+                          onClick={(e) => { e.stopPropagation(); onMenuOpen(e, request); }}
+                        >
+                          <MoreVert size={18} strokeWidth={1.75} />
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Actions</TooltipContent>
                   </Tooltip>
                 </TableCell>
               </TableRow>
@@ -131,7 +152,7 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
         onPageChange={(p) => onPageChange(p)}
         rowsPerPage={rowsPerPage}
       />
-    </Paper>
+    </div>
   );
 };
 

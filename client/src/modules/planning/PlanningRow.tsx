@@ -1,5 +1,4 @@
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
-import { Box } from '@mui/material';
 import PlanningBar from './PlanningBar';
 import PlanningBlockedBand from './PlanningBlockedBand';
 import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, RowDragState } from './types';
@@ -511,9 +510,19 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
         const leftPx = selectionRange.start * dayWidth + offsetPx;
         const widthPx = nightCount * dayWidth - offsetPx;
         return (
-          <Box
-            sx={{
-              position: 'absolute',
+          // Le clignotement d'erreur passait par des @keyframes emises par MUI.
+          // Ici l'utilitaire `animate-pulse` (meme courbe 1 -> .5 -> 1) recadre
+          // sur la duree et le nombre de repetitions d'origine.
+          <div
+            className={cn(
+              'absolute z-[4] flex items-center px-1.5 pointer-events-none',
+              isError && [
+                'transition-opacity duration-300 ease-out',
+                'animate-pulse [animation-duration:0.4s] [animation-iteration-count:2]',
+                'motion-reduce:animate-none motion-reduce:transition-none',
+              ],
+            )}
+            style={{
               left: leftPx,
               top: config.barPadding,
               width: Math.max(widthPx, 4), // Minimum 4px so the bar is always visible
@@ -521,19 +530,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
               backgroundColor: `color-mix(in srgb, ${selColor} 25%, transparent)`,
               border: `1.5px solid color-mix(in srgb, ${selColor} 60%, transparent)`,
               borderRadius: `${BAR_BORDER_RADIUS}px`,
-              zIndex: 4,
-              pointerEvents: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              px: 1,
               boxShadow: `0 2px 8px color-mix(in srgb, ${selColor} 25%, transparent)`,
-              transition: isError ? 'opacity 0.3s ease' : undefined,
-              animation: isError ? 'pulseError 0.4s ease-in-out 2' : undefined,
-              '@keyframes pulseError': {
-                '0%, 100%': { opacity: 1 },
-                '50%': { opacity: 0.5 },
-              },
-              '@media (prefers-reduced-motion: reduce)': { animation: 'none', transition: 'none' },
             }}
           >
             {/* `selColor` est calcule au rendu : une classe Tailwind ne pouvant
@@ -544,7 +541,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
             >
               {isError ? 'Pas de place' : `${nightCount}${nightCount === 1 ? ' nuit' : ' nuits'}`}
             </p>
-          </Box>
+          </div>
         );
       })()}
 

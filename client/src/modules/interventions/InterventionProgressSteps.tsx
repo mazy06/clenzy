@@ -4,7 +4,13 @@ import { Badge, Button } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import {
   CheckCircle as CheckCircleIcon,
@@ -706,17 +712,14 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       )}
 
       {/* ── PDF Preview Dialog ──────────────────────────────────── */}
-      <Dialog
-        open={pdfDialogOpen}
-        onClose={handleClosePdfDialog}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: '12px', height: '85vh' } }}
-      >
-        <DialogTitle sx={{ fontSize: '0.9375rem', fontWeight: 600, py: 1.5 }}>
-          {pdfFileName || t('interventions.progressSteps.pdfPreview', 'Apercu du document')}
-        </DialogTitle>
-        <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      <Dialog open={pdfDialogOpen} onOpenChange={(next) => { if (!next) handleClosePdfDialog(); }}>
+        <DialogContent className="max-w-[900px] h-[85vh] rounded-[12px] flex flex-col overflow-hidden p-0 gap-0">
+        <DialogHeader className="px-4 py-2.5">
+          <DialogTitle className="text-[0.9375rem] font-semibold">
+            {pdfFileName || t('interventions.progressSteps.pdfPreview', 'Apercu du document')}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col flex-1 overflow-hidden">
           {pdfLoading ? (
             <div className="flex justify-center items-center flex-1">
               <Spinner className="size-10" />
@@ -748,12 +751,15 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
               </Alert>
             </div>
           )}
-        </DialogContent>
-        <DialogActions sx={{ px: 2, py: 1.5 }}>
+        </div>
+        {/* mx-0/mb-0 : le pied de modale deborde de 16 px par defaut pour
+            compenser le padding du contenu, ici mis a zero. */}
+        <DialogFooter className="mx-0 mb-0 px-3 py-2.5">
           <Button variant="ghost" size="sm" onClick={handleClosePdfDialog}>
             {t('common.close', 'Fermer')}
           </Button>
-        </DialogActions>
+        </DialogFooter>
+        </DialogContent>
       </Dialog>
     </>
   );

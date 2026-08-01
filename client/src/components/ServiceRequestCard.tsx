@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  Card,
-  CardContent,
-  IconButton,
-} from '@mui/material';
-import { Button } from './ui';
+import { Button, Card, CardContent } from './ui';
 import { cn } from '../utils/cn';
 import StatusChip from './StatusChip';
 import {
@@ -90,43 +85,14 @@ const getTypeGradient = (type: string): string => {
   return 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)';
 };
 
-// Styles alignés sur la référence .pr-card (PropertyCard / screen-properties).
-const styles = {
-  // ── Card ── (hairline r14 du thème, hover border --line-2 + shadow-card + translateY)
-  cardRoot: {
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-    cursor: 'pointer',
-    transition: 'border-color .14s, box-shadow .14s, transform .14s',
-    '&:hover': {
-      borderColor: 'var(--line-2)',
-      boxShadow: 'var(--shadow-card)',
-      transform: 'translateY(-2px)',
-    },
-    '@media (prefers-reduced-motion: reduce)': {
-      transition: 'none',
-      '&:hover': { transform: 'none' },
-    },
-  },
-  menuButton: {
-    position: 'absolute',
-    top: 8,
-    right: 10,
-    zIndex: 2,
-    color: 'rgba(255,255,255,0.7)',
-    bgcolor: 'rgba(0,0,0,0.15)',
-    '&:hover': { bgcolor: 'rgba(0,0,0,0.3)', color: 'var(--on-accent)' },
-    width: 28,
-    height: 28,
-  },
-  infoContent: {
-    flexGrow: 1,
-    p: 1.75,
-    pb: '12px !important',
-  },
-} as const;
+// Styles alignés sur la référence .pr-card (PropertyCard / screen-properties) :
+// hairline r14, hover border --line-2 + shadow-card + translateY. Le `ring-0`
+// neutralise l'anneau du gabarit de carte, remplacé ici par une vraie bordure
+// dont la teinte change au survol.
+const CARD_CLASS = 'h-full flex flex-col overflow-hidden cursor-pointer py-0 gap-0 rounded-[14px] ring-0 '
+  + 'border border-solid border-[var(--line)] transition-[border-color,box-shadow,transform] duration-[140ms] '
+  + 'hover:border-[var(--line-2)] hover:shadow-[var(--shadow-card)] hover:-translate-y-0.5 '
+  + 'motion-reduce:transition-none motion-reduce:hover:translate-y-0';
 
 // Nom d'entité en display.
 const NAME_TEXT_CLASS = 'cn-text-body1 truncate font-[family-name:var(--font-display)] text-[15px] font-semibold tracking-[-.01em] text-[var(--ink)]';
@@ -170,7 +136,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
 
   return (
     <Card
-      sx={styles.cardRoot}
+      className={CARD_CLASS}
       onClick={handleViewDetails}
     >
       {/* ─── Bandeau image + gradient + pastille statut ─── */}
@@ -191,17 +157,19 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
         </div>
 
         {/* Menu contextuel top-right */}
-        <IconButton
-          size="small"
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Actions de la demande"
           onClick={(e) => { e.stopPropagation(); onMenuOpen(e, request); }}
-          sx={styles.menuButton}
+          className="absolute top-2 end-[10px] z-[2] text-[rgba(255,255,255,0.7)] bg-[rgba(0,0,0,0.15)] hover:bg-[rgba(0,0,0,0.3)] hover:text-[var(--on-accent)]"
         >
           <MoreVert size={16} strokeWidth={1.75} />
-        </IconButton>
+        </Button>
       </div>
 
       {/* ─── Zone info ─── */}
-      <CardContent sx={styles.infoContent}>
+      <CardContent className="grow p-[10.5px] pb-[12px]">
         {/* Titre + chip type */}
         <div className="flex items-center gap-1 min-w-0 mb-0.5">
           <p className={cn(NAME_TEXT_CLASS, 'flex-1')} title={request.title}>

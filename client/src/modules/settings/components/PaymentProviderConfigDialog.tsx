@@ -2,8 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, AlertDescription, Button } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Switch, FormControlLabel, IconButton } from '@mui/material';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Switch,
   Field,
   FieldLabel,
   FieldDescription,
@@ -386,36 +392,35 @@ export default function PaymentProviderConfigDialog({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={saving ? undefined : onClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{ sx: { borderRadius: '12px' } }}
-    >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          fontSize: '0.95rem',
-          fontWeight: 700,
-          letterSpacing: '-0.005em',
-          pb: 1,
-        }}
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !saving) onClose(); }}>
+      <DialogContent
+        className="sm:max-w-xl max-h-[85vh] overflow-y-auto rounded-[12px]"
+        showCloseButton={false}
       >
-        <div>
-          Configurer {PAYMENT_PROVIDER_LABELS[providerType]}
-          <span className="block text-[0.72rem] font-normal text-muted-foreground mt-0.5">
-            Renseignez les identifiants marchands. Les secrets sont chiffres avant stockage (AES-256-GCM).
-          </span>
-        </div>
-        <IconButton onClick={onClose} disabled={saving} size="small">
-          <CloseIcon size={16} strokeWidth={2} />
-        </IconButton>
-      </DialogTitle>
+        <DialogHeader>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <DialogTitle className="text-[0.95rem] font-bold tracking-[-0.005em]">
+                Configurer {PAYMENT_PROVIDER_LABELS[providerType]}
+              </DialogTitle>
+              <DialogDescription className="text-[0.72rem] font-normal mt-0.5">
+                Renseignez les identifiants marchands. Les secrets sont chiffres avant stockage (AES-256-GCM).
+              </DialogDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Fermer"
+              onClick={onClose}
+              disabled={saving}
+            >
+              <CloseIcon size={16} strokeWidth={2} />
+            </Button>
+          </div>
+        </DialogHeader>
 
-      <DialogContent dividers sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+        <div className="flex flex-col gap-[9px] border-y border-solid border-[var(--line)] py-3">
         {fields.length === 0 && (
           <Alert variant="info" className="text-[0.8rem]">
             <Info />
@@ -491,29 +496,24 @@ export default function PaymentProviderConfigDialog({
           );
         })}
 
-        <FormControlLabel
-          control={
-            <Switch
-              checked={sandboxMode}
-              onChange={(e) => setSandboxMode(e.target.checked)}
-              disabled={saving}
-              size="small"
-              sx={{
-              }}
-            />
-          }
-          label={
-            <div>
-              <p className="cn-text-body1 text-[0.82rem] font-semibold">
-                Mode sandbox
-              </p>
-              <p className="cn-text-body1 text-[0.68rem] text-muted-foreground">
-                Activez en developpement ; desactivez pour la production (apres validation KYB).
-              </p>
-            </div>
-          }
-          sx={{ alignItems: 'flex-start', mt: 0.5 }}
-        />
+        <Field orientation="horizontal" className="items-start gap-2 mt-0.5">
+          <Switch
+            id="payment-config-sandbox"
+            checked={sandboxMode}
+            onCheckedChange={setSandboxMode}
+            disabled={saving}
+            size="sm"
+            className="mt-0.5"
+          />
+          <FieldLabel htmlFor="payment-config-sandbox" className="flex-col items-start gap-0">
+            <span className="cn-text-body1 text-[0.82rem] font-semibold">
+              Mode sandbox
+            </span>
+            <span className="cn-text-body1 text-[0.68rem] font-normal text-muted-foreground">
+              Activez en developpement ; desactivez pour la production (apres validation KYB).
+            </span>
+          </FieldLabel>
+        </Field>
 
         {error && (
           <Alert variant="destructive" className="text-[0.8rem]">
@@ -521,21 +521,22 @@ export default function PaymentProviderConfigDialog({
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-      </DialogContent>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 1.5, gap: 1 }}>
-        <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>
-          Annuler
-        </Button>
-        <Button
-          size="sm"
-          onClick={handleSave}
-          disabled={saving || fields.length === 0}
-        >
-          {saving && <Spinner className="size-3.5" />}
-          {saving ? 'Enregistrement…' : 'Enregistrer'}
-        </Button>
-      </DialogActions>
+        <DialogFooter className="gap-1.5">
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>
+            Annuler
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={saving || fields.length === 0}
+          >
+            {saving && <Spinner className="size-3.5" />}
+            {saving ? 'Enregistrement…' : 'Enregistrer'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

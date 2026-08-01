@@ -8,10 +8,18 @@ import {
   FieldLabel,
   Input,
   NativeSelect,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Dialog, DialogActions, DialogContent, DialogTitle, Paper, TextField } from '@mui/material';
+// TextField reste MUI : `inputRef` porte l'insertion de variable A LA POSITION
+// DU CURSEUR ; les primitifs du kit sont de simples fonctions et ne recoivent
+// pas de ref sous React 18 — la convertir casserait le comportement en silence.
+import { TextField } from '@mui/material';
 import { cn } from '../../utils/cn';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -158,10 +166,14 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
   const saving = upsertMutation.isPending || removeMutation.isPending;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth PaperProps={{ sx: { minHeight: '70vh' } }}>
-      <DialogTitle>{t('messaging.templates.editor.editWhatsappTitle')}</DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[1200px] min-h-[70vh] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{t('messaging.templates.editor.editWhatsappTitle')}</DialogTitle>
+        </DialogHeader>
 
-      <DialogContent dividers>
+        {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+        <div className="border-y border-solid border-[var(--line)] py-3">
         {isLoading && (
           <div className="flex justify-center p-6">
             <Spinner className="size-10" />
@@ -279,7 +291,7 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
 
             {/* ── Sidebar variables (droite 5/12) ── */}
             <div className="col-span-12 min-[900px]:col-span-5">
-              <Paper variant="outlined" sx={{ p: 2, position: 'sticky', top: 16 }}>
+              <div className="sticky top-4 p-3 rounded-xl border border-solid border-[var(--line)] bg-[var(--card)]">
                 <h6 className="cn-text-subtitle2 font-semibold mb-[0.35em]">
                   {t('messaging.templates.editor.variables')}
                 </h6>
@@ -292,36 +304,39 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
                   onInsert={handleInsertVariable}
                   showDetails
                 />
-              </Paper>
+              </div>
             </div>
           </div>
         )}
-      </DialogContent>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 1.5 }}>
-        {isOverride && (
-          <Button
-            variant="outline"
-            className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
-            onClick={handleResetToSystem}
-            disabled={saving}
-          >
-            <Replay size={16} strokeWidth={1.75} />
-            {t('whatsappTemplates.dialog.resetToSystem')}
+        <DialogFooter>
+          {isOverride && (
+            <Button
+              variant="outline"
+              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              onClick={handleResetToSystem}
+              disabled={saving}
+            >
+              <Replay size={16} strokeWidth={1.75} />
+              {t('whatsappTemplates.dialog.resetToSystem')}
+            </Button>
+          )}
+          {/* Cale-espace : masque en colonne (mobile), ou `flex-1` grandirait en
+              hauteur au lieu de repousser les actions. */}
+          <div className="hidden sm:block flex-1" />
+          <Button variant="ghost" onClick={onClose} disabled={saving}>
+            {t('common.cancel')}
           </Button>
-        )}
-        <div className="flex-1" />
-        <Button variant="ghost" onClick={onClose} disabled={saving}>
-          {t('common.cancel')}
-        </Button>
-        <Button
-          onClick={handleSave}
-          disabled={saving || !touched || !body.trim() || isOverLimit}
-        >
-          {saving ? <Spinner className="size-4" /> : <Save />}
-          {saving ? t('common.processing') : t('common.save')}
-        </Button>
-      </DialogActions>
+          <Button
+            onClick={handleSave}
+            disabled={saving || !touched || !body.trim() || isOverLimit}
+          >
+            {saving ? <Spinner className="size-4" /> : <Save />}
+            {saving ? t('common.processing') : t('common.save')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };
@@ -341,14 +356,15 @@ const WhatsAppBubblePreview: React.FC<{ body: string; rtl: boolean }> = ({ body,
   const renderedNodes = useMemo(() => renderWhatsAppBody(body), [body]);
 
   return (
-    <Box
-      sx={{
-        bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0b141a' : '#e5ddd5',
+    // Le callback de theme du sx ne faisait qu'un aiguillage clair/sombre : la
+    // variante `dark:` du kit lit le meme signal ([data-theme="dark"]).
+    // Le motif pointille reste en style : la syntaxe arbitraire de Tailwind
+    // n'accepte pas les espaces d'un `radial-gradient()`.
+    <div
+      className="bg-[#e5ddd5] dark:bg-[#0b141a] p-3 rounded-lg min-h-[80px]"
+      style={{
         backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px)',
         backgroundSize: '10px 10px',
-        p: 2,
-        borderRadius: 1,
-        minHeight: 80,
       }}
     >
       {/* px 1.5 = 9px, py 1 = 6px (spacing 6) ; borderRadius 2 = 16px (shape 8),
@@ -366,7 +382,7 @@ const WhatsAppBubblePreview: React.FC<{ body: string; rtl: boolean }> = ({ body,
       >
         {renderedNodes}
       </div>
-    </Box>
+    </div>
   );
 };
 

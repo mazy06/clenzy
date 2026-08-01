@@ -1,6 +1,11 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Box, LinearProgress, IconButton, Tooltip } from '@mui/material';
-import { Button } from '../../components/ui';
+import {
+  Button,
+  Progress,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import {
   CheckCircle,
   RadioButtonUnchecked,
@@ -31,6 +36,19 @@ import { useOnboarding } from '../../hooks/useOnboarding';
 import type { OnboardingStepWithStatus } from '../../hooks/useOnboarding';
 import ICalImportModal from './ICalImportModal';
 import { cn } from '../../utils/cn';
+
+// Le @keyframes du halo vivait dans le `sx` MUI, qui l'injectait lui-meme dans
+// le document. Sans MUI il faut une vraie feuille : posee une seule fois au
+// chargement du module (idempotent).
+const ONBOARDING_KEYFRAMES_ID = 'onboarding-checklist-keyframes';
+if (typeof document !== 'undefined' && !document.getElementById(ONBOARDING_KEYFRAMES_ID)) {
+  const styleEl = document.createElement('style');
+  styleEl.id = ONBOARDING_KEYFRAMES_ID;
+  styleEl.textContent =
+    '@keyframes onboarding-shadow-pulse{0%,100%{box-shadow:none}'
+    + '50%{box-shadow:0 6px 28px color-mix(in srgb, var(--accent) 25%, transparent), 0 0 0 1.5px color-mix(in srgb, var(--accent) 20%, transparent)}}';
+  document.head.appendChild(styleEl);
+}
 
 // ─── Step icon & CTA style mapping ─────────────────────────────────────────
 
@@ -219,26 +237,21 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
   // Show a mini "re-show" button when dismissed and not all completed
   if (isDismissed && !isAllCompleted) {
     return (
-      <Tooltip title={t('dashboard.onboarding.reshow')} arrow>
-        <IconButton
-          size="small"
-          onClick={handleReshow}
-          sx={{
-            color: 'text.disabled',
-            border: '1px dashed',
-            borderColor: 'var(--line-2)',
-            borderRadius: 'var(--radius-md)',
-            px: 1.5,
-            py: 0.25,
-            fontSize: '0.65rem',
-            '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)' },
-          }}
-        >
-          <span className="inline-flex me-0.5"><Replay size={12} strokeWidth={1.75} /></span>
-          <span className="text-[0.65rem] font-semibold">
-            {t('dashboard.onboarding.reshowShort')}
-          </span>
-        </IconButton>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleReshow}
+            className="h-auto px-[9px] py-[1.5px] text-[0.65rem] rounded-[var(--radius-md)] border border-dashed border-[var(--line-2)] text-[var(--faint)] hover:bg-transparent hover:text-[var(--accent)] hover:border-[var(--accent)]"
+          >
+            <span className="inline-flex me-0.5"><Replay size={12} strokeWidth={1.75} /></span>
+            <span className="text-[0.65rem] font-semibold">
+              {t('dashboard.onboarding.reshowShort')}
+            </span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t('dashboard.onboarding.reshow')}</TooltipContent>
       </Tooltip>
     );
   }
@@ -250,30 +263,12 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
 
   return (
     <>
-      <Box
-        sx={{
-          bgcolor: 'var(--card)',
-          border: '1px solid var(--line)',
-          borderRadius: 'var(--radius-lg)',
-          px: 2,
-          py: 1.25,
-          height: '100%',
-          '@keyframes shadowPulse': {
-            '0%': {
-              boxShadow: 'none',
-            },
-            '50%': {
-              boxShadow: '0 6px 28px color-mix(in srgb, var(--accent) 25%, transparent), 0 0 0 1.5px color-mix(in srgb, var(--accent) 20%, transparent)',
-            },
-            '100%': {
-              boxShadow: 'none',
-            },
-          },
-          animation: 'shadowPulse 3s ease-in-out infinite',
-          '@media (prefers-reduced-motion: reduce)': {
-            animation: 'none',
-          },
-        }}
+      {/* px: 2 = 12 px, py: 1.25 = 7,5 px (theme.spacing vaut 6 dans ce projet). */}
+      <div
+        className={cn(
+          'bg-[var(--card)] border border-solid border-[var(--line)] rounded-[var(--radius-lg)] px-3 py-[7.5px] h-full',
+          'animate-[onboarding-shadow-pulse_3s_ease-in-out_infinite] motion-reduce:animate-none',
+        )}
       >
         {/* ── Header row: title + progress + bar + dismiss ────────── */}
         <div className="flex items-center gap-2 mb-1.5">
@@ -283,28 +278,19 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
           <span className="cn-text-caption text-[0.625rem] text-muted-foreground opacity-60 font-semibold tabular-nums whitespace-nowrap">
             {t('dashboard.onboarding.progress', { completed: completedCount, total: totalCount })}
           </span>
-          <LinearProgress
-            variant="determinate"
+          <Progress
             value={progressPercent}
-            sx={{
-              flex: 1,
-              height: 4,
-              borderRadius: 2,
-              minWidth: 40,
-              bgcolor: 'var(--field)',
-              '& .MuiLinearProgress-bar': {
-                borderRadius: 2,
-                background: 'var(--accent)',
-              },
-            }}
+            className="flex-1 min-w-[40px] h-[4px] rounded-full bg-[var(--field)] [&_[data-slot=progress-indicator]]:bg-[var(--accent)] [&_[data-slot=progress-indicator]]:rounded-full"
           />
-          <IconButton
-            size="small"
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label={t('dashboard.onboarding.dismiss', 'Masquer')}
             onClick={handleDismiss}
-            sx={{ color: 'text.disabled', p: 0.25, '&:hover': { color: 'text.secondary' } }}
+            className="text-[var(--faint)] hover:bg-transparent hover:text-[var(--muted)]"
           >
             <Close size={14} strokeWidth={1.75} />
-          </IconButton>
+          </Button>
         </div>
 
         {/* ── Steps: horizontal row with wrapping ─────────────────── */}
@@ -380,7 +366,7 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
             skipLabel={t('onboarding.skip')}
           />
         )}
-      </Box>
+      </div>
 
       {/* iCal Import Modal */}
       <ICalImportModal

@@ -1,6 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent, IconButton, useTheme, useMediaQuery } from '@mui/material';
-import { Close as CloseIcon } from '../../../icons';
+import { Dialog, DialogContent, DialogTitle } from '../../../components/ui';
 
 /**
  * Modal generique pour configurer une integration (signature, pricing,
@@ -12,7 +11,7 @@ import { Close as CloseIcon } from '../../../icons';
  * <ul>
  *   <li>Pas de layout shift entre les sections</li>
  *   <li>Le contexte de selection (grille) reste visible (overlay)</li>
- *   <li>Mobile-friendly : full-screen automatique sous breakpoint sm</li>
+ *   <li>Mobile-friendly : pleine largeur sous 600 px</li>
  *   <li>Scalable : 50 integrations = toujours le meme pattern</li>
  * </ul>
  *
@@ -32,73 +31,42 @@ interface IntegrationConfigDialogProps {
   maxWidth?: 'xs' | 'sm' | 'md' | 'lg';
 }
 
+/**
+ * Equivalents des paliers `maxWidth` de MUI, en classes LITTERALES : une classe
+ * Tailwind ne peut pas naitre d'une variable, elle doit exister a la compilation.
+ */
+const MAX_WIDTH_CLASS: Record<NonNullable<IntegrationConfigDialogProps['maxWidth']>, string> = {
+  xs: 'max-w-[444px]',
+  sm: 'max-w-[600px]',
+  md: 'max-w-[900px]',
+  lg: 'max-w-[1200px]',
+};
+
 export default function IntegrationConfigDialog({
   open,
   onClose,
   children,
   maxWidth = 'sm',
 }: IntegrationConfigDialogProps) {
-  const theme = useTheme();
-  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
-
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth={maxWidth}
-      fullWidth
-      fullScreen={fullScreen}
-      PaperProps={{
-        sx: {
-          // Skin (radius, ombre, backdrop) herite du theme Dialog global Signature.
-          borderRadius: fullScreen ? 0 : undefined,
-          overflow: 'visible',
-        },
-      }}
-    >
-      {/* Bouton de fermeture floating en haut-droite */}
-      <div className="relative">
-        <IconButton
-          onClick={onClose}
-          aria-label="Fermer"
-          sx={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            zIndex: 10,
-            width: 28,
-            height: 28,
-            color: 'text.secondary',
-            backgroundColor: 'var(--card)',
-            border: '1px solid',
-            borderColor: 'divider',
-            transition: 'all 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-            '&:hover': {
-              backgroundColor: 'background.paper',
-              borderColor: 'text.secondary',
-              color: 'text.primary',
-            },
-          }}
-        >
-          <CloseIcon size={14} strokeWidth={2.2} />
-        </IconButton>
-
-        <DialogContent
-          sx={{
-            p: 0,
-            // La card interne (ApiKeyProviderCard, etc.) a sa propre Paper avec
-            // bordure. On la rend sans padding pour qu'elle prenne tout le
-            // modal sans double bordure.
-            '& > .MuiPaper-root': {
-              borderRadius: fullScreen ? 0 : '14px',
-              border: 'none',
-              boxShadow: 'none',
-            },
-          }}
-        >
-          {children}
-        </DialogContent>
-      </div>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* La card interne (ApiKeyProviderCard, etc.) porte deja sa bordure et son
+          rayon : on annule les siens pour ne pas doubler le liseré du modal.
+          `aria-describedby={undefined}` : le contenu est libre, pas de description. */}
+      <DialogContent
+        aria-describedby={undefined}
+        className={
+          `${MAX_WIDTH_CLASS[maxWidth]} w-full p-0 max-h-[90vh] overflow-y-auto ` +
+          'max-[599px]:max-w-full max-[599px]:rounded-none ' +
+          '[&>[data-slot=card]]:rounded-[14px] [&>[data-slot=card]]:border-0 [&>[data-slot=card]]:shadow-none ' +
+          'max-[599px]:[&>[data-slot=card]]:rounded-none'
+        }
+      >
+        {/* Titre porteur du nom accessible du dialogue : le contenu est libre,
+            aucun des enfants ne garantit un intitulé. */}
+        <DialogTitle className="sr-only">Configuration de l'intégration</DialogTitle>
+        {children}
+      </DialogContent>
     </Dialog>
   );
 }

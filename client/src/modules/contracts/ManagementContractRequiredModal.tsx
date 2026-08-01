@@ -3,7 +3,14 @@ import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
 import { Handshake, Check } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -86,29 +93,34 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
   };
 
   return (
-    <Dialog
-      open={open}
-      maxWidth="md"
-      fullWidth
-      disableEscapeKeyDown
-    >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
-        <span className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-[8px] bg-[var(--accent-soft)] text-[var(--accent)]">
-          <Handshake size={16} strokeWidth={2} />
-        </span>
-        <div>
-          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[16px] font-semibold leading-[1.2] text-[var(--ink)]">
-            {t('contracts.required.title', 'Contrat de gestion requis')}
-          </p>
-          {property && (
-            <p className="cn-text-body1 text-[0.75rem] text-[var(--muted)]">
-              {property.name}
-            </p>
-          )}
-        </div>
-      </DialogTitle>
+    // Modale non fermable : `open` est controle sans onOpenChange, donc Radix
+    // ne peut pas la refermer (Echap et clic exterieur sont neutralises aussi).
+    <Dialog open={open}>
+      <DialogContent
+        className="max-w-[900px] max-h-[88vh] overflow-y-auto"
+        showCloseButton={false}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
+        <DialogHeader>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-[8px] bg-[var(--accent-soft)] text-[var(--accent)] shrink-0">
+              <Handshake size={16} strokeWidth={2} />
+            </span>
+            <div className="min-w-0">
+              <DialogTitle className="text-[16px] font-semibold leading-[1.2] text-[var(--ink)]">
+                {t('contracts.required.title', 'Contrat de gestion requis')}
+              </DialogTitle>
+              {property && (
+                <DialogDescription className="text-[0.75rem] text-[var(--muted)]">
+                  {property.name}
+                </DialogDescription>
+              )}
+            </div>
+          </div>
+        </DialogHeader>
 
-      <DialogContent dividers sx={{ px: 3, py: 3 }}>
+        <div className="border-y border-solid border-[var(--line)] py-4">
         <p className="cn-text-body1 text-[0.8125rem] text-[var(--muted)] mb-4">
           {t(
             'contracts.required.intro',
@@ -130,19 +142,20 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-      </DialogContent>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 1.5 }}>
-        <Button
-          onClick={handleSubmit}
-          disabled={!formValid || saving}
-        >
-          {saving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={2} />}
-          {saving
-            ? t('contracts.required.saving', 'Enregistrement…')
-            : t('contracts.required.submit', 'Valider le contrat')}
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button
+            onClick={handleSubmit}
+            disabled={!formValid || saving}
+          >
+            {saving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={2} />}
+            {saving
+              ? t('contracts.required.saving', 'Enregistrement…')
+              : t('contracts.required.submit', 'Valider le contrat')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

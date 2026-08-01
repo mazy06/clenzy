@@ -3,8 +3,7 @@ import { cn } from '../../utils/cn';
 import { Badge, Button } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
-import { Card } from '../../components/ui';
-import { Skeleton, useTheme } from '@mui/material';
+import { Card, Skeleton } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Coins, History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -26,7 +25,6 @@ import AgentRunReplayDialog from './AgentRunReplayDialog';
  */
 export default function AiCreditsSection() {
   const { t } = useTranslation();
-  const theme = useTheme();
   const [searchParams] = useSearchParams();
 
   const [balance, setBalance] = useState<CreditBalance | null>(null);
@@ -74,16 +72,16 @@ export default function AiCreditsSection() {
 
   const totalCredits = balance ? balance.totalMillicredits / 1000 : 0;
   const gaugeColor = useMemo(() => {
-    if (totalCredits <= 0) return theme.palette.error.main;
+    if (totalCredits <= 0) return 'var(--err)';
     if (totalCredits < 50) return '#D4A574';
     return '#4A9B8E';
-  }, [totalCredits, theme.palette.error.main]);
+  }, [totalCredits]);
 
   if (loading) {
     return (
       <div className="flex flex-col gap-2 mb-3">
-        <Skeleton variant="rounded" height={96} />
-        <Skeleton variant="rounded" height={72} />
+        <Skeleton className="h-24 rounded-[11px]" />
+        <Skeleton className="h-[72px] rounded-[11px]" />
       </div>
     );
   }
@@ -111,7 +109,11 @@ export default function AiCreditsSection() {
       <Card className="gap-0 py-0 p-2.5">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <Coins size={20} color={gaugeColor} aria-hidden />
+            {/* `var(--err)` remplace le hex fige du theme MUI : lucide le porte
+                par currentColor plutot qu'en attribut de presentation. */}
+            <span className="inline-flex" style={{ color: gaugeColor }}>
+              <Coins size={20} aria-hidden />
+            </span>
             <div>
               <p className="cn-text-body2 text-muted-foreground">
                 {t('aiCredits.balanceTitle', 'Crédits IA disponibles')}

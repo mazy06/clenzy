@@ -3,7 +3,7 @@ import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { IconButton, Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Card, Field, FieldLabel, Input } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
@@ -245,25 +245,44 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
                   </TableCell>
                   {canEdit && (
                     <TableCell className="text-end whitespace-nowrap">
-                      <Tooltip title={t('common.edit', 'Modifier')}>
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            setEditing(config);
-                            setDialogOpen(true);
-                          }}
-                        >
-                          <Edit size={16} strokeWidth={1.75} />
-                        </IconButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Le span porte la ref que Radix pose sur son enfant :
+                              Button est une fonction, il n'en transmet pas. */}
+                          <span className="inline-flex">
+                            <BuiButton
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={t('common.edit', 'Modifier')}
+                              onClick={() => {
+                                setEditing(config);
+                                setDialogOpen(true);
+                              }}
+                            >
+                              <Edit size={16} strokeWidth={1.75} />
+                            </BuiButton>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('common.edit', 'Modifier')}</TooltipContent>
                       </Tooltip>
-                      <Tooltip title={t('common.delete', 'Supprimer')}>
-                        <IconButton
-                          size="small"
-                          onClick={() => deleteMutation.mutate(config.id)}
-                          disabled={deleteMutation.isPending}
-                        >
-                          <Delete size={16} strokeWidth={1.75} />
-                        </IconButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <BuiButton
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={t('common.delete', 'Supprimer')}
+                              onClick={() => deleteMutation.mutate(config.id)}
+                              disabled={deleteMutation.isPending}
+                              className="hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+                            >
+                              <Delete size={16} strokeWidth={1.75} />
+                            </BuiButton>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('common.delete', 'Supprimer')}</TooltipContent>
                       </Tooltip>
                     </TableCell>
                   )}

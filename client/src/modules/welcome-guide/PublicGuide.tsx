@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Spinner } from '../../components/ui';
 import { useParams } from 'react-router-dom';
-import { Dialog, DialogContent, DialogTitle } from '@mui/material';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { Send, X, Star, Sparkles, ArrowUp, Info, Heart } from 'lucide-react';
@@ -727,9 +728,19 @@ const PublicGuide: React.FC = () => {
       </div>
 
       {/* Paiement d'un service additionnel (upsell) — Stripe embedded */}
-      <Dialog open={!!payingUpsell} onClose={closePay} maxWidth="sm" fullWidth>
-        <DialogTitle>{payingUpsell?.title}</DialogTitle>
-        <DialogContent dividers sx={{ p: payClientSecret && !paySuccess && !payError ? 0 : 3 }}>
+      <Dialog open={!!payingUpsell} onOpenChange={(next) => { if (!next) closePay(); }}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{payingUpsell?.title}</DialogTitle>
+          </DialogHeader>
+          {/* Filets haut/bas = le `dividers` de la modale MUI. Le tunnel Stripe
+              embarque son propre padding, d'ou le p-0 dans ce seul cas. */}
+          <div
+            className={cn(
+              'border-y border-solid border-[var(--line)]',
+              payClientSecret && !paySuccess && !payError ? 'p-0' : 'p-[18px]',
+            )}
+          >
           {paySuccess ? (
             <div className="text-center py-6">
               <div className="text-[#BC5B36] font-bold mb-2 text-[16px]">{L.paySuccess}</div>
@@ -746,6 +757,7 @@ const PublicGuide: React.FC = () => {
               <Spinner className="size-10 text-[#BC5B36]" />
             </div>
           )}
+          </div>
         </DialogContent>
       </Dialog>
     </>

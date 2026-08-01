@@ -1,9 +1,22 @@
 import React, { useState, useMemo } from 'react';
 import { Card } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
-import { IconButton, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@mui/material';
 import { Button } from '../../../components/ui';
-import { Field, FieldLabel, Input } from '../../../components/ui';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { Add, DeleteOutline, LocalLaundryService, Save, Close } from '../../../icons';
 import type { PropertyLaundryItem, BlanchisserieCatalogItem } from '../../../services/api/propertyInventoryApi';
 
@@ -145,10 +158,25 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
                       </TableCell>
                       {canEdit && (
                         <TableCell className="text-end">
-                          <Tooltip title="Supprimer">
-                            <IconButton size="small" color="error" onClick={() => onDelete(item.id)}>
-                              <DeleteOutline size={16} strokeWidth={1.75} />
-                            </IconButton>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {/* Le span porte la ref que Radix pose sur son
+                                  enfant : Button est une fonction, il n'en
+                                  transmet pas. */}
+                              <span className="inline-flex">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => onDelete(item.id)}
+                                  aria-label={`Supprimer ${item.label}`}
+                                  className="text-[var(--err)] hover:bg-[var(--err-soft)]"
+                                >
+                                  <DeleteOutline size={16} strokeWidth={1.75} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Supprimer</TooltipContent>
                           </Tooltip>
                         </TableCell>
                       )}
@@ -172,23 +200,26 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
       )}
 
       {/* Dialog Add */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Ajouter un article de linge</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-          <Select
+      <Dialog open={dialogOpen} onOpenChange={(next) => { if (!next) setDialogOpen(false); }}>
+        <DialogContent className="max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Ajouter un article de linge</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+          {/* Aucun libelle visible a l'origine : l'aria-label porte le sens. */}
+          <NativeSelect
+            className="w-full"
+            aria-label="Article de linge"
             value={selectedKey}
             onChange={(e) => setSelectedKey(e.target.value)}
-            displayEmpty
-            size="small"
-            fullWidth
           >
-            <MenuItem value="" disabled>— Choisir un article —</MenuItem>
+            <NativeSelectOption value="" disabled>— Choisir un article —</NativeSelectOption>
             {availableCatalog.map((c) => (
-              <MenuItem key={c.key} value={c.key}>
+              <NativeSelectOption key={c.key} value={c.key}>
                 {c.label} ({c.price.toFixed(2)} {'\u20AC'})
-              </MenuItem>
+              </NativeSelectOption>
             ))}
-          </Select>
+          </NativeSelect>
           <Field className="w-[160px]">
             <FieldLabel htmlFor="laundry-add-quantity">Quantite par sejour</FieldLabel>
             <Input
@@ -200,17 +231,18 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
               onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
             />
           </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              <Close size={18} strokeWidth={1.75} />
+              Annuler
+            </Button>
+            <Button onClick={handleAdd} disabled={!selectedKey}>
+              <Save size={18} strokeWidth={1.75} />
+              Ajouter
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="outline" onClick={() => setDialogOpen(false)}>
-            <Close size={18} strokeWidth={1.75} />
-            Annuler
-          </Button>
-          <Button onClick={handleAdd} disabled={!selectedKey}>
-            <Save size={18} strokeWidth={1.75} />
-            Ajouter
-          </Button>
-        </DialogActions>
       </Dialog>
     </div>
   );

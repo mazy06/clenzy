@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { ButtonBase } from '@mui/material';
 import { cn } from '../../../../utils/cn';
 import { AlertTriangle, ClipboardPaste } from 'lucide-react';
 import type { Editor } from 'grapesjs';
@@ -34,6 +33,23 @@ const AUTO = 'auto';
 
 /** Classes des 2 zones de collage (litteral entier : Tailwind scanne le texte source). */
 const FIELD_CLASS = 'w-full font-[ui-monospace,_SFMono-Regular,_Menlo,_Consolas,_monospace] text-[var(--text-sm)] leading-[1.5] text-[var(--ink)] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[var(--radius-md)] p-[7.5px] resize-y outline-none focus:border-[var(--accent)] disabled:opacity-60';
+
+/**
+ * Boutons maison de l'Importer (l'ancien `ButtonBase` + `sx`) : le kit n'a pas de
+ * variante calee sur les tokens `--text-md` / `--fw-*` du Studio. `font-[number:…]`
+ * car Tailwind v4 n'infere pas le type d'une graisse derriere `var(`.
+ */
+const IMPORT_BTN_BASE_CLASS =
+  'inline-flex items-center px-[15px] h-10 rounded-[var(--radius-md)] text-[var(--text-md)] cursor-pointer ' +
+  'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2';
+
+const IMPORT_BTN_GHOST_CLASS =
+  `${IMPORT_BTN_BASE_CLASS} text-[var(--ink)] border border-solid border-[var(--line)] bg-transparent ` +
+  'font-[number:var(--fw-medium)] hover:bg-[var(--hover)]';
+
+const IMPORT_BTN_SOLID_CLASS =
+  `${IMPORT_BTN_BASE_CLASS} gap-[4.5px] border-none bg-[var(--accent)] text-[var(--on-accent)] ` +
+  'font-[number:var(--fw-semibold)] hover:bg-[var(--accent-deep,var(--accent))] disabled:opacity-50';
 
 export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
   const [html, setHtml] = useState('');
@@ -144,32 +160,19 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
       <div className="flex justify-end gap-1.5">
         {/* Après un import avec avertissements, l'utilisateur confirme la fermeture (le contenu est déjà injecté). */}
         {warnings.length > 0 ? (
-          <ButtonBase
-            onClick={onDone}
-            sx={{
-              display: 'inline-flex', alignItems: 'center', px: 2.5, height: 40, borderRadius: 'var(--radius-md)',
-              color: 'var(--ink)', border: '1px solid var(--line)', fontWeight: 'var(--fw-medium)',
-              fontSize: 'var(--text-md)', cursor: 'pointer', '&:hover': { bgcolor: 'var(--hover)' },
-              '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-            }}
-          >
+          <button type="button" onClick={onDone} className={IMPORT_BTN_GHOST_CLASS}>
             Fermer
-          </ButtonBase>
+          </button>
         ) : null}
-        <ButtonBase
+        <button
+          type="button"
           onClick={runImport}
           disabled={!html.trim()}
-          sx={{
-            display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 2.5, height: 40,
-            borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)',
-            fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-md)', cursor: 'pointer',
-            '&.Mui-disabled': { opacity: 0.5 }, '&:hover': { bgcolor: 'var(--accent-deep, var(--accent))' },
-            '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-          }}
+          className={IMPORT_BTN_SOLID_CLASS}
         >
           <ClipboardPaste size={15} strokeWidth={2} />
           {warnings.length > 0 ? 'Réimporter' : 'Importer'}
-        </ButtonBase>
+        </button>
       </div>
     </div>
   );

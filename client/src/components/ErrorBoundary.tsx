@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Alert } from '@mui/material';
+import { Alert } from './ui';
 import { Button } from './ui';
 import { Refresh as RefreshIcon } from '../icons';
 import * as Sentry from '@sentry/react';
@@ -65,7 +65,7 @@ class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="flex flex-col items-center justify-center min-h-[400px] p-4">
-          <Alert severity="error" sx={{ mb: 2, maxWidth: 600 }}>
+          <Alert variant="destructive" className="mb-3 max-w-[600px]">
             <h6 className="cn-text-h6 mb-[0.35em]">
               Une erreur s'est produite
             </h6>

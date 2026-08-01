@@ -14,8 +14,14 @@
  *   - L'utilisateur reste guide cote Baitly avant de basculer dans Channex
  */
 import React from 'react';
-import { Dialog, DialogContent, DialogTitle, IconButton, Stack, ButtonBase } from '@mui/material';
-import { X, ChevronRight } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../../../components/ui';
+import { ChevronRight } from 'lucide-react';
 
 import {
   CHANNEX_OTA_OPTIONS,
@@ -44,58 +50,29 @@ export default function ChannexOtaPickerDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: 2,
-          pb: 1.5,
-        }}
-      >
-        <div className="min-w-0 flex-1">
-          <h6 className="cn-text-subtitle1 font-semibold leading-[1.3]">
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* La croix de fermeture est fournie par DialogContent : l'IconButton
+          d'origine ferait doublon. */}
+      <DialogContent className="max-w-[600px]">
+        <DialogHeader className="pe-7">
+          <DialogTitle className="leading-[1.3]">
             Choisir l'OTA a connecter
-          </h6>
-          <span className="cn-text-caption text-muted-foreground block leading-[1.4] mt-0.5">
+          </DialogTitle>
+          <DialogDescription className="text-xs leading-[1.4]">
             « {propertyName} » sera distribue sur l'OTA selectionne via le hub
-          </span>
-        </div>
-        <IconButton onClick={onClose} size="small" aria-label="Fermer">
-          <X size={18} />
-        </IconButton>
-      </DialogTitle>
+          </DialogDescription>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 1, pb: 2 }}>
-        <Stack spacing={1}>
+        <div className="flex flex-col gap-1.5">
           {CHANNEX_OTA_OPTIONS.map((option) => (
-            <ButtonBase
+            // La couleur de marque est une donnee d'execution : elle passe par une
+            // custom property, seule facon d'alimenter un `hover:` en Tailwind.
+            <button
               key={option.code}
+              type="button"
               onClick={() => handlePick(option)}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                width: '100%',
-                p: 1.25,
-                borderRadius: 1.5,
-                border: '1px solid',
-                borderColor: 'divider',
-                bgcolor: 'background.paper',
-                textAlign: 'left',
-                cursor: 'pointer',
-                transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '&:hover': {
-                  borderColor: option.brandColor,
-                  bgcolor: `${option.brandColor}08`,
-                  transform: 'translateX(2px)',
-                },
-                '&:focus-visible': {
-                  outline: `2px solid ${option.brandColor}`,
-                  outlineOffset: 2,
-                },
-              }}
+              style={{ '--ota-brand': option.brandColor } as React.CSSProperties}
+              className="flex items-center gap-2 w-full p-[7.5px] rounded-xl border border-solid border-[var(--line)] bg-[var(--card)] text-start cursor-pointer transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[var(--ota-brand)] hover:bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)] hover:translate-x-[2px] focus-visible:outline-2 focus-visible:outline-[var(--ota-brand)] focus-visible:outline-offset-2"
             >
               <div className="w-[40px] h-[40px] rounded-[8px] flex items-center justify-center shrink-0 font-bold text-[0.95rem] tracking-[-0.02em]" style={{ backgroundColor: option.brandColor, color: option.brandColorFg }}>
                 {option.initials}
@@ -111,11 +88,11 @@ export default function ChannexOtaPickerDialog({
               <div className="text-muted-foreground opacity-60 shrink-0">
                 <ChevronRight size={16} />
               </div>
-            </ButtonBase>
+            </button>
           ))}
-        </Stack>
+        </div>
 
-        <span className="cn-text-caption text-muted-foreground block mt-3 text-center leading-[1.5]">
+        <span className="cn-text-caption text-muted-foreground block text-center leading-[1.5]">
           Vous serez redirige vers le widget de configuration OTA pour finaliser la
           connexion (login OTA + mapping des chambres).
         </span>

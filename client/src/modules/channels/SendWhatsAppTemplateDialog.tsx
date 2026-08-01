@@ -3,7 +3,19 @@ import { Badge } from '../../components/ui';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, RadioGroup, FormControlLabel, Radio } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  RadioGroup,
+  RadioGroupItem,
+} from '../../components/ui';
 import { useWhatsAppTemplatesList } from '../../hooks/useWhatsAppTemplates';
 import type { WhatsAppTemplateGroup } from '../../services/api/whatsappTemplatesApi';
 
@@ -53,9 +65,12 @@ export default function SendWhatsAppTemplateDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600 }}>Envoyer un template</DialogTitle>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Envoyer un template</DialogTitle>
+        </DialogHeader>
+        <div className="max-h-[60vh] overflow-y-auto">
         {isLoading ? (
           <div className="flex justify-center py-4">
             <Spinner className="size-6" />
@@ -65,25 +80,20 @@ export default function SendWhatsAppTemplateDialog({
             Aucun template disponible.
           </p>
         ) : (
-          <RadioGroup value={selectedKey} onChange={(e) => setSelectedKey(e.target.value)}>
+          <RadioGroup value={selectedKey} onValueChange={setSelectedKey}>
             {groups.map((g) => (
-              <FormControlLabel
-                key={g.templateKey}
-                value={g.templateKey}
-                control={<Radio size="small" sx={{ alignSelf: 'flex-start', pt: 0.5 }} />}
-                sx={{ alignItems: 'flex-start', mb: 1, mr: 0, '& .MuiFormControlLabel-label': { width: '100%' } }}
-                label={
-                  <div className="py-0.5">
-                    <div className="flex items-center gap-1">
-                      <p className="cn-text-body1 text-[0.8125rem] font-semibold">{formatKey(g.templateKey)}</p>
-                      <Badge variant="secondary" className="h-[16px] text-[0.5625rem] font-semibold bg-[var(--hover)]">{g.category}</Badge>
-                    </div>
-                    <p className="cn-text-body1 text-[0.75rem] text-muted-foreground whitespace-pre-wrap mt-0.5">
-                      {(() => { const b = bodyOf(g); return b.length > 160 ? `${b.slice(0, 160)}…` : b; })()}
-                    </p>
-                  </div>
-                }
-              />
+              <Field key={g.templateKey} orientation="horizontal">
+                <RadioGroupItem value={g.templateKey} id={`wa-template-${g.templateKey}`} />
+                <FieldContent>
+                  <FieldLabel htmlFor={`wa-template-${g.templateKey}`} className="flex items-center gap-1">
+                    <span className="cn-text-body1 text-[0.8125rem] font-semibold">{formatKey(g.templateKey)}</span>
+                    <Badge variant="secondary" className="h-[16px] text-[0.5625rem] font-semibold bg-[var(--hover)]">{g.category}</Badge>
+                  </FieldLabel>
+                  <FieldDescription className="cn-text-body1 text-[0.75rem] text-muted-foreground whitespace-pre-wrap mt-0.5">
+                    {(() => { const b = bodyOf(g); return b.length > 160 ? `${b.slice(0, 160)}…` : b; })()}
+                  </FieldDescription>
+                </FieldContent>
+              </Field>
             ))}
           </RadioGroup>
         )}
@@ -97,15 +107,16 @@ export default function SendWhatsAppTemplateDialog({
             <AlertDescription>Échec de l'envoi du template. Réessayez.</AlertDescription>
           </Alert>
         )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button onClick={handleSend} disabled={!selectedKey || sending}>
+            {sending ? 'Envoi…' : 'Envoyer'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button variant="ghost" onClick={onClose}>
-          Annuler
-        </Button>
-        <Button onClick={handleSend} disabled={!selectedKey || sending}>
-          {sending ? 'Envoi…' : 'Envoyer'}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

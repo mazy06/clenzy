@@ -1,13 +1,18 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Switch, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '../../components/ui';
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Field,
   FieldLabel,
   Input,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
+  Switch,
 } from '../../components/ui';
 import { LocalLaundryService, Add, Delete } from '../../icons';
 import type { PricingConfig, BlanchisserieItem, CommissionConfig } from '../../services/api/pricingConfigApi';
@@ -103,9 +108,10 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
                 <TableCell className="text-center">
                   <Switch
                     checked={item.enabled}
-                    onChange={(e) => updateItem(index, { enabled: e.target.checked })}
+                    onCheckedChange={(checked) => updateItem(index, { enabled: checked })}
                     disabled={!canEdit}
-                    size="small"
+                    size="sm"
+                    aria-label={t(`tarification.blanchisserie.items.${item.key}`, item.label)}
                   />
                 </TableCell>
                 <TableCell className="text-end w-[140px]">
@@ -133,9 +139,16 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
                 </TableCell>
                 {canEdit && (
                   <TableCell className="text-center">
-                    <IconButton size="small" onClick={() => removeItem(index)} color="error">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => removeItem(index)}
+                      aria-label={t('tarification.delete', 'Supprimer')}
+                      className="text-[var(--err)] hover:bg-[var(--err-soft)]"
+                    >
                       <Delete size={16} strokeWidth={1.75} />
-                    </IconButton>
+                    </Button>
                   </TableCell>
                 )}
               </TableRow>
@@ -155,9 +168,12 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
       )}
 
       {/* ─── Add dialog ──────────────────────────────────────────────── */}
-      <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('tarification.addArticle')}</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
+      <Dialog open={addDialogOpen} onOpenChange={(next) => { if (!next) setAddDialogOpen(false); }}>
+        <DialogContent className="max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle>{t('tarification.addArticle')}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
           <Field>
             <FieldLabel htmlFor="laundry-new-label">{t('tarification.newItem.label')}</FieldLabel>
             <Input
@@ -181,13 +197,14 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
               </InputGroupAddon>
             </InputGroup>
           </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>
+            <Button onClick={handleAdd} disabled={!newItemLabel.trim()}>
+              {t('tarification.add')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>
-          <Button onClick={handleAdd} disabled={!newItemLabel.trim()}>
-            {t('tarification.add')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* ─── Commission ──────────────────────────────────────────────── */}

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import {
   AutoAwesome,
   Timer,
@@ -194,8 +194,13 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
               Estimation du prix
             </p>
           </div>
-          <Tooltip title="Estimation indicative basée sur les caractéristiques du logement. Le tarif définitif est soumis à l'acceptation du prestataire." arrow>
-            <span className="inline-flex text-[var(--faint)] cursor-help"><Info size={14} strokeWidth={1.75} /></span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex text-[var(--faint)] cursor-help"><Info size={14} strokeWidth={1.75} /></span>
+            </TooltipTrigger>
+            <TooltipContent>
+              Estimation indicative basée sur les caractéristiques du logement. Le tarif définitif est soumis à l'acceptation du prestataire.
+            </TooltipContent>
           </Tooltip>
         </div>
 

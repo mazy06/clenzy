@@ -2,7 +2,13 @@ import React, { useMemo, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Card } from '../../../components/ui';
 import { Button } from '../../../components/ui';
-import { IconButton, Tooltip, ToggleButton, ToggleButtonGroup, Stack } from '@mui/material';
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { Input } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
@@ -238,55 +244,40 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
         {/* Categorie */}
         <div className="min-w-0">
           <FieldLabel icon={<Category size={12} strokeWidth={1.75} />}>Categorie</FieldLabel>
-          <ToggleButtonGroup
+          <ToggleGroup
+            type="single"
             value={value.category}
-            exclusive
-            onChange={(_, v) => onChange({ ...value, category: v ?? '' })}
-            size="small"
-            sx={{
-              flexWrap: 'wrap',
-              gap: 0.5,
-              '& .MuiToggleButtonGroup-grouped': {
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: '6px !important',
-                textTransform: 'none',
-                px: 0.75,
-                py: 0.25,
-                fontSize: '0.75rem',
-                fontWeight: 500,
-                gap: 0.4,
-              },
-            }}
+            onValueChange={(v) => onChange({ ...value, category: v ?? '' })}
+            size="sm"
+            spacing={0.5}
+            className="flex-wrap w-full"
           >
             {CATEGORIES.map((cat) => {
               const selected = value.category === cat.value;
               return (
-                <ToggleButton
+                <ToggleGroupItem
                   key={cat.value}
                   value={cat.value}
-                  sx={{
+                  className="gap-[2.4px] rounded-[6px] border border-solid px-[4.5px] py-[1.5px] text-[0.75rem] font-medium normal-case bg-[var(--cat-bg)] hover:bg-[var(--cat-hover)]"
+                  // Les teintes viennent de la donnee (couleur de categorie) :
+                  // elles transitent par des variables CSS, une classe Tailwind
+                  // ne pouvant pas naitre d'une valeur d'execution.
+                  style={{
                     color: selected ? cat.color : 'var(--muted)',
-                    bgcolor: 'transparent',
-                    borderColor: 'var(--line-2)',
-                    '&:hover': { bgcolor: `${cat.color}15` },
-                    '&.Mui-selected': {
-                      bgcolor: `${cat.color}1F`,
-                      color: cat.color,
-                      borderColor: `${cat.color} !important`,
-                      '&:hover': { bgcolor: `${cat.color}1F` },
-                    },
-                  }}
+                    borderColor: selected ? cat.color : 'var(--line-2)',
+                    '--cat-bg': selected ? `${cat.color}1F` : 'transparent',
+                    '--cat-hover': selected ? `${cat.color}1F` : `${cat.color}15`,
+                  } as React.CSSProperties}
                 >
                   {React.cloneElement(
                     cat.icon as React.ReactElement<{ size?: number; strokeWidth?: number; color?: string }>,
                     { size: 13, strokeWidth: 1.75, color: cat.color },
                   )}
                   {cat.label}
-                </ToggleButton>
+                </ToggleGroupItem>
               );
             })}
-          </ToggleButtonGroup>
+          </ToggleGroup>
         </div>
 
         {/* Quantite */}
@@ -294,15 +285,18 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
           <FieldLabel icon={<Numbers size={12} strokeWidth={1.75} />} htmlFor={`${uid}-quantity`}>
             Quantite
           </FieldLabel>
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <IconButton
+          <div className="flex flex-row items-center gap-[3px]">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Diminuer la quantite"
               onClick={() => incrementQty(-1)}
-              size="small"
               disabled={value.quantity <= 1}
-              sx={{ border: '1px solid var(--line-2)', bgcolor: 'var(--card)', borderRadius: '8px', width: 28, height: 28 }}
+              className="border border-solid border-[var(--line-2)] bg-[var(--card)] rounded-[8px]"
             >
               <Remove size={14} strokeWidth={1.75} />
-            </IconButton>
+            </Button>
             <Input
               id={`${uid}-quantity`}
               type="number"
@@ -313,14 +307,17 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
                 onChange({ ...value, quantity: Math.max(1, parseInt(e.target.value) || 1) })
               }
             />
-            <IconButton
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Augmenter la quantite"
               onClick={() => incrementQty(1)}
-              size="small"
-              sx={{ border: '1px solid var(--line-2)', bgcolor: 'var(--card)', borderRadius: '8px', width: 28, height: 28 }}
+              className="border border-solid border-[var(--line-2)] bg-[var(--card)] rounded-[8px]"
             >
               <Add size={14} strokeWidth={1.75} />
-            </IconButton>
-          </Stack>
+            </Button>
+          </div>
         </div>
 
         {/* Notes */}
@@ -534,15 +531,39 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                     </TableCell>
                     {canEdit && (
                       <TableCell className="text-end">
-                        <Tooltip title="Modifier">
-                          <IconButton size="small" onClick={() => startEdit(item)}>
-                            <Edit size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        {/* Declencheur = <span> natif : les primitives du kit ne
+                            transmettent pas de ref (React 18), le tooltip
+                            n'aurait pas d'ancre. */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={`Modifier ${item.name}`}
+                                onClick={() => startEdit(item)}
+                              >
+                                <Edit size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Modifier</TooltipContent>
                         </Tooltip>
-                        <Tooltip title="Supprimer">
-                          <IconButton size="small" color="error" onClick={() => onDelete(item.id)}>
-                            <DeleteOutline size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={`Supprimer ${item.name}`}
+                                onClick={() => onDelete(item.id)}
+                                className="text-[var(--err)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+                              >
+                                <DeleteOutline size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Supprimer</TooltipContent>
                         </Tooltip>
                       </TableCell>
                     )}

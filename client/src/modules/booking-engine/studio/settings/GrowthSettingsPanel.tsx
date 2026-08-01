@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Skeleton } from '@mui/material';
+import { Skeleton } from '../../../../components/ui';
 import { AlertTriangle, Users, ShoppingCart, Info } from 'lucide-react';
 import { growthSettingsApi, type GrowthSettings } from '../../../../services/api/growthSettingsApi';
 import { SettingsPage, SettingCard, SettingRow, SaveBar, ToggleControl, NumberControl } from './settingsControls';
@@ -63,7 +63,8 @@ export default function GrowthSettingsPanel() {
   if (!loaded && !error) {
     return (
       <div className="max-w-[720px] mx-auto px-6 py-6">
-        {[0, 1].map((i) => <Skeleton key={i} variant="rounded" height={140} sx={{ mb: 2.5, borderRadius: 'var(--radius-lg)', bgcolor: 'var(--hover)' }} />)}
+        {/* mb: 2.5 = 15 px (spacing MUI 6). */}
+        {[0, 1].map((i) => <Skeleton key={i} className="h-[140px] mb-[15px] rounded-[var(--radius-lg)] bg-[var(--hover)]" />)}
       </div>
     );
   }

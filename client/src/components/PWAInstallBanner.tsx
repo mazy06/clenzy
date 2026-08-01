@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Paper, Slide, IconButton } from '@mui/material';
+import { cn } from '../utils/cn';
 import { Button } from './ui';
 import { Close as CloseIcon, GetApp as GetAppIcon } from '../icons';
 import { usePWA } from '../hooks/usePWA';
@@ -75,55 +75,44 @@ export default function PWAInstallBanner() {
   };
 
   return (
-    <Slide direction="up" in={visible} mountOnEnter unmountOnExit>
-      <Paper
-        elevation={0}
-        sx={{
-          position: 'fixed',
-          bottom: 16,
-          left: 16,
-          right: 16,
-          zIndex: 1300,
-          p: 2,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          // Panneau flottant : hairline + ombre pop (jamais d'aplat accent)
-          borderRadius: '14px',
-          border: '1px solid var(--line)',
-          backgroundColor: 'var(--card)',
-          boxShadow: 'var(--shadow-pop)',
-          maxWidth: 600,
-          mx: 'auto',
-        }}
+    // Le Slide MUI (montage/demontage anime) devient une translation CSS :
+    // `invisible` sort le panneau du flux de tabulation quand il est masque.
+    <div
+      className={cn(
+        'fixed bottom-4 left-4 right-4 z-[1300] mx-auto max-w-[600px] p-3 flex items-center gap-3',
+        // Panneau flottant : hairline + ombre pop (jamais d'aplat accent)
+        'rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] shadow-[var(--shadow-pop)]',
+        'transition-[transform,opacity,visibility] duration-300 ease-out motion-reduce:transition-none',
+        visible ? 'translate-y-0 opacity-100 visible' : 'translate-y-[150%] opacity-0 invisible pointer-events-none',
+      )}
+    >
+      <span className="inline-flex shrink-0 text-[var(--accent)]">
+        <GetAppIcon size={26} strokeWidth={1.75} />
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="cn-text-body1 truncate font-[family-name:var(--font-display)] text-[13.5px] font-semibold text-[var(--ink)]">
+          Installer Baitly PMS
+        </p>
+        <p className="cn-text-body1 text-[12px] text-[var(--muted)]">
+          Installez l'application sur votre appareil pour un acc&egrave;s rapide.
+        </p>
+      </div>
+      <Button
+        size="sm"
+        onClick={handleInstall}
+        className="shrink-0"
       >
-        <span className="inline-flex shrink-0 text-[var(--accent)]">
-          <GetAppIcon size={26} strokeWidth={1.75} />
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="cn-text-body1 truncate font-[family-name:var(--font-display)] text-[13.5px] font-semibold text-[var(--ink)]">
-            Installer Baitly PMS
-          </p>
-          <p className="cn-text-body1 text-[12px] text-[var(--muted)]">
-            Installez l'application sur votre appareil pour un acc&egrave;s rapide.
-          </p>
-        </div>
-        <Button
-          size="sm"
-          onClick={handleInstall}
-          className="shrink-0"
-        >
-          Installer
-        </Button>
-        <IconButton
-          size="small"
-          onClick={handleDismiss}
-          sx={{ flexShrink: 0 }}
-          aria-label="Fermer"
-        >
-          <CloseIcon size={16} strokeWidth={1.75} />
-        </IconButton>
-      </Paper>
-    </Slide>
+        Installer
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={handleDismiss}
+        className="shrink-0"
+        aria-label="Fermer"
+      >
+        <CloseIcon size={16} strokeWidth={1.75} />
+      </Button>
+    </div>
   );
 }

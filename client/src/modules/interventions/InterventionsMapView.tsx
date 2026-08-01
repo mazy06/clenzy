@@ -1,7 +1,14 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Card } from '../../components/ui';
-import { Paper, Tooltip, IconButton, LinearProgress } from '@mui/material';
+import {
+  Card,
+  Button,
+  Progress,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '../../components/ui';
+import { cn } from '../../utils/cn';
 import type { NavigateFunction } from 'react-router-dom';
 import { Build, LocationOn, Visibility as VisibilityIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -14,7 +21,11 @@ import {
   getInterventionTypeLabel,
 } from '../../utils/statusUtils';
 import { getStatusTokens, getPriorityTokens, getTypeTokens } from './interventionUtils';
-import { LIST_PAPER_SX, stripPropertySuffix, getProgress } from './interventionsListConstants';
+import { stripPropertySuffix, getProgress } from './interventionsListConstants';
+
+/** Report en classes de `LIST_PAPER_SX` (hairline plate r14). */
+const LIST_SURFACE_CLS =
+  'border border-solid border-[var(--line)] shadow-none rounded-[14px] bg-[var(--card)]';
 
 interface InterventionsMapViewProps {
   mapMarkers: PropertyMarker[];
@@ -33,7 +44,7 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
     /* ─── Vue carte (sticky) + liste viewport (scrollable) ─── */
     <div className="flex flex-col flex-1 min-h-0">
       {/* Carte fixe en haut */}
-      <Paper sx={{ ...LIST_PAPER_SX, p: 0, overflow: 'hidden', flexShrink: 0 }}>
+      <div className={cn(LIST_SURFACE_CLS, 'p-0 overflow-hidden shrink-0')}>
         {mapMarkers.length > 0 ? (
           <MapboxPropertyMap
             properties={mapMarkers}
@@ -51,7 +62,7 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
             </p>
           </div>
         )}
-      </Paper>
+      </div>
 
       {/* Liste scrollable en dessous */}
       {mapMarkers.length > 0 && (
@@ -72,25 +83,25 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                 const statusTokens = getStatusTokens(intervention.status);
                 const typeTokens = getTypeTokens(intervention.type);
                 const priorityTokens = getPriorityTokens(intervention.priority);
+                const progress = getProgress(intervention);
                 return (
-                  <Paper
+                  <div
                     key={intervention.id}
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'var(--line)',
-                      boxShadow: 'none',
-                      borderRadius: '14px',
-                      p: 1.5,
-                      cursor: 'pointer',
-                      transition: 'border-color .15s, box-shadow .15s',
-                      flexShrink: 0,
-                      '&:hover': {
-                        borderColor: 'var(--line-2)',
-                        boxShadow: 'var(--shadow-card)',
-                      },
-                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                    }}
+                    role="button"
+                    tabIndex={0}
+                    className={cn(
+                      LIST_SURFACE_CLS,
+                      'p-[9px] cursor-pointer shrink-0',
+                      'transition-[border-color,box-shadow] duration-150 motion-reduce:transition-none',
+                      'hover:border-[var(--line-2)] hover:shadow-[var(--shadow-card)]',
+                    )}
                     onClick={() => navigate(`/interventions/${intervention.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(`/interventions/${intervention.id}`);
+                      }
+                    }}
                   >
                     <div className="flex items-center gap-2">
                       {/* Titre + adresse */}
@@ -116,23 +127,23 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                       {/* Progression + Assigné + Action */}
                       <div className="flex items-center gap-2 shrink-0">
                         <div className="flex items-center gap-1 min-w-[70px]">
-                          <LinearProgress
-                            variant="determinate"
-                            value={getProgress(intervention)}
-                            sx={{
-                              flex: 1,
-                              height: 5,
-                              borderRadius: 3,
-                              bgcolor: 'var(--hover)',
-                              '& .MuiLinearProgress-bar': {
-                                borderRadius: 3,
-                                bgcolor: getProgress(intervention) === 100 ? 'var(--ok)'
-                                  : getProgress(intervention) >= 50 ? 'var(--info)' : 'var(--warn)',
-                              },
-                            }}
+                          {/* La teinte de la barre vit sur l'indicateur interne :
+                              on la vise par son data-slot, en branches litterales
+                              (une classe Tailwind ne naît pas d'une variable). */}
+                          <Progress
+                            value={progress}
+                            className={cn(
+                              'flex-1 h-[5px] rounded-[3px] bg-[var(--hover)]',
+                              '[&_[data-slot=progress-indicator]]:rounded-[3px]',
+                              progress === 100
+                                ? '[&_[data-slot=progress-indicator]]:bg-[var(--ok)]'
+                                : progress >= 50
+                                  ? '[&_[data-slot=progress-indicator]]:bg-[var(--info)]'
+                                  : '[&_[data-slot=progress-indicator]]:bg-[var(--warn)]',
+                            )}
                           />
                           <span className="cn-text-caption font-semibold text-[0.68rem] min-w-[24px] tabular-nums">
-                            {getProgress(intervention)}%
+                            {progress}%
                           </span>
                         </div>
                         {intervention.assignedToName && (
@@ -140,18 +151,26 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                             {intervention.assignedToName}
                           </span>
                         )}
-                        <Tooltip title="Détails">
-                          <IconButton
-                            size="small"
-                            onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
-                            sx={{ p: 0.5 }}
-                          >
-                            <VisibilityIcon size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {/* Le span porte la ref que Radix pose : le kit n'en
+                                transmet pas (React 18). */}
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="Détails"
+                                onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
+                              >
+                                <VisibilityIcon size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Détails</TooltipContent>
                         </Tooltip>
                       </div>
                     </div>
-                  </Paper>
+                  </div>
                 );
               })}
             </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '../../utils/cn';
-import { Dialog, useMediaQuery } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle } from '../ui';
 import { Check, ArrowBack, ArrowForward } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useReservationForm } from './useReservationForm';
@@ -40,15 +40,15 @@ const BTN_PRIMARY_CLS = `${BTN_BASE_CLS} bg-transparent border-[var(--accent)] t
 // ─── Corps édition (écran unique, 2 colonnes) ─────────────────────────────────
 const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }> = ({ form, onClose }) => {
   const { t } = useTranslation();
-  const stackColumns = useMediaQuery('(max-width: 900px)');
 
   return (
     <>
-      <div className={cn('flex-1 overflow-y-auto grid gap-0', stackColumns ? 'grid-cols-[1fr]' : 'grid-cols-[1fr_1fr]')}>
+      {/* max-width: 900px MUI => la 2e colonne apparait a partir de 901 px. */}
+      <div className="flex-1 overflow-y-auto grid gap-0 grid-cols-[1fr] min-[901px]:grid-cols-[1fr_1fr]">
         <div
           className={cn(
             'flex flex-col gap-[18px] p-[22px] border-solid border-[var(--line)]',
-            stackColumns ? 'border-b' : 'border-r',
+            'border-b min-[901px]:border-b-0 min-[901px]:border-r',
           )}
         >
           <StaySection form={form} />
@@ -171,7 +171,6 @@ const CreateWizard: React.FC<{
 // ─── Shell ────────────────────────────────────────────────────────────────────
 const ReservationDialog: React.FC<ReservationDialogProps> = (props) => {
   const { open, onClose } = props;
-  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const isCreate = props.mode === 'create';
 
   const form = useReservationForm(props);
@@ -193,48 +192,37 @@ const ReservationDialog: React.FC<ReservationDialogProps> = (props) => {
   const isBlock = isCreate && entryMode === 'block';
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth={false}
-      PaperProps={{
-        sx: {
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* Le header du dialogue porte deja sa croix : pas de bouton du gabarit.
+          L'animation d'entree et le voile viennent du kit (et respectent deja
+          prefers-reduced-motion) — l'ancien keyframes local est redondant. */}
+      <DialogContent
+        showCloseButton={false}
+        className={cn(
+          'flex flex-col overflow-hidden p-0 max-w-[95vw] max-h-[92vh]',
+          'rounded-[18px] border border-solid border-[var(--line)] bg-[var(--card)] text-[var(--body)] shadow-[var(--shadow-pop)]',
           // Wizard = colonne unique (assez large pour le calendrier 2 mois) ; édition = 2 colonnes.
-          width: isCreate ? 740 : 980,
-          maxWidth: '95vw',
-          maxHeight: '92vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          backgroundColor: 'var(--card)',
-          backgroundImage: 'none',
-          color: 'var(--body)',
-          border: '1px solid var(--line)',
-          borderRadius: '18px',
-          boxShadow: 'var(--shadow-pop)',
-          '@keyframes rmodalIn': {
-            from: { transform: 'translateY(12px) scale(.985)' },
-            to: { transform: 'none' },
-          },
-          animation: reduceMotion ? 'none' : 'rmodalIn .22s cubic-bezier(.16,1,.3,1)',
-        },
-      }}
-      slotProps={{ backdrop: { sx: { backgroundColor: 'rgba(10,18,24,.5)', backdropFilter: 'blur(3px)' } } }}
-    >
-      <ReservationDialogHeader
-        form={form}
-        onClose={onClose}
-        entryMode={entryMode}
-        onEntryModeChange={setEntryMode}
-        showModeToggle={isCreate}
-      />
-      {isBlock ? (
-        <BlockBody form={form} onClose={onClose} />
-      ) : isCreate ? (
-        <CreateWizard form={form} onClose={onClose} step={step} setStep={setStep} />
-      ) : (
-        <EditBody form={form} onClose={onClose} />
-      )}
+          isCreate ? 'w-[740px]' : 'w-[980px]',
+        )}
+      >
+        <DialogTitle className="sr-only">
+          {isCreate ? 'Nouvelle réservation' : 'Modifier la réservation'}
+        </DialogTitle>
+        <ReservationDialogHeader
+          form={form}
+          onClose={onClose}
+          entryMode={entryMode}
+          onEntryModeChange={setEntryMode}
+          showModeToggle={isCreate}
+        />
+        {isBlock ? (
+          <BlockBody form={form} onClose={onClose} />
+        ) : isCreate ? (
+          <CreateWizard form={form} onClose={onClose} step={step} setStep={setStep} />
+        ) : (
+          <EditBody form={form} onClose={onClose} />
+        )}
+      </DialogContent>
     </Dialog>
   );
 };

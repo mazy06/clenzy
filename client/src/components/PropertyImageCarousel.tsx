@@ -1,7 +1,12 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { cn } from '../utils/cn';
-import { Box, IconButton, Dialog } from '@mui/material';
+// Box + SxProps restent MUI : `sx`, `width` et `height` sont l'API PUBLIQUE de ce
+// composant (objets de breakpoints MUI + `borderRadius: 1.5` = jeton d'espacement),
+// consommee par PropertyDetails et PanelPropertyDetails. Les traduire ici sans
+// toucher aux appelants casserait leur mise en page en silence.
+import { Box } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
+import { Button, Dialog, DialogContent, DialogTitle } from './ui';
 import { ChevronLeft, ChevronRight, Close, Fullscreen, ImageNotSupported } from '../icons';
 import { API_CONFIG } from '../config/api';
 
@@ -114,46 +119,33 @@ export function PropertyImageCarousel({
 
         {hasMultiple && (
           <>
-            <IconButton
-              size="small"
-              className="carousel-nav"
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Photo précédente"
+              className={cn(
+                'carousel-nav absolute top-1/2 p-0 rounded-full bg-[rgba(255,255,255,0.9)] text-[var(--ink)] hover:bg-[#fff]',
+                alwaysShowNav ? 'start-[8px] opacity-100' : 'start-[2px] opacity-0',
+              )}
+              // navButtonSize est une valeur runtime : aucune classe Tailwind ne peut en naitre.
+              style={{ width: navButtonSize, height: navButtonSize, transform: 'translateY(-50%)', transition: 'opacity 0.15s ease' }}
               onClick={prev}
-              sx={{
-                position: 'absolute',
-                top: '50%',
-                left: alwaysShowNav ? 8 : 2,
-                transform: 'translateY(-50%)',
-                opacity: alwaysShowNav ? 1 : 0,
-                transition: 'opacity 0.15s ease',
-                bgcolor: 'rgba(255,255,255,0.9)',
-                width: navButtonSize,
-                height: navButtonSize,
-                p: 0,
-                '&:hover': { bgcolor: '#fff' },
-              }}
             >
               <ChevronLeft size={navIconSize} strokeWidth={1.75} />
-            </IconButton>
-            <IconButton
-              size="small"
-              className="carousel-nav"
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Photo suivante"
+              className={cn(
+                'carousel-nav absolute top-1/2 p-0 rounded-full bg-[rgba(255,255,255,0.9)] text-[var(--ink)] hover:bg-[#fff]',
+                alwaysShowNav ? 'end-[8px] opacity-100' : 'end-[2px] opacity-0',
+              )}
+              style={{ width: navButtonSize, height: navButtonSize, transform: 'translateY(-50%)', transition: 'opacity 0.15s ease' }}
               onClick={next}
-              sx={{
-                position: 'absolute',
-                top: '50%',
-                right: alwaysShowNav ? 8 : 2,
-                transform: 'translateY(-50%)',
-                opacity: alwaysShowNav ? 1 : 0,
-                transition: 'opacity 0.15s ease',
-                bgcolor: 'rgba(255,255,255,0.9)',
-                width: navButtonSize,
-                height: navButtonSize,
-                p: 0,
-                '&:hover': { bgcolor: '#fff' },
-              }}
             >
               <ChevronRight size={navIconSize} strokeWidth={1.75} />
-            </IconButton>
+            </Button>
             <div className={cn('absolute start-[50%] flex pointer-events-none', alwaysShowNav ? 'bottom-[10px]' : 'bottom-[2px]', alwaysShowNav ? 'gap-[4.5px]' : 'gap-[1.5px]')} style={{ transform: 'translateX(-50%)' }}>
               {urls.map((url, i) => (
                 <div className={cn('rounded-[50%] border-[0.5px] border-solid border-[rgba(0,0,0,0.25)]', alwaysShowNav ? 'w-[8px]' : 'w-[4px]', alwaysShowNav ? 'h-[8px]' : 'h-[4px]', i === index ? 'bg-[#fff]' : 'bg-[rgba(255,255,255,0.55)]')} key={url} />
@@ -176,74 +168,58 @@ export function PropertyImageCarousel({
       </Box>
 
       {canFullscreen && (
-        <Dialog
-          open={fullscreenOpen}
-          onClose={() => setFullscreenOpen(false)}
-          fullScreen
-          PaperProps={{
-            sx: { bgcolor: 'rgba(0,0,0,0.95)', position: 'relative' },
-          }}
-        >
-          <IconButton
-            onClick={() => setFullscreenOpen(false)}
-            sx={{
-              position: 'absolute',
-              top: 16,
-              right: 16,
-              zIndex: 2,
-              bgcolor: 'rgba(255,255,255,0.15)',
-              color: '#fff',
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
-            }}
+        <Dialog open={fullscreenOpen} onOpenChange={(next) => { if (!next) setFullscreenOpen(false); }}>
+          {/* fullScreen MUI : on neutralise le centrage/gabarit du DialogContent du kit. */}
+          <DialogContent
+            showCloseButton={false}
+            className="relative top-0 start-0 translate-x-0 translate-y-0 w-screen h-screen max-w-none rounded-none border-0 p-0 bg-[rgba(0,0,0,0.95)]"
           >
-            <Close size={24} strokeWidth={1.75} />
-          </IconButton>
+            {/* Titre requis par le dialogue du kit pour l'accessibilite. */}
+            <DialogTitle className="sr-only">{alt}</DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Fermer"
+              onClick={() => setFullscreenOpen(false)}
+              className="absolute top-[16px] end-[16px] z-[2] rounded-full bg-[rgba(255,255,255,0.15)] text-[#fff] hover:bg-[rgba(255,255,255,0.3)] hover:text-[#fff]"
+            >
+              <Close size={24} strokeWidth={1.75} />
+            </Button>
 
-          <div className="w-full h-full flex items-center justify-center relative" onClick={(e) => {
+            <div className="w-full h-full flex items-center justify-center relative" onClick={(e) => {
               if (e.target === e.currentTarget) setFullscreenOpen(false);
             }}>
             <img className="max-w-full max-h-[100%] object-contain block" src={currentUrl ?? undefined} alt={alt} />
 
             {hasMultiple && (
               <>
-                <IconButton
+                <Button
+                  variant="ghost"
+                  size="icon-lg"
+                  aria-label="Photo précédente"
                   onClick={prev}
-                  sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: 24,
-                    transform: 'translateY(-50%)',
-                    bgcolor: 'rgba(255,255,255,0.15)',
-                    color: '#fff',
-                    width: 56,
-                    height: 56,
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
-                  }}
+                  className="absolute top-1/2 start-[24px] size-[56px] rounded-full bg-[rgba(255,255,255,0.15)] text-[#fff] hover:bg-[rgba(255,255,255,0.3)] hover:text-[#fff]"
+                  style={{ transform: 'translateY(-50%)' }}
                 >
                   <ChevronLeft size={36} strokeWidth={1.75} />
-                </IconButton>
-                <IconButton
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-lg"
+                  aria-label="Photo suivante"
                   onClick={next}
-                  sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    right: 24,
-                    transform: 'translateY(-50%)',
-                    bgcolor: 'rgba(255,255,255,0.15)',
-                    color: '#fff',
-                    width: 56,
-                    height: 56,
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
-                  }}
+                  className="absolute top-1/2 end-[24px] size-[56px] rounded-full bg-[rgba(255,255,255,0.15)] text-[#fff] hover:bg-[rgba(255,255,255,0.3)] hover:text-[#fff]"
+                  style={{ transform: 'translateY(-50%)' }}
                 >
                   <ChevronRight size={36} strokeWidth={1.75} />
-                </IconButton>
+                </Button>
                 <div className="absolute bottom-[24px] start-[50%] px-3 py-[4.5px] rounded-[16px] bg-[rgba(0,0,0,0.6)] text-[#fff] text-[0.875rem] font-semibold" style={{ transform: 'translateX(-50%)' }}>
                   {index + 1} / {urls.length}
                 </div>
               </>
             )}
-          </div>
+            </div>
+          </DialogContent>
         </Dialog>
       )}
     </>

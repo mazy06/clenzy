@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
-import { Box, Tooltip, IconButton, alpha } from '@mui/material';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { PlayArrow, StopCircle, FiberManualRecord, Fullscreen, FullscreenExit, WifiOff, PhotoCamera, Delete } from '../../../icons';
 import type { CameraDto } from '../../../services/api/camerasApi';
 
@@ -56,7 +56,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
   return (
     <div className="rounded-[var(--radius-lg)] overflow-hidden border border-solid border-[var(--line)] bg-[var(--card)] hover:border-[var(--line-2)]" style={{ transition: 'border-color 200ms' }}>
       {/* ── Zone feed 16:9 ── */}
-      <Box
+      <div
         ref={feedRef}
         role={online ? 'button' : undefined}
         tabIndex={online ? 0 : undefined}
@@ -64,13 +64,12 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
         onKeyDown={(e) => {
           if (online && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onToggle(id); }
         }}
-        sx={{
-          position: 'relative', aspectRatio: '16 / 9', bgcolor: FEED_BG,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: online ? 'pointer' : 'default', outline: 'none',
-          '&:focus-visible': { boxShadow: `inset 0 0 0 2px ${ACCENT}` },
-          '&:hover .co-cam-play': { bgcolor: alpha(ACCENT, 0.9) },
-        }}
+        style={{ backgroundColor: FEED_BG }}
+        className={cn(
+          'group/feed relative aspect-[16/9] flex items-center justify-center outline-none',
+          'focus-visible:shadow-[inset_0_0_0_2px_#C97A7A]',
+          online ? 'cursor-pointer' : 'cursor-default',
+        )}
       >
         {/* Fond : poster (snapshot du flux) si dispo, sinon dégradé radial sombre. Le poster
             évite la dalle noire avant lecture (go2rtc tire l'image à la demande). */}
@@ -78,19 +77,22 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
           <img className="absolute inset-[0px] w-full h-full object-cover z-[0]" src={poster} alt="" loading="lazy" onError={() => setPosterOk(false)} />
         )}
         <div className="absolute inset-0 z-[1]" style={{ background: poster
-            ? alpha('#0C1216', 0.34)
-            : `radial-gradient(circle at 50% 38%, ${alpha('#2C3E48', 0.55)}, ${FEED_BG} 72%)` }} />
+            ? 'color-mix(in srgb, #0C1216 34%, transparent)'
+            : `radial-gradient(circle at 50% 38%, color-mix(in srgb, #2C3E48 55%, transparent), ${FEED_BG} 72%)` }} />
 
         {/* Pills haut */}
         <div className="absolute top-[8px] start-[8px] end-[8px] flex items-center justify-between z-[2]">
           {online ? (
-            <StatusChip tokens={{ color: '#fff', bg: alpha('#4A9B8E', 0.92) }} label="EN DIRECT" icon={<FiberManualRecord size={9} />} className="h-[20px] text-[0.6rem] tracking-[0.06em]" />
+            <StatusChip tokens={{ color: '#fff', bg: 'color-mix(in srgb, #4A9B8E 92%, transparent)' }} label="EN DIRECT" icon={<FiberManualRecord size={9} />} className="h-[20px] text-[0.6rem] tracking-[0.06em]" />
           ) : (
-            <StatusChip tokens={{ color: '#fff', bg: alpha('#9CA3AF', 0.85) }} label="Hors ligne" className="h-[20px] text-[0.6rem]" />
+            <StatusChip tokens={{ color: '#fff', bg: 'color-mix(in srgb, #9CA3AF 85%, transparent)' }} label="Hors ligne" className="h-[20px] text-[0.6rem]" />
           )}
           {recording && (
-            <Tooltip title="Enregistrement" arrow>
-              <span className="inline-flex" style={{ color: ACCENT }}><FiberManualRecord size={12} /></span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex" style={{ color: ACCENT }}><FiberManualRecord size={12} /></span>
+              </TooltipTrigger>
+              <TooltipContent>Enregistrement</TooltipContent>
             </Tooltip>
           )}
         </div>
@@ -107,16 +109,18 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
               />
             ) : (
               <div className="relative z-[2] text-center px-3">
-                <p className="cn-text-body1 text-[0.66rem]" style={{ color: alpha('#fff', 0.7) }}>Flux indisponible — passerelle média non configurée.</p>
+                <p className="cn-text-body1 text-[0.66rem] text-[color-mix(in_srgb,#FFFFFF_70%,transparent)]">Flux indisponible — passerelle média non configurée.</p>
               </div>
             )
           ) : (
-            <div className="co-cam-play relative z-[2] w-[46px] h-[46px] rounded-[50%] text-[#fff] flex items-center justify-center" style={{ backgroundColor: alpha('#fff', 0.14), transition: 'background-color 150ms' }}>
+            // Le survol du feed teinte la pastille de lecture : `group/feed` porte
+            // la regle que `&:hover .co-cam-play` assurait cote MUI.
+            <div className="relative z-[2] w-[46px] h-[46px] rounded-[50%] text-[#fff] flex items-center justify-center bg-[color-mix(in_srgb,#FFFFFF_14%,transparent)] transition-colors duration-150 group-hover/feed:bg-[color-mix(in_srgb,#C97A7A_90%,transparent)]">
               <PlayArrow size={24} />
             </div>
           )
         ) : (
-          <div className="relative z-[2] flex flex-col items-center gap-[3px]" style={{ color: alpha('#fff', 0.45) }}>
+          <div className="relative z-[2] flex flex-col items-center gap-[3px] text-[color-mix(in_srgb,#FFFFFF_45%,transparent)]">
             <WifiOff size={22} />
             <p className="cn-text-body1 text-[0.62rem]">Caméra injoignable</p>
           </div>
@@ -125,17 +129,21 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
         {/* Bouton de sortie plein écran — overlay au-dessus de l'iframe (zIndex 4), visible
             uniquement en plein écran (le bouton du footer est alors hors du cadre). */}
         {isFullscreen && (
-          <Tooltip title="Quitter le plein écran" arrow>
-            <IconButton
-              onClick={(e) => { e.stopPropagation(); void document.exitFullscreen?.(); }}
-              sx={{
-                position: 'absolute', top: 12, right: 12, zIndex: 4,
-                bgcolor: alpha('#0C1216', 0.6), color: '#fff',
-                '&:hover': { bgcolor: alpha(ACCENT, 0.92) },
-              }}
-            >
-              <FullscreenExit size={20} />
-            </IconButton>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="absolute top-3 right-3 z-[4] inline-flex">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Quitter le plein écran"
+                  onClick={(e) => { e.stopPropagation(); void document.exitFullscreen?.(); }}
+                  className="rounded-full text-[#FFFFFF] bg-[color-mix(in_srgb,#0C1216_60%,transparent)] hover:bg-[color-mix(in_srgb,#C97A7A_92%,transparent)] hover:text-[#FFFFFF]"
+                >
+                  <FullscreenExit size={20} />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Quitter le plein écran</TooltipContent>
           </Tooltip>
         )}
 
@@ -145,10 +153,10 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
             {name}
           </p>
           {roomName && (
-            <p className="cn-text-body1 text-[0.65rem]" style={{ color: alpha('#fff', 0.78), textShadow: '0 1px 3px rgba(12,18,22,0.7)' }}>{roomName}</p>
+            <p className="cn-text-body1 text-[0.65rem] text-[color-mix(in_srgb,#FFFFFF_78%,transparent)]" style={{ textShadow: '0 1px 3px rgba(12,18,22,0.7)' }}>{roomName}</p>
           )}
         </div>
-      </Box>
+      </div>
 
       {/* ── Footer : marque + actions ── */}
       <div className="flex items-center gap-1 px-1.5 py-1">
@@ -157,31 +165,59 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
         <div className="ms-auto flex gap-0.5">
           {/* Lecture/Arrêt — contrôle fiable au-dessus de l'iframe (le clic sur le feed est capté par l'iframe une fois lancée). */}
           {online && (
-            <Tooltip title={active ? 'Arrêter la lecture' : 'Lancer la lecture'} arrow>
-              <IconButton
-                size="small"
-                onClick={() => onToggle(id)}
-                sx={{ color: active ? ACCENT : 'text.secondary', '&:hover': { color: ACCENT } }}
-              >
-                {active ? <StopCircle size={16} /> : <PlayArrow size={16} />}
-              </IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={active ? 'Arrêter la lecture' : 'Lancer la lecture'}
+                    onClick={() => onToggle(id)}
+                    className={cn('hover:text-[#C97A7A]', active ? 'text-[#C97A7A]' : 'text-[var(--muted)]')}
+                  >
+                    {active ? <StopCircle size={16} /> : <PlayArrow size={16} />}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{active ? 'Arrêter la lecture' : 'Lancer la lecture'}</TooltipContent>
             </Tooltip>
           )}
-          <Tooltip title={isFullscreen ? 'Quitter le plein écran' : (active ? 'Plein écran' : 'Lancez la lecture pour le plein écran')} arrow>
-            <span>
-              <IconButton
-                size="small"
-                disabled={!active || !camera.webrtcUrl}
-                onClick={toggleFullscreen}
-                sx={{ color: 'text.secondary', '&:hover': { color: ACCENT } }}
-              >
-                {isFullscreen ? <FullscreenExit size={15} /> : <Fullscreen size={15} />}
-              </IconButton>
-            </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Plein écran"
+                  disabled={!active || !camera.webrtcUrl}
+                  onClick={toggleFullscreen}
+                  className="text-[var(--muted)] hover:text-[#C97A7A]"
+                >
+                  {isFullscreen ? <FullscreenExit size={15} /> : <Fullscreen size={15} />}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isFullscreen ? 'Quitter le plein écran' : (active ? 'Plein écran' : 'Lancez la lecture pour le plein écran')}
+            </TooltipContent>
           </Tooltip>
           {onDelete && (
-            <Tooltip title="Supprimer" arrow>
-              <span><IconButton size="small" disabled={acting} onClick={() => onDelete(id)} sx={{ color: 'text.disabled', '&:hover': { color: ACCENT } }}><Delete size={15} strokeWidth={1.75} /></IconButton></span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Supprimer"
+                    disabled={acting}
+                    onClick={() => onDelete(id)}
+                    className="text-[var(--faint)] hover:text-[#C97A7A]"
+                  >
+                    <Delete size={15} strokeWidth={1.75} />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Supprimer</TooltipContent>
             </Tooltip>
           )}
         </div>

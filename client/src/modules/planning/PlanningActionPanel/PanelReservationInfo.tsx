@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner, Field, FieldLabel, Input } from '../../../components/ui';
-import { Alert, IconButton } from '@mui/material';
+import { Alert, AlertAction, AlertDescription, Button } from '../../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -318,28 +319,40 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
         <span className={cn(OVERLINE_CLASS, 'flex-1')}>Dates &amp; horaires</span>
         {!editing ? (
           onUpdate && (
-            <IconButton
-              size="small"
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => setEditing(true)}
               aria-label="Modifier les dates"
-              sx={{ p: 0.375, color: 'var(--muted)', '&:hover': { color: 'var(--ink)', backgroundColor: 'var(--hover)' } }}
+              className="text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
             >
               <Edit size={13} strokeWidth={1.75} />
-            </IconButton>
+            </Button>
           )
         ) : (
           <div className="flex gap-0.5">
-            <IconButton
-              size="small"
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={handleSave}
               disabled={!hasChanges}
-              sx={{ p: 0.375, color: 'var(--ok)', '&.Mui-disabled': { color: 'var(--faint)' } }}
+              aria-label="Enregistrer les dates"
+              className="text-[var(--ok)] hover:text-[var(--ok)] hover:bg-[var(--ok-soft)]"
             >
               <Check size={15} strokeWidth={1.75} />
-            </IconButton>
-            <IconButton size="small" onClick={handleCancel} sx={{ p: 0.375, color: 'var(--err)' }}>
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={handleCancel}
+              aria-label="Annuler la modification des dates"
+              className="text-[var(--err)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+            >
               <Close size={15} strokeWidth={1.75} />
-            </IconButton>
+            </Button>
           </div>
         )}
       </div>
@@ -415,17 +428,20 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
           </div>
 
           {validationError && (
-            <Alert
-              severity="error"
-              onClose={() => setValidationError(null)}
-              sx={{
-                fontSize: '0.75rem',
-                py: 0,
-                '& .MuiAlert-message': { fontSize: '0.75rem' },
-                '& .MuiAlert-icon': { fontSize: '1rem', py: 0.5 },
-              }}
-            >
-              {validationError}
+            <Alert variant="destructive" className="text-[0.75rem] py-1">
+              <TriangleAlert />
+              <AlertDescription>{validationError}</AlertDescription>
+              <AlertAction>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label="Fermer"
+                  onClick={() => setValidationError(null)}
+                >
+                  <X />
+                </Button>
+              </AlertAction>
             </Alert>
           )}
 
@@ -621,20 +637,17 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
             )}
 
             {/* Delete button — visible on hover */}
-            <IconButton
-              className="note-delete-btn"
-              size="small"
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              aria-label="Supprimer la note"
+              className="note-delete-btn opacity-0 text-[var(--faint)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+              style={{ transition: 'opacity var(--duration-fast) var(--ease-out)' }}
               onClick={(e) => { e.stopPropagation(); deleteItem(idx); }}
-              sx={{
-                opacity: 0,
-                transition: 'opacity var(--duration-fast) var(--ease-out)',
-                p: 0.25,
-                color: 'var(--faint)',
-                '&:hover': { color: 'var(--err)', backgroundColor: 'var(--err-soft)' },
-              }}
             >
               <Close size={14} strokeWidth={1.75} />
-            </IconButton>
+            </Button>
           </div>
         ))}
 

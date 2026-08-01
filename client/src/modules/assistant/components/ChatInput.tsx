@@ -1,6 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Spinner } from '../../../components/ui';
-import { IconButton, InputBase, Tooltip } from '@mui/material';
+import {
+  Button,
+  Spinner,
+  Textarea,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   Send as SendIcon,
   Close as XIcon,
@@ -44,7 +50,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const { notify } = useNotification();
   const [value, setValue] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { uploadImage, isUploading, error: uploadError, clearError } = useImageUpload();
@@ -139,25 +144,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           {attachments.map((att, idx) => (
             <div className="relative w-[64px] h-[64px] rounded-[10px] overflow-hidden border border-[var(--line)] bg-[var(--field)]" key={att.storageKey}>
               <img className="w-full h-full object-cover block" src={att.url} alt={att.name ?? 'image jointe'} />
-              <IconButton
+              {/* Scrim teinte encre (sur image) — pas de noir pur. */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
                 aria-label={`Retirer ${att.name ?? 'l\'image'}`}
-                size="small"
                 onClick={() => handleRemoveAttachment(idx)}
-                sx={{
-                  position: 'absolute',
-                  top: 2,
-                  right: 2,
-                  width: 18,
-                  height: 18,
-                  // Scrim teinte encre (sur image) — pas de noir pur.
-                  bgcolor: 'rgba(21,36,45,.55)',
-                  color: '#FDFDFC',
-                  '&:hover': { bgcolor: 'rgba(21,36,45,.75)' },
-                  cursor: 'pointer',
-                }}
+                className="absolute top-[2px] end-[2px] size-[18px] cursor-pointer rounded-full bg-[rgba(21,36,45,.55)] text-[#FDFDFC] hover:bg-[rgba(21,36,45,.75)] hover:text-[#FDFDFC]"
               >
                 <XIcon size={12} />
-              </IconButton>
+              </Button>
             </div>
           ))}
           {isUploading && (
@@ -171,102 +168,72 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         className="flex items-end gap-[7.5px] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[13px] pt-2 pr-2 pb-2 pl-[14px] focus-within:border-[var(--accent)]"
         style={{ transition: 'border-color .14s' }}
       >
-        <InputBase
-          inputRef={inputRef}
+        {/* Réf .mg-cbox textarea : la boîte porte le padding, champ nu.
+            Le primitif pose `field-sizing: content` : la hauteur suit le contenu,
+            bornee a 6 lignes (l'equivalent de l'ancien maxRows). */}
+        <Textarea
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          multiline
-          maxRows={6}
-          fullWidth
+          rows={1}
           autoFocus={autoFocus}
           disabled={status === 'sending'}
-          // Réf .mg-cbox textarea : la boîte porte le padding, champ nu.
-          sx={{
-            flex: 1,
-            fontSize: '12.5px',
-            color: 'var(--body)',
-            lineHeight: 1.5,
-            py: '7px',
-            '& textarea': { p: 0 },
-            '& textarea::placeholder': { color: 'var(--faint)', opacity: 1 },
-          }}
+          className="flex-1 min-h-[1lh] max-h-[6lh] resize-none border-0 bg-transparent p-0 py-[7px] text-[12.5px] leading-[1.5] text-[var(--body)] shadow-none placeholder:text-[var(--faint)] placeholder:opacity-100 focus-visible:ring-0"
         />
 
         {!isBusy && (
-          <Tooltip title={attachments.length >= MAX_ATTACHMENTS
-            ? `Maximum ${MAX_ATTACHMENTS} images`
-            : 'Joindre une image'}>
-            <span>
-              {/* Outil .mg-ctool : 30px r8, transparent, hover card+accent */}
-              <IconButton
-                onClick={handleAttachClick}
-                disabled={!canAddAttachments || isUploading}
-                aria-label="Joindre une image"
-                sx={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: '8px',
-                  color: 'var(--muted)',
-                  bgcolor: 'transparent',
-                  transition: 'background .14s, color .14s',
-                  '&:hover': { bgcolor: 'var(--card)', color: 'var(--accent)' },
-                  cursor: canAddAttachments ? 'pointer' : 'not-allowed',
-                  '&.Mui-disabled': { opacity: 0.45 },
-                }}
-              >
-                {isUploading
-                  ? <Spinner className="size-[15px] text-[var(--accent)]" />
-                  : <AttachFile size={15} strokeWidth={1.75} />}
-              </IconButton>
-            </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* Le span porte la ref de Radix et reste survolable quand le
+                  bouton est desactive (limite atteinte / upload en cours). */}
+              <span className="inline-flex">
+                {/* Outil .mg-ctool : 30px r8, transparent, hover card+accent */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleAttachClick}
+                  disabled={!canAddAttachments || isUploading}
+                  aria-label="Joindre une image"
+                  className="size-[30px] rounded-[8px] p-0 bg-transparent text-[var(--muted)] transition-[background-color,color] duration-[140ms] hover:bg-[var(--card)] hover:text-[var(--accent)] disabled:opacity-45"
+                >
+                  {isUploading
+                    ? <Spinner className="size-[15px] text-[var(--accent)]" />
+                    : <AttachFile size={15} strokeWidth={1.75} />}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {attachments.length >= MAX_ATTACHMENTS
+                ? `Maximum ${MAX_ATTACHMENTS} images`
+                : 'Joindre une image'}
+            </TooltipContent>
           </Tooltip>
         )}
 
         {isBusy && onAbort ? (
-          <IconButton
+          <Button
+            type="button"
+            variant="ghost"
             onClick={onAbort}
             aria-label="Annuler"
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: '11px',
-              bgcolor: 'var(--err-soft)',
-              color: 'var(--err)',
-              flexShrink: 0,
-              transition: 'background .14s, transform .12s',
-              '&:hover': { bgcolor: 'var(--err-soft)', filter: 'brightness(.96)' },
-              '&:active': { transform: 'scale(.97)' },
-              cursor: 'pointer',
-            }}
+            className="size-9 shrink-0 rounded-[11px] p-0 bg-[var(--err-soft)] text-[var(--err)] transition-[background-color,transform] duration-[140ms] hover:bg-[var(--err-soft)] hover:brightness-[.96] active:scale-[.97] motion-reduce:transition-none"
           >
             {status === 'sending'
               ? <Spinner className="size-[15px] text-[var(--err)]" />
               : <XIcon size={15} strokeWidth={1.75} />}
-          </IconButton>
+          </Button>
         ) : (
           // Envoi .mg-send : 36px r11 accent PLEIN (exception validée messagerie)
-          <IconButton
+          <Button
+            type="button"
             onClick={handleSubmit}
             disabled={!canSubmit}
             aria-label="Envoyer"
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: '11px',
-              bgcolor: 'var(--accent)',
-              color: 'var(--on-accent)',
-              flexShrink: 0,
-              transition: 'background .14s, transform .12s',
-              '&:hover': { bgcolor: 'var(--accent-deep)' },
-              '&:active': { transform: 'scale(.97)' },
-              '&.Mui-disabled': { bgcolor: 'var(--accent)', color: 'var(--on-accent)', opacity: 0.45 },
-              cursor: 'pointer',
-            }}
+            className="size-9 shrink-0 rounded-[11px] p-0 bg-[var(--accent)] text-[var(--on-accent)] transition-[background-color,transform] duration-[140ms] hover:bg-[var(--accent-deep)] active:scale-[.97] disabled:opacity-45 motion-reduce:transition-none"
           >
             <SendIcon size={15} strokeWidth={1.75} />
-          </IconButton>
+          </Button>
         )}
       </div>
       </div>

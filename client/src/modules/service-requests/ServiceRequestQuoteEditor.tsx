@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { cn } from '../../utils/cn';
-import { Badge } from '../../components/ui';
-import { IconButton } from '@mui/material';
+import { Badge, Button } from '../../components/ui';
 import { Input } from '../../components/ui';
 import { Add, Close, Receipt } from '../../icons';
 import type { QuoteLine } from '../../schemas/serviceRequestSchema';
@@ -136,15 +135,19 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
                 <p className="cn-text-body1 text-[12px] font-semibold text-[var(--ink)] text-end tabular-nums pe-0.5">
                   {convertAndFormat(lineTotal(line), 'EUR')}
                 </p>
-                <IconButton
-                  size="small"
+                <Button
+                  // type explicite : l'editeur vit dans un formulaire, et le
+                  // primitif n'impose pas `button` la ou MUI le faisait.
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
                   onClick={() => removeLine(index)}
                   disabled={disabled}
-                  sx={{ p: 0.25, color: 'var(--faint)', '&:hover': { color: 'var(--err)' } }}
-                  aria-label="Supprimer la ligne"
+                  className="text-[var(--faint)] hover:text-[var(--err)]"
+                  aria-label={`Supprimer la ligne ${index + 1}`}
                 >
                   <Close size={14} strokeWidth={1.75} />
-                </IconButton>
+                </Button>
               </div>
             ))}
           </div>

@@ -184,13 +184,16 @@ describe('PanelPayment', () => {
       // Open dialog
       fireEvent.click(screen.getByText("Valider l'intervention"));
 
-      // Submit the dialog
+      // Le pied de modale n'est plus `.MuiDialogActions-root` mais le
+      // `data-slot="dialog-footer"` du kit. L'ancien selecteur ne trouvait plus
+      // rien, et le `if` avalait l'echec en silence : on exige desormais le
+      // bouton, pour qu'un selecteur perime fasse echouer le test au lieu de le
+      // vider de sa substance.
       const dialogSubmit = screen.getAllByText('Valider').find(
-        (el) => el.closest('.MuiDialogActions-root'),
+        (el) => el.closest('[data-slot="dialog-footer"]'),
       );
-      if (dialogSubmit) {
-        fireEvent.click(dialogSubmit);
-      }
+      expect(dialogSubmit).toBeTruthy();
+      fireEvent.click(dialogSubmit!);
 
       await waitFor(() => {
         expect(onValidate).toHaveBeenCalledWith(1, 50);

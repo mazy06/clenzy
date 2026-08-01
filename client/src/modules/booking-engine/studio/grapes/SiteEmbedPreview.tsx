@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../../utils/cn';
 import { Spinner } from '../../../../components/ui';
-import { ButtonBase } from '@mui/material';
 import { AlertTriangle, Wand2 } from 'lucide-react';
 import { BaitlyWidget } from '../../sdk/BaitlyWidget';
 import { widgetThemeFromTokens } from '../../widgetTheme';
@@ -166,21 +165,23 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
         <div className="text-[var(--text-sm)] text-[var(--muted)] me-0.5">Position du widget</div>
         <div className="inline-flex gap-0.5 p-0.5 rounded-[var(--radius-md)] bg-[var(--bg)] border border-[var(--line)]">
           {PLACEMENTS.map((p) => (
-            <ButtonBase
+            <button
               key={p.value}
+              type="button"
               onClick={() => setPlacement(p.value)}
-              sx={{
-                px: 1.5, height: 28, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)',
-                fontWeight: 'var(--fw-medium)', cursor: 'pointer',
-                transition: 'background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
-                color: placement === p.value ? 'var(--on-accent)' : 'var(--body)',
-                bgcolor: placement === p.value ? 'var(--accent)' : 'transparent',
-                '&:hover': { bgcolor: placement === p.value ? 'var(--accent-deep)' : 'var(--hover, rgba(0,0,0,.04))' },
-                '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-              }}
+              aria-pressed={placement === p.value}
+              className={cn(
+                'inline-flex items-center justify-center border-0 px-[9px] h-7 cursor-pointer',
+                'rounded-[var(--radius-sm)] text-[var(--text-sm)] [font-weight:var(--fw-medium)]',
+                '[transition:background-color_var(--duration-fast)_var(--ease-out),color_var(--duration-fast)_var(--ease-out)] motion-reduce:transition-none',
+                'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:outline-offset-2',
+                placement === p.value
+                  ? 'text-[var(--on-accent)] bg-[var(--accent)] hover:bg-[var(--accent-deep)]'
+                  : 'text-[var(--body)] bg-transparent hover:bg-[var(--hover,_rgba(0,0,0,.04))]',
+              )}
             >
               {p.label}
-            </ButtonBase>
+            </button>
           ))}
         </div>
       </div>

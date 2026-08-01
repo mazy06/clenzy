@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '../../../../utils/cn';
-import { ButtonBase } from '@mui/material';
 import { Input } from '../../../../components/ui';
 import { X, Plus, Save, Boxes, Eye } from 'lucide-react';
 import grapesjs, { type Editor, type ToolbarButtonProps, type Component } from 'grapesjs';
@@ -279,22 +278,44 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
           <span className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)]">{initial ? 'Modifier le composite' : 'Constructeur de composite'}</span>
         </div>
         <div className="flex-1" />
-        <ButtonBase onClick={toggleInteractive} aria-pressed={interactive}
+        <button
+          type="button"
+          onClick={toggleInteractive}
+          aria-pressed={interactive}
           title={interactive ? 'Revenir au mode édition (sélection / déplacement des widgets)' : 'Mode interagir : ouvrir le filtre, voir le contenu caché, tester'}
-          sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 32, px: 1.5, borderRadius: 'var(--radius-md)', border: '1px solid', borderColor: interactive ? 'var(--accent)' : 'var(--line)', color: interactive ? 'var(--accent)' : 'var(--body)', bgcolor: interactive ? 'var(--accent-soft)' : 'transparent', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', cursor: 'pointer', '&:hover': { borderColor: 'var(--accent)', color: interactive ? 'var(--accent)' : 'var(--ink)' } }}>
+          className={cn(
+            'inline-flex items-center gap-[3px] h-8 px-[9px] rounded-[var(--radius-md)] border border-solid cursor-pointer',
+            'text-[var(--text-sm)] [font-weight:var(--fw-medium)] hover:border-[var(--accent)]',
+            interactive
+              ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--accent-soft)]'
+              : 'border-[var(--line)] text-[var(--body)] bg-transparent hover:text-[var(--ink)]',
+          )}
+        >
           <Eye size={14} strokeWidth={2} /> {interactive ? 'Éditer' : 'Interagir'}
-        </ButtonBase>
-        <ButtonBase onClick={insert}
-          sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 32, px: 1.5, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', color: 'var(--body)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', cursor: 'pointer', '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' } }}>
+        </button>
+        <button
+          type="button"
+          onClick={insert}
+          className="inline-flex items-center gap-[3px] h-8 px-[9px] rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-transparent text-[var(--body)] text-[var(--text-sm)] [font-weight:var(--fw-medium)] cursor-pointer hover:border-[var(--accent)] hover:text-[var(--ink)]"
+        >
           <Plus size={14} strokeWidth={2} /> Insérer sans enregistrer
-        </ButtonBase>
-        <ButtonBase onClick={save} disabled={!name.trim()}
-          sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 34, px: 1.75, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', cursor: 'pointer', '&:hover': { bgcolor: 'var(--accent-deep)' }, '&.Mui-disabled': { opacity: 0.45 } }}>
+        </button>
+        <button
+          type="button"
+          onClick={save}
+          disabled={!name.trim()}
+          className="inline-flex items-center gap-[4.5px] h-[34px] px-[10.5px] rounded-[var(--radius-md)] border-0 bg-[var(--accent)] text-[var(--on-accent)] text-[var(--text-sm)] [font-weight:var(--fw-semibold)] cursor-pointer hover:bg-[var(--accent-deep)] disabled:opacity-45 disabled:pointer-events-none"
+        >
           <Save size={15} strokeWidth={2} /> Enregistrer
-        </ButtonBase>
-        <ButtonBase onClick={onClose} aria-label="Fermer" sx={{ ml: 0.5, width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', color: 'var(--muted)', display: 'grid', placeItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'var(--hover)', color: 'var(--ink)' } }}>
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Fermer"
+          className="ms-[3px] size-[34px] rounded-[var(--radius-sm)] border border-solid border-[var(--line)] bg-transparent text-[var(--muted)] grid place-items-center cursor-pointer hover:bg-[var(--hover)] hover:text-[var(--ink)]"
+        >
           <X size={18} strokeWidth={2} />
-        </ButtonBase>
+        </button>
       </div>
 
       {/* Corps : canvas DnD (gauche) + palette de blocs (droite) */}
@@ -317,10 +338,19 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
             />
             <div className="flex gap-0.5 p-0.5 bg-[var(--field)] rounded-[var(--radius-md)]">
               {(['blocks', 'style'] as const).map((tab) => (
-                <ButtonBase key={tab} onClick={() => setRightTab(tab)}
-                  sx={{ flex: 1, height: 30, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', cursor: 'pointer', bgcolor: rightTab === tab ? 'var(--card)' : 'transparent', color: rightTab === tab ? 'var(--ink)' : 'var(--muted)', '&:hover': { color: 'var(--ink)' } }}>
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setRightTab(tab)}
+                  aria-pressed={rightTab === tab}
+                  className={cn(
+                    'flex-1 inline-flex items-center justify-center h-[30px] rounded-[var(--radius-sm)] border-0 cursor-pointer',
+                    'text-[var(--text-sm)] [font-weight:var(--fw-medium)] hover:text-[var(--ink)]',
+                    rightTab === tab ? 'bg-[var(--card)] text-[var(--ink)]' : 'bg-transparent text-[var(--muted)]',
+                  )}
+                >
                   {tab === 'blocks' ? 'Blocs' : 'Style'}
-                </ButtonBase>
+                </button>
               ))}
             </div>
           </div>

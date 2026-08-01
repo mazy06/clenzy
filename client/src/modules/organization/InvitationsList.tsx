@@ -4,7 +4,8 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { getOrgRoleLabel, getOrgRoleHex, getOrgRoleIcon } from '../../utils/orgRoleLabels';
-import { IconButton, Tooltip } from '@mui/material';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Refresh as RefreshIcon,
@@ -26,36 +27,20 @@ const STATUS_STYLE: Record<string, { label: string; fg: string; bg: string; Icon
 
 const DEFAULT_STATUS_STYLE = { label: '', fg: 'var(--muted)', bg: 'var(--hover)' };
 
-// ─── Styles partagés pour les IconButton d'actions ──────────────────────────
+// ─── Classes partagées pour les boutons d'action ────────────────────────────
+// Ecrites en litteraux : une classe Tailwind ne peut pas naitre d'une fabrique
+// parametree (les classes sont emises en scannant les sources).
 
-const ACTION_BTN_BASE_SX = {
-  width: 28,
-  height: 28,
-  borderRadius: '7px',
-  color: 'var(--muted)',
-  border: '1px solid var(--line-2)',
-  backgroundColor: 'var(--card)',
-  transition:
-    'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-} as const;
+const ACTION_BTN_BASE_CLS =
+  'size-7 rounded-[7px] text-[var(--muted)] border border-solid border-[var(--line-2)] bg-[var(--card)] disabled:border-[var(--line)] [transition:border-color_150ms_cubic-bezier(0.22,1,0.36,1),background-color_150ms_cubic-bezier(0.22,1,0.36,1),color_150ms_cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none';
 
 /** Variante de bouton d'action : hover teinte (texte couleur, bord 40%, fond -soft) */
-const actionBtnSx = (fg: string, bg: string) =>
-  ({
-    ...ACTION_BTN_BASE_SX,
-    '&:hover': {
-      color: fg,
-      borderColor: `color-mix(in srgb, ${fg} 40%, transparent)`,
-      backgroundColor: bg,
-    },
-    '&:focus-visible': { outline: `2px solid ${fg}`, outlineOffset: 2 },
-    '&.Mui-disabled': { borderColor: 'var(--line)' },
-  }) as const;
-
-const ACTION_BTN_PRIMARY_SX = actionBtnSx('var(--accent)', 'var(--accent-soft)');
-const ACTION_BTN_WARM_SX = actionBtnSx('var(--warn)', 'var(--warn-soft)');
-const ACTION_BTN_DANGER_SX = actionBtnSx('var(--err)', 'var(--err-soft)');
+const ACTION_BTN_PRIMARY_CLS =
+  'hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:bg-[var(--accent-soft)] focus-visible:[outline:2px_solid_var(--accent)] focus-visible:outline-offset-2';
+const ACTION_BTN_WARM_CLS =
+  'hover:text-[var(--warn)] hover:border-[color-mix(in_srgb,var(--warn)_40%,transparent)] hover:bg-[var(--warn-soft)] focus-visible:[outline:2px_solid_var(--warn)] focus-visible:outline-offset-2';
+const ACTION_BTN_DANGER_CLS =
+  'hover:text-[var(--err)] hover:border-[color-mix(in_srgb,var(--err)_40%,transparent)] hover:bg-[var(--err-soft)] focus-visible:[outline:2px_solid_var(--err)] focus-visible:outline-offset-2';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
@@ -243,50 +228,69 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
               <TableCell className="text-[0.75rem] py-[4.5px] ps-1.5 pe-[7.5px] text-end">
                 {inv.status === 'PENDING' && (
                   <div className="inline-flex items-center gap-0.5">
-                    <Tooltip title="Renvoyer l'invitation">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleResend(inv.id)}
-                        disabled={actionLoading === inv.id}
-                        aria-label="Renvoyer l'invitation"
-                        sx={ACTION_BTN_PRIMARY_SX}
-                      >
-                        {actionLoading === inv.id ? (
-                          <Spinner className="size-[13px]" />
-                        ) : (
-                          <RefreshIcon size={13} strokeWidth={1.75} />
-                        )}
-                      </IconButton>
+                    <Tooltip>
+                      {/* Le Button du kit ne transmet pas de ref : span d'ancrage. */}
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleResend(inv.id)}
+                            disabled={actionLoading === inv.id}
+                            aria-label="Renvoyer l'invitation"
+                            className={cn(ACTION_BTN_BASE_CLS, ACTION_BTN_PRIMARY_CLS)}
+                          >
+                            {actionLoading === inv.id ? (
+                              <Spinner className="size-[13px]" />
+                            ) : (
+                              <RefreshIcon size={13} strokeWidth={1.75} />
+                            )}
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Renvoyer l&apos;invitation</TooltipContent>
                     </Tooltip>
-                    <Tooltip title="Annuler l'invitation">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleCancel(inv.id)}
-                        disabled={actionLoading === inv.id}
-                        aria-label="Annuler l'invitation"
-                        sx={ACTION_BTN_WARM_SX}
-                      >
-                        <CancelIcon size={13} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleCancel(inv.id)}
+                            disabled={actionLoading === inv.id}
+                            aria-label="Annuler l'invitation"
+                            className={cn(ACTION_BTN_BASE_CLS, ACTION_BTN_WARM_CLS)}
+                          >
+                            <CancelIcon size={13} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Annuler l&apos;invitation</TooltipContent>
                     </Tooltip>
                   </div>
                 )}
                 {(inv.status === 'CANCELLED' || inv.status === 'EXPIRED') && (
                   <div className="inline-flex items-center gap-0.5 justify-end">
-                    <Tooltip title="Supprimer l'invitation">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDelete(inv.id)}
-                        disabled={actionLoading === inv.id}
-                        aria-label="Supprimer l'invitation"
-                        sx={ACTION_BTN_DANGER_SX}
-                      >
-                        {actionLoading === inv.id ? (
-                          <Spinner className="size-[13px]" />
-                        ) : (
-                          <DeleteIcon size={13} strokeWidth={1.75} />
-                        )}
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleDelete(inv.id)}
+                            disabled={actionLoading === inv.id}
+                            aria-label="Supprimer l'invitation"
+                            className={cn(ACTION_BTN_BASE_CLS, ACTION_BTN_DANGER_CLS)}
+                          >
+                            {actionLoading === inv.id ? (
+                              <Spinner className="size-[13px]" />
+                            ) : (
+                              <DeleteIcon size={13} strokeWidth={1.75} />
+                            )}
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Supprimer l&apos;invitation</TooltipContent>
                     </Tooltip>
                   </div>
                 )}

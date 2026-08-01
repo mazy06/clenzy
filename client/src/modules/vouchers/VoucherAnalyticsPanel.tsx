@@ -4,7 +4,6 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Stack } from '@mui/material';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useVoucherAnalytics } from '../../hooks/useBookingVouchers';
@@ -84,14 +83,15 @@ export default function VoucherAnalyticsPanel() {
 
   return (
     <div className="mb-4">
-      <Stack direction="row" alignItems="baseline" justifyContent="space-between" sx={{ mb: 1 }}>
+      {/* mb: 1 = 6 px (theme.spacing vaut 6). */}
+      <div className="flex flex-row items-baseline justify-between mb-[6px]">
         <span className="cn-text-overline tracking-[0.06em] text-[10.5px] font-bold text-[var(--faint)]">
           {t('vouchers.analytics.title')}
         </span>
         <span className="cn-text-caption text-muted-foreground">
           {periodLabel}
         </span>
-      </Stack>
+      </div>
 
       {/* KPI cards */}
       <div className="grid grid-cols-12 gap-[9px] mb-3">

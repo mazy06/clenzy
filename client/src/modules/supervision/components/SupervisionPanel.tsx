@@ -9,8 +9,7 @@
    ============================================================ */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Spinner } from '../../../components/ui';
-import { IconButton, Tooltip } from '@mui/material';
+import { Button, Spinner, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { WifiOff, Replay, Radar } from '../../../icons';
 import { runSupervisionScan } from '../useSupervisionConfig';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -186,26 +185,27 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
   const headerAction = useMemo(
     () =>
       canKickoff && propertyId != null ? (
-        <Tooltip
-          title={scanning ? t('supervision.scan.running', 'Scan en cours…') : t('supervision.scan.button', 'Scanner')}
-          arrow
-        >
-          <span>
-            <IconButton
-              size="small"
-              onClick={handleScan}
-              disabled={scanning}
-              aria-label={t('supervision.scan.button', 'Scanner')}
-              sx={{
-                width: 26,
-                height: 26,
-                color: 'var(--accent)',
-                '&:hover': { bgcolor: 'var(--accent-soft)' },
-              }}
-            >
-              {scanning ? <Spinner className="size-3.5" /> : <Radar size={16} />}
-            </IconButton>
-          </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {/* Le span porte la ref que Radix pose sur son enfant (Button est une
+                fonction) et reste la cible de survol quand le bouton est desactive. */}
+            <span className="inline-flex">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                onClick={handleScan}
+                disabled={scanning}
+                aria-label={t('supervision.scan.button', 'Scanner')}
+                className="size-[26px] text-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
+              >
+                {scanning ? <Spinner className="size-3.5" /> : <Radar size={16} />}
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            {scanning ? t('supervision.scan.running', 'Scan en cours…') : t('supervision.scan.button', 'Scanner')}
+          </TooltipContent>
         </Tooltip>
       ) : undefined,
     [canKickoff, propertyId, scanning, handleScan, t],

@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
 import { cn } from '../../utils/cn';
-import { Spinner, Button } from '../../components/ui';
-import { Paper, IconButton, Switch, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Divider } from '@mui/material';
+import {
+  Spinner,
+  Button,
+  Switch,
+  Separator,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import { Add as AddIcon } from '../../icons';
 import { Edit as EditIcon } from '../../icons';
@@ -12,14 +22,9 @@ import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPr
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: 1.5,
-} as const;
+/** Report en classes de l'ancienne surface `Paper` (p: 1.5 = 9px). */
+const CARD_CLASS =
+  'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-[9px]';
 
 const TYPE_COLORS: Record<string, string> = {
   BASE: '#5CB8AA',
@@ -74,7 +79,7 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
   };
 
   return (
-    <Paper sx={CARD_SX}>
+    <div className={CARD_CLASS}>
       {/* Header — overline de section (pattern pcard) */}
       <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em] mb-1.5">
         {t('dynamicPricing.ratePlan.title')}
@@ -97,7 +102,7 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
       {/* Plan list */}
       {!loading && ratePlans.map((plan, idx) => (
         <React.Fragment key={plan.id}>
-          {idx > 0 && <Divider sx={{ my: 0.75 }} />}
+          {idx > 0 && <Separator className="my-[4.5px]" />}
           <div className={cn('flex items-center gap-1.5 py-[4.5px]', plan.isActive ? 'opacity-100' : 'opacity-50')} style={{ transition: 'opacity 0.15s' }}>
             {/* Type badge */}
             {(() => { const c = TYPE_COLORS[plan.type] ?? '#8BA0B3'; return (
@@ -128,45 +133,62 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
 
             {/* Active toggle */}
             <Switch
-              size="small"
+              size="sm"
+              aria-label={plan.name}
               checked={plan.isActive}
-              onChange={() => handleToggleActive(plan)}
+              onCheckedChange={() => handleToggleActive(plan)}
               disabled={updateLoading}
             />
 
             {/* Actions */}
-            <IconButton size="small" onClick={() => onEditPlan(plan)} sx={{ p: 0.5 }}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('common.edit')}
+              onClick={() => onEditPlan(plan)}
+            >
               <EditIcon size={16} strokeWidth={1.75} />
-            </IconButton>
-            <IconButton size="small" onClick={() => setDeleteConfirmId(plan.id)} color="error" sx={{ p: 0.5 }}>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('common.delete')}
+              onClick={() => setDeleteConfirmId(plan.id)}
+              className="text-[var(--err)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+            >
               <DeleteIcon size={16} strokeWidth={1.75} />
-            </IconButton>
+            </Button>
           </div>
         </React.Fragment>
       ))}
 
       {/* Delete confirmation dialog */}
-      <Dialog open={deleteConfirmId !== null} onClose={() => setDeleteConfirmId(null)}>
-        <DialogTitle sx={{ fontSize: '0.9375rem' }}>{t('dynamicPricing.ratePlan.delete')}</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ fontSize: '0.8125rem' }}>{t('dynamicPricing.ratePlan.deleteConfirm')}</DialogContentText>
+      <Dialog
+        open={deleteConfirmId !== null}
+        onOpenChange={(next) => { if (!next) setDeleteConfirmId(null); }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[0.9375rem]">{t('dynamicPricing.ratePlan.delete')}</DialogTitle>
+            <DialogDescription className="text-[0.8125rem]">{t('dynamicPricing.ratePlan.deleteConfirm')}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(null)} disabled={deleteLoading}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDelete}
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? <Spinner className="size-3.5" /> : null}
+              {t('common.delete')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(null)} disabled={deleteLoading}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleDelete}
-            disabled={deleteLoading}
-          >
-            {deleteLoading ? <Spinner className="size-3.5" /> : null}
-            {t('common.delete')}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Paper>
+    </div>
   );
 };
 

@@ -8,9 +8,14 @@ import {
   FieldLabel,
   Input,
   NativeSelect,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
 } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Dialog, DialogActions, DialogContent, DialogTitle, Divider, Link } from '@mui/material';
 import { KeyRound } from 'lucide-react';
 import { tuyaApi, type TuyaConfigStatus } from '../../../services/api/noiseApi';
 
@@ -106,18 +111,26 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
   };
 
   return (
-    <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}>
-        <KeyRound size={18} />
-        Configurer le projet Tuya Cloud
-      </DialogTitle>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !saving) onClose(); }}>
+      <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-1.5 font-bold">
+            <KeyRound size={18} />
+            Configurer le projet Tuya Cloud
+          </DialogTitle>
+        </DialogHeader>
+
         <p className="cn-text-body2 text-muted-foreground mb-3">
           Renseignez l'<strong>Access ID</strong> et l'<strong>Access Secret</strong> du projet cloud
           créé sur{' '}
-          <Link href="https://iot.tuya.com" target="_blank" rel="noopener noreferrer">
+          <a
+            href="https://iot.tuya.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--accent)] underline underline-offset-4 hover:text-[var(--accent-deep)]"
+          >
             iot.tuya.com
-          </Link>{' '}
+          </a>{' '}
           (Cloud → Development → votre projet → Authorization Key). Ils sont stockés chiffrés en base.
         </p>
 
@@ -173,7 +186,7 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
               Région du projet Tuya (doit correspondre à celle choisie sur iot.tuya.com).
             </FieldDescription>
           </Field>
-          <Divider sx={{ mt: 0.5 }} />
+          <Separator className="mt-0.5" />
           <span className="cn-text-caption text-muted-foreground font-bold">
             App SDK mobile (appairage — modèle C)
           </span>
@@ -248,15 +261,16 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
             </FieldDescription>
           </Field>
         </div>
+
+        <DialogFooter>
+          <Button onClick={onClose} variant="ghost" disabled={saving}>
+            Annuler
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Enregistrement…' : 'Enregistrer'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} variant="ghost" disabled={saving}>
-          Annuler
-        </Button>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? 'Enregistrement…' : 'Enregistrer'}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

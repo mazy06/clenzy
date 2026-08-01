@@ -12,7 +12,13 @@ import {
   InputGroupInput,
   InputGroupText,
 } from '../../components/ui';
-import { IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   AutoAwesome,
@@ -402,9 +408,15 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                     </TableCell>
                     {canEdit && (
                       <TableCell className="text-center">
-                        <IconButton size="small" onClick={() => removeSurfaceTier(index)} color="error">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t('common.delete', 'Supprimer')}
+                          onClick={() => removeSurfaceTier(index)}
+                          className="text-[var(--err)]"
+                        >
                           <Delete size={16} strokeWidth={1.75} />
-                        </IconButton>
+                        </Button>
                       </TableCell>
                     )}
                   </TableRow>
@@ -467,9 +479,12 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
         </div>
 
         {/* ─── Add prestation dialog ───────────────────────────────────── */}
-        <Dialog open={addPrestationOpen} onClose={() => setAddPrestationOpen(false)} maxWidth="xs" fullWidth>
-          <DialogTitle>{t('tarification.addPrestation')}</DialogTitle>
-          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
+        <Dialog open={addPrestationOpen} onOpenChange={(next) => { if (!next) setAddPrestationOpen(false); }}>
+          <DialogContent className="max-w-[444px]">
+            <DialogHeader>
+              <DialogTitle>{t('tarification.addPrestation')}</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-3">
             <Field>
               <FieldLabel htmlFor={`${uid}-new-prestation-key`}>{t('tarification.newItem.key')}</FieldLabel>
               <Input
@@ -490,19 +505,23 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                 onChange={(e) => setNewPrestationLabel(e.target.value)}
               />
             </Field>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setAddPrestationOpen(false)}>{t('tarification.cancel')}</Button>
+              <Button onClick={handleAddPrestation} disabled={!newPrestationKey.trim() || !newPrestationLabel.trim()}>
+                {t('tarification.add')}
+              </Button>
+            </DialogFooter>
           </DialogContent>
-          <DialogActions>
-            <Button variant="ghost" onClick={() => setAddPrestationOpen(false)}>{t('tarification.cancel')}</Button>
-            <Button onClick={handleAddPrestation} disabled={!newPrestationKey.trim() || !newPrestationLabel.trim()}>
-              {t('tarification.add')}
-            </Button>
-          </DialogActions>
         </Dialog>
 
         {/* ─── Add surcharge dialog ────────────────────────────────────── */}
-        <Dialog open={addSurchargeOpen} onClose={() => setAddSurchargeOpen(false)} maxWidth="xs" fullWidth>
-          <DialogTitle>{t('tarification.addSurcharge')}</DialogTitle>
-          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
+        <Dialog open={addSurchargeOpen} onOpenChange={(next) => { if (!next) setAddSurchargeOpen(false); }}>
+          <DialogContent className="max-w-[444px]">
+            <DialogHeader>
+              <DialogTitle>{t('tarification.addSurcharge')}</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-3">
             <Field>
               <FieldLabel htmlFor={`${uid}-new-surcharge-key`}>{t('tarification.newItem.key')}</FieldLabel>
               <Input
@@ -523,13 +542,14 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                 onChange={(e) => setNewSurchargeLabel(e.target.value)}
               />
             </Field>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setAddSurchargeOpen(false)}>{t('tarification.cancel')}</Button>
+              <Button onClick={handleAddSurcharge} disabled={!newSurchargeKey.trim() || !newSurchargeLabel.trim()}>
+                {t('tarification.add')}
+              </Button>
+            </DialogFooter>
           </DialogContent>
-          <DialogActions>
-            <Button variant="ghost" onClick={() => setAddSurchargeOpen(false)}>{t('tarification.cancel')}</Button>
-            <Button onClick={handleAddSurcharge} disabled={!newSurchargeKey.trim() || !newSurchargeLabel.trim()}>
-              {t('tarification.add')}
-            </Button>
-          </DialogActions>
         </Dialog>
       </div>
     );

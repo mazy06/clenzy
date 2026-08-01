@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import {
-  IconButton,
+  Button,
   Tooltip,
-} from '@mui/material';
-import { Button } from '../../../components/ui';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import { Add, Delete, Message as MessageIcon } from '../../../icons';
 import type { ConversationSummary } from '../../../services/api/assistantApi';
@@ -154,26 +155,29 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
         </p>
       </div>
 
-      <Tooltip title="Archiver" placement="right" enterDelay={400}>
-        <IconButton
-          size="small"
-          onClick={handleArchive}
-          disabled={archiving}
-          sx={{
-            opacity: hovered ? 1 : 0,
-            transition: 'opacity .12s',
-            color: 'var(--muted)',
-            p: 0.25,
-            '&:hover': {
-              bgcolor: 'var(--err-soft)',
-              color: 'var(--err)',
-            },
-            '&:focus-visible': { opacity: 1 },
-          }}
-          aria-label={`Archiver la conversation ${title}`}
-        >
-          <Delete size={13} strokeWidth={1.75} />
-        </IconButton>
+      <Tooltip delayDuration={400}>
+        <TooltipTrigger asChild>
+          {/* Le span porte la ref que Radix pose sur son enfant : Button est une
+              fonction, il n'en transmet pas. */}
+          <span className="inline-flex">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={handleArchive}
+              disabled={archiving}
+              className={cn(
+                'text-[var(--muted)] transition-opacity duration-[120ms] motion-reduce:transition-none',
+                'hover:bg-[var(--err-soft)] hover:text-[var(--err)] focus-visible:opacity-100',
+                hovered ? 'opacity-100' : 'opacity-0',
+              )}
+              aria-label={`Archiver la conversation ${title}`}
+            >
+              <Delete size={13} strokeWidth={1.75} />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="right">Archiver</TooltipContent>
       </Tooltip>
     </div>
   );

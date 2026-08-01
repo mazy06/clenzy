@@ -18,10 +18,6 @@ import {
   TooltipTrigger as BuiTooltipTrigger,
 } from '../../components/ui';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-// CircularProgress conserve : la jauge de score est un cercle de progression
-// DETERMINE, dont le kit Baitly n'a pas d'equivalent (Progress est lineaire,
-// Spinner est indetermine). Le reste du fichier ne depend plus de MUI.
-import { CircularProgress } from '@mui/material';
 import {
   Refresh,
   Warning,
@@ -90,6 +86,12 @@ interface ScoreGaugeProps {
   criticalFailed: boolean;
 }
 
+// Jauge circulaire : 160 px de diametre, anneau de 4 px (r = 80 - 4/2).
+const GAUGE_SIZE = 160;
+const GAUGE_STROKE = 4;
+const GAUGE_RADIUS = GAUGE_SIZE / 2 - GAUGE_STROKE / 2;
+const GAUGE_CIRCUMFERENCE = 2 * Math.PI * GAUGE_RADIUS;
+
 const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
   // Couleur du score → tokens sémantiques (réactifs thème/accent)
   const color = criticalFailed ? 'var(--err)'
@@ -97,24 +99,44 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
     : score >= 50 ? 'var(--warn)'
     : 'var(--err)';
 
+  const filled = Math.min(Math.max(score, 0), 100);
+
   return (
     <BuiCard className="text-center py-[18px]">
       <CardContent>
         <div className="relative inline-flex">
-          <CircularProgress
-            variant="determinate"
-            value={100}
-            size={160}
-            thickness={4}
-            sx={{ color: 'var(--line)', position: 'absolute' }}
-          />
-          <CircularProgress
-            variant="determinate"
-            value={Math.min(score, 100)}
-            size={160}
-            thickness={4}
-            sx={{ color }}
-          />
+          {/* SVG plutot que le CircularProgress MUI : le kit n'a pas de jauge
+              circulaire DETERMINEE (Progress est lineaire, Spinner indetermine),
+              et deux cercles suffisent — piste + arc, demarrage a midi. */}
+          <svg
+            width={GAUGE_SIZE}
+            height={GAUGE_SIZE}
+            viewBox={`0 0 ${GAUGE_SIZE} ${GAUGE_SIZE}`}
+            role="img"
+            aria-label={`Score de readiness : ${criticalFailed ? 0 : Math.round(score)} sur 100`}
+            className="-rotate-90"
+          >
+            <circle
+              cx={GAUGE_SIZE / 2}
+              cy={GAUGE_SIZE / 2}
+              r={GAUGE_RADIUS}
+              fill="none"
+              stroke="var(--line)"
+              strokeWidth={GAUGE_STROKE}
+            />
+            <circle
+              cx={GAUGE_SIZE / 2}
+              cy={GAUGE_SIZE / 2}
+              r={GAUGE_RADIUS}
+              fill="none"
+              stroke={color}
+              strokeWidth={GAUGE_STROKE}
+              strokeLinecap="round"
+              strokeDasharray={GAUGE_CIRCUMFERENCE}
+              strokeDashoffset={GAUGE_CIRCUMFERENCE * (1 - filled / 100)}
+              className="[transition:stroke-dashoffset_400ms_ease-out] motion-reduce:transition-none"
+            />
+          </svg>
           <div className="top-[0px] start-[0px] bottom-[0px] end-[0px] absolute flex flex-col items-center justify-center">
             {/* La teinte suit le score, calculee au rendu. */}
             <span className="mb-[3px] inline-flex" style={{ color }}>

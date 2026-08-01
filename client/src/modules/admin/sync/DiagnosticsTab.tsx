@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Alert, AlertDescription } from '../../../components/ui';
+import {
+  Alert,
+  AlertDescription,
+  Skeleton,
+  Card,
+  CardContent,
+  Separator,
+} from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Skeleton, Card, CardContent, Divider } from '@mui/material';
 import {
   Hub,
   CheckCircle,
@@ -57,7 +63,7 @@ const DiagnosticsTab: React.FC = () => {
       <div className="grid grid-cols-12 gap-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2" key={i}>
-            <Skeleton variant="rounded" height={96} sx={{ borderRadius: '14px' }} />
+            <Skeleton className="h-24 w-full rounded-[14px]" />
           </div>
         ))}
       </div>
@@ -111,7 +117,7 @@ const DiagnosticsTab: React.FC = () => {
 
           {/* Sync logs by status */}
           {Object.keys(diagnostics.syncLogsByStatus).length > 0 && (
-            <Card variant="outlined" sx={{ mb: 3 }}>
+            <Card className="mb-[18px]">
               <CardContent>
                 <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
                   Sync Logs par Status
@@ -131,7 +137,7 @@ const DiagnosticsTab: React.FC = () => {
         </>
       )}
 
-      <Divider sx={{ my: 3 }} />
+      <Separator className="my-[18px]" />
 
       {/* Metrics */}
       {metrics && (
@@ -142,7 +148,7 @@ const DiagnosticsTab: React.FC = () => {
           <div className="grid grid-cols-12 gap-3">
             {/* Latency P95 */}
             <div className="col-span-12 min-[900px]:col-span-4">
-              <Card variant="outlined">
+              <Card>
                 <CardContent>
                   <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
                     Sync Latency P95 (ms)
@@ -162,7 +168,7 @@ const DiagnosticsTab: React.FC = () => {
 
             {/* Success / Failure counts */}
             <div className="col-span-12 min-[900px]:col-span-4">
-              <Card variant="outlined">
+              <Card>
                 <CardContent>
                   <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
                     Sync Success / Failure
@@ -189,7 +195,7 @@ const DiagnosticsTab: React.FC = () => {
 
             {/* Calendar stats */}
             <div className="col-span-12 min-[900px]:col-span-4">
-              <Card variant="outlined">
+              <Card>
                 <CardContent>
                   <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
                     Calendrier

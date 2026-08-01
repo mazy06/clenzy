@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../utils/cn';
-import { Checkbox } from '@mui/material';
+import { Checkbox } from './ui';
 import {
   Description,
   Checklist,
@@ -160,15 +160,14 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
 
                   return (
                     <div className="flex items-start gap-0.5 py-0" key={i}>
+                      {/* Puce purement decorative (liste en lecture seule) :
+                          retiree de l'ordre de tabulation et de l'arbre a11y. */}
                       <Checkbox
                         checked={false}
                         disabled
-                        size="small"
-                        sx={{
-                          p: 0.25,
-                          mt: -0.125,
-                          color: 'var(--line-2)',
-                        }}
+                        aria-hidden
+                        tabIndex={-1}
+                        className="mt-[3px] shrink-0 border-[var(--line-2)]"
                       />
                       <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] leading-[1.4] flex-1 pt-0.5">
                         {item.text}

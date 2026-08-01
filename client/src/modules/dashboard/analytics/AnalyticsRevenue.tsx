@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent } from '@mui/material';
+import { Card, CardContent } from '../../../components/ui';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart,
   PieChart, Pie, Cell, BarChart, Bar,
@@ -19,30 +19,12 @@ const GRID_STROKE = '#F1F5F9';
 const CHART_SUCCESS = '#4A9B8E';
 const CHART_ERROR = '#C97A7A';
 
-const CHART_CARD_SX = {
-  width: '100%',
-  height: 220,
-} as const;
+/** La carte porte sa hauteur ; le padding vertical du gabarit est neutralise,
+ *  c'est le contenu qui le pose (p 1.25 = 7.5 px, theme.spacing vaut 6). */
+const CHART_CARD_CLASS = 'w-full h-[220px] py-0 gap-0';
+const CHART_CONTENT_CLASS = 'p-[7.5px] h-full flex flex-col';
 
-const CHART_CONTENT_SX = {
-  p: 1.25,
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  '&:last-child': { pb: 1.25 },
-} as const;
-
-const SECTION_LABEL_SX = {
-  fontSize: '0.6875rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.04em',
-  color: 'text.secondary',
-  mb: 0.5,
-  flexShrink: 0,
-} as const;
-
-/** Report en classes de `SECTION_LABEL_SX` (mb 0.5 = 3 px, theme.spacing vaut 6). */
+/** Etiquette de section (mb 0.5 = 3 px, theme.spacing vaut 6). */
 const SECTION_LABEL_CLASS =
   'cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.04em] text-[var(--muted)] mb-[3px] shrink-0';
 
@@ -63,8 +45,8 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
       <div className="grid grid-cols-12 gap-[9px]">
         {/* Revenue trend area chart */}
         <div className="col-span-12 min-[600px]:col-span-4">
-          <Card sx={CHART_CARD_SX}>
-            <CardContent sx={CHART_CONTENT_SX}>
+          <Card className={CHART_CARD_CLASS}>
+            <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.revenueTrend')}
               </p>
@@ -92,8 +74,8 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
 
         {/* Channel distribution donut */}
         <div className="col-span-12 min-[600px]:col-span-4">
-          <Card sx={CHART_CARD_SX}>
-            <CardContent sx={CHART_CONTENT_SX}>
+          <Card className={CHART_CARD_CLASS}>
+            <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.byChannel')}
               </p>
@@ -140,8 +122,8 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
 
         {/* Top properties bar chart */}
         <div className="col-span-12 min-[600px]:col-span-4">
-          <Card sx={CHART_CARD_SX}>
-            <CardContent sx={CHART_CONTENT_SX}>
+          <Card className={CHART_CARD_CLASS}>
+            <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.topProperties')}
               </p>

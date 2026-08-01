@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Spinner, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '../../components/ui';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui';
-import { Snackbar, Alert, Switch } from '@mui/material';
+import { InputGroup, InputGroupAddon, InputGroupInput, Switch } from '../../components/ui';
+// Snackbar + Alert flottante restent MUI : le fichier n'a pas de mecanisme de
+// notification (sonner) a reprendre, et en changer depasse cette migration.
+import { Snackbar, Alert } from '@mui/material';
 import { Save, Build } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -152,9 +154,10 @@ export default function TechnicianTravaux() {
                     <TableCell>{row.label}</TableCell>
                     <TableCell className="text-center">
                       <Switch
+                        aria-label={row.label}
                         checked={row.offered}
-                        onChange={(e) => updateRow(index, { offered: e.target.checked })}
-                        size="small"
+                        onCheckedChange={(checked) => updateRow(index, { offered: checked })}
+                        size="sm"
                       />
                     </TableCell>
                     <TableCell className="text-end w-[140px]">

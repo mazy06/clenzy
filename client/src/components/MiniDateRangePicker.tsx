@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Box, Typography, IconButton, alpha } from '@mui/material';
+import { cn } from '../utils/cn';
 import { Button } from './ui';
 import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from '../icons';
 
@@ -147,19 +147,15 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
     <div>
       {/* Selecting indicator */}
       <div className="flex gap-1.5 mb-1.5">
-        <Box
+        {/* borderRadius: 1 = 8 px ; py 0.5 = 3 px, px 1 = 6 px (theme.spacing vaut 6). */}
+        <div
           onClick={() => setSelectingField('start')}
-          sx={{
-            flex: 1,
-            py: 0.5,
-            px: 1,
-            borderRadius: 1,
-            border: '1px solid',
-            borderColor: selectingField === 'start' ? 'primary.main' : 'divider',
-            bgcolor: selectingField === 'start' ? (theme) => alpha(theme.palette.primary.main, 0.06) : 'transparent',
-            cursor: 'pointer',
-            transition: 'all 0.15s',
-          }}
+          className={cn(
+            'flex-1 py-[3px] px-[6px] rounded-[8px] border border-solid cursor-pointer transition-all duration-150',
+            selectingField === 'start'
+              ? 'border-[var(--mui-primary)] bg-[color-mix(in_srgb,var(--mui-primary)_6%,transparent)]'
+              : 'border-[var(--line)] bg-transparent',
+          )}
         >
           <span className="cn-text-caption text-muted-foreground text-[0.5625rem] block">
             {startLabel ?? defaultStartLabel}
@@ -167,20 +163,15 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
           <p className="cn-text-body2 font-semibold text-[0.75rem]">
             {startDate || '—'}
           </p>
-        </Box>
-        <Box
+        </div>
+        <div
           onClick={() => setSelectingField('end')}
-          sx={{
-            flex: 1,
-            py: 0.5,
-            px: 1,
-            borderRadius: 1,
-            border: '1px solid',
-            borderColor: selectingField === 'end' ? 'primary.main' : 'divider',
-            bgcolor: selectingField === 'end' ? (theme) => alpha(theme.palette.primary.main, 0.06) : 'transparent',
-            cursor: 'pointer',
-            transition: 'all 0.15s',
-          }}
+          className={cn(
+            'flex-1 py-[3px] px-[6px] rounded-[8px] border border-solid cursor-pointer transition-all duration-150',
+            selectingField === 'end'
+              ? 'border-[var(--mui-primary)] bg-[color-mix(in_srgb,var(--mui-primary)_6%,transparent)]'
+              : 'border-[var(--line)] bg-transparent',
+          )}
         >
           <span className="cn-text-caption text-muted-foreground text-[0.5625rem] block">
             {endLabel ?? defaultEndLabel}
@@ -188,28 +179,30 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
           <p className="cn-text-body2 font-semibold text-[0.75rem]">
             {endDate || '—'}
           </p>
-        </Box>
+        </div>
       </div>
 
       {/* Month nav */}
       <div className="flex items-center justify-center gap-0.5 mb-0.5">
-        <IconButton
-          size="small"
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label={isFrench ? 'Mois précédent' : 'Previous month'}
           onClick={() => setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
-          sx={{ p: 0.25 }}
         >
           <ChevronLeftIcon size={16} strokeWidth={1.75} />
-        </IconButton>
+        </Button>
         <span className="cn-text-caption font-semibold min-w-[90px] text-center capitalize text-[0.6875rem]">
           {formatMiniMonth(viewMonth, isFrench)}
         </span>
-        <IconButton
-          size="small"
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label={isFrench ? 'Mois suivant' : 'Next month'}
           onClick={() => setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-          sx={{ p: 0.25 }}
         >
           <ChevronRightIcon size={16} strokeWidth={1.75} />
-        </IconButton>
+        </Button>
       </div>
 
       {/* Day headers */}
@@ -232,38 +225,32 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
           const isHighlighted = isStartDate || isEndDate;
 
           return (
-            <Box
+            <div
               key={cell.dateStr}
               onClick={() => cell.inMonth && handleCellClick(cell.dateStr)}
-              sx={{
-                textAlign: 'center',
-                py: 0.375,
-                borderRadius: isStartDate ? '4px 0 0 4px' : isEndDate ? '0 4px 4px 0' : 0,
-                cursor: cell.inMonth ? 'pointer' : 'default',
-                opacity: cell.inMonth ? 1 : 0.25,
-                bgcolor: isHighlighted
-                  ? 'primary.main'
+              className={cn(
+                'text-center py-[2.25px] transition-[background-color] duration-100',
+                isStartDate ? 'rounded-l-[4px] rounded-r-none' : isEndDate ? 'rounded-r-[4px] rounded-l-none' : 'rounded-none',
+                cell.inMonth ? 'cursor-pointer opacity-100' : 'cursor-default opacity-25',
+                isHighlighted
+                  ? 'bg-[var(--mui-primary)]'
                   : inRange
-                    ? (theme) => alpha(theme.palette.primary.main, 0.1)
-                    : 'transparent',
-                transition: 'background-color 0.1s',
-                '&:hover': cell.inMonth && !isHighlighted
-                  ? { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08) }
-                  : {},
-              }}
+                    ? 'bg-[color-mix(in_srgb,var(--mui-primary)_10%,transparent)]'
+                    : 'bg-transparent',
+                cell.inMonth && !isHighlighted && 'hover:bg-[color-mix(in_srgb,var(--mui-primary)_8%,transparent)]',
+              )}
             >
-              <Typography
-                variant="caption"
-                fontWeight={isHighlighted ? 700 : 400}
-                sx={{
-                  fontSize: '0.625rem',
-                  color: isHighlighted ? 'primary.contrastText' : 'text.primary',
-                  lineHeight: 1.6,
-                }}
+              {/* primary.contrastText vaut #FFFFFF dans les deux themes MUI du
+                  projet : var(--on-accent) porte exactement la meme valeur. */}
+              <span
+                className={cn(
+                  'cn-text-caption text-[0.625rem] leading-[1.6]',
+                  isHighlighted ? 'font-bold text-[var(--on-accent)]' : 'font-normal text-[var(--ink)]',
+                )}
               >
                 {cell.date.getDate()}
-              </Typography>
-            </Box>
+              </span>
+            </div>
           );
         })}
       </div>

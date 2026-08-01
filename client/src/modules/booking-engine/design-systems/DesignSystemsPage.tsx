@@ -4,7 +4,7 @@ import { Badge, Button } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import { Field, FieldLabel, Input, Textarea } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
-import { Skeleton, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { Skeleton, ToggleGroup, ToggleGroupItem } from '../../../components/ui';
 import { Plus, Globe, FileText, Sparkles, SlidersHorizontal, AlertTriangle, Trash2 } from 'lucide-react';
 import PageHeader from '../../../components/PageHeader';
 import {
@@ -138,7 +138,7 @@ export default function DesignSystemsPage() {
           <div className="text-[11px] font-bold tracking-[0.08em] uppercase text-[var(--muted)] px-0.5 mb-1.5">
             Vos systèmes {systems && <span style={{ fontVariantNumeric: 'tabular-nums' }}>· {systems.length}</span>}
           </div>
-          {systems === null && <Skeleton variant="rounded" height={120} sx={{ borderRadius: '12px', bgcolor: 'var(--hover)' }} />}
+          {systems === null && <Skeleton className="h-[120px] rounded-[12px] bg-[var(--hover)]" />}
           {systems && systems.length === 0 && (
             <div className="text-[var(--muted)] text-[13px] px-0.5 py-3 leading-[1.6]">
               Aucun système pour l'instant. Créez-en un à partir d'un site, d'une marque ou d'un DESIGN.md.
@@ -168,16 +168,23 @@ export default function DesignSystemsPage() {
             <div className="flex flex-col gap-3 max-w-[720px]">
               <div className="text-[17px] font-bold text-[var(--ink)]">Nouveau système de design</div>
 
-              <ToggleButtonGroup value={source} exclusive onChange={(_, v) => v && setSource(v)} size="small" sx={{ flexWrap: 'wrap' }}>
+              <ToggleGroup
+                type="single"
+                size="sm"
+                variant="outline"
+                className="flex-wrap"
+                value={source}
+                onValueChange={(v) => v && setSource(v as DesignSystemSource)}
+              >
                 {SOURCES.map((s) => {
                   const Icon = s.icon;
                   return (
-                    <ToggleButton key={s.id} value={s.id} sx={{ textTransform: 'none', gap: 0.75, px: 1.5 }}>
+                    <ToggleGroupItem key={s.id} value={s.id} className="gap-1 px-2.5 normal-case">
                       <Icon size={15} strokeWidth={2} /> {s.label}
-                    </ToggleButton>
+                    </ToggleGroupItem>
                   );
                 })}
-              </ToggleButtonGroup>
+              </ToggleGroup>
               {/* mt: -1 = -6px (theme.spacing vaut 6 dans ce projet). */}
               <div className="text-[13px] text-[var(--muted)] -mt-1.5">{SOURCES.find((s) => s.id === source)?.hint}</div>
 

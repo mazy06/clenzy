@@ -1,6 +1,5 @@
 import React from 'react';
-import { cn } from '../../../utils/cn';
-import { Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import type { AssistantUsage } from '../../../services/api/assistantApi';
 
 interface AssistantUsageBadgeProps {
@@ -35,18 +34,18 @@ export const AssistantUsageBadge: React.FC<AssistantUsageBadgeProps> = ({
   const periodLabel = usage?.period === 'today' ? "aujourd'hui" : 'ce mois';
 
   return (
-    <Tooltip
-      arrow
-      placement="bottom-end"
-      title={<UsageTooltipContent usage={usage} loading={loading} />}
-      enterDelay={300}
-    >
-      <div className="inline-flex items-center gap-[4.5px] px-[7.5px] h-[28px] rounded-[7992px] text-[11.5px] font-semibold text-[var(--muted)] bg-[var(--card)] border border-solid border-[var(--line)] cursor-help tabular-nums select-none hover:border-[var(--line-2)]" style={{ transition: 'border-color .15s' }} aria-label={`Consommation assistant : ${costLabel} ${periodLabel}, ${tokensLabel} tokens`}>
-        <span className="font-semibold text-[var(--body)]">{costLabel}</span>
-        <span className="text-[var(--faint)]">
-          · {tokensLabel} tokens
-        </span>
-      </div>
+    <Tooltip delayDuration={300}>
+      <TooltipTrigger asChild>
+        <div className="inline-flex items-center gap-[4.5px] px-[7.5px] h-[28px] rounded-[7992px] text-[11.5px] font-semibold text-[var(--muted)] bg-[var(--card)] border border-solid border-[var(--line)] cursor-help tabular-nums select-none hover:border-[var(--line-2)]" style={{ transition: 'border-color .15s' }} aria-label={`Consommation assistant : ${costLabel} ${periodLabel}, ${tokensLabel} tokens`}>
+          <span className="font-semibold text-[var(--body)]">{costLabel}</span>
+          <span className="text-[var(--faint)]">
+            · {tokensLabel} tokens
+          </span>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" align="end">
+        <UsageTooltipContent usage={usage} loading={loading} />
+      </TooltipContent>
     </Tooltip>
   );
 };

@@ -3,7 +3,17 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner, Button } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Tooltip } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { Handshake, Check, Close } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -135,81 +145,90 @@ const ManagementContractFormModal: React.FC<ManagementContractFormModalProps> = 
   return (
     <Dialog
       open={open}
-      onClose={saving ? undefined : onClose}
-      maxWidth="md"
-      fullWidth
+      // Fermeture par backdrop / Echap : neutralisee pendant l'enregistrement,
+      // comme l'ancien `onClose={saving ? undefined : onClose}`.
+      onOpenChange={(next) => { if (!next && !saving) onClose(); }}
     >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 3, pt: 2.5, pb: 2 }}>
-        <span className="inline-flex items-center justify-center w-[32px] h-[32px] rounded-[10px] shrink-0 bg-[var(--accent-soft)] text-[var(--accent)]">
-          <Handshake size={18} strokeWidth={1.75} />
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[16px] font-semibold leading-[1.25] text-balance text-[var(--ink)]">
-            {isEdit
-              ? t('contracts.editTitle', 'Modifier le contrat')
-              : t('contracts.createTitle', 'Créer un contrat de gestion')}
-          </p>
-          <p className="cn-text-body1 text-[0.78rem] text-[var(--muted)] mt-0.5">
-            {isEdit && contract
-              ? contract.contractNumber
-              : t('contracts.modalSubtitle', "L'encaissement et la commission pilotent la répartition automatique des revenus.")}
-          </p>
-        </div>
-        <Tooltip title={t('contracts.cancel', 'Annuler')}>
-          <IconButton
-            size="small"
-            onClick={onClose}
-            disabled={saving}
-            sx={{
-              width: 34, height: 34, borderRadius: '10px',
-              border: '1px solid var(--line)', color: 'var(--muted)',
-              '&:hover': { color: 'var(--err)', borderColor: 'var(--err)', bgcolor: 'transparent' },
-            }}
-          >
-            <Close size={18} strokeWidth={1.75} />
-          </IconButton>
-        </Tooltip>
-      </DialogTitle>
-
-      <DialogContent dividers sx={{ px: 3, py: 3 }}>
-        {loadingProperties && properties.length === 0 ? (
-          <div className="flex justify-center py-9">
-            <Spinner className="size-7" />
+      <DialogContent className="sm:max-w-[900px]" showCloseButton={false}>
+        <DialogHeader className="flex-row items-center gap-[9px]">
+          <span className="inline-flex items-center justify-center w-[32px] h-[32px] rounded-[10px] shrink-0 bg-[var(--accent-soft)] text-[var(--accent)]">
+            <Handshake size={18} strokeWidth={1.75} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <DialogTitle className="text-[16px] font-semibold leading-[1.25] text-balance text-[var(--ink)]">
+              {isEdit
+                ? t('contracts.editTitle', 'Modifier le contrat')
+                : t('contracts.createTitle', 'Créer un contrat de gestion')}
+            </DialogTitle>
+            <DialogDescription className="text-[0.78rem] text-[var(--muted)] mt-0.5">
+              {isEdit && contract
+                ? contract.contractNumber
+                : t('contracts.modalSubtitle', "L'encaissement et la commission pilotent la répartition automatique des revenus.")}
+            </DialogDescription>
           </div>
-        ) : (
-          <ManagementContractFormFields
-            form={form}
-            setForm={setForm}
-            properties={properties}
-            splitRatios={splitRatios}
-            lockProperty={isEdit}
-          />
-        )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* Le span porte le declencheur : un bouton desactive n'emet plus
+                  d'evenement de survol. */}
+              <span className="inline-flex">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t('contracts.cancel', 'Annuler')}
+                  onClick={onClose}
+                  disabled={saving}
+                  className="size-[34px] rounded-[10px] border border-solid border-[var(--line)] text-[var(--muted)] hover:bg-transparent hover:text-[var(--err)] hover:border-[var(--err)]"
+                >
+                  <Close size={18} strokeWidth={1.75} />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('contracts.cancel', 'Annuler')}</TooltipContent>
+          </Tooltip>
+        </DialogHeader>
 
-        {error && (
-          <Alert variant="destructive" className="mt-3 text-[0.8125rem]">
-            <TriangleAlert />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+        {/* Pendant du `dividers` de l'ancienne DialogContent MUI : filets haut
+            et bas, contenu defilant sur les petits ecrans. */}
+        <div className="-mx-4 px-4 py-3 max-h-[65vh] overflow-y-auto border-y border-solid border-[var(--line)]">
+          {loadingProperties && properties.length === 0 ? (
+            <div className="flex justify-center py-9">
+              <Spinner className="size-7" />
+            </div>
+          ) : (
+            <ManagementContractFormFields
+              form={form}
+              setForm={setForm}
+              properties={properties}
+              splitRatios={splitRatios}
+              lockProperty={isEdit}
+            />
+          )}
+
+          {error && (
+            <Alert variant="destructive" className="mt-3 text-[0.8125rem]">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button onClick={onClose} variant="ghost" disabled={saving}>
+            {t('contracts.cancel', 'Annuler')}
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!formValid || saving}
+          >
+            {saving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={2} />}
+            {saving
+              ? t('contracts.required.saving', 'Enregistrement…')
+              : isEdit
+                ? t('contracts.save', 'Enregistrer')
+                : t('contracts.modalSubmit', 'Créer le contrat')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
-        <Button onClick={onClose} variant="ghost" disabled={saving}>
-          {t('contracts.cancel', 'Annuler')}
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          disabled={!formValid || saving}
-        >
-          {saving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={2} />}
-          {saving
-            ? t('contracts.required.saving', 'Enregistrement…')
-            : isEdit
-              ? t('contracts.save', 'Enregistrer')
-              : t('contracts.modalSubmit', 'Créer le contrat')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

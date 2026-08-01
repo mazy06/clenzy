@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { Box } from '@mui/material';
 import { MapIcon } from '../icons';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -164,23 +163,16 @@ export function MapboxPropertyMap({
 
   if (!MAPBOX_TOKEN) {
     return (
-      <Box
-        sx={{
-          height,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: 'grey.100',
-          borderRadius: 1,
-          gap: 1,
-        }}
+      // `height` vient des props (valeur d'execution) : elle reste en style inline.
+      <div
+        className="flex flex-col items-center justify-center gap-1.5 rounded-lg bg-[var(--hover)]"
+        style={{ height }}
       >
         <span className="inline-flex text-muted-foreground opacity-60"><MapIcon size={48} strokeWidth={1.5} /></span>
         <p className="cn-text-body2 text-muted-foreground">
           Carte indisponible : token Mapbox non configure (VITE_MAPBOX_TOKEN)
         </p>
-      </Box>
+      </div>
     );
   }
 

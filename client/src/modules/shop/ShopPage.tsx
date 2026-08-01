@@ -2,7 +2,9 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import { Alert, AlertDescription, AlertAction, Button } from '../../components/ui';
 import { CircleCheck, X } from 'lucide-react';
-import { IconButton, Badge, Snackbar } from '@mui/material';
+// Snackbar reste MUI : changer le MECANISME de notification (vers sonner, non
+// utilise dans ce fichier) depasse la migration de vocabulaire visuel.
+import { Snackbar } from '@mui/material';
 import { ShoppingCartOutlined, Memory, CheckCircleOutline } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import apiClient from '../../services/apiClient';
@@ -129,42 +131,27 @@ const ShopPage: React.FC = () => {
         backPath="/dashboard"
         showBackButton={false}
         actions={(
-          <IconButton
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setDrawerOpen(true)}
             aria-label={t('shop.cart')}
-            sx={{
-              border: '1px solid',
-              borderColor: 'var(--line-2)',
-              borderRadius: '10px',
-              p: 1,
-              transition: 'border-color 0.18s cubic-bezier(.16,1,.3,1), background-color 0.18s cubic-bezier(.16,1,.3,1)',
-              '&:hover': {
-                borderColor: 'var(--faint)',
-                backgroundColor: 'var(--hover)',
-              },
-            }}
+            className="relative rounded-[10px] border border-solid border-[var(--line-2)] transition-[border-color,background-color] duration-[180ms] ease-[cubic-bezier(.16,1,.3,1)] hover:border-[var(--faint)] hover:bg-[var(--hover)]"
           >
-            <Badge
-              badgeContent={cartCount}
-              color="primary"
-              sx={{
-                '& .MuiBadge-badge': {
-                  fontSize: '0.625rem',
-                  height: 16,
-                  minWidth: 16,
-                  fontWeight: 700,
-                  bgcolor: 'var(--accent)',
-                  color: 'var(--on-accent)',
-                  border: '2px solid var(--card)',
-                  padding: 0,
-                },
-              }}
-            >
-              <span className="inline-flex text-[var(--ink)]">
-                <ShoppingCartOutlined size={20} strokeWidth={1.75} />
+            <span className="inline-flex text-[var(--ink)]">
+              <ShoppingCartOutlined size={20} strokeWidth={1.75} />
+            </span>
+            {/* Pastille de compteur : le `Badge` du kit est une puce en flux, pas
+                une pastille en surimpression — d'ou le positionnement explicite. */}
+            {cartCount > 0 && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -top-1 -end-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-solid border-[var(--card)] bg-[var(--accent)] px-[3px] text-[0.625rem] font-bold leading-none tabular-nums text-[var(--on-accent)]"
+              >
+                {cartCount > 99 ? '99+' : cartCount}
               </span>
-            </Badge>
-          </IconButton>
+            )}
+          </Button>
         )}
       />
 
@@ -243,15 +230,19 @@ const ShopPage: React.FC = () => {
         onClose={() => setSnackbarOpen(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert variant="success" className="w-full">
-          <CircleCheck />
-          <AlertDescription>{t('common.processing')}</AlertDescription>
-          <AlertAction>
-            <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSnackbarOpen(false)}>
-              <X />
-            </Button>
-          </AlertAction>
-        </Alert>
+        {/* `div` intercalaire : le Snackbar MUI clone son enfant avec une ref pour
+            l'animer, et la primitive Alert (simple fonction) ne la recoit pas. */}
+        <div className="w-full">
+          <Alert variant="success" className="w-full">
+            <CircleCheck />
+            <AlertDescription>{t('common.processing')}</AlertDescription>
+            <AlertAction>
+              <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSnackbarOpen(false)}>
+                <X />
+              </Button>
+            </AlertAction>
+          </Alert>
+        </div>
       </Snackbar>
     </div>
   );

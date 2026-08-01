@@ -2,9 +2,20 @@ import { useState } from 'react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
-import { Button, Field, FieldLabel, Input } from '../../../components/ui';
+import {
+  Button,
+  Field,
+  FieldLabel,
+  Input,
+  Skeleton,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { IconButton, Tooltip, Skeleton, Snackbar, Alert } from '@mui/material';
+// Snackbar/Alert MUI conserves : ce fichier n'utilise pas sonner, et changer de
+// mecanisme de notification depasse le perimetre de la migration.
+import { Snackbar, Alert } from '@mui/material';
 import { VpnKey, History, Add, Delete as Trash, LocationOn } from '../../../icons';
 import EmptyState from '../../../components/EmptyState';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
@@ -141,7 +152,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
 
               {/* Liste */}
               {codesQuery.isLoading ? (
-                <Skeleton variant="rounded" height={140} sx={{ borderRadius: 'var(--radius-lg)' }} />
+                <Skeleton className="h-[140px] w-full rounded-[var(--radius-lg)]" />
               ) : codes.length === 0 ? (
                 <EmptyState icon={<VpnKey />} title="Aucun code actif" description="Générez un code de remise pour un voyageur." />
               ) : (
@@ -170,10 +181,23 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                           </TableCell>
                           <TableCell className="text-end">
                             {c.status === 'ACTIVE' && (
-                              <Tooltip title="Annuler ce code" arrow>
-                                <IconButton size="small" onClick={() => cancel.mutate(c.id)} disabled={cancel.isPending} sx={{ color: 'error.main' }}>
-                                  <Trash size={16} strokeWidth={1.75} />
-                                </IconButton>
+                              <Tooltip>
+                                {/* Le Button du kit ne transmet pas de ref : span d'ancrage. */}
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      aria-label="Annuler ce code"
+                                      onClick={() => cancel.mutate(c.id)}
+                                      disabled={cancel.isPending}
+                                      className="text-[var(--err)] hover:text-[var(--err)]"
+                                    >
+                                      <Trash size={16} strokeWidth={1.75} />
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>Annuler ce code</TooltipContent>
                               </Tooltip>
                             )}
                           </TableCell>
@@ -188,7 +212,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
 
           {subTab === 1 && (
             eventsQuery.isLoading ? (
-              <Skeleton variant="rounded" height={140} sx={{ borderRadius: 'var(--radius-lg)' }} />
+              <Skeleton className="h-[140px] w-full rounded-[var(--radius-lg)]" />
             ) : (eventsQuery.data?.content.length ?? 0) === 0 ? (
               <EmptyState icon={<History />} title="Aucun mouvement" description="Les remises et collectes de clés de ce logement apparaîtront ici." />
             ) : (

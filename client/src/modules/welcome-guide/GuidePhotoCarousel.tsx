@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { cn } from '../../utils/cn';
-import { Box, Skeleton, useMediaQuery } from '@mui/material';
+import { Skeleton } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 import { propertyPhotosApi } from '../../services/api/propertyPhotosApi';
@@ -15,9 +15,12 @@ interface GuidePhotoCarouselProps {
   alt?: string;
   /** Ids à afficher en premier (ex: photos de couverture du livret). */
   priorityIds?: number[];
-  /** Rayon d'arrondi (clé spacing MUI ou valeur CSS). Défaut 14px. */
+  /** Rayon d'arrondi — valeur CSS (un nombre est lu en px). Défaut 14px. */
   radius?: number | string;
 }
+
+/** Pendant en classes de l'ancien objet `frame` (le rayon reste en style : prop). */
+const FRAME_CLASS = 'relative w-full aspect-[16/11] overflow-hidden bg-[var(--hover)] shrink-0';
 
 /**
  * Mini-carrousel des photos d'un logement, pensé pour les cartes de liste.
@@ -35,7 +38,6 @@ export default function GuidePhotoCarousel({
   radius = '14px',
 }: GuidePhotoCarouselProps) {
   const accent = themeAccent(theme);
-  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
   const { data: photos = [], isLoading } = useQuery({
     queryKey: ['property-photos', propertyId],
@@ -74,28 +76,18 @@ export default function GuidePhotoCarousel({
     touchX.current = null;
   };
 
-  const frame = {
-    position: 'relative' as const,
-    width: '100%',
-    aspectRatio: '16 / 11',
-    borderRadius: radius,
-    overflow: 'hidden',
-    bgcolor: 'action.hover',
-    flexShrink: 0,
-  };
-
   if (propertyId != null && isLoading) {
-    return <Skeleton variant="rounded" sx={{ ...frame, borderRadius: radius }} animation="wave" />;
+    return <Skeleton className={FRAME_CLASS} style={{ borderRadius: radius }} />;
   }
 
   const allFailed = count > 0 && slides.every((s) => failed.has(s.id));
   if (!count || allFailed) {
     return (
-      <Box
-        sx={{
-          ...frame,
-          display: 'grid',
-          placeItems: 'center',
+      <div
+        className={cn(FRAME_CLASS, 'grid place-items-center')}
+        // Le degrade et la teinte derivent du theme du livret : valeurs d'execution.
+        style={{
+          borderRadius: radius,
           background: `linear-gradient(135deg, ${accent}22, ${accent}0d)`,
           color: accent,
         }}
@@ -103,16 +95,14 @@ export default function GuidePhotoCarousel({
         role="img"
       >
         <ImageOff size={22} strokeWidth={1.5} style={{ opacity: 0.65 }} />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box
-      sx={{
-        ...frame,
-        '&:hover .gpc-nav, &:focus-within .gpc-nav': { opacity: 1 },
-      }}
+    <div
+      className={cn(FRAME_CLASS, '[&:hover_.gpc-nav]:opacity-100 [&:focus-within_.gpc-nav]:opacity-100')}
+      style={{ borderRadius: radius }}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
@@ -127,11 +117,10 @@ export default function GuidePhotoCarousel({
             decoding="async"
             draggable={false}
             onError={() => setFailed((prev) => new Set(prev).add(s.id))}
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-            style={{
-              opacity: i === current ? 1 : 0,
-              transition: reduceMotion ? 'none' : 'opacity .45s ease',
-            }}
+            // Le crossfade passe en classe : `motion-reduce` remplace le
+            // useMediaQuery MUI, sans re-render au changement de preference.
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none transition-opacity duration-[450ms] ease-[ease] motion-reduce:transition-none"
+            style={{ opacity: i === current ? 1 : 0 }}
           />
         );
       })}
@@ -154,7 +143,7 @@ export default function GuidePhotoCarousel({
           </div>
         </>
       )}
-    </Box>
+    </div>
   );
 }
 

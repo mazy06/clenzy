@@ -3,10 +3,13 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Field, FieldLabel, Input, NativeSelect, NativeSelectOption, Textarea } from '../../components/ui';
+import { Button, Field, FieldLabel, Input, NativeSelect, NativeSelectOption, Textarea } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Button, Stack, ThemeProvider, CssBaseline } from '@mui/material';
+// Restent en MUI : infrastructure de theme, pas du vocabulaire UI. Le
+// ThemeProvider local porte la langue GEO-detectee (pas les prefs user) et le
+// CssBaseline le reset global de cette page autonome.
+import { ThemeProvider, CssBaseline } from '@mui/material';
 import { ArrowBack, CheckCircle } from '../../icons';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
@@ -87,19 +90,12 @@ export default function Support() {
             <p className="cn-text-body2 text-muted-foreground mb-3.5 text-[0.85rem]">
               {t('auth.support.submittedBody', 'Notre équipe vous contactera dans les 24 heures.')}
             </p>
+            {/* Teintes en dur : cette page construit TOUJOURS le theme clair, ou
+                palette.secondary vaut main #A6C0CE / dark #8BA3B3 (contrastText
+                #1e293b) — il n'existe pas de jeton CSS pour la variante dark. */}
             <Button
-              variant="contained"
-              size="medium"
               onClick={() => navigate('/login')}
-              sx={{
-                py: 1,
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                backgroundColor: 'secondary.main',
-                '&:hover': { backgroundColor: 'secondary.dark' },
-                borderRadius: 1.5,
-                boxShadow: 'none',
-              }}
+              className="rounded-[12px] bg-[#A6C0CE] text-[#1e293b] shadow-none hover:bg-[#8BA3B3]"
             >
               {t('auth.support.backToLogin', 'Retour à la connexion')}
             </Button>
@@ -107,7 +103,7 @@ export default function Support() {
         ) : (
           /* Formulaire de contact */
           <form onSubmit={handleSubmit}>
-            <Stack spacing={1.5}>
+            <div className="flex flex-col gap-[9px]">
               <Field>
                 <FieldLabel htmlFor="support-name">{t('auth.support.fields.nameLabel', 'Nom complet')}</FieldLabel>
                 <Input
@@ -171,6 +167,9 @@ export default function Support() {
                 <Textarea
                   id="support-message"
                   rows={4}
+                  // field-sizing:content neutralise `rows` : la hauteur de
+                  // depart se garantit en min-h.
+                  className="min-h-[4lh]"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   required
@@ -186,23 +185,12 @@ export default function Support() {
                 </Alert>
               )}
 
+              {/* `shrink` neutralise le shrink-0 du gabarit : le bouton doit
+                  occuper toute la largeur de la colonne, comme dans le Stack. */}
               <Button
                 type="submit"
-                variant="contained"
-                size="medium"
                 disabled={loading}
-                sx={{
-                  py: 1,
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  backgroundColor: 'secondary.main',
-                  '&:hover': { backgroundColor: 'secondary.dark' },
-                  '&:active': { backgroundColor: 'primary.main' },
-                  '&:disabled': { backgroundColor: 'secondary.light' },
-                  borderRadius: 1.5,
-                  boxShadow: 'none',
-                  transition: 'all 0.3s ease',
-                }}
+                className="w-full shrink rounded-[12px] bg-[#A6C0CE] text-[#1e293b] shadow-none hover:bg-[#8BA3B3] active:bg-[#6B8A9A] disabled:bg-[#C5D5E0]"
               >
                 {loading ? (
                   <Spinner className="size-5" />
@@ -210,7 +198,7 @@ export default function Support() {
                   t('auth.support.submit', 'Envoyer')
                 )}
               </Button>
-            </Stack>
+            </div>
           </form>
         )}
 
@@ -218,18 +206,12 @@ export default function Support() {
         {!submitted && (
           <div className="mt-3 text-center">
             <Button
-              variant="text"
-              size="small"
-              startIcon={<ArrowBack size={'0.9rem'} strokeWidth={1.75} />}
+              variant="ghost"
+              size="sm"
               onClick={() => navigate('/login')}
-              sx={{
-                color: 'secondary.main',
-                fontWeight: 500,
-                fontSize: '0.75rem',
-                textTransform: 'none',
-                '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
-              }}
+              className="text-[0.75rem] font-medium text-[#A6C0CE] hover:bg-transparent hover:text-[#6B8A9A]"
             >
+              <ArrowBack size={'0.9rem'} strokeWidth={1.75} />
               {t('auth.support.backToLogin', 'Retour à la connexion')}
             </Button>
           </div>

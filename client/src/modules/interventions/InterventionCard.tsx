@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  Card,
-  CardContent,
-  IconButton,
-} from '@mui/material';
-import { Button } from '../../components/ui';
+import { Button, Card, CardContent } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import {
@@ -76,43 +71,23 @@ const getTypeGradient = (type: string): string => {
 };
 
 // ─── Styles alignés sur la référence .pr-card (PropertyCard / screen-properties) ───
-const styles = {
-  cardRoot: {
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-    cursor: 'pointer',
-    transition: 'border-color .14s, box-shadow .14s, transform .14s',
-    '&:hover': {
-      borderColor: 'var(--line-2)',
-      boxShadow: 'var(--shadow-card)',
-      transform: 'translateY(-2px)',
-    },
-    '@media (prefers-reduced-motion: reduce)': {
-      transition: 'none',
-      '&:hover': { transform: 'none' },
-    },
-  },
-  menuButton: {
-    position: 'absolute',
-    top: 10,
-    right: 12,
-    zIndex: 2,
-    color: 'rgba(255,255,255,0.6)',
-    bgcolor: 'rgba(255,255,255,0.06)',
-    backdropFilter: 'blur(8px)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    '&:hover': { bgcolor: 'rgba(255,255,255,0.15)', color: 'var(--on-accent)' },
-    width: 28,
-    height: 28,
-  },
-  infoContent: {
-    flexGrow: 1,
-    p: 1.75,
-    pb: '12px !important',
-  },
-} as const;
+const CARD_ROOT_CLASS = cn(
+  'h-full flex flex-col overflow-hidden cursor-pointer',
+  'transition-[border-color,box-shadow,transform] duration-[140ms]',
+  'hover:border-[var(--line-2)] hover:shadow-[var(--shadow-card)] hover:-translate-y-[2px]',
+  'motion-reduce:transition-none motion-reduce:hover:translate-y-0',
+);
+
+// `end-3` (logique) : la pastille reste au bord opposé au sens de lecture en RTL.
+const MENU_BUTTON_CLASS = cn(
+  'absolute top-[10px] end-3 z-[2]',
+  'text-[rgba(255,255,255,0.6)] bg-[rgba(255,255,255,0.06)]',
+  'border border-solid border-[rgba(255,255,255,0.08)] backdrop-blur-[8px]',
+  'hover:bg-[rgba(255,255,255,0.15)] hover:text-[var(--on-accent)]',
+);
+
+// pb 12px : le pied d'actions apporte deja sa propre respiration.
+const INFO_CONTENT_CLASS = 'grow p-[10.5px] pb-3';
 
 // Nom d'entité en display.
 const NAME_TEXT_CLASS = 'cn-text-body1 truncate font-[family-name:var(--font-display)] text-[15px] font-semibold tracking-[-.01em] text-[var(--ink)]';
@@ -149,7 +124,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
 
   return (
     <Card
-      sx={styles.cardRoot}
+      className={CARD_ROOT_CLASS}
       onClick={handleViewDetails}
     >
       {/* ─── Bandeau statique photo + dégradé (par type) + pastille statut ─── */}
@@ -170,17 +145,20 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
         </div>
 
         {/* Menu contextuel top-right */}
-        <IconButton
-          size="small"
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Actions de l'intervention"
           onClick={(e) => { e.stopPropagation(); onMenuOpen(e, intervention); }}
-          sx={styles.menuButton}
+          className={MENU_BUTTON_CLASS}
         >
           <MoreVert size={16} strokeWidth={1.75} />
-        </IconButton>
+        </Button>
       </div>
 
       {/* ─── Zone info ─── */}
-      <CardContent sx={styles.infoContent}>
+      <CardContent className={INFO_CONTENT_CLASS}>
         {/* Titre + chip type */}
         <div className="flex items-center gap-1 min-w-0 mb-0.5">
           <p className={cn(NAME_TEXT_CLASS, 'flex-1')} title={intervention.title}>

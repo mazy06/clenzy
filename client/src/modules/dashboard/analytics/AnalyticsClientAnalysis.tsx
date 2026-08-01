@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent } from '@mui/material';
+import { Card, CardContent } from '../../../components/ui';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -14,18 +14,9 @@ const AXIS_TICK = { fontSize: 10, fill: '#94A3B8' } as const;
 const TOOLTIP_STYLE = { fontSize: 11, borderRadius: 6, border: '1px solid #E2E8F0', boxShadow: 'none' } as const;
 const GRID_STROKE = '#F1F5F9';
 
-const CHART_CARD_SX = {
-  width: '100%',
-  height: 220,
-} as const;
-
-const CHART_CONTENT_SX = {
-  p: 1.25,
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  '&:last-child': { pb: 1.25 },
-} as const;
+/** Report en classes de `CHART_CARD_SX` / `CHART_CONTENT_SX` (p 1.25 = 7,5 px avec spacing 6). */
+const CHART_CARD_CLASS = 'w-full h-[220px] gap-0 p-0';
+const CHART_CONTENT_CLASS = 'p-[7.5px] h-full flex flex-col';
 
 const SECTION_LABEL_SX = {
   fontSize: '0.6875rem',
@@ -57,8 +48,8 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
       <div className="grid grid-cols-12 gap-[9px]">
         {/* Source distribution donut */}
         <div className="col-span-12 min-[600px]:col-span-6">
-          <Card sx={CHART_CARD_SX}>
-            <CardContent sx={CHART_CONTENT_SX}>
+          <Card className={CHART_CARD_CLASS}>
+            <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.bookingsBySource')}
               </p>
@@ -104,8 +95,8 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
 
         {/* Top properties by popularity */}
         <div className="col-span-12 min-[600px]:col-span-6">
-          <Card sx={CHART_CARD_SX}>
-            <CardContent sx={CHART_CONTENT_SX}>
+          <Card className={CHART_CARD_CLASS}>
+            <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.topByPopularity')}
               </p>

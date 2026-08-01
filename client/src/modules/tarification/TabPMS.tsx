@@ -1,5 +1,4 @@
 import React from 'react';
-import { Divider } from '@mui/material';
 import {
   Field,
   FieldLabel,
@@ -9,6 +8,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
   InputGroupText,
+  Separator,
 } from '../../components/ui';
 import { Devices, Computer, People, AutoAwesome } from '../../icons';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
@@ -87,7 +87,7 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
         </div>
       </div>
 
-      <Divider sx={{ my: 2.5 }} />
+      <Separator className="my-[15px]" />
 
       {/* ─── Supplément IA par forfait (campagne X5) ─────────────────── */}
       <div className="flex items-center gap-1.5 mb-1.5">
@@ -169,7 +169,7 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
         </div>
       </div>
 
-      <Divider sx={{ my: 2.5 }} />
+      <Separator className="my-[15px]" />
 
       {/* ─── Tarification par utilisateur ────────────────────────────── */}
       <div className="flex items-center gap-1.5 mb-1.5">
@@ -224,7 +224,7 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
         </div>
       </div>
 
-      <Divider sx={{ my: 2.5 }} />
+      <Separator className="my-[15px]" />
 
       {/* ─── Surcharges automatisation ──────────────────────────────── */}
       <div className="flex items-center gap-1.5 mb-1.5">

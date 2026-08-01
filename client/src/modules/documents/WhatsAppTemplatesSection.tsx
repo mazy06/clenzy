@@ -2,8 +2,7 @@ import React, { useImperativeHandle, useMemo, useState, forwardRef } from 'react
 import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
-import { Spinner } from '../../components/ui';
-import { IconButton, Tooltip } from '@mui/material';
+import { Button, Spinner, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Edit } from '../../icons';
 import { cn } from '../../utils/cn';
@@ -238,15 +237,23 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
         </p>
       </TableCell>
       <TableCell className="text-end">
-        <Tooltip title={t('common.edit')} arrow>
-          <IconButton
-            size="small"
-            onClick={onEdit}
-            aria-label={t('common.edit')}
-            sx={{ cursor: 'pointer', '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' } }}
-          >
-            <Edit size={16} strokeWidth={1.75} />
-          </IconButton>
+        <Tooltip>
+          {/* Declencheur = <span> natif : les primitives du kit ne transmettent
+              pas de ref (React 18), le tooltip n'aurait pas d'ancre. */}
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={onEdit}
+                aria-label={t('common.edit')}
+                className="cursor-pointer hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
+              >
+                <Edit size={16} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('common.edit')}</TooltipContent>
         </Tooltip>
       </TableCell>
     </TableRow>

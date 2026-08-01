@@ -1,18 +1,17 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Switch } from '@mui/material';
 import {
   Field,
   FieldLabel,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
+  Switch,
   Textarea,
 } from '../ui';
 import { CleaningServices, Receipt as ReceiptIcon, Numbers as HashIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { UseReservationFormResult } from './useReservationForm';
-import { SWITCH_SX } from './reservationDialogStyles';
 
 interface Props {
   form: UseReservationFormResult;
@@ -26,19 +25,26 @@ const ExtrasSection: React.FC<Props> = ({ form }) => {
   return (
     <>
       {/* Toggle ménage (.rm-toggle) */}
-      <label className={cn('flex items-center gap-[11px] text-[13.5px] font-semibold text-[var(--ink)] w-[fit-content]', locked ? 'cursor-default' : 'cursor-pointer', locked ? 'opacity-50' : 'opacity-100')}>
+      <Field
+        orientation="horizontal"
+        className={cn('w-[fit-content] gap-[11px]', locked ? 'opacity-50' : 'opacity-100')}
+      >
         <Switch
+          id="reservation-create-cleaning"
           checked={form.createCleaning}
-          onChange={(e) => form.setCreateCleaning(e.target.checked)}
-          sx={SWITCH_SX}
+          onCheckedChange={(checked) => form.setCreateCleaning(checked)}
           disabled={locked}
-          disableRipple
         />
-        <span className="inline-flex text-[var(--accent)]">
-          <CleaningServices size={16} strokeWidth={1.75} />
-        </span>
-        {t('reservations.dialog.cleaningAtCheckout')}
-      </label>
+        <FieldLabel
+          htmlFor="reservation-create-cleaning"
+          className={cn('flex items-center gap-[11px] text-[13.5px] font-semibold text-[var(--ink)]', locked ? 'cursor-default' : 'cursor-pointer')}
+        >
+          <span className="inline-flex text-[var(--accent)]">
+            <CleaningServices size={16} strokeWidth={1.75} />
+          </span>
+          {t('reservations.dialog.cleaningAtCheckout')}
+        </FieldLabel>
+      </Field>
 
       {/* Frais ménage (si toggle actif) + taxe de séjour */}
       <div className={cn('grid gap-3', form.createCleaning ? 'grid-cols-[1fr_1fr]' : 'grid-cols-[1fr]')}>

@@ -1,7 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Spinner } from '../../components/ui';
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Spinner,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Alert, Tooltip, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { useMediaQuery } from '../../hooks/use-media-query';
 import { cn } from '../../utils/cn';
 import { CalendarMonth, Add, CloudDownload, Fullscreen, FullscreenExit } from '../../icons';
 import EmptyState from '../../components/EmptyState';
@@ -234,8 +242,9 @@ const PlanningPage: React.FC = () => {
   // La rangée de chips légende (canaux/statuts/interventions) migre dans la
   // modale de filtres quand la toolbar ne peut pas l'afficher : viewport
   // compact OU constellation d'agents déployée. Source unique, jamais dupliquée.
-  const theme = useTheme();
-  const isCompactViewport = useMediaQuery(theme.breakpoints.down('lg'));
+  // `theme.breakpoints.down('lg')` de MUI, ecrit en clair : lg vaut 1200 chez
+  // MUI (et non 1024 comme le `lg:` de Tailwind), d'ou la requete litterale.
+  const isCompactViewport = useMediaQuery('(max-width: 1199.95px)');
   const legendInModal = isCompactViewport || supervisorExpanded;
   const orderedProperties = useMemo(() => {
     if (!supervisorExpanded) return filteredProperties;
@@ -655,33 +664,54 @@ const PlanningPage: React.FC = () => {
                   activeStatuses={activeStatuses}
                   onToggleStatus={toggleStatus}
                 />
-                <Tooltip title={nav.isFullscreen ? 'Quitter le plein écran' : 'Plein écran'} arrow>
-                  <IconButton
-                    aria-label={nav.isFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
-                    onClick={nav.toggleFullscreen}
-                  >
-                    {nav.isFullscreen ? <FullscreenExit size={18} strokeWidth={1.75} /> : <Fullscreen size={18} strokeWidth={1.75} />}
-                  </IconButton>
+                {/* Le trigger enveloppe un <span> (element hote) : Radix y pose sa
+                    ref d'ancrage, qu'un composant fonction React 18 ne recoit pas. */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={nav.isFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
+                        onClick={nav.toggleFullscreen}
+                      >
+                        {nav.isFullscreen ? <FullscreenExit size={18} strokeWidth={1.75} /> : <Fullscreen size={18} strokeWidth={1.75} />}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>{nav.isFullscreen ? 'Quitter le plein écran' : 'Plein écran'}</TooltipContent>
                 </Tooltip>
-                <Tooltip title="Importer des réservations (iCal) ou connecter vos canaux (Channel Manager)" arrow>
-                  <IconButton
-                    aria-label="Importer des réservations ou connecter vos canaux"
-                    onClick={() => setImportChooserOpen(true)}
-                  >
-                    <CloudDownload size={18} strokeWidth={1.85} />
-                  </IconButton>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Importer des réservations ou connecter vos canaux"
+                        onClick={() => setImportChooserOpen(true)}
+                      >
+                        <CloudDownload size={18} strokeWidth={1.85} />
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>Importer des réservations (iCal) ou connecter vos canaux (Channel Manager)</TooltipContent>
                 </Tooltip>
-                <Tooltip title="Nouvelle réservation" arrow>
-                  <span>
-                    <IconButton
-                      aria-label="Nouvelle réservation"
-                      onClick={handleCreateReservation}
-                      disabled={properties.length === 0}
-                      sx={{ color: 'var(--accent)' }}
-                    >
-                      <Add size={18} strokeWidth={1.85} />
-                    </IconButton>
-                  </span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Nouvelle réservation"
+                        onClick={handleCreateReservation}
+                        disabled={properties.length === 0}
+                        className="text-[var(--accent)]"
+                      >
+                        <Add size={18} strokeWidth={1.85} />
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>Nouvelle réservation</TooltipContent>
                 </Tooltip>
               </>
               )
@@ -716,8 +746,8 @@ const PlanningPage: React.FC = () => {
 
       {/* Error */}
       {error && (
-        <Alert severity="error" sx={{ mx: 1.5, mb: 1, flexShrink: 0 }}>
-          {error}
+        <Alert variant="destructive" className="mx-[9px] mb-1.5 shrink-0">
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 

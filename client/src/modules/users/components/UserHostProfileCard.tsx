@@ -4,7 +4,18 @@ import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { Button } from '../../../components/ui';
-import { Switch, FormControlLabel, IconButton, Tooltip, Card, CardContent } from '@mui/material';
+import {
+  Card,
+  CardContent,
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  Switch,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   Star,
   Payment,
@@ -108,8 +119,8 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
   if (!hasHostData(user)) return null;
 
   return (
-    <Card variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', bgcolor: 'var(--card)', borderColor: 'var(--line)' }}>
-      <CardContent sx={{ p: 2 }}>
+    <Card className="rounded-[var(--radius-lg)] bg-[var(--card)] ring-0 border border-solid border-[var(--line)] p-0">
+      <CardContent className="p-3">
         <div className="grid grid-cols-12 gap-3">
       <div className="col-span-12">
         <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
@@ -223,26 +234,23 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
       {isAdminOrManager && (
         <div className="col-span-12">
           <div className="border border-[var(--line)] rounded-[12px] p-3 mb-1.5">
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={user.deferredPayment || false}
-                  onChange={onToggleDeferredPayment}
-                  disabled={deferredToggling}
-                />
-              }
-              label={
-                <div>
-                  <p className="cn-text-body2 font-medium">
-                    Paiement differe
-                  </p>
-                  <span className="cn-text-caption text-muted-foreground">
-                    Les interventions auto (iCal / Channel Manager) demarrent sans attente de paiement.
-                    Le cumul impaye sera visible ci-dessous.
-                  </span>
-                </div>
-              }
-            />
+            <Field orientation="horizontal">
+              <Switch
+                id="deferred-payment"
+                checked={user.deferredPayment || false}
+                onCheckedChange={onToggleDeferredPayment}
+                disabled={deferredToggling}
+              />
+              <FieldContent>
+                <FieldLabel htmlFor="deferred-payment" className="cn-text-body2 font-medium">
+                  Paiement differe
+                </FieldLabel>
+                <FieldDescription>
+                  Les interventions auto (iCal / Channel Manager) demarrent sans attente de paiement.
+                  Le cumul impaye sera visible ci-dessous.
+                </FieldDescription>
+              </FieldContent>
+            </Field>
           </div>
         </div>
       )}
@@ -291,8 +299,13 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                             {prop.unpaidAmount.toFixed(2)} EUR
                           </TableCell>
                           <TableCell className="text-center">
-                            <IconButton
-                              size="small"
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={expandedProperty === prop.propertyId
+                                ? `Masquer le detail de ${prop.propertyName}`
+                                : `Afficher le detail de ${prop.propertyName}`}
                               onClick={() => onExpandProperty(
                                 expandedProperty === prop.propertyId ? null : prop.propertyId
                               )}
@@ -300,7 +313,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                               {expandedProperty === prop.propertyId
                                 ? <ExpandLess size={18} strokeWidth={1.75} />
                                 : <ExpandMore size={18} strokeWidth={1.75} />}
-                            </IconButton>
+                            </Button>
                           </TableCell>
                         </TableRow>
                         {expandedProperty === prop.propertyId && prop.interventions.map((iv) => (
@@ -325,20 +338,23 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                 </Table>
 
                 <div className="flex justify-end mt-2">
-                  {/* Le Button du kit ne transmet pas de ref : le Tooltip MUI pose la
-                      sienne sur le span intercalaire. */}
-                  <Tooltip title="Cree un lien Stripe et le copie dans le presse-papier">
-                    <span className="inline-flex">
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={onSendPaymentLink}
-                        disabled={paymentLinkLoading || balance.totalUnpaid === 0}
-                      >
-                        <ContentCopy size={16} strokeWidth={1.75} />
-                        {paymentLinkLoading ? 'Creation...' : 'Envoyer lien de paiement'}
-                      </Button>
-                    </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      {/* Le Button du kit ne transmet pas de ref : le span
+                          intercalaire porte celle que Radix pose. */}
+                      <span className="inline-flex">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={onSendPaymentLink}
+                          disabled={paymentLinkLoading || balance.totalUnpaid === 0}
+                        >
+                          <ContentCopy size={16} strokeWidth={1.75} />
+                          {paymentLinkLoading ? 'Creation...' : 'Envoyer lien de paiement'}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Cree un lien Stripe et le copie dans le presse-papier</TooltipContent>
                   </Tooltip>
                 </div>
               </>

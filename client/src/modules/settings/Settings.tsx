@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { Info, CircleCheck, X } from 'lucide-react';
+import { Info, CircleCheck, TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Alert, Snackbar } from '@mui/material';
+// Snackbar reste MUI : changer de mecanisme de notification depasse la migration.
+import { Snackbar } from '@mui/material';
 import {
   Button as UiButton,
   Field,
@@ -1095,17 +1096,24 @@ export default function Settings() {
           setSearchParams(searchParams, { replace: true });
         }}
       >
-        <Alert
-          onClose={() => {
-            setOauthSnackbar(prev => ({ ...prev, open: false }));
-            searchParams.delete('status');
-            setSearchParams(searchParams, { replace: true });
-          }}
-          severity={oauthSnackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {oauthSnackbar.message}
-        </Alert>
+        <BuiAlert variant={oauthSnackbar.severity === 'success' ? 'success' : 'destructive'} className="w-full">
+          {oauthSnackbar.severity === 'success' ? <CircleCheck /> : <TriangleAlert />}
+          <AlertDescription>{oauthSnackbar.message}</AlertDescription>
+          <AlertAction>
+            <BuiButton
+              variant="ghost"
+              size="icon-xs"
+              aria-label="Fermer"
+              onClick={() => {
+                setOauthSnackbar(prev => ({ ...prev, open: false }));
+                searchParams.delete('status');
+                setSearchParams(searchParams, { replace: true });
+              }}
+            >
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       </Snackbar>
     </div>
     </SettingsHeaderProvider>

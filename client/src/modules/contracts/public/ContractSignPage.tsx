@@ -5,8 +5,8 @@ import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { Button } from '../../../components/ui';
 import { Field, FieldLabel, Input } from '../../../components/ui';
+import { Checkbox } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
-import { Paper, Checkbox, FormControlLabel, CircularProgress } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import { Handshake, CheckCircle, Download, Warning } from '../../../icons';
 import { API_CONFIG } from '../../../config/api';
@@ -39,6 +39,11 @@ type PageState = 'loading' | 'ready' | 'notfound' | 'error';
 // Page publique : on consomme les tokens Signature (tokens.css importé global).
 // Défaut visiteur = thème clair, accent émeraude.
 const BRAND = 'var(--accent)';
+
+// Report du `<Paper variant="outlined">` : surface carte, hairline --line, r14.
+// Padding MUI p={{ xs: 2, md: 3 }} = 12 px / 18 px, md MUI = 900 px.
+const PANEL_CLASS =
+  'rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] p-3 min-[900px]:p-[18px]';
 
 async function fetchView(token: string): Promise<SignView | null> {
   const response = await fetch(`${API_BASE}/public/contract-signature/${token}`, {
@@ -155,7 +160,7 @@ const ContractSignPage: React.FC = () => {
           </span>
           <div>
             <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1rem] font-semibold leading-[1.2] text-[var(--ink)]">
-              Clenzy
+              Baitly
             </p>
             <p className="cn-text-body1 text-[0.75rem] text-[var(--muted)]">
               {L.brandTagline}
@@ -165,7 +170,7 @@ const ContractSignPage: React.FC = () => {
 
         {state === 'loading' && (
           <Card className="gap-0 py-0 border-[var(--line)] p-9 text-center">
-            <CircularProgress size={28} sx={{ color: BRAND }} />
+            <Spinner className="size-7 mx-auto text-[var(--accent)]" />
             <p className="cn-text-body1 mt-3 text-[0.875rem] text-[var(--muted)]">
               {L.loadingText}
             </p>
@@ -219,7 +224,7 @@ const ContractSignPage: React.FC = () => {
               )}
             </div>
 
-            <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: { xs: 2, md: 3 } }}>
+            <div className={PANEL_CLASS}>
               <SectionLabel>{L.summaryTitle}</SectionLabel>
               <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-x-[18px]">
                 <SummaryRow label={L.property} value={view.propertyName || '—'} />
@@ -243,11 +248,11 @@ const ContractSignPage: React.FC = () => {
                   value={(view.paymentModel && L.paymentModels[view.paymentModel]) || view.paymentModel || '—'}
                 />
               </div>
-            </Paper>
+            </div>
 
             {/* ── Document ── */}
             {(view.status === 'PENDING' || view.status === 'SIGNED') && (
-              <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: { xs: 2, md: 3 } }}>
+              <div className={PANEL_CLASS}>
                 <div className="flex items-center justify-between mb-2">
                   <SectionLabel className="mb-0">{L.documentTitle}</SectionLabel>
                   {pdfUrl && (
@@ -263,7 +268,7 @@ const ContractSignPage: React.FC = () => {
                   <iframe className="w-full h-[380px] min-[900px]:h-[520px] border border-solid border-[var(--line-2)] rounded-[12px] bg-[var(--card)]" src={pdfUrl} title={`${L.title} ${view.contractNumber}`} />
                 ) : view.documentAvailable ? (
                   <div className="py-6 text-center">
-                    <CircularProgress size={22} sx={{ color: BRAND }} />
+                    <Spinner className="size-[22px] mx-auto text-[var(--accent)]" />
                   </div>
                 ) : (
                   <Alert variant="info" className="text-[0.8125rem]">
@@ -276,12 +281,12 @@ const ContractSignPage: React.FC = () => {
                     {L.documentHint}
                   </p>
                 )}
-              </Paper>
+              </div>
             )}
 
             {/* ── Bloc signature ── */}
             {view.status === 'PENDING' && (
-              <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', p: { xs: 2, md: 3 }, borderColor: BRAND }}>
+              <div className={cn(PANEL_CLASS, 'border-[var(--accent)]')}>
                 <SectionLabel>{L.signTitle}</SectionLabel>
                 <div className="flex flex-col gap-3">
                   <Field>
@@ -295,21 +300,20 @@ const ContractSignPage: React.FC = () => {
                       autoComplete="name"
                     />
                   </Field>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={consent}
-                        onChange={(e) => setConsent(e.target.checked)}
-                        sx={{ alignSelf: 'flex-start', mt: -0.75, color: BRAND, '&.Mui-checked': { color: BRAND } }}
-                      />
-                    }
-                    label={
-                      <p className="cn-text-body1 text-[0.78rem] text-[var(--muted)] leading-[1.55]">
-                        {view.consentText}
-                      </p>
-                    }
-                    sx={{ alignItems: 'flex-start', mx: 0 }}
-                  />
+                  <Field orientation="horizontal" className="items-start">
+                    <Checkbox
+                      id="contract-consent"
+                      className="mt-[3px]"
+                      checked={consent}
+                      onCheckedChange={(checked) => setConsent(checked === true)}
+                    />
+                    <FieldLabel
+                      htmlFor="contract-consent"
+                      className="text-[0.78rem] font-normal text-[var(--muted)] leading-[1.55]"
+                    >
+                      {view.consentText}
+                    </FieldLabel>
+                  </Field>
                   {signError && (
                     <Alert variant="destructive" className="text-[0.8125rem]">
                       <TriangleAlert />
@@ -331,7 +335,7 @@ const ContractSignPage: React.FC = () => {
                     {signing ? L.signing : L.signButton}
                   </Button>
                 </div>
-              </Paper>
+              </div>
             )}
           </>
         )}
@@ -367,7 +371,9 @@ const SummaryRow: React.FC<{ label: string; value: string; tabular?: boolean }> 
 const StatusCard: React.FC<{ icon: React.ReactNode; iconColor: string; iconSoft: string; title: string; text: string }> = ({
   icon, iconColor, iconSoft, title, text,
 }) => (
-  <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: { xs: 2.5, md: 3 }, display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+  // p={{ xs: 2.5, md: 3 }} = 15 px / 18 px : padding propre a cette carte, donc
+  // pas PANEL_CLASS.
+  <div className="rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] p-[15px] min-[900px]:p-[18px] flex gap-3 items-start">
     <span className="inline-flex items-center justify-center w-[44px] h-[44px] rounded-[12px] shrink-0" style={{ backgroundColor: iconSoft, color: iconColor }}>
       {icon}
     </span>
@@ -375,7 +381,7 @@ const StatusCard: React.FC<{ icon: React.ReactNode; iconColor: string; iconSoft:
       <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1rem] font-semibold text-[var(--ink)] text-balance">{title}</p>
       <p className="cn-text-body1 mt-0.5 text-[0.85rem] text-[var(--muted)] leading-[1.55]">{text}</p>
     </div>
-  </Paper>
+  </div>
 );
 
 export default ContractSignPage;

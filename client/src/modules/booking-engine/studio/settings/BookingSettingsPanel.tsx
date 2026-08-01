@@ -1,4 +1,4 @@
-import { Skeleton } from '@mui/material';
+import { Skeleton } from '../../../../components/ui';
 import { AlertTriangle } from 'lucide-react';
 import type { BookingEngineConfig } from '../../../../services/api/bookingEngineApi';
 import {
@@ -46,7 +46,7 @@ export default function BookingSettingsPanel({ config, loading, error, saving, d
   if (loading) {
     return (
       <div className="max-w-[720px] mx-auto px-6 py-6">
-        {[0, 1, 2].map((i) => <Skeleton key={i} variant="rounded" height={160} sx={{ mb: 2.5, borderRadius: 'var(--radius-lg)', bgcolor: 'var(--hover)' }} />)}
+        {[0, 1, 2].map((i) => <Skeleton key={i} className="h-[160px] mb-4 rounded-[var(--radius-lg)] bg-[var(--hover)]" />)}
       </div>
     );
   }

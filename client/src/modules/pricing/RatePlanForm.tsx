@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Spinner } from '../../components/ui';
 import { cn } from '../../utils/cn';
-import { Paper, FormControl, InputLabel, Select, MenuItem, FormControlLabel, Switch, IconButton } from '@mui/material';
 import {
   Button,
   Field,
@@ -10,6 +9,9 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
+  NativeSelect,
+  NativeSelectOption,
+  Switch,
 } from '../../components/ui';
 import { Close as CloseIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -20,14 +22,8 @@ import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPr
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: 1.5,
-} as const;
+const CARD_CLS =
+  'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-[9px]';
 
 const PLAN_TYPES = ['BASE', 'SEASONAL', 'PROMOTIONAL', 'LAST_MINUTE'] as const;
 
@@ -114,16 +110,21 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
   const isValid = name.trim() !== '' && nightlyPrice !== '' && !isNaN(parseFloat(nightlyPrice));
 
   return (
-    <Paper sx={CARD_SX}>
+    <div className={CARD_CLS}>
       {/* Header */}
       <div className="flex justify-between items-center mb-2">
         <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em]">
           {editingPlan ? t('dynamicPricing.ratePlan.edit') : t('dynamicPricing.ratePlan.create')}
         </p>
         {editingPlan && (
-          <IconButton size="small" onClick={onCancel} sx={{ p: 0.25 }}>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={onCancel}
+            aria-label={t('common.cancel')}
+          >
             <CloseIcon size={16} strokeWidth={1.75} />
-          </IconButton>
+          </Button>
         )}
       </div>
 
@@ -140,16 +141,21 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
         </Field>
 
         {/* Type */}
-        <FormControl fullWidth size="small">
-          <InputLabel>{t('common.type')}</InputLabel>
-          <Select value={type} label={t('common.type')} onChange={(e) => setType(e.target.value)}>
+        <Field>
+          <FieldLabel htmlFor="rate-plan-type">{t('common.type')}</FieldLabel>
+          <NativeSelect
+            id="rate-plan-type"
+            className="w-full"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+          >
             {PLAN_TYPES.map((pt) => (
-              <MenuItem key={pt} value={pt}>
+              <NativeSelectOption key={pt} value={pt}>
                 {t(`dynamicPricing.ratePlan.types.${pt}`)}
-              </MenuItem>
+              </NativeSelectOption>
             ))}
-          </Select>
-        </FormControl>
+          </NativeSelect>
+        </Field>
 
         {/* Price + Currency + Priority row */}
         <div className="flex gap-1.5">
@@ -242,16 +248,17 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
         </div>
 
         {/* Active toggle */}
-        <FormControlLabel
-          control={
-            <Switch size="small" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-          }
-          label={
-            <span className="cn-text-caption text-[0.75rem]">
-              {isActive ? t('dynamicPricing.ratePlan.active') : t('dynamicPricing.ratePlan.inactive')}
-            </span>
-          }
-        />
+        <Field orientation="horizontal" className="w-fit">
+          <Switch
+            id="rate-plan-active"
+            size="sm"
+            checked={isActive}
+            onCheckedChange={setIsActive}
+          />
+          <FieldLabel htmlFor="rate-plan-active" className="cn-text-caption text-[0.75rem] font-normal">
+            {isActive ? t('dynamicPricing.ratePlan.active') : t('dynamicPricing.ratePlan.inactive')}
+          </FieldLabel>
+        </Field>
 
         {/* Actions */}
         <div className="flex gap-1.5 justify-end">
@@ -277,7 +284,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
           </Button>
         </div>
       </div>
-    </Paper>
+    </div>
   );
 };
 

@@ -2,9 +2,17 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Alert, IconButton } from '@mui/material';
-import { Field, FieldLabel, Input } from '../../components/ui';
-import { Close, CheckCircle, Science } from '../../icons';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  Input,
+} from '../../components/ui';
+import { CheckCircle, Science } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useConnectChannel, useTestChannelConnection } from '../../hooks/useChannelConnections';
 import {
@@ -103,33 +111,27 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
   }, [connectMutation, testMutation, onClose]);
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      {/* ─── Header — pastille logo (marque sur le logo, jamais en aplat/dégradé) ── */}
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 1.5,
-        }}
-      >
-        <div className="flex items-center gap-2 min-w-0">
-          {channel.logo && (
-            <div className="inline-flex items-center justify-center h-[36px] px-2 rounded-[10px] bg-[var(--field)] shrink-0">
-              <img className="h-[20px] object-contain" src={channel.logo} alt={channel.name} />
-            </div>
-          )}
-          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1rem] font-semibold text-[var(--ink)]">
-            {t('channels.connect.title', { channel: channel.name })}
-          </p>
-        </div>
-        <IconButton onClick={handleClose} size="small" aria-label={t('common.close')}>
-          <Close fontSize="small" />
-        </IconButton>
-      </DialogTitle>
+    // maxWidth="sm" + fullWidth MUI = pleine largeur plafonnee a 600 px. La
+    // croix de fermeture est celle du primitif : l'IconButton du titre faisait
+    // doublon.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="w-full sm:max-w-[600px]">
+        {/* ─── Header — pastille logo (marque sur le logo, jamais en aplat/dégradé) ── */}
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 min-w-0 pe-8">
+            {channel.logo && (
+              <span className="inline-flex items-center justify-center h-[36px] px-2 rounded-[10px] bg-[var(--field)] shrink-0">
+                <img className="h-[20px] object-contain" src={channel.logo} alt={channel.name} />
+              </span>
+            )}
+            <span className="font-[family-name:var(--font-display)] text-[1rem] font-semibold text-[var(--ink)] truncate">
+              {t('channels.connect.title', { channel: channel.name })}
+            </span>
+          </DialogTitle>
+        </DialogHeader>
 
-      {/* ─── Content ─────────────────────────────────────────────── */}
-      <DialogContent sx={{ pt: 2.5, pb: 1 }}>
+        {/* ─── Content ─────────────────────────────────────────────── */}
+        <div>
         <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground mb-3">
           {t('channels.connect.description', { channel: channel.name })}
         </p>
@@ -155,15 +157,14 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
 
         {/* Test result */}
         {testResult && (
-          <Alert
-            severity={testResult.success ? 'success' : 'error'}
-            icon={testResult.success ? <CheckCircle fontSize="small" /> : undefined}
-            sx={{ mt: 2, fontSize: '0.8125rem' }}
-          >
-            {testResult.success
-              ? t('channels.connect.testSuccess', { name: testResult.channelPropertyName ?? '' })
-              : testResult.message}
-          </Alert>
+          <UiAlert variant={testResult.success ? 'success' : 'destructive'} className="mt-3 text-[0.8125rem]">
+            {testResult.success ? <CheckCircle /> : <TriangleAlert />}
+            <AlertDescription>
+              {testResult.success
+                ? t('channels.connect.testSuccess', { name: testResult.channelPropertyName ?? '' })
+                : testResult.message}
+            </AlertDescription>
+          </UiAlert>
         )}
 
         {/* Error */}
@@ -173,38 +174,39 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
             <AlertDescription>{error}</AlertDescription>
           </UiAlert>
         )}
-      </DialogContent>
+        </div>
 
-      {/* ─── Actions ─────────────────────────────────────────────── */}
-      <DialogActions sx={{ px: 2.5, pb: 2, gap: 1 }}>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleTest}
-          disabled={!isFormValid || testMutation.isPending || connectMutation.isPending}
-        >
-          {testMutation.isPending ? <Spinner className="size-3.5" /> : <Science />}
-          {t('channels.connect.testConnection')}
-        </Button>
-        <div className="flex-1" />
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleClose}
-          disabled={connectMutation.isPending}
-        >
-          {t('common.cancel')}
-        </Button>
-        <Button
-          size="sm"
-          onClick={handleConnect}
-          disabled={!isFormValid || connectMutation.isPending}
-        >
-          {connectMutation.isPending
-            ? <Spinner className="size-4" />
-            : t('channels.connect.connectButton')}
-        </Button>
-      </DialogActions>
+        {/* ─── Actions ─────────────────────────────────────────────── */}
+        <DialogFooter className="sm:justify-start">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleTest}
+            disabled={!isFormValid || testMutation.isPending || connectMutation.isPending}
+          >
+            {testMutation.isPending ? <Spinner className="size-3.5" /> : <Science />}
+            {t('channels.connect.testConnection')}
+          </Button>
+          <div className="flex-1" />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClose}
+            disabled={connectMutation.isPending}
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleConnect}
+            disabled={!isFormValid || connectMutation.isPending}
+          >
+            {connectMutation.isPending
+              ? <Spinner className="size-4" />
+              : t('channels.connect.connectButton')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

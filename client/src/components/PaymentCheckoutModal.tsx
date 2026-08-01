@@ -1,6 +1,15 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Button, Spinner } from './ui';
-import { Dialog, DialogTitle, DialogContent, IconButton, Alert } from '@mui/material';
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from './ui';
+import { TriangleAlert, X } from 'lucide-react';
 import {
   Close as CloseIcon,
   Lock as LockIcon,
@@ -140,27 +149,21 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
   return (
     <Dialog
       open={open}
-      onClose={paymentSuccess ? undefined : onClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        // r18 + hairline + ombre profonde : peau modale du thème global
-        sx: {
-          overflow: 'hidden',
-          maxHeight: '90vh',
-        },
-      }}
+      onOpenChange={(next) => { if (!next && !paymentSuccess) onClose(); }}
     >
-      {/* ── Success screen ─────────────────────────────────────────── */}
-      {paymentSuccess ? (
-        <DialogContent sx={{ p: 0 }}>
+      {/* r18 + hairline + ombre profonde : peau modale du kit. */}
+      <DialogContent
+        className="sm:max-w-[600px] overflow-hidden max-h-[90vh] p-0"
+        showCloseButton={false}
+      >
+        {paymentSuccess ? (
           <div className="flex flex-col items-center justify-center py-9 px-6 gap-3">
             <span className="inline-flex text-[var(--ok)]">
               <CheckCircleIcon size={64} strokeWidth={1.5} />
             </span>
-            <h5 className="cn-text-h5 font-[family-name:var(--font-display)] font-semibold text-[20px] tracking-[-.01em] text-[var(--ink)] text-center">
+            <DialogTitle className="font-[family-name:var(--font-display)] font-semibold text-[20px] tracking-[-.01em] text-[var(--ink)] text-center">
               Paiement reussi !
-            </h5>
+            </DialogTitle>
             <p className="cn-text-body2 text-[var(--muted)] text-[13px] text-center max-w-[360px]">
               Le paiement de <Money value={amount} from="EUR" /> pour{' '}
               <strong>{interventionTitle || 'l\'intervention'}</strong> a ete traite avec succes.
@@ -172,60 +175,43 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
               Fermer
             </Button>
           </div>
-        </DialogContent>
-      ) : (
-        <>
-          {/* ── Header ──────────────────────────────────────────── */}
-          <DialogTitle
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 1.5,
-            }}
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="inline-flex text-[var(--accent)] shrink-0">
-                <LockIcon size={18} strokeWidth={1.75} />
-              </span>
-              <div className="min-w-0">
-                <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
-                  Paiement securise
+        ) : (
+          <>
+            {/* ── Header ──────────────────────────────────────────── */}
+            <DialogHeader className="flex-row items-center justify-between gap-[9px] px-6 pt-6 pb-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="inline-flex text-[var(--accent)] shrink-0">
+                  <LockIcon size={18} strokeWidth={1.75} />
                 </span>
-                {interventionTitle && (
-                  <p className="cn-text-body2 font-[family-name:var(--font-sans)] text-[11.5px] font-normal text-[var(--muted)]">
-                    {interventionTitle}
-                  </p>
-                )}
+                <div className="min-w-0">
+                  <DialogTitle className="block overflow-hidden text-ellipsis whitespace-nowrap">
+                    Paiement securise
+                  </DialogTitle>
+                  {interventionTitle && (
+                    <p className="cn-text-body2 font-[family-name:var(--font-sans)] text-[11.5px] font-normal text-[var(--muted)]">
+                      {interventionTitle}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <h6 className="cn-text-h6 font-[family-name:var(--font-display)] text-[1.125rem] font-semibold tabular-nums text-[var(--accent)]">
-                <Money value={amount} from="EUR" />
-              </h6>
-              {/* ✕ — pattern .rm-x : 34px r10 hairline, hover --err */}
-              <IconButton
-                onClick={onClose}
-                aria-label="Fermer"
-                sx={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: '10px',
-                  border: '1px solid var(--line-2)',
-                  backgroundColor: 'var(--card)',
-                  color: 'var(--muted)',
-                  flexShrink: 0,
-                  '&:hover': { color: 'var(--err)', borderColor: 'var(--err)', backgroundColor: 'var(--card)' },
-                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-                }}
-              >
-                <CloseIcon size={16} strokeWidth={1.75} />
-              </IconButton>
-            </div>
-          </DialogTitle>
+              <div className="flex items-center gap-2">
+                <h6 className="cn-text-h6 font-[family-name:var(--font-display)] text-[1.125rem] font-semibold tabular-nums text-[var(--accent)]">
+                  <Money value={amount} from="EUR" />
+                </h6>
+                {/* ✕ — pattern .rm-x : 34px r10 hairline, hover --err */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={onClose}
+                  aria-label="Fermer"
+                  className="size-[34px] rounded-[10px] border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] hover:text-[var(--err)] hover:border-[var(--err)] hover:bg-[var(--card)]"
+                >
+                  <CloseIcon size={16} strokeWidth={1.75} />
+                </Button>
+              </div>
+            </DialogHeader>
 
-          {/* ── Content ─────────────────────────────────────────── */}
-          <DialogContent sx={{ p: 0 }}>
+            {/* ── Content ─────────────────────────────────────────── */}
             {/* Loading state */}
             {loading && (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
@@ -239,20 +225,14 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
             {/* Error state */}
             {error && (
               <div className="p-4">
-                <Alert
-                  severity="error"
-                  sx={{
-                    // Alerte -soft hairline (pattern .rm-conflict)
-                    bgcolor: 'var(--err-soft)',
-                    border: '1px solid color-mix(in srgb, var(--err) 30%, transparent)',
-                    borderRadius: '12px',
-                    color: 'var(--body)',
-                    fontSize: '12.5px',
-                    '& .MuiAlert-icon': { color: 'var(--err)' },
-                  }}
-                  onClose={() => setError(null)}
-                >
-                  {error}
+                <Alert variant="destructive" className="text-[12.5px]">
+                  <TriangleAlert />
+                  <AlertDescription>{error}</AlertDescription>
+                  <AlertAction>
+                    <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+                      <X />
+                    </Button>
+                  </AlertAction>
                 </Alert>
               </div>
             )}
@@ -275,9 +255,9 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
                 </span>
               </div>
             )}
-          </DialogContent>
-        </>
-      )}
+          </>
+        )}
+      </DialogContent>
     </Dialog>
   );
 };

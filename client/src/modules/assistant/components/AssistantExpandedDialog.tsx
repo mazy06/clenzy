@@ -1,6 +1,15 @@
 import React, { useEffect, useMemo } from 'react';
-import { Card } from '../../../components/ui';
-import { Dialog, IconButton, Tooltip, Paper, useTheme } from '@mui/material';
+import {
+  Button,
+  Card,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { Close as CloseIcon, FullscreenExit as MinimizeIcon } from '../../../icons';
 import BaitlyMarkLogo from '../../../components/BaitlyMarkLogo';
 import { MessageList } from './MessageList';
@@ -56,7 +65,6 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
   reset,
   loadConversation,
 }) => {
-  const theme = useTheme();
   const isWorking = status === 'sending' || status === 'streaming';
 
   // Granularite de refresh = nb de messages assistant (augmente a chaque tour
@@ -99,56 +107,55 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
   }, [sendMessage]);
 
   return (
-    <Dialog
-      fullScreen
-      open={open}
-      onClose={onClose}
-      PaperProps={{
-        sx: {
-          display: 'flex',
-          flexDirection: 'column',
-          bgcolor: theme.palette.background.default,
-        },
-      }}
-    >
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* Plein ecran : le gabarit de modale est centre et borne en largeur, on
+          annule donc son ancrage, son rayon et ses marges internes. La croix du
+          gabarit est masquee — l'entete en porte deja une. */}
+      <DialogContent
+        showCloseButton={false}
+        className="top-0 start-0 w-screen h-screen max-w-none translate-x-0 translate-y-0 rounded-none p-0 gap-0 flex flex-col bg-[var(--bg)]"
+      >
       {/* Header */}
-      <div className="flex items-center gap-[7.5px] px-[9px] min-[900px]:px-[15px] py-[7.5px] shrink-0" style={{ borderBottom: '1px solid var(--line)' }}>
+      <div className="flex items-center gap-[7.5px] px-[9px] min-[900px]:px-[15px] py-[7.5px] shrink-0 border-b border-solid border-[var(--line)]">
         <BaitlyMarkLogo variant="mark" size={22} idleAnimation={false} active={isWorking} />
         <div className="flex-1 min-w-0">
-          <h6 className="cn-text-subtitle1 font-semibold leading-[1.2]">
+          <DialogTitle className="cn-text-subtitle1 font-semibold leading-[1.2]">
             Assistant
-          </h6>
-          <span className="cn-text-caption text-muted-foreground leading-[1]">
+          </DialogTitle>
+          <DialogDescription className="cn-text-caption text-muted-foreground leading-[1]">
             Pose tes questions, reponses en temps reel sur tes donnees.
-          </span>
+          </DialogDescription>
         </div>
         <AssistantUsageBadge usage={usage} loading={usageLoading} error={usageError} />
-        <Tooltip title="Reduire">
-          <IconButton size="small" onClick={onMinimize} aria-label="Reduire" sx={{ cursor: 'pointer' }}>
-            <MinimizeIcon size={18} />
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {/* span : TooltipTrigger asChild pose une ref DOM que le Button du
+                kit (fonction, React 18) ne transmet pas. */}
+            <span className="inline-flex">
+              <Button variant="ghost" size="icon-sm" onClick={onMinimize} aria-label="Reduire" className="cursor-pointer">
+                <MinimizeIcon size={18} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Reduire</TooltipContent>
         </Tooltip>
-        <Tooltip title="Fermer">
-          <IconButton size="small" onClick={onClose} aria-label="Fermer" sx={{ cursor: 'pointer' }}>
-            <CloseIcon size={18} />
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Fermer" className="cursor-pointer">
+                <CloseIcon size={18} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Fermer</TooltipContent>
         </Tooltip>
       </div>
 
       {/* Corps : sidebar historique + chat */}
       <div className="flex-1 min-h-0 flex flex-col min-[900px]:flex-row mx-1.5 min-[900px]:mx-3 my-1.5 min-[900px]:my-[9px] gap-1.5 min-[900px]:gap-[9px]">
-        {/* Historique — masque sur mobile pour ne pas voler l'espace */}
-        <Paper
-          elevation={0}
-          sx={{
-            display: { xs: 'none', md: 'flex' },
-            flexDirection: 'column',
-            borderRadius: '14px',
-            border: '1px solid var(--line)',
-            bgcolor: 'var(--card)',
-            overflow: 'hidden',
-          }}
-        >
+        {/* Historique — masque sur mobile pour ne pas voler l'espace.
+            Le seuil md de MUI vaut 900 px, pas les 768 px de Tailwind. */}
+        <div className="hidden min-[900px]:flex flex-col rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] overflow-hidden">
           <ConversationSidebar
             conversations={conversations}
             activeConversationId={conversationId}
@@ -157,7 +164,7 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
             onNew={reset}
             onArchive={handleArchive}
           />
-        </Paper>
+        </div>
 
         {/* Chat */}
         <Card className="gap-0 py-0 flex-1 flex flex-col overflow-hidden bg-[var(--card)] min-w-[0px]">
@@ -203,6 +210,7 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
           <ChatInput status={status} onSend={sendMessage} onAbort={abort} autoFocus />
         </Card>
       </div>
+      </DialogContent>
     </Dialog>
   );
 };

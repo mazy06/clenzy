@@ -1,8 +1,16 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
-import { Card, Table, TableBody, TableRow, TableCell } from '../../components/ui';
-import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
-import { ExpandMore } from '../../icons';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+  Card,
+  Table,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '../../components/ui';
 import { DocumentTemplateTag } from '../../services/api/documentsApi';
 
 interface TemplateTagsViewerProps {
@@ -75,9 +83,9 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categories.join('|')]);
 
-  const handleChange = (cat: string) => (_e: React.SyntheticEvent, isExpanded: boolean) => {
-    setExpanded(isExpanded ? cat : false);
-  };
+  // Radix renvoie '' quand on referme l'item ouvert : c'est le `false` de l'ancien
+  // accordeon MUI en mode single-open.
+  const handleValueChange = (value: string) => setExpanded(value || false);
 
   return (
     <Card className="gap-0 py-0 p-3 border-[var(--line)]">
@@ -91,23 +99,20 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
           Aucun tag détecté dans ce template
         </p>
       ) : (
-        categories.map((cat) => (
-          <Accordion
-            key={cat}
-            expanded={expanded === cat}
-            onChange={handleChange(cat)}
-          >
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <div className="flex items-center gap-1.5">
-                <div className="w-[12px] h-[12px] rounded-[50%]" style={{ backgroundColor: (CATEGORY_TONES[cat] ?? STATUS_TONES.neutral).color }} />
-                <p className="cn-text-body1 font-medium">
-                  {CATEGORY_LABELS[cat] || cat}
-                </p>
-                <StatusChip tokens={CATEGORY_TONES[cat] ?? STATUS_TONES.neutral} label={groupedTags[cat].length} className="ms-1.5" />
-              </div>
-            </AccordionSummary>
-            <AccordionDetails sx={{ p: 0 }}>
-              <Table>
+        <Accordion type="single" collapsible value={expanded === false ? '' : expanded} onValueChange={handleValueChange}>
+          {categories.map((cat) => (
+            <AccordionItem key={cat} value={cat}>
+              <AccordionTrigger>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-[12px] h-[12px] rounded-[50%]" style={{ backgroundColor: (CATEGORY_TONES[cat] ?? STATUS_TONES.neutral).color }} />
+                  <span className="cn-text-body1 font-medium">
+                    {CATEGORY_LABELS[cat] || cat}
+                  </span>
+                  <StatusChip tokens={CATEGORY_TONES[cat] ?? STATUS_TONES.neutral} label={groupedTags[cat].length} className="ms-1.5" />
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="p-0">
+                <Table>
                 <TableBody>
                   {groupedTags[cat].map((tag) => (
                     <TableRow key={tag.id ?? `${cat}-${tag.tagName}`}>
@@ -132,10 +137,11 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
-            </AccordionDetails>
-          </Accordion>
-        ))
+                </Table>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       )}
     </Card>
   );

@@ -1,6 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { Divider, Stack, Tooltip } from '@mui/material';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../../../components/ui';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  Separator,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '../../../components/ui';
 import { Search } from '../../../icons';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import type { TemplateVariable } from '../../../services/api/guestMessagingApi';
@@ -116,7 +123,7 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
   }, [variables, query]);
 
   return (
-    <Stack spacing={2}>
+    <div className="flex flex-col gap-3">
       {/* Search bar discrete */}
       {variables.length > 10 && (
         <InputGroup className="bg-[var(--field)]">
@@ -144,18 +151,21 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
           <SectionHeading label="VARIABLES SYSTÈME" tone={TONES.err} />
           <div className="flex flex-wrap gap-0.5">
             {systemVariablesUsed.map((key) => (
-              <Tooltip
-                key={key}
-                title="Contenu HTML généré automatiquement par le serveur. À ne pas supprimer."
-                arrow
-              >
-                <span className="inline-flex">
-                  <StatusChip
-                    tokens={toTokens(TONES.err)}
-                    label={`{${key}}`}
-                    className="font-mono text-[0.72rem] cursor-help"
-                  />
-                </span>
+              <Tooltip key={key}>
+                <TooltipTrigger asChild>
+                  {/* Le span porte la ref que Radix pose : StatusChip n'en
+                      transmet pas (React 18). */}
+                  <span className="inline-flex">
+                    <StatusChip
+                      tokens={toTokens(TONES.err)}
+                      label={`{${key}}`}
+                      className="font-mono text-[0.72rem] cursor-help"
+                    />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Contenu HTML généré automatiquement par le serveur. À ne pas supprimer.
+                </TooltipContent>
               </Tooltip>
             ))}
           </div>
@@ -175,37 +185,35 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
               {group.items.map((v) => {
                 const isUsed = usedKeys.has(v.key);
                 return (
-                  <Tooltip
-                    key={v.key}
-                    title={
-                      <div>
-                        <div className="font-semibold mb-0.5">{v.description}</div>
-                        <div className="font-mono text-[0.7rem] text-[rgba(255,255,255,0.7)]">
-                          ex. « {v.example} »
-                        </div>
+                  <Tooltip key={v.key}>
+                    <TooltipTrigger asChild>
+                      {/* Le span porte la ref que Radix pose : StatusChip n'en
+                          transmet pas (React 18). */}
+                      <span className="inline-flex">
+                        <StatusChip
+                          tokens={toTokens(group.def.tone)}
+                          label={`{${v.key}}`}
+                          onClick={() => onInsert(v.key)}
+                          className={[
+                            'font-mono text-[0.72rem]',
+                            isUsed
+                              ? 'opacity-100 hover:opacity-100 font-bold'
+                              : 'opacity-[0.85] hover:opacity-100 font-medium',
+                          ].join(' ')}
+                          // Le liseré de « déjà utilisée » est teinté par la catégorie :
+                          // couleur connue seulement a l'execution, donc style inline.
+                          sx={isUsed
+                            ? { outline: `1.5px solid ${group.def.tone.c}`, outlineOffset: '-1.5px' }
+                            : undefined}
+                        />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">
+                      <div className="font-semibold mb-0.5">{v.description}</div>
+                      <div className="font-mono text-[0.7rem] opacity-70">
+                        ex. « {v.example} »
                       </div>
-                    }
-                    arrow
-                    placement="left"
-                  >
-                    <span className="inline-flex">
-                      <StatusChip
-                        tokens={toTokens(group.def.tone)}
-                        label={`{${v.key}}`}
-                        onClick={() => onInsert(v.key)}
-                        className={[
-                          'font-mono text-[0.72rem]',
-                          isUsed
-                            ? 'opacity-100 hover:opacity-100 font-bold'
-                            : 'opacity-[0.85] hover:opacity-100 font-medium',
-                        ].join(' ')}
-                        // Le liseré de « déjà utilisée » est teinté par la catégorie :
-                        // couleur connue seulement a l'execution, donc style inline.
-                        sx={isUsed
-                          ? { outline: `1.5px solid ${group.def.tone.c}`, outlineOffset: '-1.5px' }
-                          : undefined}
-                      />
-                    </span>
+                    </TooltipContent>
                   </Tooltip>
                 );
               })}
@@ -217,7 +225,7 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
       {/* Detail des variables (optionnel — pattern MessageTemplateEditor) */}
       {showDetails && variables.length > 0 && (
         <div>
-          <Divider sx={{ mb: 1.5 }} />
+          <Separator className="mb-[9px]" />
           <span className="cn-text-caption font-semibold block mb-[0.35em]">
             Détail des variables
           </span>
@@ -239,7 +247,7 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
           </div>
         </div>
       )}
-    </Stack>
+    </div>
   );
 };
 

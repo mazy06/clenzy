@@ -1,6 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Spinner, Button } from '../../../components/ui';
-import { Alert, alpha, useTheme } from '@mui/material';
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
+  Button,
+  Spinner,
+} from '../../../components/ui';
+import { X } from 'lucide-react';
 import { CheckCircle, ErrorOutline } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -68,7 +75,6 @@ const FB_SDK_SCRIPT_ID = 'facebook-jssdk';
 
 export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSignupButtonProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
 
   // Config Meta app lue uniquement dans le handler de lancement : ref.
   const appConfigRef = useRef<MetaAppConfig | null>(null);
@@ -230,20 +236,25 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
 
   if (success) {
     return (
-      <Alert severity="success" icon={<CheckCircle size={20} />}>
-        <strong>{t('settings.whatsapp.meta.signup.success', 'WhatsApp connecté avec succès')}</strong>
-        <p className="cn-text-body2 mt-0.5">
-          {t('settings.whatsapp.meta.signup.successDetails',
-            "Numéro {{phoneNumber}} — WABA {{wabaId}}. Vous pouvez maintenant activer l'envoi WhatsApp.",
-            { phoneNumber: success.phoneNumber, wabaId: success.wabaId })}
-        </p>
-        {success.templatesSubmitted > 0 && (
+      <Alert variant="success">
+        <CheckCircle size={20} />
+        <AlertTitle>
+          {t('settings.whatsapp.meta.signup.success', 'WhatsApp connecté avec succès')}
+        </AlertTitle>
+        <AlertDescription>
           <p className="cn-text-body2 mt-0.5">
-            {t('settings.whatsapp.meta.signup.templatesSubmitted',
-              "✓ {{count}} templates Baitly standards soumis à Meta (validation ~24h).",
-              { count: success.templatesSubmitted })}
+            {t('settings.whatsapp.meta.signup.successDetails',
+              "Numéro {{phoneNumber}} — WABA {{wabaId}}. Vous pouvez maintenant activer l'envoi WhatsApp.",
+              { phoneNumber: success.phoneNumber, wabaId: success.wabaId })}
           </p>
-        )}
+          {success.templatesSubmitted > 0 && (
+            <p className="cn-text-body2 mt-0.5">
+              {t('settings.whatsapp.meta.signup.templatesSubmitted',
+                "✓ {{count}} templates Baitly standards soumis à Meta (validation ~24h).",
+                { count: success.templatesSubmitted })}
+            </p>
+          )}
+        </AlertDescription>
       </Alert>
     );
   }
@@ -283,12 +294,24 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
       </div>
 
       {error && error !== 'UNAVAILABLE' && (
-        <Alert severity="error" icon={<ErrorOutline size={20} />} onClose={() => setError(null)} sx={{ mt: 1 }}>
-          {error}
+        // Le kit n'a pas de prop `onClose` : la croix devient une AlertAction.
+        <Alert variant="destructive" className="mt-1.5">
+          <ErrorOutline size={20} />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={t('common.close', 'Fermer')}
+              onClick={() => setError(null)}
+            >
+              <X size={14} />
+            </Button>
+          </AlertAction>
         </Alert>
       )}
 
-      <div className="mt-[3px] p-[7.5px] rounded-[12px]" style={{ backgroundColor: alpha(theme.palette.info.main, 0.06), border: `1px solid ${alpha(theme.palette.info.main, 0.15)}` }}>
+      <div className="mt-[3px] p-[7.5px] rounded-[12px] bg-[color-mix(in_srgb,var(--info)_6%,transparent)] border border-solid border-[color-mix(in_srgb,var(--info)_15%,transparent)]">
         <span className="cn-text-caption text-muted-foreground">
           <strong>{t('settings.whatsapp.meta.signup.recommendedTitle', 'Méthode recommandée')}</strong>
           {' — '}

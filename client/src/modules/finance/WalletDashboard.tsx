@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Card } from '../../components/ui';
-import { Paper, Skeleton, alpha } from '@mui/material';
+import { Card, Skeleton } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
@@ -123,19 +122,19 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3" key={i}>
               <Card className="gap-0 py-0 p-3 border-[var(--line)]">
                 <div className="flex items-center gap-1.5 mb-1.5">
-                  <Skeleton variant="rounded" width={26} height={26} />
-                  <Skeleton variant="text" width="50%" height={16} />
+                  <Skeleton className="size-[26px] rounded-lg" />
+                  <Skeleton className="h-4 w-1/2 rounded" />
                 </div>
-                <Skeleton variant="text" width="60%" height={28} />
-                <Skeleton variant="text" width="30%" height={14} />
+                <Skeleton className="h-7 w-3/5 rounded" />
+                <Skeleton className="h-3.5 w-[30%] rounded" />
               </Card>
             </div>
           ))}
         </div>
         <Card className="gap-0 py-0 mt-4 p-3 border-[var(--line)]">
-          <Skeleton variant="text" width="25%" height={20} sx={{ mb: 1.5 }} />
+          <Skeleton className="h-5 w-1/4 rounded mb-2.5" />
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} variant="rectangular" height={36} sx={{ borderRadius: 1, mb: 1 }} />
+            <Skeleton key={i} className="h-9 rounded-lg mb-1.5" />
           ))}
         </Card>
       </div>
@@ -167,29 +166,24 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
               return (
                 <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3" key={wallet.id}>
                   {/* Tuile sélectionnable : carte hairline plate, sélection = bordure accent + ring accent-soft */}
-                  <Paper
-                    variant="outlined"
+                  <div
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') { setSelectedWallet(wallet); setPage(0); }
                     }}
-                    sx={{
-                      p: 2,
-                      cursor: 'pointer',
-                      borderRadius: 'var(--radius-lg)',
-                      bgcolor: 'var(--card)',
-                      boxShadow: isSelected ? '0 0 0 3px var(--accent-soft)' : 'none',
-                      borderColor: isSelected ? 'var(--accent)' : 'var(--line)',
-                      transition: 'border-color .14s, box-shadow .14s',
-                      '&:hover': { borderColor: isSelected ? 'var(--accent)' : 'var(--line-2)' },
-                      '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                    }}
+                    className={cn(
+                      'p-3 cursor-pointer rounded-[var(--radius-lg)] bg-[var(--card)] border border-solid',
+                      'transition-[border-color,box-shadow] duration-150 motion-reduce:transition-none',
+                      'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]',
+                      isSelected
+                        ? 'border-[var(--accent)] shadow-[0_0_0_3px_var(--accent-soft)]'
+                        : 'border-[var(--line)] shadow-none hover:border-[var(--line-2)]',
+                    )}
                     onClick={() => { setSelectedWallet(wallet); setPage(0); }}
                   >
                     <div className="flex items-center gap-1.5 mb-1.5">
-                      <div className="w-[26px] h-[26px] rounded-[8px] flex items-center justify-center shrink-0" style={{ color: typeInfo.color, backgroundColor: alpha(typeInfo.color, 0.12) }}>
+                      <div className="w-[26px] h-[26px] rounded-[8px] flex items-center justify-center shrink-0" style={{ color: typeInfo.color, backgroundColor: `color-mix(in srgb, ${typeInfo.color} 12%, transparent)` }}>
                         {typeInfo.icon}
                       </div>
                       <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em]">
@@ -202,7 +196,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                     <span className="cn-text-caption text-[var(--muted)]">
                       {wallet.currency}
                     </span>
-                  </Paper>
+                  </div>
                 </div>
               );
             })}
@@ -220,7 +214,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
               {entriesLoading ? (
                 <div className="px-3 pb-3">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <Skeleton key={i} variant="rectangular" height={32} sx={{ borderRadius: 1, mb: 1 }} />
+                    <Skeleton key={i} className="h-8 rounded-lg mb-1.5" />
                   ))}
                 </div>
               ) : entries.length === 0 ? (

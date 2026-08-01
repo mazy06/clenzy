@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Divider, Skeleton } from '@mui/material';
+import { Separator, Skeleton } from '../../components/ui';
 import {
   Receipt as ReceiptIcon,
 } from '../../icons';
@@ -53,7 +53,7 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
   if (loading) {
     return (
       <SettingsSection title={t('billing.title')} icon={ReceiptIcon} accent="accent">
-        <Skeleton variant="rectangular" height={100} sx={{ borderRadius: '8px' }} />
+        <Skeleton className="h-[100px] w-full rounded-[8px]" />
       </SettingsSection>
     );
   }
@@ -104,7 +104,7 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
         {summary.memberCount} {t('billing.members')} · {summary.freeSeats} {t('billing.included')}
       </p>
 
-      <Divider sx={{ mb: 1, borderColor: 'divider' }} />
+      <Separator className="mb-1.5" />
 
       {/* Total */}
       <div className={cn('flex justify-between items-baseline', hasDiscount ? 'mb-[3.75px]' : 'mb-0')}>

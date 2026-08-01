@@ -17,7 +17,9 @@ import {
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Paper, Alert, ThemeProvider, CssBaseline, Stack } from '@mui/material';
+// ThemeProvider + CssBaseline restent MUI : la page publique s'appuie sur le
+// reset global de CssBaseline, qui n'a pas d'equivalent dans le kit.
+import { ThemeProvider, CssBaseline } from '@mui/material';
 import { cn } from '../../utils/cn';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
@@ -323,18 +325,9 @@ export default function AcceptInvitationPage() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: '#f8fafc' }}>
-        <Paper
-          elevation={0}
-          sx={{
-            maxWidth: 480,
-            width: '100%',
-            p: { xs: 3, sm: 4.5 },
-            borderRadius: 2,
-            border: '1px solid #e2e8f0',
-            backgroundColor: '#ffffff',
-            textAlign: 'left',
-          }}
-        >
+        {/* borderRadius: 2 = 22 px (shape.borderRadius vaut 11 dans ce theme) ;
+            p 3 / 4.5 = 18 / 27 px (spacing 6), rupture sm MUI = 600 px. */}
+        <div className="w-full max-w-[480px] rounded-[22px] border border-solid border-[#e2e8f0] bg-[#ffffff] p-[18px] min-[600px]:p-[27px] text-left shadow-none">
           {/* Wordmark Baitly minimaliste (coherent avec l'email d'invitation) */}
           <div className="flex justify-center mb-5">
             <BaitlyWordmark size="lg" />
@@ -402,11 +395,14 @@ export default function AcceptInvitationPage() {
 
                   return emailMismatch ? (
                     <div className="flex flex-col gap-2">
-                      <Alert severity="warning" sx={{ textAlign: 'left' }}>
-                        Vous etes connecte avec <strong>{currentEmail}</strong> mais cette
-                        invitation est destinee a <strong>{invitation.invitedEmail}</strong>.
-                        Deconnectez-vous pour creer un compte avec le bon email.
-                      </Alert>
+                      <BuiAlert variant="warning" className="text-left">
+                        <TriangleAlert />
+                        <AlertDescription>
+                          Vous etes connecte avec <strong>{currentEmail}</strong> mais cette
+                          invitation est destinee a <strong>{invitation.invitedEmail}</strong>.
+                          Deconnectez-vous pour creer un compte avec le bon email.
+                        </AlertDescription>
+                      </BuiAlert>
                       <BuiButton
                         size="lg"
                         className="w-full"
@@ -495,8 +491,8 @@ export default function AcceptInvitationPage() {
                 </BuiAlert>
               )}
 
-              <Stack spacing={2}>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col min-[600px]:flex-row gap-3">
                   <Field>
                     <FieldLabel htmlFor="invite-first-name">Prenom</FieldLabel>
                     <Input
@@ -520,7 +516,7 @@ export default function AcceptInvitationPage() {
                       autoComplete="family-name"
                     />
                   </Field>
-                </Stack>
+                </div>
 
                 <Field>
                   <FieldLabel htmlFor="invite-email">Email</FieldLabel>
@@ -612,7 +608,7 @@ export default function AcceptInvitationPage() {
                 >
                   Retour
                 </BuiButton>
-              </Stack>
+              </div>
             </div>
           )}
 
@@ -716,9 +712,10 @@ export default function AcceptInvitationPage() {
               <h6 className="cn-text-h6 font-semibold mb-[0.35em]">
                 Invitation non valide
               </h6>
-              <Alert severity="error" sx={{ mt: 2, textAlign: 'left' }}>
-                {error}
-              </Alert>
+              <BuiAlert variant="destructive" className="mt-3 text-left">
+                <TriangleAlert />
+                <AlertDescription>{error}</AlertDescription>
+              </BuiAlert>
               <BuiButton
                 variant="outline"
                 className="mt-[18px]"
@@ -728,7 +725,7 @@ export default function AcceptInvitationPage() {
               </BuiButton>
             </div>
           )}
-        </Paper>
+        </div>
       </div>
     </ThemeProvider>
   );

@@ -4,7 +4,7 @@ import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Badge, Button } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
-import { Paper, CircularProgress, Skeleton, Tooltip } from '@mui/material';
+import { Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import {
   AutoAwesome,
   TrendingUp,
@@ -26,16 +26,10 @@ interface AiPricingRecommendationsProps {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: 1.5,
-  transition: 'border-color 0.15s ease',
-  '&:hover': { borderColor: 'var(--line-2)' },
-} as const;
+// Pendant en classes de l'ancien CARD_SX (p: 1.5 = 9 px, theme.spacing vaut 6).
+const CARD_CLASS =
+  'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-[9px] '
+  + 'transition-[border-color] duration-150 ease-[ease] hover:border-[var(--line-2)]';
 
 function isAiNotConfiguredError(error: unknown): boolean {
   const apiErr = error as { details?: Record<string, unknown> } | undefined;
@@ -65,7 +59,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
     // ── Loading state ─────────────────────────────────────────────────
     if (isLoading) {
       return (
-        <Paper sx={CARD_SX}>
+        <div className={CARD_CLASS}>
           <div className="flex items-center gap-1.5 mb-[9px]">
             <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
             <h6 className="cn-text-subtitle2 font-bold text-[0.8rem]">
@@ -74,10 +68,10 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
           </div>
           <div className="flex flex-col gap-1.5">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} variant="rounded" height={48} />
+              <Skeleton key={i} className="h-[48px] rounded-[8px]" />
             ))}
           </div>
-        </Paper>
+        </div>
       );
     }
 
@@ -86,7 +80,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
       const aiNotConfigured = isAiNotConfiguredError(error);
 
       return (
-        <Paper sx={CARD_SX}>
+        <div className={CARD_CLASS}>
           <div className="flex items-center gap-1.5 mb-[9px]">
             <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
             <h6 className="cn-text-subtitle2 font-bold text-[0.8rem]">
@@ -113,14 +107,14 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
               <AlertDescription>{t('common.error')}</AlertDescription>
             </Alert>
           )}
-        </Paper>
+        </div>
       );
     }
 
     // ── Empty state ───────────────────────────────────────────────────
     if (!data || data.length === 0) {
       return (
-        <Paper sx={CARD_SX}>
+        <div className={CARD_CLASS}>
           <div className="flex items-center gap-1.5 mb-[9px]">
             <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
             <h6 className="cn-text-subtitle2 font-bold text-[0.8rem]">
@@ -130,13 +124,13 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
           <p className="cn-text-body2 text-[var(--muted)] text-[0.75rem]">
             {t('bookingEngine.ai.pricing.loading')}
           </p>
-        </Paper>
+        </div>
       );
     }
 
     // ── Content ───────────────────────────────────────────────────────
     return (
-      <Paper sx={CARD_SX}>
+      <div className={CARD_CLASS}>
         <div className="flex items-center gap-1.5 mb-[9px]">
           <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
           <h6 className="cn-text-subtitle2 font-bold text-[0.8rem]">
@@ -163,17 +157,22 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
               </div>
 
               {/* Confidence */}
-              <Tooltip title={`${t('bookingEngine.ai.pricing.confidence')}: ${(rec.confidence * 100).toFixed(0)}%`}>
-                {/* Le `span` porte la ref que Tooltip pose sur son enfant :
-                    StatusChip est une fonction et n'en transmet pas. */}
-                <span className="inline-flex">
-                  <StatusChip
-                    tone={confidenceTone(rec.confidence)}
-                    size="sm"
-                    label={`${(rec.confidence * 100).toFixed(0)}%`}
-                    className="text-[0.6rem]"
-                  />
-                </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/* Le `span` porte la ref que TooltipTrigger pose sur son
+                      enfant : StatusChip est une fonction et n'en transmet pas. */}
+                  <span className="inline-flex">
+                    <StatusChip
+                      tone={confidenceTone(rec.confidence)}
+                      size="sm"
+                      label={`${(rec.confidence * 100).toFixed(0)}%`}
+                      className="text-[0.6rem]"
+                    />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {`${t('bookingEngine.ai.pricing.confidence')}: ${(rec.confidence * 100).toFixed(0)}%`}
+                </TooltipContent>
               </Tooltip>
 
               {/* Explanation */}
@@ -192,7 +191,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
             </span>
           </div>
         )}
-      </Paper>
+      </div>
     );
   },
 );

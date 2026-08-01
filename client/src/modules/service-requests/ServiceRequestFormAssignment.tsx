@@ -2,8 +2,15 @@ import React, { useCallback, useEffect, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { SELECT_CHIP_CLASS } from './serviceRequestsListConstants';
-import { Badge } from '../../components/ui';
-import { Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
+import {
+  Badge,
+  Field,
+  FieldLabel,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from '../../components/ui';
 import { Person, Group, BlockOutlined } from '../../icons';
 import { Controller, Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
@@ -208,82 +215,78 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                   ? users.find(u => u.id === field.value)
                   : teams.find(t => t.id === field.value);
                 const hasValue = !!selectedItem;
+                const fieldLabel = watchedAssignedToType === 'user'
+                  ? t('serviceRequests.fields.assignedToUser')
+                  : t('serviceRequests.fields.assignedToTeam');
 
                 return (
-                  <FormControl fullWidth disabled={disabled}>
-                    <InputLabel shrink>
-                      {watchedAssignedToType === 'user'
-                        ? t('serviceRequests.fields.assignedToUser')
-                        : t('serviceRequests.fields.assignedToTeam')}
-                    </InputLabel>
+                  <Field>
+                    <FieldLabel htmlFor="service-request-assigned-to">{fieldLabel}</FieldLabel>
+                    {/* Radix Select ne manipule que des chaines : l'id numerique du
+                        formulaire est converti aux deux extremites. */}
                     <Select
-                      value={field.value || ''}
-                      onChange={(e) =>
-                        field.onChange(e.target.value ? Number(e.target.value) : undefined)
-                      }
-                      onBlur={field.onBlur}
-                      label={
-                        watchedAssignedToType === 'user'
-                          ? t('serviceRequests.fields.assignedToUser')
-                          : t('serviceRequests.fields.assignedToTeam')
-                      }
-                      size="small"
+                      value={field.value != null ? String(field.value) : ''}
+                      onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}
                       disabled={disabled}
-                      displayEmpty
-                      notched
-                      renderValue={() => (
+                    >
+                      <SelectTrigger
+                        id="service-request-assigned-to"
+                        className="w-full"
+                        onBlur={field.onBlur}
+                      >
                         <div className="flex items-center gap-1">
                           {watchedAssignedToType === 'user' ? (
                             <span className={cn('inline-flex', hasValue ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Person size={16} strokeWidth={1.75} /></span>
                           ) : (
                             <span className={cn('inline-flex', hasValue ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Group size={16} strokeWidth={1.75} /></span>
                           )}
-                          <p className={cn('cn-text-body1 text-[12.5px]', hasValue ? 'text-[var(--body)]' : 'text-[var(--faint)]')}>
+                          <span className={cn('cn-text-body1 text-[12.5px]', hasValue ? 'text-[var(--body)]' : 'text-[var(--faint)]')}>
                             {hasValue
                               ? watchedAssignedToType === 'user'
                                 ? `${(selectedItem as typeof users[number]).firstName} ${(selectedItem as typeof users[number]).lastName}`
                                 : (selectedItem as Team).name
                               : t('serviceRequests.fields.select')}
-                          </p>
+                          </span>
                         </div>
-                      )}
-                    >
-                      {watchedAssignedToType === 'user'
-                        ? getAssignableUsers().map((user) => (
-                            <MenuItem key={user.id} value={user.id}>
-                              <div className="flex items-center gap-1 w-full">
-                                <span className={cn('inline-flex', matchingSet.has(user.id) ? 'text-[var(--ok)]' : 'text-[var(--accent)]')}><Person size={16} strokeWidth={1.75} /></span>
-                                <div className="flex-1 min-w-0">
-                                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
-                                    {user.firstName} {user.lastName}
-                                  </p>
-                                  <p className="cn-text-body1 text-[10.5px] text-[var(--faint)]">
-                                    {user.role} • {user.email}
-                                  </p>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {watchedAssignedToType === 'user'
+                          ? getAssignableUsers().map((user) => (
+                              <SelectItem key={user.id} value={String(user.id)}>
+                                <div className="flex items-center gap-1 w-full">
+                                  <span className={cn('inline-flex', matchingSet.has(user.id) ? 'text-[var(--ok)]' : 'text-[var(--accent)]')}><Person size={16} strokeWidth={1.75} /></span>
+                                  <div className="flex-1 min-w-0">
+                                    <span className="cn-text-body1 block text-[12.5px] text-[var(--body)]">
+                                      {user.firstName} {user.lastName}
+                                    </span>
+                                    <span className="cn-text-body1 block text-[10.5px] text-[var(--faint)]">
+                                      {user.role} • {user.email}
+                                    </span>
+                                  </div>
+                                  {matchingSet.has(user.id) && (
+                                    <Badge variant="secondary" className="h-[18px] text-[9.5px] font-bold text-[var(--ok)] bg-[var(--ok-soft)] px-1">Propose</Badge>
+                                  )}
                                 </div>
-                                {matchingSet.has(user.id) && (
-                                  <Badge variant="secondary" className="h-[18px] text-[9.5px] font-bold text-[var(--ok)] bg-[var(--ok-soft)] px-1">Propose</Badge>
-                                )}
-                              </div>
-                            </MenuItem>
-                          ))
-                        : filteredTeams.map((team) => (
-                            <MenuItem key={team.id} value={team.id}>
-                              <div className="flex items-center gap-1">
-                                <span className="inline-flex text-[var(--accent)]"><Group size={16} strokeWidth={1.75} /></span>
-                                <div>
-                                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)] font-medium">
-                                    {team.name}
-                                  </p>
-                                  <p className="cn-text-body1 text-[10.5px] text-[var(--faint)]">
-                                    {team.memberCount} {t('serviceRequests.members')} • {getInterventionTypeLabel(team.interventionType)}
-                                  </p>
+                              </SelectItem>
+                            ))
+                          : filteredTeams.map((team) => (
+                              <SelectItem key={team.id} value={String(team.id)}>
+                                <div className="flex items-center gap-1">
+                                  <span className="inline-flex text-[var(--accent)]"><Group size={16} strokeWidth={1.75} /></span>
+                                  <div>
+                                    <span className="cn-text-body1 block text-[12.5px] text-[var(--body)] font-medium">
+                                      {team.name}
+                                    </span>
+                                    <span className="cn-text-body1 block text-[10.5px] text-[var(--faint)]">
+                                      {team.memberCount} {t('serviceRequests.members')} • {getInterventionTypeLabel(team.interventionType)}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            </MenuItem>
-                          ))}
+                              </SelectItem>
+                            ))}
+                      </SelectContent>
                     </Select>
-                  </FormControl>
+                  </Field>
                 );
               }}
             />

@@ -1,7 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { cn } from '../utils/cn';
-import { Button, Spinner } from './ui';
-import { Dialog, DialogContent, IconButton } from '@mui/material';
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, Spinner } from './ui';
 import { Sparkles, X, Wallet, AlertTriangle, ArrowRight, Check } from 'lucide-react';
 import { aiCreditsApi, toCredits, type CreditPack } from '../services/api/aiCreditsApi';
 
@@ -63,19 +62,33 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
   };
 
   return (
-    <Dialog open={open} onClose={busy ? undefined : handleClose} maxWidth="sm" fullWidth
-      PaperProps={{ sx: { borderRadius: 'var(--radius-lg)' } }}>
-      <div className="flex items-center gap-2 px-4 pt-3.5 pb-1.5">
-        <div className="grid place-items-[center] w-[34px] h-[34px] rounded-[10px] bg-[var(--accent-soft)] text-[var(--accent)] shrink-0">
-          <Wallet size={18} strokeWidth={2} />
-        </div>
-        <div className="flex-1 font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">
-          {title ?? 'Crédits IA insuffisants'}
-        </div>
-        <IconButton onClick={handleClose} size="small" aria-label="Fermer" disabled={busy} sx={{ color: 'var(--muted)' }}><X size={18} /></IconButton>
-      </div>
+    // maxWidth="sm" + fullWidth MUI = pleine largeur plafonnee a 600 px.
+    // `showCloseButton={false}` : la croix doit pouvoir etre desactivee pendant
+    // l'ouverture du paiement, ce que la croix integree du primitif ne permet pas.
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !busy) handleClose(); }}>
+      <DialogContent showCloseButton={false} className="w-full sm:max-w-[600px] rounded-[var(--radius-lg)]">
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            <span className="grid place-items-center w-[34px] h-[34px] rounded-[10px] bg-[var(--accent-soft)] text-[var(--accent)] shrink-0">
+              <Wallet size={18} strokeWidth={2} />
+            </span>
+            <DialogTitle className="flex-1 font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">
+              {title ?? 'Crédits IA insuffisants'}
+            </DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleClose}
+              aria-label="Fermer"
+              disabled={busy}
+              className="text-[var(--muted)]"
+            >
+              <X size={18} />
+            </Button>
+          </div>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 0.5, px: 3, pb: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="flex flex-col gap-3">
         <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.55]">
           {message ?? "Cette génération dépasse votre solde de crédits IA. Rechargez pour continuer — le surplus consommé est facturé au réel."}
         </div>
@@ -124,6 +137,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
             {busy ? 'Ouverture du paiement…' : 'Recharger & continuer'}
             {!busy && <ArrowRight strokeWidth={2} />}
           </Button>
+        </div>
         </div>
       </DialogContent>
     </Dialog>

@@ -4,8 +4,7 @@ import { Alert as UiAlert, AlertDescription, Button } from '../../../components/
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Field, FieldLabel, Input, NativeSelect, NativeSelectOption } from '../../../components/ui';
-import { Switch, FormControlLabel, Alert, Divider } from '@mui/material';
+import { Field, FieldLabel, Input, NativeSelect, NativeSelectOption, Separator, Switch } from '../../../components/ui';
 import { CheckCircle as CheckCircleIcon, ErrorOutline, Link as LinkIcon } from '../../../icons';
 import {
   useMarketingIntegration,
@@ -112,23 +111,23 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
     </Field>
   );
 
+  // `key` est la cle du toggle : elle donne un id stable et unique par rangee.
+  // Le libelle porte deux lignes en <span> : un <p> dans un <label> est invalide.
   const toggleRow = (label: string, desc: string, checked: boolean, key: keyof MarketingTogglesPayload) => (
-    <FormControlLabel
-      sx={{ alignItems: 'flex-start', m: 0 }}
-      control={
-        <Switch
-          checked={checked}
-          size="small"
-          onChange={(e) => setToggles.mutate({ [key]: e.target.checked } as MarketingTogglesPayload)}
-        />
-      }
-      label={
-        <div className="mt-0.5">
-          <p className="cn-text-body1 text-[0.8rem] font-semibold leading-[1.2]">{label}</p>
-          <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">{desc}</p>
-        </div>
-      }
-    />
+    <div className="flex flex-row items-start gap-2">
+      <Switch
+        id={`brevo-toggle-${key}`}
+        checked={checked}
+        onCheckedChange={(next) => setToggles.mutate({ [key]: next } as MarketingTogglesPayload)}
+        size="sm"
+      />
+      <FieldLabel htmlFor={`brevo-toggle-${key}`} className="flex-none font-normal mt-0.5">
+        <span className="block">
+          <span className="block cn-text-body1 text-[0.8rem] font-semibold leading-[1.2]">{label}</span>
+          <span className="block cn-text-body1 text-[0.7rem] text-muted-foreground">{desc}</span>
+        </span>
+      </FieldLabel>
+    </div>
   );
 
   return (
@@ -196,10 +195,13 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
           )}
         </div>
         {test.data ? (
-          <Alert severity={test.data.success ? 'success' : 'error'} sx={{ borderRadius: '8px', fontSize: '0.78rem', py: 0.25 }}>
-            {test.data.message}
-            {test.data.success ? ` — ${test.data.listCount} liste(s) trouvée(s).` : ''}
-          </Alert>
+          <UiAlert variant={test.data.success ? 'success' : 'destructive'} className="text-[0.78rem] py-0.5">
+            {test.data.success ? <CheckCircleIcon /> : <TriangleAlert />}
+            <AlertDescription>
+              {test.data.message}
+              {test.data.success ? ` — ${test.data.listCount} liste(s) trouvée(s).` : ''}
+            </AlertDescription>
+          </UiAlert>
         ) : data.status === 'ERROR' && data.errorMessage ? (
           <UiAlert variant="destructive" className="text-[0.78rem] py-0.5">
             <TriangleAlert />
@@ -207,7 +209,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
           </UiAlert>
         ) : null}
 
-        <Divider />
+        <Separator />
 
         {/* Mapping des listes */}
         <div>
@@ -226,7 +228,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
           )}
         </div>
 
-        <Divider />
+        <Separator />
 
         {/* Toggles de synchro */}
         <div className="flex flex-col gap-2">

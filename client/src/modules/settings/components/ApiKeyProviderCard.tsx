@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import {
   externalConnectionApi,
   PROVIDER_META,
@@ -25,15 +25,14 @@ const ApiKeyProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
   const meta = PROVIDER_META[provider];
 
   const qtspChip = meta.qtspFrance ? (
-    <Tooltip
-      title="Qualified Trust Service Provider certifié ANSSI (France)"
-      arrow
-      placement="top"
-    >
-      <span className="text-[0.6rem] font-bold tracking-[0.02em] rounded-[4px] px-[3px] py-[0.75px] inline-flex items-center gap-[3px] cursor-help" style={{ color: ACCENT, backgroundColor: `color-mix(in srgb, ${ACCENT} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${ACCENT} 20%, transparent)` }}>
-        QTSP
-        <span aria-hidden="true" style={{ fontSize: '0.85em' }}>🇫🇷</span>
-      </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="text-[0.6rem] font-bold tracking-[0.02em] rounded-[4px] px-[3px] py-[0.75px] inline-flex items-center gap-[3px] cursor-help" style={{ color: ACCENT, backgroundColor: `color-mix(in srgb, ${ACCENT} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${ACCENT} 20%, transparent)` }}>
+          QTSP
+          <span aria-hidden="true" style={{ fontSize: '0.85em' }}>🇫🇷</span>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top">Qualified Trust Service Provider certifié ANSSI (France)</TooltipContent>
     </Tooltip>
   ) : undefined;
 

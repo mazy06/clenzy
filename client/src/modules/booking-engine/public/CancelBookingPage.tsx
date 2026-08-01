@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Spinner } from '../../../components/ui';
+import { useId, useState } from 'react';
+import { Input, Spinner } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
-import { ButtonBase, InputBase } from '@mui/material';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { cn } from '../../../utils/cn';
 import { API_CONFIG } from '../../../config/api';
 
 const API_BASE = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}`;
@@ -102,7 +102,13 @@ export default function CancelBookingPage() {
               <div className="text-[var(--text-sm)] text-[var(--body)] mt-0.5">{preview.explanation}</div>
             </div>
             <PrimaryButton onClick={confirmCancel} loading={loading} label="Confirmer l'annulation" danger />
-            <ButtonBase onClick={() => setStep('form')} sx={{ mt: 1, fontSize: 'var(--text-sm)', color: 'var(--muted)', cursor: 'pointer' }}>Retour</ButtonBase>
+            <button
+              type="button"
+              onClick={() => setStep('form')}
+              className="mt-1.5 inline-flex items-center justify-center bg-transparent border-none appearance-none text-[var(--text-sm)] text-[var(--muted)] cursor-pointer hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            >
+              Retour
+            </button>
           </>
         )}
 
@@ -127,13 +133,18 @@ export default function CancelBookingPage() {
 function Field({ label, value, onChange, placeholder, type = 'text' }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
 }) {
+  // Le libelle est du texte libre (accents, espaces) : il ne peut pas servir
+  // d'identifiant, et le composant est monte deux fois dans la page.
+  const inputId = useId();
   return (
     <div className="mb-3">
-      <label className="block text-[var(--text-sm)] font-[family-name:var(--fw-medium)] text-[var(--body)] mb-1">{label}</label>
-      <InputBase
+      <label className="block text-[var(--text-sm)] font-medium text-[var(--body)] mb-1" htmlFor={inputId}>{label}</label>
+      {/* Le gabarit du champ (fond, lisere, rayon, anneau de focus) vient du
+          primitif : l'ancien sx ne faisait que le redire. */}
+      <Input
+        id={inputId}
         value={value} type={type} placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        sx={{ width: '100%', px: 1.5, py: 1, fontSize: 'var(--text-md)', color: 'var(--ink)', bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', '&.Mui-focused': { borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-soft)' } }}
       />
     </div>
   );
@@ -143,19 +154,20 @@ function PrimaryButton({ onClick, loading, label, danger = false }: {
   onClick: () => void; loading: boolean; label: string; danger?: boolean;
 }) {
   return (
-    <ButtonBase
+    <button
+      type="button"
       onClick={onClick}
       disabled={loading}
-      sx={{
-        width: '100%', height: 46, borderRadius: 'var(--radius-md)', cursor: 'pointer',
-        bgcolor: danger ? 'var(--err)' : 'var(--accent)', color: '#fff',
-        fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-md)',
-        transition: 'opacity var(--duration-fast) var(--ease-out)',
-        '&:hover': { opacity: 0.92 }, '&.Mui-disabled': { opacity: 0.5 },
-        '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-      }}
+      className={cn(
+        'w-full h-[46px] inline-flex items-center justify-center rounded-[var(--radius-md)] border-none appearance-none',
+        'text-[var(--text-md)] font-semibold text-[#FFFFFF] cursor-pointer',
+        'transition-opacity duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:opacity-[.92]',
+        'disabled:opacity-50 disabled:cursor-default',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]',
+        danger ? 'bg-[var(--err)]' : 'bg-[var(--accent)]',
+      )}
     >
-      {loading ? <Spinner className="size-5 text-[#fff]" /> : label}
-    </ButtonBase>
+      {loading ? <Spinner className="size-5 text-[#FFFFFF]" /> : label}
+    </button>
   );
 }

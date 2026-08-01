@@ -16,7 +16,7 @@
  *   - Si aucun OTA : affiche "—" (rien à montrer)
  */
 import React from 'react';
-import { Tooltip, Stack } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { Check } from 'lucide-react';
 
 import {
@@ -71,7 +71,7 @@ export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false 
   }
 
   return (
-    <Stack direction="row" spacing={0.75} alignItems="center">
+    <div className="flex flex-row items-center gap-1">
       {otas.map((ota) => {
         const option = resolveOtaOption(ota.otaName);
         const logoSrc = option ? OTA_LOGO_BY_CODE[option.code] : null;
@@ -91,9 +91,10 @@ export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false 
             : `${displayName} · Non authentifie`;
 
         return (
-          <Tooltip key={ota.otaName} title={tooltipLabel} arrow>
+          <Tooltip key={ota.otaName}>
             {/* `size` et `opacity` sont des valeurs runtime : style inline. */}
-            <div className="relative inline-flex shrink-0" style={{ width: size, height: size, opacity }}>
+            <TooltipTrigger asChild>
+              <div className="relative inline-flex shrink-0" style={{ width: size, height: size, opacity }}>
               {/* Logo officiel OTA (SVG/PNG) ou fallback initiales */}
               {logoSrc ? (
                 <img className="w-full h-full rounded-[6px] object-contain bg-[var(--card)] border border-[var(--line)] p-0.5" src={logoSrc} alt={displayName} />
@@ -115,9 +116,11 @@ export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false 
                 <div className="absolute rounded-[50%] bg-[var(--warn)] border-[2px] border-solid border-[var(--card)]" style={{ top: -3, right: -3, width: size * 0.4, height: size * 0.4 }} />
               )}
             </div>
+            </TooltipTrigger>
+            <TooltipContent>{tooltipLabel}</TooltipContent>
           </Tooltip>
         );
       })}
-    </Stack>
+    </div>
   );
 }

@@ -9,8 +9,15 @@ import {
   Input,
   NativeSelect,
   NativeSelectOption,
+  Switch,
 } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, FormControlLabel, Switch } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
 import { Send } from '../../icons';
 import { useDocumentTypes, useGenerateDocument } from './hooks/useDocuments';
 
@@ -88,9 +95,11 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
   const loading = generateMutation.isPending;
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Générer un document</DialogTitle>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Générer un document</DialogTitle>
+        </DialogHeader>
         {error && <Alert variant="destructive" className="mb-3">
           <TriangleAlert />
           <AlertDescription>{error}</AlertDescription>
@@ -142,10 +151,16 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
             <FieldDescription>ID de l'intervention, demande, bien ou utilisateur</FieldDescription>
           </Field>
 
-          <FormControlLabel
-            control={<Switch checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} />}
-            label="Envoyer par email"
-          />
+          <Field orientation="horizontal">
+            <Switch
+              id="generate-send-email"
+              checked={sendEmail}
+              onCheckedChange={(checked) => setSendEmail(checked === true)}
+            />
+            <FieldLabel htmlFor="generate-send-email" className="font-normal">
+              Envoyer par email
+            </FieldLabel>
+          </Field>
 
           {sendEmail && (
             <Field>
@@ -160,18 +175,18 @@ const GenerateDialog: React.FC<GenerateDialogProps> = ({ open, onClose, onSucces
             </Field>
           )}
         </div>
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={handleClose} disabled={loading}>Annuler</Button>
+          <Button
+            size="sm"
+            onClick={handleSubmit}
+            disabled={loading || !documentType || !referenceId}
+          >
+            {loading ? <Spinner className="size-4" /> : <Send />}
+            {loading ? 'Génération...' : 'Générer'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button variant="ghost" size="sm" onClick={handleClose} disabled={loading}>Annuler</Button>
-        <Button
-          size="sm"
-          onClick={handleSubmit}
-          disabled={loading || !documentType || !referenceId}
-        >
-          {loading ? <Spinner className="size-4" /> : <Send />}
-          {loading ? 'Génération...' : 'Générer'}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

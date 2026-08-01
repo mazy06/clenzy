@@ -5,7 +5,7 @@ import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Skeleton, Tooltip } from '@mui/material';
+import { Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Field, FieldLabel, Input, NativeSelect, NativeSelectOption } from '../../components/ui';
 import { Refresh, CurrencyExchange, TrendingUp } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -237,26 +237,31 @@ export default function ExchangeRateHistoryPage() {
 
           {stats && (
             <div className="flex gap-1.5 ms-auto">
-              <Tooltip title="Minimum sur la periode">
-                {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
-                    (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
-                <span className="inline-flex">
-                  <StatusChip tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={`Min: ${formatRate(stats.min)}`} />
-                </span>
+              {/* Le trigger enveloppe un <span> : Radix pose sa ref d'ancrage sur
+                  l'enfant, que StatusChip (composant fonction, React 18) ne transmet pas. */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <StatusChip tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={`Min: ${formatRate(stats.min)}`} />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Minimum sur la periode</TooltipContent>
               </Tooltip>
-              <Tooltip title="Maximum sur la periode">
-                {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
-                    (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
-                <span className="inline-flex">
-                  <StatusChip tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label={`Max: ${formatRate(stats.max)}`} />
-                </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <StatusChip tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label={`Max: ${formatRate(stats.max)}`} />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Maximum sur la periode</TooltipContent>
               </Tooltip>
-              <Tooltip title="Moyenne sur la periode">
-                {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
-                    (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
-                <span className="inline-flex">
-                  <StatusChip tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={`Moy: ${formatRate(stats.avg)}`} icon={<TrendingUp size={14} strokeWidth={1.75} />} />
-                </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <StatusChip tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={`Moy: ${formatRate(stats.avg)}`} icon={<TrendingUp size={14} strokeWidth={1.75} />} />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Moyenne sur la periode</TooltipContent>
               </Tooltip>
             </div>
           )}
@@ -287,7 +292,7 @@ export default function ExchangeRateHistoryPage() {
         {isLoading ? (
           <div className="flex flex-col gap-1.5 p-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+              <Skeleton key={i} className="h-[36px] w-full rounded-[9px]" />
             ))}
           </div>
         ) : (

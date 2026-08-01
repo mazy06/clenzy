@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Spinner, Button } from '../../components/ui';
-import { Paper, IconButton } from '@mui/material';
 import { cn } from '../../utils/cn';
 import { ChevronLeft as ChevronLeftIcon } from '../../icons';
 import { ChevronRight as ChevronRightIcon } from '../../icons';
@@ -16,14 +15,8 @@ import MinNightsEditDialog from './MinNightsEditDialog';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: 1.5,
-} as const;
+/** Surface de carte partagée : hairline, rayon 14, fond --card, padding 9px. */
+const CARD_CLASS = 'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-[9px]';
 
 const SOURCE_COLORS: Record<string, string> = {
   OVERRIDE: '#D98E8E',
@@ -249,19 +242,19 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
   return (
     <div className="flex flex-col gap-2 flex-1">
       {/* ── Month navigation ── */}
-      <Paper sx={CARD_SX}>
+      <div className={CARD_CLASS}>
         <div className="flex items-center justify-center gap-0.5">
-          <IconButton onClick={onPrevMonth} size="small">
+          <Button variant="ghost" size="icon-sm" onClick={onPrevMonth} aria-label={t('common.previous', 'Précédent')}>
             <ChevronLeftIcon size={20} strokeWidth={1.75} />
-          </IconButton>
+          </Button>
           <p className="cn-text-body2 font-semibold min-w-[140px] text-center capitalize text-[0.8125rem]">
             {formatMonth(currentMonth, isFrench)}
           </p>
-          <IconButton onClick={onNextMonth} size="small">
+          <Button variant="ghost" size="icon-sm" onClick={onNextMonth} aria-label={t('common.next', 'Suivant')}>
             <ChevronRightIcon size={20} strokeWidth={1.75} />
-          </IconButton>
+          </Button>
         </div>
-      </Paper>
+      </div>
 
       {/* ── No property selected — état vide standardisé ── */}
       {!selectedPropertyId && (
@@ -275,7 +268,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
 
       {/* ── Calendar grid ── */}
       {selectedPropertyId && (
-        <Paper sx={{ ...CARD_SX, position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div className={cn(CARD_CLASS, 'relative flex flex-1 flex-col')}>
           {calendarPricingLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-[color-mix(in_srgb,_var(--card)_70%,_transparent)] z-[2] rounded-[14px]">
               <Spinner className="size-7" />
@@ -361,20 +354,16 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
               {t('dynamicPricing.calendar.rangeHint', 'Cliquez-glissez pour sélectionner une plage')}
             </span>
           </div>
-        </Paper>
+        </div>
       )}
 
       {/* ── Selection action bar ── */}
       {selectedDates.length > 0 && (
-        <Paper
-          sx={{
-            ...CARD_SX,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            bgcolor: 'var(--accent-soft)',
-            borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)',
-          }}
+        <div
+          className={cn(
+            CARD_CLASS,
+            'flex items-center justify-between bg-[var(--accent-soft)] border-[color-mix(in_srgb,_var(--accent)_30%,_transparent)]',
+          )}
         >
           <p className="cn-text-body2 text-[0.8125rem] tabular-nums">
             {selectedDates.length} {t('common.date')}(s)
@@ -402,7 +391,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
               {t('dynamicPricing.calendar.editPrice')}
             </Button>
           </div>
-        </Paper>
+        </div>
       )}
 
       {/* Price edit dialog */}

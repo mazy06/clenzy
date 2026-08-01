@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, IconButton, Tooltip } from '@mui/material';
+import { Card, CardContent, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Payment as PaymentIcon,
@@ -203,7 +203,7 @@ const InterventionsPendingPayment: React.FC = () => {
       {/* ─── Tableau ───────────────────────────────────────────────────── */}
       {interventions.length === 0 ? (
         <Card>
-          <CardContent sx={{ textAlign: 'center', py: 6 }}>
+          <CardContent className="text-center py-9">
             <div className="w-[56px] h-[56px] rounded-[50%] bg-[var(--ok-soft)] text-[var(--ok)] flex items-center justify-center mx-auto mb-3">
               <PaymentIcon size={28} strokeWidth={1.5} />
             </div>
@@ -268,14 +268,23 @@ const InterventionsPendingPayment: React.FC = () => {
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-0.5">
-                      <Tooltip title="Voir les details">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
-                          sx={{ color: 'var(--muted)', '&:hover': { color: 'var(--ink)', backgroundColor: 'var(--hover)' } }}
-                        >
-                          <VisibilityIcon size={18} strokeWidth={1.75} />
-                        </IconButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Le span porte la ref que Radix pose sur son enfant :
+                              Button est une fonction, il n'en transmet pas. */}
+                          <span className="inline-flex">
+                            <BuiButton
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label="Voir les details"
+                              onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
+                              className="text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
+                            >
+                              <VisibilityIcon size={18} strokeWidth={1.75} />
+                            </BuiButton>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Voir les details</TooltipContent>
                       </Tooltip>
                       {/* « Payer » est repete par ligne mais reste l'action meme de l'ecran :
                           on garde la variante pleine plutot qu'une action de ligne discrete. */}

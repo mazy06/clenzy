@@ -2,7 +2,15 @@ import React, { useState } from 'react';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
-import { Box, Card, CardContent, FormControl, Select, MenuItem, Tooltip, alpha, type SxProps, type Theme } from '@mui/material';
+import {
+  Card,
+  CardContent,
+  NativeSelect,
+  NativeSelectOption,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import {
   VolumeUp,
   Warning,
@@ -44,22 +52,12 @@ const CHART_OVERLAY_CLASS =
   'absolute inset-0 flex items-center justify-center pointer-events-none p-3';
 
 // Pastille translucide qui porte le message sans masquer les axes alentour.
-const CHART_OVERLAY_PILL_SX: SxProps<Theme> = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: 0.5,
-  textAlign: 'center',
-  px: 2.5,
-  py: 1.5,
-  maxWidth: 320,
-  borderRadius: 2,
-  border: '1px solid',
-  borderColor: 'divider',
-  bgcolor: (t) => alpha(t.palette.background.paper, 0.86),
-  boxShadow: (t) => `0 6px 20px ${alpha(t.palette.common.black, 0.06)}`,
-  backdropFilter: 'blur(2px)',
-};
+// `background.paper` -> var(--card), `divider` -> var(--line) ; les alpha du sx
+// d'origine deviennent un color-mix et une ombre ecrite en clair.
+const CHART_OVERLAY_PILL_CLASS =
+  'flex flex-col items-center gap-0.5 text-center px-[15px] py-[9px] max-w-[320px] ' +
+  'rounded-[16px] border border-solid border-[var(--line)] backdrop-blur-[2px] ' +
+  'bg-[color-mix(in_srgb,var(--card)_86%,transparent)] shadow-[0_6px_20px_rgba(0,0,0,0.06)]';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -301,16 +299,8 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
   const recentAlerts = data.allAlerts.slice(0, 3);
 
   return (
-    <Card sx={{ height: '100%', width: '100%' }}>
-      <CardContent
-        sx={{
-          p: 1.25,
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          '&:last-child': { pb: 1.25 },
-        }}
-      >
+    <Card className="h-full w-full">
+      <CardContent className="p-[7.5px] h-full flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between mb-1 shrink-0">
           <div className="flex items-center gap-1">
@@ -322,22 +312,20 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
           </div>
 
           {!isDevice && (
-            <FormControl size="small" sx={{ minWidth: 130 }}>
-              <Select
-                value={selectedProperty}
-                onChange={(e) => setSelectedProperty(e.target.value)}
-                sx={{
-                  fontSize: '0.6875rem',
-                  height: 26,
-                  '& .MuiSelect-select': { py: 0.25, px: 1 },
-                }}
-              >
-                <MenuItem value="all" sx={{ fontSize: '0.75rem' }}>Tous les logements</MenuItem>
-                {propertyNames.map(name => (
-                  <MenuItem key={name} value={name} sx={{ fontSize: '0.75rem' }}>{name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            /* Filtre sans libelle visible (il jouxte le titre de la carte) :
+               l'aria-label reste la seule etiquette. */
+            <NativeSelect
+              size="sm"
+              className="min-w-[130px]"
+              aria-label="Filtrer par logement"
+              value={selectedProperty}
+              onChange={(e) => setSelectedProperty(e.target.value)}
+            >
+              <NativeSelectOption value="all">Tous les logements</NativeSelectOption>
+              {propertyNames.map(name => (
+                <NativeSelectOption key={name} value={name}>{name}</NativeSelectOption>
+              ))}
+            </NativeSelect>
           )}
         </div>
 
@@ -347,24 +335,23 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
           {data.properties.map((prop, idx) => {
             const status = getNoiseStatus(prop.currentLevel);
             return (
-              <Tooltip
-                key={prop.propertyId}
-                title={`Moy: ${prop.averageLevel} dB | Max: ${prop.maxLevel} dB`}
-                arrow
-              >
-                <div className="flex items-center gap-[3px] px-[4.5px] py-[1.5px] rounded-[8px] border border-solid" style={{ backgroundColor: `${PROPERTY_COLORS[idx % PROPERTY_COLORS.length]}10`, borderColor: `${PROPERTY_COLORS[idx % PROPERTY_COLORS.length]}30` }}>
-                  <div className="w-[6px] h-[6px] rounded-[50%]" style={{ backgroundColor: PROPERTY_COLORS[idx % PROPERTY_COLORS.length] }} />
-                  <p className="cn-text-body1 text-[0.625rem] font-semibold text-muted-foreground">
-                    {prop.propertyName}
-                  </p>
-                  <StatusChip
-                    size="sm"
-                    tone={status.tone}
-                    icon={status.icon}
-                    label={`${prop.currentLevel} dB`}
-                    className="text-[0.5625rem] [&>svg]:size-3"
-                  />
-                </div>
+              <Tooltip key={prop.propertyId}>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-[3px] px-[4.5px] py-[1.5px] rounded-[8px] border border-solid" style={{ backgroundColor: `${PROPERTY_COLORS[idx % PROPERTY_COLORS.length]}10`, borderColor: `${PROPERTY_COLORS[idx % PROPERTY_COLORS.length]}30` }}>
+                    <div className="w-[6px] h-[6px] rounded-[50%]" style={{ backgroundColor: PROPERTY_COLORS[idx % PROPERTY_COLORS.length] }} />
+                    <p className="cn-text-body1 text-[0.625rem] font-semibold text-muted-foreground">
+                      {prop.propertyName}
+                    </p>
+                    <StatusChip
+                      size="sm"
+                      tone={status.tone}
+                      icon={status.icon}
+                      label={`${prop.currentLevel} dB`}
+                      className="text-[0.5625rem] [&>svg]:size-3"
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>{`Moy: ${prop.averageLevel} dB | Max: ${prop.maxLevel} dB`}</TooltipContent>
               </Tooltip>
             );
           })}
@@ -449,19 +436,19 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
           {/* Overlay : chargement de l'historique réel (axes visibles derrière) */}
           {loading && (
             <div className={CHART_OVERLAY_CLASS}>
-              <Box sx={CHART_OVERLAY_PILL_SX}>
+              <div className={CHART_OVERLAY_PILL_CLASS}>
                 <Spinner className="size-[22px]" />
                 <span className="cn-text-caption text-muted-foreground font-semibold">
                   Chargement de l'historique…
                 </span>
-              </Box>
+              </div>
             </div>
           )}
 
           {/* Overlay : aucune mesure encore remontée (le graphique reste « amorcé ») */}
           {!loading && combinedChartData.length === 0 && (
             <div className={CHART_OVERLAY_CLASS}>
-              <Box sx={CHART_OVERLAY_PILL_SX}>
+              <div className={CHART_OVERLAY_PILL_CLASS}>
                 <span className="inline-flex text-primary">
                   <VolumeUp size={24} strokeWidth={1.5} />
                 </span>
@@ -471,7 +458,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
                 <span className="cn-text-caption text-muted-foreground leading-[1.4]">
                   Les courbes s'afficheront ici dès que le capteur remontera ses relevés.
                 </span>
-              </Box>
+              </div>
             </div>
           )}
         </div>

@@ -11,8 +11,13 @@ import {
   InputGroupAddon,
   InputGroupInput,
   InputGroupText,
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from '../../components/ui';
-import { FormHelperText, Chip, Tooltip, Popover } from '@mui/material';
 import {
   Timer,
   CalendarMonth,
@@ -98,9 +103,10 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
     // Date mode : 'checkout' (sélection depuis réservation) ou 'custom' (saisie libre)
     const [dateMode, setDateMode] = useState<'checkout' | 'custom'>('checkout');
 
-    // Popover pour édition de durée (admin)
-    const [durationAnchor, setDurationAnchor] = useState<HTMLElement | null>(null);
-    const durationOpen = Boolean(durationAnchor);
+    // Popover pour édition de durée (admin). Le popover du kit s'ancre sur un
+    // element enfant (PopoverAnchor) et non sur un anchorEl : l'etat n'a plus
+    // besoin de porter le noeud DOM, un booleen suffit.
+    const [durationOpen, setDurationOpen] = useState(false);
     const [durationInputValue, setDurationInputValue] = useState('');
 
     // Dates de checkout triées (futures uniquement)
@@ -183,9 +189,9 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                     })}
                   </div>
                   {fieldState.error && (
-                    <FormHelperText error sx={{ mt: 0.5 }}>
+                    <FieldError className="mt-[3px]">
                       {fieldState.error.message}
-                    </FormHelperText>
+                    </FieldError>
                   )}
                 </div>
               )}
@@ -205,14 +211,29 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                 const displayLabel = formatDurationMins(currentMins);
                 const canEdit = isAdminOrManager && !disabled;
 
+                const commitDuration = () => {
+                  const parsed = parseInt(durationInputValue, 10);
+                  if (!isNaN(parsed) && parsed > 0) {
+                    field.onChange(minsToHours(parsed));
+                  }
+                };
+
                 return (
                   <div>
-                    {/* Chip durée */}
-                    {/* Ancre du Popover : `e.currentTarget` (element DOM), le <div> convient. */}
+                  <Popover
+                    open={durationOpen}
+                    onOpenChange={(next) => {
+                      // Valider la saisie a la fermeture (Echap, clic exterieur).
+                      if (!next) commitDuration();
+                      setDurationOpen(next);
+                    }}
+                  >
+                    {/* Chip durée — sert d'ancre au popover */}
+                    <PopoverAnchor asChild>
                     <div
-                      onClick={canEdit ? (e: React.MouseEvent<HTMLElement>) => {
+                      onClick={canEdit ? () => {
                         setDurationInputValue(String(currentMins));
-                        setDurationAnchor(e.currentTarget);
+                        setDurationOpen(true);
                       } : undefined}
                       className={cn(
                         'inline-flex items-center gap-[4.5px] py-[4.5px] px-[9px] rounded-[11px]',
@@ -235,32 +256,22 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                       {canEdit ? (
                         <span className="inline-flex text-[var(--accent)] ms-auto"><EditIcon size={13} strokeWidth={1.75} /></span>
                       ) : (
-                        <Tooltip title="Calculée automatiquement, modifiable par un manager" arrow>
-                          <span className="inline-flex text-[var(--faint)] ms-auto"><Lock size={13} strokeWidth={1.75} /></span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex text-[var(--faint)] ms-auto"><Lock size={13} strokeWidth={1.75} /></span>
+                          </TooltipTrigger>
+                          <TooltipContent>Calculée automatiquement, modifiable par un manager</TooltipContent>
                         </Tooltip>
                       )}
                     </div>
+                    </PopoverAnchor>
 
                     {/* Popover champ édition durée (admin/manager uniquement) */}
-                    <Popover
-                      open={durationOpen}
-                      anchorEl={durationAnchor}
-                      onClose={() => {
-                        // Valider la saisie à la fermeture
-                        const parsed = parseInt(durationInputValue, 10);
-                        if (!isNaN(parsed) && parsed > 0) {
-                          field.onChange(minsToHours(parsed));
-                        }
-                        setDurationAnchor(null);
-                      }}
-                      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                      transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                      slotProps={{
-                        // Skin popover global (hairline r12 + --shadow-pop) — seulement la géométrie locale.
-                        paper: {
-                          sx: { mt: 0.5, p: 2, minWidth: 220 },
-                        },
-                      }}
+                    <PopoverContent
+                      align="start"
+                      side="bottom"
+                      sideOffset={3}
+                      className="p-3 min-w-[220px]"
                     >
                       <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1.5">
                         Modifier la durée
@@ -276,11 +287,8 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                             onChange={(e) => setDurationInputValue(e.target.value)}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
-                                const parsed = parseInt(durationInputValue, 10);
-                                if (!isNaN(parsed) && parsed > 0) {
-                                  field.onChange(minsToHours(parsed));
-                                }
-                                setDurationAnchor(null);
+                                commitDuration();
+                                setDurationOpen(false);
                               }
                             }}
                             placeholder="Ex : 240"
@@ -300,12 +308,13 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                             : 'Saisissez la durée en minutes'}
                         </FieldDescription>
                       </Field>
-                    </Popover>
+                    </PopoverContent>
+                  </Popover>
 
                     {fieldState.error && (
-                      <FormHelperText error sx={{ mt: 0.5 }}>
+                      <FieldError className="mt-[3px]">
                         {fieldState.error.message}
-                      </FormHelperText>
+                      </FieldError>
                     )}
                     {!isAdminOrManager && (
                       <p className="cn-text-body1 text-[10px] text-[var(--faint)] italic mt-0.5">
@@ -428,9 +437,9 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                     </Field>
                   )}
                   {fieldState.error && dateMode === 'checkout' && (
-                    <FormHelperText error sx={{ mt: 0.5 }}>
+                    <FieldError className="mt-[3px]">
                       {fieldState.error.message}
-                    </FormHelperText>
+                    </FieldError>
                   )}
                 </div>
               )}

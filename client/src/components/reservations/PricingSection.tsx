@@ -1,7 +1,7 @@
 import React from 'react';
 import { Spinner } from '../ui';
 import { Field, FieldLabel, Input, InputGroup, InputGroupInput, InputGroupAddon } from '../ui';
-import { Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui';
 import { Edit as EditIcon, RemoveCircleOutline as MinusCircleIcon, Percent } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
@@ -91,8 +91,13 @@ const PricingSection: React.FC<Props> = ({ form }) => {
       {/* Base /nuit (dynamique, lecture seule) + override */}
       <div className="grid grid-cols-[1fr_1fr] gap-3">
         {form.priceVaries ? (
-          <Tooltip title={nightBreakdown} arrow placement="top">
-            <div>{baseField}</div>
+          <Tooltip>
+            {/* Le trigger enveloppe le <div> (element hote) : Radix y pose sa ref
+                d'ancrage, ce qu'un composant fonction React 18 ne peut recevoir. */}
+            <TooltipTrigger asChild>
+              <div>{baseField}</div>
+            </TooltipTrigger>
+            <TooltipContent side="top">{nightBreakdown}</TooltipContent>
           </Tooltip>
         ) : (
           baseField

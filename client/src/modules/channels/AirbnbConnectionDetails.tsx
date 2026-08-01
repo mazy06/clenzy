@@ -1,9 +1,7 @@
 import React from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Paper } from '@mui/material';
 import type { AirbnbConnectionStatus } from '../../services/api/airbnbApi';
-import { CARD_SX } from './channelsPageConstants';
 
 // Logo import (utilise dans la section "connecte" Airbnb)
 import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.svg';
@@ -20,7 +18,8 @@ const AirbnbConnectionDetails: React.FC<AirbnbConnectionDetailsProps> = ({
   dateLocale,
   t,
 }) => (
-  <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
+  // Report en classes de `CARD_SX` + mb: 1.5 (p: 2 = 12 px, mb: 1.5 = 9 px).
+  <div className="border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] p-3 mb-[9px] shadow-none">
     <div className="flex items-center gap-1.5 mb-2">
       <img className="h-[18px]" src={airbnbLogoSmall} alt="Airbnb" />
       <p className="cn-text-body1 text-[0.875rem] font-bold">
@@ -48,7 +47,7 @@ const AirbnbConnectionDetails: React.FC<AirbnbConnectionDetailsProps> = ({
         </Alert>
       )}
     </div>
-  </Paper>
+  </div>
 );
 
 export default AirbnbConnectionDetails;

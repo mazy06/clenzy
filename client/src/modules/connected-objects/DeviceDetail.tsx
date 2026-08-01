@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { Skeleton } from '@mui/material';
+import { Skeleton } from '../../components/ui';
 import { Button } from '../../components/ui';
 import { MonitorHeart, BatteryAlert, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
@@ -39,8 +39,8 @@ export default function DeviceDetail() {
   if (loading && !device) {
     return (
       <div>
-        <Skeleton variant="rounded" height={64} sx={{ mb: 2, borderRadius: 'var(--radius-lg)' }} />
-        <Skeleton variant="rounded" height={360} sx={{ borderRadius: 'var(--radius-lg)' }} />
+        <Skeleton className="h-16 w-full mb-3 rounded-[var(--radius-lg)]" />
+        <Skeleton className="h-[360px] w-full rounded-[var(--radius-lg)]" />
       </div>
     );
   }

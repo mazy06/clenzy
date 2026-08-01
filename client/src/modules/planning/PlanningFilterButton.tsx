@@ -1,5 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { IconButton, Popover, Divider, Badge, Tooltip } from '@mui/material';
+import {
+  Button,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  Separator,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
   AttachMoney,
@@ -120,8 +129,9 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
   activeStatuses,
   onToggleStatus,
 }) => {
-  const [filterAnchor, setFilterAnchor] = useState<HTMLElement | null>(null);
-  const filterOpen = Boolean(filterAnchor);
+  // Le popover du kit s'ancre sur son trigger : un booleen suffit, l'element
+  // anchor n'a plus a etre porte par l'etat.
+  const [filterOpen, setFilterOpen] = useState(false);
 
   // Badge de l'entonnoir : nombre de filtres actifs (toutes catégories).
   // Un canal/statut désélectionné = un filtre actif, où qu'il soit affiché.
@@ -144,60 +154,58 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
   const isCompactDensity = density === 'compact';
 
   return (
-    <>
-      <Tooltip title="Filtres" arrow>
-        <IconButton
-          aria-label="Filtres"
-          onClick={(e) => setFilterAnchor(e.currentTarget)}
-          sx={{ color: filterOpen || activeFilterCount > 0 ? 'var(--accent)' : undefined }}
-        >
-          <Badge
-            badgeContent={activeFilterCount}
-            sx={{
-              '& .MuiBadge-badge': {
-                fontSize: '0.5rem',
-                height: 12,
-                minWidth: 12,
-                backgroundColor: 'var(--accent)',
-                color: 'var(--on-accent)',
-              },
-            }}
-          >
-            <FilterListIcon size={18} strokeWidth={1.85} />
-          </Badge>
-        </IconButton>
+    <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            {/* Le kit ne transmet pas de ref (React 18) : le span porte celle
+                que Radix pose pour l'ancrage et le declencheur d'infobulle. */}
+            <span className="inline-flex">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Filtres"
+                className={cn(
+                  'relative',
+                  (filterOpen || activeFilterCount > 0) && 'text-[var(--accent)]',
+                )}
+              >
+                <FilterListIcon size={18} strokeWidth={1.85} />
+                {activeFilterCount > 0 && (
+                  <span className="absolute top-1 end-1 inline-flex items-center justify-center min-w-3 h-3 px-[3px] rounded-full bg-[var(--accent)] text-[var(--on-accent)] text-[0.5rem] font-semibold leading-none tabular-nums">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </Button>
+            </span>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent>Filtres</TooltipContent>
       </Tooltip>
 
       {/* Filter popover */}
-      <Popover
-        open={filterOpen}
-        anchorEl={filterAnchor}
-        onClose={() => setFilterAnchor(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        slotProps={{
-          paper: {
-            sx: {
-              mt: 1,
-              p: 2,
-              minWidth: 300,
-              maxWidth: 360,
-              borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--line-2)',
-              backgroundColor: 'var(--card)',
-              boxShadow: 'var(--shadow-pop)',
-            },
-          },
-        }}
+      <PopoverContent
+        align="end"
+        sideOffset={6}
+        className="w-auto min-w-[300px] max-w-[360px] p-3 rounded-[var(--radius-lg)] border border-solid border-[var(--line-2)] bg-[var(--card)] shadow-[var(--shadow-pop)]"
       >
+        {/* Un seul enfant : le `gap` en colonne du primitif ne s'applique alors
+            a rien, et les marges d'origine des sections restent la reference. */}
+        <div>
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <h6 className="cn-text-subtitle2 font-[family-name:var(--font-display)] font-semibold text-[0.8125rem] text-[var(--ink)]">
             Filtres
           </h6>
-          <IconButton size="small" onClick={() => setFilterAnchor(null)} sx={{ p: 0.25, color: 'var(--faint)', '&:hover': { color: 'var(--ink)', backgroundColor: 'var(--hover)' } }}>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Fermer"
+            onClick={() => setFilterOpen(false)}
+            className="text-[var(--faint)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
+          >
             <CloseIcon size={16} strokeWidth={1.75} />
-          </IconButton>
+          </Button>
         </div>
 
         {/* Chips légende (canaux + statuts) — uniquement quand la toolbar ne les
@@ -218,7 +226,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
               </div>
             </div>
 
-            <Divider sx={{ mb: 2, borderColor: 'var(--line)' }} />
+            <Separator className="mb-3 bg-[var(--line)]" />
 
             <div className="mb-3">
               <span className={cn(OVERLINE_CLASS, 'cn-text-overline')}>
@@ -233,7 +241,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
               </div>
             </div>
 
-            <Divider sx={{ mb: 2, borderColor: 'var(--line)' }} />
+            <Separator className="mb-3 bg-[var(--line)]" />
           </>
         )}
 
@@ -291,14 +299,15 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
           <div className="mt-2 pt-2 border-t border-[var(--line)]">
             <span className="cn-text-caption text-[var(--err)] cursor-pointer font-semibold text-[0.75rem] hover:decoration-[underline]" onClick={() => {
                 onClearFilters();
-                setFilterAnchor(null);
+                setFilterOpen(false);
               }}>
               Effacer tous les filtres
             </span>
           </div>
         )}
-      </Popover>
-    </>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };
 

@@ -1,7 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Button } from '../../../components/ui';
-import { Alert, Tooltip } from '@mui/material';
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  Button,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
   Archive as ArchiveIcon,
   AutoAwesome as SparklesIcon,
@@ -250,22 +258,21 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
                 </div>
               )}
               {whatsappWindowExpired && (
-                <Alert
-                  severity="warning"
-                  sx={{ borderRadius: 0, fontSize: '0.72rem', py: 0.25, alignItems: 'center' }}
-                  action={
-                    conv.reservationId ? (
-                      // `color="inherit"` : la teinte vient de l'alerte hote, donc
-                      // aucune couleur posee ici — ghost herite du contexte.
+                <Alert variant="warning" className="rounded-none items-center text-[0.72rem] py-[1.5px]">
+                  <TriangleAlert />
+                  <AlertDescription>
+                    {t(
+                      'messagingHub.whatsappWindowExpired',
+                      'Fenêtre de 24h dépassée — un template est requis pour relancer ce voyageur.',
+                    )}
+                  </AlertDescription>
+                  {conv.reservationId && (
+                    <AlertAction>
+                      {/* Aucune couleur posee : le ghost herite de la teinte de l'alerte hote. */}
                       <Button variant="ghost" size="sm" onClick={() => setTemplateOpen(true)}>
                         {t('messagingHub.sendTemplateShort', 'Envoyer un template')}
                       </Button>
-                    ) : undefined
-                  }
-                >
-                  {t(
-                    'messagingHub.whatsappWindowExpired',
-                    'Fenêtre de 24h dépassée — un template est requis pour relancer ce voyageur.',
+                    </AlertAction>
                   )}
                 </Alert>
               )}
@@ -274,22 +281,22 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
         }
         composeTools={
           lastInbound && !whatsappWindowExpired ? (
-            <Tooltip
-              title={
-                aiSuggestMutation.isError
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleAiSuggest}
+                  disabled={aiSuggestMutation.isPending}
+                  aria-label={t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')}
+                  className={COMPOSE_TOOL_CLASS}
+                >
+                  <SparklesIcon size={15} strokeWidth={1.75} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {aiSuggestMutation.isError
                   ? t('messagingHub.aiUnavailable', 'Suggestion IA indisponible')
-                  : t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')
-              }
-              arrow
-            >
-              <button
-                onClick={handleAiSuggest}
-                disabled={aiSuggestMutation.isPending}
-                aria-label={t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')}
-                className={COMPOSE_TOOL_CLASS}
-              >
-                <SparklesIcon size={15} strokeWidth={1.75} />
-              </button>
+                  : t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')}
+              </TooltipContent>
             </Tooltip>
           ) : undefined
         }

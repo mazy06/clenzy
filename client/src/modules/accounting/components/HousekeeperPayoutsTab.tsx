@@ -14,7 +14,17 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Paper, IconButton, Tooltip, Link, Dialog, DialogTitle, DialogContent, DialogActions, Skeleton } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Skeleton,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { Link as RouterLink } from 'react-router-dom';
 import { Build as RetryIcon, AccountBalance as PayoutIcon } from '../../../icons';
@@ -35,12 +45,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PagePagination from '../../../components/PagePagination';
 
 // Cartes/tableaux : hairline --line, r14, pas d'ombre (baseline §2, aligné AccountingPage).
-const CARD_SX = {
-  border: '1px solid var(--line)',
-  boxShadow: 'none',
-  borderRadius: 'var(--radius-lg)',
-  bgcolor: 'var(--card)',
-} as const;
+const CARD_CLASS =
+  'border border-solid border-[var(--line)] rounded-[var(--radius-lg)] bg-[var(--card)]';
 
 // Chip statut sobre (pattern softChipSx AccountingPage) : texte couleur + fond 9 %.
 const softChipSx = (color: string) => ({
@@ -142,7 +148,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
       {helpAction}
 
       {/* ── Filtre statut ── */}
-      <Paper sx={{ ...CARD_SX, p: 2, mb: 1.5, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className={cn(CARD_CLASS, 'p-3 mb-[9px] flex gap-3 items-center flex-wrap')}>
         <FilterChipRow
           options={STATUS_VALUES.map((v) => ({
             value: v,
@@ -154,7 +160,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
           allLabel={t('common.all', 'Tous')}
           size="compact"
         />
-      </Paper>
+      </div>
 
       {/* ── Feedback relance ── */}
       {retryMutation.isSuccess && (
@@ -185,7 +191,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
       {isLoading ? (
         <div className="flex flex-col gap-1.5">
           {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} variant="rounded" height={44} sx={{ borderRadius: 'var(--radius-sm)' }} />
+            <Skeleton key={i} className="h-11 w-full rounded-[var(--radius-sm)]" />
           ))}
         </div>
       ) : isError ? (
@@ -227,13 +233,12 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                   <TableRow key={r.id} data-highlight-id={String(r.id)}>
                     <TableCell className="py-[7.5px] tabular-nums">{providerName(r)}</TableCell>
                     <TableCell className="py-[7.5px] tabular-nums">
-                      <Link
-                        component={RouterLink}
+                      <RouterLink
                         to={`/interventions/${r.interventionId}`}
-                        sx={{ fontSize: '12.5px', color: 'var(--accent)', textDecoration: 'none', fontVariantNumeric: 'tabular-nums', '&:hover': { textDecoration: 'underline' } }}
+                        className="text-[12.5px] text-[var(--accent)] no-underline tabular-nums hover:underline"
                       >
                         {t('accounting.housekeeperPayouts.missionRef', 'Mission')} #{r.interventionId}
-                      </Link>
+                      </RouterLink>
                     </TableCell>
                     <TableCell className="py-[7.5px] tabular-nums text-end font-bold">{fmtCurrency(r.amount)}</TableCell>
                     <TableCell className="py-[7.5px] tabular-nums text-end">
@@ -243,10 +248,13 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                       <div className="inline-flex items-center gap-0.5">
                         <StatusChip color={STATUS_COLORS[r.status]} label={t(`accounting.housekeeperPayouts.statuses.${r.status}`, r.status)} />
                         {showReason && (
-                          <Tooltip title={reason as string}>
-                            <span className="cn-text-body1 text-[0.6875rem] text-[var(--warn)] cursor-help">
-                              ({reason})
-                            </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cn-text-body1 text-[0.6875rem] text-[var(--warn)] cursor-help">
+                                ({reason})
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>{reason}</TooltipContent>
                           </Tooltip>
                         )}
                       </div>
@@ -254,19 +262,28 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                     <TableCell className="py-[7.5px] tabular-nums text-[0.75rem]">{fmtDate(r.createdAt)}</TableCell>
                     <TableCell className="text-end whitespace-nowrap">
                       {RETRYABLE.includes(r.status) && (
-                        <Tooltip title={t('accounting.housekeeperPayouts.retry', 'Relancer le versement')}>
-                          <span>
-                            <IconButton
-                              size="small"
-                              color="warning"
-                              onClick={() => setRetryTarget(r)}
-                              disabled={retryMutation.isPending}
-                            >
-                              {retryMutation.isPending && retryMutation.variables === r.id
-                                ? <Spinner className="size-3.5" />
-                                : <RetryIcon size={'1rem'} strokeWidth={1.75} />}
-                            </IconButton>
-                          </span>
+                        <Tooltip>
+                          {/* Le trigger enveloppe un <span> (element hote) : Radix y pose
+                              sa ref d'ancrage, qu'un composant fonction ne peut recevoir. */}
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <BuiButton
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-[var(--warn)]"
+                                aria-label={t('accounting.housekeeperPayouts.retry', 'Relancer le versement')}
+                                onClick={() => setRetryTarget(r)}
+                                disabled={retryMutation.isPending}
+                              >
+                                {retryMutation.isPending && retryMutation.variables === r.id
+                                  ? <Spinner className="size-3.5" />
+                                  : <RetryIcon size={'1rem'} strokeWidth={1.75} />}
+                              </BuiButton>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {t('accounting.housekeeperPayouts.retry', 'Relancer le versement')}
+                          </TooltipContent>
                         </Tooltip>
                       )}
                     </TableCell>
@@ -287,9 +304,11 @@ export const HousekeeperPayoutsTab: React.FC = () => {
       )}
 
       {/* ── Confirmation de relance (money-path) ── */}
-      <Dialog open={!!retryTarget} onClose={() => setRetryTarget(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('accounting.housekeeperPayouts.retryTitle', 'Relancer le versement')}</DialogTitle>
-        <DialogContent sx={{ pt: '16px !important' }}>
+      <Dialog open={!!retryTarget} onOpenChange={(next) => { if (!next) setRetryTarget(null); }}>
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>{t('accounting.housekeeperPayouts.retryTitle', 'Relancer le versement')}</DialogTitle>
+          </DialogHeader>
           {retryTarget && (
             <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground">
               {t(
@@ -299,22 +318,22 @@ export const HousekeeperPayoutsTab: React.FC = () => {
               )}
             </p>
           )}
+          <DialogFooter>
+            <BuiButton variant="ghost" size="sm" onClick={() => setRetryTarget(null)}>
+              {t('common.cancel', 'Annuler')}
+            </BuiButton>
+            {/* Relance d'un versement (money-path) : le `color="warning"` d'origine
+                se reporte en outline teinte --warn, faute de variante dediee. */}
+            <BuiButton
+              variant="outline"
+              size="sm"
+              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              onClick={handleConfirmRetry}
+            >
+              {t('accounting.housekeeperPayouts.retryConfirmBtn', 'Relancer')}
+            </BuiButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <BuiButton variant="ghost" size="sm" onClick={() => setRetryTarget(null)}>
-            {t('common.cancel', 'Annuler')}
-          </BuiButton>
-          {/* Relance d'un versement (money-path) : le `color="warning"` d'origine
-              se reporte en outline teinte --warn, faute de variante dediee. */}
-          <BuiButton
-            variant="outline"
-            size="sm"
-            className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
-            onClick={handleConfirmRetry}
-          >
-            {t('accounting.housekeeperPayouts.retryConfirmBtn', 'Relancer')}
-          </BuiButton>
-        </DialogActions>
       </Dialog>
     </>
   );

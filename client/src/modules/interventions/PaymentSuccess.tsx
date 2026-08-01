@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Alert, AlertDescription, Button } from '../../components/ui';
+import { Alert, AlertDescription, Button, Card, CardContent, Progress } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CircularProgress, LinearProgress } from '@mui/material';
 import { CheckCircle, ArrowBack, HourglassTop, ErrorOutline } from "../../icons";
 import { paymentsApi } from '../../services/api/paymentsApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -76,8 +75,8 @@ const PaymentSuccess: React.FC = () => {
   if (loading) {
     return (
       <div className="max-w-[500px] mx-auto mt-9">
-        <Card>
-          <CardContent sx={{ textAlign: 'center', p: 4 }}>
+        <Card className="[--card-spacing:24px]">
+          <CardContent className="text-center">
             {/* `motion-safe:` porte l'animation entiere plutot que `motion-reduce:animate-none` :
                 pas de course d'ordre entre l'utilitaire et la surcharge de duree. */}
             <span className="inline-flex text-[var(--accent)] mb-3 motion-safe:animate-spin motion-safe:[animation-duration:2s]">
@@ -89,10 +88,9 @@ const PaymentSuccess: React.FC = () => {
             <p className="cn-text-body2 text-muted-foreground mb-4">
               Confirmation en cours aupres de Stripe ({attempt}/{MAX_ATTEMPTS})
             </p>
-            <LinearProgress
-              variant="determinate"
+            <Progress
               value={(attempt / MAX_ATTEMPTS) * 100}
-              sx={{ borderRadius: 1, height: 6 }}
+              className="h-[6px] rounded-[8px]"
             />
           </CardContent>
         </Card>
@@ -102,8 +100,8 @@ const PaymentSuccess: React.FC = () => {
 
   return (
     <div className="max-w-[500px] mx-auto mt-9">
-      <Card>
-        <CardContent sx={{ textAlign: 'center', p: 4 }}>
+      <Card className="[--card-spacing:24px]">
+        <CardContent className="text-center">
           {error ? (
             <>
               <span className="inline-flex text-[var(--err)] mb-3"><ErrorOutline size={64} strokeWidth={1.5} /></span>

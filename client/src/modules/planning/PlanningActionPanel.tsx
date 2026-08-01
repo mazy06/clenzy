@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo } from 'react';
-import { Drawer, IconButton, useTheme } from '@mui/material';
+// Le Drawer `variant="persistent"` reste MUI : les tiroirs du kit (Sheet, Drawer)
+// sont modaux — voile, piege de focus, page derriere inerte — alors que le
+// planning doit rester manipulable pendant que le panneau est ouvert.
+import { Drawer, useTheme } from '@mui/material';
+import { Button } from '../../components/ui';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -369,23 +373,15 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
             {formatStayRange(event.startDate, event.endDate)}
           </span>
         </div>
-        <IconButton
-          size="small"
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={onClose}
           aria-label="Fermer"
-          sx={{
-            flexShrink: 0,
-            width: 30,
-            height: 30,
-            border: '1px solid var(--line-2)',
-            borderRadius: '50%',
-            color: 'var(--muted)',
-            transition: 'color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out)',
-            '&:hover': { color: 'var(--ink)', backgroundColor: 'var(--hover)' },
-          }}
+          className="size-[30px] rounded-full border border-solid border-[var(--line-2)] text-[var(--muted)] transition-[color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
         >
           <Close size={14} strokeWidth={1.75} />
-        </IconButton>
+        </Button>
       </div>
 
       {/* ─── Onglets niveau 1 (soulignés accent, style PageTabs) ──────── */}

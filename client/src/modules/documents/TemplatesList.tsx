@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 import { Alert, AlertDescription, AlertAction, Button } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { IconButton, Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import {
   Delete,
@@ -140,34 +140,38 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
                 </span>
                 <div className="flex gap-0.5">
                   {!t.active && (
-                    <Tooltip title="Activer" arrow>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleActivate(t.id)}
-                        aria-label="Activer"
-                        sx={{
-                          cursor: 'pointer',
-                          color: 'var(--muted)',
-                          '&:hover': { color: 'var(--ok)', backgroundColor: 'var(--ok-soft)' },
-                        }}
-                      >
-                        <CheckCircle size={16} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleActivate(t.id)}
+                            aria-label="Activer"
+                            className="cursor-pointer text-[var(--muted)] hover:text-[var(--ok)] hover:bg-[var(--ok-soft)]"
+                          >
+                            <CheckCircle size={16} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Activer</TooltipContent>
                     </Tooltip>
                   )}
-                  <Tooltip title="Supprimer" arrow>
-                    <IconButton
-                      size="small"
-                      onClick={() => setDeleteTarget({ id: t.id, name: t.name })}
-                      aria-label="Supprimer"
-                      sx={{
-                        cursor: 'pointer',
-                        color: 'var(--muted)',
-                        '&:hover': { color: 'var(--err)', backgroundColor: 'var(--err-soft)' },
-                      }}
-                    >
-                      <Delete size={16} strokeWidth={1.75} />
-                    </IconButton>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => setDeleteTarget({ id: t.id, name: t.name })}
+                          aria-label="Supprimer"
+                          className="cursor-pointer text-[var(--muted)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+                        >
+                          <Delete size={16} strokeWidth={1.75} />
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Supprimer</TooltipContent>
                   </Tooltip>
                 </div>
               </div>

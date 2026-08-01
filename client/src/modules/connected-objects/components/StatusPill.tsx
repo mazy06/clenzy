@@ -1,4 +1,3 @@
-import { Box } from '@mui/material';
 import { STATUS_TOKENS } from '../deviceRegistry';
 import type { DeviceStatusLevel } from '../types';
 
@@ -18,26 +17,19 @@ export default function StatusPill({ level, label, pulse = false }: StatusPillPr
   const { color, soft } = STATUS_TOKENS[level];
   return (
     <div className="inline-flex items-center gap-[3.75px] px-[5.25px] py-[1.5px] rounded-[var(--radius-pill)] max-w-full" style={{ backgroundColor: soft }}>
-      <Box
-        component="span"
-        sx={{
-          width: 7,
-          height: 7,
-          borderRadius: '50%',
-          bgcolor: color,
-          flexShrink: 0,
-          ...(pulse && level === 'ok' && {
-            boxShadow: `0 0 0 0 color-mix(in srgb, ${color} 60%, transparent)`,
-            animation: 'clz-pulse-dot 2s infinite',
-            '@keyframes clz-pulse-dot': {
-              '0%': { boxShadow: `0 0 0 0 color-mix(in srgb, ${color} 50%, transparent)` },
-              '70%': { boxShadow: `0 0 0 5px color-mix(in srgb, ${color} 0%, transparent)` },
-              '100%': { boxShadow: `0 0 0 0 color-mix(in srgb, ${color} 0%, transparent)` },
-            },
-            '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-          }),
-        }}
-      />
+      {/* Le halo pulse passait par des @keyframes emises par MUI. Ici : un calque
+          `animate-ping` derriere le point — meme lecture (onde qui s'evanouit),
+          sans keyframes ad hoc, et desactive si l'utilisateur prefere moins
+          d'animation. */}
+      <span className="relative inline-flex w-[7px] h-[7px] shrink-0">
+        {pulse && level === 'ok' && (
+          <span
+            className="absolute inset-0 rounded-[50%] opacity-60 animate-ping motion-reduce:animate-none"
+            style={{ backgroundColor: color }}
+          />
+        )}
+        <span className="relative inline-flex w-[7px] h-[7px] rounded-[50%]" style={{ backgroundColor: color }} />
+      </span>
       {/* couleur resolue a l'execution depuis STATUS_TOKENS : passe par style, pas par une classe */}
       <span className="cn-text-caption font-semibold leading-[1.2] truncate" style={{ color }}>
         {label}

@@ -16,8 +16,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
-import { Button, Spinner } from '../../../components/ui';
-import { IconButton, Stack, Skeleton, Tooltip } from '@mui/material';
+import {
+  Button,
+  Skeleton,
+  Spinner,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   AlertCircle,
   AlertTriangle,
@@ -148,10 +154,10 @@ export default function ChannexHealthSummaryPanel({
   if (loading && !summary) {
     return (
       <div className="border border-[var(--line)] rounded-[1px] p-2">
-        <Stack spacing={1}>
-          <Skeleton variant="rounded" height={32} />
-          <Skeleton variant="rounded" height={48} />
-        </Stack>
+        <div className="flex flex-col gap-1.5">
+          <Skeleton className="h-[32px] w-full rounded-[8px]" />
+          <Skeleton className="h-[48px] w-full rounded-[8px]" />
+        </div>
       </div>
     );
   }
@@ -207,23 +213,28 @@ export default function ChannexHealthSummaryPanel({
             );
           })}
         </div>
-        <Tooltip title="Rafraichir" arrow placement="top">
-          <span>
-            <IconButton
-              size="small"
-              disabled={loading}
-              onClick={() => void fetchSummary()}
-              sx={{ width: 24, height: 24, ml: 0.25 }}
-            >
-              {loading ? <Spinner className="size-3" /> : <RefreshCw size={12} strokeWidth={2.2} />}
-            </IconButton>
-          </span>
+        <Tooltip>
+          {/* Le bouton peut etre desactive : l'ancre du tooltip reste le span. */}
+          <TooltipTrigger asChild>
+            <span className="inline-flex ms-[1.5px]">
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label="Rafraichir"
+                disabled={loading}
+                onClick={() => void fetchSummary()}
+              >
+                {loading ? <Spinner className="size-3" /> : <RefreshCw size={12} strokeWidth={2.2} />}
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">Rafraichir</TooltipContent>
         </Tooltip>
       </div>
 
       {/* Liste des items meritant attention */}
       {summary.attentionItems.length > 0 && (
-        <Stack spacing={0.65}>
+        <div className="flex flex-col gap-1">
           {visibleItems.map((item) => (
             <AttentionRow
               key={`${item.clenzyPropertyId}-${item.severity}`}
@@ -238,7 +249,7 @@ export default function ChannexHealthSummaryPanel({
               Voir {hiddenCount} item{hiddenCount > 1 ? 's' : ''} de plus
             </Button>
           )}
-        </Stack>
+        </div>
       )}
     </div>
   );

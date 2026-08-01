@@ -1,6 +1,13 @@
 import React, { useMemo } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
-import { Button } from '../../../components/ui';
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../../components/ui';
 import { Warning as AlertIcon } from '../../../icons';
 import type { PendingToolConfirmation } from '../../../hooks/useAgent';
 
@@ -36,22 +43,25 @@ export const ToolConfirmationDialog: React.FC<ToolConfirmationDialogProps> = ({
   if (!pending) return null;
 
   return (
-    <Dialog open onClose={onCancel} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-        <div className="w-[32px] h-[32px] rounded-[9px] flex items-center justify-center bg-[var(--warn-soft)] text-[var(--warn)] shrink-0">
-          <AlertIcon size={16} strokeWidth={2} />
+    <Dialog open onOpenChange={(next) => { if (!next) onCancel(); }}>
+      <DialogContent className="max-w-[600px]">
+      <DialogHeader>
+        <div className="flex items-center gap-1.5">
+          <div className="w-[32px] h-[32px] rounded-[9px] flex items-center justify-center bg-[var(--warn-soft)] text-[var(--warn)] shrink-0">
+            <AlertIcon size={16} strokeWidth={2} />
+          </div>
+          <div>
+            <DialogTitle className="block leading-[1.2]">
+              Confirmer l&apos;action
+            </DialogTitle>
+            <DialogDescription className="text-[var(--muted)] font-mono text-[11px] font-medium">
+              {pending.toolName}
+            </DialogDescription>
+          </div>
         </div>
-        <div>
-          <span className="block leading-[1.2]">
-            Confirmer l&apos;action
-          </span>
-          <span className="text-[var(--muted)] font-mono text-[11px] font-medium">
-            {pending.toolName}
-          </span>
-        </div>
-      </DialogTitle>
+      </DialogHeader>
 
-      <DialogContent>
+      <div>
         <p className="cn-text-body1 mb-3 text-[13px] leading-[1.55] text-[var(--muted)]">
           {pending.toolDescription}
         </p>
@@ -76,16 +86,17 @@ export const ToolConfirmationDialog: React.FC<ToolConfirmationDialogProps> = ({
             Pas d&apos;argument structure (le LLM execute sans parametre).
           </p>
         )}
-      </DialogContent>
+      </div>
 
-      <DialogActions>
+      <DialogFooter>
         <Button variant="ghost" onClick={onCancel}>
           Refuser
         </Button>
         <Button variant="default" onClick={onConfirm}>
           Executer
         </Button>
-      </DialogActions>
+      </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

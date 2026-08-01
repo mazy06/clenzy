@@ -1,12 +1,28 @@
 import React, { useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
-import { Alert, AlertDescription } from '../../../components/ui';
 import { Info } from 'lucide-react';
-import { Accordion, AccordionSummary, AccordionDetails, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
-import { Button, Field, FieldLabel, NativeSelect, NativeSelectOption, Textarea } from '../../../components/ui';
 import {
-  ExpandMore,
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+  Alert,
+  AlertDescription,
+  Separator,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Button,
+  Field,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
+  Textarea,
+} from '../../../components/ui';
+import {
   Notes,
   Warning,
   Schedule,
@@ -138,12 +154,12 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
       {/* Photos avant */}
       <PanelPhotoGallery photos={beforePhotos} label="Photos avant" />
 
-      <Divider sx={{ my: 1.5 }} />
+      <Separator className="my-[9px]" />
 
       {/* Photos après */}
       <PanelPhotoGallery photos={afterPhotos} label="Photos après" />
 
-      <Divider sx={{ my: 1.5 }} />
+      <Separator className="my-[9px]" />
 
       {/* Notes per step */}
       {/* mb: 1 = 6 px (theme.spacing vaut 6). */}
@@ -157,34 +173,38 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
         </p>
       ) : (
         <>
-          {['inspection', 'rooms', 'after_photos'].map((step) => {
-            const note = stepNotes[step];
-            if (!note) return null;
-            const labels: Record<string, string> = {
-              inspection: 'Inspection',
-              rooms: 'Pièces',
-              after_photos: 'Photos après',
-            };
-            return (
-              <Accordion
-                key={step}
-                disableGutters
-                elevation={0}
-                defaultExpanded
-                sx={{ '&:before': { display: 'none' }, border: '1px solid var(--line)', borderRadius: '9px !important', mb: 0.75, backgroundColor: 'var(--card)', backgroundImage: 'none' }}
-              >
-                <AccordionSummary expandIcon={<ExpandMore size={16} strokeWidth={1.75} />} sx={{ minHeight: 32, '& .MuiAccordionSummary-content': { my: 0.25 } }}>
-                  <div className="flex items-center gap-0.5">
-                    <span className="inline-flex text-[var(--accent)]"><Notes size={14} strokeWidth={1.75} /></span>
-                    <p className="cn-text-body1 text-[0.6875rem] font-semibold">{labels[step]}</p>
-                  </div>
-                </AccordionSummary>
-                <AccordionDetails sx={{ pt: 0, pb: 1 }}>
-                  <p className="cn-text-body1 text-[0.6875rem] whitespace-pre-wrap">{note}</p>
-                </AccordionDetails>
-              </Accordion>
-            );
-          })}
+          <Accordion
+            type="multiple"
+            defaultValue={['inspection', 'rooms', 'after_photos']}
+            className="gap-[4.5px]"
+          >
+            {['inspection', 'rooms', 'after_photos'].map((step) => {
+              const note = stepNotes[step];
+              if (!note) return null;
+              const labels: Record<string, string> = {
+                inspection: 'Inspection',
+                rooms: 'Pièces',
+                after_photos: 'Photos après',
+              };
+              return (
+                <AccordionItem
+                  key={step}
+                  value={step}
+                  className="border border-solid border-[var(--line)] rounded-[9px] bg-[var(--card)]"
+                >
+                  <AccordionTrigger className="min-h-8 items-center px-2 py-1">
+                    <div className="flex items-center gap-0.5">
+                      <span className="inline-flex text-[var(--accent)]"><Notes size={14} strokeWidth={1.75} /></span>
+                      <p className="cn-text-body1 text-[0.6875rem] font-semibold">{labels[step]}</p>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-2 pt-0 pb-[6px]">
+                    <p className="cn-text-body1 text-[0.6875rem] whitespace-pre-wrap">{note}</p>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
 
           {/* Raw notes fallback if no structured notes */}
           {!hasNotes && intervention.notes && (
@@ -195,7 +215,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
         </>
       )}
 
-      <Divider sx={{ my: 1.5 }} />
+      <Separator className="my-[9px]" />
 
       {/* Signalements */}
       <div className="flex items-center justify-between mb-1.5">
@@ -236,9 +256,12 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
       )}
 
       {/* Add signalement dialog */}
-      <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Ajouter un signalement</DialogTitle>
-        <DialogContent>
+      <Dialog open={addDialogOpen} onOpenChange={(next) => { if (!next) setAddDialogOpen(false); }}>
+        {/* maxWidth="xs" MUI = 444 px. */}
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>Ajouter un signalement</DialogTitle>
+          </DialogHeader>
           <Field className="mt-1.5 mb-3">
             <FieldLabel htmlFor="signalement-severity">Sévérité</FieldLabel>
             <NativeSelect
@@ -256,26 +279,28 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
             <FieldLabel htmlFor="signalement-description">Description</FieldLabel>
             <Textarea
               id="signalement-description"
+              // field-sizing:content neutralise `rows` : min-h garantit les 3 lignes
+              className="min-h-[3lh]"
               rows={3}
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
             />
           </Field>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddDialogOpen(false)} size="sm">Annuler</Button>
+            <Button
+              size="sm"
+              disabled={!newDescription.trim()}
+              onClick={() => {
+                // Would append [SIGNALEMENT:severity] description to notes
+                setAddDialogOpen(false);
+                setNewDescription('');
+              }}
+            >
+              Ajouter
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" onClick={() => setAddDialogOpen(false)} size="sm">Annuler</Button>
-          <Button
-            size="sm"
-            disabled={!newDescription.trim()}
-            onClick={() => {
-              // Would append [SIGNALEMENT:severity] description to notes
-              setAddDialogOpen(false);
-              setNewDescription('');
-            }}
-          >
-            Ajouter
-          </Button>
-        </DialogActions>
       </Dialog>
     </div>
   );

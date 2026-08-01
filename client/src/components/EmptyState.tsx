@@ -1,5 +1,4 @@
 import React from 'react';
-import { Paper } from '@mui/material';
 import { Lightbulb } from '../icons';
 import { useIconSize } from '../hooks/useResponsiveSize';
 
@@ -61,24 +60,18 @@ export default function EmptyState({
   const heroSize = useIconSize('hero');
 
   return (
-    <Paper
-      variant={variant === 'transparent' ? 'elevation' : 'outlined'}
-      elevation={0}
-      sx={{
-        py: 4,
-        px: 3,
-        textAlign: 'center',
-        borderStyle: variant === 'dashed' ? 'dashed' : 'solid',
-        borderRadius: 'var(--radius-lg)',
-        bgcolor: variant === 'transparent' ? 'transparent' : 'var(--card)',
-        borderColor: variant === 'transparent' ? 'transparent' : 'var(--line)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 0.5,
+    <div
+      className={`flex flex-col items-center justify-center text-center gap-[3px] py-6 px-[18px] rounded-[var(--radius-lg)] ${
+        variant === 'transparent'
+          ? ''
+          : variant === 'dashed'
+            ? 'border border-dashed border-[var(--line)] bg-[var(--card)]'
+            : 'border border-solid border-[var(--line)] bg-[var(--card)]'
+      }`}
+      // minHeight vient des props (runtime) : style inline, pas de classe Tailwind.
+      style={{
         animation: 'clz-fade-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both',
-        ...(minHeight && { minHeight }),
+        ...(minHeight ? { minHeight } : {}),
       }}
     >
       <span className="inline-flex text-[var(--faint)] mb-0.5">
@@ -113,6 +106,6 @@ export default function EmptyState({
           </span>
         </div>
       )}
-    </Paper>
+    </div>
   );
 }

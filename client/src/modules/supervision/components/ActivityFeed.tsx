@@ -6,7 +6,7 @@
    ============================================================ */
 
 import { memo, useState, type KeyboardEvent } from 'react';
-import { IconButton } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { AutoAwesome, ChevronDown } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { cn } from '../../../utils/cn';
@@ -22,7 +22,7 @@ function hhmm(iso: string): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-// Mémoïsé (audit perf) : ~40 lignes MUI — ne re-rendre que quand `entries` change,
+// Mémoïsé (audit perf) : ~40 lignes de JSX — ne re-rendre que quand `entries` change,
 // pas à chaque re-render du panneau (events SSE agents, toasts, report).
 export const ActivityFeed = memo(ActivityFeedInner);
 
@@ -119,23 +119,20 @@ function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEnt
                   {labelFor(entry)}
                 </div>
                 {detail && (
-                  <IconButton
-                    size="small"
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
                     onClick={() => toggle(entry.id)}
                     aria-label={t('common.details', { defaultValue: 'Détails' })}
                     aria-expanded={isOpen}
-                    sx={{
-                      p: 0.25,
-                      color: 'var(--muted, #6b7196)',
-                      flexShrink: 0,
-                      '& svg': {
-                        transition: 'transform 200ms ease',
-                        transform: isOpen ? 'rotate(180deg)' : 'none',
-                      },
-                    }}
+                    className={cn(
+                      'size-5 text-[var(--muted,_#6b7196)]',
+                      '[&_svg]:transition-transform [&_svg]:duration-200 [&_svg]:ease-[ease] motion-reduce:[&_svg]:transition-none',
+                      isOpen && '[&_svg]:rotate-180',
+                    )}
                   >
                     <ChevronDown size={14} />
-                  </IconButton>
+                  </Button>
                 )}
               </div>
               {detail && isOpen && (

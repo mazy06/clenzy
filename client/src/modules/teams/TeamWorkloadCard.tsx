@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, LinearProgress } from '@mui/material';
+import { Card, CardContent, Progress } from '../../components/ui';
 import {
   Assignment,
   CheckCircle,
@@ -51,8 +51,8 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
 
   if (loading) {
     return (
-      <Card sx={{ height: '100%' }}>
-        <CardContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
+      <Card className="h-full">
+        <CardContent className="flex justify-center items-center min-h-[300px]">
           <Spinner className="size-7" />
         </CardContent>
       </Card>
@@ -141,8 +141,8 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
   ];
 
   return (
-    <Card sx={{ height: '100%' }}>
-      <CardContent sx={{ p: 3 }}>
+    <Card className="h-full">
+      <CardContent className="p-[18px]">
         <div className="flex justify-between items-center mb-3">
           <h6 className="cn-text-h6 text-[var(--ink)] font-semibold">
             {t('teams.workload.title')}
@@ -175,15 +175,13 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
             <p className="cn-text-body2 font-medium">{t('teams.workload.capacity')}</p>
             <p className="cn-text-body2 font-semibold tabular-nums" style={{ color: getWorkloadColor() }}>{capacityPercent}%</p>
           </div>
-          <LinearProgress
-            variant="determinate"
+          {/* La teinte de la jauge se decide a l'execution : elle transite par
+              une variable CSS, une classe Tailwind ne peut pas naitre d'une
+              valeur runtime. */}
+          <Progress
             value={capacityPercent}
-            sx={{
-              height: 8,
-              borderRadius: 4,
-              bgcolor: 'var(--hover)',
-              '& .MuiLinearProgress-bar': { borderRadius: 4, bgcolor: getWorkloadColor() },
-            }}
+            className="h-2 rounded-[4px] bg-[var(--hover)] [&_[data-slot=progress-indicator]]:bg-[var(--workload-color)] [&_[data-slot=progress-indicator]]:rounded-[4px]"
+            style={{ '--workload-color': getWorkloadColor() } as React.CSSProperties}
           />
         </div>
 

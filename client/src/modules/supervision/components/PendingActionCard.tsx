@@ -17,8 +17,7 @@
 import { useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
-import { Button } from '../../../components/ui';
-import { Collapse, IconButton } from '@mui/material';
+import { Button, Collapsible, CollapsibleContent } from '../../../components/ui';
 import { Check, ChevronDown, Timer, HomeWork, VisibilityOff, CreditCard, Schedule } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Money } from '../../../components/Money';
@@ -189,24 +188,29 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
           </Button>
           {/* « Pourquoi ? » réduit à la flèche seule, sur la MÊME ligne que les
               deux boutons (poussée à droite). Le libellé passe en aria-label. */}
-          <IconButton
-            size="small"
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={() => setWhy((w) => !w)}
             aria-expanded={why}
             aria-label={t('supervision.hitl.why')}
-            sx={{ ml: 'auto', color: 'var(--accent)', '&:hover': { bgcolor: 'transparent' } }}
+            className="ms-auto text-[var(--accent)] hover:bg-transparent hover:text-[var(--accent)]"
           >
             <ChevronDown size={16} style={{ transform: why ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
-          </IconButton>
+          </Button>
         </div>
       )}
 
       {/* « Pourquoi ? » — raisonnement métier (texte brut, déjà nettoyé serveur) */}
-      <Collapse in={why} unmountOnExit>
-        <div className="mt-2 pt-2 border-t border-[var(--line)] text-[11.5px] leading-[1.5] text-[var(--muted)]">
-          {displayReasoning}
-        </div>
-      </Collapse>
+      {/* Collapsible sans declencheur interne : la fleche « Pourquoi ? » vit dans
+          la rangee d'actions au-dessus et pilote l'etat `why`. */}
+      <Collapsible open={why} onOpenChange={setWhy}>
+        <CollapsibleContent>
+          <div className="mt-2 pt-2 border-t border-solid border-[var(--line)] text-[11.5px] leading-[1.5] text-[var(--muted)]">
+            {displayReasoning}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }

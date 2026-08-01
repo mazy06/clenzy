@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Skeleton } from '@mui/material';
-import { Button } from '../../../components/ui';
+import { Button, Skeleton } from '../../../components/ui';
 import { Thermostat, Add, Home } from '../../../icons';
 import PageHeader from '../../../components/PageHeader';
 import EmptyState from '../../../components/EmptyState';
@@ -88,7 +87,7 @@ export default function ThermostatsScreen() {
 
       {isLoading ? (
         <div className={GRID_CLS}>
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} variant="rounded" height={170} sx={{ borderRadius: 'var(--radius-lg)' }} />)}
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[170px] rounded-[var(--radius-lg)]" />)}
         </div>
       ) : thermostats.length === 0 ? (
         <EmptyState

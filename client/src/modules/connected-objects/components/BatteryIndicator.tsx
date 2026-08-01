@@ -1,4 +1,5 @@
-import { Tooltip, LinearProgress } from '@mui/material';
+import type { CSSProperties } from 'react';
+import { Progress, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 
 const LOW = 20;
 const CRITICAL = 10;
@@ -9,7 +10,7 @@ interface BatteryIndicatorProps {
 }
 
 /**
- * Jauge de batterie compacte : MuiLinearProgress thème (piste `--field`, pilule)
+ * Jauge de batterie compacte : Progress du kit (piste `--field`, pilule)
  * + pourcentage display `tabular-nums`. La couleur de barre porte le sens
  * (--ok OK, --warn faible, --err critique). Rendu nul si le niveau est inconnu.
  */
@@ -20,27 +21,27 @@ export default function BatteryIndicator({ level }: BatteryIndicatorProps) {
   const color = level <= CRITICAL ? 'var(--err)' : low ? 'var(--warn)' : 'var(--ok)';
 
   return (
-    <Tooltip title={low ? 'Batterie faible' : 'Batterie'} arrow>
-      <span className="inline-flex items-center gap-1">
-        <LinearProgress
-          variant="determinate"
-          value={level}
-          aria-label="Niveau de batterie"
-          sx={{
-            width: 34,
-            height: 5,
-            flexShrink: 0,
-            '& .MuiLinearProgress-bar': { backgroundColor: color },
-          }}
-        />
-        {/* Couleur derivee du niveau a l'execution : style inline obligatoire */}
-        <span
-          className="cn-text-caption font-[family-name:var(--font-display)] font-semibold leading-none tabular-nums"
-          style={{ color }}
-        >
-          {level}%
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex items-center gap-1">
+          {/* La teinte de barre depend du niveau (execution) : elle passe par une
+              custom property, la classe qui la consomme reste statique. */}
+          <Progress
+            value={level}
+            aria-label="Niveau de batterie"
+            className="w-[34px] h-[5px] shrink-0 [&_[data-slot=progress-indicator]]:bg-(--battery-bar)"
+            style={{ '--battery-bar': color } as CSSProperties}
+          />
+          {/* Couleur derivee du niveau a l'execution : style inline obligatoire */}
+          <span
+            className="cn-text-caption font-[family-name:var(--font-display)] font-semibold leading-none tabular-nums"
+            style={{ color }}
+          >
+            {level}%
+          </span>
         </span>
-      </span>
+      </TooltipTrigger>
+      <TooltipContent>{low ? 'Batterie faible' : 'Batterie'}</TooltipContent>
     </Tooltip>
   );
 }

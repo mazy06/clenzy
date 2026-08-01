@@ -1,8 +1,25 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import { Button, Spinner } from '../../components/ui';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Paper, IconButton, Tooltip, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import {
+  Alert,
+  AlertDescription,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -28,11 +45,7 @@ import PagePagination from '../../components/PagePagination';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-const CARD_SX = {
-  border: '1px solid var(--line)',
-  boxShadow: 'none',
-  borderRadius: 'var(--radius-lg)',
-} as const;
+const CARD_CLASS = 'border border-solid border-[var(--line)] shadow-none rounded-[var(--radius-lg)] bg-[var(--card)]';
 
 const STATUS_OPTIONS: ReservationStatus[] = [
   'pending',
@@ -239,8 +252,9 @@ const ReservationsList: React.FC = () => {
 
       {/* Error */}
       {isError && (
-        <Alert severity="error" sx={{ mb: 2, flexShrink: 0 }}>
-          {error ?? 'Erreur lors du chargement des reservations'}
+        <Alert variant="destructive" className="mb-3 shrink-0">
+          <TriangleAlert />
+          <AlertDescription>{error ?? 'Erreur lors du chargement des reservations'}</AlertDescription>
         </Alert>
       )}
 
@@ -262,7 +276,7 @@ const ReservationsList: React.FC = () => {
         />
       ) : (
         /* Data table */
-        <Paper ref={tableContainerRef} sx={{ ...CARD_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div ref={tableContainerRef} className={cn(CARD_CLASS, 'flex-1 min-h-0 flex flex-col overflow-hidden')}>
           <div className="flex-1 overflow-hidden">
             <Table>
               <TableHeader>
@@ -332,20 +346,34 @@ const ReservationsList: React.FC = () => {
                       </p>
                     </TableCell>
                     <TableCell className="text-center whitespace-nowrap">
-                      <Tooltip title={t('reservations.edit')}>
-                        <IconButton size="small" onClick={() => handleEdit(r)}>
-                          <EditIcon size={18} strokeWidth={1.75} />
-                        </IconButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* span : TooltipTrigger asChild pose une ref DOM que le
+                              Button du kit (fonction, React 18) ne transmet pas. */}
+                          <span className="inline-flex">
+                            <Button variant="ghost" size="icon-sm" aria-label={t('reservations.edit')} onClick={() => handleEdit(r)}>
+                              <EditIcon size={18} strokeWidth={1.75} />
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('reservations.edit')}</TooltipContent>
                       </Tooltip>
                       {r.status !== 'cancelled' && r.status !== 'checked_out' && (
-                        <Tooltip title={t('reservations.cancel')}>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleCancelClick(r)}
-                          >
-                            <CancelIcon size={18} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t('reservations.cancel')}
+                                onClick={() => handleCancelClick(r)}
+                                className="text-[var(--err)] hover:text-[var(--err)]"
+                              >
+                                <CancelIcon size={18} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('reservations.cancel')}</TooltipContent>
                         </Tooltip>
                       )}
                     </TableCell>
@@ -361,7 +389,7 @@ const ReservationsList: React.FC = () => {
             onPageChange={(newPage) => setPage(newPage)}
             rowsPerPage={rowsPerPage}
           />
-        </Paper>
+        </div>
       )}
 
       {/* Create/Edit dialog */}
@@ -385,10 +413,12 @@ const ReservationsList: React.FC = () => {
       />
 
       {/* Cancel confirmation dialog */}
-      <Dialog open={cancelDialogOpen} onClose={() => setCancelDialogOpen(false)}>
-        {/* Peau modale portée par le thème global (titre display + filets + pied surface-2) */}
-        <DialogTitle>{t('reservations.cancel')}</DialogTitle>
+      <Dialog open={cancelDialogOpen} onOpenChange={(next) => { if (!next) setCancelDialogOpen(false); }}>
         <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('reservations.cancel')}</DialogTitle>
+        </DialogHeader>
+        <div>
           <p className="cn-text-body2">
             {t('reservations.cancelConfirm')}
           </p>
@@ -397,8 +427,8 @@ const ReservationsList: React.FC = () => {
               {cancelTarget.guestName} · {cancelTarget.propertyName}
             </p>
           )}
-        </DialogContent>
-        <DialogActions>
+        </div>
+        <DialogFooter>
           <Button
             variant="ghost"
             size="sm"
@@ -416,7 +446,8 @@ const ReservationsList: React.FC = () => {
             {isCancelling ? <Spinner className="size-[18px]" /> : null}
             Oui, annuler
           </Button>
-        </DialogActions>
+        </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   );

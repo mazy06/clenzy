@@ -1,6 +1,5 @@
-import { Alert } from '@mui/material';
 import StatusChip from '../../../components/StatusChip';
-import { Card } from '../../../components/ui';
+import { Alert, Card } from '../../../components/ui';
 import ProviderLogo from './ProviderLogos';
 import { CheckCircle } from '../../../icons';
 
@@ -59,7 +58,7 @@ export default function DocuSealInfoCard({ available, active }: DocuSealInfoCard
 
       {/* Corps */}
       <div className="px-3 py-2.5">
-        <Alert severity={available ? 'success' : 'info'} variant="outlined" sx={{ borderRadius: '8px', fontSize: '0.75rem', py: 0.25, mb: 1.5 }}>
+        <Alert variant={available ? 'success' : 'info'} className="rounded-[8px] text-[0.75rem] py-[1.5px] mb-[9px]">
           {available
             ? "L'instance DocuSeal est configurée. Le provider est implémenté et fonctionnel — il ne sera utilisé qu'après la bascule SIGNATURE_PROVIDER=docuseal."
             : "L'intégration est entièrement implémentée côté code (création de la demande, lien de signature, statut, téléchargement du document signé). Elle est inactive tant que l'instance self-hosted n'est pas déployée et branchée — opération d'infrastructure, pas de saisie ici."}

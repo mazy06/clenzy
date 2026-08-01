@@ -1,5 +1,4 @@
 import React from 'react';
-import { FormControlLabel, Switch, Tooltip } from '@mui/material';
 import {
   Field,
   FieldLabel,
@@ -10,7 +9,11 @@ import {
   InputGroupInput,
   InputGroupText,
   NativeSelect,
+  Switch,
   Textarea,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { Check, Home, Handshake } from '../../icons';
@@ -441,22 +444,40 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
               </InputGroup>
             </Field>
           </div>
-          <div className="flex gap-0.5 flex-wrap items-center min-h-[40px]">
-            <FormControlLabel
-              control={<Switch size="small" checked={form.autoRenew ?? false} onChange={e => setForm(prev => ({ ...prev, autoRenew: e.target.checked }))} />}
-              label="Renouvellement auto"
-              sx={{ mr: 1.5, '& .MuiFormControlLabel-label': { fontSize: '0.8125rem' } }}
-            />
-            <FormControlLabel
-              control={<Switch size="small" checked={form.cleaningFeeIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, cleaningFeeIncluded: e.target.checked }))} />}
-              label="Ménage inclus"
-              sx={{ mr: 1.5, '& .MuiFormControlLabel-label': { fontSize: '0.8125rem' } }}
-            />
-            <FormControlLabel
-              control={<Switch size="small" checked={form.maintenanceIncluded ?? true} onChange={e => setForm(prev => ({ ...prev, maintenanceIncluded: e.target.checked }))} />}
-              label="Maintenance incluse"
-              sx={{ '& .MuiFormControlLabel-label': { fontSize: '0.8125rem' } }}
-            />
+          <div className="flex gap-2 flex-wrap items-center min-h-[40px]">
+            <Field orientation="horizontal" className="w-auto gap-1.5">
+              <Switch
+                id="contract-auto-renew"
+                size="sm"
+                checked={form.autoRenew ?? false}
+                onCheckedChange={checked => setForm(prev => ({ ...prev, autoRenew: checked === true }))}
+              />
+              <FieldLabel htmlFor="contract-auto-renew" className="text-[0.8125rem] font-normal">
+                Renouvellement auto
+              </FieldLabel>
+            </Field>
+            <Field orientation="horizontal" className="w-auto gap-1.5">
+              <Switch
+                id="contract-cleaning-included"
+                size="sm"
+                checked={form.cleaningFeeIncluded ?? true}
+                onCheckedChange={checked => setForm(prev => ({ ...prev, cleaningFeeIncluded: checked === true }))}
+              />
+              <FieldLabel htmlFor="contract-cleaning-included" className="text-[0.8125rem] font-normal">
+                Ménage inclus
+              </FieldLabel>
+            </Field>
+            <Field orientation="horizontal" className="w-auto gap-1.5">
+              <Switch
+                id="contract-maintenance-included"
+                size="sm"
+                checked={form.maintenanceIncluded ?? true}
+                onCheckedChange={checked => setForm(prev => ({ ...prev, maintenanceIncluded: checked === true }))}
+              />
+              <FieldLabel htmlFor="contract-maintenance-included" className="text-[0.8125rem] font-normal">
+                Maintenance incluse
+              </FieldLabel>
+            </Field>
           </div>
         </div>
       </FormSection>
@@ -532,8 +553,11 @@ const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, split
       {/* Barre segmentée */}
       <div className="flex h-[8px] rounded-[6px] overflow-hidden border border-[var(--line)] bg-[var(--field)]" role="img" aria-label={`Répartition : propriétaire ${ownerPct.toFixed(0)}%, plateforme ${platformPct.toFixed(1)}%, conciergerie ${conciergePct.toFixed(1)}%`}>
         {segments.map((seg) => (
-          <Tooltip key={seg.label} title={`${seg.label} : ${seg.pct.toFixed(1)} %`} arrow>
-            <div style={{ width: `${seg.pct}%`, backgroundColor: seg.color, transition: 'width 200ms cubic-bezier(0.22, 1, 0.36, 1)' }} />
+          <Tooltip key={seg.label}>
+            <TooltipTrigger asChild>
+              <div style={{ width: `${seg.pct}%`, backgroundColor: seg.color, transition: 'width 200ms cubic-bezier(0.22, 1, 0.36, 1)' }} />
+            </TooltipTrigger>
+            <TooltipContent>{`${seg.label} : ${seg.pct.toFixed(1)} %`}</TooltipContent>
           </Tooltip>
         ))}
       </div>

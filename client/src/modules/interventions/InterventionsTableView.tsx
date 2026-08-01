@@ -1,6 +1,12 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Tooltip, IconButton, LinearProgress, Paper } from '@mui/material';
+import {
+  Button,
+  Progress,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility as VisibilityIcon, MoreVert } from '../../icons';
@@ -12,7 +18,7 @@ import {
   getInterventionTypeLabel,
 } from '../../utils/statusUtils';
 import { getStatusTokens, getPriorityTokens, getTypeTokens } from './interventionUtils';
-import { LIST_PAPER_SX, stripPropertySuffix, formatDateShort, getProgress } from './interventionsListConstants';
+import { stripPropertySuffix, formatDateShort, getProgress } from './interventionsListConstants';
 import PagePagination from '../../components/PagePagination';
 
 interface InterventionsTableViewProps {
@@ -33,7 +39,10 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
   const { t } = useTranslation();
 
   return (
-    <Paper ref={containerRef} sx={{ ...LIST_PAPER_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div
+      ref={containerRef}
+      className="border border-solid border-[var(--line)] rounded-[14px] bg-[var(--card)] flex-1 min-h-0 flex flex-col overflow-hidden"
+    >
       <div className="flex-1 overflow-hidden">
         <Table>
           <TableHeader>
@@ -103,20 +112,17 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="flex items-center gap-1 min-w-[80px]">
-                      <LinearProgress
-                        variant="determinate"
+                      {/* La teinte de la barre depend de l'avancement : elle passe
+                          par une custom property, une classe Tailwind ne pouvant
+                          pas naitre d'une valeur calculee. */}
+                      <Progress
                         value={getProgress(intervention)}
-                        sx={{
-                          flex: 1,
-                          height: 6,
-                          borderRadius: 3,
-                          bgcolor: 'var(--hover)',
-                          '& .MuiLinearProgress-bar': {
-                            borderRadius: 3,
-                            bgcolor: getProgress(intervention) === 100 ? 'var(--ok)'
+                        style={{
+                          '--progress-tint':
+                            getProgress(intervention) === 100 ? 'var(--ok)'
                               : getProgress(intervention) >= 50 ? 'var(--info)' : 'var(--warn)',
-                          },
-                        }}
+                        } as React.CSSProperties}
+                        className="flex-1 h-1.5 rounded-full bg-[var(--hover)] [&>[data-slot=progress-indicator]]:rounded-full [&>[data-slot=progress-indicator]]:bg-[var(--progress-tint)]"
                       />
                       <span className="cn-text-caption font-semibold text-[0.68rem] min-w-[28px] tabular-nums">
                         {getProgress(intervention)}%
@@ -134,21 +140,37 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                     )}
                   </TableCell>
                   <TableCell className="text-center whitespace-nowrap">
-                    <Tooltip title="Détails">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
-                      >
-                        <VisibilityIcon size={18} strokeWidth={1.75} />
-                      </IconButton>
+                    {/* span intermediaire : TooltipTrigger asChild pose une ref DOM,
+                        que le Button du kit (fonction, React 18) ne transmet pas. */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Détails"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
+                          >
+                            <VisibilityIcon size={18} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Détails</TooltipContent>
                     </Tooltip>
-                    <Tooltip title="Actions">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); onMenuOpen(e, intervention); }}
-                      >
-                        <MoreVert size={18} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Actions"
+                            onClick={(e) => { e.stopPropagation(); onMenuOpen(e, intervention); }}
+                          >
+                            <MoreVert size={18} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Actions</TooltipContent>
                     </Tooltip>
                   </TableCell>
                 </TableRow>
@@ -163,7 +185,7 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
         onPageChange={(p) => onPageChange(p)}
         rowsPerPage={rowsPerPage}
       />
-    </Paper>
+    </div>
   );
 };
 

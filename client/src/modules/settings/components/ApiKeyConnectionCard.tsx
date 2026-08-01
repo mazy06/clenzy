@@ -1,10 +1,17 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
-import { Info } from 'lucide-react';
+import { Alert as UiAlert, AlertAction, AlertDescription } from '../../../components/ui';
+import { Info, TriangleAlert, CircleCheck, X } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Button, Card, Field, FieldLabel, Input } from '../../../components/ui';
-import { Alert, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../../components/ui';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -304,28 +311,35 @@ export default function ApiKeyConnectionCard<P extends string>({
         )}
 
         {message && (
-          <Alert
-            severity={message.type}
-            onClose={() => setMessage(null)}
-            sx={{ mt: 1.5, borderRadius: '8px' }}
+          <UiAlert
+            variant={message.type === 'success' ? 'success' : 'destructive'}
+            className="mt-1.5"
           >
-            {message.text}
-          </Alert>
+            {message.type === 'success' ? <CircleCheck /> : <TriangleAlert />}
+            <AlertDescription>{message.text}</AlertDescription>
+            <AlertAction>
+              <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setMessage(null)}>
+                <X />
+              </Button>
+            </AlertAction>
+          </UiAlert>
         )}
       </div>
 
       {/* Disconnect confirmation */}
-      <Dialog open={disconnectOpen} onClose={() => setDisconnectOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Déconnecter {meta.label} ?</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ fontSize: '0.85rem' }}>
-            Cette action supprime les credentials {meta.label} enregistrés. Vous devrez ressaisir l'API key pour vous reconnecter.
-          </DialogContentText>
+      <Dialog open={disconnectOpen} onOpenChange={(next) => { if (!next) setDisconnectOpen(false); }}>
+        <DialogContent className="max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>Déconnecter {meta.label} ?</DialogTitle>
+            <DialogDescription>
+              Cette action supprime les credentials {meta.label} enregistrés. Vous devrez ressaisir l'API key pour vous reconnecter.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDisconnectOpen(false)}>Annuler</Button>
+            <Button variant="destructive" onClick={handleDisconnect}>Déconnecter</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button variant="ghost" onClick={() => setDisconnectOpen(false)}>Annuler</Button>
-          <Button variant="destructive" onClick={handleDisconnect}>Déconnecter</Button>
-        </DialogActions>
       </Dialog>
     </Card>
   );

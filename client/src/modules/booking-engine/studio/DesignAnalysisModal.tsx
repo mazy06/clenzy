@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, IconButton } from '@mui/material';
-import { X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui';
 import AiDesignMatcher from '../AiDesignMatcher';
 import type { DesignTokens } from '../../../services/api/bookingEngineApi';
 
@@ -21,25 +20,27 @@ export default function DesignAnalysisModal({ open, onClose, configId, initialUr
   const [url, setUrl] = useState(initialUrl);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
-      PaperProps={{ sx: { borderRadius: 'var(--radius-lg)' } }}>
-      <div className="flex items-center justify-between px-3.5 pt-3 pb-1.5">
-        <div className="font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">
-          Analyse du design
+    // maxWidth="sm" + fullWidth MUI = pleine largeur plafonnee a 600 px. La croix
+    // de fermeture est celle du primitif : l'IconButton du titre faisait doublon.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="w-full sm:max-w-[600px] rounded-[var(--radius-lg)]">
+        <DialogHeader>
+          <DialogTitle className="font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)] text-[var(--ink)] pe-8">
+            Analyse du design
+          </DialogTitle>
+        </DialogHeader>
+        <div>
+          <div className="text-[var(--text-sm)] text-[var(--muted)] mb-3 leading-[1.5]">
+            Renseigne l’URL du site du client : l’IA en extrait les couleurs/typo et applique le design
+            au widget de réservation et aux blocs de la page.
+          </div>
+          <AiDesignMatcher
+            configId={configId}
+            sourceWebsiteUrl={url}
+            onSourceWebsiteUrlChange={setUrl}
+            onTokensExtracted={(tokens, css) => onApply(tokens, css)}
+          />
         </div>
-        <IconButton onClick={onClose} size="small" aria-label="Fermer"><X size={18} /></IconButton>
-      </div>
-      <DialogContent sx={{ pt: 1 }}>
-        <div className="text-[var(--text-sm)] text-[var(--muted)] mb-3 leading-[1.5]">
-          Renseigne l’URL du site du client : l’IA en extrait les couleurs/typo et applique le design
-          au widget de réservation et aux blocs de la page.
-        </div>
-        <AiDesignMatcher
-          configId={configId}
-          sourceWebsiteUrl={url}
-          onSourceWebsiteUrlChange={setUrl}
-          onTokensExtracted={(tokens, css) => onApply(tokens, css)}
-        />
       </DialogContent>
     </Dialog>
   );

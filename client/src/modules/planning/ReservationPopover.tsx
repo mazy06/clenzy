@@ -1,4 +1,8 @@
 import React from 'react';
+// Popover MUI conserve : son ancre est un `anchorEl` produit par la grille de
+// planning, HORS de cet arbre. Un Popover Radix exige que son declencheur vive
+// dans son propre arbre — le rebrancher deplacerait l'ouverture de la brique
+// vers ce composant, ce qui depasse la migration des primitives.
 import { Popover, useMediaQuery } from '@mui/material';
 import { Button } from '../../components/ui';
 import { format } from 'date-fns';

@@ -2,9 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Divider } from '@mui/material';
-import { Field, FieldLabel, NativeSelect, NativeSelectOption } from '../../components/ui';
+import {
+  Card,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
+  Separator,
+} from '../../components/ui';
 import { Send } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -84,9 +94,12 @@ export default function SendMessageDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{t('messaging.send.title')}</DialogTitle>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>{t('messaging.send.title')}</DialogTitle>
+      </DialogHeader>
+      <div>
         {guestName && (
           <p className="cn-text-body2 text-muted-foreground mb-3">
             {t('messaging.send.sendTo')}: <strong>{guestName}</strong>
@@ -178,7 +191,7 @@ export default function SendMessageDialog({
                 <h6 className="cn-text-subtitle2 mb-[0.35em]">
                   {selectedTemplate.subject}
                 </h6>
-                <Divider sx={{ my: 1 }} />
+                <Separator className="my-1.5" />
                 <p className="cn-text-body2 whitespace-pre-wrap">
                   {selectedTemplate.body.length > 300
                     ? selectedTemplate.body.substring(0, 300) + '...'
@@ -188,9 +201,9 @@ export default function SendMessageDialog({
             )}
           </>
         )}
-      </DialogContent>
+      </div>
 
-      <DialogActions sx={{ px: 3, py: 1.5 }}>
+      <DialogFooter>
         <BuiButton variant="outline" onClick={onClose}>{t('common.cancel')}</BuiButton>
         <BuiButton
           onClick={handleSend}
@@ -199,7 +212,8 @@ export default function SendMessageDialog({
           {sending ? <Spinner className="size-4" /> : <Send />}
           {sending ? t('common.processing') : t('messaging.send.send')}
         </BuiButton>
-      </DialogActions>
+      </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

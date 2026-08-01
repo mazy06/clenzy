@@ -8,8 +8,18 @@
    ============================================================ */
 
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Spinner } from '../../../components/ui';
-import { Dialog, DialogActions, DialogContent, DialogTitle, IconButton, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Spinner,
+  ToggleGroup,
+  ToggleGroupItem,
+} from '../../../components/ui';
 import { Close } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { cn } from '../../../utils/cn';
@@ -190,19 +200,22 @@ export function PriceAdjustmentModal({
   );
 
   return (
-    <Dialog open onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800, fontSize: 16 }}>
-        {raise
-          ? t('supervision.price.titleRaise', 'Relever les tarifs (demande forte)')
-          : t('supervision.price.title', 'Ajuster les tarifs des créneaux creux')}
-        <p className="cn-text-body1 text-[12.5px] text-muted-foreground font-normal mt-0.5">
-          {t('supervision.price.subtitle', '{{count}} créneau(x) · {{nights}} nuits', {
-            count: segments.length, nights: totalNights,
-          })}
-        </p>
-      </DialogTitle>
+    // maxWidth="md" MUI = 900 px ; `fullWidth` est deja le defaut du gabarit du kit.
+    <Dialog open onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[900px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-[16px] font-extrabold">
+            {raise
+              ? t('supervision.price.titleRaise', 'Relever les tarifs (demande forte)')
+              : t('supervision.price.title', 'Ajuster les tarifs des créneaux creux')}
+          </DialogTitle>
+          <DialogDescription className="text-[12.5px]">
+            {t('supervision.price.subtitle', '{{count}} créneau(x) · {{nights}} nuits', {
+              count: segments.length, nights: totalNights,
+            })}
+          </DialogDescription>
+        </DialogHeader>
 
-      <DialogContent dividers>
         {/* Calendrier DEUX MOIS côte à côte : les créneaux proposés, une couleur par segment. */}
         <div className="flex gap-[15px] mb-[9px] flex-col min-[600px]:flex-row">
           {months.map((month, mi) => (
@@ -268,18 +281,22 @@ export function PriceAdjustmentModal({
           <p className="cn-text-body1 text-[12.5px] text-muted-foreground">
             {t('supervision.price.discountMode', 'Remise en')}
           </p>
-          <ToggleButtonGroup
-            size="small"
-            exclusive
+          {/* `exclusive` MUI = type="single" ; Radix renvoie '' a la deselection,
+              d'ou le garde qui conserve le mode courant. */}
+          <ToggleGroup
+            type="single"
+            size="sm"
+            variant="outline"
+            spacing={0}
             value={mode}
-            onChange={(_, m) => m && setMode(m)}
+            onValueChange={(m) => m && setMode(m as Mode)}
           >
-            <ToggleButton value="percent" sx={{ textTransform: 'none', px: 1.25 }}>%</ToggleButton>
-            <ToggleButton value="targetPrice" sx={{ textTransform: 'none', px: 1.25 }}>
+            <ToggleGroupItem value="percent" aria-label="%">%</ToggleGroupItem>
+            <ToggleGroupItem value="targetPrice">
               {t('supervision.price.modeTarget', 'Prix cible')}
-            </ToggleButton>
-            <ToggleButton value="fixedAmount" sx={{ textTransform: 'none', px: 1.25 }}>{raise ? '+€' : '−€'}</ToggleButton>
-          </ToggleButtonGroup>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="fixedAmount">{raise ? '+€' : '−€'}</ToggleGroupItem>
+          </ToggleGroup>
           {!canConvert && (
             <p className="cn-text-body1 text-[11px] text-[var(--bui-warning-ink)]">
               {t('supervision.price.simulateFirst', 'Simulez pour convertir')}
@@ -319,14 +336,15 @@ export function PriceAdjustmentModal({
                     style={{ width: 76, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--line, #ccc)', textAlign: 'right' }}
                   />
                   <div className="text-[12.5px] text-muted-foreground w-[16px]">{modeUnit}</div>
-                  <IconButton
-                    size="small"
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
                     onClick={() => removeSegment(i)}
                     aria-label={t('supervision.price.removeSegment', 'Retirer ce créneau')}
-                    sx={{ color: 'text.disabled', '&:hover': { color: 'error.main', bgcolor: 'transparent' } }}
+                    className="text-[var(--faint)] hover:bg-transparent hover:text-[var(--err)]"
                   >
                     <Close size={15} />
-                  </IconButton>
+                  </Button>
                 </div>
                 <div className="flex items-center gap-1 mt-0.5">
                   <div className="w-[8px] h-[8px] rounded-[50%] shrink-0" style={{ backgroundColor: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
@@ -365,28 +383,28 @@ export function PriceAdjustmentModal({
         )}
 
         {error && <p className="cn-text-body1 text-[12px] text-destructive mt-1.5">{error}</p>}
-      </DialogContent>
 
-      <DialogActions sx={{ px: 3, py: 1.5 }}>
-        <Button variant="ghost" onClick={onClose} disabled={applying}>
-          {t('common.cancel', 'Annuler')}
-        </Button>
-        <Button
-          variant="outline"
-          onClick={runSimulate}
-          disabled={simulating || applying || segments.length === 0}
-        >
-          {simulating && <Spinner className="size-3.5" />}
-          {t('supervision.price.simulate', 'Simuler')}
-        </Button>
-        <Button
-          onClick={runApply}
-          disabled={applying || segments.length === 0}
-        >
-          {applying && <Spinner className="size-3.5" />}
-          {t('supervision.price.apply', 'Appliquer les tarifs')}
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={applying}>
+            {t('common.cancel', 'Annuler')}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={runSimulate}
+            disabled={simulating || applying || segments.length === 0}
+          >
+            {simulating && <Spinner className="size-3.5" />}
+            {t('supervision.price.simulate', 'Simuler')}
+          </Button>
+          <Button
+            onClick={runApply}
+            disabled={applying || segments.length === 0}
+          >
+            {applying && <Spinner className="size-3.5" />}
+            {t('supervision.price.apply', 'Appliquer les tarifs')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

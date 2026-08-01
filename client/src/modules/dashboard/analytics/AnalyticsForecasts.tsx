@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent } from '@mui/material';
+import { Card, CardContent } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart,
@@ -16,18 +16,12 @@ const AXIS_TICK = { fontSize: 10, fill: '#94A3B8' } as const;
 const TOOLTIP_STYLE = { fontSize: 11, borderRadius: 6, border: '1px solid #E2E8F0', boxShadow: 'none' } as const;
 const GRID_STROKE = '#F1F5F9';
 
-const CHART_CARD_SX = {
-  width: '100%',
-  height: 220,
-} as const;
-
-const CHART_CONTENT_SX = {
-  p: 1.25,
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  '&:last-child': { pb: 1.25 },
-} as const;
+// Report en classes des anciens `sx` de carte : la carte du kit porte deja son
+// propre gabarit (rayon, anneau), seules la taille et la densite sont reprises.
+// `gap-0 py-0` neutralise l'espacement vertical du primitif, l'ancienne carte
+// MUI n'ayant que le padding de son CardContent (1.25 = 7,5 px, spacing 6).
+const CHART_CARD_CLASS = 'w-full h-[220px] gap-0 py-0';
+const CHART_CONTENT_CLASS = 'p-[7.5px] h-full flex flex-col';
 
 const SECTION_LABEL_SX = {
   fontSize: '0.6875rem',
@@ -60,8 +54,8 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
       <div className="grid grid-cols-12 gap-[9px]">
         {/* Forecast chart with confidence zone — left column */}
         <div className="col-span-12 min-[900px]:col-span-8">
-          <Card sx={CHART_CARD_SX}>
-            <CardContent sx={CHART_CONTENT_SX}>
+          <Card className={CHART_CARD_CLASS}>
+            <CardContent className={CHART_CONTENT_CLASS}>
               <p className={cn(SECTION_LABEL_CLASS, 'cn-text-body1')}>
                 {t('dashboard.analytics.forecastChart')}
               </p>
@@ -122,8 +116,8 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
             />
 
             {/* Scenarios mini-table */}
-            <Card sx={{ width: '100%', flex: 1 }}>
-              <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
+            <Card className="w-full flex-1 gap-0 py-0">
+              <CardContent className="p-[7.5px]">
                 <p className={cn(SECTION_LABEL_CLASS, 'cn-text-body1')}>
                   {t('dashboard.analytics.scenarios')}
                 </p>

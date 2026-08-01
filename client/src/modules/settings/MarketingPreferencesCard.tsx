@@ -2,8 +2,10 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Switch, Alert, Snackbar } from '@mui/material';
-import { Card } from '../../components/ui';
+// Snackbar/Alert flottante conservés en MUI : ce fichier n'utilise pas encore
+// `sonner`, et changer de mécanisme de notification dépasse cette migration.
+import { Alert, Snackbar } from '@mui/material';
+import { Card, Switch } from '../../components/ui';
 import { Mail } from '../../icons';
 import { usersApi } from '../../services/api/usersApi';
 
@@ -114,9 +116,9 @@ export default function MarketingPreferencesCard() {
           </div>
           <Switch
             checked={!!newsletterOptIn}
-            onChange={(e) => handleToggle(e.target.checked)}
+            onCheckedChange={(checked) => handleToggle(checked)}
             disabled={saving}
-            inputProps={{ 'aria-label': 'Activer ou désactiver la newsletter Baitly' }}
+            aria-label="Activer ou désactiver la newsletter Baitly"
           />
         </div>
       )}

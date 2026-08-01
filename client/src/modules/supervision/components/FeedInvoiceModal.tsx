@@ -11,10 +11,18 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Alert, AlertDescription, Button } from '../../../components/ui';
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../../components/ui';
 import { CircleCheck, TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { invoicesApi, INVOICE_STATUS_COLORS, type Invoice } from '../../../services/api/invoicesApi';
@@ -109,9 +117,12 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
   };
 
   return (
-    <Dialog open={invoiceId != null} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>{t('supervision.invoiceModal.title', 'Facture')}</DialogTitle>
-      <DialogContent dividers>
+    // maxWidth="xs" MUI = 444 px.
+    <Dialog open={invoiceId != null} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[444px]">
+        <DialogHeader>
+          <DialogTitle>{t('supervision.invoiceModal.title', 'Facture')}</DialogTitle>
+        </DialogHeader>
         {loading ? (
           <div className="flex justify-center py-6">
             <Spinner className="size-6" />
@@ -180,35 +191,37 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
             {error ?? t('supervision.invoiceModal.loadError', 'Facture introuvable ou inaccessible.')}
           </p>
         )}
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
         {/* Pied de modale : une seule action principale (Payer). Les autres
             descendent d'un cran. Taille unique pour aligner la rangee. */}
-        <Button
-          variant="ghost"
-          onClick={() => { onClose(); navigate(`/billing?highlight=${invoiceId}`); }}
-        >
-          {t('supervision.invoiceModal.openBilling', 'Ouvrir dans Facturation')}
-        </Button>
-        <div className="flex-1" />
-        <Button variant="ghost" onClick={onClose}>{t('supervision.invoiceModal.close', 'Fermer')}</Button>
-        {payable && (
-          <>
-            <Button
-              variant="outline"
-              disabled={sending || sentTo != null}
-              onClick={handleSendLink}
-            >
-              {sending && <Spinner className="size-3.5" />}
-              {t('supervision.invoiceModal.sendLink', 'Envoyer le lien de paiement')}
-            </Button>
-            <Button disabled={paying} onClick={handlePay}>
-              {paying && <Spinner className="size-3.5" />}
-              {t('supervision.invoiceModal.pay', 'Payer')}
-            </Button>
-          </>
-        )}
-      </DialogActions>
+        {/* flex-row force : DialogActions MUI reste en ligne a toutes les tailles,
+            et l'entretoise flex-1 ci-dessous suppose un axe horizontal. */}
+        <DialogFooter className="gap-[6px] flex-row flex-wrap justify-start sm:justify-start">
+          <Button
+            variant="ghost"
+            onClick={() => { onClose(); navigate(`/billing?highlight=${invoiceId}`); }}
+          >
+            {t('supervision.invoiceModal.openBilling', 'Ouvrir dans Facturation')}
+          </Button>
+          <div className="flex-1" />
+          <Button variant="ghost" onClick={onClose}>{t('supervision.invoiceModal.close', 'Fermer')}</Button>
+          {payable && (
+            <>
+              <Button
+                variant="outline"
+                disabled={sending || sentTo != null}
+                onClick={handleSendLink}
+              >
+                {sending && <Spinner className="size-3.5" />}
+                {t('supervision.invoiceModal.sendLink', 'Envoyer le lien de paiement')}
+              </Button>
+              <Button disabled={paying} onClick={handlePay}>
+                {paying && <Spinner className="size-3.5" />}
+                {t('supervision.invoiceModal.pay', 'Payer')}
+              </Button>
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

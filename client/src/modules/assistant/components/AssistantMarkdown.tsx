@@ -3,7 +3,6 @@ import { cn } from '../../../utils/cn';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import { Link as RouterLink } from 'react-router-dom';
-import { Box } from '@mui/material';
 import { isArabicHeavy, arabicTextSx, arabicDirProp } from '../../../utils/textDirection';
 
 interface AssistantMarkdownProps {
@@ -20,8 +19,8 @@ const LINK_CLASS =
 /**
  * Renderer markdown pour le texte des messages assistant.
  *
- * <p>Compose les elements MUI au lieu des HTML par defaut pour heriter du
- * theme (typo, tokens Signature, espacement). Particularite : les liens
+ * <p>Compose des balises HTML habillees par les tokens Signature (typo,
+ * couleurs, espacement). Particularite : les liens
  * relatifs ({@code /xxx}) sont rendus comme {@code <Link>} React Router pour
  * une navigation SPA sans full reload — c'est ce qui permet au LLM de
  * proposer "[Settings IA](/settings?tab=ai)" et que le clic atterrisse
@@ -31,7 +30,7 @@ const LINK_CLASS =
  * {@code rel="noopener noreferrer"} pour la securite.</p>
  */
 export const AssistantMarkdown: React.FC<AssistantMarkdownProps> = ({ text }) => {
-  // Memo des components MUI pour eviter de les recreer a chaque render
+  // Memo des renderers pour eviter de les recreer a chaque render
   const components: Components = React.useMemo(() => ({
     // Paragraphes : corps 13px aligne avec la bulle assistant
     p: ({ children }) => (
@@ -119,14 +118,15 @@ export const AssistantMarkdown: React.FC<AssistantMarkdownProps> = ({ text }) =>
   }), []);
 
   // Adaptation typographique RTL : si le contenu est majoritairement arabe,
-  // wrap dans un container dir="rtl" + sx augmente (+18% fontSize, line-height
-  // 1.85, font-family priorisant Tahoma/Geeza Pro). Sinon LTR par defaut.
+  // wrap dans un container dir="rtl" + taille augmentee (fontSize, line-height,
+  // font-family priorisant Tajawal/Tahoma/Geeza Pro). Sinon LTR par defaut.
+  // `arabicTextSx` est un objet CSS plat : il s'applique tel quel en style inline.
   const arabic = isArabicHeavy(text);
   if (arabic) {
     return (
-      <Box dir="rtl" sx={{ ...arabicTextSx, textAlign: 'right' }}>
+      <div dir="rtl" style={{ ...arabicTextSx, textAlign: 'right' }}>
         <ReactMarkdown components={components}>{text}</ReactMarkdown>
-      </Box>
+      </div>
     );
   }
   // Texte avec quelques mots arabes au milieu (ex: nom propre) : pas de wrap

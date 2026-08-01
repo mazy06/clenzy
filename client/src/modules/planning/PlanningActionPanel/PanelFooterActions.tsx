@@ -1,9 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, AlertDescription } from '../../../components/ui';
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Spinner,
+} from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../../components/ui';
-import { Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
-import { Button } from '../../../components/ui';
 import { SwapHoriz, OpenInNew, WhatsApp, Cancel, Warning } from '../../../icons';
 import type { PlanningEvent, PlanningProperty } from '../types';
 import GuestCardDialog from './GuestCardDialog';
@@ -141,25 +149,23 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
       {/* Confirmation d'annulation */}
       <Dialog
         open={cancelDialogOpen}
-        onClose={() => { setCancelDialogOpen(false); setCancelError(null); }}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 'var(--radius-lg)' } }}
+        onOpenChange={(next) => { if (!next) { setCancelDialogOpen(false); setCancelError(null); } }}
       >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1, pt: 2, px: 2.5 }}>
-          <span className="inline-flex text-[var(--err)]"><Warning size={22} strokeWidth={1.75} /></span>
-          <h6 className="cn-text-h6 font-bold text-[1rem]">
-            Annuler la reservation
-          </h6>
-        </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1 }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5 pe-8">
+              <span className="inline-flex text-[var(--err)]"><Warning size={22} strokeWidth={1.75} /></span>
+              Annuler la reservation
+            </DialogTitle>
+            <DialogDescription>
+              Du {reservation.checkIn} au {reservation.checkOut}
+            </DialogDescription>
+          </DialogHeader>
+
           <p className="cn-text-body2 text-[0.8125rem] mb-1.5">
             Etes-vous sur de vouloir annuler la reservation de{' '}
             <strong>{reservation.guestName}</strong> au{' '}
             <strong>{reservation.propertyName}</strong> ?
-          </p>
-          <p className="cn-text-body2 text-[0.8125rem] mb-1.5">
-            Du <strong>{reservation.checkIn}</strong> au <strong>{reservation.checkOut}</strong>
           </p>
           <Alert variant="warning" className="text-[0.75rem]">
             <TriangleAlert />
@@ -171,36 +177,37 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
               <AlertDescription>{cancelError}</AlertDescription>
             </Alert>
           )}
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setCancelDialogOpen(false); setCancelError(null); }}
+            >
+              Retour
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!onCancelReservation) return;
+                setCancelLoading(true);
+                setCancelError(null);
+                const result = await onCancelReservation(reservation.id);
+                setCancelLoading(false);
+                if (result.success) {
+                  setCancelDialogOpen(false);
+                } else {
+                  setCancelError(result.error);
+                }
+              }}
+              variant="destructive"
+              size="sm"
+              disabled={cancelLoading || !onCancelReservation}
+            >
+              {cancelLoading ? <Spinner className="size-3.5" /> : <Cancel size={16} strokeWidth={1.75} />}
+              Confirmer l'annulation
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1 }}>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => { setCancelDialogOpen(false); setCancelError(null); }}
-          >
-            Retour
-          </Button>
-          <Button
-            onClick={async () => {
-              if (!onCancelReservation) return;
-              setCancelLoading(true);
-              setCancelError(null);
-              const result = await onCancelReservation(reservation.id);
-              setCancelLoading(false);
-              if (result.success) {
-                setCancelDialogOpen(false);
-              } else {
-                setCancelError(result.error);
-              }
-            }}
-            variant="destructive"
-            size="sm"
-            disabled={cancelLoading || !onCancelReservation}
-          >
-            {cancelLoading ? <Spinner className="size-3.5" /> : <Cancel size={16} strokeWidth={1.75} />}
-            Confirmer l'annulation
-          </Button>
-        </DialogActions>
       </Dialog>
     </div>
   );

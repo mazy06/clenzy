@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { Public as GlobeIcon, BroomFill, WrenchFill } from '../../icons';
 import type { ReservationStatus } from '../../services/api';
@@ -143,22 +143,27 @@ export const ChannelLegendChips: React.FC<{
     {CHANNEL_LEGEND.filter((ch) => !presentChannels || presentChannels.has(ch.key)).map((ch) => {
       const selected = activeChannels.has(ch.key);
       return (
-        <Tooltip key={ch.key} title={selected ? `Masquer le canal ${ch.label}` : `Afficher le canal ${ch.label}`} arrow>
-          <button
-            type="button"
-            aria-pressed={selected}
-            onClick={() => onToggleChannel(ch.key)}
-            className={chipClsFor(variant, selected)}
-          >
-            {ch.logo ? (
-              <img className="w-[15px] h-[15px] object-contain block shrink-0" src={ch.logo} alt="" />
-            ) : (
-              <span className="inline-flex text-[var(--accent)]">
-                <GlobeIcon size={15} strokeWidth={1.75} />
-              </span>
-            )}
-            {ch.label}
-          </button>
+        <Tooltip key={ch.key}>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onToggleChannel(ch.key)}
+              className={chipClsFor(variant, selected)}
+            >
+              {ch.logo ? (
+                <img className="w-[15px] h-[15px] object-contain block shrink-0" src={ch.logo} alt="" />
+              ) : (
+                <span className="inline-flex text-[var(--accent)]">
+                  <GlobeIcon size={15} strokeWidth={1.75} />
+                </span>
+              )}
+              {ch.label}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {selected ? `Masquer le canal ${ch.label}` : `Afficher le canal ${ch.label}`}
+          </TooltipContent>
         </Tooltip>
       );
     })}
