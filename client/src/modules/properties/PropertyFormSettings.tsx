@@ -1,19 +1,6 @@
 import React from 'react';
-import {
-  Box,
-  Grid,
-  Typography,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  FormControlLabel,
-  Checkbox,
-  Divider,
-  Switch,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Grid, Typography, TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, FormControlLabel, Checkbox, Divider, Switch } from '@mui/material';
 import {
   Person,
   Schedule,
@@ -136,21 +123,8 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                 name="bookingEngineVisible"
                 control={control}
                 render={({ field }) => (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
-                      py: 1,
-                      px: 1.5,
-                      borderRadius: '11px',
-                      bgcolor: field.value ? 'var(--ok-soft)' : 'var(--field)',
-                      border: '1px solid',
-                      borderColor: field.value ? 'color-mix(in srgb, var(--ok) 30%, transparent)' : 'var(--field-line)',
-                      transition: 'background-color .14s, border-color .14s',
-                    }}
-                  >
-                    <Box component="span" sx={{ display: 'inline-flex', color: field.value ? 'var(--ok)' : 'var(--muted)' }}><Language size={18} strokeWidth={1.75} /></Box>
+                  <div className={cn('flex items-center gap-[9px] py-1.5 px-[9px] rounded-[11px] border border-solid', field.value ? 'bg-[var(--ok-soft)]' : 'bg-[var(--field)]', field.value ? 'border-[color-mix(in_srgb,_var(--ok)_30%,_transparent)]' : 'border-[var(--field-line)]')} style={{ transition: 'background-color .14s, border-color .14s' }}>
+                    <span className={cn('inline-flex', field.value ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}><Language size={18} strokeWidth={1.75} /></span>
                     <div className="flex-1">
                       <p className="cn-text-body1 text-[0.8125rem] font-semibold">
                         {t('properties.bookingEngineVisible')}
@@ -165,7 +139,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                       size="small"
                       color="success"
                     />
-                  </Box>
+                  </div>
                 )}
               />
             </Grid>
@@ -178,23 +152,10 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                 name="orgCanCreateVouchers"
                 control={control}
                 render={({ field }) => (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
-                      py: 1,
-                      px: 1.5,
-                      borderRadius: '11px',
-                      bgcolor: field.value ? 'var(--ok-soft)' : 'var(--field)',
-                      border: '1px solid',
-                      borderColor: field.value ? 'color-mix(in srgb, var(--ok) 30%, transparent)' : 'var(--field-line)',
-                      transition: 'background-color .14s, border-color .14s',
-                    }}
-                  >
-                    <Box component="span" sx={{ display: 'inline-flex', color: field.value ? 'var(--ok)' : 'var(--muted)' }}>
+                  <div className={cn('flex items-center gap-[9px] py-1.5 px-[9px] rounded-[11px] border border-solid', field.value ? 'bg-[var(--ok-soft)]' : 'bg-[var(--field)]', field.value ? 'border-[color-mix(in_srgb,_var(--ok)_30%,_transparent)]' : 'border-[var(--field-line)]')} style={{ transition: 'background-color .14s, border-color .14s' }}>
+                    <span className={cn('inline-flex', field.value ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}>
                       <Language size={18} strokeWidth={1.75} />
-                    </Box>
+                    </span>
                     <div className="flex-1">
                       <p className="cn-text-body1 text-[0.8125rem] font-semibold">
                         {t('properties.orgCanCreateVouchers')}
@@ -209,7 +170,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                       size="small"
                       color="success"
                     />
-                  </Box>
+                  </div>
                 )}
               />
             </Grid>
@@ -391,18 +352,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                 name="cleaningNotes"
                 control={control}
                 render={({ field, fieldState }) => (
-                  <Box sx={{
-                    display: 'flex',
-                    gap: 1,
-                    py: 1.25,
-                    px: 1.5,
-                    borderRadius: '11px',
-                    bgcolor: 'var(--accent-soft)',
-                    border: '1px solid',
-                    borderColor: fieldState.error ? 'var(--err)' : 'color-mix(in srgb, var(--accent) 30%, transparent)',
-                    minHeight: 80,
-                    transition: 'border-color 0.15s ease',
-                  }}>
+                  <div className={cn('flex gap-1.5 py-[7.5px] px-[9px] rounded-[11px] bg-[var(--accent-soft)] border border-solid min-h-[80px]', fieldState.error ? 'border-[var(--err)]' : 'border-[color-mix(in_srgb,_var(--accent)_30%,_transparent)]')} style={{ transition: 'border-color 0.15s ease' }}>
                     <span className="inline-flex text-[var(--accent)] mt-0 shrink-0"><Checklist size={16} strokeWidth={1.75} /></span>
                     <div className="flex-1">
                       <p className="cn-text-body1 text-[0.625rem] font-bold uppercase tracking-[0.05em] text-[var(--accent)] mb-0.5">
@@ -428,7 +378,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                         <FormHelperText error sx={{ mx: 0, mt: 0.5 }}>{fieldState.error.message}</FormHelperText>
                       )}
                     </div>
-                  </Box>
+                  </div>
                 )}
               />
             </Grid>

@@ -156,25 +156,9 @@ export default function ServiceCatalogSection({
           <Card className="gap-0 py-0 border-border overflow-hidden">
             {/* Header — uniforme avec les autres cards */}
             <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[var(--line)]">
-              <Box
-                sx={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '10px',
-                  backgroundColor: openService.brandColor,
-                  color: openService.brandTextColor,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  letterSpacing: '-0.02em',
-                }}
-                aria-hidden="true"
-              >
+              <div className="w-[40px] h-[40px] rounded-[10px] inline-flex items-center justify-center shrink-0 text-[0.85rem] font-bold tracking-[-0.02em]" style={{ backgroundColor: openService.brandColor, color: openService.brandTextColor }} aria-hidden="true">
                 {getInitials(openService.name)}
-              </Box>
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-0.5 flex-wrap">
                   <p className="cn-text-body1 text-[0.92rem] font-semibold">{openService.name}</p>

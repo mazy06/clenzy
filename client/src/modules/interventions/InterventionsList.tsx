@@ -210,18 +210,18 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
   // Vérifications conditionnelles dans le rendu
   if (!user) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+      <div className="flex justify-center items-center min-h-[400px]">
         <Spinner className="size-8" />
-      </Box>
+      </div>
     );
   }
 
   // Permissions en cours de chargement
   if (permissionsLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+      <div className="flex justify-center items-center min-h-[400px]">
         <Spinner className="size-8" />
-      </Box>
+      </div>
     );
   }
 

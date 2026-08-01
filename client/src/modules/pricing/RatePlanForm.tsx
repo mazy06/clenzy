@@ -194,7 +194,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
           <span className="cn-text-caption text-muted-foreground text-[0.625rem] mb-0.5 block">
             {t('dynamicPricing.ratePlan.daysOfWeek')}
           </span>
-          <Box sx={{ display: 'flex', gap: '3px' }}>
+          <div className="flex gap-[3px]">
             {(() => {
               const daysOfWeekSet = new Set(daysOfWeek);
               return dayLabels.map((label, idx) => {
@@ -234,7 +234,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
               );
               });
             })()}
-          </Box>
+          </div>
         </div>
 
         {/* Active toggle */}

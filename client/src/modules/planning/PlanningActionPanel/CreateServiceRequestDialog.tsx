@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, IconButton, Button, InputBase, Alert, Link, Stepper, Step, StepLabel } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Button, InputBase, Alert, Link, Stepper, Step, StepLabel } from '@mui/material';
 import {
   Close,
   Send,
@@ -850,7 +851,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
           <div className="flex gap-2">
             {/* Title — aligné visuellement sur le bloc « Demandeur » (libellé
                 majuscule au-dessus + champ encadré). */}
-            <Box sx={{ flex: 7 }}>
+            <div className="flex-[7]">
               <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] mb-0.5 ms-0.5">
                 Titre de la demande *
               </p>
@@ -859,17 +860,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                 control={control}
                 render={({ field, fieldState }) => (
                   <>
-                    <Box sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 0.75,
-                      px: 1.25,
-                      py: 0.75,
-                      borderRadius: '11px',
-                      bgcolor: 'var(--field)',
-                      border: `1px solid ${fieldState.error ? 'var(--err)' : 'var(--field-line)'}`,
-                      minHeight: 40,
-                    }}>
+                    <div className="flex items-center gap-[4.5px] px-[7.5px] py-[4.5px] rounded-[11px] bg-[var(--field)] min-h-[40px]" style={{ border: `1px solid ${fieldState.error ? 'var(--err)' : 'var(--field-line)'}` }}>
                       <span className="inline-flex text-[var(--accent)]"><Send size={16} strokeWidth={1.75} /></span>
                       <InputBase
                         {...field}
@@ -877,7 +868,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                         placeholder="Ex: Détartrage ballon d'eau chaude"
                         sx={{ fontSize: '0.8125rem', color: 'var(--ink)', '& input::placeholder': { color: 'var(--faint)', opacity: 1 } }}
                       />
-                    </Box>
+                    </div>
                     {fieldState.error && (
                       <p className="cn-text-body1 text-[0.6875rem] text-[var(--err)] mt-0.5 ms-0.5">
                         {fieldState.error.message}
@@ -886,10 +877,10 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                   </>
                 )}
               />
-            </Box>
+            </div>
 
             {/* Demandeur — lecture seule, trace l'utilisateur connecté */}
-            <Box sx={{ flex: 5 }}>
+            <div className="flex-[5]">
               <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] mb-0.5 ms-0.5">
                 Demandeur
               </p>
@@ -902,7 +893,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                   <StatusChip tokens={{ color: isAdmin() ? 'var(--err)' : isManager() ? 'var(--warn)' : 'var(--accent)', bg: isAdmin() ? 'var(--err-soft)' : isManager() ? 'var(--warn-soft)' : 'var(--accent-soft)' }} label={currentUserRole} className="h-[20px] text-[10.5px]" />
                 )}
               </div>
-            </Box>
+            </div>
           </div>
         </div>
 
@@ -937,7 +928,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
               <div className="flex flex-col gap-2">
                     {/* Chiffrage ménage : estimation forfait (durée + prix), en colonne */}
                     {selectedProperty && isCleaningCategory && (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, px: 1.5, py: 1.25, borderRadius: '10px', border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', bgcolor: 'var(--accent-soft)' }}>
+                      <div className="flex flex-col gap-[9px] px-[9px] py-[7.5px] rounded-[10px] border border-solid border-[color-mix(in_srgb,_var(--accent)_30%,_transparent)] bg-[var(--accent-soft)]">
                         <div className="flex items-center gap-1">
                           <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
                           <div>
@@ -967,7 +958,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                             className="self-start border border-solid border-[var(--accent)] text-[0.625rem]"
                           />
                         )}
-                      </Box>
+                      </div>
                     )}
                     {/* Chiffrage maintenance : devis direct ou diagnostic préalable */}
                     {!isCleaningCategory && (
@@ -1048,7 +1039,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                       <div className="mt-0.5 ps-0.5">
                         {conflictMembers.map((member) => (
                           <div className="flex items-center gap-1 py-0.5" key={member.userId}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: member.available ? 'var(--ok)' : 'var(--err)' }}><Person size={12} strokeWidth={1.75} /></Box>
+                            <span className={cn('inline-flex', member.available ? 'text-[var(--ok)]' : 'text-[var(--err)]')}><Person size={12} strokeWidth={1.75} /></span>
                             <p className="cn-text-body1 text-[0.6875rem]">
                               {member.firstName} {member.lastName}
                               {!member.available && (

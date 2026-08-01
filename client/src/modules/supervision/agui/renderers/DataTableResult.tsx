@@ -68,23 +68,13 @@ export const DataTableResult: React.FC<{ data: DataTableData }> = ({ data }) => 
       {data.title && <Overline sx={{ mb: 0.75 }}>{data.title}</Overline>}
 
       <div className="rounded-[12px] overflow-hidden border border-[var(--line)] bg-[var(--card)]">
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
-            gap: 1,
-            px: 1.5,
-            py: 0.75,
-            bgcolor: 'var(--surface-2)',
-            borderBottom: '1px solid var(--line)',
-          }}
-        >
+        <div className="grid gap-1.5 px-[9px] py-[4.5px] bg-[var(--surface-2)]" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`, borderBottom: '1px solid var(--line)' }}>
           {columns.map((col) => (
             <Overline key={col.key} sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: col.numeric ? 'right' : 'left' }}>
               {col.label}
             </Overline>
           ))}
-        </Box>
+        </div>
 
         {visible.map((row, idx) => (
           <Box

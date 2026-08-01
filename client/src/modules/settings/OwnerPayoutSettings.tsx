@@ -253,21 +253,9 @@ export default function OwnerPayoutSettings() {
               gap: 1,
             }}
           >
-            <Box
-              sx={{
-                width: 48,
-                height: 48,
-                borderRadius: '12px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'var(--ok-soft)',
-                color: 'var(--ok)',
-                border: '1px solid color-mix(in srgb, var(--ok) 20%, transparent)',
-              }}
-            >
+            <div className="w-[48px] h-[48px] rounded-[12px] inline-flex items-center justify-center bg-[var(--ok-soft)] text-[var(--ok)] border border-solid border-[color-mix(in_srgb,_var(--ok)_20%,_transparent)]">
               <AccountBalance size={22} strokeWidth={1.75} />
-            </Box>
+            </div>
             <p className="cn-text-body1 text-[0.85rem] text-muted-foreground max-w-[480px]">
               {t(
                 'settings.ownerPayout.empty',

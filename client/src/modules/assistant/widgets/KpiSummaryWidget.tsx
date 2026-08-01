@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../../utils/cn';
 import { Box, Typography } from '@mui/material';
 
 /**
@@ -42,18 +43,7 @@ export const KpiSummaryWidget: React.FC<KpiSummaryWidgetProps> = ({ data }) => {
     <div className="mt-1.5 mb-2">
       {/* Score header — gros chiffre display + statut */}
       {scorePct !== null && (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: 1.5,
-            mb: 2,
-            px: 2,
-            py: 1.75,
-            borderRadius: '12px',
-            bgcolor: critical ? 'var(--err-soft)' : 'var(--accent-soft)',
-          }}
-        >
+        <div className={cn('flex items-baseline gap-[9px] mb-3 px-3 py-[10.5px] rounded-[12px]', critical ? 'bg-[var(--err-soft)]' : 'bg-[var(--accent-soft)]')}>
           <Typography
             sx={{
               fontFamily: 'var(--font-display)',
@@ -79,22 +69,16 @@ export const KpiSummaryWidget: React.FC<KpiSummaryWidgetProps> = ({ data }) => {
               {data.kpiCount !== undefined && ` · ${data.kpiCount} indicateurs`}
             </p>
           </div>
-        </Box>
+        </div>
       )}
 
       {/* Grille KPI : 2 colonnes sur mobile, 3 sur desktop */}
       {kpis.length > 0 && (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: 1,
-          }}
-        >
+        <div className="grid grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(3,_1fr)] gap-1.5">
           {kpis.map((kpi) => (
             <KpiTile key={kpi.id} kpi={kpi} />
           ))}
-        </Box>
+        </div>
       )}
     </div>
   );

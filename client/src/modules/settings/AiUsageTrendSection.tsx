@@ -10,7 +10,7 @@ import { useMemo, useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, MenuItem, Select, Table, TableBody, TableCell, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, useTheme } from '@mui/material';
+import { MenuItem, Select, Table, TableBody, TableCell, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, useTheme } from '@mui/material';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { aiApi, type AiDailyUsage } from '../../services/api/aiApi';
@@ -84,9 +84,9 @@ export default function AiUsageTrendSection() {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" py={4}>
+      <div className="flex justify-center py-6">
         <Spinner className="size-10" />
-      </Box>
+      </div>
     );
   }
 
@@ -206,7 +206,7 @@ export default function AiUsageTrendSection() {
               <TableRow key={`${m.provider}|${m.model}`}>
                 <TableCell>
                   <div className="flex items-center gap-1.5">
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: colorOf(m.provider), flexShrink: 0 }} />
+                    <div className="w-[8px] h-[8px] rounded-[50%] shrink-0" style={{ backgroundColor: colorOf(m.provider) }} />
                     <p className="cn-text-body2 font-semibold">{m.model || m.provider}</p>
                     <span className="cn-text-caption text-muted-foreground">{m.provider}</span>
                   </div>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, TextField, Switch } from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Typography, TextField, Switch } from '@mui/material';
 import { CleaningServices, Receipt as ReceiptIcon, Numbers as HashIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { UseReservationFormResult } from './useReservationForm';
@@ -17,20 +18,7 @@ const ExtrasSection: React.FC<Props> = ({ form }) => {
   return (
     <>
       {/* Toggle ménage (.rm-toggle) */}
-      <Box
-        component="label"
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '11px',
-          cursor: locked ? 'default' : 'pointer',
-          fontSize: '13.5px',
-          fontWeight: 600,
-          color: 'var(--ink)',
-          width: 'fit-content',
-          opacity: locked ? 0.5 : 1,
-        }}
-      >
+      <label className={cn('flex items-center gap-[11px] text-[13.5px] font-semibold text-[var(--ink)] w-[fit-content]', locked ? 'cursor-default' : 'cursor-pointer', locked ? 'opacity-50' : 'opacity-100')}>
         <Switch
           checked={form.createCleaning}
           onChange={(e) => form.setCreateCleaning(e.target.checked)}
@@ -42,10 +30,10 @@ const ExtrasSection: React.FC<Props> = ({ form }) => {
           <CleaningServices size={16} strokeWidth={1.75} />
         </span>
         {t('reservations.dialog.cleaningAtCheckout')}
-      </Box>
+      </label>
 
       {/* Frais ménage (si toggle actif) + taxe de séjour */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: form.createCleaning ? '1fr 1fr' : '1fr', gap: '12px' }}>
+      <div className={cn('grid gap-3', form.createCleaning ? 'grid-cols-[1fr_1fr]' : 'grid-cols-[1fr]')}>
         {form.createCleaning && (
           <TextField
             label={t('reservations.dialog.cleaningFee')}
@@ -81,7 +69,7 @@ const ExtrasSection: React.FC<Props> = ({ form }) => {
           placeholder="0"
           sx={FIELD_SX}
         />
-      </Box>
+      </div>
       {form.createCleaning && form.estimatedCleaningPrice != null && form.estimatedCleaningPrice > 0 && (
         <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontStyle: 'italic', marginTop: '-12px' }}>
           {t('reservations.dialog.estimatedCleaning', { amount: form.estimatedCleaningPrice.toFixed(2) })}

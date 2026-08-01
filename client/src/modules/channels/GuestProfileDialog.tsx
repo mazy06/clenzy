@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, Box, Typography, IconButton, Divider, TextField, Button } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, Typography, IconButton, Divider, TextField, Button } from '@mui/material';
 import {
   Close as CloseIcon,
   Person as PersonIcon,
@@ -155,7 +155,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
             <div>
               <div className="flex items-center justify-between mb-0.5">
                 <p className="cn-text-body1 text-[0.6875rem] font-semibold uppercase text-muted-foreground">
-                  <Box component="span" sx={{ display: 'inline-flex', mr: 0.25, verticalAlign: 'middle' }}><NoteIcon size={'0.75rem'} strokeWidth={1.75} /></Box>
+                  <span className="inline-flex me-[1.5px] align-[middle]"><NoteIcon size={'0.75rem'} strokeWidth={1.75} /></span>
                   {t('channels.guest.notes')}
                 </p>
                 {!editingNotes && (
@@ -197,7 +197,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                 <Divider />
                 <div>
                   <p className="cn-text-body1 text-[0.6875rem] font-semibold mb-1 uppercase text-muted-foreground">
-                    <Box component="span" sx={{ display: 'inline-flex', mr: 0.25, verticalAlign: 'middle' }}><CalendarIcon size={'0.75rem'} strokeWidth={1.75} /></Box>
+                    <span className="inline-flex me-[1.5px] align-[middle]"><CalendarIcon size={'0.75rem'} strokeWidth={1.75} /></span>
                     {t('channels.guest.reservationHistory')} ({guest.reservations.length})
                   </p>
                   <div className="flex flex-col gap-0.5">

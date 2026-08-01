@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { cn } from '../../../../utils/cn';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, ButtonBase, Tooltip } from '@mui/material';
@@ -701,7 +702,7 @@ function CompositesPanel({ composites, canEditGlobal, onInsert, onEdit, onDelete
         <Plus size={15} strokeWidth={2} /> Nouveau composite
       </ButtonBase>
       {composites.map((c) => (
-        <Box key={c.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.9, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--card)', transition: 'border-color var(--duration-fast) var(--ease-out)', '&:hover': { borderColor: 'var(--accent)' } }}>
+        <div className="flex items-center gap-1.5 px-1.5 py-[5.4px] rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-[var(--card)] hover:border-[var(--accent)]" style={{ transition: 'border-color var(--duration-fast) var(--ease-out)' }} key={c.id}>
           <div className="shrink-0 inline-flex text-[var(--muted)]"><Boxes size={20} strokeWidth={1.8} /></div>
         <ButtonBase onClick={() => onInsert(c)} sx={{ flex: 1, minWidth: 0, display: 'block', textAlign: 'left', cursor: 'pointer' }}>
             <span className="flex items-center gap-0.5 text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--ink)]">
@@ -726,7 +727,7 @@ function CompositesPanel({ composites, canEditGlobal, onInsert, onEdit, onDelete
               </ButtonBase>
             </Tooltip>
           )}
-        </Box>
+        </div>
       ))}
     </div>
   );
@@ -1706,10 +1707,10 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
             )}
           </div>
           <div className="inline-flex items-center gap-1.5 px-1.5 shrink-0">
-            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', color: needsPublish ? 'var(--warn, #B26B00)' : 'var(--ok)' }}>
-              <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: needsPublish ? 'var(--warn, #D4A574)' : 'var(--ok)' }} />
+            <div className={cn('inline-flex items-center gap-[3px] text-[var(--text-2xs)]', needsPublish ? 'text-[var(--warn,_#B26B00)]' : 'text-[var(--ok)]')} style={{ fontWeight: 'var(--fw-semibold)' }}>
+              <span className={cn('w-[6px] h-[6px] rounded-[50%]', needsPublish ? 'bg-[var(--warn,_#D4A574)]' : 'bg-[var(--ok)]')} />
               {needsPublish ? 'Brouillon non publié' : 'Publié'}
-            </Box>
+            </div>
             <Tooltip title={needsPublish ? 'Publier la version en ligne' : 'Aucune modification à publier'}>
               <span>
                 <ButtonBase
@@ -1777,17 +1778,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
         </div>
         {/* Panneau droit : conteneurs des managers, TOUJOURS montés (cible `appendTo`) ; on bascule la
             vue par `display` et on réduit la largeur à 0 (sans démonter) au repli / en aperçu. */}
-        <Box
-          className="cz-rightpanel"
-          sx={{
-            flexShrink: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-            // Replié pendant l'édition d'un composite → le constructeur (+ sa propre palette) est l'UNIQUE
-            // colonne de droite (pas de double colonne avec le panneau du Studio).
-            width: panelCollapsed || chromeHidden || compositeCreatorOpen ? 0 : 300,
-            borderLeft: panelCollapsed || chromeHidden || compositeCreatorOpen ? 'none' : '1px solid var(--line)',
-            bgcolor: 'var(--card)',
-          }}
-        >
+        <div className={cn('cz-rightpanel shrink-0 h-full overflow-hidden flex flex-col bg-[var(--card)]', panelCollapsed || chromeHidden || compositeCreatorOpen ? 'w-0' : 'w-[300px]', panelCollapsed || chromeHidden || compositeCreatorOpen ? 'border-s-[none]' : 'border-s-[1px_solid_var(--line)]')}>
           {/* Sélecteur de vue — en tête du panneau droit (segmented), FIXE (hors zone de scroll). */}
           {!panelCollapsed && !chromeHidden && (
             <div className="shrink-0 flex justify-center p-1.5 border-b border-[var(--line)] bg-[var(--card)]">
@@ -1819,7 +1810,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
             </div>
           )}
           {/* Contenu — SEUL à scroller : la barre de défilement n'apparaît plus au niveau des onglets. */}
-          <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
             {/* `data-guided` (mode Guidé) → la palette se restreint au set curé via CSS (`grapesStudio.css`). */}
             <Box ref={blocksRef} {...(guided ? { 'data-guided': '' } : {})} sx={{ display: activeView === 'blocks' ? 'block' : 'none' }} />
             {activeView === 'composites' && (
@@ -1832,11 +1823,11 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                 onNew={() => { setEditingComposite(null); setCompositeCreatorOpen(true); }}
               />
             )}
-            <Box ref={stylesRef} sx={{ display: activeView === 'styles' ? 'block' : 'none' }} />
-            <Box ref={layersRef} sx={{ display: activeView === 'layers' ? 'block' : 'none' }} />
-            <Box ref={traitsRef} sx={{ display: activeView === 'traits' ? 'block' : 'none' }} />
-          </Box>
-        </Box>
+            <div className={cn(activeView === 'styles' ? 'block' : 'hidden')} ref={stylesRef} />
+            <div className={cn(activeView === 'layers' ? 'block' : 'hidden')} ref={layersRef} />
+            <div className={cn(activeView === 'traits' ? 'block' : 'hidden')} ref={traitsRef} />
+          </div>
+        </div>
       </div>
 
       {/* Aperçu : seule affordance visible = quitter l'aperçu. */}

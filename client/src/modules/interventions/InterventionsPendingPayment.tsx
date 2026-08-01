@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Card, CardContent, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, Tooltip } from '@mui/material';
+import { Card, CardContent, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, Tooltip } from '@mui/material';
 import {
   Payment as PaymentIcon,
   Refresh as RefreshIcon,
@@ -139,9 +139,9 @@ const InterventionsPendingPayment: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+      <div className="flex justify-center items-center min-h-[400px]">
         <Spinner className="size-10 text-[var(--accent)]" />
-      </Box>
+      </div>
     );
   }
 
@@ -190,7 +190,7 @@ const InterventionsPendingPayment: React.FC = () => {
       )}
 
       {/* ─── Resume en haut ────────────────────────────────────────────── */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(200px, 280px))' }, gap: 1.5, mb: 2 }}>
+      <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_minmax(200px,_280px))] gap-[9px] mb-3">
         <StatTile
           icon={<HourglassIcon size={16} strokeWidth={1.75} />}
           label="Interventions en attente"
@@ -203,7 +203,7 @@ const InterventionsPendingPayment: React.FC = () => {
           value={<Money value={totalDue} from="EUR" />}
           color={ERR_HEX}
         />
-      </Box>
+      </div>
 
       {/* ─── Tableau ───────────────────────────────────────────────────── */}
       {interventions.length === 0 ? (

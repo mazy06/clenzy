@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Card } from '../../components/ui';
-import { Box, Typography, Paper, Grid, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, alpha } from '@mui/material';
+import { Typography, Paper, Grid, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, alpha } from '@mui/material';
 import {
   AccountBalanceWallet,
   TrendingUp,
@@ -189,22 +189,14 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                     }}
                     onClick={() => { setSelectedWallet(wallet); setPage(0); }}
                   >
-                    <Box display="flex" alignItems="center" gap={1} mb={1}>
-                      <Box
-                        sx={{
-                          width: 26, height: 26, borderRadius: 1,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: typeInfo.color,
-                          bgcolor: alpha(typeInfo.color, 0.12),
-                          flexShrink: 0,
-                        }}
-                      >
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <div className="w-[26px] h-[26px] rounded-[8px] flex items-center justify-center shrink-0" style={{ color: typeInfo.color, backgroundColor: alpha(typeInfo.color, 0.12) }}>
                         {typeInfo.icon}
-                      </Box>
+                      </div>
                       <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em]">
                         {typeInfo.label}
                       </p>
-                    </Box>
+                    </div>
                     <Typography
                       sx={{
                         ...moneySx,
@@ -229,11 +221,11 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
           {/* Ledger entries table */}
           {selectedWallet && (
             <Card className="gap-0 py-0 mt-4 border-[var(--line)] overflow-hidden">
-              <Box p={2} display="flex" justifyContent="space-between" alignItems="center">
+              <div className="p-3 flex justify-between items-center">
                 <p className="cn-text-body1 font-[var(--font-display)] text-[16px] font-semibold tracking-[-0.01em] text-[var(--ink)]">
                   Historique — {WALLET_TYPE_LABELS[selectedWallet.walletType]?.label}
                 </p>
-              </Box>
+              </div>
 
               {entriesLoading ? (
                 <div className="px-3 pb-3">

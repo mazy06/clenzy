@@ -266,12 +266,12 @@ export default function PublicBookingPage() {
       {/* Section de réservation de repli : widget monolithe (Shadow DOM, styles isolés). Masquée si la
           HOME GrapesJS embarque déjà ses propres marqueurs hydratés (évite le doublon bookable). */}
       {!homeHasWidgets && (
-        <Box id="reserver" sx={{ maxWidth: 1040, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 4, md: 6 } }}>
+        <div className="max-w-[1040px] mx-auto px-3 min-[900px]:px-6 py-6 min-[900px]:py-9" id="reserver">
           <div className="font-[var(--font-display)] text-[var(--text-2xl)] font-[var(--fw-bold)] text-center mb-4">
             Réservez votre séjour
           </div>
           <div ref={widgetHostRef} />
-        </Box>
+        </div>
       )}
 
       {/* Concierge IA (2.13) — bulle flottante, affichée seulement si l'org a activé l'IA. */}
@@ -282,7 +282,7 @@ export default function PublicBookingPage() {
 
 function ReviewsSection({ data }: { data: PublicReviews }) {
   return (
-    <Box sx={{ maxWidth: 1040, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 4, md: 6 } }}>
+    <div className="max-w-[1040px] mx-auto px-3 min-[900px]:px-6 py-6 min-[900px]:py-9">
       <div className="flex items-center justify-center gap-1.5 mb-4">
         <Star size={22} fill="var(--accent)" color="var(--accent)" />
         <div className="font-[var(--font-display)] text-[var(--text-2xl)] font-[var(--fw-bold)] text-[var(--ink)]">
@@ -290,7 +290,7 @@ function ReviewsSection({ data }: { data: PublicReviews }) {
         </div>
         <div className="text-[var(--muted)] text-[var(--text-md)]">· {data.stats.totalCount} avis</div>
       </div>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
+      <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_1fr)] min-[1200px]:grid-cols-[repeat(3,_1fr)] gap-3">
         {data.reviews.map((r, i) => (
           <div className="p-3 border border-[var(--line)] rounded-[var(--radius-lg)] bg-[var(--bg)]" key={i}>
             <div className="flex gap-0.5 mb-1.5">
@@ -304,8 +304,8 @@ function ReviewsSection({ data }: { data: PublicReviews }) {
             <div className="text-[var(--text-sm)] font-[var(--fw-semibold)] text-[var(--ink)]">{r.guestName}</div>
           </div>
         ))}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 

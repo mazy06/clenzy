@@ -17,7 +17,7 @@
 
 import React, { useCallback } from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Box, Button, Switch, Select, MenuItem, TextField, FormControl, Card, Tooltip } from '@mui/material';
+import { Button, Switch, Select, MenuItem, TextField, FormControl, Card, Tooltip } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -140,16 +140,7 @@ const ConstellationAutoRulesSection: React.FC = () => {
           const moduleLabel = t(`supervision.agents.${rule.moduleKey}.name`, rule.moduleKey);
 
           return (
-            <Box
-              key={rule.actionType}
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: 'auto minmax(220px, 1.6fr) auto minmax(150px, auto) auto auto',
-                alignItems: 'center',
-                columnGap: 1.5, px: 2, py: 1.25, minWidth: 760,
-                borderTop: idx === 0 ? 'none' : '1px solid var(--hairline)',
-              }}
-            >
+            <div className="grid grid-cols-[auto_minmax(220px,_1.6fr)_auto_minmax(150px,_auto)_auto_auto] items-center gap-x-[9px] px-3 py-[7.5px] min-w-[760px]" style={{ borderTop: idx === 0 ? 'none' : '1px solid var(--hairline)' }} key={rule.actionType}>
               <Tooltip
                 title={cappedToSuggest
                   ? t('automation.constellation.cappedTooltip',
@@ -286,7 +277,7 @@ const ConstellationAutoRulesSection: React.FC = () => {
               ) : (
                 <div />
               )}
-            </Box>
+            </div>
           );
         })}
       </Card>

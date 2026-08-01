@@ -23,12 +23,12 @@ import { formatFieldValue, toList } from './formatters';
 /** .fr-sec — overline + filet. */
 function FrSection({ title }: { title: string }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: '9px', m: '26px 0 14px' }}>
+    <div className="flex items-center gap-[9px] m-[26px 0 14px]">
       <span className="text-[11px] font-bold tracking-[.08em] uppercase text-[var(--faint)] whitespace-nowrap">
         {title}
       </span>
       <div className="flex-1 h-[1px] bg-[var(--line)]" />
-    </Box>
+    </div>
   );
 }
 
@@ -40,12 +40,9 @@ function Tile({ icon, label, value }: { icon: React.ReactNode; label: string; va
       minWidth: 0, transition: 'border-color .14s, box-shadow .14s',
       '&:hover': { borderColor: 'var(--line-2)', boxShadow: '0 8px 24px -18px var(--ink)' },
     }}>
-      <Box sx={{
-        width: 36, height: 36, borderRadius: '11px', bgcolor: 'var(--accent-soft)', color: 'var(--accent)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', mb: '12px',
-      }}>
+      <div className="w-[36px] h-[36px] rounded-[11px] bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center mb-3">
         {icon}
-      </Box>
+      </div>
       <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.04em] uppercase text-[var(--faint)]">
         {label}
       </p>
@@ -118,10 +115,7 @@ function SyncRow({ value }: { value: string }) {
 /** .fr-pcard — carte planning (icône 40 r12 accent-soft, label overline, valeur 14.5). */
 function PlanCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <Box sx={{
-      display: 'flex', alignItems: 'center', gap: '13px', bgcolor: 'var(--card)',
-      border: '1px solid var(--line)', borderRadius: '13px', p: '14px 16px', minWidth: 0,
-    }}>
+    <div className="flex items-center gap-[13px] bg-[var(--card)] border border-solid border-[var(--line)] rounded-[13px] p-[14px 16px] min-w-0">
       <div className="w-[40px] h-[40px] rounded-[12px] bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center shrink-0">
         {icon}
       </div>
@@ -133,7 +127,7 @@ function PlanCard({ icon, label, value }: { icon: React.ReactNode; label: string
           {value}
         </Typography>
       </div>
-    </Box>
+    </div>
   );
 }
 
@@ -169,37 +163,37 @@ function DevisSections({ data }: { data: Record<string, unknown> }) {
       {tiles.length > 0 && (
         <>
           <FrSection title="Aperçu du bien" />
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: '12px' }}>
+          <div className="grid grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-3">
             {tiles.map((t) => <Tile key={t.key} icon={t.icon} label={t.label} value={t.value} />)}
-          </Box>
+          </div>
         </>
       )}
 
       {hasServices && (
         <>
           <FrSection title="Services souhaités" />
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: '18px' }}>
+          <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_1fr)] gap-[18px]">
             <div>
               <SvcHeader icon={<SparklesIcon size={15} strokeWidth={1.75} />} label="Services forfait" />
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              <div className="flex flex-wrap gap-2">
                 {forfait.length > 0
                   ? forfait.map((s) => (
                       <ServiceChip key={s} icon={<CheckIcon size={14} strokeWidth={2} />} label={formatFieldValue('services', s)} />
                     ))
                   : <ServiceChip variant="muted" label="Aucun" />}
-              </Box>
+              </div>
             </div>
             <div>
               <SvcHeader icon={<FileTextIcon size={15} strokeWidth={1.75} />} label="Services sur devis" />
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              <div className="flex flex-wrap gap-2">
                 {devis.length > 0
                   ? devis.map((s) => (
                       <ServiceChip key={s} variant="devis" icon={<FilePenIcon size={14} strokeWidth={2} />} label={formatFieldValue('servicesDevis', s)} />
                     ))
                   : <ServiceChip variant="muted" label="Aucun" />}
-              </Box>
+              </div>
             </div>
-          </Box>
+          </div>
         </>
       )}
       {has('calendarSync') && <SyncRow value={formatFieldValue('calendarSync', data.calendarSync)} />}
@@ -207,7 +201,7 @@ function DevisSections({ data }: { data: Record<string, unknown> }) {
       {(has('bookingFrequency') || has('cleaningSchedule')) && (
         <>
           <FrSection title="Planning" />
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: '14px' }}>
+          <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_1fr)] gap-3.5">
             {has('bookingFrequency') && (
               <PlanCard
                 icon={<CalendarRangeIcon size={19} strokeWidth={1.75} />}
@@ -222,7 +216,7 @@ function DevisSections({ data }: { data: Record<string, unknown> }) {
                 value={formatFieldValue('cleaningSchedule', data.cleaningSchedule)}
               />
             )}
-          </Box>
+          </div>
         </>
       )}
     </>
@@ -239,24 +233,24 @@ function MaintenanceSections({ data }: { data: Record<string, unknown> }) {
       {works.length > 0 && (
         <>
           <FrSection title="Travaux demandés" />
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          <div className="flex flex-wrap gap-2">
             {works.map((w) => (
               <ServiceChip key={w} icon={<HandymanIcon size={14} strokeWidth={2} />} label={formatFieldValue('selectedWorks', w)} />
             ))}
-          </Box>
+          </div>
         </>
       )}
 
       {hasUrgency && (
         <>
           <FrSection title="Urgence" />
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: '14px' }}>
+          <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_1fr)] gap-3.5">
             <PlanCard
               icon={<UrgencyIcon size={19} strokeWidth={1.75} />}
               label="Niveau d'urgence"
               value={formatFieldValue('urgency', data.urgency)}
             />
-          </Box>
+          </div>
         </>
       )}
 

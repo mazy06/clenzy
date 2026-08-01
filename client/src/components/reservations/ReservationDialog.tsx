@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { cn } from '../../utils/cn';
 import { Dialog, Box, Typography, useMediaQuery } from '@mui/material';
 import { Check, ArrowBack, ArrowForward } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -35,7 +36,7 @@ const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }
 
   return (
     <>
-      <Box sx={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: stackColumns ? '1fr' : '1fr 1fr', gap: 0 }}>
+      <div className={cn('flex-1 overflow-y-auto grid gap-0', stackColumns ? 'grid-cols-[1fr]' : 'grid-cols-[1fr_1fr]')}>
         <Box
           sx={{
             padding: '22px',
@@ -60,7 +61,7 @@ const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }
             {form.error}
           </Typography>
         )}
-      </Box>
+      </div>
 
       <Box sx={{ ...FOOT_SX, justifyContent: 'flex-end' }}>
         <Box component="button" type="button" onClick={onClose} sx={BTN_GHOST_SX}>

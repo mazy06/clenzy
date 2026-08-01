@@ -251,14 +251,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
   if (!active || !payload || payload.length === 0) return null;
   // Pattern tooltip Signature : encre sur fond (--ink / --bg), r8
   return (
-    <Box
-      sx={{
-        p: '6px 10px',
-        borderRadius: '8px',
-        backgroundColor: 'var(--ink)',
-        color: 'var(--bg)',
-      }}
-    >
+    <div className="p-[6px 10px] rounded-[8px] bg-[var(--ink)] text-[var(--bg)]">
       {label && (
         <p className="cn-text-body1 font-bold mb-0.5 text-[11.5px]">
           {new Date(label).toLocaleString()}
@@ -269,7 +262,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
           {entry.name}: {typeof entry.value === 'number' ? entry.value.toFixed(1) : entry.value}
         </p>
       ))}
-    </Box>
+    </div>
   );
 };
 

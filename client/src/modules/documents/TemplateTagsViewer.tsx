@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
 import { Card } from '../../components/ui';
-import { Accordion, AccordionSummary, AccordionDetails, Box, Table, TableBody, TableCell, TableRow } from '@mui/material';
+import { Accordion, AccordionSummary, AccordionDetails, Table, TableBody, TableCell, TableRow } from '@mui/material';
 import { ExpandMore } from '../../icons';
 import { DocumentTemplateTag } from '../../services/api/documentsApi';
 
@@ -99,10 +99,7 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
           >
             <AccordionSummary expandIcon={<ExpandMore />}>
               <div className="flex items-center gap-1.5">
-                <Box sx={{
-                  width: 12, height: 12, borderRadius: '50%',
-                  bgcolor: (CATEGORY_TONES[cat] ?? STATUS_TONES.neutral).color,
-                }} />
+                <div className="w-[12px] h-[12px] rounded-[50%]" style={{ backgroundColor: (CATEGORY_TONES[cat] ?? STATUS_TONES.neutral).color }} />
                 <p className="cn-text-body1 font-medium">
                   {CATEGORY_LABELS[cat] || cat}
                 </p>

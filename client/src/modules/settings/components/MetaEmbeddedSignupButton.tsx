@@ -295,20 +295,14 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
         </Alert>
       )}
 
-      <Box sx={{
-        mt: 0.5,
-        p: 1.25,
-        borderRadius: 1.5,
-        bgcolor: alpha(theme.palette.info.main, 0.06),
-        border: `1px solid ${alpha(theme.palette.info.main, 0.15)}`,
-      }}>
+      <div className="mt-[3px] p-[7.5px] rounded-[12px]" style={{ backgroundColor: alpha(theme.palette.info.main, 0.06), border: `1px solid ${alpha(theme.palette.info.main, 0.15)}` }}>
         <span className="cn-text-caption text-muted-foreground">
           <strong>{t('settings.whatsapp.meta.signup.recommendedTitle', 'Méthode recommandée')}</strong>
           {' — '}
           {t('settings.whatsapp.meta.signup.recommendedBody',
             "Pas de Meta Business Manager nécessaire en amont. Baitly provisionne tout pour vous : compte WhatsApp Business, vérification du numéro, templates de messages.")}
         </span>
-      </Box>
+      </div>
     </div>
   );
 }

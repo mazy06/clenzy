@@ -493,7 +493,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
         {vm.extraMetrics?.map((m) => (
           <Grid item xs={6} sm={4} md={2} key={`extra-metric-${m.label}`}>
             <Box sx={METRIC_CARD_SX}>
-              <Box component="span" sx={{ display: 'inline-flex', color: m.tone ?? 'var(--accent)', mb: 0.25 }}>{m.icon}</Box>
+              <span className="inline-flex mb-[1.5px]" style={{ color: m.tone ?? 'var(--accent)' }}>{m.icon}</span>
               <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px', ...(m.tone ? { color: m.tone } : {}) }}>
                 {m.value}
               </Typography>
@@ -504,9 +504,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
       </Grid>
 
       {/* ── Two-column detail layout ────────────────────────────────── */}
-      <Box sx={{ display: 'flex', flexWrap: { xs: 'wrap', md: 'nowrap' }, gap: 1.5, mb: 1.5 }}>
+      <div className="flex flex-wrap min-[900px]:flex-nowrap gap-[9px] mb-[9px]">
         {/* ── Left column ──────────────────────────────────────────── */}
-        <Box sx={{ flex: { xs: '1 1 100%', md: 7 }, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <div className="flex-[1_1_100%] min-[900px]:flex-[7] min-w-0 flex flex-col gap-[9px]">
 
           {/* Description */}
           {vm.description && (
@@ -517,22 +517,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               </Typography>
               <div className="flex items-start gap-1.5">
                 {vm.importSource && ICAL_SOURCE_LOGOS[vm.importSource.toLowerCase()] && (
-                  <Box
-                    sx={{
-                      width: 22,
-                      height: 22,
-                      minWidth: 22,
-                      borderRadius: '50%',
-                      border: '1.5px solid',
-                      borderColor: 'var(--line)',
-                      backgroundColor: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      mt: 0.25,
-                    }}
-                  >
+                  <div className="w-[22px] h-[22px] min-w-[22px] rounded-[50%] border-[1.5px] border-solid border-[var(--line)] bg-[#fff] flex items-center justify-center shrink-0 mt-[1.5px]">
                     <img
                       src={ICAL_SOURCE_LOGOS[vm.importSource.toLowerCase()]}
                       alt={vm.importSource}
@@ -540,7 +525,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                       height={15}
                       style={{ objectFit: 'contain', borderRadius: '50%' }}
                     />
-                  </Box>
+                  </div>
                 )}
                 <p className="cn-text-body1 text-[13px] text-[var(--body)] leading-[1.6] whitespace-pre-line">
                   {vm.description}
@@ -649,10 +634,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               )}
             </Paper>
           )}
-        </Box>
+        </div>
 
         {/* ── Right column ─────────────────────────────────────────── */}
-        <Box sx={{ flex: { xs: '1 1 100%', md: 5 }, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <div className="flex-[1_1_100%] min-[900px]:flex-[5] min-w-0 flex flex-col gap-[9px]">
 
           {/* Personnes impliquées */}
           {(vm.requestor || vm.assignee) && (
@@ -791,8 +776,8 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               </>
             )}
           </Paper>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* ── Extra rich section (ex: intervention stepper) ─────────────── */}
       {extraSection}

@@ -252,7 +252,7 @@ export default function SplitBarEditor({
 
         {segments.map((segment) => (
           <div className="flex items-center gap-1" key={segment.key}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: segment.color }} />
+            <div className="w-[8px] h-[8px] rounded-[2px]" style={{ backgroundColor: segment.color }} />
             <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-medium">
               {segment.label}
             </p>

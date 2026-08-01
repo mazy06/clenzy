@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { cn } from '../../../../utils/cn';
 import { Box, ButtonBase, InputBase, Switch } from '@mui/material';
 import { Check } from 'lucide-react';
 
@@ -19,7 +20,7 @@ export function SettingsPage({ title, description, children, footer, intro }: {
       <div className="flex-1 overflow-y-auto">
         {/* Conteneur élargi (vs 720 auparavant) : récupère les espaces vides
             latéraux du Studio sur écran large. */}
-        <Box sx={{ maxWidth: 1120, mx: 'auto', px: { xs: 2.5, md: 4 }, py: { xs: 3, md: 4 } }}>
+        <div className="max-w-[1120px] mx-auto px-[15px] min-[900px]:px-6 py-[18px] min-[900px]:py-6">
           <div className="mb-4">
             <div className="font-[var(--font-display)] text-[var(--text-2xl)] font-[var(--fw-bold)] text-[var(--ink)]">{title}</div>
             {description && <div className="text-[var(--text-md)] text-[var(--muted)] mt-0.5">{description}</div>}
@@ -38,7 +39,7 @@ export function SettingsPage({ title, description, children, footer, intro }: {
           >
             {children}
           </Box>
-        </Box>
+        </div>
       </div>
       {footer}
     </div>
@@ -70,20 +71,17 @@ export function SettingRow({ label, helper, htmlFor, control }: {
         <label className="text-[var(--text-md)] font-[var(--fw-medium)] text-[var(--ink)] block" htmlFor={htmlFor}>{label}</label>
         {helper && <div className="text-[var(--text-sm)] text-[var(--muted)] mt-0.5 leading-[1.45]">{helper}</div>}
       </div>
-      <Box sx={{ flexShrink: 0, width: { xs: '100%', sm: 260 }, display: 'flex', justifyContent: 'flex-end' }}>{control}</Box>
+      <div className="shrink-0 w-full min-[600px]:w-[260px] flex justify-end">{control}</div>
     </Box>
   );
 }
 
 export function SaveBar({ dirty, saving, onSave, error }: { dirty: boolean; saving: boolean; onSave: () => void; error?: string | null }) {
   return (
-    <Box sx={{
-      flexShrink: 0, borderTop: '1px solid var(--line)', bgcolor: 'var(--card)',
-      px: { xs: 2.5, md: 4 }, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5,
-    }}>
-      <Box sx={{ flex: 1, fontSize: 'var(--text-sm)', color: error ? 'var(--err)' : 'var(--muted)' }}>
+    <div className="shrink-0 bg-[var(--card)] px-[15px] min-[900px]:px-6 py-[9px] flex items-center gap-[9px]" style={{ borderTop: '1px solid var(--line)' }}>
+      <div className={cn('flex-1 text-[var(--text-sm)]', error ? 'text-[var(--err)]' : 'text-[var(--muted)]')}>
         {error ? error : dirty ? 'Modifications non enregistrées.' : 'À jour.'}
-      </Box>
+      </div>
       <ButtonBase
         onClick={onSave}
         disabled={!dirty || saving}
@@ -100,7 +98,7 @@ export function SaveBar({ dirty, saving, onSave, error }: { dirty: boolean; savi
         {!saving && <Check size={16} strokeWidth={2.4} />}
         {saving ? 'Enregistrement…' : 'Enregistrer'}
       </ButtonBase>
-    </Box>
+    </div>
   );
 }
 

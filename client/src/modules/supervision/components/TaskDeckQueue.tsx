@@ -15,6 +15,7 @@
    ============================================================ */
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { Box, Button, Collapse, IconButton } from '@mui/material';
 import {
   Check, ChevronDown, Timer, CreditCard, Schedule, VisibilityOff, Undo, OpenInNew,
@@ -89,18 +90,15 @@ function TaskCard({
     >
       {/* En-tête : tuile d'icône + label du type + badge d'urgence */}
       <div className="flex items-center gap-1.5">
-        <Box sx={{
-          width: 32, height: 32, borderRadius: '10px', background: tile, color: meta.color,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
+        <div className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center shrink-0" style={{ background: tile, color: meta.color }}>
           <AgentIcon token={meta.icon} size={16} />
-        </Box>
+        </div>
         <div className="text-[12px] font-medium text-[var(--ink)] flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">
           {t(meta.nameKey)}
         </div>
         {payment || reminder || guestCard ? (
           <div className="flex items-center gap-0.5 shrink-0">
-            <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warn)' }} />
+            <div className="w-[6px] h-[6px] rounded-[50%]" style={{ background: 'var(--warn)' }} />
             <div className="text-[10.5px] font-medium text-[var(--warn)] whitespace-nowrap">
               {payment ? t('supervision.payment.badge', 'À régler')
                 : reminder ? t('supervision.reminder.badge', 'Rappel')
@@ -108,16 +106,10 @@ function TaskCard({
             </div>
           </div>
         ) : (
-          <Box sx={{
-            display: 'flex', alignItems: 'center', gap: 0.5, px: 0.9, py: 0.35, borderRadius: '999px',
-            bgcolor: cd.expired ? 'var(--err-soft)' : 'var(--warn-soft)',
-            color: cd.expired ? 'var(--err)' : 'var(--warn)',
-            fontSize: 10, fontWeight: 500, whiteSpace: 'nowrap',
-            fontVariantNumeric: 'tabular-nums', flexShrink: 0,
-          }}>
+          <div className={cn('flex items-center gap-[3px] px-[5.4px] py-[2.0999999999999996px] rounded-[999px] text-[10px] font-medium whitespace-nowrap tabular-nums shrink-0', cd.expired ? 'bg-[var(--err-soft)]' : 'bg-[var(--warn-soft)]', cd.expired ? 'text-[var(--err)]' : 'text-[var(--warn)]')}>
             <Timer size={11} />
             {cd.expired ? t('supervision.hitl.expired') : remainingLabel(cd, t)}
-          </Box>
+          </div>
         )}
       </div>
 
@@ -246,12 +238,9 @@ function TaskStack({
   // deck à hauteur fixe (évite l'espace vide réservé pour une pile inexistante).
   if (n === 1) {
     return (
-      <Box sx={{
-        filter: dimmed ? 'blur(4px)' : 'none', opacity: dimmed ? 0.45 : 1,
-        transition: 'filter .35s var(--ease-out, cubic-bezier(.16,1,.3,1)), opacity .35s',
-      }}>
+      <div className={cn(dimmed ? 'opacity-45' : 'opacity-100')} style={{ filter: dimmed ? 'blur(4px)' : 'none', transition: 'filter .35s var(--ease-out, cubic-bezier(.16,1,.3,1)), opacity .35s' }}>
         <TaskCard action={actions[0]} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} />
-      </Box>
+      </div>
     );
   }
 
@@ -275,11 +264,7 @@ function TaskStack({
       {Array.from({ length: behind }).map((_, i) => {
         const d = i + 1;
         return (
-          <Box key={d} sx={{
-            position: 'absolute', top: 0, left: 0, right: 0, bottom: -(d * PEEK),
-            bgcolor: 'var(--card)', border: '1px solid var(--line)', borderRadius: '16px',
-            boxShadow: 'var(--shadow-sm, 0 1px 2px rgba(0,0,0,.06))', zIndex: 3 - i,
-          }} />
+          <div className="absolute top-0 start-0 end-0 bg-[var(--card)] border border-solid border-[var(--line)] rounded-[16px]" style={{ bottom: -(d * PEEK), boxShadow: 'var(--shadow-sm, 0 1px 2px rgba(0,0,0,.06))', zIndex: 3 - i }} key={d} />
         );
       })}
       {/* Carte du dessus (en flux : donne sa hauteur au deck) */}
@@ -288,15 +273,9 @@ function TaskStack({
       </div>
       {/* Pastille de comptage */}
       {n > 1 && (
-        <Box sx={{
-          position: 'absolute', top: -10, right: -9, zIndex: 6,
-          minWidth: 24, height: 24, px: 0.75, borderRadius: '999px',
-          bgcolor: 'var(--accent)', color: 'var(--on-accent)', fontSize: 11, fontWeight: 600,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: 'var(--shadow-md, 0 4px 14px rgba(0,0,0,.18))',
-        }}>
+        <div className="absolute z-[6] min-w-[24px] h-[24px] px-[4.5px] rounded-[999px] bg-[var(--accent)] text-[var(--on-accent)] text-[11px] font-semibold flex items-center justify-center" style={{ top: -10, right: -9, boxShadow: 'var(--shadow-md, 0 4px 14px rgba(0,0,0,.18))' }}>
           {n}
-        </Box>
+        </div>
       )}
     </Box>
   );
@@ -417,12 +396,7 @@ function TaskDeckQueueInner({ actions, onValidate, onEdit, onAdjustPrice, varian
 
       {/* Toast Undo */}
       {undo && (
-        <Box sx={{
-          position: 'fixed', bottom: 26, left: '50%', transform: 'translateX(-50%)', zIndex: 1400,
-          display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.25, borderRadius: '12px',
-          bgcolor: 'var(--ink)', color: '#fff', boxShadow: 'var(--shadow-lg, 0 10px 30px rgba(0,0,0,.25))',
-          animation: 'deckCascadeIn .3s ease both',
-        }}>
+        <div className="fixed bottom-[26px] start-[50%] z-[1400] flex items-center gap-[9px] px-3 py-[7.5px] rounded-[12px] bg-[var(--ink)] text-[#fff]" style={{ transform: 'translateX(-50%)', boxShadow: 'var(--shadow-lg, 0 10px 30px rgba(0,0,0,.25))', animation: 'deckCascadeIn .3s ease both' }}>
           <Check size={15} style={{ color: 'var(--ok)' }} />
           <div className="text-[12px] font-medium">{undo.label}</div>
           <Button
@@ -431,7 +405,7 @@ function TaskDeckQueueInner({ actions, onValidate, onEdit, onAdjustPrice, varian
           >
             {t('supervision.deck.undo', 'Annuler')}
           </Button>
-        </Box>
+        </div>
       )}
     </Box>
   );

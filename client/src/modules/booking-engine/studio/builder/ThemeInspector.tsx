@@ -122,10 +122,9 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
           <InputBase value={bg} onChange={(e) => writeTokens({ backgroundColor: e.target.value })}
             sx={{ flex: 1, px: 1.25, py: 0.75, fontSize: 'var(--text-md)', fontFamily: 'var(--font-mono, monospace)', color: 'var(--ink)', bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', '&.Mui-focused': { borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-soft)' } }}
           />
-          <Box component="button" type="button" onClick={() => writeTokens({ backgroundColor: '#FFFFFF' })}
-            sx={{ px: 1.25, py: 0.75, fontSize: 'var(--text-sm)', color: 'var(--body)', bgcolor: 'transparent', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap', '&:hover': { bgcolor: 'var(--hover)' } }}>
+          <button className="px-[7.5px] py-[4.5px] text-[var(--text-sm)] text-[var(--body)] bg-[transparent] border border-solid border-[var(--line)] rounded-[var(--radius-md)] cursor-pointer shrink-0 whitespace-nowrap hover:bg-[var(--hover)]" type="button" onClick={() => writeTokens({ backgroundColor: '#FFFFFF' })}>
             Blanc
-          </Box>
+          </button>
         </div>
       </div>
 

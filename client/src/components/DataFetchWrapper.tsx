@@ -151,14 +151,14 @@ const DataFetchWrapper: React.FC<DataFetchWrapperProps> = ({
         );
       case 'inline':
         return (
-          <Box display="flex" alignItems="center" gap={1} py={1}>
+          <div className="flex items-center gap-1.5 py-1.5">
             <Spinner className="size-5" />
             {loadingMessage && (
               <p className="cn-text-body2 text-muted-foreground">
                 {loadingMessage}
               </p>
             )}
-          </Box>
+          </div>
         );
       default:
         return (

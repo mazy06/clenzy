@@ -365,18 +365,9 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
           <span className="block font-[var(--font-display)] text-[0.9375rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
             {headerTitle}
           </span>
-          <Box
-            component="span"
-            sx={{
-              display: 'block',
-              fontSize: '0.75rem',
-              color: 'var(--muted)',
-              mt: '2px',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
+          <span className="block text-[0.75rem] text-[var(--muted)] mt-0.5 tabular-nums">
             {formatStayRange(event.startDate, event.endDate)}
-          </Box>
+          </span>
         </div>
         <IconButton
           size="small"

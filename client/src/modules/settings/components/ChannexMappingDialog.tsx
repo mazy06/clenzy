@@ -717,21 +717,9 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                 </div>
               ) : connectedOtas.length === 0 ? (
                 <div className="py-7 text-center px-3">
-                  <Box
-                    sx={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: '50%',
-                      bgcolor: 'var(--accent-soft)',
-                      color: ACCENT,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mb: 1.5,
-                    }}
-                  >
+                  <div className="w-[56px] h-[56px] rounded-[50%] bg-[var(--accent-soft)] inline-flex items-center justify-center mb-[9px]" style={{ color: ACCENT }}>
                     <Link2 size={24} />
-                  </Box>
+                  </div>
                   <p className="cn-text-body2 font-semibold mb-0.5">
                     Aucun OTA connecte
                   </p>
@@ -765,23 +753,9 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                     const initials = otaOption?.initials ?? ota.otaName.slice(0, 2);
                     return (
                       <div className="flex items-center gap-2 p-2 rounded-[1.5px] border border-[var(--line)]" key={ota.channelId}>
-                        <Box
-                          sx={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 1,
-                            bgcolor: brand,
-                            color: brandFg,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            fontWeight: 700,
-                            fontSize: '0.95rem',
-                          }}
-                        >
+                        <div className="w-[40px] h-[40px] rounded-[8px] flex items-center justify-center shrink-0 font-bold text-[0.95rem]" style={{ backgroundColor: brand, color: brandFg }}>
                           {initials}
-                        </Box>
+                        </div>
                         <div className="flex-1 min-w-0">
                           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.25, flexWrap: 'wrap' }}>
                             <p className="cn-text-body2 font-semibold truncate">
@@ -916,54 +890,15 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                                         }}
                                       >
                                         {logo && (
-                                          <Box
-                                            component="img"
-                                            src={logo}
-                                            alt={opt.name}
-                                            sx={{
-                                              width: '100%',
-                                              height: '100%',
-                                              borderRadius: 0.5,
-                                              objectFit: 'contain',
-                                              bgcolor: 'var(--card)',
-                                              border: '1px solid var(--line)',
-                                              p: '2px',
-                                            }}
-                                          />
+                                          <img className="w-full h-full rounded-[4px] object-contain bg-[var(--card)] border border-solid border-[var(--line)] p-0.5" src={logo} alt={opt.name} />
                                         )}
                                         {isActive && (
-                                          <Box
-                                            sx={{
-                                              position: 'absolute',
-                                              top: -3,
-                                              right: -3,
-                                              width: 11,
-                                              height: 11,
-                                              borderRadius: '50%',
-                                              bgcolor: 'var(--ok)',
-                                              color: 'var(--on-accent)',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center',
-                                              border: '2px solid var(--card)',
-                                            }}
-                                          >
+                                          <div className="absolute w-[11px] h-[11px] rounded-[50%] bg-[var(--ok)] text-[var(--on-accent)] flex items-center justify-center border-[2px] border-solid border-[var(--card)]" style={{ top: -3, right: -3 }}>
                                             <CheckCircle2 size={7} strokeWidth={4} />
-                                          </Box>
+                                          </div>
                                         )}
                                         {!isActive && hasToken && (
-                                          <Box
-                                            sx={{
-                                              position: 'absolute',
-                                              top: -3,
-                                              right: -3,
-                                              width: 9,
-                                              height: 9,
-                                              borderRadius: '50%',
-                                              bgcolor: 'var(--warn)',
-                                              border: '2px solid var(--card)',
-                                            }}
-                                          />
+                                          <div className="absolute w-[9px] h-[9px] rounded-[50%] bg-[var(--warn)] border-[2px] border-solid border-[var(--card)]" style={{ top: -3, right: -3 }} />
                                         )}
                                       </Box>
                                     </Tooltip>
@@ -1088,17 +1023,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
               }}
             >
               <div className="flex items-center gap-1.5">
-                <Box
-                  sx={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: '50%',
-                    border: '2px solid',
-                    borderColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'divider',
-                    backgroundColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'transparent',
-                    flexShrink: 0,
-                  }}
-                />
+                <div className="w-[16px] h-[16px] rounded-[50%] border-[2px] border-solid shrink-0" style={{ borderColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'divider', backgroundColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'transparent' }} />
                 <p className="cn-text-body1 text-[0.8rem] font-semibold">
                   Creation automatique <span style={{ color: ACCENT, fontSize: '0.75rem', fontWeight: 700 }}>RECOMMANDE</span>
                 </p>
@@ -1124,17 +1049,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
               }}
             >
               <div className="flex items-center gap-1.5">
-                <Box
-                  sx={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: '50%',
-                    border: '2px solid',
-                    borderColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'divider',
-                    backgroundColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'transparent',
-                    flexShrink: 0,
-                  }}
-                />
+                <div className="w-[16px] h-[16px] rounded-[50%] border-[2px] border-solid shrink-0" style={{ borderColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'divider', backgroundColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'transparent' }} />
                 <p className="cn-text-body1 text-[0.8rem] font-semibold">
                   Importer des IDs existants
                 </p>

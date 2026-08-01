@@ -96,7 +96,7 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
       />
 
       {hasSelfSend && (
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, mt: 0.75, ml: { sm: '30px' } }}>
+        <div className="flex items-start gap-[4.5px] mt-[4.5px] min-[600px]:ms-[30px]">
           <Box sx={{ color: 'warning.main', display: 'inline-flex', mt: '1px', flexShrink: 0 }}>
             <AlertTriangle size={14} />
           </Box>
@@ -104,14 +104,14 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
             info@clenzy.fr est l'expéditeur : se l'envoyer à soi-même provoque des soft bounces
             intermittents. Préférez une autre adresse (ex. votre boîte perso).
           </p>
-        </Box>
+        </div>
       )}
 
       {saving && (
-        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 0.5, ml: { sm: '30px' } }}>
+        <div className="inline-flex items-center gap-[3px] mt-[3px] min-[600px]:ms-[30px]">
           <Spinner className="size-[11px]" />
           <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Enregistrement…</p>
-        </Box>
+        </div>
       )}
     </div>
   );

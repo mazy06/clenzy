@@ -49,7 +49,7 @@ const SenderEmailRow: React.FC<Props> = ({ email, name, onSave, saving }) => {
         </div>
       </div>
 
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, ml: { sm: '30px' } }}>
+      <div className="flex flex-wrap gap-1.5 min-[600px]:ms-[30px]">
         <TextField
           size="small"
           label="Adresse email"
@@ -74,10 +74,10 @@ const SenderEmailRow: React.FC<Props> = ({ email, name, onSave, saving }) => {
         >
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
-      </Box>
+      </div>
 
       {foreignDomain && (
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, mt: 0.75, ml: { sm: '30px' } }}>
+        <div className="flex items-start gap-[4.5px] mt-[4.5px] min-[600px]:ms-[30px]">
           <Box sx={{ color: 'warning.main', display: 'inline-flex', mt: '1px', flexShrink: 0 }}>
             <Info size={14} />
           </Box>
@@ -85,7 +85,7 @@ const SenderEmailRow: React.FC<Props> = ({ email, name, onSave, saving }) => {
             Domaine «&nbsp;{domain}&nbsp;» : authentifiez-le d'abord dans Brevo (SPF&nbsp;+&nbsp;DKIM)
             avant de l'utiliser, sinon les emails partiront en spam / soft bounce.
           </p>
-        </Box>
+        </div>
       )}
     </div>
   );

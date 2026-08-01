@@ -23,10 +23,10 @@ const PricingSection: React.FC<Props> = ({ form }) => {
   const nightBreakdown = (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '2px 0' }}>
       {form.nightDates.map((d, i) => (
-        <Box key={d} sx={{ display: 'flex', justifyContent: 'space-between', gap: '14px', fontVariantNumeric: 'tabular-nums' }}>
+        <div className="flex justify-between gap-3.5 tabular-nums" key={d}>
           <span>{d}</span>
           <b>{(form.nightlyPrices[i] ?? 0).toFixed(2)} €</b>
-        </Box>
+        </div>
       ))}
     </Box>
   );
@@ -74,7 +74,7 @@ const PricingSection: React.FC<Props> = ({ form }) => {
       <Typography sx={SEC_SX}>{t('reservations.dialog.pricingSection')}</Typography>
 
       {/* Base /nuit (dynamique, lecture seule) + override */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      <div className="grid grid-cols-[1fr_1fr] gap-3">
         {form.priceVaries ? (
           <Tooltip title={nightBreakdown} arrow placement="top">
             <div>{baseField}</div>
@@ -94,7 +94,7 @@ const PricingSection: React.FC<Props> = ({ form }) => {
           InputLabelProps={{ shrink: true }}
           sx={FIELD_SX}
         />
-      </Box>
+      </div>
 
       {/* Onglets tarification (.rm-tariftabs) */}
       <Box sx={{ ...SEG_WRAP_SX, width: '100%', opacity: locked ? 0.5 : 1, pointerEvents: locked ? 'none' : 'auto' }}>

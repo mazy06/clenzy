@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
 import { Box, Typography, useTheme, alpha, useMediaQuery, CssBaseline, ThemeProvider } from '@mui/material';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
@@ -369,48 +370,17 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                   pointerEvents: 'none',
                 }}
               />
-              <Box
-                aria-hidden
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  bgcolor: alpha('#0F1E28', 0.85),
-                  zIndex: 0,
-                  pointerEvents: 'none',
-                }}
-              />
-              <Box
-                aria-hidden
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: `linear-gradient(to top right, ${alpha('#0F1E28', 0.55)} 0%, transparent 60%)`,
-                  zIndex: 0,
-                  pointerEvents: 'none',
-                }}
-              />
+              <div className="absolute inset-0 z-[0] pointer-events-none" style={{ backgroundColor: alpha('#0F1E28', 0.85) }} aria-hidden />
+              <div className="absolute inset-0 z-[0] pointer-events-none" style={{ background: `linear-gradient(to top right, ${alpha('#0F1E28', 0.55)} 0%, transparent 60%)` }} aria-hidden />
             </>
           )}
 
           {/* Accent decoratif top-right : cercle radial diffus.
               En photo mode : color brand-light pour rester visible sur fond fonce.
               En sober mode : color brand classic. */}
-          <Box
-            aria-hidden
-            sx={{
-              position: 'absolute',
-              top: -120,
-              right: -120,
-              width: 360,
-              height: 360,
-              borderRadius: '50%',
-              background: ENABLE_PHOTO_HERO
+          <div className="absolute w-[360px] h-[360px] rounded-[50%] pointer-events-none z-[0]" style={{ top: -120, right: -120, background: ENABLE_PHOTO_HERO
                 ? `radial-gradient(circle, ${alpha('#89B1C2', 0.22)}, transparent 70%)`
-                : `radial-gradient(circle, ${alpha(primary, 0.18)}, transparent 70%)`,
-              pointerEvents: 'none',
-              zIndex: 0,
-            }}
-          />
+                : `radial-gradient(circle, ${alpha(primary, 0.18)}, transparent 70%)` }} aria-hidden />
 
           {/* Header : logo. tone="dark" en photo mode (nodes blancs sur bg fonce). */}
           <div className="relative z-[1]">
@@ -426,7 +396,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
               sur 1920px, plus serre sur 1280px). Les dots restent toujours
               dans la colonne brand. */}
           <div className="relative z-[1] flex items-center justify-between gap-4">
-            <Box sx={{ flex: '0 1 auto', maxWidth: { md: 440, lg: 520, xl: 580 }, minHeight: 360 }}>
+            <div className="flex-[0_1_auto] min-[900px]:max-w-[440px] min-[1200px]:max-w-[520px] min-[1536px]:max-w-[580px] min-h-[360px]">
               {/* key={slideIndex} force le remount a chaque slide => l'animation
                   CSS fade-in se rejoue automatiquement. Approche tres simple
                   vs framer-motion pour ce cas (1 element a la fois). */}
@@ -477,11 +447,11 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                       pour contraste WCAG sur fond fonce. Primary classic en
                       sober. #A8C8D6 vs #89B1C2 = +20% luminosite => meilleure
                       lisibilite sur l'overlay+photo darkened. */}
-                  <Box component="span" sx={{ color: ENABLE_PHOTO_HERO ? '#A8C8D6' : primary }}>
+                  <span style={{ color: ENABLE_PHOTO_HERO ? '#A8C8D6' : primary }}>
                     {slideIndex === 0
                       ? t('auth.layout.taglineHighlight', current.highlight)
                       : current.highlight}
-                  </Box>
+                  </span>
                   {slideIndex === 0
                     ? t('auth.layout.taglineEnd', current.end)
                     : current.end}
@@ -520,7 +490,7 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                   </div>
                 )}
               </Box>
-            </Box>
+            </div>
 
             {/* Dots pagination en colonne verticale a droite du texte.
                 Click : reset le timer auto-cycle (l'effect se reabonne via
@@ -736,15 +706,7 @@ function ServiceChip({
 function TrustItem({ dot, label, onDark = false }: { dot: string; label: string; onDark?: boolean }) {
   return (
     <div className="flex items-center gap-1">
-      <Box
-        sx={{
-          width: 5,
-          height: 5,
-          borderRadius: '50%',
-          bgcolor: dot,
-          opacity: onDark ? 0.85 : 0.6,
-        }}
-      />
+      <div className={cn('w-[5px] h-[5px] rounded-[50%]', onDark ? 'opacity-85' : 'opacity-60')} style={{ backgroundColor: dot }} />
       <Typography
         variant="caption"
         sx={{

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, TextField, MenuItem } from '@mui/material';
+import { TextField, MenuItem } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { UseReservationFormResult } from './useReservationForm';
 import { FIELD_SX } from './reservationDialogStyles';
@@ -13,7 +13,7 @@ const PropertySelectField: React.FC<Props> = ({ form }) => {
   const { t } = useTranslation();
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+    <div className="flex flex-col gap-1.5">
       <TextField
         select
         label={t('reservations.fields.property')}
@@ -40,7 +40,7 @@ const PropertySelectField: React.FC<Props> = ({ form }) => {
           {t('reservations.dialog.propertyAutoSelected')}
         </p>
       )}
-    </Box>
+    </div>
   );
 };
 

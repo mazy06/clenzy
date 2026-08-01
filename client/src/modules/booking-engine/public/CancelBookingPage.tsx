@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Spinner } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
-import { Box, ButtonBase, InputBase } from '@mui/material';
+import { ButtonBase, InputBase } from '@mui/material';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { API_CONFIG } from '../../../config/api';
 
@@ -69,8 +69,8 @@ export default function CancelBookingPage() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'var(--bg)', color: 'var(--ink)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', px: 2, py: { xs: 4, md: 8 } }}>
-      <Box sx={{ width: '100%', maxWidth: 460, bgcolor: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-card)', p: { xs: 2.5, md: 3.5 } }}>
+    <div className="min-h-[100vh] bg-[var(--bg)] text-[var(--ink)] flex items-start justify-center px-3 py-6 min-[900px]:py-12">
+      <div className="w-full max-w-[460px] bg-[var(--card)] border border-solid border-[var(--line)] rounded-[var(--radius-lg)] p-[15px] min-[900px]:p-[21px]" style={{ boxShadow: 'var(--shadow-card)' }}>
         <div className="font-[var(--font-display)] text-[var(--text-2xl)] font-[var(--fw-bold)] mb-0.5">
           Annuler ma réservation
         </div>
@@ -119,8 +119,8 @@ export default function CancelBookingPage() {
             )}
           </div>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 

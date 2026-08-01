@@ -42,7 +42,7 @@ function BaitlyWordmark({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
         userSelect: 'none',
       }}
     >
-      Baitly<Box component="span" sx={{ color: BRAND_PRIMARY }}>.</Box>
+      Baitly<span style={{ color: BRAND_PRIMARY }}>.</span>
     </Box>
   );
 }
@@ -308,16 +308,7 @@ export default function AcceptInvitationPage() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#f8fafc',
-          p: 2,
-        }}
-      >
+      <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: '#f8fafc' }}>
         <Paper
           elevation={0}
           sx={{
@@ -724,7 +715,7 @@ export default function AcceptInvitationPage() {
             </div>
           )}
         </Paper>
-      </Box>
+      </div>
     </ThemeProvider>
   );
 }

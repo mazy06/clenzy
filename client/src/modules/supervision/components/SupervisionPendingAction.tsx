@@ -63,25 +63,13 @@ export function SupervisionPendingAction({ action, onResolve }: SupervisionPendi
     >
       {/* En-tête : intention (validation requise) + outil concerné */}
       <div className="flex items-center gap-1.5 px-2 pt-2 pb-1">
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 26,
-            height: 26,
-            borderRadius: '8px',
-            bgcolor: 'rgba(240,178,75,.16)',
-            color: ACCENT,
-            flexShrink: 0,
-          }}
-        >
+        <div className="flex items-center justify-center w-[26px] h-[26px] rounded-[8px] bg-[rgba(240,178,75,.16)] shrink-0" style={{ color: ACCENT }}>
           <Gavel size={15} strokeWidth={2} />
-        </Box>
+        </div>
         <div className="min-w-0">
-          <Box sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.3, color: ACCENT, textTransform: 'uppercase' }}>
+          <div className="text-[11px] font-bold tracking-[0.3px] uppercase" style={{ color: ACCENT }}>
             {t('supervision.approval.title', 'Validation requise')}
-          </Box>
+          </div>
           <div className="text-[13.5px] font-bold leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap">
             {action.toolName}
           </div>

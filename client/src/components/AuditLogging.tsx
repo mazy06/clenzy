@@ -3,7 +3,7 @@ import StatusChip from './StatusChip';
 import { Alert as BuiAlert, AlertDescription } from './ui';
 import { Info as BuiInfo } from 'lucide-react';
 import { Spinner } from './ui';
-import { Box, Card, CardContent, List, ListItem, ListItemText, ListItemIcon, IconButton, Tooltip, TextField, FormControl, InputLabel, Select, MenuItem, Button, Grid, Divider, Alert } from '@mui/material';
+import { Card, CardContent, List, ListItem, ListItemText, ListItemIcon, IconButton, Tooltip, TextField, FormControl, InputLabel, Select, MenuItem, Button, Grid, Divider, Alert } from '@mui/material';
 import {
   Info,
   Warning,
@@ -129,14 +129,14 @@ const AuditLogging: React.FC = () => {
   // Register page-header actions + last-update timestamp.
   useEffect(() => {
     setHeaderActions(
-      <Box display="flex" alignItems="center" gap={1}>
+      <div className="flex items-center gap-1.5">
         {loading && <Spinner className="size-4" />}
         <Tooltip title="Actualiser les logs">
           <IconButton onClick={handleRefresh} size="small">
             <Refresh size={20} strokeWidth={1.75} />
           </IconButton>
         </Tooltip>
-      </Box>,
+      </div>,
     );
     return () => setHeaderActions(null);
   }, [setHeaderActions, loading, handleRefresh]);
@@ -157,9 +157,9 @@ const AuditLogging: React.FC = () => {
 
   if (loading && !page) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
+      <div className="flex justify-center items-center min-h-[200px]">
         <Spinner className="size-10" />
-      </Box>
+      </div>
     );
   }
 
@@ -248,14 +248,14 @@ const AuditLogging: React.FC = () => {
       {/* Logs */}
       <Card variant="outlined">
         <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <div className="flex justify-between items-center mb-3">
             <h6 className="cn-text-h6 text-[var(--ink)]">
               Logs d'audit ({totalElements} entrées)
             </h6>
             {totalPages > 1 && (
               <StatusChip tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={`Page ${currentPage + 1} sur ${totalPages}`} className="tabular-nums" />
             )}
-          </Box>
+          </div>
 
           {logs.length === 0 ? (
             <BuiAlert variant="info">
@@ -272,7 +272,7 @@ const AuditLogging: React.FC = () => {
                     </ListItemIcon>
                     <ListItemText
                       primary={
-                        <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="cn-text-subtitle2">
                             {log.action || formatEventType(log.eventType)}
                           </span>
@@ -280,10 +280,10 @@ const AuditLogging: React.FC = () => {
                           {log.result && (
                             <StatusChip tokens={{ color: resultToken(log.result).fg, bg: resultToken(log.result).bg }} label={log.result} />
                           )}
-                        </Box>
+                        </div>
                       }
                       secondary={
-                        <Box mt={1}>
+                        <div className="mt-1.5">
                           {log.details && (
                             <p className="cn-text-body2 text-[var(--body)] mb-[0.35em]">
                               {log.details}
@@ -307,7 +307,7 @@ const AuditLogging: React.FC = () => {
                               </span>
                             )}
                           </div>
-                        </Box>
+                        </div>
                       }
                     />
                   </ListItem>
@@ -318,13 +318,13 @@ const AuditLogging: React.FC = () => {
           )}
 
           {totalPages > 1 && (
-            <Box display="flex" justifyContent="center" mt={3}>
+            <div className="flex justify-center mt-[18px]">
               <PagePagination
                 totalPages={totalPages}
                 page={currentPage}
                 onPageChange={(value) => setCurrentPage(value)}
               />
-            </Box>
+            </div>
           )}
         </CardContent>
       </Card>

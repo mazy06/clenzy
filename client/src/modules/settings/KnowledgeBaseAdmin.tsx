@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Button, Divider, IconButton, Table, TableHead, TableRow, TableCell, TableBody, TextField, Tooltip } from '@mui/material';
+import { Button, Divider, IconButton, Table, TableHead, TableRow, TableCell, TableBody, TextField, Tooltip } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { AttachFile, Delete } from '../../icons';
 import apiClient from '../../services/apiClient';
@@ -253,14 +253,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                 detail: `lists · optimal ${stats.index.optimalLists ?? '—'}${stats.index.autoTuneEnabled ? ' · auto-tune actif' : ''}`,
               },
             ].map((kpi) => (
-              <Box
-                key={kpi.label}
-                sx={{
-                  px: 1.75, py: 1, minWidth: 150, borderRadius: 1.5,
-                  bgcolor: alpha(theme.palette.text.primary, 0.03),
-                  border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}`,
-                }}
-              >
+              <div className="px-[10.5px] py-1.5 min-w-[150px] rounded-[12px]" style={{ backgroundColor: alpha(theme.palette.text.primary, 0.03), border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}` }} key={kpi.label}>
                 <div className="cn-text-caption text-muted-foreground">
                   {kpi.label}
                 </div>
@@ -270,7 +263,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                 <div className="cn-text-caption text-muted-foreground">
                   {kpi.detail}
                 </div>
-              </Box>
+              </div>
             ))}
           </div>
           {stats.index.retuneRecommended && (
@@ -326,19 +319,15 @@ export const KnowledgeBaseAdmin: React.FC = () => {
       </Alert>}
 
       {loading ? (
-        <Box display="flex" justifyContent="center" py={4}>
+        <div className="flex justify-center py-6">
           <Spinner className="size-6" />
-        </Box>
+        </div>
       ) : docs.length === 0 ? (
-        <Box sx={{
-          p: 3, textAlign: 'center',
-          bgcolor: alpha(theme.palette.text.primary, 0.03),
-          borderRadius: 1.5,
-        }}>
+        <div className="p-[18px] text-center rounded-[12px]" style={{ backgroundColor: alpha(theme.palette.text.primary, 0.03) }}>
           <p className="cn-text-body2 text-muted-foreground">
             Aucun document indexe. Upload ton premier markdown pour activer le RAG.
           </p>
-        </Box>
+        </div>
       ) : (
         <div className="overflow-x-auto">
           <Table size="small">
@@ -443,14 +432,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                     detail: 'position moyenne du bon résultat',
                   },
                 ].map((kpi) => (
-                  <Box
-                    key={kpi.label}
-                    sx={{
-                      px: 1.75, py: 1, minWidth: 170, borderRadius: 1.5,
-                      bgcolor: alpha(theme.palette.text.primary, 0.03),
-                      border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}`,
-                    }}
-                  >
+                  <div className="px-[10.5px] py-1.5 min-w-[170px] rounded-[12px]" style={{ backgroundColor: alpha(theme.palette.text.primary, 0.03), border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}` }} key={kpi.label}>
                     <div className="cn-text-caption text-muted-foreground">
                       {kpi.label}
                     </div>
@@ -460,7 +442,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                     <div className="cn-text-caption text-muted-foreground">
                       {kpi.detail}
                     </div>
-                  </Box>
+                  </div>
                 ))}
               </div>
               {evalReport.misses.length === 0 ? (
@@ -475,21 +457,14 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                   </div>
                   <div className="flex flex-col gap-1">
                     {evalReport.misses.map((miss, idx) => (
-                      <Box
-                        key={idx}
-                        sx={{
-                          px: 1.5, py: 1, borderRadius: 1.5,
-                          bgcolor: alpha(theme.palette.warning.main, 0.08),
-                          border: `1px solid ${alpha(theme.palette.warning.main, 0.25)}`,
-                        }}
-                      >
+                      <div className="px-[9px] py-1.5 rounded-[12px]" style={{ backgroundColor: alpha(theme.palette.warning.main, 0.08), border: `1px solid ${alpha(theme.palette.warning.main, 0.25)}` }} key={idx}>
                         <p className="cn-text-body2 font-semibold">
                           {miss.question}
                         </p>
                         <div className="cn-text-caption text-muted-foreground">
                           attendu : {miss.expected} · obtenu : {miss.retrieved.join(', ') || 'aucun résultat'}
                         </div>
-                      </Box>
+                      </div>
                     ))}
                   </div>
                 </>
@@ -529,9 +504,9 @@ export const KnowledgeBaseAdmin: React.FC = () => {
             </Button>
           </div>
           {testing && (
-            <Box display="flex" justifyContent="center" py={2}>
+            <div className="flex justify-center py-3">
               <Spinner className="size-5" />
-            </Box>
+            </div>
           )}
           {testResult && testResult.items.length === 0 && (
             <Alert variant="warning">
@@ -545,15 +520,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
               {testResult.items.map((hit, idx) => {
                 const aboveThreshold = hit.relevance >= testResult.relevanceThreshold;
                 return (
-                  <Box
-                    key={`${hit.documentId}-${idx}`}
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 1.5,
-                      bgcolor: alpha(theme.palette.text.primary, 0.03),
-                      border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}`,
-                    }}
-                  >
+                  <div className="p-[9px] rounded-[12px]" style={{ backgroundColor: alpha(theme.palette.text.primary, 0.03), border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}` }} key={`${hit.documentId}-${idx}`}>
                     <div className="flex gap-1.5 items-center mb-0.5 flex-wrap">
                       <p className="cn-text-body2 font-semibold">
                         {hit.title || hit.sourcePath}
@@ -576,7 +543,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                     <p className="cn-text-body2 whitespace-pre-line">
                       {hit.snippet}
                     </p>
-                  </Box>
+                  </div>
                 );
               })}
             </div>

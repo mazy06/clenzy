@@ -378,9 +378,9 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
       <Box sx={{ display: 'flex', flexDirection: 'column', ...((framed || pricingSlot) ? { border: '1px solid var(--line)', borderRadius: '14px', p: 2 } : {}) }}>
         {/* Chiffrage — positionné après « Service type » via l'ordre flex (order: 2). */}
         {pricingSlot && (
-          <Box sx={{ order: 2, mt: 2 }}>
+          <div className="order-[2px] mt-3">
             {pricingSlot}
-          </Box>
+          </div>
         )}
 
         {/* Type de service — Catégories principales */}
@@ -481,20 +481,8 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                       })}
                       {/* « Autre » : la saisie se fait DANS le chip, validée par Entrée */}
                       {isAddingCustom ? (
-                        <Box
-                          sx={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 0.25,
-                            height: 30,
-                            pl: 1,
-                            pr: 0.25,
-                            borderRadius: '15px',
-                            border: `1px solid ${catFg}`,
-                            bgcolor: catBg,
-                          }}
-                        >
-                          <Box component="span" sx={{ display: 'inline-flex', color: catFg, flexShrink: 0 }}><MoreHoriz size={14} strokeWidth={1.75} /></Box>
+                        <div className="inline-flex items-center gap-[1.5px] h-[30px] ps-1.5 pe-[1.5px] rounded-[15px]" style={{ border: `1px solid ${catFg}`, backgroundColor: catBg }}>
+                          <span className="inline-flex shrink-0" style={{ color: catFg }}><MoreHoriz size={14} strokeWidth={1.75} /></span>
                           <InputBase
                             autoFocus
                             value={newCustomText}
@@ -516,7 +504,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                           >
                             <EnterKey size={14} strokeWidth={1.75} />
                           </IconButton>
-                        </Box>
+                        </div>
                       ) : (
                         <StatusChip
                           outlined
@@ -603,7 +591,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
         )}
 
         {/* Séparateur reliant la sélection du type au chiffrage (modale). */}
-        {pricingSlot && <Box sx={{ order: 1, borderTop: '1px solid var(--line)', mt: 2 }} />}
+        {pricingSlot && <div className="order-[1px] mt-3" style={{ borderTop: '1px solid var(--line)' }} />}
       </Box>
     );
   }

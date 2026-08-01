@@ -215,23 +215,11 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
   const belowHud = useMemo(
     () =>
       feed ? (
-        <Box
-          data-feed-card
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            minHeight: 0,
-            bgcolor: 'var(--card)',
-            border: '1px solid var(--line)',
-            borderRadius: '13px',
-            boxShadow: '0 10px 28px -18px rgba(0, 0, 0, 0.35)',
-            overflow: 'hidden',
-          }}
-        >
+        <div className="flex flex-col min-h-0 bg-[var(--card)] border border-solid border-[var(--line)] rounded-[13px] overflow-hidden" style={{ boxShadow: '0 10px 28px -18px rgba(0, 0, 0, 0.35)' }} data-feed-card>
           {/* data-feed-title : masqué dans le tiroir compact (titre déjà en en-tête). */}
-          <Box data-feed-title sx={{ px: 1.5, pt: 1.25, pb: 0.75, fontWeight: 800, fontSize: 12.5, color: 'var(--ink)' }}>
+          <div className="px-[9px] pt-[7.5px] pb-[4.5px] font-extrabold text-[12.5px] text-[var(--ink)]" data-feed-title>
             {t('supervision.feed.title')}
-          </Box>
+          </div>
           {/* data-vertical-scroll : le planning ne détourne PAS la molette
               au-dessus de cette zone (cf. useInfiniteTimeline) ; overscroll
               contain : le scroll ne chaîne pas non plus à la page au bord. */}
@@ -250,7 +238,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
               </div>
             )}
           </Box>
-        </Box>
+        </div>
       ) : undefined,
     [feed, t],
   );
@@ -328,40 +316,20 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
         // panneau (sinon la barre lui volait ~56px et l'écrasait). Largeur
         // bornée (plus de pleine largeur) ; posée dans le creux bas-centre
         // (aucun agent à 90° : ils sont à ±64°/±136°).
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: 14,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: 'min(440px, calc(100% - 32px))',
-            zIndex: 7,
-          }}
-        >
+        <div className="absolute bottom-[14px] start-[50%] w-[min(440px,_calc(100%_-_32px))] z-[7]" style={{ transform: 'translateX(-50%)' }}>
           <SupervisionChatBar
             conversation={propertySnapshot.conversation ?? []}
             busy={Boolean(propertySnapshot.conversationBusy)}
             onSend={handleSend}
           />
-        </Box>
+        </div>
       )}
 
       {/* Zone flottante haut-droite (par logement) : carte d'approbation inline
           (interrupt) au-dessus de la file persistante « Attend ta validation ».
           En compact, ce contenu vit dans le tiroir « À traiter » (hitlContent). */}
       {!compact && propertySnapshot && (propertySnapshot.pendingAction || propertySnapshot.pending.length > 0) && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 16,
-            right: 16,
-            zIndex: 7,
-            maxWidth: 'calc(100% - 32px)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1.25,
-          }}
-        >
+        <div className="absolute top-[16px] end-[16px] z-[7] max-w-[calc(100%_-_32px)] flex flex-col gap-[7.5px]">
           {propertySnapshot.pendingAction && (
             <SupervisionPendingAction action={propertySnapshot.pendingAction} onResolve={handleResolvePending} />
           )}
@@ -374,51 +342,21 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
               variant="floating"
             />
           )}
-        </Box>
+        </div>
       )}
 
       {/* file HITL flottante (vue portefeuille / autres scopes) */}
       {!compact && !propertySnapshot && snapshot.pending.length > 0 && (
-        <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 7, maxWidth: 'calc(100% - 32px)', display: 'flex', flexDirection: 'column' }}>
+        <div className="absolute top-[16px] end-[16px] z-[7] max-w-[calc(100%_-_32px)] flex flex-col">
           <TaskDeckQueue actions={snapshot.pending} onValidate={handleValidate} onEdit={handleEdit} onAdjustPrice={handleAdjustPrice} variant="floating" />
-        </Box>
+        </div>
       )}
 
       {/* bandeaux : hors-ligne + concurrence/expiration */}
       {(toasts.length > 0 || status === 'offline') && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 16,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 8,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 1,
-          }}
-        >
+        <div className="absolute top-[16px] start-[50%] z-[8] flex flex-col items-center gap-1.5" style={{ transform: 'translateX(-50%)' }}>
           {status === 'offline' && (
-            <Box
-              role="status"
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                pl: 1.5,
-                pr: 0.5,
-                py: 0.5,
-                borderRadius: 999,
-                bgcolor: 'rgba(20,24,58,.85)',
-                color: '#E7E9FB',
-                border: '1px solid rgba(255,255,255,.12)',
-                backdropFilter: 'blur(8px)',
-                fontSize: 12.5,
-                fontWeight: 700,
-                boxShadow: '0 10px 28px -14px rgba(0,0,0,.6)',
-              }}
-            >
+            <div className="flex items-center gap-1.5 ps-[9px] pe-[3px] py-[3px] rounded-[7992px] bg-[rgba(20,24,58,.85)] text-[#E7E9FB] border border-solid border-[rgba(255,255,255,.12)] text-[12.5px] font-bold" style={{ backdropFilter: 'blur(8px)', boxShadow: '0 10px 28px -14px rgba(0,0,0,.6)' }} role="status">
               <WifiOff size={15} />
               {t('supervision.states.offline')} · {t('supervision.states.reconnecting')}
               <Button
@@ -430,10 +368,10 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
               >
                 {t('supervision.states.retry')}
               </Button>
-            </Box>
+            </div>
           )}
           <ResolutionToasts toasts={toasts} />
-        </Box>
+        </div>
       )}
 
       <AgentDrawer open={Boolean(selected)} detail={detail} onClose={() => setSelected(null)} propertyId={propertyId} />

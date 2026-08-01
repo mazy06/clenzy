@@ -159,9 +159,9 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
         }}
       >
         {loading ? (
-          <Box sx={{ display: 'inline-flex', color: 'var(--accent)', animation: `${spin} 0.8s linear infinite` }}>
+          <div className="inline-flex text-[var(--accent)]" style={{ animation: `${spin} 0.8s linear infinite` }}>
             <Loader2 size={28} strokeWidth={1.75} />
-          </Box>
+          </div>
         ) : fileName ? (
           <FileText size={28} strokeWidth={1.75} style={{ color: 'var(--accent)' }} />
         ) : (
@@ -182,9 +182,9 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
       </ButtonBase>
 
       {error ? (
-        <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--err, #c0392b)' }} role="alert">
+        <div className="text-[var(--text-sm)] text-[var(--err,_#c0392b)]" role="alert">
           {error}
-        </Box>
+        </div>
       ) : null}
 
       {warnings.length ? (
@@ -212,9 +212,9 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
           }}
         >
           {loading ? (
-            <Box sx={{ display: 'inline-flex', animation: `${spin} 0.8s linear infinite` }}>
+            <div className="inline-flex" style={{ animation: `${spin} 0.8s linear infinite` }}>
               <Loader2 size={15} strokeWidth={2} />
-            </Box>
+            </div>
           ) : (
             <FileUp size={15} strokeWidth={2} />
           )}

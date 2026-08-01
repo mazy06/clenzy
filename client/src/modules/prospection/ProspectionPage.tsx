@@ -199,7 +199,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
         <div className="flex gap-3 flex-wrap items-center">
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel sx={{ fontSize: '0.8125rem' }}>
-              <Box component="span" sx={{ display: 'inline-flex', mr: 0.5, verticalAlign: 'middle' }}><FilterList size={14} strokeWidth={1.75} /></Box>
+              <span className="inline-flex me-[3px] align-[middle]"><FilterList size={14} strokeWidth={1.75} /></span>
               Categorie
             </InputLabel>
             <Select
@@ -229,7 +229,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
               {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
                 <MenuItem key={key} value={key}>
                   <div className="flex items-center gap-1.5">
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: cfg.color }} />
+                    <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: cfg.color }} />
                     {cfg.label}
                   </div>
                 </MenuItem>
@@ -283,9 +283,9 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                     transition: 'background-color 0.15s',
                   }}
                 >
-                  <Box sx={{ color: cat.color, display: 'flex', alignItems: 'center' }}>
+                  <div className="flex items-center" style={{ color: cat.color }}>
                     {cat.icon}
-                  </Box>
+                  </div>
                   <p className="cn-text-body1 font-bold text-[0.875rem] flex-1">
                     {cat.label}
                   </p>
@@ -415,7 +415,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                                   {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
                                     <MenuItem key={key} value={key} sx={{ fontSize: '0.75rem' }}>
                                       <div className="flex items-center gap-1">
-                                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: cfg.color }} />
+                                        <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: cfg.color }} />
                                         {cfg.label}
                                       </div>
                                     </MenuItem>

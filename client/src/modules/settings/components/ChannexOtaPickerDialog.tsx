@@ -14,7 +14,7 @@
  *   - L'utilisateur reste guide cote Baitly avant de basculer dans Channex
  */
 import React from 'react';
-import { Dialog, DialogContent, DialogTitle, IconButton, Box, Stack, ButtonBase } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, IconButton, Stack, ButtonBase } from '@mui/material';
 import { X, ChevronRight } from 'lucide-react';
 
 import {
@@ -97,24 +97,9 @@ export default function ChannexOtaPickerDialog({
                 },
               }}
             >
-              <Box
-                sx={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 1,
-                  bgcolor: option.brandColor,
-                  color: option.brandColorFg,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  fontWeight: 700,
-                  fontSize: '0.95rem',
-                  letterSpacing: '-0.02em',
-                }}
-              >
+              <div className="w-[40px] h-[40px] rounded-[8px] flex items-center justify-center shrink-0 font-bold text-[0.95rem] tracking-[-0.02em]" style={{ backgroundColor: option.brandColor, color: option.brandColorFg }}>
                 {option.initials}
-              </Box>
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="cn-text-body2 font-semibold leading-[1.3]">
                   {option.name}

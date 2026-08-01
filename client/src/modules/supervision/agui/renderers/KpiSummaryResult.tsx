@@ -8,6 +8,7 @@
      valeur display tabular-nums, cible muted).
    ============================================================ */
 import React from 'react';
+import { cn } from '../../../../utils/cn';
 import { Box, Typography } from '@mui/material';
 import { Overline } from './shared';
 
@@ -94,18 +95,7 @@ export const KpiSummaryResult: React.FC<{ data: KpiData }> = ({ data }) => {
   return (
     <div className="mt-1.5 mb-2">
       {scorePct !== null && (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: 1.5,
-            mb: 1.5,
-            px: 2,
-            py: 1.75,
-            borderRadius: '12px',
-            bgcolor: critical ? 'var(--err-soft)' : 'var(--ok-soft)',
-          }}
-        >
+        <div className={cn('flex items-baseline gap-[9px] mb-[9px] px-3 py-[10.5px] rounded-[12px]', critical ? 'bg-[var(--err-soft)]' : 'bg-[var(--ok-soft)]')}>
           <Typography
             sx={{
               fontFamily: 'var(--font-display)',
@@ -129,21 +119,15 @@ export const KpiSummaryResult: React.FC<{ data: KpiData }> = ({ data }) => {
               {data.kpiCount !== undefined && ` · ${data.kpiCount} indicateurs`}
             </p>
           </div>
-        </Box>
+        </div>
       )}
 
       {kpis.length > 0 && (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: 1,
-          }}
-        >
+        <div className="grid grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(3,_1fr)] gap-1.5">
           {kpis.map((kpi, idx) => (
             <KpiTile key={kpi.id ?? idx} kpi={kpi} idx={idx} />
           ))}
-        </Box>
+        </div>
       )}
     </div>
   );

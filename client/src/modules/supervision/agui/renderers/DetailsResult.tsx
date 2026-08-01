@@ -7,7 +7,7 @@
    pour status / dates / montants, et un titre dérivé du nom métier.
    ============================================================ */
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 import {
   SurfaceCard,
   StatusChip,
@@ -66,16 +66,7 @@ export const DetailsResult: React.FC<{ data: Details }> = ({ data }) => {
 
       <div className="flex flex-col">
         {entries.map(([key, value], idx) => (
-          <Box
-            key={key}
-            sx={{
-              display: 'flex',
-              gap: 1.5,
-              py: 0.75,
-              alignItems: 'baseline',
-              borderTop: idx > 0 ? '1px solid var(--line)' : 'none',
-            }}
-          >
+          <div className="flex gap-[9px] py-[4.5px] items-baseline" style={{ borderTop: idx > 0 ? '1px solid var(--line)' : 'none' }} key={key}>
             <Typography
               sx={{ flex: '0 0 38%', color: 'var(--muted)', fontSize: '11.5px', fontWeight: 500 }}
             >
@@ -84,7 +75,7 @@ export const DetailsResult: React.FC<{ data: Details }> = ({ data }) => {
             <div className="flex-1 text-[12.5px] text-[var(--body)] font-medium tabular-nums">
               {formatValue(key, value, data.currency)}
             </div>
-          </Box>
+          </div>
         ))}
       </div>
     </SurfaceCard>

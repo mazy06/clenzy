@@ -154,13 +154,13 @@ export default function ConnectedObjectsHub({
       </Card>
 
       {/* KPIs */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 1, mb: 1.5 }}>
+      <div className="grid grid-cols-[repeat(auto-fit,_minmax(140px,_1fr))] gap-1.5 mb-[9px]">
         <StatTile icon={<Inventory2 />} label="Objets" value={kpis.total} color="#6B8A9A" loading={loading} />
         <StatTile icon={<MonitorHeart />} label="En ligne" value={kpis.online} color="#4A9B8E" loading={loading} hint={kpis.total ? `${Math.round((kpis.online / kpis.total) * 100)}%` : undefined} />
         <StatTile icon={<WifiOff />} label="Hors ligne" value={kpis.offline} color="#9CA3AF" loading={loading} />
         <StatTile icon={<Warning />} label="Alertes" value={kpis.alerts} color="#C97A7A" loading={loading} />
         <StatTile icon={<BatteryAlert />} label="Batterie faible" value={kpis.lowBattery} color="#D4A574" loading={loading} />
-      </Box>
+      </div>
 
       {/* Filtre par type */}
       {kindsPresent.length > 1 && (
@@ -256,7 +256,7 @@ export default function ConnectedObjectsHub({
                       ...(previewRoute && { '&:hover': { borderColor: meta.color, bgcolor: alpha(meta.color, 0.05) } }),
                     }}
                   >
-                    <Box component="span" sx={{ color: meta.color, display: 'inline-flex' }}>{meta.icon(16)}</Box>
+                    <span className="inline-flex" style={{ color: meta.color }}>{meta.icon(16)}</span>
                     <p className="cn-text-body2 text-muted-foreground font-medium">{meta.label}</p>
                     {previewRoute ? (
                       <>

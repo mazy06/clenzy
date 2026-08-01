@@ -178,9 +178,9 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" py={4}>
+      <div className="flex justify-center py-6">
         <Spinner className="size-7" />
-      </Box>
+      </div>
     );
   }
 
@@ -293,7 +293,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
           <Typography sx={SECTION_TITLE_SX}>Accès</Typography>
           <Box sx={{ '& > * + *': { borderTop: '1px solid var(--line)' } }}>
             {accessRows.map((row) => (
-              <Box key={row.label} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: '7px' }}>
+              <div className="flex items-center gap-1.5 py-[7px]" key={row.label}>
                 <span className="inline-flex text-[var(--muted)] shrink-0">
                   {row.icon}
                 </span>
@@ -315,21 +315,14 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                 >
                   {row.value}
                 </Typography>
-              </Box>
+              </div>
             ))}
           </Box>
         </div>
       )}
 
       {/* ─── STAT TILES : grid uniforme ────────────────────────────── */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${metrics.length}, 1fr)`,
-          gap: 0.5,
-          mb: 1.5,
-        }}
-      >
+      <div className="grid gap-[3px] mb-[9px]" style={{ gridTemplateColumns: `repeat(${metrics.length}, 1fr)` }}>
         {metrics.map((m) => (
           <div className="px-0.5 py-1 flex flex-col items-center text-center border border-[var(--line)] rounded-[1px] min-w-0 gap-0" key={m.label}>
             <span className="inline-flex text-muted-foreground">{m.icon}</span>
@@ -337,7 +330,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             <Typography sx={{ fontSize: MICRO_FS, color: 'text.secondary', lineHeight: 1.1 }}>{m.label}</Typography>
           </div>
         ))}
-      </Box>
+      </div>
 
       {/* ─── PHOTOS ────────────────────────────────────────────────── */}
       <div className="mb-2">

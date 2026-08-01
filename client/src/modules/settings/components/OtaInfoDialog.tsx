@@ -4,7 +4,7 @@ import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Box, Button, Alert, TextField } from '@mui/material';
+import { Button, Alert, TextField } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle as CheckCircleIcon,
@@ -194,20 +194,7 @@ export default function OtaInfoDialog({
       <Card className="gap-0 py-0 border-border overflow-hidden">
         {/* ─── Header (uniforme avec ApiKeyConnectionCard) ─────────────── */}
         <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[var(--line)]">
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: '10px',
-              backgroundColor: ota.logo ? 'transparent' : ota.brandColor,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-              flexShrink: 0,
-            }}
-            aria-hidden="true"
-          >
+          <div className="w-[40px] h-[40px] rounded-[10px] inline-flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundColor: ota.logo ? 'transparent' : ota.brandColor }} aria-hidden="true">
             {ota.logo ? (
               <img className="max-w-full max-h-[100%] object-contain" src={ota.logo} alt="" />
             ) : (
@@ -215,7 +202,7 @@ export default function OtaInfoDialog({
                 {ota.name.slice(0, 2).toUpperCase()}
               </p>
             )}
-          </Box>
+          </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-0.5 flex-wrap">
               <p className="cn-text-body1 text-[0.92rem] font-semibold">{ota.name}</p>
@@ -260,7 +247,7 @@ export default function OtaInfoDialog({
                 Cette intégration est <strong>active</strong>. Vous pouvez gérer la connexion ici ou depuis l'onglet Channels.
               </Alert>
 
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.25, mb: 1.5 }}>
+              <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-[7.5px] mb-[9px]">
                 {isChannelConnected && channelStatus && (
                   <>
                     {channelStatus.externalPropertyId && (
@@ -295,7 +282,7 @@ export default function OtaInfoDialog({
                     </p>
                   </div>
                 )}
-              </Box>
+              </div>
 
               <div className="flex gap-1.5 flex-wrap">
                 {isFormConnectable && (

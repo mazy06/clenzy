@@ -4,7 +4,7 @@ import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Box, Typography, TextField, Button, Switch, FormControlLabel, MenuItem, Alert, Divider } from '@mui/material';
+import { Typography, TextField, Button, Switch, FormControlLabel, MenuItem, Alert, Divider } from '@mui/material';
 import { CheckCircle as CheckCircleIcon, ErrorOutline, Link as LinkIcon } from '../../../icons';
 import {
   useMarketingIntegration,
@@ -129,24 +129,9 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
     <Card className="gap-0 py-0 border-border overflow-hidden">
       {/* Header */}
       <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[var(--line)]">
-        <Box
-          sx={{
-            width: 40,
-            height: 40,
-            borderRadius: '10px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: BREVO_GREEN,
-            color: '#fff',
-            fontWeight: 700,
-            fontSize: '1rem',
-            flexShrink: 0,
-          }}
-          aria-hidden="true"
-        >
+        <div className="w-[40px] h-[40px] rounded-[10px] inline-flex items-center justify-center text-[#fff] font-bold text-[1rem] shrink-0" style={{ backgroundColor: BREVO_GREEN }} aria-hidden="true">
           B
-        </Box>
+        </div>
         <div className="flex-1 min-w-0">
           <p className="cn-text-body1 font-semibold text-[0.95rem] leading-[1.25]">
             Brevo
@@ -230,19 +215,12 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
               Enregistre une clé API valide pour charger tes listes Brevo.
             </p>
           ) : (
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                gap: 1,
-                mt: 0.75,
-              }}
-            >
+            <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-1.5 mt-[4.5px]">
               {listSelect('Waitlist', data.waitlistListId, 'waitlistListId')}
               {listSelect('Newsletter', data.newsletterListId, 'newsletterListId')}
               {listSelect('Prospects / devis', data.prospectsListId, 'prospectsListId')}
               {listSelect('Leads booking engine', data.leadsListId, 'leadsListId')}
-            </Box>
+            </div>
           )}
         </div>
 

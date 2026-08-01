@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Typography, TextField, MenuItem, Switch, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Skeleton, ToggleButtonGroup, ToggleButton, InputAdornment, Tooltip } from '@mui/material';
+import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Typography, TextField, MenuItem, Switch, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Skeleton, ToggleButtonGroup, ToggleButton, InputAdornment, Tooltip } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Add, Percent, LocalOffer, Refresh, CheckCircle, TrendingUp } from '../../icons';
@@ -345,14 +345,7 @@ export default function PromoCodesPage() {
 
       {/* KPIs */}
       {stats && (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
-            gap: 2,
-            mb: 3,
-          }}
-        >
+        <div className="grid grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-3 mb-[18px]">
           <StatTile icon={<LocalOffer />} label="Total" value={stats.total} color="#6B8A9A" />
           <StatTile icon={<CheckCircle />} label="Actifs" value={stats.active} color="#4A9B8E" />
           <StatTile icon={<Percent />} label="Utilisations totales" value={stats.totalUses} color="#7BA3C2" />
@@ -363,7 +356,7 @@ export default function PromoCodesPage() {
             color="#D4A574"
             hint={stats.topUsed ? `${stats.topUsed.usedCount} usages` : undefined}
           />
-        </Box>
+        </div>
       )}
 
       {/* Filtre — segmented stylé par le thème global MuiToggleButtonGroup */}

@@ -8,7 +8,7 @@
      colorée (vert=libre, ambre=bloqué/maintenance, rouge=réservé).
    ============================================================ */
 import React from 'react';
-import { Box, Tooltip } from '@mui/material';
+import { Tooltip } from '@mui/material';
 import { SurfaceCard, Overline } from './shared';
 
 interface Day {
@@ -77,7 +77,7 @@ export const AvailabilityResult: React.FC<{ data: AvailabilityData }> = ({ data 
             { c: 'var(--warn)', l: 'Bloqué' },
           ].map((legend) => (
             <div className="inline-flex items-center gap-0.5" key={legend.l}>
-              <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: legend.c }} />
+              <div className="w-[8px] h-[8px] rounded-[2px]" style={{ backgroundColor: legend.c }} />
               <p className="cn-text-body1 text-[10.5px] text-[var(--faint)]">{legend.l}</p>
             </div>
           ))}
@@ -86,34 +86,20 @@ export const AvailabilityResult: React.FC<{ data: AvailabilityData }> = ({ data 
 
       {/* Mini-grille des jours */}
       {visible.length > 0 && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+        <div className="flex flex-wrap gap-1">
           {visible.map((day) => {
             const color = dayColor(day);
             const d = new Date(day.date);
             const dayNum = Number.isNaN(d.getTime()) ? '?' : d.getDate();
             return (
               <Tooltip key={day.date} title={`${day.date} · ${statusLabel(day)}`} arrow disableInteractive>
-                <Box
-                  sx={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: '6px',
-                    bgcolor: color.bg,
-                    color: color.fg,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
+                <div className="w-[26px] h-[26px] rounded-[6px] inline-flex items-center justify-center text-[11px] font-semibold tabular-nums" style={{ backgroundColor: color.bg, color: color.fg }}>
                   {dayNum}
-                </Box>
+                </div>
               </Tooltip>
             );
           })}
-        </Box>
+        </div>
       )}
 
       {hidden > 0 && (

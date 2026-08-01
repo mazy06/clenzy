@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Box, Card, Skeleton, Table, TableBody, TableCell, TableHead, TableRow, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Card, Skeleton, Table, TableBody, TableCell, TableHead, TableRow, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { CalendarX2, Eye, MousePointerClick, Search, ShoppingCart } from 'lucide-react';
 import StatTile from '../../../../components/StatTile';
 import EmptyState from '../../../../components/EmptyState';
@@ -106,7 +106,7 @@ export default function FunnelAnalyticsPanel() {
         <AlertDescription>{error}</AlertDescription>
       </Alert>}
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(5, 1fr)' }, gap: 1.25 }}>
+      <div className="grid grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(5,_1fr)] gap-[7.5px]">
         {steps.map((s) => (
           <StatTile
             key={s.label}
@@ -118,7 +118,7 @@ export default function FunnelAnalyticsPanel() {
             loading={loading}
           />
         ))}
-      </Box>
+      </div>
 
       <Card variant="outlined" sx={{ p: 1.5 }}>
         <h6 className="cn-text-subtitle2 mb-1.5">

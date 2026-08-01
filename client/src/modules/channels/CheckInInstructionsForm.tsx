@@ -106,24 +106,12 @@ function SectionCard({ icon, accentColor, title, description, children, filledCo
       }}
     >
       <div className="flex items-start gap-2 mb-3">
-        <Box
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: 1.5,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: accentColor,
-            bgcolor: `${accentColor}15`,
-            flexShrink: 0,
-          }}
-        >
+        <div className="w-[36px] h-[36px] rounded-[12px] flex items-center justify-center shrink-0" style={{ color: accentColor, backgroundColor: `${accentColor}15` }}>
           {React.cloneElement(icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
             size: 18,
             strokeWidth: 1.75,
           })}
-        </Box>
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <p className="cn-text-body1 text-[0.9375rem] font-semibold leading-[1.2]">
@@ -454,9 +442,9 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
       </Box>
 
       {/* ─── Section cards grid ────────────────────────────────────────── */}
-      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
+      <div className="grid gap-3 grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1fr]">
         {/* Accès & WiFi */}
-        <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
+        <div className="col-span-[1] min-[900px]:col-span-[1_/_-1]">
           <SectionCard
             icon={<KeyIcon />}
             accentColor="#C28A52"
@@ -465,7 +453,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             filledCount={stats.access}
             totalCount={3}
           >
-            <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' } }}>
+            <div className="grid gap-[9px] grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr_1fr]">
               <TextField
                 label={t('channels.checkIn.accessCode')}
                 value={form.accessCode ?? ''}
@@ -564,7 +552,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                   ),
                 }}
               />
-            </Box>
+            </div>
             {hasSmartLock ? (
               <span className="cn-text-caption text-muted-foreground block mt-1.5 max-w-[560px]">
                 {t('channels.checkIn.smartLockManaged', 'Serrure connectée détectée : le code du séjour est généré et géré par la serrure (un code par réservation). Ce champ sert de secours (boîte à clé).')}
@@ -661,7 +649,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
               </span>
             </div>
           </SectionCard>
-        </Box>
+        </div>
 
         {/* Parking */}
         <SectionCard
@@ -708,7 +696,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         </SectionCard>
 
         {/* Photos d'accès */}
-        <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
+        <div className="col-span-[1] min-[900px]:col-span-[1_/_-1]">
           <SectionCard
             icon={<PhotoIcon />}
             accentColor="#9A7FA3"
@@ -763,7 +751,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
               </Button>
             </div>
           </SectionCard>
-        </Box>
+        </div>
 
         {/* Départ */}
         <SectionCard
@@ -810,7 +798,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         </SectionCard>
 
         {/* Urgence — full width, alert-styled */}
-        <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
+        <div className="col-span-[1] min-[900px]:col-span-[1_/_-1]">
           <SectionCard
             icon={<PhoneIcon />}
             accentColor="#E5484D"
@@ -838,10 +826,10 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
               }}
             />
           </SectionCard>
-        </Box>
+        </div>
 
         {/* Compléments — full width */}
-        <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
+        <div className="col-span-[1] min-[900px]:col-span-[1_/_-1]">
           <SectionCard
             icon={<NotesIcon />}
             accentColor="#8BA0B3"
@@ -862,8 +850,8 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
               placeholder="Boulangerie au coin de la rue, supermarché à 200m, conseils transports..."
             />
           </SectionCard>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* ─── Sticky save bar ──────────────────────────────────────────── */}
       <Box

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Box, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
+import { IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
 import { Settings2 } from 'lucide-react';
 import { Link as LinkIcon, LinkOff as LinkOffIcon } from '../../icons';
 import ServiceGridCard from './components/ServiceGridCard';
@@ -120,14 +120,7 @@ export default function IntegrationsWhatsAppConfig() {
           Envoyez vos messages WhatsApp via l'API native du provider, sans intermédiaire.
           Compte WhatsApp unique pour toute la plateforme.
         </p>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 1.5,
-            mt: 1,
-          }}
-        >
+        <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
           <ServiceGridCard
             serviceTooltipId={service.id}
             tooltipData={{
@@ -142,25 +135,9 @@ export default function IntegrationsWhatsAppConfig() {
             status={connected ? 'connected' : 'idle'}
             onClick={() => setOpen(true)}
             logo={
-              <Box
-                sx={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '8px',
-                  backgroundColor: service.brandColor,
-                  color: service.brandTextColor,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  letterSpacing: '-0.02em',
-                }}
-                aria-hidden="true"
-              >
+              <div className="w-[40px] h-[40px] rounded-[8px] inline-flex items-center justify-center shrink-0 text-[0.85rem] font-bold tracking-[-0.02em]" style={{ backgroundColor: service.brandColor, color: service.brandTextColor }} aria-hidden="true">
                 WA
-              </Box>
+              </div>
             }
             actions={
               <>
@@ -169,7 +146,7 @@ export default function IntegrationsWhatsAppConfig() {
               </>
             }
           />
-        </Box>
+        </div>
       </Card>
 
       {/* Dialog de config du compte WhatsApp global — coque modale standard. */}
@@ -177,25 +154,9 @@ export default function IntegrationsWhatsAppConfig() {
         <Card className="gap-0 py-0 overflow-hidden">
           {/* Header — uniforme avec les autres modales d'intégration. */}
           <div className="px-3 py-2.5 flex items-center gap-2 border-b border-[var(--line)]">
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: '10px',
-                backgroundColor: service.brandColor,
-                color: service.brandTextColor,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                fontSize: '0.85rem',
-                fontWeight: 700,
-                letterSpacing: '-0.02em',
-              }}
-              aria-hidden="true"
-            >
+            <div className="w-[40px] h-[40px] rounded-[10px] inline-flex items-center justify-center shrink-0 text-[0.85rem] font-bold tracking-[-0.02em]" style={{ backgroundColor: service.brandColor, color: service.brandTextColor }} aria-hidden="true">
               WA
-            </Box>
+            </div>
             <div className="flex-1 min-w-0">
               <p className="cn-text-body1 text-[0.92rem] font-semibold">
                 {service.name}

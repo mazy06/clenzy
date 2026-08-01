@@ -11,7 +11,7 @@
       → délègue au KpiSummaryResult (réutilisation du rendu KPI).
    ============================================================ */
 import React from 'react';
-import { Box } from '@mui/material';
+
 import { Check } from '../../../../icons';
 import { SurfaceCard, formatMoney, humanizeKey, humanizeStatus } from './shared';
 import { KpiSummaryResult } from './KpiSummaryResult';
@@ -57,22 +57,9 @@ export const SummaryResult: React.FC<{ data: Summary }> = ({ data }) => {
   return (
     <SurfaceCard sx={{ borderColor: 'var(--ok)' }}>
       <div className="flex items-start gap-1.5">
-        <Box
-          sx={{
-            flexShrink: 0,
-            mt: '1px',
-            width: 22,
-            height: 22,
-            borderRadius: '50%',
-            bgcolor: 'var(--ok-soft)',
-            color: 'var(--ok)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
+        <div className="shrink-0 mt-px w-[22px] h-[22px] rounded-[50%] bg-[var(--ok-soft)] text-[var(--ok)] inline-flex items-center justify-center">
           <Check size={14} strokeWidth={2.5} />
-        </Box>
+        </div>
         <div className="min-w-0 flex-1">
           <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)] leading-[1.4]">
             {message ?? 'Action effectuée'}
@@ -91,16 +78,7 @@ export const SummaryResult: React.FC<{ data: Summary }> = ({ data }) => {
       </div>
 
       {details.length > 0 && (
-        <Box
-          sx={{
-            mt: 1.25,
-            pt: 1,
-            borderTop: '1px solid var(--line)',
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
-            gap: 0.75,
-          }}
-        >
+        <div className="mt-[7.5px] pt-1.5 grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] gap-[4.5px]" style={{ borderTop: '1px solid var(--line)' }}>
           {details.map(([key, value]) => (
             <div className="flex gap-1 items-baseline min-w-0" key={key}>
               <p className="cn-text-body1 text-[var(--muted)] text-[11px] shrink-0">
@@ -111,7 +89,7 @@ export const SummaryResult: React.FC<{ data: Summary }> = ({ data }) => {
               </p>
             </div>
           ))}
-        </Box>
+        </div>
       )}
     </SurfaceCard>
   );

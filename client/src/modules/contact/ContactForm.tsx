@@ -3,7 +3,7 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card as BuiCard } from '../../components/ui';
-import { Box, Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Autocomplete, FormHelperText, Divider } from '@mui/material';
+import { Card, CardContent, TextField, Button, Grid, FormControl, InputLabel, Select, MenuItem, Autocomplete, FormHelperText, Divider } from '@mui/material';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
   Send as SendIcon,
@@ -398,7 +398,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                 <BuiCard className="gap-0 py-0 p-3">
                   <div className="flex items-center justify-between mb-1.5">
                     <h6 className="cn-text-subtitle2">
-                      <Box component="span" sx={{ display: 'inline-flex', mr: 1, verticalAlign: 'middle' }}><AttachFileIcon  /></Box>
+                      <span className="inline-flex me-1.5 align-[middle]"><AttachFileIcon  /></span>
                       {t('contact.attachments')}
                     </h6>
                     <span className="cn-text-caption text-muted-foreground">

@@ -3,7 +3,7 @@ import StatusChip from './StatusChip';
 import { Alert as UiAlert, AlertDescription } from './ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from './ui';
-import { Box, Card, CardContent, Typography, Grid, Alert, Button, IconButton, Tooltip, LinearProgress } from '@mui/material';
+import { Card, CardContent, Typography, Grid, Alert, Button, IconButton, Tooltip, LinearProgress } from '@mui/material';
 import {
   TrendingUp,
   Refresh,
@@ -107,9 +107,9 @@ const KeycloakMetrics: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
+      <div className="flex justify-center items-center min-h-[200px]">
         <Spinner className="size-10" />
-      </Box>
+      </div>
     );
   }
 
@@ -147,30 +147,30 @@ const KeycloakMetrics: React.FC = () => {
               </h6>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
-                  <Box textAlign="center">
+                  <div className="text-center">
                     <Typography variant="h4" sx={displayValueSx('var(--ink)')}>
                       {metrics.users.total}
                     </Typography>
                     <p className="cn-text-body2 text-muted-foreground">
                       Total
                     </p>
-                  </Box>
+                  </div>
                 </Grid>
                 <Grid item xs={6}>
-                  <Box textAlign="center">
+                  <div className="text-center">
                     <Typography variant="h4" sx={displayValueSx('var(--ok)')}>
                       {metrics.users.active}
                     </Typography>
                     <p className="cn-text-body2 text-muted-foreground">
                       Actifs
                     </p>
-                  </Box>
+                  </div>
                 </Grid>
                 <Grid item xs={12}>
-                  <Box display="flex" gap={1} flexWrap="wrap">
+                  <div className="flex gap-1.5 flex-wrap">
                     <StatusChip tokens={{ color: INFO_TOKEN.fg, bg: INFO_TOKEN.bg }} label={`${metrics.users.newThisWeek} nouveaux`} icon={<TrendingUp size={16} strokeWidth={1.75} />} />
                     <StatusChip tokens={{ color: NEUTRAL_TOKEN.fg, bg: NEUTRAL_TOKEN.bg }} label={`${metrics.users.inactive} inactifs`} />
-                  </Box>
+                  </div>
                 </Grid>
               </Grid>
             </CardContent>
@@ -187,30 +187,30 @@ const KeycloakMetrics: React.FC = () => {
               </h6>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
-                  <Box textAlign="center">
+                  <div className="text-center">
                     <Typography variant="h4" sx={displayValueSx('var(--ink)')}>
                       {metrics.sessions.totalTokens}
                     </Typography>
                     <p className="cn-text-body2 text-muted-foreground">
                       Total traités
                     </p>
-                  </Box>
+                  </div>
                 </Grid>
                 <Grid item xs={6}>
-                  <Box textAlign="center">
+                  <div className="text-center">
                     <Typography variant="h4" sx={displayValueSx('var(--ok)')}>
                       {metrics.sessions.validTokens}
                     </Typography>
                     <p className="cn-text-body2 text-muted-foreground">
                       Valides
                     </p>
-                  </Box>
+                  </div>
                 </Grid>
                 <Grid item xs={12}>
-                  <Box display="flex" gap={1} flexWrap="wrap">
+                  <div className="flex gap-1.5 flex-wrap">
                     <StatusChip tokens={{ color: INFO_TOKEN.fg, bg: INFO_TOKEN.bg }} label={`${metrics.sessions.cacheHits} cache hits`} />
                     <StatusChip tokens={{ color: NEUTRAL_TOKEN.fg, bg: NEUTRAL_TOKEN.bg }} label={`${metrics.sessions.revokedTokens} révoqués`} />
-                  </Box>
+                  </div>
                 </Grid>
               </Grid>
             </CardContent>
@@ -227,30 +227,30 @@ const KeycloakMetrics: React.FC = () => {
               </h6>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
-                  <Box textAlign="center">
+                  <div className="text-center">
                     <Typography variant="h6" sx={displayValueSx(SEM_TOKEN[getPerformanceColor(metrics.performance.avgResponseTimeMs, true)].fg)}>
                       {metrics.performance.avgResponseTimeMs}ms
                     </Typography>
                     <p className="cn-text-body2 text-muted-foreground">
                       Temps de réponse moy.
                     </p>
-                  </Box>
+                  </div>
                 </Grid>
                 <Grid item xs={6}>
-                  <Box textAlign="center">
+                  <div className="text-center">
                     <Typography variant="h6" sx={displayValueSx(SEM_TOKEN[getPerformanceColor(metrics.performance.uptimePercent)].fg)}>
                       {metrics.performance.uptimePercent}%
                     </Typography>
                     <p className="cn-text-body2 text-muted-foreground">
                       Uptime
                     </p>
-                  </Box>
+                  </div>
                 </Grid>
                 <Grid item xs={12}>
-                  <Box display="flex" gap={1} flexWrap="wrap">
+                  <div className="flex gap-1.5 flex-wrap">
                     <StatusChip tokens={{ color: INFO_TOKEN.fg, bg: INFO_TOKEN.bg }} label={`${metrics.performance.totalRequests} requêtes`} />
                     <StatusChip tokens={{ color: SEM_TOKEN[getPerformanceColor(100 - metrics.performance.errorRate)].fg, bg: SEM_TOKEN[getPerformanceColor(100 - metrics.performance.errorRate)].bg }} label={`${metrics.performance.errorRate}% erreurs`} />
-                  </Box>
+                  </div>
                 </Grid>
               </Grid>
             </CardContent>
@@ -267,32 +267,32 @@ const KeycloakMetrics: React.FC = () => {
               </h6>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
-                  <Box textAlign="center">
+                  <div className="text-center">
                     <Typography variant="h6" sx={displayValueSx(SEM_TOKEN[getStatusColor(metrics.security.failedLogins, 20)].fg)}>
                       {metrics.security.failedLogins}
                     </Typography>
                     <p className="cn-text-body2 text-muted-foreground">
                       Échecs de connexion
                     </p>
-                  </Box>
+                  </div>
                 </Grid>
                 <Grid item xs={6}>
-                  <Box textAlign="center">
+                  <div className="text-center">
                     <Typography variant="h6" sx={displayValueSx(SEM_TOKEN[getStatusColor(metrics.security.permissionDenied, 10)].fg)}>
                       {metrics.security.permissionDenied}
                     </Typography>
                     <p className="cn-text-body2 text-muted-foreground">
                       Accès refusés
                     </p>
-                  </Box>
+                  </div>
                 </Grid>
                 <Grid item xs={12}>
-                  <Box display="flex" gap={1} flexWrap="wrap">
+                  <div className="flex gap-1.5 flex-wrap">
                     <StatusChip tokens={{ color: SEM_TOKEN[metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'].fg, bg: SEM_TOKEN[metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'].bg }} label={`${metrics.security.suspiciousActivity} activité suspecte`} />
                     {metrics.security.lastIncident && (
                       <StatusChip tokens={{ color: NEUTRAL_TOKEN.fg, bg: NEUTRAL_TOKEN.bg }} label={`Dernier incident: ${new Date(metrics.security.lastIncident).toLocaleString()}`} />
                     )}
-                  </Box>
+                  </div>
                 </Grid>
               </Grid>
             </CardContent>
@@ -314,7 +314,7 @@ const KeycloakMetrics: React.FC = () => {
                   {/* Lignes */}
                   {coverage.linePercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
-                      <Box textAlign="center">
+                      <div className="text-center">
                         <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.linePercent)].fg)}>
                           {coverage.linePercent}%
                         </Typography>
@@ -330,13 +330,13 @@ const KeycloakMetrics: React.FC = () => {
                         <span className="cn-text-caption text-muted-foreground">
                           {coverage.lineCovered}/{coverage.lineTotal}
                         </span>
-                      </Box>
+                      </div>
                     </Grid>
                   )}
                   {/* Branches */}
                   {coverage.branchPercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
-                      <Box textAlign="center">
+                      <div className="text-center">
                         <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.branchPercent)].fg)}>
                           {coverage.branchPercent}%
                         </Typography>
@@ -352,13 +352,13 @@ const KeycloakMetrics: React.FC = () => {
                         <span className="cn-text-caption text-muted-foreground">
                           {coverage.branchCovered}/{coverage.branchTotal}
                         </span>
-                      </Box>
+                      </div>
                     </Grid>
                   )}
                   {/* Instructions */}
                   {coverage.instructionPercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
-                      <Box textAlign="center">
+                      <div className="text-center">
                         <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.instructionPercent)].fg)}>
                           {coverage.instructionPercent}%
                         </Typography>
@@ -374,13 +374,13 @@ const KeycloakMetrics: React.FC = () => {
                         <span className="cn-text-caption text-muted-foreground">
                           {coverage.instructionCovered}/{coverage.instructionTotal}
                         </span>
-                      </Box>
+                      </div>
                     </Grid>
                   )}
                   {/* Méthodes */}
                   {coverage.methodPercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
-                      <Box textAlign="center">
+                      <div className="text-center">
                         <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.methodPercent)].fg)}>
                           {coverage.methodPercent}%
                         </Typography>
@@ -396,13 +396,13 @@ const KeycloakMetrics: React.FC = () => {
                         <span className="cn-text-caption text-muted-foreground">
                           {coverage.methodCovered}/{coverage.methodTotal}
                         </span>
-                      </Box>
+                      </div>
                     </Grid>
                   )}
                   {/* Classes */}
                   {coverage.classPercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
-                      <Box textAlign="center">
+                      <div className="text-center">
                         <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.classPercent)].fg)}>
                           {coverage.classPercent}%
                         </Typography>
@@ -418,13 +418,13 @@ const KeycloakMetrics: React.FC = () => {
                         <span className="cn-text-caption text-muted-foreground">
                           {coverage.classCovered}/{coverage.classTotal}
                         </span>
-                      </Box>
+                      </div>
                     </Grid>
                   )}
                   {/* Complexité */}
                   {coverage.complexityPercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
-                      <Box textAlign="center">
+                      <div className="text-center">
                         <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.complexityPercent)].fg)}>
                           {coverage.complexityPercent}%
                         </Typography>
@@ -440,7 +440,7 @@ const KeycloakMetrics: React.FC = () => {
                         <span className="cn-text-caption text-muted-foreground">
                           {coverage.complexityCovered}/{coverage.complexityTotal}
                         </span>
-                      </Box>
+                      </div>
                     </Grid>
                   )}
                 </Grid>

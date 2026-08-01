@@ -4,7 +4,7 @@ import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from '@mui/material';
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -218,7 +218,7 @@ export default function ApiKeyConnectionCard<P extends string>({
           </div>
         ) : connected ? (
           <div>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.25, mb: 1.5 }}>
+            <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-[7.5px] mb-[9px]">
               <div>
                 <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Serveur</p>
                 <p className="cn-text-body1 text-[0.82rem] font-medium">{status?.serverUrl}</p>
@@ -235,7 +235,7 @@ export default function ApiKeyConnectionCard<P extends string>({
                 <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Statut</p>
                 <p className="cn-text-body1 text-[0.82rem] font-medium">{status?.status}</p>
               </div>
-            </Box>
+            </div>
             <Button
               variant="outlined"
               size="small"

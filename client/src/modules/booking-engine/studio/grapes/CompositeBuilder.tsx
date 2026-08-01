@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Box, ButtonBase, TextField } from '@mui/material';
+import { cn } from '../../../../utils/cn';
+import { ButtonBase, TextField } from '@mui/material';
 import { X, Plus, Save, Boxes, Eye } from 'lucide-react';
 import grapesjs, { type Editor, type ToolbarButtonProps, type Component } from 'grapesjs';
 import { registerBookingComponents, setupEditorInteraction, setCanvasInert, blockLabelHtml } from './bookingComponents';
@@ -317,22 +318,22 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
           </div>
 
           {/* Onglet BLOCS : aide + palette de blocs GrapesJS (montée via `appendTo`, toujours montée). */}
-          <Box sx={{ display: rightTab === 'blocks' ? 'flex' : 'none', flexDirection: 'column', gap: 1.25, flex: 1, minHeight: 0, px: 2, pb: 2, overflowY: 'auto' }}>
+          <div className={cn('flex-col gap-[7.5px] flex-1 min-h-0 px-3 pb-3 overflow-y-auto', rightTab === 'blocks' ? 'flex' : 'hidden')}>
             <div className="text-[var(--text-2xs)] text-[var(--muted)] leading-[1.4]">
               Glisse les blocs sur le canvas (ou dans une « Ligne » pour les aligner). L'agencement que tu crées EST le composite.
               Sélectionne le widget « Filtre » puis l'icône <span className="text-[var(--body)] font-[var(--fw-medium)]">⧉ Ouvrir le groupe</span> : le filtre est <span className="text-[var(--body)] font-[var(--fw-medium)]">conservé</span> et ses sous-filtres deviennent de vrais widgets éditables (déplacer, aligner, styler). L'icône <span className="text-[var(--body)] font-[var(--fw-medium)]">⮂ compact/déplié</span> bascule entre filtre compact (icône → menu) et critères en ligne.
             </div>
             <div className="flex-1 min-h-0" ref={blocksElRef} />
-          </Box>
+          </div>
 
           {/* Onglet STYLE : sélecteurs (classes) + Style Manager. Toujours montés (cibles `appendTo`). */}
-          <Box sx={{ display: rightTab === 'style' ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <div className={cn('flex-col flex-1 min-h-0 overflow-y-auto', rightTab === 'style' ? 'flex' : 'hidden')}>
             <div className="px-3 pb-1.5 text-[var(--text-2xs)] text-[var(--muted)] leading-[1.4]">
               Sélectionne un élément (groupe, champ…) puis édite layout & style. Les règles s'appliquent <span className="text-[var(--body)] font-[var(--fw-medium)]">par classe</span> → elles rejoignent le CSS du template à l'enregistrement.
             </div>
             <div className="shrink-0" ref={selectorElRef} />
             <div className="flex-1 min-h-0" ref={styleElRef} />
-          </Box>
+          </div>
         </div>
       </div>
     </div>

@@ -65,19 +65,7 @@ export default function StudioShell({
   return (
     <div className="flex flex-col h-[100vh] bg-[var(--bg)] text-[var(--ink)]">
       {/* ── Topbar ───────────────────────────────────────────────── */}
-      <Box
-        component="header"
-        sx={{
-          height: TOPBAR_H,
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.5,
-          px: 1.5,
-          borderBottom: '1px solid var(--line)',
-          bgcolor: 'var(--card)',
-        }}
-      >
+      <header className="shrink-0 flex items-center gap-[9px] px-[9px] bg-[var(--card)]" style={{ height: TOPBAR_H, borderBottom: '1px solid var(--line)' }}>
         {onBack && (
           <ButtonBase
             onClick={onBack}
@@ -138,26 +126,11 @@ export default function StudioShell({
           options={['EUR', 'MAD', 'SAR']} ariaLabel="Devise de preview" />
         {/* La publication se fait par page dans l'éditeur GrapesJS (badge Brouillon/Publié + bouton
             Publier), modèle draft/live multi-pages. Pas de bouton « Publier » global dans la topbar. */}
-      </Box>
+      </header>
 
       {/* ── Body : rail + contenu ────────────────────────────────── */}
       <div className="flex-1 flex min-h-0">
-        <Box
-          component="nav"
-          aria-label="Sections du Studio"
-          sx={{
-            width: RAIL_W,
-            flexShrink: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'stretch',
-            gap: 0.5,
-            py: 1.5,
-            px: 1,
-            borderRight: '1px solid var(--line)',
-            bgcolor: 'var(--surface-2)',
-          }}
-        >
+        <nav className="shrink-0 flex flex-col items-stretch gap-[3px] py-[9px] px-1.5 border-e-[1px_solid_var(--line)] bg-[var(--surface-2)]" style={{ width: RAIL_W }} aria-label="Sections du Studio">
           {sections.map((s) => {
             const active = s.key === activeSection;
             const Icon = s.icon;
@@ -182,20 +155,20 @@ export default function StudioShell({
                   }}
                 >
                   <Icon size={17} strokeWidth={active ? 2 : 1.75} />
-                  <Box component="span" sx={{ fontSize: 'var(--text-2xs)', fontWeight: active ? 'var(--fw-semibold)' : 'var(--fw-medium)' }}>
+                  <span className="text-[var(--text-2xs)]" style={{ fontWeight: active ? 'var(--fw-semibold)' : 'var(--fw-medium)' }}>
                     {s.label}
-                  </Box>
+                  </span>
                 </ButtonBase>
               </Tooltip>
             );
           })}
-        </Box>
+        </nav>
 
         {/* overflowX hidden = la zone principale du Studio ne défile JAMAIS horizontalement
             (le scroll horizontal appartient à un widget précis, jamais à « l'écran »). */}
-        <Box component="main" sx={{ flex: 1, minWidth: 0, overflowX: 'hidden', overflowY: 'auto' }}>
+        <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto">
           {children}
-        </Box>
+        </main>
       </div>
     </div>
   );

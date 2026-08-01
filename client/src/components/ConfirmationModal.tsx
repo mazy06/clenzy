@@ -49,7 +49,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   const getIcon = () => {
     if (icon) return icon;
     const wrap = (cssVar: string, child: React.ReactNode) => (
-      <Box component="span" sx={{ display: 'inline-flex', color: cssVar }}>{child}</Box>
+      <span className="inline-flex" style={{ color: cssVar }}>{child}</span>
     );
     switch (severity) {
       case 'error':
@@ -75,12 +75,12 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         justifyContent: 'space-between',
         gap: 1.5,
       }}>
-        <Box display="flex" alignItems="center" gap={1.25} sx={{ minWidth: 0 }}>
+        <div className="flex items-center gap-[7.5px] min-w-0">
           {getIcon()}
           <span className="overflow-hidden text-ellipsis whitespace-nowrap">
             {title}
           </span>
-        </Box>
+        </div>
         {/* ✕ — pattern .rm-x : 34px r10 hairline, hover --err */}
         <IconButton
           onClick={onClose}

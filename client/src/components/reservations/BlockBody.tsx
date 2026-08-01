@@ -69,7 +69,7 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
       <Box sx={{ flex: 1, overflowY: 'auto', padding: '22px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
         {form.showPropertySelector && <PropertySelectField form={form} />}
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div className="flex flex-col gap-2.5">
           <Typography sx={SEC_SX}>{t('reservations.dialog.stayDates')}</Typography>
           <ReservationRangeCalendar
             startDate={form.startDate}
@@ -86,7 +86,7 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
             locale={form.locale}
             weekdayLabels={form.weekdayLabels}
           />
-        </Box>
+        </div>
 
         <TextField
           select
@@ -99,17 +99,17 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
         >
           <MenuItem value="BLOCKED">
             <div className="flex items-center gap-1.5">
-              <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.blocked }}>
+              <span className="inline-flex" style={{ color: INTERVENTION_TYPE_TOKEN_COLORS.blocked }}>
                 <Lock size={15} strokeWidth={1.75} />
-              </Box>
+              </span>
               {t('reservations.dialog.blockTypeBlocked')}
             </div>
           </MenuItem>
           <MenuItem value="MAINTENANCE">
             <div className="flex items-center gap-1.5">
-              <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
+              <span className="inline-flex" style={{ color: INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
                 <Build size={15} strokeWidth={1.75} />
-              </Box>
+              </span>
               {t('reservations.dialog.blockTypeMaintenance')}
             </div>
           </MenuItem>

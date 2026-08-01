@@ -121,16 +121,7 @@ const RadarPastille: React.FC<{
         }}
       />
       {/* Point central solide */}
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          borderRadius: '50%',
-          backgroundColor: color,
-          border: '1.5px solid var(--card)',
-          boxShadow: `0 0 6px ${color}`,
-        }}
-      />
+      <div className="absolute inset-0 rounded-[50%] border-[1.5px] border-solid border-[var(--card)]" style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}` }} />
     </Box>
   </Tooltip>
 );
@@ -756,19 +747,9 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                     >
                       {it.icon}
                       {asFeePill && (
-                        <Box
-                          component="span"
-                          sx={{
-                            fontFamily: 'var(--font-display)',
-                            fontSize: '10.5px',
-                            fontWeight: 700,
-                            fontVariantNumeric: 'tabular-nums',
-                            letterSpacing: '-.01em',
-                            color: PILL_INK,
-                          }}
-                        >
+                        <span className="text-[10.5px] font-bold tabular-nums tracking-[-.01em]" style={{ fontFamily: 'var(--font-display)', color: PILL_INK }}>
                           <Money value={it.feeRaw} from={srcCurrency} compact symbolSize={10} />
-                        </Box>
+                        </span>
                       )}
                     </Box>
                   </Tooltip>
@@ -796,27 +777,14 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                       }}
                     >
                       {overflowItems.map((it) => (
-                        <Box
-                          component="li"
-                          key={it.key}
-                          sx={{ display: 'flex', alignItems: 'center', gap: '7px' }}
-                        >
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              width: 16,
-                              flexShrink: 0,
-                              color: it.color,
-                            }}
-                          >
+                        <li className="flex items-center gap-[7px]" key={it.key}>
+                          <div className="flex items-center justify-center w-[16px] shrink-0" style={{ color: it.color }}>
                             {it.icon}
-                          </Box>
+                          </div>
                           <span className="whitespace-nowrap">
                             {it.label}
                           </span>
-                        </Box>
+                        </li>
                       ))}
                     </Box>
                   }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Tooltip } from '@mui/material';
+import { Tooltip } from '@mui/material';
 import {
   externalConnectionApi,
   PROVIDER_META,
@@ -30,27 +30,10 @@ const ApiKeyProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
       arrow
       placement="top"
     >
-      <Box
-        component="span"
-        sx={{
-          fontSize: '0.6rem',
-          fontWeight: 700,
-          letterSpacing: '0.02em',
-          color: ACCENT,
-          backgroundColor: `color-mix(in srgb, ${ACCENT} 8%, transparent)`,
-          border: `1px solid color-mix(in srgb, ${ACCENT} 20%, transparent)`,
-          borderRadius: '4px',
-          px: 0.5,
-          py: 0.125,
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '3px',
-          cursor: 'help',
-        }}
-      >
+      <span className="text-[0.6rem] font-bold tracking-[0.02em] rounded-[4px] px-[3px] py-[0.75px] inline-flex items-center gap-[3px] cursor-help" style={{ color: ACCENT, backgroundColor: `color-mix(in srgb, ${ACCENT} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${ACCENT} 20%, transparent)` }}>
         QTSP
         <span aria-hidden="true" style={{ fontSize: '0.85em' }}>🇫🇷</span>
-      </Box>
+      </span>
     </Tooltip>
   ) : undefined;
 

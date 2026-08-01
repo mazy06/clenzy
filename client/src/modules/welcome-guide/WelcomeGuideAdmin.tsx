@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
@@ -730,7 +731,7 @@ const WelcomeGuideAdmin: React.FC = () => {
     const themeOverlap = WELCOME_BOOK_THEMES.length > 1
       ? Math.max(6, (WELCOME_BOOK_THEMES.length * 124 - 760) / (WELCOME_BOOK_THEMES.length - 1)) : 0;
     return (
-      <Box className="be-home" data-accent="indigo" sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>
+      <div className="be-home px-3 min-[900px]:px-[18px] py-3 min-[900px]:py-[18px]" data-accent="indigo">
         <div className="canvas" style={{ maxWidth: 860, margin: '0 auto' }}>
           {/* Bloc création (studio) — réservé au staff plateforme (cf. POST /welcome-guides).
               Même écran que le Booking Engine : TOUJOURS affiché (pas d'écran différent selon
@@ -925,7 +926,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             </Menu>
           </section>
         </div>
-      </Box>
+      </div>
     );
   };
 
@@ -1463,25 +1464,14 @@ const WelcomeGuideAdmin: React.FC = () => {
                     '&:hover': on ? undefined : { boxShadow: 'inset 0 0 0 1px var(--faint)' },
                   }}
                 >
-                  <Box sx={{ flex: 1, bgcolor: th.swatch.bg }} />
-                  <Box sx={{ flex: 1, bgcolor: th.swatch.surface }} />
-                  <Box sx={{ height: 16, bgcolor: th.swatch.accent }} />
+                  <div className="flex-1" style={{ backgroundColor: th.swatch.bg }} />
+                  <div className="flex-1" style={{ backgroundColor: th.swatch.surface }} />
+                  <div className="h-[16px]" style={{ backgroundColor: th.swatch.accent }} />
                   {on ? (
                     <div className="absolute inset-[0px] flex items-center justify-center">
-                      <Box
-                        sx={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: '50%',
-                          bgcolor: 'rgba(255,255,255,0.92)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: '0 1px 3px rgba(21,36,45,.3)',
-                        }}
-                      >
+                      <div className="w-[22px] h-[22px] rounded-[50%] bg-[rgba(255,255,255,0.92)] flex items-center justify-center" style={{ boxShadow: '0 1px 3px rgba(21,36,45,.3)' }}>
                         <Check size={14} strokeWidth={2.75} style={{ color: 'var(--accent)' }} />
-                      </Box>
+                      </div>
                     </div>
                   ) : null}
                 </Box>
@@ -1525,39 +1515,26 @@ const WelcomeGuideAdmin: React.FC = () => {
             text={t('welcomeGuide.hero.empty', "Ce logement n'a pas encore de photos. Ajoutez-en depuis sa fiche.")}
           />
         ) : (
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(92px, 1fr))', gap: 1 }}>
+          <div className="grid grid-cols-[repeat(auto-fill,_minmax(92px,_1fr))] gap-1.5">
             {propertyPhotos.map((ph) => {
               const on = heroPhotoIds.includes(ph.id);
               return (
-                <Box
-                  key={ph.id}
-                  onClick={() => {
+                <div className={cn('relative aspect-[4_/_3] rounded-[12px] overflow-hidden cursor-pointer border-[2px] border-solid', on ? 'border-[var(--accent)]' : 'border-[var(--line-2)]')} style={{ transition: 'border-color .15s' }} key={ph.id} onClick={() => {
                     setHeroTouched(true);
                     setHeroPhotoIds((prev) =>
                       prev.includes(ph.id) ? prev.filter((id) => id !== ph.id) : [...prev, ph.id],
                     );
-                  }}
-                  sx={{
-                    position: 'relative',
-                    aspectRatio: '4 / 3',
-                    borderRadius: 1.5,
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    border: '2px solid',
-                    borderColor: on ? 'var(--accent)' : 'var(--line-2)',
-                    transition: 'border-color .15s',
-                  }}
-                >
+                  }}>
                   <img className="w-full h-full object-cover block" src={propertyPhotosApi.getPhotoUrl(Number(propertyId), ph.id)} alt={ph.caption || ''} loading="lazy" />
                   {on ? (
                     <div className="absolute top-[4px] end-[4px] bg-[var(--accent)] text-[var(--on-accent)] rounded-[50%] w-[22px] h-[22px] flex items-center justify-center">
                       <Check size={14} strokeWidth={2.5} />
                     </div>
                   ) : null}
-                </Box>
+                </div>
               );
             })}
-          </Box>
+          </div>
         )}
       </div>
       </>
@@ -2020,21 +1997,7 @@ const WelcomeGuideAdmin: React.FC = () => {
 
       {/* ── Aperçu téléphone live (reflète l'état du formulaire en temps réel) ── */}
       <Box sx={{ position: { lg: 'sticky' }, top: 12, justifySelf: { xs: 'center', lg: 'start' }, width: '100%' }}>
-        <Box
-          sx={{
-            width: 360,
-            maxWidth: '100%',
-            height: 720,
-            mx: 'auto',
-            borderRadius: '34px',
-            overflow: 'hidden',
-            border: '10px solid',
-            // Bezel téléphone : tons chrome (pas de #000 pur — ban baseline).
-            borderColor: 'var(--chrome-1)',
-            boxShadow: '0 28px 70px -28px rgba(21,36,45,0.55)',
-            bgcolor: 'var(--chrome-2)',
-          }}
-        >
+        <div className="w-[360px] max-w-full h-[720px] mx-auto rounded-[34px] overflow-hidden border-[10px] border-solid border-[var(--chrome-1)] bg-[var(--chrome-2)]" style={{ boxShadow: '0 28px 70px -28px rgba(21,36,45,0.55)' }}>
           <WelcomeBookView
             model={previewModel}
             theme={theme}
@@ -2044,7 +2007,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             interactive={false}
             previewFocus={step === 3 ? 'content' : step === 4 ? 'experiences' : 'home'}
           />
-        </Box>
+        </div>
       </Box>
     </Box>
   );
@@ -2201,13 +2164,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             </p>
           ) : (
             <Stack spacing={2.5}>
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)' },
-                  gap: 1,
-                }}
-              >
+              <div className="grid grid-cols-[repeat(2,_1fr)] min-[600px]:grid-cols-[repeat(3,_1fr)] gap-1.5">
                 {[
                   { key: 'opens', icon: <Eye size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.opens', 'Ouvertures'), value: stats.data.totalOpens },
                   { key: 'chat', icon: <MessageCircle size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.chat', 'Messages chatbot'), value: stats.data.chatMessages },
@@ -2225,7 +2182,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                     </h6>
                   </div>
                 ))}
-              </Box>
+              </div>
 
               <div>
                 <h6 className="cn-text-subtitle2 font-semibold mb-1.5">

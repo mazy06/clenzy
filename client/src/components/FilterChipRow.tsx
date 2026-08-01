@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../utils/cn';
 import { Box } from '@mui/material';
 import StatusChip, { type ToneTokens } from './StatusChip';
 
@@ -93,20 +94,9 @@ export default function FilterChipRow<T extends string>({
               <span className="inline-flex items-center gap-0.5">
                 {opt.label}
                 {opt.count !== undefined && (
-                  <Box
-                    component="span"
-                    sx={{
-                      fontSize: compact ? '0.5625rem' : '0.625rem',
-                      fontWeight: 700,
-                      px: 0.5,
-                      py: 0.05,
-                      borderRadius: 'var(--radius-pill)',
-                      bgcolor: active ? 'var(--accent)' : 'var(--hover)',
-                      color: active ? 'var(--on-accent)' : 'var(--muted)',
-                    }}
-                  >
+                  <span className={cn('font-bold px-[3px] py-[0.30000000000000004px] rounded-[var(--radius-pill)]', compact ? 'text-[0.5625rem]' : 'text-[0.625rem]', active ? 'bg-[var(--accent)]' : 'bg-[var(--hover)]', active ? 'text-[var(--on-accent)]' : 'text-[var(--muted)]')}>
                     {opt.count}
-                  </Box>
+                  </span>
                 )}
               </span>
             }

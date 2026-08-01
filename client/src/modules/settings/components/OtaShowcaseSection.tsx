@@ -142,20 +142,7 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
                 status={connected ? 'connected' : ota.available ? 'idle' : 'comingSoon'}
                 onClick={() => setOpenOta(ota)}
                 logo={
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: '8px',
-                      backgroundColor: ota.logo ? 'transparent' : ota.brandColor,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      overflow: 'hidden',
-                      flexShrink: 0,
-                    }}
-                    aria-hidden="true"
-                  >
+                  <div className="w-[40px] h-[40px] rounded-[8px] inline-flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundColor: ota.logo ? 'transparent' : ota.brandColor }} aria-hidden="true">
                     {ota.logo ? (
                       <img className="max-w-full max-h-[100%] object-contain" src={ota.logo} alt="" />
                     ) : (
@@ -163,7 +150,7 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
                         {ota.name.slice(0, 2).toUpperCase()}
                       </p>
                     )}
-                  </Box>
+                  </div>
                 }
               />
             );

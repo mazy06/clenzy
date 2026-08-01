@@ -269,7 +269,7 @@ const TokenMonitoring: React.FC = () => {
                   {currentToken.username || 'admin'}
                 </p>
                 <StatusChip tokens={{ color: tokenStatus.fg, bg: tokenStatus.soft }} label={tokenStatus.label} icon={<span className="inline-flex text-inherit ms-0.5">
-                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: tokenStatus.fg }} />
+                      <div className="w-[6px] h-[6px] rounded-[50%]" style={{ backgroundColor: tokenStatus.fg }} />
                     </span>} />
               </div>
               <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', rowGap: 0.5, mb: 1 }}>
@@ -390,13 +390,7 @@ const TokenMonitoring: React.FC = () => {
       </Card>
 
       {/* ─── KPI grid ──────────────────────────────────────────────── */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
-          gap: 1.5,
-        }}
-      >
+      <div className="grid grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-[9px]">
         <StatTile
           icon={<Storage />}
           label="Total des tokens"
@@ -435,10 +429,10 @@ const TokenMonitoring: React.FC = () => {
           color="#7B68A8"
           loading={isLoading && !tokenStats}
         />
-      </Box>
+      </div>
 
       {/* ─── Visualisation + métriques ─────────────────────────────── */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1.4fr' }, gap: 2 }}>
+      <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1.4fr] gap-3">
         {/* Donut */}
         <Card className="gap-0 py-0 p-3.5 bg-[var(--card)] border-[var(--line)]">
           <p className="cn-text-body1 text-[0.875rem] font-bold mb-0.5">
@@ -497,7 +491,7 @@ const TokenMonitoring: React.FC = () => {
               <Stack spacing={1.25} sx={{ flex: 1 }}>
                 {donutData.map((entry) => (
                   <div className="flex items-center gap-1.5" key={entry.name}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: entry.color }} />
+                    <div className="w-[10px] h-[10px] rounded-[50%]" style={{ backgroundColor: entry.color }} />
                     <p className="cn-text-body1 text-[0.8125rem] flex-1">{entry.name}</p>
                     <p className="cn-text-body1 text-[0.8125rem] font-bold">
                       {entry.value}
@@ -576,7 +570,7 @@ const TokenMonitoring: React.FC = () => {
             />
           </div>
         </Card>
-      </Box>
+      </div>
 
       {/* ─── Architecture note ─────────────────────────────────────── */}
       <Alert
@@ -613,21 +607,9 @@ function MetricRow({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <Box
-        sx={{
-          width: 28,
-          height: 28,
-          borderRadius: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: fg,
-          bgcolor: bg,
-          flexShrink: 0,
-        }}
-      >
+      <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center shrink-0" style={{ color: fg, backgroundColor: bg }}>
         {icon}
-      </Box>
+      </div>
       <div className="min-w-0">
         <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 1.2 }}>
           {label}

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Box, Typography, Divider, Skeleton } from '@mui/material';
+import { Typography, Divider, Skeleton } from '@mui/material';
 import {
   Receipt as ReceiptIcon,
 } from '../../icons';
@@ -106,7 +107,7 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
       <Divider sx={{ mb: 1, borderColor: 'divider' }} />
 
       {/* Total */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: hasDiscount ? 0.625 : 0 }}>
+      <div className={cn('flex justify-between items-baseline', hasDiscount ? 'mb-[3.75px]' : 'mb-0')}>
         <p className="cn-text-body1 text-[0.85rem] font-bold text-foreground">
           {t('billing.monthlyTotal')}
         </p>
@@ -122,7 +123,7 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
         >
           <Money value={summary.totalMonthlyCents / 100} />
         </Typography>
-      </Box>
+      </div>
 
       {/* Effective with discount */}
       {hasDiscount && (

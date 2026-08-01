@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Spinner } from './ui';
-import { Box, ImageList, ImageListItem, ImageListItemBar, IconButton } from '@mui/material';
+import { ImageList, ImageListItem, ImageListItemBar, IconButton } from '@mui/material';
 import {
   PhotoCamera as PhotoCameraIcon,
   Download as DownloadIcon,
@@ -122,20 +122,11 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
 
               {/* Overlay "+N more" sur la dernière photo */}
               {isLastWithOverflow && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    bgcolor: 'rgba(0, 0, 0, 0.6)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
+                <div className="absolute top-0 start-0 end-0 bottom-0 bg-[rgba(0,_0,_0,_0.6)] flex items-center justify-center">
                   <h6 className="cn-text-h6 text-[white] font-bold">
                     +{overflowCount}
                   </h6>
-                </Box>
+                </div>
               )}
 
               {/* Action bar (delete + download) */}

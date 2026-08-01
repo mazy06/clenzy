@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Box, Card, MenuItem, Select, Skeleton, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Card, MenuItem, Select, Skeleton, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import {
   CartesianGrid,
@@ -88,7 +88,7 @@ const PaceReport: React.FC = () => {
   return (
     <div className="flex flex-col gap-2">
       {/* ── Tuiles de synthèse ── */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(3, 1fr)' }, gap: 1.5 }}>
+      <div className="grid grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
         <StatTile
           icon={<CalendarIcon size={18} />}
           label={t('reports.pace.otbNights', 'Nuits réservées (6 mois)')}
@@ -109,7 +109,7 @@ const PaceReport: React.FC = () => {
           color={totals.pacePct != null && totals.pacePct < 0 ? 'var(--warn)' : 'var(--ok)'}
           loading={loading}
         />
-      </Box>
+      </div>
 
       {/* ── Tableau mensuel ── */}
       <Card variant="outlined" sx={{ p: 1.5 }}>

@@ -387,7 +387,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                                   },
                                 }}
                               >
-                                <Box component="span" sx={{ display: 'inline-flex', color: isSelected ? 'var(--accent)' : 'var(--faint)' }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
+                                <span className={cn('inline-flex', isSelected ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><CalendarMonth size={16} strokeWidth={1.75} /></span>
                                 <div className="flex-1">
                                   <Typography sx={{ fontSize: '12px', fontWeight: isSelected ? 600 : 500, color: isSelected ? 'var(--accent)' : 'var(--ink)', lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>
                                     {formatCheckoutDateDisplay(co.checkOut, co.checkOutTime)}
@@ -404,14 +404,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                           })}
                         </div>
                       ) : (
-                        <Box sx={{
-                          py: 1.5,
-                          px: 1.5,
-                          borderRadius: '11px',
-                          bgcolor: 'var(--field)',
-                          border: '1px dashed var(--line-2)',
-                          textAlign: 'center',
-                        }}>
+                        <div className="py-[9px] px-[9px] rounded-[11px] bg-[var(--field)] border border-dashed border-[var(--line-2)] text-center">
                           <p className="cn-text-body1 text-[11.5px] text-[var(--faint)]">
                             Aucun checkout à venir pour cette propriété
                           </p>
@@ -421,7 +414,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                             onClick={handleSwitchToCustom}
                             className="mt-1 text-[10.5px]"
                           />
-                        </Box>
+                        </div>
                       )}
                     </>
                   ) : (

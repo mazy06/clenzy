@@ -201,13 +201,7 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
         label="Modèle d'accord"
         hint="Choisissez un modèle pour préremplir le contrat, puis ajustez les détails."
       >
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: 1.25,
-          }}
-        >
+        <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(3,_1fr)] gap-[7.5px]">
           {CONTRACT_PRESETS.map(preset => {
             const active = isPresetActive(preset);
             return (
@@ -246,12 +240,12 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
               </Box>
             );
           })}
-        </Box>
+        </div>
       </FormSection>
 
       {/* ── Logement ── */}
       <FormSection label="Logement">
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1.4fr 1fr' }, gap: 2 }}>
+        <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1.4fr_1fr] gap-3">
           <TextField
             select label={t('contracts.property')} value={form.propertyId || ''}
             onChange={e => handlePropertyChange(Number(e.target.value))}
@@ -274,12 +268,12 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
               <MenuItem key={key} value={key}>{label}</MenuItem>
             ))}
           </TextField>
-        </Box>
+        </div>
       </FormSection>
 
       {/* ── Période ── */}
       <FormSection label="Période" hint="Sans date de fin, le contrat court jusqu'à résiliation.">
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: '1fr 1fr 0.7fr 0.7fr' }, gap: 2 }}>
+        <div className="grid grid-cols-[1fr_1fr] min-[900px]:grid-cols-[1fr_1fr_0.7fr_0.7fr] gap-3">
           <TextField
             label={t('contracts.startDate')} type="date" value={form.startDate}
             onChange={e => setForm(prev => ({ ...prev, startDate: e.target.value }))}
@@ -307,13 +301,13 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
             InputProps={{ endAdornment: <InputAdornment position="end">j</InputAdornment> }}
             inputProps={{ min: 0, style: { fontVariantNumeric: 'tabular-nums' } }}
           />
-        </Box>
+        </div>
       </FormSection>
 
       {/* ── Encaissement & commission (taxonomie OTA) ── */}
       <FormSection label="Encaissement & commission">
         <div className="flex flex-col gap-3">
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1.4fr 1fr 0.6fr' }, gap: 2 }}>
+          <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1.4fr_1fr_0.6fr] gap-3">
             <TextField
               select label="Qui encaisse le paiement guest ?" value={form.paymentModel ?? 'DIRECT'}
               onChange={e => setForm(prev => ({ ...prev, paymentModel: e.target.value as PaymentModel }))}
@@ -353,7 +347,7 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
               InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
               inputProps={{ min: 1, max: 50, step: 1, style: { fontVariantNumeric: 'tabular-nums' } }}
             />
-          </Box>
+          </div>
           <SplitPreviewBar commissionRate={form.commissionRate} splitRatios={splitRatios} />
         </div>
       </FormSection>
@@ -435,16 +429,7 @@ const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, split
   if (!hasCommission) {
     return (
       <div className="flex flex-col gap-0.5">
-        <Box
-          sx={{
-            height: 8,
-            borderRadius: 0.75,
-            border: '1px dashed',
-            borderColor: 'var(--line-2)',
-            bgcolor: 'transparent',
-          }}
-          aria-label="Aucune commission définie"
-        />
+        <div className="h-[8px] rounded-[6px] border border-dashed border-[var(--line-2)] bg-[transparent]" aria-label="Aucune commission définie" />
         <p className="cn-text-body1 text-[0.6875rem] text-[var(--faint)] italic">
           Saisissez un taux de commission pour voir la répartition appliquée à ce contrat.
         </p>
@@ -477,13 +462,7 @@ const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, split
       <div className="flex h-[8px] rounded-[0.75px] overflow-hidden border border-[var(--line)] bg-[var(--field)]" role="img" aria-label={`Répartition : propriétaire ${ownerPct.toFixed(0)}%, plateforme ${platformPct.toFixed(1)}%, conciergerie ${conciergePct.toFixed(1)}%`}>
         {segments.map((seg) => (
           <Tooltip key={seg.label} title={`${seg.label} : ${seg.pct.toFixed(1)} %`} arrow>
-            <Box
-              sx={{
-                width: `${seg.pct}%`,
-                bgcolor: seg.color,
-                transition: 'width 200ms cubic-bezier(0.22, 1, 0.36, 1)',
-              }}
-            />
+            <div style={{ width: `${seg.pct}%`, backgroundColor: seg.color, transition: 'width 200ms cubic-bezier(0.22, 1, 0.36, 1)' }} />
           </Tooltip>
         ))}
       </div>
@@ -491,12 +470,7 @@ const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, split
       <div className="flex gap-2 flex-wrap">
         {segments.map((seg) => (
           <div className="flex items-center gap-0.5" key={seg.label}>
-            <Box
-              sx={{
-                width: 6, height: 6, borderRadius: '50%',
-                bgcolor: seg.color,
-              }}
-            />
+            <div className="w-[6px] h-[6px] rounded-[50%]" style={{ backgroundColor: seg.color }} />
             <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] font-medium">
               {seg.label}
             </p>

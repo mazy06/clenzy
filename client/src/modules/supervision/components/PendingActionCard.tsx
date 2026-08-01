@@ -15,8 +15,9 @@
    ============================================================ */
 
 import { useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
-import { Box, Button, Collapse, IconButton } from '@mui/material';
+import { Button, Collapse, IconButton } from '@mui/material';
 import { Check, ChevronDown, Timer, HomeWork, VisibilityOff, CreditCard, Schedule } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Money } from '../../../components/Money';
@@ -83,36 +84,12 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
   };
 
   return (
-    <Box
-      data-pending-action={action.id}
-      data-expired={expired ? '1' : undefined}
-      sx={{
-        width: '100%',
-        bgcolor: 'var(--card)',
-        border: '1px solid var(--line)',
-        borderRadius: '12px',
-        p: '13px 14px',
-        boxShadow: 'none',
-        opacity: expired ? 0.72 : 1,
-      }}
-    >
+    <div className={cn('w-full bg-[var(--card)] border border-solid border-[var(--line)] rounded-[12px] p-[13px 14px]', expired ? 'opacity-72' : 'opacity-100')} style={{ boxShadow: 'none' }} data-pending-action={action.id} data-expired={expired ? '1' : undefined}>
       {/* en-tête : agent + statut + expiration */}
       <div className="flex items-center gap-2 mb-1.5">
-        <Box
-          sx={{
-            width: 30,
-            height: 30,
-            borderRadius: '9px',
-            background: `${meta.color}14`,
-            color: meta.color,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
+        <div className="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center shrink-0" style={{ background: `${meta.color}14`, color: meta.color }}>
           <AgentIcon token={meta.icon} size={16} />
-        </Box>
+        </div>
         <div className="min-w-0 flex-1 text-[12px] font-medium text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis">
           {t(meta.nameKey)}
         </div>
@@ -120,32 +97,16 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
             pour paiement/rappel, sinon le compte à rebours d'expiration. */}
         {isPayment || isReminder ? (
           <div className="flex items-center gap-1 shrink-0">
-            <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warn)', flexShrink: 0 }} />
+            <div className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ background: 'var(--warn)' }} />
             <div className="text-[10.5px] font-medium tracking-[.01em] text-[var(--warn)] whitespace-nowrap">
               {isPayment ? t('supervision.payment.badge', 'À régler') : t('supervision.reminder.badge', 'Rappel')}
             </div>
           </div>
         ) : (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-              px: 1,
-              py: 0.5,
-              borderRadius: '7px',
-              bgcolor: expired ? 'var(--err-soft)' : 'var(--warn-soft)',
-              color: expired ? 'var(--err)' : 'var(--warn)',
-              fontSize: 10.5,
-              fontWeight: 500,
-              whiteSpace: 'nowrap',
-              fontVariantNumeric: 'tabular-nums',
-              flexShrink: 0,
-            }}
-          >
+          <div className={cn('flex items-center gap-[3px] px-1.5 py-[3px] rounded-[7px] text-[10.5px] font-medium whitespace-nowrap tabular-nums shrink-0', expired ? 'bg-[var(--err-soft)]' : 'bg-[var(--warn-soft)]', expired ? 'text-[var(--err)]' : 'text-[var(--warn)]')}>
             <Timer size={12} />
             {expired ? t('supervision.hitl.expired') : t('supervision.hitl.expiresIn', { time: formatRemaining(cd, t) })}
-          </Box>
+          </div>
         )}
       </div>
 
@@ -157,9 +118,9 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
       )}
 
       {/* titre + motif (texte brut) — plus de gras (sobriété demandée) */}
-      <Box sx={{ fontSize: 12.5, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.35, mb: isPayment ? 1.25 : 0.5 }}>
+      <div className={cn('text-[12.5px] font-medium text-[var(--ink)] leading-[1.35]', isPayment ? 'mb-[7.5px]' : 'mb-[3px]')}>
         {displayTitle}
-      </Box>
+      </div>
       {/* En 'payment' : plus de ligne « Montant à régler » — le montant est
           affiché DIRECTEMENT dans le bouton « Régler ». */}
       {!isPayment && <div className="text-[11.5px] text-[var(--muted)] mb-2">{action.motif}</div>}
@@ -266,6 +227,6 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
           {displayReasoning}
         </div>
       </Collapse>
-    </Box>
+    </div>
   );
 }

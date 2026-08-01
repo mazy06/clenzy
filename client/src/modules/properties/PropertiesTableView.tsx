@@ -223,9 +223,9 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                     <div className="flex items-center gap-1">
                       {(() => { const freq = property.cleaningFrequency || 'ON_DEMAND'; return (
                         <Tooltip title={`Ménage auto : ${getCleaningFrequencyLabel(freq, t)}`}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: getCleaningFrequencyHex(freq), flexShrink: 0 }}>
+                          <span className="inline-flex shrink-0" style={{ color: getCleaningFrequencyHex(freq) }}>
                             <BroomFill size={16} />
-                          </Box>
+                          </span>
                         </Tooltip>
                       ); })()}
                       {price != null ? (

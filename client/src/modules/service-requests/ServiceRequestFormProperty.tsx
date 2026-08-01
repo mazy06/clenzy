@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { FORM_TAG_TOKENS, FORM_TAG_CLASS } from './serviceRequestsListConstants';
 import {
@@ -265,7 +266,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
         {/* Propriété et Demandeur sur la même ligne */}
         <div className="flex gap-3 mb-2">
           {/* Propriété */}
-          <Box sx={{ flex: 7 }}>
+          <div className="flex-[7]">
             <Controller
               name="propertyId"
               control={control}
@@ -286,7 +287,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                       notched
                       renderValue={() => (
                         <div className="flex items-center gap-1">
-                          <Box component="span" sx={{ display: 'inline-flex', color: selectedProp ? 'var(--accent)' : 'var(--faint)' }}><Home size={16} strokeWidth={1.75} /></Box>
+                          <span className={cn('inline-flex', selectedProp ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Home size={16} strokeWidth={1.75} /></span>
                           <Typography sx={{ fontSize: '12.5px', color: selectedProp ? 'var(--body)' : 'var(--faint)' }}>
                             {selectedProp
                               ? `${selectedProp.name} - ${selectedProp.address}, ${selectedProp.city}`
@@ -313,10 +314,10 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                 );
               }}
             />
-          </Box>
+          </div>
 
           {/* Demandeur — lecture seule, trace l'utilisateur connecté */}
-          <Box sx={{ flex: 5 }}>
+          <div className="flex-[5]">
             {currentUser ? (
               <div>
                 <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-0.5 ms-0.5">
@@ -356,7 +357,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                         notched
                         renderValue={() => (
                           <div className="flex items-center gap-1">
-                            <Box component="span" sx={{ display: 'inline-flex', color: hasValue ? 'var(--accent)' : 'var(--faint)' }}><Person size={16} strokeWidth={1.75} /></Box>
+                            <span className={cn('inline-flex', hasValue ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Person size={16} strokeWidth={1.75} /></span>
                             <Typography sx={{ fontSize: '12.5px', color: hasValue ? 'var(--body)' : 'var(--faint)' }}>
                               {hasValue
                                 ? `${selectedUser.firstName} ${selectedUser.lastName}`
@@ -384,7 +385,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                 }}
               />
             )}
-          </Box>
+          </div>
         </div>
 
         {/* Chips caractéristiques du logement */}

@@ -61,14 +61,7 @@ export default function InscriptionSuccess() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)',
-        p: 2,
-      }}>
+      <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)' }}>
         <Paper elevation={8} sx={{
           p: { xs: 3, sm: 4 },
           width: '100%',
@@ -185,7 +178,7 @@ export default function InscriptionSuccess() {
             </div>
           )}
         </Paper>
-      </Box>
+      </div>
     </ThemeProvider>
   );
 }

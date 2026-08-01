@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Tooltip } from '@mui/material';
+import { Tooltip } from '@mui/material';
 import {
   Article as FileTextIcon,
   Download as DownloadIcon,
@@ -105,26 +105,9 @@ export default function SepaTransferProcedureTooltip({
             {STEPS.map((step) => (
               <div className="flex items-start gap-1" key={step.index}>
                 {/* Pastille numérotée */}
-                <Box
-                  sx={{
-                    flexShrink: 0,
-                    width: 18,
-                    height: 18,
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--accent-soft)',
-                    color: 'var(--accent)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.62rem',
-                    fontWeight: 700,
-                    lineHeight: 1,
-                    mt: '1px',
-                  }}
-                  aria-hidden="true"
-                >
+                <div className="shrink-0 w-[18px] h-[18px] rounded-[50%] bg-[var(--accent-soft)] text-[var(--accent)] inline-flex items-center justify-center text-[0.62rem] font-bold leading-[1] mt-px" aria-hidden="true">
                   {step.index}
-                </Box>
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-0.5">
                     <span className="inline-flex text-inherit opacity-70" aria-hidden="true">

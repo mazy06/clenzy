@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, TextField, InputAdornment, IconButton, Button, Tooltip, Stack } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, InputAdornment, IconButton, Button, Tooltip, Stack } from '@mui/material';
 import { Search, X, RotateCcw } from 'lucide-react';
 import { ICON_CATALOG, ICON_REGISTRY, type IconGroup } from './amenityIcons';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -146,21 +146,9 @@ export default function AmenityIconPicker({
         <Stack direction="row" alignItems="center" spacing={1.5}>
           {/* Preview de l'icone courante */}
           {CurrentIcon && (
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: 1,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'var(--accent-soft)',
-                color: ACCENT,
-                flexShrink: 0,
-              }}
-            >
+            <div className="w-[36px] h-[36px] rounded-[8px] inline-flex items-center justify-center bg-[var(--accent-soft)] shrink-0" style={{ color: ACCENT }}>
               <CurrentIcon size={20} strokeWidth={1.75} />
-            </Box>
+            </div>
           )}
           <div className="flex-1 min-w-0">
             <p className="cn-text-body1 text-[0.95rem] font-semibold leading-[1.3]">
@@ -168,9 +156,9 @@ export default function AmenityIconPicker({
             </p>
             <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
               {amenityLabel} ·{' '}
-              <Box component="span" sx={{ fontFamily: '"SF Mono", Menlo, Consolas, monospace' }}>
+              <span style={{ fontFamily: '"SF Mono", Menlo, Consolas, monospace' }}>
                 {amenityCode}
-              </Box>
+              </span>
             </span>
           </div>
         </Stack>
@@ -240,13 +228,7 @@ export default function AmenityIconPicker({
                     <p className="cn-text-body1 text-[0.7rem] font-semibold text-muted-foreground uppercase tracking-[0.04em] mb-1">
                       {group.label}
                     </p>
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))',
-                        gap: 0.75,
-                      }}
-                    >
+                    <div className="grid grid-cols-[repeat(auto-fill,_minmax(48px,_1fr))] gap-[4.5px]">
                       {group.icons.map((iconName, localIdx) => {
                         const Icon = ICON_REGISTRY[iconName];
                         if (!Icon) return null;
@@ -290,7 +272,7 @@ export default function AmenityIconPicker({
                           </Tooltip>
                         );
                       })}
-                    </Box>
+                    </div>
                   </div>
                 );
               })}

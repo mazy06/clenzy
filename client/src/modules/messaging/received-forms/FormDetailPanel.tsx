@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField, Tooltip, Typography } from '@mui/material';
 import {
@@ -180,30 +181,16 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
   const pill = STATUS_PILL[form.status] ?? STATUS_PILL.NEW;
 
   return (
-    <Box sx={{ flex: 1, minWidth: 0, overflowY: 'auto', p: '26px 30px', bgcolor: 'var(--bg)' }}>
+    <div className="flex-1 min-w-0 overflow-y-auto p-[26px 30px] bg-[var(--bg)]">
       {/* Retour mobile vers la liste */}
       {showBack && (
-        <Box
-          component="button"
-          onClick={onBack}
-          aria-label="Retour"
-          sx={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: 32, height: 32, mb: '14px', borderRadius: '8px',
-            border: '1px solid var(--line-2)', bgcolor: 'var(--card)', color: 'var(--muted)',
-            cursor: 'pointer', p: 0, transition: 'color .14s, border-color .14s',
-            '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)' },
-          }}
-        >
+        <button className="flex items-center justify-center w-[32px] h-[32px] mb-3.5 rounded-[8px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] cursor-pointer p-0 hover:text-[var(--accent)] hover:border-[var(--accent)]" style={{ transition: 'color .14s, border-color .14s' }} onClick={onBack} aria-label="Retour">
           <ArrowBackIcon size={16} strokeWidth={1.75} />
-        </Box>
+        </button>
       )}
 
       {/* .fr-dhead : entête identité + statut */}
-      <Box sx={{
-        display: 'flex', alignItems: 'flex-start', gap: '14px',
-        pb: '18px', borderBottom: '1px solid var(--line)',
-      }}>
+      <div className="flex items-start gap-3.5 pb-[18px]" style={{ borderBottom: '1px solid var(--line)' }}>
         <div className="w-[60px] h-[60px] rounded-[50%] shrink-0 flex items-center justify-center font-[var(--font-display)] font-semibold text-[20px] text-[var(--on-accent)] bg-[var(--accent)]">
           {initialsOf(form.fullName)}
         </div>
@@ -221,41 +208,31 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
             '& svg': { color: 'var(--accent)', flexShrink: 0 },
           }}>
             {form.email && (
-              <Box component="a" href={`mailto:${form.email}`} sx={{
-                display: 'inline-flex', alignItems: 'center', gap: '7px',
-                color: 'inherit', textDecoration: 'none', '&:hover': { color: 'var(--ink)' },
-              }}>
+              <a className="inline-flex items-center gap-[7px] text-[inherit] decoration-[none] hover:text-[var(--ink)]" href={`mailto:${form.email}`}>
                 <MailIcon size={15} strokeWidth={1.75} />
                 {form.email}
-              </Box>
+              </a>
             )}
             {form.phone && (
-              <Box component="a" href={`tel:${form.phone.replace(/\s/g, '')}`} sx={{
-                display: 'inline-flex', alignItems: 'center', gap: '7px',
-                color: 'inherit', textDecoration: 'none', '&:hover': { color: 'var(--ink)' },
-              }}>
+              <a className="inline-flex items-center gap-[7px] text-[inherit] decoration-[none] hover:text-[var(--ink)]" href={`tel:${form.phone.replace(/\s/g, '')}`}>
                 <PhoneIcon size={15} strokeWidth={1.75} />
                 {form.phone}
-              </Box>
+              </a>
             )}
             {(form.city || form.postalCode) && (
-              <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+              <span className="inline-flex items-center gap-[7px]">
                 <MapPinIcon size={15} strokeWidth={1.75} />
                 {[form.city, form.postalCode].filter(Boolean).join(' ')}
-              </Box>
+              </span>
             )}
           </Box>
         </div>
         {/* .fr-dright : pilule statut + date + IP */}
         <div className="ms-auto text-end shrink-0">
-          <Box component="span" sx={{
-            display: 'inline-flex', alignItems: 'center', gap: '7px',
-            fontSize: '11px', fontWeight: 700, p: '5px 12px', borderRadius: '20px',
-            bgcolor: pill.bg, color: pill.fg,
-          }}>
+          <span className="inline-flex items-center gap-[7px] text-[11px] font-bold p-[5px 12px] rounded-[20px]" style={{ backgroundColor: pill.bg, color: pill.fg }}>
             <span className="w-[7px] h-[7px] rounded-[50%] bg-[currentColor]" />
             {pill.label}
-          </Box>
+          </span>
           <Typography sx={{ fontSize: '13px', color: 'var(--muted)', mt: '8px' }}>
             {formatFormDate(form.createdAt)}
           </Typography>
@@ -269,16 +246,13 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
             </Typography>
           )}
         </div>
-      </Box>
+      </div>
 
       {/* Sections payload (aperçu du bien / services / planning) */}
       <FormPayloadSections form={form} />
 
       {/* .fr-actions : filet top + boutons */}
-      <Box sx={{
-        display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-        m: '26px 0 0', pt: '20px', borderTop: '1px solid var(--line)',
-      }}>
+      <div className="flex items-center gap-2.5 flex-wrap m-[26px 0 0] pt-5" style={{ borderTop: '1px solid var(--line)' }}>
         {tpl && (
           <Tooltip title={`Génère un PDF à partir du template « ${tpl.name} »`} placement="top" arrow>
             <Button
@@ -344,11 +318,11 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
             Aucun template DEVIS actif — ajoute-en un dans Documents & Communications pour activer la génération PDF.
           </p>
         )}
-      </Box>
+      </div>
 
       {/* .fr-docs : documents générés */}
       {priorGenerations && priorGenerations.length > 0 && (
-        <Box sx={{ mt: '24px' }}>
+        <div className="mt-6">
           <Box sx={{
             display: 'flex', alignItems: 'center', gap: '8px', mb: '12px',
             fontSize: '13px', fontWeight: 700, color: 'var(--ink)',
@@ -357,7 +331,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
             <HistoryIcon size={15} strokeWidth={1.75} />
             Documents générés ({priorGenerations.length})
           </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="flex flex-col gap-2">
             {priorGenerations.slice(0, 5).map((gen) => {
               const isFailed = gen.status === 'FAILED';
               return (
@@ -377,13 +351,9 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
                       : { borderColor: 'var(--accent)', boxShadow: '0 8px 22px -16px var(--accent)' },
                   }}
                 >
-                  <Box sx={{
-                    width: 34, height: 34, borderRadius: '9px', bgcolor: 'var(--err)', color: 'var(--on-accent)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    fontSize: '9px', fontWeight: 800,
-                  }}>
+                  <div className="w-[34px] h-[34px] rounded-[9px] bg-[var(--err)] text-[var(--on-accent)] flex items-center justify-center shrink-0 text-[9px] font-extrabold">
                     {isFailed ? <AlertTriangleIcon size={15} strokeWidth={1.75} /> : 'PDF'}
-                  </Box>
+                  </div>
                   <div className="flex-1 min-w-0">
                     <Typography sx={{
                       fontSize: '13px', fontWeight: 600, color: isFailed ? 'var(--err)' : 'var(--ink)',
@@ -402,19 +372,15 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
                             .filter(Boolean).join(' · ')}
                     </Typography>
                   </div>
-                  <Box component="span" sx={{
-                    ml: 'auto', display: 'inline-flex', alignItems: 'center', gap: '4px',
-                    fontSize: '12.5px', fontWeight: 600,
-                    color: isFailed ? 'var(--err)' : 'var(--accent)', whiteSpace: 'nowrap', flexShrink: 0,
-                  }}>
+                  <span className={cn('ms-auto inline-flex items-center gap-1 text-[12.5px] font-semibold whitespace-nowrap shrink-0', isFailed ? 'text-[var(--err)]' : 'text-[var(--accent)]')}>
                     {isFailed ? 'Détail' : 'Aperçu'}
                     <ArrowRightIcon size={14} strokeWidth={1.75} />
-                  </Box>
+                  </span>
                 </Box>
               );
             })}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* ── Aperçu PDF inline ── */}
@@ -475,12 +441,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         </DialogTitle>
         <DialogContent sx={{ p: 0, flex: 1, bgcolor: '#525659' /* gris viewer PDF standard */ }}>
           {previewUrl && (
-            <Box
-              component="iframe"
-              src={previewUrl}
-              title={previewMeta?.filename || 'PDF'}
-              sx={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-            />
+            <iframe className="w-full h-full border-none block" src={previewUrl} title={previewMeta?.filename || 'PDF'} />
           )}
         </DialogContent>
       </Dialog>
@@ -569,16 +530,11 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
               {formatFormDate(errorDetail.date)}
             </p>
           )}
-          <Box sx={{
-            fontFamily: 'monospace', fontSize: '12.5px', lineHeight: 1.6, color: 'var(--ink)',
-            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-            bgcolor: 'var(--err-soft)', border: '1px solid var(--err)', borderRadius: '10px',
-            p: 1.5, maxHeight: '55vh', overflowY: 'auto', userSelect: 'text',
-          }}>
+          <div className="text-[12.5px] leading-[1.6] text-[var(--ink)] whitespace-pre-wrap break-words bg-[var(--err-soft)] border border-solid border-[var(--err)] rounded-[10px] p-[9px] max-h-[55vh] overflow-y-auto select-text" style={{ fontFamily: 'monospace' }}>
             {errorDetail?.message}
-          </Box>
+          </div>
         </DialogContent>
       </Dialog>
-    </Box>
+    </div>
   );
 }

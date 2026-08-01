@@ -117,7 +117,7 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
   }
 
   return (
-    <Box sx={{ maxWidth: 1080, mx: 'auto', px: { xs: 2, md: 3 }, py: 3 }}>
+    <div className="max-w-[1080px] mx-auto px-3 min-[900px]:px-[18px] py-[18px]">
       <div className="flex items-end gap-3 mb-4">
         <div>
           <div className="font-[var(--font-display)] text-[var(--text-xl)] font-[var(--fw-bold)]">Articles de blog</div>
@@ -151,7 +151,7 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
       )}
 
       {posts && posts.length > 0 && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 1.5 }}>
+        <div className="grid grid-cols-[1fr] min-[1200px]:grid-cols-[1fr_1fr] gap-[9px]">
           {posts.map((p) => {
             const meta = STATUS_META[p.status] ?? STATUS_META.DRAFT;
             const pending = p.status === 'PENDING_REVIEW';
@@ -162,10 +162,10 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
                     <div className="text-[var(--text-md)] font-[var(--fw-semibold)] whitespace-nowrap overflow-hidden text-ellipsis">{p.title || '(sans titre)'}</div>
                     {p.aiGenerated && <Box component="span" sx={aiChipSx}>IA</Box>}
                   </div>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25, fontSize: 'var(--text-2xs)', color: meta.color }}>
-                    <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: meta.color, flexShrink: 0 }} />
+                  <div className="flex items-center gap-[3px] mt-[1.5px] text-[var(--text-2xs)]" style={{ color: meta.color }}>
+                    <span className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ backgroundColor: meta.color }} />
                     {meta.label} · /{p.slug}
-                  </Box>
+                  </div>
                 </div>
                 {pending && (
                   <>
@@ -192,7 +192,7 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
               </div>
             );
           })}
-        </Box>
+        </div>
       )}
 
       <TranslateModal
@@ -202,7 +202,7 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
         availableTargets={translatingPost ? postTargets(translatingPost) : []}
         onTranslate={handleAutoTranslatePost}
       />
-    </Box>
+    </div>
   );
 }
 
@@ -264,7 +264,7 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
   };
 
   return (
-    <Box sx={{ maxWidth: 760, mx: 'auto', px: { xs: 2, md: 3 }, py: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="max-w-[760px] mx-auto px-3 min-[900px]:px-[18px] py-[18px] flex flex-col gap-3">
       <div className="flex items-center gap-1.5">
         <ButtonBase onClick={onClose} aria-label="Retour" sx={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', color: 'var(--muted)', cursor: 'pointer', '&:hover': { bgcolor: 'var(--hover)', color: 'var(--ink)' } }}>
           <ArrowLeft size={17} strokeWidth={2} />
@@ -301,16 +301,16 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
         <Field label="Langue"><InputBase value={draft.locale} onChange={(e) => set('locale', e.target.value)} sx={inputSx} placeholder="fr, en… (vide = toutes)" /></Field>
       </div>
       {draft.status === 'PUBLISHED' && (
-        <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--warn, #B26B00)' }}>
+        <div className="text-[var(--text-2xs)] text-[var(--warn,_#B26B00)]">
           Toute modification enregistrée repassera par la validation avant une nouvelle mise en ligne.
-        </Box>
+        </div>
       )}
       <Field label="Extrait"><InputBase value={draft.excerpt} onChange={(e) => set('excerpt', e.target.value)} sx={inputSx} multiline minRows={2} placeholder="Résumé court (listes, SEO)" /></Field>
       <Field label="Contenu (markdown)"><InputBase value={draft.body} onChange={(e) => set('body', e.target.value)} sx={{ ...inputSx, '& textarea': { lineHeight: 1.6, fontFamily: 'var(--font-mono, monospace)' } }} multiline minRows={12} placeholder="Corps de l'article en markdown…" /></Field>
       <Field label="Image de couverture (URL)"><InputBase value={draft.coverImageUrl} onChange={(e) => set('coverImageUrl', e.target.value)} sx={inputSx} placeholder="https://…" /></Field>
       <Field label="Titre SEO"><InputBase value={draft.seoTitle} onChange={(e) => set('seoTitle', e.target.value)} sx={inputSx} placeholder="≤ 60 caractères" /></Field>
       <Field label="Meta description SEO"><InputBase value={draft.seoDescription} onChange={(e) => set('seoDescription', e.target.value)} sx={inputSx} multiline minRows={2} placeholder="≤ 155 caractères" /></Field>
-    </Box>
+    </div>
   );
 }
 

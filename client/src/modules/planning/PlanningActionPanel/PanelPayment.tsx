@@ -3,7 +3,7 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, Typography, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Typography, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import {
   Payment,
   CheckCircle,
@@ -195,9 +195,9 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
       </div>
 
       {payment.loadingHistory ? (
-        <Box display="flex" justifyContent="center" py={2}>
+        <div className="flex justify-center py-3">
           <Spinner className="size-5" />
-        </Box>
+        </div>
       ) : payment.paymentHistory.length === 0 ? (
         <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] italic">
           Aucun paiement enregistré

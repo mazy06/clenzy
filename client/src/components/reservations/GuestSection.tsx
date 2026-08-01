@@ -146,7 +146,7 @@ const GuestSection: React.FC<Props> = ({ form }) => {
 
   // Formulaire voyageur ÉDITABLE (création) — champs newGuest*, persistés au submit.
   const editableGuestForm = (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <div className="flex flex-col gap-2.5">
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px' }}>
         <Typography sx={{ ...SEC_SX, whiteSpace: 'nowrap' }}>
           {form.selectedGuest ? t('reservations.dialog.editGuest') : t('reservations.dialog.newGuest')}
@@ -154,7 +154,7 @@ const GuestSection: React.FC<Props> = ({ form }) => {
         <div className="flex-1 h-[1px] bg-[var(--line)]" />
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+      <div className="grid grid-cols-[1fr_1fr] gap-2.5">
         <TextField
           label={t('reservations.dialog.firstName')}
           value={form.newGuestFirstName}
@@ -171,8 +171,8 @@ const GuestSection: React.FC<Props> = ({ form }) => {
           InputLabelProps={{ shrink: true }}
           sx={COMPACT_FIELD_SX}
         />
-      </Box>
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+      </div>
+      <div className="grid grid-cols-[1fr_1fr] gap-2.5">
         <TextField
           label={t('reservations.fields.guestEmail')}
           type="email"
@@ -188,8 +188,8 @@ const GuestSection: React.FC<Props> = ({ form }) => {
           InputLabelProps={{ shrink: true }}
           sx={COMPACT_FIELD_SX}
         />
-      </Box>
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+      </div>
+      <div className="grid grid-cols-[1fr_1fr] gap-2.5">
         <TextField
           select
           label={t('reservations.dialog.nationality')}
@@ -216,7 +216,7 @@ const GuestSection: React.FC<Props> = ({ form }) => {
             <MenuItem key={l} value={l}>{l.toUpperCase()}</MenuItem>
           ))}
         </TextField>
-      </Box>
+      </div>
       <TextField
         label={t('reservations.dialog.guestNotes')}
         value={form.newGuestNotes}
@@ -228,7 +228,7 @@ const GuestSection: React.FC<Props> = ({ form }) => {
         InputLabelProps={{ shrink: true }}
         sx={COMPACT_TEXTAREA_SX}
       />
-    </Box>
+    </div>
   );
 
   return (
@@ -238,37 +238,37 @@ const GuestSection: React.FC<Props> = ({ form }) => {
       {form.isEdit ? (
         // ── ÉDITION : comportement inchangé — voyageur en lecture seule ──
         form.selectedGuest && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div className="flex flex-col gap-3.5">
+            <div className="flex items-center gap-2.5 min-w-0">
               {guestChip}
               {form.selectedGuest.email && (
                 <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] overflow-hidden text-ellipsis whitespace-nowrap">
                   {form.selectedGuest.email}
                 </p>
               )}
-            </Box>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            </div>
+            <div className="flex flex-col gap-3.5">
+              <div className="grid grid-cols-[1fr_1fr] gap-3">
                 {roField(t('reservations.dialog.firstName'), form.selectedGuest.firstName)}
                 {roField(t('reservations.dialog.lastName'), form.selectedGuest.lastName)}
-              </Box>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              </div>
+              <div className="grid grid-cols-[1fr_1fr] gap-3">
                 {roField(t('reservations.fields.guestEmail'), form.selectedGuest.email)}
                 {roField(t('reservations.fields.guestPhone'), form.selectedGuest.phone)}
-              </Box>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              </div>
+              <div className="grid grid-cols-[1fr_1fr] gap-3">
                 {roField(t('reservations.dialog.nationality'), form.selectedGuest.countryCode)}
                 {roField(t('reservations.dialog.language'), form.selectedGuest.language)}
-              </Box>
+              </div>
               {form.selectedGuest.notes && roField(t('reservations.dialog.guestNotes'), form.selectedGuest.notes, true)}
-            </Box>
-          </Box>
+            </div>
+          </div>
         )
       ) : (
         // ── CRÉATION : recherche/chip + champs toujours éditables ──
         <>
           {form.selectedGuest ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>{guestChip}</Box>
+            <div className="flex items-center gap-2.5 min-w-0">{guestChip}</div>
           ) : (
             searchField
           )}

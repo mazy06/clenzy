@@ -203,7 +203,7 @@ export function PriceAdjustmentModal({
 
       <DialogContent dividers>
         {/* Calendrier DEUX MOIS côte à côte : les créneaux proposés, une couleur par segment. */}
-        <Box sx={{ display: 'flex', gap: 2.5, mb: 1.5, flexDirection: { xs: 'column', sm: 'row' } }}>
+        <div className="flex gap-[15px] mb-[9px] flex-col min-[600px]:flex-row">
           {months.map((month, mi) => (
             <div className="flex-1 min-w-0" key={mi}>
               <div className="flex items-center justify-between mb-0.5">
@@ -231,7 +231,7 @@ export function PriceAdjustmentModal({
                   </Button>
                 ) : <div className="w-[30px]" />}
               </div>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+              <div className="grid grid-cols-[repeat(7,_1fr)] gap-0.5">
                 {WEEKDAYS.map((d) => (
                   <div className="text-center text-[10px] text-muted-foreground pb-0.5" key={`wd-${mi}-${d}`}>{d}</div>
                 ))}
@@ -254,10 +254,10 @@ export function PriceAdjustmentModal({
                     </Box>
                   );
                 })}
-              </Box>
+              </div>
             </div>
           ))}
-        </Box>
+        </div>
 
         {/* Sélecteur de mode de saisie de la remise */}
         <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -325,7 +325,7 @@ export function PriceAdjustmentModal({
                   </IconButton>
                 </div>
                 <div className="flex items-center gap-1 mt-0.5">
-                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, bgcolor: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
+                  <div className="w-[8px] h-[8px] rounded-[50%] shrink-0" style={{ backgroundColor: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
                   <p className="cn-text-body1 text-[11.5px] text-muted-foreground">
                     {fmt(seg.from)}→{fmt(seg.to)} · {nights(seg.from, seg.to)} {t('supervision.price.nights', 'nuits')} · {raise ? '+' : '−'}{seg.percent}%
                   </p>

@@ -1,4 +1,5 @@
 import { Box, Typography, Tooltip, IconButton, alpha, useTheme } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
 import { Thermostat, AcUnit, Wifi, WifiOff, Add, Remove, Delete } from '../../../icons';
@@ -41,20 +42,12 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
   };
 
   return (
-    <Box
-      sx={{
-        borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)', bgcolor: 'var(--card)',
-        p: 1.25, display: 'flex', flexDirection: 'column', gap: 1,
-        opacity: online ? 1 : 0.62,
-        transition: 'border-color 200ms',
-        '&:hover': { borderColor: 'var(--line-2)' },
-      }}
-    >
+    <div className={cn('rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] p-[7.5px] flex flex-col gap-1.5 hover:border-[var(--line-2)]', online ? 'opacity-100' : 'opacity-62')} style={{ transition: 'border-color 200ms' }}>
       {/* En-tête : badge + nom + état réseau + supprimer */}
       <div className="flex items-start gap-1.5">
-        <Box sx={{ width: 30, height: 30, borderRadius: 1, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: ACCENT, bgcolor: alpha(ACCENT, theme.palette.mode === 'dark' ? 0.2 : 0.12) }}>
+        <div className="w-[30px] h-[30px] rounded-[8px] shrink-0 flex items-center justify-center" style={{ color: ACCENT, backgroundColor: alpha(ACCENT, theme.palette.mode === 'dark' ? 0.2 : 0.12) }}>
           <Thermostat size={17} strokeWidth={1.75} />
-        </Box>
+        </div>
         <div className="min-w-0 flex-1">
           <p className="cn-text-body1 font-semibold text-[0.875rem] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">{name}</p>
           <span className="cn-text-caption text-muted-foreground">{roomName ? `${roomName} · ` : ''}{brand || 'Thermostat'}</span>
@@ -102,6 +95,6 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
           <span><IconButton size="small" disabled={!canControl} onClick={() => adjust(0.5)} sx={{ border: '1px solid', borderColor: 'divider' }}><Add size={15} /></IconButton></span>
         </Tooltip>
       </div>
-    </Box>
+    </div>
   );
 }

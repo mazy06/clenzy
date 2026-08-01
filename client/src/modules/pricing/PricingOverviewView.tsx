@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Spinner } from '../../components/ui';
-import { Box, Typography, Paper, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip } from '@mui/material';
+import { Typography, Paper, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip } from '@mui/material';
 import { ChevronLeft as ChevronLeftIcon } from '../../icons';
 import { ChevronRight as ChevronRightIcon } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
@@ -261,7 +261,7 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
           <div className="flex flex-wrap gap-2">
             {Object.entries(SOURCE_COLORS).map(([key, color]) => (
               <div className="flex items-center gap-0.5" key={key}>
-                <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: color }} />
+                <div className="w-[10px] h-[10px] rounded-[50%]" style={{ backgroundColor: color }} />
                 <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
                   {t(`dynamicPricing.priceSource.${key}`)}
                 </span>

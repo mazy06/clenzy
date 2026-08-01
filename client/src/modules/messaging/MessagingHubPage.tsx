@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { cn } from '../../utils/cn';
 import { Card } from '../../components/ui';
-import { Box, Button, useMediaQuery, useTheme } from '@mui/material';
+import { Button, useMediaQuery, useTheme } from '@mui/material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Edit as EditIcon, Forum as ForumIcon, Message as MessageIcon } from '../../icons';
 import PageHeader from '../../components/PageHeader';
@@ -187,17 +188,7 @@ export default function MessagingHubPage() {
       />
       <Card className="gap-0 py-0 flex-1 flex min-h-[0px] overflow-hidden h-full">
         {/* ── Liste agrégée (340px, plein écran en mobile) ─────────────────── */}
-        <Box
-          sx={{
-            width: { xs: '100%', md: 340 },
-            flexShrink: 0,
-            display: { xs: selected ? 'none' : 'flex', md: 'flex' },
-            flexDirection: 'column',
-            minHeight: 0,
-            borderRight: { md: '1px solid var(--line)' },
-            bgcolor: 'var(--card)',
-          }}
-        >
+        <div className={cn('w-full min-[900px]:w-[340px] shrink-0 min-[900px]:flex flex-col min-h-0 min-[900px]:border-e-[1px_solid_var(--line)] bg-[var(--card)]', selected ? 'hidden' : 'flex')}>
           <ConversationList
             items={source.items}
             isLoading={source.isLoading}
@@ -210,18 +201,10 @@ export default function MessagingHubPage() {
             onArchive={handleArchive}
             onRestore={handleRestore}
           />
-        </Box>
+        </div>
 
         {/* ── Volet droit adaptatif : fil + compose ou détail formulaire ──── */}
-        <Box
-          sx={{
-            flex: 1,
-            minWidth: 0,
-            minHeight: 0,
-            display: { xs: selected ? 'flex' : 'none', md: 'flex' },
-            flexDirection: 'column',
-          }}
-        >
+        <div className={cn('flex-1 min-w-0 min-h-0 min-[900px]:flex flex-col', selected ? 'flex' : 'hidden')}>
           {selected?.kind === 'channel' && selected.conv ? (
             <ChannelThread
               conv={selected.conv}
@@ -258,7 +241,7 @@ export default function MessagingHubPage() {
               />
             </div>
           )}
-        </Box>
+        </div>
       </Card>
     </div>
   );

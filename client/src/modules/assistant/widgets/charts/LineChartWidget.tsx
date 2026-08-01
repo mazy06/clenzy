@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box } from '@mui/material';
+
 import {
   ResponsiveContainer,
   LineChart,
@@ -58,12 +58,7 @@ export const LineChartWidget: React.FC<LineChartWidgetProps> = ({ data }) => {
         </p>
       )}
 
-      <Box sx={{
-        p: 1.5,
-        borderRadius: '12px',
-        bgcolor: 'var(--field)',
-        height: CHART_HEIGHT + 30,
-      }}>
+      <div className="p-[9px] rounded-[12px] bg-[var(--field)]" style={{ height: CHART_HEIGHT + 30 }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={items} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
@@ -87,7 +82,7 @@ export const LineChartWidget: React.FC<LineChartWidgetProps> = ({ data }) => {
             ))}
           </LineChart>
         </ResponsiveContainer>
-      </Box>
+      </div>
     </div>
   );
 };

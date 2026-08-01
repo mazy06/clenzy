@@ -202,7 +202,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
           }}
         >
           {/* Scrollable content: headers + rows */}
-          <Box sx={{ width: propertyColWidth + totalGridWidth, minWidth: '100%' }}>
+          <div className="min-w-full" style={{ width: propertyColWidth + totalGridWidth }}>
             {/* Date headers (sticky top) */}
             <PlanningDateHeaders
               days={days}
@@ -233,7 +233,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
               />
 
               {/* Grid rows */}
-              <Box sx={{ position: 'relative', width: totalGridWidth, flexShrink: 0 }}>
+              <div className="relative shrink-0" style={{ width: totalGridWidth }}>
                 {/* Today line spanning all rows */}
                 <PlanningTodayLine
                   days={days}
@@ -278,21 +278,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                       loadedReservations={loadedReservations}
                     />
                     {expandedPropertyId === property.id && renderExpanded && (
-                      <Box
-                        sx={{
-                          position: 'relative',
-                          width: totalGridWidth,
-                          height: accordionHeight,
-                          borderBottom: '1px solid var(--line)',
-                          backgroundColor: 'var(--bg)',
-                          // PAS de fondu d'opacité ici : le panneau interne (sticky, tiré à
-                          // gauche par ml) est OPAQUE dès la 1re frame → il couvre le spacer
-                          // sombre côté colonne instantanément. Un fondu rendait la
-                          // constellation semi-transparente 260ms et laissait voir le spacer
-                          // (bloc sombre qui « s'affichait et se fermait »). Ni overflow:hidden
-                          // ni transform ici (casseraient le sticky du panneau).
-                        }}
-                      >
+                      <div className="relative bg-[var(--bg)]" style={{ width: totalGridWidth, height: accordionHeight, borderBottom: '1px solid var(--line)' }}>
                         {/* Panneau calé sur le viewport (sticky-left) + tiré sous la
                             colonne sticky (ml négatif) → plein largeur, ne défile pas. */}
                         <Box
@@ -311,7 +297,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                         >
                           {renderExpanded(property)}
                         </Box>
-                      </Box>
+                      </div>
                     )}
                   </React.Fragment>
                 ))}
@@ -319,18 +305,11 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                 {/* Empty filler rows to fill remaining space — fond plat
                     (spec : pas de zebra) */}
                 {Array.from({ length: emptyRowCount }, (_, i) => (
-                  <Box
-                    key={`empty-grid-${i}`}
-                    sx={{
-                      height: effectiveRowHeight,
-                      width: totalGridWidth,
-                      backgroundColor: 'transparent',
-                    }}
-                  />
+                  <div className="bg-[transparent]" style={{ height: effectiveRowHeight, width: totalGridWidth }} key={`empty-grid-${i}`} />
                 ))}
-              </Box>
+              </div>
             </div>
-          </Box>
+          </div>
         </Box>
 
         {/* Drag ghost overlay — only for move, resize uses live width on the bar */}

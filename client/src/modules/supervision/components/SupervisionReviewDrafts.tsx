@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Spinner } from '../../../components/ui';
-import { Box, Button, TextField, Typography } from '@mui/material';
+import { Button, TextField, Typography } from '@mui/material';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { reviewsApi, type GuestReview } from '../../../services/api/reviewsApi';
 
@@ -91,15 +91,7 @@ export function SupervisionReviewDrafts({ propertyId }: { propertyId: number }) 
         {t('supervision.reviewDrafts.title', 'Brouillons de réponse (IA)')}
       </Typography>
       {drafts.map((review) => (
-        <Box
-          key={review.id}
-          sx={{
-            p: 1.25,
-            borderRadius: '10px',
-            bgcolor: 'var(--surface-2, #f6f7fb)',
-            border: '1px solid var(--line, #e6e8ef)',
-          }}
-        >
+        <div className="p-[7.5px] rounded-[10px] bg-[var(--surface-2,_#f6f7fb)] border border-solid border-[var(--line,_#e6e8ef)]" key={review.id}>
           <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'var(--muted, #6b7196)', mb: 0.5 }}>
             {(review.rating != null ? `${review.rating}/5 · ` : '') + (review.guestName || 'Voyageur')}
           </Typography>
@@ -135,7 +127,7 @@ export function SupervisionReviewDrafts({ propertyId }: { propertyId: number }) 
               )}
             </Button>
           </div>
-        </Box>
+        </div>
       ))}
     </div>
   );

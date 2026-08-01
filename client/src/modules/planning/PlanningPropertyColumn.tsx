@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
+import { cn } from '../../utils/cn';
 import { Box, Tooltip } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PropertyPopover from './PropertyPopover';
@@ -118,20 +119,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
 
 
   return (
-    <Box
-      sx={{
-        position: 'sticky',
-        left: 0,
-        zIndex: 10,
-        width: colWidth,
-        minWidth: colWidth,
-        flexShrink: 0,
-        // Le fond + la bordure droite (séparation 2 colonnes) ne sont PLUS sur la
-        // racine : sinon ils courent sur toute la hauteur, y compris la zone vide
-        // sous le dernier logement. Ils sont portés par le wrapper des lignes de
-        // propriété ci-dessous → sous les logements = espace vide uniforme.
-      }}
-    >
+    <div className="sticky start-0 z-[10] shrink-0" style={{ width: colWidth, minWidth: colWidth }}>
       {/* Colonne visible (fond + bordure droite) bornée aux lignes de propriété :
           la séparation 2 colonnes s'arrête au dernier logement. position:relative
           → la poignée de resize (height:100%) est bornée à CETTE zone (les lignes)
@@ -188,42 +176,11 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
           : 'var(--faint)';
         return (
           <React.Fragment key={property.id}>
-          <Box
-            onClick={(e) => setPopover({ anchorEl: e.currentTarget, propertyId: property.id })}
-            onMouseEnter={() => prefetchPerformance(property.id)}
-            sx={{
-              position: 'relative',
-              height: effectiveRowHeight,
-              display: 'flex',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 0,
-              px: 0,
-              cursor: 'pointer',
-              borderBottom: '1px solid var(--line)',
-              // Spec .pl-name : fond plat var(--card) (pas de zebra)
-              backgroundColor: selectedPropertyId === property.id || popover?.propertyId === property.id
-                ? 'var(--accent-soft)'
-                : 'var(--card)',
-              transition: 'background-color 0.15s ease',
-              '&:hover': {
-                backgroundColor: 'var(--hover)',
-              },
-            }}
-          >
+          <div className={cn('relative flex flex-row items-center gap-0 px-0 cursor-pointer hover:bg-[var(--hover)]', selectedPropertyId === property.id || popover?.propertyId === property.id ? 'bg-[var(--accent-soft)]' : 'bg-[var(--card)]')} style={{ height: effectiveRowHeight, borderBottom: '1px solid var(--line)', transition: 'background-color 0.15s ease' }} onClick={(e) => setPopover({ anchorEl: e.currentTarget, propertyId: property.id })} onMouseEnter={() => prefetchPerformance(property.id)}>
             {/* Bloc texte (spec .pl-name : padding 0 16px, colonne centrée) :
                 nom + ville dessous. Le count de reservations en cours reste
                 visible en pastille discrete inline a cote du nom. */}
-            <Box
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 0.125,
-                px: '16px',
-              }}
-            >
+            <div className="flex-1 min-w-0 flex flex-col gap-[0.75px] px-4">
               <div className="flex items-center gap-1 min-w-0">
                 {/* Box component=span : evite l'heritage du variant body1 du
                     Typography (le theme MUI a des fontSize responsive en
@@ -256,28 +213,9 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                 )}
                 {/* Cartes HITL en attente : pastille ambre numérotée (attire l'œil) */}
                 {pendingCount > 0 && (
-                  <Box
-                    component="span"
-                    aria-label={`${pendingCount} action(s) à valider`}
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      minWidth: 16,
-                      height: 16,
-                      px: '4px',
-                      borderRadius: '8px',
-                      bgcolor: 'var(--warn, #A97C2E)',
-                      color: '#fff',
-                      fontSize: '0.625rem',
-                      fontWeight: 700,
-                      lineHeight: 1,
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                  >
+                  <span className="inline-flex items-center justify-center shrink-0 min-w-[16px] h-[16px] px-1 rounded-[8px] bg-[var(--warn,_#A97C2E)] text-[#fff] text-[0.625rem] font-bold leading-[1] tabular-nums" aria-label={`${pendingCount} action(s) à valider`}>
                     {pendingCount > 99 ? '99+' : pendingCount}
-                  </Box>
+                  </span>
                 )}
               </div>
               {/* Spec .pl-name .ci : 10.5px var(--muted) */}
@@ -298,35 +236,15 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                   {subtitle}
                 </Box>
               )}
-            </Box>
+            </div>
             {/* Chevron d'accordéon Superviseur (gated par le rôle côté parent) */}
             {onToggleExpanded && (
-              <Box
-                role="button"
-                aria-label="Superviseur d'agents"
-                aria-expanded={expandedPropertyId === property.id}
-                onClick={(e) => {
+              <div className={cn('shrink-0 flex items-center justify-center w-[26px] h-[26px] me-2 rounded-[8px] cursor-pointer hover:bg-[var(--hover)] hover:text-[var(--accent)]', expandedPropertyId === property.id ? 'text-[var(--accent)]' : 'text-[var(--muted)]')} style={{ transform: expandedPropertyId === property.id ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease, color 0.15s, background-color 0.15s' }} role="button" aria-label="Superviseur d'agents" aria-expanded={expandedPropertyId === property.id} onClick={(e) => {
                   e.stopPropagation();
                   onToggleExpanded(property.id);
-                }}
-                sx={{
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 26,
-                  height: 26,
-                  mr: '8px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  color: expandedPropertyId === property.id ? 'var(--accent)' : 'var(--muted)',
-                  transform: expandedPropertyId === property.id ? 'rotate(180deg)' : 'none',
-                  transition: 'transform 0.2s ease, color 0.15s, background-color 0.15s',
-                  '&:hover': { backgroundColor: 'var(--hover)', color: 'var(--accent)' },
-                }}
-              >
+                }}>
                 <ChevronDown size={16} strokeWidth={2} />
-              </Box>
+              </div>
             )}
             {/* Indicateur en bas-droite : sync canaux (wifi) */}
             {sync && sync.total > 0 && (
@@ -336,24 +254,16 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                   placement="top"
                   arrow
                 >
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 0.25,
-                      color: syncColor,
-                      pointerEvents: 'auto',
-                    }}
-                  >
+                  <div className="flex items-center gap-[1.5px] pointer-events-auto" style={{ color: syncColor }}>
                     <ChannelIcon size={11} strokeWidth={1.75} />
                     <span className="text-[0.5625rem] font-semibold text-inherit leading-[1] tabular-nums">
                       {sync.synced}/{sync.total}
                     </span>
-                  </Box>
+                  </div>
                 </Tooltip>
               </div>
             )}
-          </Box>
+          </div>
           {/* Spacer d'alignement : compense la hauteur de l'accordéon côté grille.
               Fond = base SOMBRE de la constellation (et non var(--bg)) : le panneau
               constellation (position:sticky, tiré à gauche par ml) met une frame à
@@ -361,7 +271,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
               fraction de seconde (« droite avant gauche »). Ici elle est déjà
               sombre = raccord invisible avec la constellation. */}
           {expandedPropertyId === property.id && (
-            <Box sx={{ height: accordionHeight, borderBottom: '1px solid var(--line)', backgroundColor: '#0c0e2a' }} />
+            <div className="bg-[#0c0e2a]" style={{ height: accordionHeight, borderBottom: '1px solid var(--line)' }} />
           )}
           </React.Fragment>
         );
@@ -371,10 +281,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
           → pas de « 2 colonnes », juste un espace vide (aligné sur la grille,
           dont les lignes de remplissage sont aussi transparentes). */}
       {Array.from({ length: emptyRowCount }, (_, i) => (
-        <Box
-          key={`empty-${i}`}
-          sx={{ height: effectiveRowHeight, backgroundColor: 'transparent' }}
-        />
+        <div className="bg-[transparent]" style={{ height: effectiveRowHeight }} key={`empty-${i}`} />
       ))}
 
       {/* Popover logement (clic sur le nom) — monté seulement quand la perf est
@@ -387,7 +294,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
           onClose={() => setPopover(null)}
         />
       )}
-    </Box>
+    </div>
   );
 });
 

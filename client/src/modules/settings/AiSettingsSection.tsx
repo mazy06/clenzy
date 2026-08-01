@@ -119,20 +119,9 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
         {/* ── Header: logo (couleur de marque) + nom/modèle + badge clé ── */}
         <div className="flex items-center justify-between gap-1.5 mb-2">
           <div className="flex items-center gap-2 min-w-0">
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 34,
-                height: 34,
-                borderRadius: 1.25,
-                bgcolor: alpha(accent, isDark ? 0.16 : 0.1),
-                flexShrink: 0,
-              }}
-            >
+            <div className="flex items-center justify-center w-[34px] h-[34px] rounded-[10px] shrink-0" style={{ backgroundColor: alpha(accent, isDark ? 0.16 : 0.1) }}>
               <Logo size={18} color={accent} />
-            </Box>
+            </div>
             <div className="min-w-0">
               <Typography variant="subtitle2" fontWeight={700} lineHeight={1.2} noWrap>
                 {brand.label}
@@ -273,19 +262,9 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
       fullWidth
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 36,
-            height: 36,
-            borderRadius: 1.5,
-            bgcolor: alpha(accent, isDark ? 0.12 : 0.08),
-          }}
-        >
+        <div className="flex items-center justify-center w-[36px] h-[36px] rounded-[12px]" style={{ backgroundColor: alpha(accent, isDark ? 0.12 : 0.08) }}>
           <Logo size={20} color={accent} />
-        </Box>
+        </div>
         <Typography variant="h6" fontWeight={700} fontSize="1.05rem">
           {t('bookingEngine.ai.settings.configureProvider', { provider: brand?.label ?? '' })}
         </Typography>
@@ -492,14 +471,7 @@ function FeatureTogglesSection() {
         }}
       >
         <div className="flex items-center gap-1.5">
-          <Box
-            sx={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              bgcolor: accentColor,
-            }}
-          />
+          <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: accentColor }} />
           <h6 className="cn-text-subtitle1 font-bold text-[var(--ink)]">
             {t('bookingEngine.ai.features.title')}
           </h6>
@@ -511,9 +483,9 @@ function FeatureTogglesSection() {
 
       {/* ── Feature rows ── */}
       {isLoading ? (
-        <Box display="flex" justifyContent="center" py={3}>
+        <div className="flex justify-center py-[18px]">
           <Spinner className="size-6" />
-        </Box>
+        </div>
       ) : (
         AI_FEATURES.map((feat, index) => {
           const enabled = getEnabled(feat.feature);
@@ -617,9 +589,9 @@ export default function AiSettingsSection() {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" py={4}>
+      <div className="flex justify-center py-6">
         <Spinner className="size-10" />
-      </Box>
+      </div>
     );
   }
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -637,7 +638,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
       <form onSubmit={rhfHandleSubmit(onSubmit)}>
         <div className="flex gap-3 items-start">
           {/* ─── Colonne gauche : Propriété + Infos ─── */}
-          <Box sx={{ flex: isPropertySelected ? 7 : 1, display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0, transition: 'flex 0.4s ease' }}>
+          <div className={cn('flex flex-col gap-[9px] min-w-0', isPropertySelected ? 'flex-[7]' : 'flex-1')} style={{ transition: 'flex 0.4s ease' }}>
             {/* 1. Propriété — en premier pour auto-fill (anneau accent-soft tant que rien n'est sélectionné) */}
             <Paper sx={{ border: '1px solid', borderColor: isPropertySelected ? 'var(--line)' : 'var(--accent)', bgcolor: 'var(--card)', boxShadow: isPropertySelected ? 'none' : '0 0 0 3px var(--accent-soft)', borderRadius: '14px', p: 2, transition: 'border-color 0.3s ease, box-shadow 0.3s ease' }}>
               <ServiceRequestFormProperty
@@ -677,7 +678,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                 />
               </Card>
             </Collapse>
-          </Box>
+          </div>
 
           {/* ─── Colonne droite : Planification + Assignation — révélée quand propriété sélectionnée ─── */}
           {isPropertySelected && (

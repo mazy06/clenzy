@@ -1,4 +1,5 @@
 import { createElement, useMemo, useRef, useState } from 'react';
+import { cn } from '../../../../utils/cn';
 import { Box, ButtonBase, Dialog, TextField, Tooltip } from '@mui/material';
 import { X, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, Check, Save, Workflow, Pencil, RotateCcw, AlertTriangle, Info } from 'lucide-react';
 import {
@@ -118,16 +119,16 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
     >
       {/* ── En-tête ── */}
       <div className="flex items-start gap-2 px-4 py-3 border-b border-[var(--line)]">
-        <Box sx={{ flexShrink: 0, width: 42, height: 42, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)', display: 'grid', placeItems: 'center' }}>
+        <div className="shrink-0 w-[42px] h-[42px] rounded-[var(--radius-md)] bg-[var(--accent)] text-[var(--on-accent)] grid place-items-[center]">
           <Workflow size={20} strokeWidth={2} />
-        </Box>
+        </div>
         <div className="flex-1 min-w-0">
           <h2 className="m-0 text-[var(--text-md)] font-[var(--fw-semibold)] text-[var(--ink)] tracking-[-.01em]">
             Parcours de réservation
           </h2>
-          <Box component="p" sx={{ m: '4px 0 0', fontSize: 'var(--text-2xs)', color: 'var(--muted)', lineHeight: 1.45, maxWidth: '62ch' }}>
+          <p className="m-[4px 0 0] text-[var(--text-2xs)] text-[var(--muted)] leading-[1.45] max-w-[62ch]">
             Démarrez avec un modèle prêt à l'emploi, ou composez votre propre parcours, écran par écran.
-          </Box>
+          </p>
         </div>
         <ButtonBase onClick={onClose} aria-label="Fermer" sx={{ flexShrink: 0, width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', color: 'var(--muted)', display: 'grid', placeItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'var(--hover)', color: 'var(--ink)' } }}>
           <X size={18} strokeWidth={2} />
@@ -144,7 +145,7 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
       </div>
 
       {/* ── Corps (scroll) ── */}
-      <Box ref={bodyRef} sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', px: 2.75, py: 2.5 }}>
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-[16.5px] py-[15px]" ref={bodyRef}>
         {activeTab === 'models' && (
           <>
             <SecLabel>Choisissez un modèle</SecLabel>
@@ -179,9 +180,9 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
 
             {baseLabel && (
               <div className="flex items-center gap-2 mb-2.5 px-2 py-1.5 rounded-[var(--radius-md)] bg-[var(--accent-soft)] border border-[var(--line)]">
-                <Box sx={{ flexShrink: 0, width: 27, height: 27, borderRadius: 'var(--radius-sm)', bgcolor: 'var(--card)', color: 'var(--accent)', display: 'grid', placeItems: 'center' }}>
+                <div className="shrink-0 w-[27px] h-[27px] rounded-[var(--radius-sm)] bg-[var(--card)] text-[var(--accent)] grid place-items-[center]">
                   <Pencil size={15} strokeWidth={2} />
-                </Box>
+                </div>
                 <span className="flex-1 min-w-0 text-[var(--text-2xs)] text-[var(--body)] leading-[1.4]">
                   Basé sur <span className="font-[var(--fw-semibold)] text-[var(--ink)]">« {baseLabel} »</span>
                   {' — '}{editingId ? 'vos modifications mettront à jour ce parcours.' : 'vos modifications créeront un nouveau parcours personnalisé.'}
@@ -190,7 +191,7 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
               </div>
             )}
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+            <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1fr] gap-3">
               {/* Widgets disponibles */}
               <Panel title="Widgets disponibles" pill={`${selected.length} sélectionné${selected.length > 1 ? 's' : ''}`}>
                 <div className="max-h-[340px] overflow-y-auto p-1.5">
@@ -212,21 +213,16 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
                               '&:hover': { bgcolor: on ? 'var(--accent-soft)' : 'var(--hover)' },
                             }}
                           >
-                            <Box sx={{ flexShrink: 0, width: 32, height: 32, borderRadius: 'var(--radius-sm)', bgcolor: on ? 'var(--card)' : 'var(--hover)', color: on ? 'var(--accent)' : 'var(--muted)', display: 'grid', placeItems: 'center' }}>
+                            <div className={cn('shrink-0 w-[32px] h-[32px] rounded-[var(--radius-sm)] grid place-items-[center]', on ? 'bg-[var(--card)]' : 'bg-[var(--hover)]', on ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}>
                               <WidgetGlyph id={w.id} size={17} />
-                            </Box>
+                            </div>
                             <div className="flex-1 min-w-0">
                               <span className="block text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--ink)]">{w.label}</span>
                               {w.description && <span className="block text-[var(--text-2xs)] text-[var(--muted)] leading-[1.3] whitespace-nowrap overflow-hidden text-ellipsis">{w.description}</span>}
                             </div>
-                            <Box sx={{
-                              flexShrink: 0, width: 20, height: 20, borderRadius: 'var(--radius-xs, 5px)',
-                              border: `1.5px solid ${on ? 'var(--accent)' : 'var(--line)'}`,
-                              bgcolor: on ? 'var(--accent)' : 'transparent', color: 'var(--on-accent)',
-                              display: 'grid', placeItems: 'center',
-                            }}>
+                            <div className={cn('shrink-0 w-[20px] h-[20px] rounded-[var(--radius-xs,_5px)] text-[var(--on-accent)] grid place-items-[center]', on ? 'bg-[var(--accent)]' : 'bg-[transparent]')} style={{ border: `1.5px solid ${on ? 'var(--accent)' : 'var(--line)'}` }}>
                               {on && <Check size={12} strokeWidth={3} />}
-                            </Box>
+                            </div>
                           </ButtonBase>
                         );
                       })}
@@ -240,19 +236,19 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
                 <div className="flex-1 min-h-[200px] max-h-[340px] overflow-y-auto p-2 flex flex-col gap-1.5">
                   {selected.length === 0 ? (
                     <div className="m-auto text-center max-w-[240px] px-2 py-4">
-                      <Box sx={{ width: 46, height: 46, borderRadius: 'var(--radius-md)', bgcolor: 'var(--hover)', color: 'var(--muted)', display: 'grid', placeItems: 'center', mx: 'auto', mb: 1.5 }}>
+                      <div className="w-[46px] h-[46px] rounded-[var(--radius-md)] bg-[var(--hover)] text-[var(--muted)] grid place-items-[center] mx-auto mb-[9px]">
                         <Workflow size={22} strokeWidth={1.75} />
-                      </Box>
+                      </div>
                       <p className="m-0 text-[var(--text-sm)] text-[var(--muted)] leading-[1.5]">
                         Cochez des widgets à gauche pour composer votre parcours, étape par étape.
                       </p>
                     </div>
                   ) : selected.map((id, i) => (
                     <div className="flex items-center gap-2 px-2 py-1.5 bg-[var(--card)] border border-[var(--line)] rounded-[var(--radius-md)]" key={id}>
-                      <Box sx={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', bgcolor: 'var(--hover)', color: 'var(--body)', fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', display: 'grid', placeItems: 'center', fontVariantNumeric: 'tabular-nums' }}>{i + 1}</Box>
-                      <Box sx={{ flexShrink: 0, width: 28, height: 28, borderRadius: 'var(--radius-sm)', bgcolor: 'var(--hover)', color: 'var(--muted)', display: 'grid', placeItems: 'center' }}>
+                      <div className="shrink-0 w-[22px] h-[22px] rounded-[50%] bg-[var(--hover)] text-[var(--body)] text-[var(--text-2xs)] grid place-items-[center] tabular-nums" style={{ fontWeight: 'var(--fw-semibold)' }}>{i + 1}</div>
+                      <div className="shrink-0 w-[28px] h-[28px] rounded-[var(--radius-sm)] bg-[var(--hover)] text-[var(--muted)] grid place-items-[center]">
                         <WidgetGlyph id={id} size={15} />
-                      </Box>
+                      </div>
                       <span className="flex-1 min-w-0 text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--ink)]">{widgetLabel(id)}</span>
                       <IconAction title="Monter" icon={ChevronUp} disabled={i === 0} onClick={() => move(id, -1)} />
                       <IconAction title="Descendre" icon={ChevronDown} disabled={i === selected.length - 1} onClick={() => move(id, 1)} />
@@ -269,16 +265,16 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
                   </div>
                 </div>
               </Panel>
-            </Box>
+            </div>
 
             {/* Avertissements de composition (prérequis manquants) — non bloquants. */}
             {compositionWarnings.length > 0 && (
               <div className="mt-2 flex flex-col gap-0.5 px-2 py-2 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--hover)]">
                 {compositionWarnings.map((w) => (
                   <div className="flex items-center gap-1 text-[var(--text-2xs)] text-[var(--muted)]" key={`${w.severity}:${w.widgetId}:${w.capability}`}>
-                    <Box component="span" sx={{ flexShrink: 0, color: w.severity === 'warning' ? 'var(--accent)' : 'var(--muted)', display: 'inline-flex' }}>
+                    <span className={cn('shrink-0 inline-flex', w.severity === 'warning' ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}>
                       {w.severity === 'warning' ? <AlertTriangle size={13} strokeWidth={2} /> : <Info size={13} strokeWidth={2} />}
-                    </Box>
+                    </span>
                     {w.message}
                   </div>
                 ))}
@@ -308,7 +304,7 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
             )}
           </>
         )}
-      </Box>
+      </div>
     </Dialog>
   );
 }
@@ -329,7 +325,7 @@ function TabBtn({ label, count, active, onClick }: { label: string; count?: numb
     >
       {label}
       {typeof count === 'number' && (
-        <Box component="span" sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', borderRadius: 'var(--radius-xs, 5px)', px: 0.75, py: '1px', bgcolor: active ? 'var(--card)' : 'var(--hover)', color: 'inherit', fontVariantNumeric: 'tabular-nums' }}>{count}</Box>
+        <span className={cn('text-[var(--text-2xs)] rounded-[var(--radius-xs,_5px)] px-[4.5px] py-px text-[inherit] tabular-nums', active ? 'bg-[var(--card)]' : 'bg-[var(--hover)]')} style={{ fontWeight: 'var(--fw-semibold)' }}>{count}</span>
       )}
     </ButtonBase>
   );
@@ -340,7 +336,7 @@ function SecLabel({ children }: { children: React.ReactNode }) {
 }
 
 function CardGrid({ children }: { children: React.ReactNode }) {
-  return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.75 }}>{children}</Box>;
+  return <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-[10.5px]">{children}</div>;
 }
 
 /** Étapes affichées : `steps` curatées (modèles) sinon dérivées des libellés de widgets (customs). */
@@ -358,7 +354,7 @@ function FunnelCard({ preset: p, onInsert, onEdit, onDelete }: { preset: FunnelP
         <div className="flex-1 min-w-0 flex items-center gap-1 flex-wrap">
           <span className="text-[var(--text-sm)] font-[var(--fw-semibold)] text-[var(--ink)]">{p.label}</span>
           {p.badge && (
-            <Box component="span" sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', px: 0.75, py: '1px', borderRadius: 999, bgcolor: 'var(--hover)', color: 'var(--muted)', whiteSpace: 'nowrap' }}>{p.badge}</Box>
+            <span className="text-[var(--text-2xs)] px-[4.5px] py-px rounded-[7992px] bg-[var(--hover)] text-[var(--muted)] whitespace-nowrap" style={{ fontWeight: 'var(--fw-semibold)' }}>{p.badge}</span>
           )}
         </div>
         {onDelete && !p.builtin && <IconAction title="Supprimer" icon={Trash2} danger onClick={onDelete} />}
@@ -371,10 +367,10 @@ function FunnelCard({ preset: p, onInsert, onEdit, onDelete }: { preset: FunnelP
         {steps.map((s, i) => (
           <Box key={`${s}-${i}`} sx={{ display: 'contents' }}>
             <div className="inline-flex items-center gap-1 bg-[var(--card)] border border-[var(--line)] rounded-[var(--radius-sm)] ps-0.5 pe-1.5 py-0.5">
-              <Box component="span" sx={{ flexShrink: 0, width: 17, height: 17, borderRadius: '50%', bgcolor: 'var(--hover)', color: 'var(--body)', fontSize: '10px', fontWeight: 'var(--fw-semibold)', display: 'grid', placeItems: 'center', fontVariantNumeric: 'tabular-nums' }}>{i + 1}</Box>
+              <span className="shrink-0 w-[17px] h-[17px] rounded-[50%] bg-[var(--hover)] text-[var(--body)] text-[10px] grid place-items-[center] tabular-nums" style={{ fontWeight: 'var(--fw-semibold)' }}>{i + 1}</span>
               <span className="text-[var(--text-2xs)] font-[var(--fw-medium)] text-[var(--ink)]">{s}</span>
             </div>
-            {i < steps.length - 1 && <Box component="span" sx={{ color: 'var(--muted)', display: 'grid', placeItems: 'center' }}><ChevronRight size={14} strokeWidth={2.4} /></Box>}
+            {i < steps.length - 1 && <span className="text-[var(--muted)] grid place-items-[center]"><ChevronRight size={14} strokeWidth={2.4} /></span>}
           </Box>
         ))}
       </div>
@@ -398,7 +394,7 @@ function Panel({ title, pill, children }: { title: string; pill: string; childre
     <div className="border border-[var(--line)] rounded-[var(--radius-md)] bg-[var(--card)] overflow-hidden flex flex-col">
       <div className="flex items-center gap-1.5 px-2.5 py-2 border-b border-[var(--line)]">
         <span className="text-[var(--text-2xs)] font-[var(--fw-semibold)] tracking-[.08em] uppercase text-[var(--muted)]">{title}</span>
-        <Box component="span" sx={{ ml: 'auto', fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', color: 'var(--muted)', bgcolor: 'var(--hover)', borderRadius: 'var(--radius-xs, 5px)', px: 0.75, py: '1px', fontVariantNumeric: 'tabular-nums' }}>{pill}</Box>
+        <span className="ms-auto text-[var(--text-2xs)] text-[var(--muted)] bg-[var(--hover)] rounded-[var(--radius-xs,_5px)] px-[4.5px] py-px tabular-nums" style={{ fontWeight: 'var(--fw-semibold)' }}>{pill}</span>
       </div>
       {children}
     </div>

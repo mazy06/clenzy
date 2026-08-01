@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { cn } from '../../utils/cn';
 import { Box, useMediaQuery } from '@mui/material';
 import { ChevronLeft, ChevronRight, NightsStay } from '../../icons';
 
@@ -255,7 +256,7 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
       >
         {label}
       </Box>
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px' }}>
+      <div className="grid grid-cols-[repeat(7,_1fr)] gap-[3px]">
         {weekdayLabels.map((wl, i) => (
           <Box
             key={`${wl}-${i}`}
@@ -267,7 +268,7 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
         {cells.map((cell) => {
           // Jours des mois adjacents : cellule vide (garde l'alignement 7 colonnes),
           // pas de numéro ni de surbrillance — ils n'appartiennent pas à ce mois.
-          if (!cell.inMonth) return <Box key={cell.dateStr} aria-hidden sx={{ aspectRatio: '1' }} />;
+          if (!cell.inMonth) return <div className="aspect-[1]" key={cell.dateStr} aria-hidden />;
 
           const isStart = cell.dateStr === startDate;
           const isEnd = cell.dateStr === endDate;
@@ -320,14 +321,14 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
             </Box>
           );
         })}
-      </Box>
+      </div>
     </div>
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div className="flex flex-col gap-[18px]">
       {/* Champs Arrivée / Départ (cibles de sélection) */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      <div className="grid grid-cols-[1fr_1fr] gap-3">
         <FloatDateField
           label={arrivalLabel}
           value={startDate}
@@ -340,7 +341,7 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
           active={selectingField === 'end'}
           onClick={() => setSelectingField('end')}
         />
-      </Box>
+      </div>
 
       <div>
         {/* Navigation : décale la paire de mois. Chevrons aux extrémités (style Airbnb). */}
@@ -366,21 +367,19 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
         </Box>
 
         {/* Un ou deux mois côte à côte */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: singleMonth ? '1fr' : '1fr 1fr', gap: '28px' }}>
+        <div className={cn('grid gap-7', singleMonth ? 'grid-cols-[1fr]' : 'grid-cols-[1fr_1fr]')}>
           {renderMonth(cells1, fmtMonth(viewMonth))}
           {!singleMonth && renderMonth(cells2, fmtMonth(secondMonth))}
-        </Box>
+        </div>
 
         {/* Nuits + Effacer */}
         {(startDate || endDate) && (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
             {nights > 0 ? (
-              <Box
-                sx={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}
-              >
+              <div className="inline-flex items-center gap-[5px] text-[12px] font-semibold text-[var(--muted)] tabular-nums">
                 <NightsStay size={13} strokeWidth={1.75} />
                 {nightsText}
-              </Box>
+              </div>
             ) : (
               <span />
             )}
@@ -399,7 +398,7 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
           </Box>
         )}
       </div>
-    </Box>
+    </div>
   );
 };
 

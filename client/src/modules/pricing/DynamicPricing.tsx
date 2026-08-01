@@ -288,9 +288,9 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
       {activeTab === 0 && (
         <div className="flex flex-col gap-2">
           {/* Top row: Calendar (left) + Form (right) — same height */}
-          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'stretch', flexWrap: { xs: 'wrap', lg: 'nowrap' } }}>
+          <div className="flex gap-[9px] items-stretch flex-wrap min-[1200px]:flex-nowrap">
             {/* Left column — Calendar (stretches to match right column) */}
-            <Box sx={{ flex: 7, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            <div className="flex-[7] min-w-0 flex flex-col">
               <PricingCalendarView
                 selectedPropertyId={selectedPropertyId}
                 currentMonth={currentMonth}
@@ -302,11 +302,11 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
                 updatePriceLoading={updatePriceLoading}
                 currency={selectedPropertyCurrency}
               />
-            </Box>
+            </div>
 
             {/* Right column — Always-visible inline form */}
             {selectedPropertyId && (
-              <Box sx={{ flex: 5, minWidth: 0 }}>
+              <div className="flex-[5] min-w-0">
                 <RatePlanForm
                   propertyId={selectedPropertyId}
                   editingPlan={editingPlan}
@@ -314,9 +314,9 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
                   onCancel={handleFormReset}
                   loading={createRatePlanLoading || updateRatePlanLoading}
                 />
-              </Box>
+              </div>
             )}
-          </Box>
+          </div>
 
           {/* Positionnement marché — double signal réseau/marché (roadmap market data) */}
           {selectedPropertyId && (

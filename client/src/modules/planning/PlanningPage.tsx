@@ -624,7 +624,7 @@ const PlanningPage: React.FC = () => {
       {/* Page header — masqué en plein écran (le fullscreen masque déjà le
           chrome ; la toolbar garde les actions critiques) */}
       {!nav.isFullscreen && (
-        <Box sx={{ flexShrink: 0, px: { xs: 1.5, md: 2 }, pt: { xs: 1.5, md: 2 } }}>
+        <div className="shrink-0 px-[9px] min-[900px]:px-3 pt-[9px] min-[900px]:pt-3">
           <PageHeader
             title="Planning"
             subtitle={headerSubtitle}
@@ -695,7 +695,7 @@ const PlanningPage: React.FC = () => {
               )
             }
           />
-        </Box>
+        </div>
       )}
 
       {/* Toolbar — navigation/zoom/légendes du planning : masqué en Vue d'ensemble */}

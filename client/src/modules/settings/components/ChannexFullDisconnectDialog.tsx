@@ -20,10 +20,11 @@
  * </ol>
  */
 import React, { useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, Box, Button, Alert, Checkbox, FormControlLabel, Stack } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, Button, Alert, Checkbox, FormControlLabel, Stack } from '@mui/material';
 import StatusChip from '../../../components/StatusChip';
 import {
   AlertCircle,
@@ -84,17 +85,7 @@ function StepRow({ step }: { step: ChannexFullDisconnectStep }) {
         ? 'color-mix(in srgb, var(--err) 20%, transparent)'
         : 'var(--line-2)';
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        gap: 1.5,
-        p: 1.25,
-        borderRadius: 1,
-        border: `1px solid ${borderColor}`,
-        bgcolor: bg,
-        alignItems: 'flex-start',
-      }}
-    >
+    <div className="flex gap-[9px] p-[7.5px] rounded-[8px] items-start" style={{ border: `1px solid ${borderColor}`, backgroundColor: bg }}>
       <div className="mt-0.5">
         <StepIcon status={step.status} />
       </div>
@@ -116,7 +107,7 @@ function StepRow({ step }: { step: ChannexFullDisconnectStep }) {
           {step.detail}
         </span>
       </div>
-    </Box>
+    </div>
   );
 }
 
@@ -309,28 +300,13 @@ export default function ChannexFullDisconnectDialog({
           <DialogTitle
             sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, pb: 1 }}
           >
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: 1,
-                bgcolor: result.overallSuccess
-                  ? 'var(--ok-soft)'
-                  : 'var(--warn-soft)',
-                color: result.overallSuccess ? 'var(--ok)' : 'var(--warn)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                mt: 0.25,
-              }}
-            >
+            <div className={cn('w-[36px] h-[36px] rounded-[8px] flex items-center justify-center shrink-0 mt-[1.5px]', result.overallSuccess ? 'bg-[var(--ok-soft)]' : 'bg-[var(--warn-soft)]', result.overallSuccess ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
               {result.overallSuccess ? (
                 <CheckCircle2 size={20} />
               ) : (
                 <AlertCircle size={20} />
               )}
-            </Box>
+            </div>
             <div className="min-w-0 flex-1">
               <h6 className="cn-text-h6 font-semibold leading-[1.3] text-[1.05rem]">
                 {result.overallSuccess

@@ -240,14 +240,7 @@ const AutomationRulesPage: React.FC = () => {
   // Ligne « liste » d'une automatisation système (lecture seule), mêmes colonnes
   // que les règles pour une liste unifiée.
   const renderSystemRow = (sa: (typeof systemAutomations)[number]) => (
-    <Box
-      key={sa.key}
-      sx={{
-        display: 'grid', gridTemplateColumns: LIST_COLUMNS, alignItems: 'center',
-        columnGap: 1.5, px: 2, py: 1.25, minWidth: 720,
-        borderTop: '1px solid var(--hairline)',
-      }}
-    >
+    <div className="grid items-center gap-x-[9px] px-3 py-[7.5px] min-w-[720px]" style={{ gridTemplateColumns: LIST_COLUMNS, borderTop: '1px solid var(--hairline)' }} key={sa.key}>
       <StatusChip pill tokens={systemStatusTokens(sa.status)} label={sa.statusLabel} className="justify-self-start" />
       <div className="min-w-0">
         <p className="cn-text-body1 truncate text-[0.8125rem] font-semibold text-[var(--ink)]">{sa.label}</p>
@@ -263,7 +256,7 @@ const AutomationRulesPage: React.FC = () => {
         <StatusChip pill tokens={{ color: 'var(--muted)', bg: 'var(--field)' }} label={sa.mechanism} />
       </div>
       <div />
-    </Box>
+    </div>
   );
 
   // Vue carte : tous les chips regroupés.
@@ -433,14 +426,7 @@ const AutomationRulesPage: React.FC = () => {
         // ── Vue LISTE (défaut) : lignes denses, chips alignés en colonnes ────
         <Card sx={{ overflowX: 'auto' }}>
           {sortedRules.map((rule, idx) => (
-            <Box
-              key={rule.id}
-              sx={{
-                display: 'grid', gridTemplateColumns: LIST_COLUMNS, alignItems: 'center',
-                columnGap: 1.5, px: 2, py: 1.25, minWidth: 720,
-                borderTop: idx === 0 ? 'none' : '1px solid var(--hairline)',
-              }}
-            >
+            <div className="grid items-center gap-x-[9px] px-3 py-[7.5px] min-w-[720px]" style={{ gridTemplateColumns: LIST_COLUMNS, borderTop: idx === 0 ? 'none' : '1px solid var(--hairline)' }} key={rule.id}>
               <Switch
                 checked={rule.enabled}
                 onChange={() => handleToggle(rule.id)}
@@ -478,7 +464,7 @@ const AutomationRulesPage: React.FC = () => {
               <div className="flex gap-0.5 justify-end">
                 {renderRuleActions(rule)}
               </div>
-            </Box>
+            </div>
           ))}
           {/* Automatisations système (lecture seule) fusionnées dans la même liste */}
           {systemAutomations.length > 0 && (

@@ -153,16 +153,9 @@ const ContractSignPage: React.FC = () => {
       <div className="w-full max-w-[760px] flex flex-col gap-4">
         {/* ── En-tête marque ── */}
         <div className="flex items-center gap-2">
-          <Box
-            component="span"
-            sx={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 36, height: 36, borderRadius: '10px',
-              bgcolor: BRAND, color: 'var(--on-accent)', flexShrink: 0,
-            }}
-          >
+          <span className="inline-flex items-center justify-center w-[36px] h-[36px] rounded-[10px] text-[var(--on-accent)] shrink-0" style={{ backgroundColor: BRAND }}>
             <Handshake size={20} strokeWidth={1.75} />
-          </Box>
+          </span>
           <div>
             <p className="cn-text-body1 font-[var(--font-display)] text-[1rem] font-semibold leading-[1.2] text-[var(--ink)]">
               Clenzy
@@ -220,7 +213,7 @@ const ContractSignPage: React.FC = () => {
             {/* ── Titre + récapitulatif (toujours visibles si contrat lisible) ── */}
             <div>
               <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.375rem', fontWeight: 600, color: 'var(--ink)', textWrap: 'balance' }}>
-                {L.title} <Box component="span" sx={{ fontFamily: 'monospace', fontSize: '1.05rem', color: BRAND }}>{view.contractNumber}</Box>
+                {L.title} <span className="text-[1.05rem]" style={{ fontFamily: 'monospace', color: BRAND }}>{view.contractNumber}</span>
               </Typography>
               {view.status === 'PENDING' && (
                 <p className="cn-text-body1 mt-0.5 text-[0.875rem] text-[var(--muted)]">
@@ -231,7 +224,7 @@ const ContractSignPage: React.FC = () => {
 
             <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: { xs: 2, md: 3 } }}>
               <SectionLabel>{L.summaryTitle}</SectionLabel>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, columnGap: 3 }}>
+              <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-x-[18px]">
                 <SummaryRow label={L.property} value={view.propertyName || '—'} />
                 <SummaryRow label={L.owner} value={view.ownerName || '—'} />
                 <SummaryRow
@@ -252,7 +245,7 @@ const ContractSignPage: React.FC = () => {
                   label={L.collection}
                   value={(view.paymentModel && L.paymentModels[view.paymentModel]) || view.paymentModel || '—'}
                 />
-              </Box>
+              </div>
             </Paper>
 
             {/* ── Document ── */}
@@ -274,19 +267,7 @@ const ContractSignPage: React.FC = () => {
                   )}
                 </div>
                 {pdfUrl ? (
-                  <Box
-                    component="iframe"
-                    src={pdfUrl}
-                    title={`${L.title} ${view.contractNumber}`}
-                    sx={{
-                      width: '100%',
-                      height: { xs: 380, md: 520 },
-                      border: '1px solid',
-                      borderColor: 'var(--line-2)',
-                      borderRadius: '12px',
-                      bgcolor: 'var(--card)',
-                    }}
-                  />
+                  <iframe className="w-full h-[380px] min-[900px]:h-[520px] border border-solid border-[var(--line-2)] rounded-[12px] bg-[var(--card)]" src={pdfUrl} title={`${L.title} ${view.contractNumber}`} />
                 ) : view.documentAvailable ? (
                   <div className="py-6 text-center">
                     <CircularProgress size={22} sx={{ color: BRAND }} />
@@ -408,16 +389,9 @@ const StatusCard: React.FC<{ icon: React.ReactNode; iconColor: string; iconSoft:
   icon, iconColor, iconSoft, title, text,
 }) => (
   <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: { xs: 2.5, md: 3 }, display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-    <Box
-      component="span"
-      sx={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: 44, height: 44, borderRadius: '12px', flexShrink: 0,
-        bgcolor: iconSoft, color: iconColor,
-      }}
-    >
+    <span className="inline-flex items-center justify-center w-[44px] h-[44px] rounded-[12px] shrink-0" style={{ backgroundColor: iconSoft, color: iconColor }}>
       {icon}
-    </Box>
+    </span>
     <div>
       <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 600, color: 'var(--ink)', textWrap: 'balance' }}>{title}</Typography>
       <p className="cn-text-body1 mt-0.5 text-[0.85rem] text-[var(--muted)] leading-[1.55]">{text}</p>

@@ -74,30 +74,16 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
         {device.kind === 'camera' ? (
           // Caméra : aperçu (snapshot) du flux. Repli sur l'icône (placée derrière) si hors
           // ligne, pas de snapshot, ou image en erreur (onError masque l'img → l'icône réapparaît).
-          <Box
-            sx={{
-              position: 'relative', width: 40, height: 30, borderRadius: 1, flexShrink: 0, overflow: 'hidden',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: meta.color,
-              bgcolor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.2 : 0.12),
-            }}
-          >
+          <div className="relative w-[40px] h-[30px] rounded-[8px] shrink-0 overflow-hidden flex items-center justify-center" style={{ color: meta.color, backgroundColor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.2 : 0.12) }}>
             {meta.icon(iconSize)}
             {device.online && device.previewUrl && (
               <img className="absolute inset-[0px] w-full h-full object-cover" src={device.previewUrl} alt="" loading="lazy" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
             )}
-          </Box>
+          </div>
         ) : (
-          <Box
-            sx={{
-              width: 30, height: 30, borderRadius: 1, flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: meta.color,
-              bgcolor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.2 : 0.12),
-            }}
-          >
+          <div className="w-[30px] h-[30px] rounded-[8px] shrink-0 flex items-center justify-center" style={{ color: meta.color, backgroundColor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.2 : 0.12) }}>
             {meta.icon(iconSize)}
-          </Box>
+          </div>
         )}
         <div className="min-w-0 flex-1">
           <Typography

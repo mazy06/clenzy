@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../utils/cn';
 import { Card } from '../components/ui';
 import { Box, Typography } from '@mui/material';
 import { Money } from './Money';
@@ -35,19 +36,14 @@ export default function RevenueByChannelCard({
 }: RevenueByChannelCardProps) {
   return (
     <Card className="gap-0 py-0 bg-[var(--card)] border-[var(--line)] overflow-hidden">
-      <Box
-        sx={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1,
-          px: '17px', pt: '15px', pb: headerAction ? '11px' : '4px',
-        }}
-      >
+      <div className={cn('flex items-center justify-between gap-1.5 px-[17px] pt-[15px]', headerAction ? 'pb-[11px]' : 'pb-1')}>
         <p className="cn-text-body1 font-[var(--font-display)] text-[15px] font-semibold text-[var(--ink)] tracking-[-0.01em]">
           {title}
         </p>
         {headerAction}
-      </Box>
+      </div>
 
-      <Box sx={{ px: '17px', pb: '8px' }}>
+      <div className="px-[17px] pb-2">
         {channels.length === 0 && (
           <Typography sx={{ fontSize: '12px', color: 'var(--muted)', py: '14px' }}>
             Aucun revenu par canal sur la période.
@@ -76,7 +72,7 @@ export default function RevenueByChannelCard({
                   {c.amount != null ? <Money value={c.amount} decimals={0} /> : `${c.pct}%`}
                 </p>
                 {(c.amount != null || (delta != null && delta !== 0)) && (
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '5px', mt: '1px' }}>
+                  <div className="flex justify-end items-center gap-[5px] mt-px">
                     {c.amount != null && (
                       <span className="text-[10.5px] font-semibold text-[var(--muted)] tabular-nums">
                         {c.pct}%
@@ -87,13 +83,13 @@ export default function RevenueByChannelCard({
                         {delta > 0 ? '▲' : '▼'}{Math.abs(delta)} pt
                       </Typography>
                     )}
-                  </Box>
+                  </div>
                 )}
               </div>
             </Box>
           );
         })}
-      </Box>
+      </div>
     </Card>
   );
 }

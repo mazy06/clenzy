@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { cn } from '../utils/cn';
 import { Spinner } from './ui';
 import { Dialog, DialogContent, Box, Button, IconButton } from '@mui/material';
 import { Sparkles, X, Wallet, AlertTriangle, ArrowRight, Check } from 'lucide-react';
@@ -65,9 +66,9 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
     <Dialog open={open} onClose={busy ? undefined : handleClose} maxWidth="sm" fullWidth
       PaperProps={{ sx: { borderRadius: 'var(--radius-lg)' } }}>
       <div className="flex items-center gap-2 px-4 pt-3.5 pb-1.5">
-        <Box sx={{ display: 'grid', placeItems: 'center', width: 34, height: 34, borderRadius: '10px', bgcolor: 'var(--accent-soft)', color: 'var(--accent)', flexShrink: 0 }}>
+        <div className="grid place-items-[center] w-[34px] h-[34px] rounded-[10px] bg-[var(--accent-soft)] text-[var(--accent)] shrink-0">
           <Wallet size={18} strokeWidth={2} />
-        </Box>
+        </div>
         <div className="flex-1 font-[var(--font-display)] text-[var(--text-lg)] font-[var(--fw-bold)] text-[var(--ink)]">
           {title ?? 'Crédits IA insuffisants'}
         </div>
@@ -86,7 +87,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
         )}
 
         {packs === null ? (
-          <Box sx={{ display: 'grid', placeItems: 'center', py: 3 }}><Spinner className="size-[22px] text-[var(--accent)]" /></Box>
+          <div className="grid place-items-[center] py-[18px]"><Spinner className="size-[22px] text-[var(--accent)]" /></div>
         ) : packs.length === 0 ? (
           <div className="text-[var(--text-sm)] text-[var(--muted)]">Aucun pack disponible pour le moment.</div>
         ) : (
@@ -94,19 +95,12 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
             {packs.map((p) => {
               const active = p.key === selected;
               return (
-                <Box key={p.key} component="button" type="button" onClick={() => setSelected(p.key)} disabled={busy}
-                  sx={{
-                    position: 'relative', textAlign: 'left', cursor: busy ? 'default' : 'pointer', p: 1.5,
-                    borderRadius: 'var(--radius-md)', border: '1.5px solid', borderColor: active ? 'var(--accent)' : 'var(--line)',
-                    bgcolor: active ? 'var(--accent-soft)' : 'var(--card, #fff)',
-                    transition: 'border-color 150ms ease, background 150ms ease',
-                    '&:hover': { borderColor: 'var(--accent)' },
-                  }}>
-                  {active && <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'grid', placeItems: 'center', width: 18, height: 18, borderRadius: '50%', bgcolor: 'var(--accent)', color: 'var(--on-accent)' }}><Check size={12} strokeWidth={3} /></Box>}
+                <button className={cn('relative text-start p-[9px] rounded-[var(--radius-md)] border-[1.5px] border-solid hover:border-[var(--accent)]', busy ? 'cursor-default' : 'cursor-pointer', active ? 'border-[var(--accent)]' : 'border-[var(--line)]', active ? 'bg-[var(--accent-soft)]' : 'bg-[var(--card,_#fff)]')} style={{ transition: 'border-color 150ms ease, background 150ms ease' }} key={p.key} type="button" onClick={() => setSelected(p.key)} disabled={busy}>
+                  {active && <div className="absolute top-[8px] end-[8px] grid place-items-[center] w-[18px] h-[18px] rounded-[50%] bg-[var(--accent)] text-[var(--on-accent)]"><Check size={12} strokeWidth={3} /></div>}
                   <div className="text-[var(--text-lg)] font-bold text-[var(--ink)] tabular-nums">{toCredits(p.millicredits)}</div>
                   <div className="text-[var(--text-2xs)] text-[var(--muted)] mb-1.5">crédits IA</div>
-                  <Box sx={{ fontSize: 'var(--text-md)', fontWeight: 700, color: active ? 'var(--accent)' : 'var(--body)', fontVariantNumeric: 'tabular-nums' }}>{euro(p.priceCents)}</Box>
-                </Box>
+                  <div className={cn('text-[var(--text-md)] font-bold tabular-nums', active ? 'text-[var(--accent)]' : 'text-[var(--body)]')}>{euro(p.priceCents)}</div>
+                </button>
               );
             })}
           </Box>

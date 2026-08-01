@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { cn } from '../../../utils/cn';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
@@ -6,7 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
 import { serviceRequestsApi, type ServiceRequest } from '../../../services/api/serviceRequestsApi';
 import { reservationsApi } from '../../../services/api/reservationsApi';
-import { Box, Typography, Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, Tooltip } from '@mui/material';
+import { Typography, Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, Tooltip } from '@mui/material';
 import {
   Payment,
   Add,
@@ -698,21 +699,9 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               {isICalImport && !hasTotalPrice ? 'Non communiqué' : fmtCurrency(grandTotal)}
             </span>
             {(hasTotalPrice || isOTABooking) && (
-              <Box
-                component="span"
-                sx={{
-                  alignSelf: 'center',
-                  px: 1,
-                  py: '3px',
-                  borderRadius: 'var(--radius-pill)',
-                  fontSize: '0.6875rem',
-                  fontWeight: 600,
-                  backgroundColor: isSettled ? 'var(--ok-soft)' : 'var(--warn-soft)',
-                  color: isSettled ? 'var(--ok)' : 'var(--warn)',
-                }}
-              >
+              <span className={cn('self-center px-1.5 py-[3px] rounded-[var(--radius-pill)] text-[0.6875rem] font-semibold', isSettled ? 'bg-[var(--ok-soft)]' : 'bg-[var(--warn-soft)]', isSettled ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
                 {isOTABooking ? `Réglé · ${otaChannelLabel}` : isSettled ? 'Réglé' : 'En attente'}
-              </Box>
+              </span>
             )}
           </div>
         </div>
@@ -868,25 +857,12 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             {isOTABooking ? (
               // OTA : paiement deja regle sur le canal externe → pas de bouton
               // d'envoi de lien, juste une note d'information.
-              <Box
-                sx={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 0.75,
-                  px: 1.25,
-                  py: 0.875,
-                  borderRadius: '9px',
-                  backgroundColor: 'var(--ok-soft)',
-                  border: '1px solid color-mix(in srgb, var(--ok) 30%, transparent)',
-                }}
-              >
+              <div className="flex-1 flex items-center justify-center gap-[4.5px] px-[7.5px] py-[5.25px] rounded-[9px] bg-[var(--ok-soft)] border border-solid border-[color-mix(in_srgb,_var(--ok)_30%,_transparent)]">
                 <span className="inline-flex text-[var(--ok)]"><CheckCircle size={14} strokeWidth={1.75} /></span>
                 <span className="cn-text-caption text-[0.6875rem] text-[var(--ok)] font-medium">
                   Reglement effectue sur {otaChannelLabel}
                 </span>
-              </Box>
+              </div>
             ) : (
               <Button
                 size="small"
@@ -992,15 +968,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   </span>
                 );
                 return (
-                  <Box
-                    key={`sr-${sr.id}`}
-                    sx={{
-                      display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5,
-                      p: 0.75, borderRadius: '9px',
-                      border: '1px dashed color-mix(in srgb, var(--warn) 50%, transparent)',
-                      backgroundColor: 'var(--warn-soft)',
-                    }}
-                  >
+                  <div className="flex items-center gap-[4.5px] mb-[3px] p-[4.5px] rounded-[9px] border border-dashed border-[color-mix(in_srgb,_var(--warn)_50%,_transparent)] bg-[var(--warn-soft)]" key={`sr-${sr.id}`}>
                     {typeIcon}
                     <Tooltip title={sr.title} placement="top">
                       <p className="cn-text-body1 text-[0.6875rem] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -1016,7 +984,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                       {cost > 0 ? <Money value={cost} from="EUR" decimals={0} /> : '\u2014'}
                     </p>
                     <StatusChip pill size="sm" tokens={WARN_TOKENS} label="A payer" />
-                  </Box>
+                  </div>
                 );
               })}
               {linkedInterventions.length > 0 && <Divider sx={{ my: 0.5 }} />}

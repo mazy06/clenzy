@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import { SwapHoriz, OpenInNew, WhatsApp, Cancel, Warning } from '../../../icons';
 import type { PlanningEvent, PlanningProperty } from '../types';
 import GuestCardDialog from './GuestCardDialog';
@@ -83,17 +83,7 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
   const canChangeProperty = Boolean(properties && onChangeProperty);
 
   return (
-    <Box
-      sx={{
-        flexShrink: 0,
-        borderTop: '1px solid var(--line)',
-        backgroundColor: 'var(--card)',
-        p: '12px 16px',
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 1,
-      }}
-    >
+    <div className="shrink-0 bg-[var(--card)] p-[12px 16px] grid grid-cols-[1fr_1fr] gap-1.5" style={{ borderTop: '1px solid var(--line)' }}>
       {canChangeProperty && (
         <Button
           size="small"
@@ -245,7 +235,7 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

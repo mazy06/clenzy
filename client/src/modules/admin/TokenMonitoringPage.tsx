@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Container } from '@mui/material';
+import { Container } from '@mui/material';
 import { Shield } from '../../icons';
 import TokenMonitoring from '../../components/TokenMonitoring';
 import PageHeader from '../../components/PageHeader';
@@ -15,9 +15,9 @@ const TokenMonitoringPage: React.FC = () => {
         showBackButton={false}
       />
       
-      <Box mt={3}>
+      <div className="mt-[18px]">
         <TokenMonitoring />
-      </Box>
+      </div>
     </Container>
   );
 };

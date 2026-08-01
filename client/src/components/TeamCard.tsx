@@ -1,6 +1,6 @@
 import React from 'react';
 import StatusChip from './StatusChip';
-import { Box, Card, CardContent, CardActions, IconButton, Avatar, AvatarGroup, Button } from '@mui/material';
+import { Card, CardContent, CardActions, IconButton, Avatar, AvatarGroup, Button } from '@mui/material';
 import {
   MoreVert,
   Visibility,
@@ -156,21 +156,9 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
         {/* Header */}
         <div className="flex justify-between items-start mb-2 gap-1.5">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Box
-              sx={{
-                width: 38,
-                height: 38,
-                borderRadius: '8px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: `${accent}1F`,
-                color: accent,
-                flexShrink: 0,
-              }}
-            >
+            <div className="w-[38px] h-[38px] rounded-[8px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: `${accent}1F`, color: accent }}>
               <TypeIcon size={18} strokeWidth={1.75} />
-            </Box>
+            </div>
             <div className="flex-1 min-w-0">
               <p className="cn-text-body1 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={team.name}>
                 {team.name}

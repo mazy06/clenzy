@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Grid, Button } from '@mui/material';
+import { Grid, Button } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -357,9 +357,9 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   // Verifier les droits d'acces
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+      <div className="flex justify-center items-center min-h-[400px]">
         <Spinner className="size-8" />
-      </Box>
+      </div>
     );
   }
 

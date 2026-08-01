@@ -202,14 +202,9 @@ export default function OpenWaQrScanDialog({
     if (status === 'connected') {
       return (
         <Stack alignItems="center" spacing={2} sx={{ py: 4 }}>
-          <Box sx={{
-            width: 72, height: 72, borderRadius: '50%',
-            bgcolor: alpha(theme.palette.success.main, 0.12),
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: theme.palette.success.main,
-          }}>
+          <div className="w-[72px] h-[72px] rounded-[50%] flex items-center justify-center" style={{ backgroundColor: alpha(theme.palette.success.main, 0.12), color: theme.palette.success.main }}>
             <CheckCircle size={40} />
-          </Box>
+          </div>
           <div className="text-center">
             <h6 className="cn-text-h6 font-semibold mb-0.5">
               {t('settings.whatsapp.qr.connected', 'WhatsApp connecté')}
@@ -242,14 +237,9 @@ export default function OpenWaQrScanDialog({
     return (
       <Stack alignItems="center" spacing={2.5}>
         {qrImage ? (
-          <Box sx={{
-            p: 2.5,
-            bgcolor: '#fff',
-            borderRadius: 2,
-            border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}`,
-          }}>
+          <div className="p-[15px] bg-[#fff] rounded-[16px]" style={{ border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}` }}>
             <img className="block w-[240px] h-[240px]" src={qrImage} alt="QR code WhatsApp" />
-          </Box>
+          </div>
         ) : (
           <div className="w-[240px] h-[240px] flex items-center justify-center">
             <Spinner className="size-7" />

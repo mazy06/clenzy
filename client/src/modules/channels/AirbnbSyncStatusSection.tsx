@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge } from '../../components/ui';
-import { Box, Paper } from '@mui/material';
+import { Paper } from '@mui/material';
 import {
   Sync as SyncIcon,
   CheckCircle as CheckCircleIcon,
@@ -30,7 +30,7 @@ const AirbnbSyncStatusSection: React.FC<AirbnbSyncStatusSectionProps> = ({
     <p className="cn-text-body1 text-[0.875rem] font-bold mb-1.5">
       {t('channels.syncStatus.title')}
     </p>
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 1 }}>
+    <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] min-[900px]:grid-cols-[1fr_1fr_1fr] gap-1.5">
       {listings.map((listing) => {
         const property = properties.find((p) => p.id === listing.propertyId);
         return (
@@ -43,7 +43,7 @@ const AirbnbSyncStatusSection: React.FC<AirbnbSyncStatusSectionProps> = ({
           />
         );
       })}
-    </Box>
+    </div>
   </Paper>
 );
 
@@ -68,19 +68,11 @@ function SyncStatusCard({
   const statusSoft = syncOk ? 'var(--ok-soft)' : listing.syncEnabled ? 'var(--warn-soft)' : 'var(--field)';
 
   return (
-    <Box
-      sx={{
-        border: '1px solid',
-        borderColor: `color-mix(in srgb, ${statusColor} 30%, transparent)`,
-        borderRadius: '10px',
-        p: 1.25,
-        bgcolor: statusSoft,
-      }}
-    >
+    <div className="border border-solid rounded-[10px] p-[7.5px]" style={{ borderColor: `color-mix(in srgb, ${statusColor} 30%, transparent)`, backgroundColor: statusSoft }}>
       <div className="flex items-center gap-0.5 mb-0.5">
-        <Box component="span" sx={{ display: 'inline-flex', color: statusColor }}>
+        <span className="inline-flex" style={{ color: statusColor }}>
           <StatusIcon size={14} strokeWidth={1.75} />
-        </Box>
+        </span>
         <p className="cn-text-body1 text-[0.75rem] font-semibold">
           {propertyName}
         </p>
@@ -93,6 +85,6 @@ function SyncStatusCard({
         {listing.syncEnabled && <Badge variant="success" className="text-[0.5625rem] h-[18px]">{<><SyncIcon size={'0.625rem'} strokeWidth={1.75} /> Sync</>}</Badge>}
         {listing.autoCreateInterventions && <Badge variant="info" className="text-[0.5625rem] h-[18px]">{<><CleaningIcon size={'0.625rem'} strokeWidth={1.75} /> Auto</>}</Badge>}
       </div>
-    </Box>
+    </div>
   );
 }

@@ -161,16 +161,7 @@ export const StatusLegendChips: React.FC<{
           sx={chipSxFor(variant, selected)}
         >
           {/* Puce 9px radius 3 (spec .s-dot) = couleur exacte du statut. */}
-          <Box
-            component="span"
-            sx={{
-              width: 9,
-              height: 9,
-              borderRadius: '3px',
-              flexShrink: 0,
-              backgroundColor: RESERVATION_STATUS_TOKEN_COLORS[opt.value] ?? 'var(--faint)',
-            }}
-          />
+          <span className="w-[9px] h-[9px] rounded-[3px] shrink-0" style={{ backgroundColor: RESERVATION_STATUS_TOKEN_COLORS[opt.value] ?? 'var(--faint)' }} />
           {opt.label}
         </Box>
       );
@@ -192,12 +183,12 @@ export const InterventionLegendChip: React.FC<{
     sx={chipSxFor(variant, active)}
   >
     {/* Balai (ménage) + outil (maintenance) : la chip couvre les DEUX types. */}
-    <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.cleaning }}>
+    <span className="inline-flex" style={{ color: INTERVENTION_TYPE_TOKEN_COLORS.cleaning }}>
       <BroomFill size={16} />
-    </Box>
-    <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
+    </span>
+    <span className="inline-flex" style={{ color: INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
       <WrenchFill size={15} />
-    </Box>
+    </span>
     Interventions
   </Box>
 );

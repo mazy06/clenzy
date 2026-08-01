@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
@@ -125,22 +126,9 @@ const StepperHeader: React.FC<{
       return (
         <React.Fragment key={step.id}>
           {idx > 0 && (
-            <Box sx={{
-              flex: 1, height: 2, mt: 1.75,
-              bgcolor: step.completed ? 'var(--ok)' : 'var(--line-2)',
-              transition: 'background-color 0.3s',
-            }} />
+            <div className={cn('flex-1 h-[2px] mt-[10.5px]', step.completed ? 'bg-[var(--ok)]' : 'bg-[var(--line-2)]')} style={{ transition: 'background-color 0.3s' }} />
           )}
-          <Box
-            onClick={() => !step.locked && onStepClick(step.id)}
-            sx={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              cursor: step.locked ? 'default' : 'pointer',
-              opacity: step.locked ? 0.4 : 1,
-              minWidth: 80, maxWidth: 120,
-              transition: 'opacity 0.2s',
-            }}
-          >
+          <div className={cn('flex flex-col items-center min-w-[80px] max-w-[120px]', step.locked ? 'cursor-default' : 'cursor-pointer', step.locked ? 'opacity-40' : 'opacity-100')} style={{ transition: 'opacity 0.2s' }} onClick={() => !step.locked && onStepClick(step.id)}>
             <Box sx={{
               width: 28, height: 28, borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -169,7 +157,7 @@ const StepperHeader: React.FC<{
             >
               {step.label}
             </Typography>
-          </Box>
+          </div>
         </React.Fragment>
       );
     })}
@@ -338,7 +326,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {beforePhotos.length > 0 && (
         <div className="mb-3">
           <p className="cn-text-body2 text-muted-foreground flex items-center gap-0.5 mb-1.5">
-            <Box component="span" sx={{ display: 'inline-flex', color: inspectionComplete ? 'var(--ok)' : 'var(--muted)' }}><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></Box>
+            <span className={cn('inline-flex', inspectionComplete ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></span>
             {t('interventions.progressSteps.beforePhotosCount', { count: beforePhotos.length })}
           </p>
           <PhotoGallery
@@ -400,7 +388,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
   const renderRooms = () => (
     <div>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+      <div className="flex items-center justify-between mb-1.5">
         <p className="cn-text-body2 font-semibold">
           {t('interventions.progressSteps.roomValidation')}
         </p>
@@ -411,7 +399,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             className="h-6 text-[0.75rem]"
           />
         )}
-      </Box>
+      </div>
       <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('interventions.progressSteps.roomValidationDesc')}
       </p>
@@ -513,13 +501,13 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         {t('interventions.progressSteps.recapTitle')}
       </p>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2.5 }}>
+      <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr_1fr] gap-[15px]">
         {/* Inspection */}
         <Box sx={recapCardSx}>
-          <Box display="flex" alignItems="center" gap={0.75} mb={1.5}>
+          <div className="flex items-center gap-[4.5px] mb-[9px]">
             <span className="inline-flex text-[var(--ok)]"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
             <p className="cn-text-body2 font-semibold">{t('interventions.progressSteps.recapInspection')}</p>
-          </Box>
+          </div>
           {beforePhotos.length > 0 && (
             <span className="cn-text-caption text-muted-foreground block mb-1.5">
               {t('interventions.progressSteps.beforePhotosShort', { count: beforePhotos.length })}
@@ -539,10 +527,10 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
         {/* Rooms */}
         <Box sx={recapCardSx}>
-          <Box display="flex" alignItems="center" gap={0.75} mb={1.5}>
+          <div className="flex items-center gap-[4.5px] mb-[9px]">
             <span className="inline-flex text-[var(--ok)]"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
             <p className="cn-text-body2 font-semibold">{t('interventions.progressSteps.recapRooms', { validated: validatedRooms.size, total: totalRooms })}</p>
-          </Box>
+          </div>
           <div className="flex flex-wrap gap-1">
             {roomNames.map((name, idx) => (
               validatedRooms.has(idx) && (
@@ -559,10 +547,10 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
         {/* Photos */}
         <Box sx={recapCardSx}>
-          <Box display="flex" alignItems="center" gap={0.75} mb={1.5}>
+          <div className="flex items-center gap-[4.5px] mb-[9px]">
             <span className="inline-flex text-[var(--ok)]"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
             <p className="cn-text-body2 font-semibold">{t('interventions.progressSteps.recapAfterPhotos')}</p>
-          </Box>
+          </div>
           {afterPhotos.length > 0 && (
             <>
               <span className="cn-text-caption text-muted-foreground block mb-1.5">
@@ -577,17 +565,17 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             </span>
           )}
         </Box>
-      </Box>
+      </div>
 
       {/* Documents */}
       {documents.length > 0 && (
         <div className="mt-4">
-          <Box display="flex" alignItems="center" gap={0.75} mb={2}>
+          <div className="flex items-center gap-[4.5px] mb-3">
             <span className="inline-flex text-[var(--accent)]"><DescriptionIcon size={18} strokeWidth={1.75} /></span>
             <p className="cn-text-body2 font-semibold">
               {t('interventions.progressSteps.documents', { count: documents.length })}
             </p>
-          </Box>
+          </div>
           <div className="flex flex-col gap-2">
             {documents.map((doc) => {
               const hasFile = !!doc.fileName;
@@ -686,15 +674,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
       {/* ── Start CTA ────────────────────────────────────────────── */}
       {(canStartIntervention || (isBeforeScheduledDate && intervention?.status === 'PENDING')) && (
-        <Box sx={{
-          mt: 2, p: 2.5, borderRadius: '14px',
-          bgcolor: isBeforeScheduledDate ? 'var(--warn-soft)' : 'var(--accent-soft)',
-          border: '1px solid',
-          borderColor: isBeforeScheduledDate
-            ? 'color-mix(in srgb, var(--warn) 30%, transparent)'
-            : 'color-mix(in srgb, var(--accent) 30%, transparent)',
-          textAlign: 'center',
-        }}>
+        <div className={cn('mt-3 p-[15px] rounded-[14px] border border-solid text-center', isBeforeScheduledDate ? 'bg-[var(--warn-soft)]' : 'bg-[var(--accent-soft)]', isBeforeScheduledDate ? 'border-[color-mix(in_srgb,_var(--warn)_30%,_transparent)]' : 'border-[color-mix(in_srgb,_var(--accent)_30%,_transparent)]')}>
           {isBeforeScheduledDate && intervention?.scheduledDate && (
             <>
               <p className="cn-text-body2 font-semibold mb-1.5 text-[var(--warn)]">
@@ -725,19 +705,13 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             }}>
             {starting ? t('interventions.progressSteps.starting') : t('interventions.progressSteps.startIntervention')}
           </Button>
-        </Box>
+        </div>
       )}
 
       {/* ── Reopen CTA + Recap when COMPLETED ─────────────────────── */}
       {intervention?.status === 'COMPLETED' && canStartOrUpdateIntervention && (
         <>
-          <Box sx={{
-            mt: 2.5, p: 2.5, borderRadius: '14px',
-            bgcolor: 'var(--warn-soft)',
-            border: '1px solid', borderColor: 'color-mix(in srgb, var(--warn) 30%, transparent)',
-            display: 'flex', flexDirection: { xs: 'column', sm: 'row' },
-            alignItems: { xs: 'stretch', sm: 'center' }, gap: 2,
-          }}>
+          <div className="mt-[15px] p-[15px] rounded-[14px] bg-[var(--warn-soft)] border border-solid border-[color-mix(in_srgb,_var(--warn)_30%,_transparent)] flex flex-col min-[600px]:flex-row items-stretch min-[600px]:items-center gap-3">
             <div className="flex items-center gap-2 flex-1">
               <div className="w-[36px] h-[36px] rounded-[50%] bg-[var(--ok-soft)] text-[var(--ok)] flex items-center justify-center shrink-0">
                 <CheckCircleIcon size={20} strokeWidth={1.75} />
@@ -754,12 +728,12 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
               }}>
               {completing ? t('interventions.progressSteps.reopening') : t('interventions.progressSteps.reopen')}
             </Button>
-          </Box>
+          </div>
 
           {/* Recap visible when completed */}
-          <Box sx={{ mt: 3, p: { xs: 0, sm: 0 } }}>
+          <div className="mt-[18px] p-0 min-[600px]:p-0">
             {renderRecap()}
-          </Box>
+          </div>
         </>
       )}
 

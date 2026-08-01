@@ -10,7 +10,7 @@
    - à la validation : Revenue agit sur « Léa Marchand » → comète
    ============================================================ */
 
-import { Box, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 import { SupervisionView } from './SupervisionView';
 import { MOCK_RESERVATION_FAMILLE_ROUX, MOCK_RESERVATION_LEA_MARCHAND } from '../provider/mockData';
 
@@ -28,20 +28,10 @@ export function SupervisionDemo() {
       </Typography>
       <div className="flex gap-1.5 mb-3">
         {CELLS.map((cell) => (
-          <Box
-            key={cell.id}
-            data-reservation-id={cell.id}
-            sx={{
-              flex: 1,
-              p: 1.25,
-              borderRadius: '8px',
-              bgcolor: cell.bg,
-              border: '1px solid var(--line, #e6e8ef)',
-            }}
-          >
+          <div className="flex-1 p-[7.5px] rounded-[8px] border border-solid border-[var(--line,_#e6e8ef)]" style={{ backgroundColor: cell.bg }} key={cell.id} data-reservation-id={cell.id}>
             <Typography sx={{ fontSize: 13, fontWeight: 800, color: 'var(--ink, #1b2240)' }}>{cell.label}</Typography>
             <Typography sx={{ fontSize: 11.5, color: 'var(--muted, #6b7196)' }}>{cell.sub}</Typography>
-          </Box>
+          </div>
         ))}
       </div>
       <SupervisionView propertyId="demo" />

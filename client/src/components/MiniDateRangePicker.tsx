@@ -212,7 +212,7 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
       </div>
 
       {/* Day headers */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px' }}>
+      <div className="grid grid-cols-[repeat(7,_1fr)] gap-px">
         {dayHeaders.map((label, i) => (
           <div className="text-center py-0.5" key={`${label}-${i}`}>
             <span className="cn-text-caption font-semibold text-muted-foreground text-[0.5625rem]">
@@ -220,10 +220,10 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
             </span>
           </div>
         ))}
-      </Box>
+      </div>
 
       {/* Calendar cells */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px' }}>
+      <div className="grid grid-cols-[repeat(7,_1fr)] gap-px">
         {cells.map((cell) => {
           const inRange = isInRange(cell.dateStr);
           const isStartDate = isStart(cell.dateStr);
@@ -265,7 +265,7 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
             </Box>
           );
         })}
-      </Box>
+      </div>
 
       {/* Clear button */}
       {(startDate || endDate) && (

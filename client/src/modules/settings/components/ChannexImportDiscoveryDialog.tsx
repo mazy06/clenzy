@@ -19,7 +19,7 @@ import { Badge } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, IconButton, Box, Stack, CircularProgress, Alert, Checkbox, FormControl, Select, MenuItem, Button, Divider, ButtonBase } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, IconButton, Stack, CircularProgress, Alert, Checkbox, FormControl, Select, MenuItem, Button, Divider, ButtonBase } from '@mui/material';
 import { X, Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Image as ImageIcon } from 'lucide-react';
 
 import {
@@ -370,21 +370,9 @@ export default function ChannexImportDiscoveryDialog({
         }}
       >
         <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
-          <Box
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: 1,
-              bgcolor: 'var(--accent-soft)',
-              color: ACCENT,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
+          <div className="w-[32px] h-[32px] rounded-[8px] bg-[var(--accent-soft)] flex items-center justify-center shrink-0" style={{ color: ACCENT }}>
             <Download size={18} />
-          </Box>
+          </div>
           <div className="min-w-0">
             <h6 className="cn-text-subtitle1 font-semibold leading-[1.3]">
               Importer une propriete deja en ligne
@@ -425,9 +413,9 @@ export default function ChannexImportDiscoveryDialog({
             borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
           }}
         >
-          <Box sx={{ color: ACCENT, mt: 0.25, flexShrink: 0 }}>
+          <div className="mt-[1.5px] shrink-0" style={{ color: ACCENT }}>
             <Info size={14} />
-          </Box>
+          </div>
           <span className="cn-text-caption text-muted-foreground leading-[1.5]">
             Apres avoir connecte votre compte Airbnb (ou autre OTA) via le widget de configuration,
             tous vos listings detectes apparaissent ici. Selectionnez ceux a importer dans
@@ -477,21 +465,9 @@ export default function ChannexImportDiscoveryDialog({
         {!loading && !error && discovered.length === 0 && totalInHub === 0 && !importResult && (
           <div className="py-3 px-1.5">
             <Stack alignItems="center" sx={{ mb: 2.5, textAlign: 'center' }}>
-              <Box
-                sx={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '50%',
-                  bgcolor: 'var(--accent-soft)',
-                  color: ACCENT,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mb: 1.5,
-                }}
-              >
+              <div className="w-[56px] h-[56px] rounded-[50%] bg-[var(--accent-soft)] inline-flex items-center justify-center mb-[9px]" style={{ color: ACCENT }}>
                 <Info size={24} />
-              </Box>
+              </div>
               <p className="cn-text-body2 font-semibold mb-0.5">
                 Connectez un compte OTA pour importer vos listings
               </p>
@@ -561,11 +537,11 @@ export default function ChannexImportDiscoveryDialog({
                             : option.description}
                       </span>
                     </div>
-                    <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', color: isLoading ? option.brandColor : 'text.disabled' }}>
+                    <div className="shrink-0 flex items-center" style={{ color: isLoading ? option.brandColor : 'text.disabled' }}>
                       {isLoading
                         ? <CircularProgress size={14} thickness={5} sx={{ color: option.brandColor }} />
                         : <span className="cn-text-caption font-semibold">→</span>}
-                    </Box>
+                    </div>
                   </ButtonBase>
                 );
               })}
@@ -674,11 +650,11 @@ export default function ChannexImportDiscoveryDialog({
                                 : 'Rouvre le wizard onglet Listing pour mapper de nouveaux listings'}
                             </span>
                           </div>
-                          <Box sx={{ flexShrink: 0, color: isLoading ? option.brandColor : 'text.disabled' }}>
+                          <div className="shrink-0" style={{ color: isLoading ? option.brandColor : 'text.disabled' }}>
                             {isLoading
                               ? <CircularProgress size={14} thickness={5} sx={{ color: option.brandColor }} />
                               : <span className="cn-text-caption font-semibold">→</span>}
-                          </Box>
+                          </div>
                         </ButtonBase>,
                       ];
                     })}
@@ -696,9 +672,9 @@ export default function ChannexImportDiscoveryDialog({
               <span className="cn-text-caption text-muted-foreground flex-1">
                 {discovered.length} propriete{discovered.length > 1 ? 's' : ''} dans le hub
                 {diff.toImport.length > 0 && (
-                  <> · <Box component="span" sx={{ color: ACCENT, fontWeight: 600 }}>
+                  <> · <span className="font-semibold" style={{ color: ACCENT }}>
                     +{diff.toImport.length} a importer
-                  </Box></>
+                  </span></>
                 )}
                 {diff.toDisconnect.length > 0 && (
                   <> · <span className="text-[var(--err)] font-semibold">
@@ -747,20 +723,7 @@ export default function ChannexImportDiscoveryDialog({
                   bgCol = 'color-mix(in srgb, var(--accent) 4%, transparent)';
                 }
                 return (
-                  <Box
-                    key={p.channexPropertyId}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 1.5,
-                      p: 1.25,
-                      borderRadius: 1.5,
-                      border: '1px solid',
-                      borderColor: borderCol,
-                      bgcolor: bgCol,
-                      transition: 'all 180ms ease-out',
-                    }}
-                  >
+                  <div className="flex items-start gap-[9px] p-[7.5px] rounded-[12px] border border-solid" style={{ borderColor: borderCol, backgroundColor: bgCol, transition: 'all 180ms ease-out' }} key={p.channexPropertyId}>
                     <Checkbox
                       checked={row.selected}
                       onChange={(e) => toggleRow(p.channexPropertyId, e.target.checked)}
@@ -905,7 +868,7 @@ export default function ChannexImportDiscoveryDialog({
                         </FormControl>
                       )}
                     </Stack>
-                  </Box>
+                  </div>
                 );
               })}
             </Stack>

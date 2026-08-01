@@ -1,6 +1,6 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Box } from '@mui/material';
+
 import {
   TrendingUp as TrendIcon,
   Warning as WarningIcon,
@@ -84,22 +84,9 @@ const InsightCard: React.FC<{ item: InsightItem }> = ({ item }) => {
   return (
     <div className="p-2 rounded-[12px] border border-[var(--line)] bg-[var(--card)]">
       <div className="flex gap-1.5 items-start mb-1">
-        <Box
-          sx={{
-            width: 28,
-            height: 28,
-            borderRadius: '9px',
-            bgcolor: sevSoft,
-            color: sevColor,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            mt: 0.125,
-          }}
-        >
+        <div className="w-[28px] h-[28px] rounded-[9px] flex items-center justify-center shrink-0 mt-[0.75px]" style={{ backgroundColor: sevSoft, color: sevColor }}>
           <TypeIcon size={16} strokeWidth={2} />
-        </Box>
+        </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1 mb-0.5 flex-wrap">

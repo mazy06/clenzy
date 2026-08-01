@@ -35,7 +35,7 @@ export default function ImportGallery({ onImportTemplate, onDone }: ImportGaller
       <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.5]">
         Choisissez un modèle de départ. Le canevas actuel sera remplacé ; vous pourrez tout éditer ensuite.
       </div>
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 1.5 }}>
+      <div className="grid grid-cols-[repeat(auto-fill,_minmax(180px,_1fr))] gap-[9px]">
         {GALLERY_TEMPLATES.map((tpl) => (
           <ButtonBase
             key={tpl.id}
@@ -56,7 +56,7 @@ export default function ImportGallery({ onImportTemplate, onDone }: ImportGaller
             </div>
           </ButtonBase>
         ))}
-      </Box>
+      </div>
     </div>
   );
 }

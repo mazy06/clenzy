@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { cn } from '../../../utils/cn';
+import { Typography } from '@mui/material';
 import { BarChartWidget } from './charts/BarChartWidget';
 import { CHART_PRIMARY } from './charts/chartConstants';
 
@@ -92,17 +93,7 @@ const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) =
       )}
 
       {/* Bandeau verdict — couleur selon delta */}
-      <Box
-        sx={{
-          px: 1.5, py: 1.25,
-          borderRadius: '12px',
-          bgcolor: positive
-            ? 'var(--ok-soft)'
-            : negative
-              ? 'var(--err-soft)'
-              : 'var(--field)',
-        }}
-      >
+      <div className={cn('px-[9px] py-[7.5px] rounded-[12px]', positive ? 'bg-[var(--ok-soft)]' : '[object Object]')}>
         <div className="flex items-baseline gap-2 flex-wrap">
           <Typography sx={{
             fontFamily: 'var(--font-display)',
@@ -126,21 +117,17 @@ const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) =
             {formatCurrencySigned(data.deltaRevenue)}
           </Typography>
         </div>
-      </Box>
+      </div>
 
       {/* Side-by-side baseline / scenario */}
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-        gap: 1,
-      }}>
+      <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-1.5">
         <ScenarioCard label="Avant" scenario={data.baseline} variant="neutral" />
         <ScenarioCard
           label={`Apres ${formatPctSigned(data.pctChange)}`}
           scenario={data.scenario}
           variant={positive ? 'positive' : negative ? 'negative' : 'neutral'}
         />
-      </Box>
+      </div>
 
       {/* Bar chart cote a cote sur les 3 metriques */}
       <BarChartWidget
@@ -183,13 +170,7 @@ const ScenarioCard: React.FC<{
     : 'var(--field)';
 
   return (
-    <Box
-      sx={{
-        px: 1.25, py: 1,
-        borderRadius: '10px',
-        bgcolor: bg,
-      }}
-    >
+    <div className="px-[7.5px] py-1.5 rounded-[10px]" style={{ backgroundColor: bg }}>
       <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-0.5">
         {label}
       </p>
@@ -201,7 +182,7 @@ const ScenarioCard: React.FC<{
         <MetricInline label="Occ." value={`${Math.round(scenario.occupancyRate * 100)}%`} />
         <MetricInline label="Nuits" value={String(scenario.bookedNights)} />
       </div>
-    </Box>
+    </div>
   );
 };
 
@@ -239,16 +220,12 @@ const CalendarBlockView: React.FC<{ data: CalendarBlockPayload }> = ({ data }) =
         </p>
       </div>
 
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-        gap: 1,
-      }}>
+      <div className="grid grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(3,_1fr)] gap-1.5">
         <KpiTile label="Occupation attendue"
                   value={`${Math.round(data.estimatedOccupancy * 100)}%`} />
         <KpiTile label="ADR estime" value={`${Math.round(data.adr)} €`} />
         <KpiTile label="Nuits perdues" value={String(data.expectedBookedNights)} />
-      </Box>
+      </div>
 
       {data.alternativeSuggestions && data.alternativeSuggestions.length > 0 && (
         <div className="px-2 py-2 rounded-[12px] bg-[var(--accent-soft)]">

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Card } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
@@ -103,21 +104,9 @@ function StatCard({ icon, label, value, fg, bg }: StatCardProps) {
         flex: '1 1 0',
       }}
     >
-      <Box
-        sx={{
-          width: 36,
-          height: 36,
-          borderRadius: '11px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: fg,
-          bgcolor: bg,
-          flexShrink: 0,
-        }}
-      >
+      <div className="w-[36px] h-[36px] rounded-[11px] flex items-center justify-center shrink-0" style={{ color: fg, backgroundColor: bg }}>
         {icon}
-      </Box>
+      </div>
       <div className="min-w-0">
         <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] font-bold uppercase tracking-[.04em] leading-[1.2]">
           {label}
@@ -313,7 +302,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
 
       {/* ─── Calendar view ───────────────────────────────────────────────── */}
       {view === 'calendar' && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.5fr 1fr' }, gap: 2 }}>
+        <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1.5fr_1fr] gap-3">
           {/* Calendar grid */}
           <Card className="gap-0 py-0 p-3 bg-[var(--card)]">
             {/* Weekday header */}
@@ -376,16 +365,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                     {hasItems && (
                       <div className="flex flex-wrap gap-0.5 mt-auto">
                         {items.slice(0, 3).map((iv) => (
-                          <Box
-                            key={iv.id}
-                            sx={{
-                              width: 6,
-                              height: 6,
-                              borderRadius: '3px',
-                              bgcolor: isSelected ? 'var(--on-accent)' : interventionStatusTokens(iv.status).fg,
-                              opacity: isSelected ? 0.9 : 1,
-                            }}
-                          />
+                          <div className={cn('w-[6px] h-[6px] rounded-[3px]', isSelected ? 'opacity-90' : 'opacity-100')} style={{ backgroundColor: isSelected ? 'var(--on-accent)' : interventionStatusTokens(iv.status).fg }} key={iv.id} />
                         ))}
                         {items.length > 3 && (
                           <Typography
@@ -414,7 +394,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                 { label: 'Annulée', color: 'var(--muted)' },
               ].map((leg) => (
                 <div className="flex items-center gap-0.5" key={leg.label}>
-                  <Box sx={{ width: 9, height: 9, borderRadius: '3px', bgcolor: leg.color }} />
+                  <div className="w-[9px] h-[9px] rounded-[3px]" style={{ backgroundColor: leg.color }} />
                   <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">{leg.label}</p>
                 </div>
               ))}
@@ -424,20 +404,9 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
           {/* Selected day details */}
           <Card className="gap-0 py-0 p-3 bg-[var(--card)] flex flex-col">
             <div className="flex items-center gap-1.5 mb-2">
-              <Box
-                sx={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 1.5,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: isSameDay(selectedDay, today) ? 'var(--accent)' : 'var(--accent-soft)',
-                  color: isSameDay(selectedDay, today) ? 'var(--on-accent)' : 'var(--accent)',
-                }}
-              >
+              <div className={cn('w-[32px] h-[32px] rounded-[12px] flex items-center justify-center', isSameDay(selectedDay, today) ? 'bg-[var(--accent)]' : 'bg-[var(--accent-soft)]', isSameDay(selectedDay, today) ? 'text-[var(--on-accent)]' : 'text-[var(--accent)]')}>
                 <CalendarMonth size={16} strokeWidth={1.75} />
-              </Box>
+              </div>
               <div>
                 <p className="cn-text-body1 text-[0.9375rem] font-bold capitalize leading-[1.2]">
                   {selectedDay.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -462,21 +431,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                 {selectedDayItems.map((iv) => {
                   const tk = interventionStatusTokens(iv.status);
                   return (
-                    <Box
-                      key={iv.id}
-                      onClick={() => navigate(`/interventions/${iv.id}`)}
-                      sx={{
-                        p: 1.25,
-                        borderRadius: '11px',
-                        border: '1px solid var(--line)',
-                        cursor: 'pointer',
-                        transition: 'border-color .14s, background-color .14s',
-                        '&:hover': {
-                          borderColor: 'var(--line-2)',
-                          bgcolor: 'var(--hover)',
-                        },
-                      }}
-                    >
+                    <div className="p-[7.5px] rounded-[11px] border border-solid border-[var(--line)] cursor-pointer hover:border-[var(--line-2)] hover:bg-[var(--hover)]" style={{ transition: 'border-color .14s, background-color .14s' }} key={iv.id} onClick={() => navigate(`/interventions/${iv.id}`)}>
                       <div className="flex justify-between items-start mb-0.5 gap-1.5">
                         <p className="cn-text-body1 text-[0.8125rem] font-semibold leading-[1.3]">
                           {getInterventionTypeLabel(iv.type, t)}
@@ -518,13 +473,13 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                           </div>
                         </Tooltip>
                       </div>
-                    </Box>
+                    </div>
                   );
                 })}
               </div>
             )}
           </Card>
-        </Box>
+        </div>
       )}
 
       {/* ─── List view ───────────────────────────────────────────────────── */}

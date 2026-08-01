@@ -18,7 +18,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, Box, Typography, Button, Alert, Stack, Skeleton, IconButton, Tooltip } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, Typography, Button, Alert, Stack, Skeleton, IconButton, Tooltip } from '@mui/material';
 import {
   X,
   TrendingDown,
@@ -89,9 +89,9 @@ function DriftRow({
   return (
     <div className="border border-[var(--line)] rounded-[1px] p-2 bg-[var(--surface-2)]">
       <div className="flex items-center gap-2 mb-1.5">
-        <Box sx={{ color: trendColor, flexShrink: 0 }}>
+        <div className="shrink-0" style={{ color: trendColor }}>
           <TrendIcon size={18} strokeWidth={2.2} />
-        </Box>
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-1 flex-wrap">
             <p className="cn-text-body2 font-semibold">

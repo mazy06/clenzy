@@ -365,9 +365,9 @@ const OutboxTab: React.FC = () => {
                 <TableRow>
                   <TableCell padding="checkbox">
                     <Tooltip arrow title="Une case n'apparaît que sur les lignes FAILED. Cochez puis cliquez 'Retry Selected'.">
-                      <Box component="span" sx={{ display: 'inline-flex', cursor: 'help' }}>
+                      <span className="inline-flex cursor-help">
                         <InfoOutlined size={14} strokeWidth={1.75} />
-                      </Box>
+                      </span>
                     </Tooltip>
                   </TableCell>
                   <TableCell>
@@ -461,7 +461,7 @@ const OutboxTab: React.FC = () => {
                               : `${evt.retryCount} tentative(s) après échec(s) précédent(s).`
                           }
                         >
-                          <Box component="span" sx={{ cursor: 'help' }}>{evt.retryCount}</Box>
+                          <span className="cursor-help">{evt.retryCount}</span>
                         </Tooltip>
                       </TableCell>
                       <TableCell>

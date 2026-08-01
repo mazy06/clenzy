@@ -59,13 +59,13 @@ function InfoRow({
   valueColor?: string;
 }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: '14px', py: '7px' }}>
+    <div className="flex items-center gap-1.5 px-3.5 py-[7px]">
       <div className="inline-flex items-center text-[var(--muted)] shrink-0">
         {icon}
       </div>
-      <Box component="span" sx={{ fontSize: ROW_LABEL_FS, color: 'var(--muted)', flexShrink: 0 }}>
+      <span className="text-[var(--muted)] shrink-0" style={{ fontSize: ROW_LABEL_FS }}>
         {label}
-      </Box>
+      </span>
       <Box
         component="span"
         sx={{
@@ -82,7 +82,7 @@ function InfoRow({
       >
         {value}
       </Box>
-    </Box>
+    </div>
   );
 }
 
@@ -151,7 +151,7 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
       }}
     >
       {/* Entête : avatar 40 + nom + canal (logo + label) */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: '12px 14px' }}>
+      <div className="flex items-center gap-[7.5px] p-[12px 14px]">
         <GuestAvatar
           name={event.label}
           photoUrl={reservation.guestAvatarUrl}
@@ -162,22 +162,22 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
           <span className="block text-[0.8125rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
             {event.label}
           </span>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: '2px' }}>
+          <div className="flex items-center gap-[3px] mt-0.5">
             {sourceLogo && (
               <img className="w-[12px] h-[12px] object-contain block" src={sourceLogo} alt="" />
             )}
             <span className="text-[0.65625rem] text-[var(--muted)]">
               {channelLabel}
             </span>
-          </Box>
+          </div>
         </div>
-      </Box>
+      </div>
 
       {/* Lignes séparées hairline (la 1ère est séparée de l'entête) */}
       <Box sx={{ '& > *': { borderTop: '1px solid var(--line)' } }}>
         <InfoRow
           icon={
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: statusColor }} />
+            <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: statusColor }} />
           }
           label="Statut"
           value={statusLabel}
@@ -219,7 +219,7 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
       </Box>
 
       {/* Pied : Message (outlined neutre) + Détail (outlined accent) */}
-      <Box sx={{ display: 'flex', gap: 1, p: '10px 14px', borderTop: '1px solid var(--line)' }}>
+      <div className="flex gap-1.5 p-[10px 14px]" style={{ borderTop: '1px solid var(--line)' }}>
         <Button
           size="small"
           variant="outlined"
@@ -256,7 +256,7 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
         >
           Détail
         </Button>
-      </Box>
+      </div>
     </Popover>
   );
 };

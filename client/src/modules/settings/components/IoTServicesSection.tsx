@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Box, IconButton, Tooltip } from '@mui/material';
+import { IconButton, Tooltip } from '@mui/material';
 import { Settings2 } from 'lucide-react';
 import OAuthProviderCard, { type OAuthApiAdapter } from './OAuthProviderCard';
 import TuyaProjectConfigDialog from './TuyaProjectConfigDialog';
@@ -145,7 +145,7 @@ export default function IoTServicesSection() {
         Une fois un service connecté, les membres de l'org ajoutent leurs appareils en quelques clics.
       </p>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 1.5 }}>
+      <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px]">
         <OAuthProviderCard
           providerId="TUYA"
           label="Tuya"
@@ -172,7 +172,7 @@ export default function IoTServicesSection() {
           mainActionDisabled={!netatmoConfigured}
           mainActionDisabledReason="Configurez d'abord l'app Netatmo (bouton ⚙)."
         />
-      </Box>
+      </div>
 
       <TuyaProjectConfigDialog
         open={configOpen}

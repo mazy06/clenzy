@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { Box, InputBase, Modal } from '@mui/material';
 import { Search, CornerDownLeft, type LucideIcon } from 'lucide-react';
 
@@ -142,7 +143,7 @@ export default function StudioCommandPalette({
                   ...(isActive && { color: 'var(--ink)' }),
                 }}
               >
-                {Icon && <Box component="span" sx={{ display: 'inline-flex', color: isActive ? 'var(--accent)' : 'var(--muted)' }}><Icon size={16} strokeWidth={2} /></Box>}
+                {Icon && <span className={cn('inline-flex', isActive ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}><Icon size={16} strokeWidth={2} /></span>}
                 <span className="flex-1 text-[var(--text-md)]">{c.label}</span>
                 {c.group && <span className="text-[var(--text-2xs)] text-[var(--faint)]">{c.group}</span>}
                 {isActive && <span className="inline-flex text-[var(--faint)]"><CornerDownLeft size={13} strokeWidth={2} /></span>}

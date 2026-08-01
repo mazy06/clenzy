@@ -276,24 +276,13 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
       {selectedPropertyId && (
         <Paper sx={{ ...CARD_SX, position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
           {calendarPricingLoading && (
-            <Box
-              sx={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'color-mix(in srgb, var(--card) 70%, transparent)',
-                zIndex: 2,
-                borderRadius: '14px',
-              }}
-            >
+            <div className="absolute inset-0 flex items-center justify-center bg-[color-mix(in_srgb,_var(--card)_70%,_transparent)] z-[2] rounded-[14px]">
               <Spinner className="size-7" />
-            </Box>
+            </div>
           )}
 
           {/* Day headers — overline (pattern entête planning) */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', mb: '2px' }}>
+          <div className="grid grid-cols-[repeat(7,_1fr)] gap-0.5 mb-0.5">
             {dayHeaders.map((label) => (
               <div className="text-center py-0.5" key={label}>
                 <span className="cn-text-caption text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em]">
@@ -301,10 +290,10 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
                 </span>
               </div>
             ))}
-          </Box>
+          </div>
 
           {/* Calendar cells */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', flex: 1 }}>
+          <div className="grid grid-cols-[repeat(7,_1fr)] gap-0.5 flex-1">
             {calendarCells.map((cell) => {
               const pricing = pricingMap.get(cell.dateStr);
               const isSelected = selectedDatesSet.has(cell.dateStr);
@@ -372,18 +361,18 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
                   )}
 
                   {pricing && (
-                    <Box sx={{ height: 3, borderRadius: 1, bgcolor: sourceColor, mt: 'auto' }} />
+                    <div className="h-[3px] rounded-[8px] mt-auto" style={{ backgroundColor: sourceColor }} />
                   )}
                 </Box>
               );
             })}
-          </Box>
+          </div>
 
           {/* Legend */}
           <div className="flex flex-wrap items-center gap-2 mt-2 pt-1.5 border-t border-[var(--line)]">
             {Object.entries(SOURCE_COLORS).map(([key, color]) => (
               <div className="flex items-center gap-0.5" key={key}>
-                <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: color }} />
+                <div className="w-[10px] h-[10px] rounded-[50%]" style={{ backgroundColor: color }} />
                 <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
                   {t(`dynamicPricing.priceSource.${key}`)}
                 </span>

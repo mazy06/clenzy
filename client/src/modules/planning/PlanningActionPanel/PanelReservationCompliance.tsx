@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
 import { Box, Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
@@ -188,24 +189,14 @@ const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({
 
               {/* Retour après action (succès / pending / erreur) */}
               {row?.message && (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    mt: 0.625,
-                    fontSize: '0.6875rem',
-                    color:
-                      row.tone === 'ok' ? 'var(--ok)' : row.tone === 'err' ? 'var(--err)' : 'var(--warn)',
-                  }}
-                >
+                <div className={cn('flex items-center gap-[3px] mt-[3.75px] text-[0.6875rem]', row.tone === 'ok' ? 'text-[var(--ok)]' : '[object Object]')}>
                   {row.tone === 'warn' && (
                     <span className="inline-flex">
                       <HourglassEmpty size={12} strokeWidth={1.75} />
                     </span>
                   )}
                   <span>{row.message}</span>
-                </Box>
+                </div>
               )}
             </div>
           );

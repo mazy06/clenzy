@@ -3,7 +3,7 @@ import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Box, Paper, alpha } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Paper, alpha } from '@mui/material';
 import { ChevronRight } from '../../../icons';
 import { propertiesApi, type Property } from '../../../services/api/propertiesApi';
 import { smartLockApi, type SmartLockBrand, type SmartLockAccessCodeMode } from '../../../services/api/smartLockApi';
@@ -125,7 +125,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
       <DialogContent>
         {/* Étape 1 — Type */}
         {step === 0 && (
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 1, mt: 1 }}>
+          <div className="grid grid-cols-[repeat(auto-fit,_minmax(140px,_1fr))] gap-1.5 mt-1.5">
             {ADDABLE.map((k) => {
               const meta = DEVICE_KINDS[k];
               const selected = kind === k;
@@ -143,12 +143,12 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
                     '&:hover': { borderColor: meta.color },
                   }}
                 >
-                  <Box sx={{ color: meta.color, display: 'inline-flex' }}>{meta.icon(22)}</Box>
+                  <div className="inline-flex" style={{ color: meta.color }}>{meta.icon(22)}</div>
                   <p className="cn-text-body2 font-semibold">{meta.label}</p>
                 </Paper>
               );
             })}
-          </Box>
+          </div>
         )}
 
         {/* Étape 2 — Service / marque */}

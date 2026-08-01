@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, CircleCheck, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Button, TextField, Grid, Alert, Snackbar } from '@mui/material';
+import { Button, TextField, Grid, Alert, Snackbar } from '@mui/material';
 import {
   Button as UiButton,
   Field,
@@ -396,9 +396,9 @@ export default function Settings() {
   // Attendre que l'utilisateur soit complètement chargé APRÈS tous les hooks
   if (!user) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+      <div className="flex justify-center items-center min-h-[400px]">
         <Spinner className="size-10" />
-      </Box>
+      </div>
     );
   }
 

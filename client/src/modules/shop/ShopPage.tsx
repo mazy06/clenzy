@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { cn } from '../../utils/cn';
 import { Alert, AlertDescription, AlertAction, Button } from '../../components/ui';
 import { CircleCheck, X } from 'lucide-react';
 import { Box, IconButton, Badge, Snackbar } from '@mui/material';
@@ -168,26 +169,14 @@ const ShopPage: React.FC = () => {
       />
 
       {/* Info banner — alerte -soft tokenisée */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1.25,
-          p: 1.5,
-          mb: 2.5,
-          borderRadius: '10px',
-          border: '1px solid',
-          borderColor: 'color-mix(in srgb, var(--info) 30%, transparent)',
-          backgroundColor: 'var(--info-soft)',
-        }}
-      >
-        <Box sx={{ color: 'var(--info)', display: 'inline-flex', mt: '1px', flexShrink: 0 }}>
+      <div className="flex items-start gap-[7.5px] p-[9px] mb-[15px] rounded-[10px] border border-solid border-[color-mix(in_srgb,_var(--info)_30%,_transparent)] bg-[var(--info-soft)]">
+        <div className="text-[var(--info)] inline-flex mt-px shrink-0">
           <CheckCircleOutline size={16} strokeWidth={1.75} />
-        </Box>
+        </div>
         <p className="cn-text-body1 text-[0.8rem] text-[var(--body)] leading-[1.5]">
           {t('shop.infoBanner')}
         </p>
-      </Box>
+      </div>
 
       {/* Category filter — pill row */}
       <div className="flex gap-1 mb-3.5 flex-wrap" role="tablist">
@@ -236,42 +225,16 @@ const ShopPage: React.FC = () => {
               }}
             >
               {t(categoryTranslationKeys[cat.id]) || cat.label}
-              <Box
-                component="span"
-                sx={{
-                  fontSize: '0.6875rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.02em',
-                  px: 0.625,
-                  py: 0.125,
-                  borderRadius: '5px',
-                  backgroundColor: active ? 'var(--accent)' : 'var(--field)',
-                  color: active ? 'var(--on-accent)' : 'var(--muted)',
-                  fontVariantNumeric: 'tabular-nums',
-                  minWidth: 16,
-                  textAlign: 'center',
-                }}
-              >
+              <span className={cn('text-[0.6875rem] font-bold tracking-[0.02em] px-[3.75px] py-[0.75px] rounded-[5px] tabular-nums min-w-[16px] text-center', active ? 'bg-[var(--accent)]' : 'bg-[var(--field)]', active ? 'text-[var(--on-accent)]' : 'text-[var(--muted)]')}>
                 {count}
-              </Box>
+              </span>
             </Box>
           );
         })}
       </div>
 
       {/* Product grid */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            md: 'repeat(3, 1fr)',
-            xl: 'repeat(4, 1fr)',
-          },
-          gap: 2,
-        }}
-      >
+      <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(3,_1fr)] min-[1536px]:grid-cols-[repeat(4,_1fr)] gap-3">
         {filteredProducts.map((product) => (
           <ProductCard
             key={product.id}
@@ -281,7 +244,7 @@ const ShopPage: React.FC = () => {
             onRemoveFromCart={() => handleRemoveFromCart(product.id)}
           />
         ))}
-      </Box>
+      </div>
 
       <CartDrawer
         open={drawerOpen}

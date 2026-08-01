@@ -91,24 +91,14 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
         <label className="text-[var(--text-sm)] text-[var(--muted)]" htmlFor="paste-format">
           Format
         </label>
-        <Box
-          component="select"
-          id="paste-format"
-          value={format}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormat(e.target.value)}
-          sx={{
-            height: 34, px: 1, fontSize: 'var(--text-sm)', color: 'var(--ink)', bgcolor: 'var(--field)',
-            border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', outline: 'none', cursor: 'pointer',
-            '&:focus': { borderColor: 'var(--accent)' },
-          }}
-        >
+        <select className="h-[34px] px-1.5 text-[var(--text-sm)] text-[var(--ink)] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[var(--radius-md)] cursor-pointer focus:border-[var(--accent)]" style={{ outline: 'none' }} id="paste-format" value={format} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormat(e.target.value)}>
           <option value={AUTO}>Détection automatique</option>
           {formats.map((f) => (
             <option key={f.id} value={f.id}>
               {f.label}
             </option>
           ))}
-        </Box>
+        </select>
       </div>
 
       {/* Zone HTML (requise). */}
@@ -130,7 +120,7 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
       {/* Zone CSS (optionnelle). */}
       <div className="flex flex-col gap-0.5">
         <label className="text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--ink)]" htmlFor="paste-css">
-          CSS <Box component="span" sx={{ color: 'var(--faint)', fontWeight: 'var(--fw-regular, 400)' }}>(optionnel)</Box>
+          CSS <span className="text-[var(--faint)]" style={{ fontWeight: 'var(--fw-regular, 400)' }}>(optionnel)</span>
         </label>
         <Box
           component="textarea"
@@ -144,9 +134,9 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
       </div>
 
       {error ? (
-        <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--err, #c0392b)' }} role="alert">
+        <div className="text-[var(--text-sm)] text-[var(--err,_#c0392b)]" role="alert">
           {error}
-        </Box>
+        </div>
       ) : null}
 
       {warnings.length > 0 ? (

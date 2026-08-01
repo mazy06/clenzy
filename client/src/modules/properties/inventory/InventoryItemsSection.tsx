@@ -181,22 +181,9 @@ function PhotoUpload({ photoUrl, onChange }: { photoUrl: string | null; onChange
           onClick={() => onChange(null)}
           title="Cliquer pour retirer la photo"
         >
-          <Box
-            className="photo-remove"
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: 'color-mix(in srgb, var(--err) 75%, transparent)',
-              color: 'var(--on-accent)',
-              opacity: 0,
-              transition: 'opacity 150ms',
-            }}
-          >
+          <div className="photo-remove absolute inset-0 flex items-center justify-center bg-[color-mix(in_srgb,_var(--err)_75%,_transparent)] text-[var(--on-accent)] opacity-0" style={{ transition: 'opacity 150ms' }}>
             <Close size={20} strokeWidth={2} />
-          </Box>
+          </div>
         </Box>
       ) : (
         <Box
@@ -243,7 +230,7 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
 
   return (
     <Card className="gap-0 py-0 p-3 mb-3 bg-[var(--surface-2)]">
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '64px 1.5fr 2fr 0.9fr 1.6fr' }, gap: 2 }}>
+      <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[64px_1.5fr_2fr_0.9fr_1.6fr] gap-3">
         {/* Photo */}
         <PhotoUpload
           photoUrl={value.photoUrl}
@@ -361,7 +348,7 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
         {/* Notes */}
         <div>
           <FieldLabel icon={<StickyNote2 size={12} strokeWidth={1.75} />}>
-            Notes <Box component="span" sx={{ fontWeight: 400, ml: 0.5, textTransform: 'none', letterSpacing: 0 }}>(optionnel)</Box>
+            Notes <span className="font-normal ms-[3px] normal-case tracking-0">(optionnel)</span>
           </FieldLabel>
           <TextField
             value={value.notes}
@@ -371,7 +358,7 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
             placeholder="Marque, modele, emplacement..."
           />
         </div>
-      </Box>
+      </div>
 
       <div className="flex justify-end gap-1.5 mt-2">
         {onCancel && (

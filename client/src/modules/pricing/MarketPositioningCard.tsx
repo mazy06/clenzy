@@ -1,8 +1,9 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Box, Skeleton, Tooltip, Typography } from '@mui/material';
+import { Skeleton, Tooltip, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, TrendingDown, Remove as Minus, Info } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -93,7 +94,7 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
       </div>
 
       {/* Double signal : votre bien vs marché */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+      <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-[9px]">
         <SignalBlock
           label={t('marketPositioning.yourProperty', 'Votre logement')}
           adr={money(data.propertyAdr)}
@@ -109,7 +110,7 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
           occLabel={t('marketPositioning.occupancy', 'Occupation')}
           muted
         />
-      </Box>
+      </div>
 
       <span className="cn-text-caption text-[var(--muted)] block mt-1.5">
         {data.headline}
@@ -126,14 +127,7 @@ const SignalBlock: React.FC<{
   occLabel: string;
   muted?: boolean;
 }> = ({ label, adr, occ, adrLabel, occLabel, muted }) => (
-  <Box
-    sx={{
-      p: 1.25,
-      borderRadius: '8px',
-      backgroundColor: muted ? 'transparent' : 'color-mix(in srgb, var(--accent) 5%, transparent)',
-      border: '1px solid var(--line)',
-    }}
-  >
+  <div className={cn('p-[7.5px] rounded-[8px] border border-solid border-[var(--line)]', muted ? 'bg-[transparent]' : 'bg-[color-mix(in_srgb,_var(--accent)_5%,_transparent)]')}>
     <span className="cn-text-caption text-[var(--muted)] block mb-0.5">
       {label}
     </span>
@@ -147,7 +141,7 @@ const SignalBlock: React.FC<{
         <Typography sx={{ ...NUM_SX, fontWeight: 700 }}>{occ}</Typography>
       </div>
     </div>
-  </Box>
+  </div>
 );
 
 export default MarketPositioningCard;

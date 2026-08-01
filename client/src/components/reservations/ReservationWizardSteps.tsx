@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import { Box, Typography } from '@mui/material';
 import { Check } from '../../icons';
 
@@ -57,26 +58,9 @@ const ReservationWizardSteps: React.FC<Props> = ({ steps, current, reachable, on
               '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '1px' },
             }}
           >
-            <Box
-              sx={{
-                width: 22,
-                height: 22,
-                borderRadius: '50%',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: 'var(--font-display)',
-                fontSize: '11.5px',
-                fontWeight: 600,
-                fontVariantNumeric: 'tabular-nums',
-                flexShrink: 0,
-                backgroundColor: state === 'current' ? 'var(--accent)' : state === 'done' ? 'var(--accent-soft)' : 'transparent',
-                color: state === 'current' ? 'var(--on-accent)' : state === 'done' ? 'var(--accent)' : 'var(--faint)',
-                border: state === 'todo' ? '1px solid var(--line-2)' : 'none',
-              }}
-            >
+            <div className={cn('w-[22px] h-[22px] rounded-[50%] inline-flex items-center justify-center text-[11.5px] font-semibold tabular-nums shrink-0', state === 'current' ? 'bg-[var(--accent)]' : '[object Object]', state === 'current' ? 'text-[var(--on-accent)]' : '[object Object]', state === 'todo' ? 'border border-solid border-[var(--line-2)]' : 'border-none')} style={{ fontFamily: 'var(--font-display)' }}>
               {state === 'done' ? <Check size={12} strokeWidth={2.5} /> : n}
-            </Box>
+            </div>
             <Typography
               component="span"
               sx={{
@@ -90,15 +74,7 @@ const ReservationWizardSteps: React.FC<Props> = ({ steps, current, reachable, on
             </Typography>
           </Box>
           {i < steps.length - 1 && (
-            <Box
-              sx={{
-                flex: 1,
-                minWidth: 12,
-                height: '1px',
-                backgroundColor: n < current ? 'var(--accent)' : 'var(--line)',
-                transition: 'background-color .14s',
-              }}
-            />
+            <div className={cn('flex-1 min-w-[12px] h-[1px]', n < current ? 'bg-[var(--accent)]' : 'bg-[var(--line)]')} style={{ transition: 'background-color .14s' }} />
           )}
         </React.Fragment>
       );

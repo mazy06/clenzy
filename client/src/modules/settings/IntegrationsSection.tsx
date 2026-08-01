@@ -479,9 +479,9 @@ export default function IntegrationsSection({
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" py={4}>
+      <div className="flex justify-center py-6">
         <Spinner className="size-8" />
-      </Box>
+      </div>
     );
   }
 
@@ -506,14 +506,7 @@ export default function IntegrationsSection({
         <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           Synchronisez vos contacts (waitlist, newsletter, leads devis) vers votre plateforme d&apos;emailing pour vos campagnes.
         </p>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 1.5,
-            mt: 1,
-          }}
-        >
+        <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
           <ServiceGridCard
             serviceTooltipId="BREVO"
             label="Brevo"
@@ -527,7 +520,7 @@ export default function IntegrationsSection({
               </div>
             }
           />
-        </Box>
+        </div>
       </Card>
       )}
       <IntegrationConfigDialog open={openMarketing} onClose={() => setOpenMarketing(false)}>
@@ -591,26 +584,9 @@ export default function IntegrationsSection({
           }}
         >
           {/* Brand tile */}
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: '10px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: PENNYLANE_BRAND,
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              letterSpacing: '0.04em',
-              flexShrink: 0,
-              
-            }}
-            aria-hidden="true"
-          >
+          <div className="w-[40px] h-[40px] rounded-[10px] inline-flex items-center justify-center text-[#fff] font-bold text-[0.85rem] tracking-[0.04em] shrink-0" style={{ backgroundColor: PENNYLANE_BRAND }} aria-hidden="true">
             {PENNYLANE_INITIALS}
-          </Box>
+          </div>
           {/* Info */}
           <div className="flex-1 min-w-0">
             <p className="cn-text-body1 font-semibold text-[0.95rem] leading-[1.25] text-foreground tracking-[-0.005em]">
@@ -811,7 +787,7 @@ export default function IntegrationsSection({
         {/* Pennylane : connexion OAuth réelle (sync factures) — carte interactive,
             hors du wrapper « Bientôt disponible » des autres logiciels compta. */}
         {matchesService('PENNYLANE') && (
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 1.5, mt: 1 }}>
+          <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
             <ServiceGridCard
               providerId="PENNYLANE"
               serviceTooltipId="PENNYLANE"
@@ -822,7 +798,7 @@ export default function IntegrationsSection({
               status={connectedProviders.has('PENNYLANE') ? 'connected' : 'idle'}
               onClick={() => setOpenSignatureProvider('PENNYLANE')}
             />
-          </Box>
+          </div>
         )}
         <Box
           aria-disabled="true"
@@ -903,7 +879,7 @@ export default function IntegrationsSection({
             carte interactive hors du wrapper « Bientôt disponible » des providers
             gouvernementaux (DGSN / Absher, partenariat officiel requis). */}
         {matchesService('CHEKIN') && (
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 1.5, mt: 1 }}>
+          <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
             <ServiceGridCard
               providerId="CHEKIN"
               label="Chekin"
@@ -914,7 +890,7 @@ export default function IntegrationsSection({
               onClick={() => setOpenComplianceProvider('CHEKIN')}
               titleAdornment={<span aria-hidden="true" style={{ fontSize: '0.85rem' }}>🇫🇷</span>}
             />
-          </Box>
+          </div>
         )}
         <Box
           aria-disabled="true"
@@ -973,14 +949,7 @@ export default function IntegrationsSection({
         </p>
         {/* Les 3 providers ont une API publique : la connexion valide les credentials
             par un appel réel (Onfido token, Sumsub/Veriff requêtes signées HMAC). */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 1.5,
-            mt: 1,
-          }}
-        >
+        <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
           {([
             { id: 'SUMSUB', label: 'Sumsub',  desc: 'Leader MENA · KYC + KYB' },
             { id: 'VERIFF', label: 'Veriff',  desc: 'Qualité/prix · EU + MENA' },
@@ -997,7 +966,7 @@ export default function IntegrationsSection({
               onClick={() => setOpenKycProvider(p)}
             />
           ))}
-        </Box>
+        </div>
       </Card>
       )}
       <IntegrationConfigDialog
@@ -1021,14 +990,7 @@ export default function IntegrationsSection({
         <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           Connectez un middleware qui agrège plusieurs OTAs en une seule API — utile pour les marchés niches ou régionaux sans intégration directe. Les OTAs eux-mêmes (Airbnb, Booking, Vrbo) restent dans la tab <strong>Channels</strong>.
         </p>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 1.5,
-            mt: 1,
-          }}
-        >
+        <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
           {([
             { id: 'CHANNEX',        label: 'Channex',        desc: '100+ OTAs · REST moderne · ~12 €/bien', comingSoon: false },
             { id: 'RENTALS_UNITED', label: 'Rentals United', desc: '60+ OTAs · EU + MENA',                  comingSoon: true  },
@@ -1050,7 +1012,7 @@ export default function IntegrationsSection({
               }}
             />
           ))}
-        </Box>
+        </div>
       </Card>
       )}
       <IntegrationConfigDialog
@@ -1084,22 +1046,22 @@ export default function IntegrationsSection({
 
       {/* ─── Section : OTAs (vitrine — gestion dans tab Channels) ────── */}
       {showSection('ota') && (
-        <Box id="section-ota" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-ota">
           <OtaShowcaseSection serviceFilter={selectedServiceId} disabled />
-        </Box>
+        </div>
       )}
 
       {/* ─── Messagerie WhatsApp : config provider ACTIVE (par org, plateforme) ───
           Pas une carte de catalogue : sélecteur d'org dédié + formulaire de config. */}
       {showSection('messaging') && (
-        <Box id="section-messaging" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-messaging">
           <IntegrationsWhatsAppConfig />
-        </Box>
+        </div>
       )}
 
       {/* ─── Sections catalogue (services informatifs avec tooltips riches) ─── */}
       {showSection('market_intelligence') && (
-        <Box id="section-market-intelligence" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-market-intelligence">
           {/* Cartes ACTIVES : la clé API saisie ici réveille l'adaptateur dormant
               au prochain cycle d'ingestion (roadmap market data). */}
           <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5">
@@ -1113,14 +1075,7 @@ export default function IntegrationsSection({
               Sans clé, le RMS fonctionne déjà avec les données réseau (first-party) et
               l'open data ; une clé active l'ingestion quotidienne du fournisseur.
             </p>
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                gap: 1.5,
-                mt: 1,
-              }}
-            >
+            <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
               {([
                 { id: 'AIRBTICS', label: 'Airbtics', desc: 'Fournisseur cible · Maroc + MAD natif · API key' },
                 { id: 'AIRROI',   label: 'AirROI',   desc: 'Appoint pay-per-call (~0,01 $/appel) · API key' },
@@ -1136,7 +1091,7 @@ export default function IntegrationsSection({
                   onClick={() => setOpenMarketDataProvider(p)}
                 />
               ))}
-            </Box>
+            </div>
           </Card>
           <IntegrationConfigDialog
             open={openMarketDataProvider !== null}
@@ -1156,10 +1111,10 @@ export default function IntegrationsSection({
             title="Intelligence de marché — catalogue"
             description="Autres fournisseurs de données de marché (informatif)."
           />
-        </Box>
+        </div>
       )}
       {showSection('tax_automation') && (
-      <Box id="section-tax" sx={{ scrollMarginTop: 80 }}>
+      <div className="scroll-mt-[80px]" id="section-tax">
         <ServiceCatalogSection
           serviceFilter={selectedServiceId}
           category="tax_automation"
@@ -1167,10 +1122,10 @@ export default function IntegrationsSection({
           description="Calcul, collecte et déclaration automatique de la taxe de séjour. Compatible barèmes France et international. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
           configForService={partnerConfigForService}
         />
-      </Box>
+      </div>
       )}
       {showSection('insurance') && (
-        <Box id="section-insurance" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-insurance">
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="insurance"
@@ -1178,10 +1133,10 @@ export default function IntegrationsSection({
             description="Vérification des guests, caution dommages, assurances annulation. Réduisez les risques et générez du revenu d'affiliation. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
             configForService={partnerConfigForService}
           />
-        </Box>
+        </div>
       )}
       {showSection('cleaning_operations') && (
-        <Box id="section-cleaning" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-cleaning">
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="cleaning_operations"
@@ -1189,15 +1144,15 @@ export default function IntegrationsSection({
             description="Marketplaces de cleaners, checklists photo, gestion des inspections. Industrialisez les turnovers. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
             configForService={partnerConfigForService}
           />
-        </Box>
+        </div>
       )}
       {(showSection('smart_locks_iot') || showSection('noise_monitoring')) && (
-        <Box id="section-smart-locks" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-smart-locks">
           <IoTServicesSection />
-        </Box>
+        </div>
       )}
       {showSection('key_management') && (
-        <Box id="section-key-management" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-key-management">
           <ServiceCatalogSection
             disabled
             serviceFilter={selectedServiceId}
@@ -1205,10 +1160,10 @@ export default function IntegrationsSection({
             title="Gestion des clés"
             description="Réseaux de gardiens de clés pour les logements sans serrure connectée. Solution propriétaire Baitly ou partenaires externes."
           />
-        </Box>
+        </div>
       )}
       {showSection('activities_affiliate') && (
-        <Box id="section-activities" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-activities">
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="activities_affiliate"
@@ -1216,10 +1171,10 @@ export default function IntegrationsSection({
             description="Vendez des activités à vos guests en cross-sell. Commission affiliée 8-20 % par réservation."
             configForService={activityConfigForService}
           />
-        </Box>
+        </div>
       )}
       {showSection('reviews_reputation') && (
-        <Box id="section-reviews" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-reviews">
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="reviews_reputation"
@@ -1227,10 +1182,10 @@ export default function IntegrationsSection({
             description="Agrégation multi-canaux, sentiment analysis, automated responses. Suivez votre réputation cross-OTA. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
             configForService={partnerConfigForService}
           />
-        </Box>
+        </div>
       )}
       {showSection('marketing_crm') && (
-        <Box id="section-marketing" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-marketing">
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="marketing_crm"
@@ -1238,10 +1193,10 @@ export default function IntegrationsSection({
             description="Email marketing, automation, CRM commercial pour acquisition de nouveaux propriétaires et campagnes guest. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
             configForService={partnerConfigForService}
           />
-        </Box>
+        </div>
       )}
       {showSection('automation') && (
-        <Box id="section-automation" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-automation">
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="automation"
@@ -1249,10 +1204,10 @@ export default function IntegrationsSection({
             description="Connectez Baitly à des milliers d'apps via Zapier ou Make : collez l'URL de votre webhook et un secret de signature — l'émission des événements (réservations, check-ins, interventions) sera activée ensuite."
             configForService={partnerConfigForService}
           />
-        </Box>
+        </div>
       )}
       {showSection('guest_experience') && (
-        <Box id="section-guest-experience" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-guest-experience">
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="guest_experience"
@@ -1260,7 +1215,7 @@ export default function IntegrationsSection({
             description="Guest apps, check-in en ligne, upsells et boarding pass digital — en complément du livret d'accueil natif Baitly. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
             configForService={partnerConfigForService}
           />
-        </Box>
+        </div>
       )}
 
       {/* ─── Disconnect confirmation dialog ────────────────────────────── */}

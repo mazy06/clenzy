@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { useQuery } from '@tanstack/react-query';
 import { Box, ButtonBase, CircularProgress } from '@mui/material';
 import { MessageCircle, X, Send } from 'lucide-react';
@@ -100,31 +101,24 @@ export default function PublicConcierge({ apiKey }: { apiKey: string }) {
             boxShadow: '0 18px 48px rgba(20,24,28,0.28)',
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, height: 52, flexShrink: 0,
-            bgcolor: 'var(--accent, #5453D6)', color: 'var(--on-accent, #fff)' }}>
+          <div className="flex items-center gap-1.5 px-3 h-[52px] shrink-0 bg-[var(--accent,_#5453D6)] text-[var(--on-accent,_#fff)]">
             <MessageCircle size={18} strokeWidth={2} />
             <div className="flex-1 font-bold text-[15px]">Concierge</div>
             <ButtonBase onClick={() => setOpen(false)} aria-label="Fermer" sx={{ width: 30, height: 30, borderRadius: '50%', color: 'inherit', cursor: 'pointer', '&:hover': { bgcolor: 'rgba(255,255,255,0.18)' } }}>
               <X size={18} strokeWidth={2} />
             </ButtonBase>
-          </Box>
+          </div>
 
           <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5" ref={scrollRef}>
             {messages.length === 0 && (
-              <Box sx={{ m: 'auto', textAlign: 'center', color: 'var(--muted, #6b7280)', fontSize: 13.5, px: 2, lineHeight: 1.5 }}>
+              <div className="m-auto text-center text-[var(--muted,_#6b7280)] text-[13.5px] px-3 leading-[1.5]">
                 Bonjour ! Une question sur les logements, l'arrivée, les équipements ? Je suis là pour vous aider.
-              </Box>
+              </div>
             )}
             {messages.map((m, i) => (
-              <Box key={i} sx={{
-                alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-                maxWidth: '85%', px: 1.5, py: 1, borderRadius: 'var(--radius-md, 12px)',
-                fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap',
-                bgcolor: m.role === 'user' ? 'var(--accent, #5453D6)' : 'var(--field, #f3f4f6)',
-                color: m.role === 'user' ? 'var(--on-accent, #fff)' : 'var(--ink, #14181c)',
-              }}>
+              <div className={cn('max-w-[85%] px-[9px] py-1.5 rounded-[var(--radius-md,_12px)] text-[14px] leading-[1.5] whitespace-pre-wrap', m.role === 'user' ? 'self-end' : 'self-start', m.role === 'user' ? 'bg-[var(--accent,_#5453D6)]' : 'bg-[var(--field,_#f3f4f6)]', m.role === 'user' ? 'text-[var(--on-accent,_#fff)]' : 'text-[var(--ink,_#14181c)]')} key={i}>
                 {m.content}
-              </Box>
+              </div>
             ))}
             {loading && (
               <div className="self-start px-2 py-1.5">
@@ -133,25 +127,13 @@ export default function PublicConcierge({ apiKey }: { apiKey: string }) {
             )}
           </div>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.25, borderTop: '1px solid var(--line, #e5e7eb)', flexShrink: 0 }}>
-            <Box
-              component="input"
-              value={input}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
-              onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') send(); }}
-              placeholder="Posez votre question…"
-              aria-label="Votre question"
-              sx={{
-                flex: 1, height: 40, px: 1.5, fontSize: 14, color: 'var(--ink, #14181c)',
-                bgcolor: 'var(--field, #f3f4f6)', border: '1px solid var(--line, #e5e7eb)', borderRadius: 'var(--radius-md, 12px)',
-                outline: 'none', '&:focus': { borderColor: 'var(--accent, #5453D6)' },
-              }}
-            />
+          <div className="flex items-center gap-1.5 p-[7.5px] shrink-0" style={{ borderTop: '1px solid var(--line, #e5e7eb)' }}>
+            <input className="flex-1 h-[40px] px-[9px] text-[14px] text-[var(--ink,_#14181c)] bg-[var(--field,_#f3f4f6)] border border-solid border-[var(--line,_#e5e7eb)] rounded-[var(--radius-md,_12px)] focus:border-[var(--accent,_#5453D6)]" style={{ outline: 'none' }} value={input} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)} onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') send(); }} placeholder="Posez votre question…" aria-label="Votre question" />
             <ButtonBase onClick={send} disabled={loading || !input.trim()} aria-label="Envoyer"
               sx={{ width: 40, height: 40, flexShrink: 0, borderRadius: 'var(--radius-md, 12px)', bgcolor: 'var(--accent, #5453D6)', color: 'var(--on-accent, #fff)', cursor: 'pointer', '&.Mui-disabled': { opacity: 0.5 }, '&:hover': { bgcolor: 'var(--accent-deep, #4140b0)' } }}>
               <Send size={17} strokeWidth={2} />
             </ButtonBase>
-          </Box>
+          </div>
         </Box>
       )}
     </>

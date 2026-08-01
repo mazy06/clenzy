@@ -6,7 +6,7 @@
    ============================================================ */
 
 import { useCallback, useState } from 'react';
-import { Box } from '@mui/material';
+
 import { ScopeSwitch, type SupervisionScope } from './ScopeSwitch';
 import { SupervisionPanel } from './SupervisionPanel';
 import { PortfolioPanel } from './PortfolioPanel';
@@ -75,7 +75,7 @@ export function SupervisionView({
       {scope === 'property' ? (
         // Hôte autonome (démo/spike) : hauteur responsive bornée pour que le
         // panneau (height:100%) ait une hauteur définie à remplir.
-        <Box sx={{ height: 'clamp(460px, calc(100dvh - 220px), 760px)' }}>
+        <div className="h-[clamp(460px,_calc(100dvh_-_220px),_760px)]">
           <SupervisionPanel
             createProvider={propertyFactory}
             deps={[propertyId]}
@@ -83,7 +83,7 @@ export function SupervisionView({
             onActing={onActing}
             onEditAction={onEditAction}
           />
-        </Box>
+        </div>
       ) : (
         <PortfolioPanel createProvider={portfolioFactory} deps={['portfolio']} onEditAction={onEditAction} />
       )}

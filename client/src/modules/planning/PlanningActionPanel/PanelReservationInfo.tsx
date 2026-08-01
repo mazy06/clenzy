@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
 import { Alert, Box, IconButton, TextField } from '@mui/material';
@@ -193,13 +194,13 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
                   {reservation.guestName}
                 </span>
                 {onUpdateGuestInfo && (
-                  <Box component="span" className="edit-icon" sx={{ display: 'inline-flex', color: 'var(--faint)', opacity: 0, transition: 'opacity var(--duration-fast) var(--ease-out)' }}>
+                  <span className="edit-icon inline-flex text-[var(--faint)] opacity-0" style={{ transition: 'opacity var(--duration-fast) var(--ease-out)' }}>
                     <Edit size={14} strokeWidth={1.75} />
-                  </Box>
+                  </span>
                 )}
               </Box>
             )}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mt: '3px' }}>
+            <div className="flex items-center gap-[3.75px] mt-[3px]">
               {sourceLogo && (
                 <img className="w-[13px] h-[13px] object-contain block" src={sourceLogo} alt="" />
               )}
@@ -207,10 +208,10 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
                 {channelLabel}
               </span>
               <span className="text-[0.75rem] text-[var(--faint)]">·</span>
-              <Box component="span" sx={{ fontSize: '0.75rem', fontWeight: 600, color: statusColor }}>
+              <span className="text-[0.75rem] font-semibold" style={{ color: statusColor }}>
                 {statusLabel}
-              </Box>
-            </Box>
+              </span>
+            </div>
           </div>
         </div>
 
@@ -309,12 +310,12 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
         {fmtBigDate(date)}
       </span>
       {time && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.375, justifyContent: align === 'right' ? 'flex-end' : 'flex-start' }}>
+        <div className={cn('flex items-center gap-[3px] mt-[2.25px]', align === 'right' ? 'justify-end' : 'justify-start')}>
           <span className="inline-flex text-[var(--muted)]"><Schedule size={12} strokeWidth={1.75} /></span>
           <span className="text-[0.75rem] font-semibold text-[var(--muted)] tabular-nums">
             {time}
           </span>
-        </Box>
+        </div>
       )}
     </Box>
   );

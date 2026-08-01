@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box } from '@mui/material';
+import { cn } from '../../../utils/cn';
+
 import { CheckCircle as CheckCircleIcon, ErrorOutline as AlertCircleIcon } from '../../../icons';
 import type { ToolCallExecuted } from '../../../hooks/useAgent';
 
@@ -18,20 +19,7 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({ call }) => {
   const isError = Boolean(call.toolError);
 
   return (
-    <Box
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 0.75,
-        height: 22,
-        px: '10px',
-        mr: 0.75,
-        mb: 0.5,
-        borderRadius: 999,
-        bgcolor: isError ? 'var(--err-soft)' : 'var(--ok-soft)',
-        color: isError ? 'var(--err)' : 'var(--ok)',
-      }}
-    >
+    <div className={cn('inline-flex items-center gap-[4.5px] h-[22px] px-2.5 me-[4.5px] mb-[3px] rounded-[7992px]', isError ? 'bg-[var(--err-soft)]' : 'bg-[var(--ok-soft)]', isError ? 'text-[var(--err)]' : 'text-[var(--ok)]')}>
       {isError ? (
         <AlertCircleIcon size={12} strokeWidth={1.75} />
       ) : (
@@ -45,6 +33,6 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({ call }) => {
           erreur
         </span>
       )}
-    </Box>
+    </div>
   );
 };

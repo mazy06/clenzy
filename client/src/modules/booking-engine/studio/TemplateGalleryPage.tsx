@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box } from '@mui/material';
+
 import { LayoutGrid, Plus } from 'lucide-react';
 import PageHeader from '../../../components/PageHeader';
 import { bookingEngineApi } from '../../../services/api/bookingEngineApi';
@@ -69,23 +69,16 @@ export default function TemplateGalleryPage() {
   }, [creating, navigate]);
 
   return (
-    <Box className="be-home" data-accent="indigo" sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'var(--bg)', px: { xs: 2, md: 4 }, py: { xs: 2, md: 3 } }}>
+    <div className="be-home h-[100vh] flex flex-col bg-[var(--bg)] px-3 min-[900px]:px-6 py-3 min-[900px]:py-[18px]" data-accent="indigo">
       <div className="shrink-0">
         <PageHeader
           title="Tous les templates"
           subtitle="Choisissez un modèle pour démarrer votre booking engine"
           iconBadge={<LayoutGrid />}
           titleAdornment={
-            <Box
-              component="span"
-              sx={{
-                fontSize: 12, fontWeight: 600, color: 'var(--muted)',
-                bgcolor: 'var(--hover)', borderRadius: 999, px: 1, py: '2px',
-                fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
-              }}
-            >
+            <span className="text-[12px] font-semibold text-[var(--muted)] bg-[var(--hover)] rounded-[7992px] px-1.5 py-0.5 tabular-nums whitespace-nowrap">
               {total} modèles
-            </Box>
+            </span>
           }
           onBack={() => navigate(-1)}
           backLabel="Retour"
@@ -133,6 +126,6 @@ export default function TemplateGalleryPage() {
           <PagePagination totalPages={pageCount} page={page - 1} onPageChange={(p) => setPage(p + 1)} />
         </div>
       )}
-    </Box>
+    </div>
   );
 }

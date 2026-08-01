@@ -71,18 +71,18 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
       <Box sx={{ borderRadius: '12px', border: '1px solid var(--line)', backgroundColor: 'var(--surface-2)', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <Typography sx={SEC_SX}>{t('reservations.dialog.recapTitle')}</Typography>
         {recapRows.map((row) => (
-          <Box key={row.label} sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px' }}>
+          <div className="flex items-baseline justify-between gap-3" key={row.label}>
             <p className="cn-text-body1 text-[12px] font-semibold text-[var(--muted)] shrink-0">{row.label}</p>
             <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{row.value}</Typography>
-          </Box>
+          </div>
         ))}
         <Box sx={{ height: '1px', backgroundColor: 'var(--line)', margin: '2px 0' }} />
-        <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px' }}>
+        <div className="flex items-baseline justify-between gap-3">
           <p className="cn-text-body1 text-[12px] font-bold text-[var(--ink)]">{t('reservations.dialog.recapTotal')}</p>
           <p className="cn-text-body1 font-[var(--font-display)] text-[18px] font-semibold text-[var(--accent-deep)] tabular-nums">
             {form.totalPrice.toFixed(2)} €
           </p>
-        </Box>
+        </div>
       </Box>
     </>
   );

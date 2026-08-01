@@ -314,9 +314,9 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
           <Grid item xs={6} sm={4} md key={kpi.label}>
             <Card sx={KPI_CARD_SX}>
               <CardContent sx={{ p: '12px !important', '&:last-child': { pb: '12px !important' } }}>
-                <Box sx={{ color: kpi.color, mb: 0.5 }}>
+                <div className="mb-[3px]" style={{ color: kpi.color }}>
                   {React.cloneElement(kpi.icon, { sx: { fontSize: '1.5rem' } })}
-                </Box>
+                </div>
                 <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: kpi.color }}>
                   {kpi.value}
                 </Typography>
@@ -344,15 +344,7 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                   <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground mb-0.5">
                     {fmtCurrency(revenue)}
                   </p>
-                  <Box
-                    sx={{
-                      width: '100%',
-                      height: `${barHeight}%`,
-                      minHeight: 4,
-                      backgroundColor: '#4A9B8E',
-                      borderRadius: '4px 4px 0 0',
-                    }}
-                  />
+                  <div className="w-full min-h-[4px] bg-[#4A9B8E] rounded-[4px_4px_0_0]" style={{ height: `${barHeight}%` }} />
                   <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground mt-0.5">
                     {month.slice(-2)}
                   </p>

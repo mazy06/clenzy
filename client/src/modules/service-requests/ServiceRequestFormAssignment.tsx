@@ -3,16 +3,7 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { SELECT_CHIP_CLASS } from './serviceRequestsListConstants';
 import { Badge } from '../../components/ui';
-import {
-  Box,
-  Grid,
-  Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  } from '@mui/material';
+import { Grid, Typography, FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
 import { Person, Group, BlockOutlined } from '../../icons';
 import { Controller, Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
@@ -243,9 +234,9 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                       renderValue={() => (
                         <div className="flex items-center gap-1">
                           {watchedAssignedToType === 'user' ? (
-                            <Box component="span" sx={{ display: 'inline-flex', color: hasValue ? 'var(--accent)' : 'var(--faint)' }}><Person size={16} strokeWidth={1.75} /></Box>
+                            <span className={cn('inline-flex', hasValue ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Person size={16} strokeWidth={1.75} /></span>
                           ) : (
-                            <Box component="span" sx={{ display: 'inline-flex', color: hasValue ? 'var(--accent)' : 'var(--faint)' }}><Group size={16} strokeWidth={1.75} /></Box>
+                            <span className={cn('inline-flex', hasValue ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Group size={16} strokeWidth={1.75} /></span>
                           )}
                           <Typography sx={{ fontSize: '12.5px', color: hasValue ? 'var(--body)' : 'var(--faint)' }}>
                             {hasValue
@@ -261,7 +252,7 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                         ? getAssignableUsers().map((user) => (
                             <MenuItem key={user.id} value={user.id}>
                               <div className="flex items-center gap-1 w-full">
-                                <Box component="span" sx={{ display: 'inline-flex', color: matchingSet.has(user.id) ? 'var(--ok)' : 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
+                                <span className={cn('inline-flex', matchingSet.has(user.id) ? 'text-[var(--ok)]' : 'text-[var(--accent)]')}><Person size={16} strokeWidth={1.75} /></span>
                                 <div className="flex-1 min-w-0">
                                   <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                                     {user.firstName} {user.lastName}

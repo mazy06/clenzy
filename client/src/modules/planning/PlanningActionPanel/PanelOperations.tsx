@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
@@ -929,13 +930,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       {intervention && (
         <div>
           <div className="flex items-center gap-1.5 mb-1.5">
-            <Box component="span" sx={{ display: 'inline-flex', color: intervention.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
+            <span className="inline-flex" style={{ color: intervention.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
               {intervention.type === 'cleaning' ? (
                 <BroomFill size={20} />
               ) : (
                 <WrenchFill size={19} />
               )}
-            </Box>
+            </span>
             <h6 className="cn-text-subtitle2 font-bold">
               {intervention.title}
             </h6>
@@ -1045,9 +1046,9 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           '&:hover .sr-arrow': { opacity: 1, transform: 'translateX(2px)' },
                         }}
                       >
-                        <Box component="span" sx={{ display: 'inline-flex', mt: '2px', color: srTypeColor }}>
+                        <span className="inline-flex mt-0.5" style={{ color: srTypeColor }}>
                           {isCleaningSr ? <BroomFill size={14} /> : <WrenchFill size={13} />}
-                        </Box>
+                        </span>
                         <div className="flex-1 min-w-0">
                           <p className="cn-text-body1 text-[0.75rem] font-semibold text-[var(--ink)] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap">
                             {sr.title}
@@ -1262,18 +1263,18 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           '&:hover .drill-arrow': { opacity: 1, transform: 'translateX(2px)' },
                         }}
                       >
-                        <Box component="span" sx={{ display: 'inline-flex', mt: '2px', color: li.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
+                        <span className="inline-flex mt-0.5" style={{ color: li.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
                           {li.type === 'cleaning' ? <BroomFill size={15} /> : <WrenchFill size={14} />}
-                        </Box>
+                        </span>
                         <div className="flex-1 min-w-0">
                           <p className="cn-text-body1 text-[0.75rem] font-semibold text-[var(--ink)] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap">
                             {li.title}
                           </p>
                           {/* Assigné : sous-ligne discrète (libère la place, plus de chip vert) */}
                           <div className="flex items-center gap-0.5 mt-0">
-                            <Box component="span" sx={{ display: 'inline-flex', color: isAssigned ? 'var(--muted)' : 'var(--warn)' }}>
+                            <span className={cn('inline-flex', isAssigned ? 'text-[var(--muted)]' : 'text-[var(--warn)]')}>
                               {isAssigned ? <Groups size={11} strokeWidth={1.75} /> : <HourglassEmpty size={11} strokeWidth={1.75} />}
-                            </Box>
+                            </span>
                             <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: isAssigned ? 'var(--muted)' : 'var(--warn)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {isAssigned ? li.assigneeName : 'Non assigné'}
                             </Typography>
@@ -1301,12 +1302,9 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         )}
                         {/* Visibilité planning : icône seule, poussée à droite */}
                         <Tooltip title={isOnPlanning ? 'Visible sur le planning' : 'Non visible sur le planning (attribution et paiement requis)'}>
-                          <Box
-                            component="span"
-                            sx={{ ml: 'auto', display: 'inline-flex', alignItems: 'center', color: isOnPlanning ? 'var(--ok)' : 'var(--faint)' }}
-                          >
+                          <span className={cn('ms-auto inline-flex items-center', isOnPlanning ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}>
                             {isOnPlanning ? <Visibility size={13} strokeWidth={1.75} /> : <VisibilityOff size={13} strokeWidth={1.75} />}
-                          </Box>
+                          </span>
                         </Tooltip>
                       </div>
 
@@ -1534,7 +1532,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               }}
             >
               <div className="flex items-center gap-1.5">
-                <Box component="span" sx={{ display: 'inline-flex', color: assignAutoMode ? 'var(--accent)' : 'var(--muted)' }}><AutoFixHigh size={18} strokeWidth={1.75} /></Box>
+                <span className={cn('inline-flex', assignAutoMode ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}><AutoFixHigh size={18} strokeWidth={1.75} /></span>
                 <div>
                   <p className="cn-text-body2 font-semibold text-[0.8125rem] leading-[1.2]">
                     Assignation automatique
@@ -1690,7 +1688,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         }}
                       >
                         <div className="flex items-center gap-1.5">
-                          <Box component="span" sx={{ display: 'inline-flex', color: member.available ? 'var(--ok)' : 'var(--faint)' }}><Person size={15} strokeWidth={1.75} /></Box>
+                          <span className={cn('inline-flex', member.available ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}><Person size={15} strokeWidth={1.75} /></span>
                           <div>
                             <Typography
                               variant="body2"

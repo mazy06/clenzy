@@ -402,9 +402,9 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
               <Divider />
               <div>
                 <p className="cn-text-body1 text-[0.6875rem] font-semibold uppercase text-muted-foreground mb-1">
-                  <Box component="span" sx={{ display: 'inline-flex', mr: 0.25, verticalAlign: 'middle' }}>
+                  <span className="inline-flex me-[1.5px] align-[middle]">
                     <CalendarMonth size={12} strokeWidth={1.75} />
-                  </Box>
+                  </span>
                   Historique des sejours ({guestReservations.length})
                 </p>
                 <div className="flex flex-col gap-0.5">

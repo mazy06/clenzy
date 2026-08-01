@@ -30,19 +30,7 @@ function PeriodSegmentedInner<T extends string>({
   ariaLabel,
 }: PeriodSegmentedProps<T>) {
   return (
-    <Box
-      role="group"
-      aria-label={ariaLabel}
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '2px',
-        p: '3px',
-        borderRadius: '10px',
-        bgcolor: 'var(--field)',
-        border: '1px solid var(--field-line)',
-      }}
-    >
+    <div className="inline-flex items-center gap-0.5 p-[3px] rounded-[10px] bg-[var(--field)] border border-solid border-[var(--field-line)]" role="group" aria-label={ariaLabel}>
       {options.map((opt) => {
         const selected = opt.value === value;
         return (
@@ -76,7 +64,7 @@ function PeriodSegmentedInner<T extends string>({
           </Box>
         );
       })}
-    </Box>
+    </div>
   );
 }
 

@@ -67,12 +67,12 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
             padding: '13px 16px',
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '13.5px', fontWeight: 700, color: 'var(--ink)' }}>
+          <div className="flex items-center gap-[9px] text-[13.5px] font-bold text-[var(--ink)]">
             <span className="inline-flex text-[var(--err)]">
               <WarningIcon size={17} strokeWidth={1.75} />
             </span>
             {title}
-          </Box>
+          </div>
           <p className="cn-text-body1 text-[12.5px] text-[var(--body)] mt-1">
             {description}
           </p>

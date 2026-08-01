@@ -115,14 +115,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const canSubmit = (value.trim().length > 0 || attachments.length > 0) && !isBusy && !isUploading;
 
   return (
-    <Box
-      sx={{
-        // Réf .mg-compose : zone compose sur carte, filet hairline au-dessus.
-        bgcolor: 'var(--card)',
-        borderTop: '1px solid var(--line)',
-        py: '14px',
-      }}
-    >
+    <div className="bg-[var(--card)] py-3.5" style={{ borderTop: '1px solid var(--line)' }}>
       {/* Input file cache — pilote par le bouton Paperclip */}
       <input
         ref={fileInputRef}
@@ -139,16 +132,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
       {/* Conteneur centre, meme contrainte que MessageList (760px) pour
           aligner visuellement input <-> messages. */}
-      <Box
-        sx={{
-          maxWidth: 760,
-          mx: 'auto',
-          px: { xs: 2, md: 3 },
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1,
-        }}
-      >
+      <div className="max-w-[760px] mx-auto px-3 min-[900px]:px-[18px] flex flex-col gap-1.5">
       {/* Thumbnails preview au-dessus du textarea — uniquement si attachments */}
       {attachments.length > 0 && (
         <div className="flex gap-1 flex-wrap items-center">
@@ -294,7 +278,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </IconButton>
         )}
       </Box>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };

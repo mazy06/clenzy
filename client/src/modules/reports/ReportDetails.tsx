@@ -244,7 +244,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
       )}
       {payload.map((entry) => (
         <div className="flex items-center gap-1" key={entry.name}>
-          <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: entry.color || 'var(--accent)', flexShrink: 0 }} />
+          <div className="w-[8px] h-[8px] rounded-[2px] shrink-0" style={{ backgroundColor: entry.color || 'var(--accent)' }} />
           <p className="cn-text-body1 text-[11.5px] font-semibold text-[var(--bg)] tabular-nums">
             {entry.name}: {entry.value}
           </p>
@@ -1016,7 +1016,7 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                       const colors = ['var(--ok)', 'var(--info)', 'var(--warn)'];
                       return (
                         <div className="flex items-center gap-1" key={s.label}>
-                          <Box sx={{ width: 9, height: 9, borderRadius: '3px', bgcolor: colors[i], flexShrink: 0 }} />
+                          <div className="w-[9px] h-[9px] rounded-[3px] shrink-0" style={{ backgroundColor: colors[i] }} />
                           <div>
                             <p className="cn-text-body1 text-[11.5px] font-semibold text-[var(--ink)] leading-[1.2]">
                               {s.label}

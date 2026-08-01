@@ -133,18 +133,7 @@ export default function ChannexHealthBadge({
         aria-label={meta.label}
       >
         {variant === 'icon' ? (
-          <Box
-            sx={{
-              position: 'relative',
-              width: size + 8,
-              height: size + 8,
-              borderRadius: '50%',
-              bgcolor: `color-mix(in srgb, ${meta.color} 10%, transparent)`,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+          <div className="relative rounded-[50%] inline-flex items-center justify-center" style={{ width: size + 8, height: size + 8, backgroundColor: `color-mix(in srgb, ${meta.color} 10%, transparent)` }}>
             <Cable size={size} strokeWidth={2.2} />
             {/* Dot exposant en bas a droite */}
             <Box
@@ -165,7 +154,7 @@ export default function ChannexHealthBadge({
                 '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
               }}
             />
-          </Box>
+          </div>
         ) : (
           <Box
             sx={{

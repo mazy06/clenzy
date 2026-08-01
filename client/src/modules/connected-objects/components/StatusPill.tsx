@@ -17,18 +17,7 @@ interface StatusPillProps {
 export default function StatusPill({ level, label, pulse = false }: StatusPillProps) {
   const { color, soft } = STATUS_TOKENS[level];
   return (
-    <Box
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 0.625,
-        px: 0.875,
-        py: 0.25,
-        borderRadius: 'var(--radius-pill)',
-        bgcolor: soft,
-        maxWidth: '100%',
-      }}
-    >
+    <div className="inline-flex items-center gap-[3.75px] px-[5.25px] py-[1.5px] rounded-[var(--radius-pill)] max-w-full" style={{ backgroundColor: soft }}>
       <Box
         component="span"
         sx={{
@@ -62,6 +51,6 @@ export default function StatusPill({ level, label, pulse = false }: StatusPillPr
       >
         {label}
       </Typography>
-    </Box>
+    </div>
   );
 }

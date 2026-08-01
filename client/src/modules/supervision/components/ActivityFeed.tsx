@@ -117,30 +117,18 @@ function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEnt
                 : {}),
             }}
           >
-            <Box
-              sx={{
-                width: 26,
-                height: 26,
-                borderRadius: '8px',
-                background: isOrchestrator ? 'var(--accent)' : meta.color,
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
+            <div className="w-[26px] h-[26px] rounded-[8px] text-[#fff] flex items-center justify-center shrink-0" style={{ background: isOrchestrator ? 'var(--accent)' : meta.color }}>
               {isOrchestrator ? <AutoAwesome size={14} strokeWidth={1.75} /> : (toolIcon ?? <AgentIcon token={meta.icon} size={14} />)}
-            </Box>
+            </div>
             <div className="min-w-0 flex-1">
-              <Box sx={{ fontSize: 11, color: 'var(--muted, #6b7196)', fontVariantNumeric: 'tabular-nums' }}>
+              <div className="text-[11px] text-[var(--muted,_#6b7196)] tabular-nums">
                 {hhmm(entry.at)}
                 {propertyName ? ` · ${propertyName}` : ''}
-              </Box>
+              </div>
               <div className="flex items-center gap-0.5 justify-between">
-                <Box sx={{ fontSize: 12.5, color: 'var(--ink, #1b2240)', lineHeight: 1.4, minWidth: 0 }}>
+                <div className="text-[12.5px] text-[var(--ink,_#1b2240)] leading-[1.4] min-w-0">
                   {labelFor(entry)}
-                </Box>
+                </div>
                 {detail && (
                   <IconButton
                     size="small"
@@ -162,9 +150,9 @@ function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEnt
                 )}
               </div>
               {detail && isOpen && (
-                <Box sx={{ fontSize: 11.5, color: 'var(--muted, #6b7196)', lineHeight: 1.35, mt: 0.25, wordBreak: 'break-word' }}>
+                <div className="text-[11.5px] text-[var(--muted,_#6b7196)] leading-[1.35] mt-[1.5px] break-words">
                   {detail}
-                </Box>
+                </div>
               )}
             </div>
           </Box>

@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { cn } from '../utils/cn';
 import { Box, IconButton, Dialog } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
 import { ChevronLeft, ChevronRight, Close, Fullscreen, ImageNotSupported } from '../icons';
@@ -153,30 +154,11 @@ export function PropertyImageCarousel({
             >
               <ChevronRight size={navIconSize} strokeWidth={1.75} />
             </IconButton>
-            <Box
-              sx={{
-                position: 'absolute',
-                bottom: alwaysShowNav ? 10 : 2,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                display: 'flex',
-                gap: alwaysShowNav ? 0.75 : 0.25,
-                pointerEvents: 'none',
-              }}
-            >
+            <div className={cn('absolute start-[50%] flex pointer-events-none', alwaysShowNav ? 'bottom-[10px]' : 'bottom-[2px]', alwaysShowNav ? 'gap-[4.5px]' : 'gap-[1.5px]')} style={{ transform: 'translateX(-50%)' }}>
               {urls.map((url, i) => (
-                <Box
-                  key={url}
-                  sx={{
-                    width: alwaysShowNav ? 8 : 4,
-                    height: alwaysShowNav ? 8 : 4,
-                    borderRadius: '50%',
-                    bgcolor: i === index ? '#fff' : 'rgba(255,255,255,0.55)',
-                    border: '0.5px solid rgba(0,0,0,0.25)',
-                  }}
-                />
+                <div className={cn('rounded-[50%] border-[0.5px] border-solid border-[rgba(0,0,0,0.25)]', alwaysShowNav ? 'w-[8px]' : 'w-[4px]', alwaysShowNav ? 'h-[8px]' : 'h-[4px]', i === index ? 'bg-[#fff]' : 'bg-[rgba(255,255,255,0.55)]')} key={url} />
               ))}
-            </Box>
+            </div>
           </>
         )}
 
@@ -187,27 +169,9 @@ export function PropertyImageCarousel({
         )}
 
         {canFullscreen && (
-          <Box
-            className="carousel-fullscreen-hint"
-            sx={{
-              position: 'absolute',
-              bottom: 8,
-              right: 8,
-              width: 32,
-              height: 32,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 1,
-              bgcolor: 'rgba(0,0,0,0.55)',
-              color: '#fff',
-              opacity: alwaysShowNav ? 0.85 : 0,
-              transition: 'opacity 0.15s ease',
-              pointerEvents: 'none',
-            }}
-          >
+          <div className={cn('carousel-fullscreen-hint absolute bottom-[8px] end-[8px] w-[32px] h-[32px] flex items-center justify-center rounded-[8px] bg-[rgba(0,0,0,0.55)] text-[#fff] pointer-events-none', alwaysShowNav ? 'opacity-85' : 'opacity-0')} style={{ transition: 'opacity 0.15s ease' }}>
             <Fullscreen size={20} strokeWidth={1.75} />
-          </Box>
+          </div>
         )}
       </Box>
 
@@ -274,23 +238,9 @@ export function PropertyImageCarousel({
                 >
                   <ChevronRight size={36} strokeWidth={1.75} />
                 </IconButton>
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    bottom: 24,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    px: 2,
-                    py: 0.75,
-                    borderRadius: 2,
-                    bgcolor: 'rgba(0,0,0,0.6)',
-                    color: '#fff',
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
-                  }}
-                >
+                <div className="absolute bottom-[24px] start-[50%] px-3 py-[4.5px] rounded-[16px] bg-[rgba(0,0,0,0.6)] text-[#fff] text-[0.875rem] font-semibold" style={{ transform: 'translateX(-50%)' }}>
                   {index + 1} / {urls.length}
-                </Box>
+                </div>
               </>
             )}
           </div>

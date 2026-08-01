@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Box, Button, Skeleton, Menu, MenuItem } from '@mui/material';
 import { Sparkles, Rocket, AlertTriangle, Check, ArrowUp, Wand2, SquarePen, ChevronDown } from 'lucide-react';
@@ -191,36 +192,27 @@ export default function SiteManagerPage() {
       )}
 
       {/* Corps : aperçu | conversation (la sélection de page vit dans la barre d'adresse de l'aperçu). */}
-      <Box sx={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 360px' }, gap: 0 }}>
+      <div className="flex-1 min-h-0 grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_360px] gap-0">
 
         {/* Aperçu live */}
         <div className="p-3 min-w-0 flex flex-col">
-          <Box sx={{ flex: 1, minHeight: 0, border: '1px solid var(--line)', borderRadius: 'var(--radius-lg, 14px)', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 40px -24px rgba(20,30,55,0.35)' }}>
+          <div className="flex-1 min-h-0 border border-solid border-[var(--line)] rounded-[var(--radius-lg,_14px)] overflow-hidden flex flex-col" style={{ boxShadow: '0 10px 40px -24px rgba(20,30,55,0.35)' }}>
             {/* Chrome navigateur */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1, bgcolor: 'var(--surface-2, #f4f5f8)', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
+            <div className="flex items-center gap-1.5 px-[9px] py-1.5 bg-[var(--surface-2,_#f4f5f8)] shrink-0" style={{ borderBottom: '1px solid var(--line)' }}>
               <div className="flex gap-1">
-                {['#ff5f57', '#febc2e', '#28c840'].map((c) => <Box key={c} sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: c }} />)}
+                {['#ff5f57', '#febc2e', '#28c840'].map((c) => <div className="w-[10px] h-[10px] rounded-[50%]" style={{ backgroundColor: c }} key={c} />)}
               </div>
               {/* Barre d'adresse = sélecteur de page (remplace la colonne « Pages » retirée). */}
               <div className="flex-1 flex justify-center min-w-0">
-                <Box
-                  component="button" type="button" onClick={(e: React.MouseEvent<HTMLButtonElement>) => setPageMenuAnchor(e.currentTarget)}
-                  aria-label="Changer de page"
-                  sx={{
-                    display: 'inline-flex', alignItems: 'center', gap: 0.75, maxWidth: '100%', cursor: 'pointer',
-                    border: '1px solid var(--line)', bgcolor: 'var(--field, #fff)', borderRadius: 'var(--radius-pill, 999px)',
-                    px: 1.5, py: 0.4, color: 'var(--muted)', fontSize: 12,
-                    transition: 'border-color 150ms ease', '&:hover': { borderColor: 'var(--accent)' },
-                  }}
-                >
+                <button className="inline-flex items-center gap-[4.5px] max-w-full cursor-pointer border border-solid border-[var(--line)] bg-[var(--field,_#fff)] rounded-[var(--radius-pill,_999px)] px-[9px] py-[2.4000000000000004px] text-[var(--muted)] text-[12px] hover:border-[var(--accent)]" style={{ transition: 'border-color 150ms ease' }} type="button" onClick={(e: React.MouseEvent<HTMLButtonElement>) => setPageMenuAnchor(e.currentTarget)} aria-label="Changer de page">
                   <span className="tabular-nums whitespace-nowrap overflow-hidden text-ellipsis">
                     {site?.slug ? `${site.slug}.baitly.site` : 'aperçu'}{selected?.path && selected.path !== '/' ? selected.path : ''}
                   </span>
                   {selected?.dirty && <div className="w-[6px] h-[6px] rounded-[50%] bg-[var(--accent)] shrink-0" />}
                   <ChevronDown size={13} strokeWidth={2.2} style={{ flexShrink: 0 }} />
-                </Box>
+                </button>
               </div>
-            </Box>
+            </div>
 
             <Menu
               anchorEl={pageMenuAnchor} open={!!pageMenuAnchor} onClose={() => setPageMenuAnchor(null)}
@@ -244,13 +236,13 @@ export default function SiteManagerPage() {
             </Menu>
             <div className="relative flex-1 min-h-0 bg-[#fff]">
               {refining && (
-                <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(255,255,255,0.55)', display: 'grid', placeItems: 'center', zIndex: 2, fontSize: 13, color: 'var(--muted)', gap: 1 }}>
+                <div className="absolute inset-0 bg-[rgba(255,255,255,0.55)] grid place-items-[center] z-[2] text-[13px] text-[var(--muted)] gap-1.5">
                   <Wand2 size={20} strokeWidth={1.8} /> Retouche en cours…
-                </Box>
+                </div>
               )}
               <iframe title="Aperçu de la page" srcDoc={srcDoc} sandbox="" style={{ width: '100%', height: '100%', border: 0, background: '#fff', display: 'block' }} />
             </div>
-          </Box>
+          </div>
         </div>
 
         {/* Conversation d'itération */}
@@ -272,20 +264,11 @@ export default function SiteManagerPage() {
               </div>
             )}
             {turns.map((turn, i) => (
-              <Box
-                key={i}
-                sx={{
-                  alignSelf: turn.role === 'user' ? 'flex-end' : 'flex-start',
-                  maxWidth: '88%', px: 1.5, py: 1, borderRadius: 'var(--radius-md)', fontSize: 13, lineHeight: 1.5,
-                  bgcolor: turn.role === 'user' ? 'var(--accent)' : turn.error ? 'var(--err-soft)' : 'var(--hover)',
-                  color: turn.role === 'user' ? '#fff' : turn.error ? 'var(--err)' : 'var(--ink)',
-                  display: 'flex', gap: 0.75, alignItems: 'flex-start',
-                }}
-              >
+              <div className={cn('max-w-[88%] px-[9px] py-1.5 rounded-[var(--radius-md)] text-[13px] leading-[1.5] flex gap-[4.5px] items-start', turn.role === 'user' ? 'self-end' : 'self-start', turn.role === 'user' ? 'bg-[var(--accent)]' : '[object Object]', turn.role === 'user' ? 'text-[#fff]' : '[object Object]')} key={i}>
                 {turn.role === 'assistant' && !turn.error && <Check size={15} strokeWidth={2.4} style={{ flexShrink: 0, marginTop: 1 }} />}
                 {turn.role === 'assistant' && turn.error && <AlertTriangle size={15} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />}
                 <span>{turn.text}</span>
-              </Box>
+              </div>
             ))}
             {refining && (
               <div className="self-start px-2 py-1.5 rounded-[var(--radius-md)] bg-[var(--hover)] text-[var(--muted)] text-[13px]">…</div>
@@ -293,7 +276,7 @@ export default function SiteManagerPage() {
           </div>
 
           <div className="p-2 border-t border-[var(--line)] shrink-0">
-            <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', px: 1, py: 0.75, bgcolor: 'var(--field, #fff)' }}>
+            <div className="flex items-end gap-1.5 border border-solid border-[var(--line)] rounded-[var(--radius-md)] px-1.5 py-[4.5px] bg-[var(--field,_#fff)]">
               <Box
                 component="textarea"
                 value={instruction}
@@ -304,21 +287,13 @@ export default function SiteManagerPage() {
                 rows={2}
                 sx={{ flex: 1, resize: 'none', border: 0, outline: 0, bgcolor: 'transparent', fontFamily: 'inherit', fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.5, py: 0.5 }}
               />
-              <Box
-                component="button" type="button" aria-label="Envoyer" onClick={handleRefine}
-                disabled={refining || !instruction.trim()}
-                sx={{
-                  flexShrink: 0, width: 34, height: 34, borderRadius: '50%', border: 0, cursor: refining || !instruction.trim() ? 'default' : 'pointer',
-                  bgcolor: instruction.trim() && !refining ? 'var(--accent)' : 'var(--line)', color: '#fff',
-                  display: 'grid', placeItems: 'center', transition: 'background 150ms ease',
-                }}
-              >
+              <button className={cn('shrink-0 w-[34px] h-[34px] rounded-[50%] text-[#fff] grid place-items-[center]', refining || !instruction.trim() ? 'cursor-default' : 'cursor-pointer', instruction.trim() && !refining ? 'bg-[var(--accent)]' : 'bg-[var(--line)]')} style={{ border: 0, transition: 'background 150ms ease' }} type="button" aria-label="Envoyer" onClick={handleRefine} disabled={refining || !instruction.trim()}>
                 <ArrowUp size={17} strokeWidth={2.4} />
-              </Box>
-            </Box>
+              </button>
+            </div>
           </div>
         </div>
-      </Box>
+      </div>
     </div>
   );
 }

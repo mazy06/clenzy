@@ -5,7 +5,7 @@ import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Box, TextField, Button, Stack, MenuItem, ThemeProvider, CssBaseline } from '@mui/material';
+import { TextField, Button, Stack, MenuItem, ThemeProvider, CssBaseline } from '@mui/material';
 import { ArrowBack, CheckCircle } from '../../icons';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
@@ -72,14 +72,7 @@ export default function Support() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-    <Box sx={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)',
-      p: 2
-    }}>
+    <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)' }}>
       <Card className="gap-0 py-0 p-3.5 w-full max-w-[440px] bg-[var(--card)] border-border">
         {/* Header avec logo */}
         <div className="text-center mb-3">
@@ -244,7 +237,7 @@ export default function Support() {
           </div>
         )}
       </Card>
-    </Box>
+    </div>
     </ThemeProvider>
   );
 }

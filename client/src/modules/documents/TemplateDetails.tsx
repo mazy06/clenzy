@@ -4,7 +4,7 @@ import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Button, Grid, Divider, TextField, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
+import { Button, Grid, Divider, TextField, IconButton, Tooltip, Menu, MenuItem } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import {
   ArrowBack,
@@ -434,35 +434,14 @@ const TemplateDetails: React.FC = () => {
               {/* Hauteur calee sur le ratio A4 portrait : la largeur du panneau
                   est ~50vw sur desktop md+, donc 1.4x cette largeur donne un
                   rendu equilibre. Min/max evitent les extremes. */}
-              <Box
-                sx={{
-                  position: 'relative',
-                  width: '100%',
-                  height: { xs: 520, sm: 640, md: 780, lg: 880 },
-                  backgroundColor: 'var(--field)',
-                  border: '1px solid',
-                  borderColor: 'var(--line)',
-                  borderRadius: '12px',
-                  overflow: 'hidden',
-                }}
-              >
+              <div className="relative w-full h-[520px] min-[600px]:h-[640px] min-[900px]:h-[780px] min-[1200px]:h-[880px] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[12px] overflow-hidden">
                 {previewLoading && (
-                  <Box sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 1.5,
-                    backgroundColor: 'color-mix(in srgb, var(--card) 60%, transparent)',
-                    zIndex: 1,
-                  }}>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-[9px] bg-[color-mix(in_srgb,_var(--card)_60%,_transparent)] z-[1]">
                     <Spinner className="size-7" />
                     <span className="cn-text-caption text-muted-foreground">
                       Génération de l'aperçu en cours...
                     </span>
-                  </Box>
+                  </div>
                 )}
                 {previewUrl ? (
                   <iframe
@@ -478,7 +457,7 @@ const TemplateDetails: React.FC = () => {
                     </p>
                   </div>
                 )}
-              </Box>
+              </div>
             </Card>
           </div>
         </Grid>
@@ -486,9 +465,9 @@ const TemplateDetails: React.FC = () => {
         {/* Colonne droite : Tags detectes (sticky sur grand ecran pour rester
             visible quand on scrolle l'apercu). */}
         <Grid item xs={12} md={6}>
-          <Box sx={{ position: { md: 'sticky' }, top: { md: 16 } }}>
+          <div className="min-[900px]:sticky min-[900px]:top-[16px]">
             <TemplateTagsViewer tags={template.tags || []} />
-          </Box>
+          </div>
         </Grid>
       </Grid>
 

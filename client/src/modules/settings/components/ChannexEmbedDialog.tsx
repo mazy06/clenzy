@@ -190,23 +190,9 @@ export default function ChannexEmbedDialog({
         }}
       >
         <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
-          <Box
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: 1,
-              bgcolor: selectedOta ? selectedOta.brandColor : 'rgba(15, 118, 110, 0.1)',
-              color: selectedOta ? selectedOta.brandColorFg : '#0F766E',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              fontWeight: 700,
-              fontSize: '0.85rem',
-            }}
-          >
+          <div className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center shrink-0 font-bold text-[0.85rem]" style={{ backgroundColor: selectedOta ? selectedOta.brandColor : 'rgba(15, 118, 110, 0.1)', color: selectedOta ? selectedOta.brandColorFg : '#0F766E' }}>
             {selectedOta ? selectedOta.initials : <Link2 size={18} />}
-          </Box>
+          </div>
           <div className="min-w-0">
             <h6 className="cn-text-subtitle1 font-semibold truncate leading-[1.2]">
               {selectedOta
@@ -263,9 +249,9 @@ export default function ChannexEmbedDialog({
               <div className="flex-1 min-w-0">
                 <span className="cn-text-caption block leading-[1.5] text-foreground font-semibold mb-0.5">
                   OAuth{' '}
-                  <Box component="span" sx={{ color: selectedOta.brandColor, fontWeight: 700 }}>
+                  <span className="font-bold" style={{ color: selectedOta.brandColor }}>
                     {selectedOta.name}
-                  </Box>{' '}
+                  </span>{' '}
                   deja actif — suivez ces 3 etapes pour mapper vos listings :
                 </span>
                 <Stack spacing={0.5}>
@@ -275,22 +261,9 @@ export default function ChannexEmbedDialog({
                       content: (
                         <>
                           Ouvrez le detail du channel{' '}
-                          <Box
-                            component="span"
-                            sx={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              px: 0.625,
-                              py: 0.125,
-                              borderRadius: 0.5,
-                              bgcolor: `${selectedOta.brandColor}1A`,
-                              color: selectedOta.brandColor,
-                              fontWeight: 600,
-                              fontSize: '0.7rem',
-                            }}
-                          >
+                          <span className="inline-flex items-center px-[3.75px] py-[0.75px] rounded-[4px] font-semibold text-[0.7rem]" style={{ backgroundColor: `${selectedOta.brandColor}1A`, color: selectedOta.brandColor }}>
                             New {selectedOta.name} Channel
-                          </Box>
+                          </span>
                           {' '}— cliquez sur le <strong>titre</strong>, ou sur{' '}
                           <span className="inline-flex items-center px-1 py-0 rounded-[0.5px] bg-[var(--field)] text-muted-foreground font-semibold text-[0.7rem]">
                             Actions &rsaquo; Edit
@@ -369,41 +342,13 @@ export default function ChannexEmbedDialog({
                 <>
                   Channel <strong>{selectedOta.name}</strong> deja cree dans le hub (title, devise, mapping pre-remplis).
                   Cliquez sur la ligne{' '}
-                  <Box
-                    component="span"
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      px: 0.75,
-                      py: 0.125,
-                      borderRadius: 0.5,
-                      bgcolor: `${selectedOta.brandColor}1A`,
-                      color: selectedOta.brandColor,
-                      fontWeight: 600,
-                      fontSize: '0.7rem',
-                    }}
-                  >
+                  <span className="inline-flex items-center gap-[3px] px-[4.5px] py-[0.75px] rounded-[4px] font-semibold text-[0.7rem]" style={{ backgroundColor: `${selectedOta.brandColor}1A`, color: selectedOta.brandColor }}>
                     {selectedOta.name} - {propertyName}
-                  </Box>{' '}
+                  </span>{' '}
                   dans la liste ci-dessous, puis sur le bouton{' '}
-                  <Box
-                    component="span"
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      px: 0.75,
-                      py: 0.125,
-                      borderRadius: 0.5,
-                      bgcolor: `${selectedOta.brandColor}1A`,
-                      color: selectedOta.brandColor,
-                      fontWeight: 600,
-                      fontSize: '0.7rem',
-                    }}
-                  >
+                  <span className="inline-flex items-center gap-[3px] px-[4.5px] py-[0.75px] rounded-[4px] font-semibold text-[0.7rem]" style={{ backgroundColor: `${selectedOta.brandColor}1A`, color: selectedOta.brandColor }}>
                     Connect with {selectedOta.name}
-                  </Box>{' '}
+                  </span>{' '}
                   pour finaliser l'{selectedOta.code === 'ABB' ? 'OAuth' : 'authentification'} — autorisez les popups.
                 </>
               ) : selectedOta ? (
@@ -413,23 +358,9 @@ export default function ChannexEmbedDialog({
                     + Create
                   </span>{' '}
                   en haut a droite, puis selectionnez{' '}
-                  <Box
-                    component="span"
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      px: 0.75,
-                      py: 0.125,
-                      borderRadius: 0.5,
-                      bgcolor: `${selectedOta.brandColor}1A`,
-                      color: selectedOta.brandColor,
-                      fontWeight: 600,
-                      fontSize: '0.7rem',
-                    }}
-                  >
+                  <span className="inline-flex items-center gap-[3px] px-[4.5px] py-[0.75px] rounded-[4px] font-semibold text-[0.7rem]" style={{ backgroundColor: `${selectedOta.brandColor}1A`, color: selectedOta.brandColor }}>
                     {selectedOta.name}
-                  </Box>
+                  </span>
                   . La connexion ouvre une fenetre {selectedOta.code === 'ABB' ? 'OAuth' : 'de credentials'} — autorisez les popups.
                 </>
               ) : (

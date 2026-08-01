@@ -10,6 +10,7 @@
    ============================================================ */
 
 import { useCallback, useMemo, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { Box, Typography } from '@mui/material';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSupervision } from '../core/useSupervision';
@@ -78,12 +79,12 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
 
   return (
     <div className="relative">
-      <Box sx={{ display: 'flex', gap: 2, alignItems: 'stretch', flexWrap: { xs: 'wrap', md: 'nowrap' } }}>
+      <div className="flex gap-3 items-stretch flex-wrap min-[900px]:flex-nowrap">
         <div className="flex-1 min-w-0">
           <AgentConstellation snapshot={portfolio} online={status === 'live'} onSelectAgent={setSelected} />
         </div>
 
-        <Box sx={{ width: { xs: '100%', md: 330 }, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="w-full min-[900px]:w-[330px] shrink-0 flex flex-col gap-3">
           <SupervisionReportStrip />
 
           {(portfolio.orgAlerts?.length ?? 0) > 0 && (
@@ -94,21 +95,7 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
               <div className="px-2 pb-2 flex flex-col gap-2">
                 {portfolio.orgAlerts!.map((a, i) => (
                   <div className="flex gap-1.5 items-start" key={i}>
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        mt: '5px',
-                        flexShrink: 0,
-                        bgcolor:
-                          a.severity === 'critical'
-                            ? 'var(--err, #c0392b)'
-                            : a.severity === 'warning'
-                              ? 'var(--warn, #d4a017)'
-                              : 'var(--info, #4a90a4)',
-                      }}
-                    />
+                    <div className={cn('w-[8px] h-[8px] rounded-[50%] mt-[5px] shrink-0', a.severity === 'critical' ? 'bg-[var(--err,_#c0392b)]' : '[object Object]')} />
                     <div className="min-w-0">
                       <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink, #1b2240)', lineHeight: 1.3 }}>
                         {a.title}
@@ -124,28 +111,12 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
           )}
 
           <Box sx={cardSx}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: '14px 16px 12px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
+            <div className="flex items-center gap-1.5 p-[14px 16px 12px] font-extrabold text-[13.5px] text-[var(--ink,_#1b2240)]">
               {t('supervision.queue.title')}
-              <Box
-                component="span"
-                sx={{
-                  ml: 'auto',
-                  minWidth: 24,
-                  height: 24,
-                  px: 0.75,
-                  borderRadius: '8px',
-                  bgcolor: 'var(--warn-soft)',
-                  color: 'var(--warn)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 12,
-                  fontWeight: 800,
-                }}
-              >
+              <span className="ms-auto min-w-[24px] h-[24px] px-[4.5px] rounded-[8px] bg-[var(--warn-soft)] text-[var(--warn)] flex items-center justify-center text-[12px] font-extrabold">
                 {portfolio.pending.length}
-              </Box>
-            </Box>
+              </span>
+            </div>
             <div className="p-2 max-h-[320px] overflow-y-auto">
               <PendingQueue actions={portfolio.pending} onValidate={handleValidate} onEdit={handleEdit} onAdjustPrice={handleAdjustPrice} variant="panel" />
             </div>
@@ -168,25 +139,13 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
               )}
             </div>
           </Box>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {toasts.length > 0 && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 16,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 8,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 1,
-          }}
-        >
+        <div className="absolute top-[16px] start-[50%] z-[8] flex flex-col items-center gap-1.5" style={{ transform: 'translateX(-50%)' }}>
           <ResolutionToasts toasts={toasts} />
-        </Box>
+        </div>
       )}
 
       <AgentDrawer open={Boolean(selected)} detail={detail} onClose={() => setSelected(null)} />

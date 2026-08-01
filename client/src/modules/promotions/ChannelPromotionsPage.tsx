@@ -379,7 +379,7 @@ const ChannelPromotionsPage: React.FC = () => {
               {CHANNEL_OPTIONS.map((c) => (
                 <MenuItem key={c.value} value={c.value} sx={{ fontSize: '0.8125rem' }}>
                   <div className="flex items-center gap-1.5">
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: c.color }} />
+                    <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: c.color }} />
                     {c.label}
                   </div>
                 </MenuItem>

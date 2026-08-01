@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import { Box, Tooltip, useTheme, alpha } from '@mui/material';
 
 /**
@@ -57,7 +58,7 @@ export default function OptionCard({
         </span>
       )}
       {hint && (
-        <Box sx={{ mt: description ? 0.5 : 0 }}>{hint}</Box>
+        <div className={cn(description ? 'mt-[3px]' : 'mt-0')}>{hint}</div>
       )}
     </div>
   ) : null;
@@ -128,14 +129,7 @@ export default function OptionCard({
         }}
       >
         {selected && (
-          <Box
-            sx={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              bgcolor: accentColor,
-            }}
-          />
+          <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: accentColor }} />
         )}
       </Box>
     </Box>

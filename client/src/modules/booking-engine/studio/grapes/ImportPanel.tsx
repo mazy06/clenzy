@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Box, ButtonBase, Modal } from '@mui/material';
+import { ButtonBase, Modal } from '@mui/material';
 import { X, ClipboardPaste, FileUp, LayoutTemplate } from 'lucide-react';
 import type { Editor } from 'grapesjs';
 import type { GalleryTemplate } from './import/galleryTemplates';
@@ -65,12 +65,7 @@ export default function ImportPanel({ open, onClose, editor, onImportTemplate }:
   return (
     <Modal open={open} onClose={onClose} aria-label="Importer un design"
       sx={{ '& .MuiBackdrop-root': { bgcolor: 'rgba(21,36,45,.45)' } }}>
-      <Box sx={{
-        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-        width: 'min(680px, 94vw)', maxHeight: '88vh', display: 'flex', flexDirection: 'column',
-        bgcolor: 'var(--card)', color: 'var(--ink)', border: '1px solid var(--line)',
-        borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-pop)', outline: 'none', overflow: 'hidden',
-      }}>
+      <div className="absolute top-[50%] start-[50%] w-[min(680px,_94vw)] max-h-[88vh] flex flex-col bg-[var(--card)] text-[var(--ink)] border border-solid border-[var(--line)] rounded-[var(--radius-lg)] overflow-hidden" style={{ transform: 'translate(-50%, -50%)', boxShadow: 'var(--shadow-pop)', outline: 'none' }}>
         {/* En-tête */}
         <div className="flex items-center px-3.5 h-[64px] border-b border-[var(--line)]">
           <div>
@@ -113,7 +108,7 @@ export default function ImportPanel({ open, onClose, editor, onImportTemplate }:
 
         {/* Corps de l'onglet actif */}
         <div className="overflow-y-auto p-3.5">{renderSlot()}</div>
-      </Box>
+      </div>
     </Modal>
   );
 }

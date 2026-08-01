@@ -45,7 +45,7 @@ export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
 
   return (
     <div>
-      <Box role="tablist" sx={{ display: 'flex', gap: '6px', mb: 2, flexWrap: 'wrap' }}>
+      <div className="flex gap-1.5 mb-3 flex-wrap" role="tablist">
         {subtabs.map((st, i) => {
           const active = subTab === i;
           return (
@@ -80,7 +80,7 @@ export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
             </Box>
           );
         })}
-      </Box>
+      </div>
 
       {subTab === 0 && (
         <InventoryItemsSection

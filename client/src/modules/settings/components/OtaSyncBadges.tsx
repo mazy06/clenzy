@@ -106,62 +106,21 @@ export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false 
               {logoSrc ? (
                 <img className="w-full h-full rounded-[0.75px] object-contain bg-[var(--card)] border border-[var(--line)] p-0.5" src={logoSrc} alt={displayName} />
               ) : (
-                <Box
-                  sx={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: 0.75,
-                    bgcolor: option?.brandColor ?? 'var(--faint)',
-                    color: option?.brandColorFg ?? '#FFFFFF',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 700,
-                    fontSize: size * 0.42,
-                    letterSpacing: '-0.02em',
-                    border: '1px solid var(--line)',
-                  }}
-                >
+                <div className="w-full h-full rounded-[6px] flex items-center justify-center font-bold tracking-[-0.02em] border border-solid border-[var(--line)]" style={{ backgroundColor: option?.brandColor ?? 'var(--faint)', color: option?.brandColorFg ?? '#FFFFFF', fontSize: size * 0.42 }}>
                   {initials}
-                </Box>
+                </div>
               )}
 
               {/* Check vert en exposant (badge superpose en haut a droite) */}
               {ota.isActive && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: -3,
-                    right: -3,
-                    width: size * 0.5,
-                    height: size * 0.5,
-                    borderRadius: '50%',
-                    bgcolor: 'var(--ok)',
-                    color: 'var(--on-accent)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: '2px solid var(--card)',
-                  }}
-                >
+                <div className="absolute rounded-[50%] bg-[var(--ok)] text-[var(--on-accent)] flex items-center justify-center border-[2px] border-solid border-[var(--card)]" style={{ top: -3, right: -3, width: size * 0.5, height: size * 0.5 }}>
                   <Check size={size * 0.32} strokeWidth={3} />
-                </Box>
+                </div>
               )}
 
               {/* Badge orange si OAuth en attente */}
               {!ota.isActive && ota.hasOauthToken && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: -3,
-                    right: -3,
-                    width: size * 0.4,
-                    height: size * 0.4,
-                    borderRadius: '50%',
-                    bgcolor: 'var(--warn)',
-                    border: '2px solid var(--card)',
-                  }}
-                />
+                <div className="absolute rounded-[50%] bg-[var(--warn)] border-[2px] border-solid border-[var(--card)]" style={{ top: -3, right: -3, width: size * 0.4, height: size * 0.4 }} />
               )}
             </Box>
           </Tooltip>

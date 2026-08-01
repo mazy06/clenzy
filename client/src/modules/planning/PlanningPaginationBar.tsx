@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, IconButton } from '@mui/material';
+import { IconButton } from '@mui/material';
 import { ChevronLeft, ChevronRight } from '../../icons';
 import { PAGINATION_BAR_HEIGHT } from './constants';
 
@@ -23,20 +23,7 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
   onNextPage,
 }) => {
   return (
-    <Box
-      sx={{
-        height: PAGINATION_BAR_HEIGHT,
-        minHeight: PAGINATION_BAR_HEIGHT,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 2,
-        px: 2,
-        borderTop: '1px solid var(--line)',
-        backgroundColor: 'var(--card)',
-        flexShrink: 0,
-      }}
-    >
+    <div className="flex items-center justify-center gap-3 px-3 bg-[var(--card)] shrink-0" style={{ height: PAGINATION_BAR_HEIGHT, minHeight: PAGINATION_BAR_HEIGHT, borderTop: '1px solid var(--line)' }}>
       {/* Prev */}
       <IconButton
         size="small"
@@ -76,7 +63,7 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
       <span className="cn-text-caption text-[10.5px] text-[var(--muted)] tabular-nums ms-1.5">
         {rangeStart}-{rangeEnd} sur {totalProperties} logements
       </span>
-    </Box>
+    </div>
   );
 });
 

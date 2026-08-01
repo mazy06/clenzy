@@ -173,9 +173,9 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
         title={conv.guestName || badge.label}
         subtitle={
           <>
-            <Box component="span" sx={{ display: 'inline-flex', color: badge.color }}>
+            <span className="inline-flex" style={{ color: badge.color }}>
               <badge.Icon size={13} strokeWidth={2} />
-            </Box>
+            </span>
             {badge.label}
             {conv.propertyName ? ` · ${conv.propertyName}` : ''}
           </>

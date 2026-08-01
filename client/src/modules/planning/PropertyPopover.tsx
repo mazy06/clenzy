@@ -1,6 +1,7 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Box, Button, LinearProgress, Popover, Typography, useMediaQuery } from '@mui/material';
+import { Button, LinearProgress, Popover, Typography, useMediaQuery } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   Business,
@@ -91,30 +92,18 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
       }}
     >
       {/* Héro : fond accent-soft, icône bâtiment, nom en overlay */}
-      <Box
-        sx={{
-          position: 'relative',
-          m: '10px',
-          height: 72,
-          borderRadius: '10px',
-          backgroundColor: 'var(--accent-soft)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-        }}
-      >
-        <Box sx={{ display: 'inline-flex', color: 'var(--accent)', opacity: 0.55, mb: '14px' }}>
+      <div className="relative m-2.5 h-[72px] rounded-[10px] bg-[var(--accent-soft)] flex items-center justify-center overflow-hidden">
+        <div className="inline-flex text-[var(--accent)] opacity-55 mb-3.5">
           <Business size={26} strokeWidth={1.5} />
-        </Box>
+        </div>
         <span className="absolute start-[10px] end-[10px] bottom-[7px] text-[0.8125rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
           {property.name}
         </span>
-      </Box>
+      </div>
 
       {/* Type + adresse + propriétaire */}
       {(property.type || address || property.ownerName) && (
-        <Box sx={{ px: '14px', py: '8px', borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div className="px-3.5 py-2 flex flex-col gap-1.5" style={{ borderTop: '1px solid var(--line)' }}>
           {property.type && (
             <StatusChip
               tone="accent"
@@ -125,12 +114,12 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
           )}
           {address && (
             <div className="flex items-start gap-1">
-              <Box sx={{ display: 'inline-flex', color: 'var(--muted)', flexShrink: 0, mt: '1px' }}>
+              <div className="inline-flex text-[var(--muted)] shrink-0 mt-px">
                 <LocationOn size={STAT_ICON_SIZE} strokeWidth={1.75} />
-              </Box>
-              <Box component="span" sx={{ fontSize: BODY_FS, color: 'var(--muted)', lineHeight: 1.4 }}>
+              </div>
+              <span className="text-[var(--muted)] leading-[1.4]" style={{ fontSize: BODY_FS }}>
                 {address}
-              </Box>
+              </span>
             </div>
           )}
           {property.ownerName && (
@@ -138,17 +127,17 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
               <div className="inline-flex text-[var(--muted)] shrink-0">
                 <Person size={STAT_ICON_SIZE} strokeWidth={1.75} />
               </div>
-              <Box component="span" sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
+              <span className="text-[var(--muted)]" style={{ fontSize: BODY_FS }}>
                 {property.ownerName}
-              </Box>
+              </span>
             </div>
           )}
-        </Box>
+        </div>
       )}
 
       {/* Stats + heures + fréquence ménage */}
       {(hasStats || hasTimes || property.cleaningFrequency) && (
-        <Box sx={{ px: '14px', py: '10px', borderTop: '1px solid var(--line)' }}>
+        <div className="px-3.5 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
           {hasStats && (
             <div className="grid grid-cols-2 gap-1.5">
               {property.maxGuests != null && (
@@ -184,15 +173,15 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
           )}
 
           {hasTimes && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mt: hasStats ? 1 : 0, flexWrap: 'wrap' }}>
+            <div className={cn('flex items-center gap-[7.5px] flex-wrap', hasStats ? 'mt-1.5' : 'mt-0')}>
               {property.defaultCheckInTime && (
                 <div className="flex items-center gap-1">
                   <span className="inline-flex text-[var(--ok)]">
                     <AccessTime size={STAT_ICON_SIZE} strokeWidth={1.75} />
                   </span>
-                  <Box component="span" sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
+                  <span className="text-[var(--muted)]" style={{ fontSize: BODY_FS }}>
                     Check-in <strong className="text-[var(--ink)]">{property.defaultCheckInTime.slice(0, 5)}</strong>
-                  </Box>
+                  </span>
                 </div>
               )}
               {property.defaultCheckOutTime && (
@@ -200,46 +189,46 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
                   <span className="inline-flex text-[var(--warn)]">
                     <AccessTime size={STAT_ICON_SIZE} strokeWidth={1.75} />
                   </span>
-                  <Box component="span" sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
+                  <span className="text-[var(--muted)]" style={{ fontSize: BODY_FS }}>
                     Check-out <strong className="text-[var(--ink)]">{property.defaultCheckOutTime.slice(0, 5)}</strong>
-                  </Box>
+                  </span>
                 </div>
               )}
-            </Box>
+            </div>
           )}
 
           {property.cleaningFrequency && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mt: (hasStats || hasTimes) ? 0.75 : 0 }}>
+            <div className={cn('flex items-center gap-[3.75px]', (hasStats || hasTimes) ? 'mt-[4.5px]' : 'mt-0')}>
               <span className="inline-flex text-[var(--muted)]">
                 <CalendarMonth size={STAT_ICON_SIZE} strokeWidth={1.75} />
               </span>
-              <Box component="span" sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
+              <span className="text-[var(--muted)]" style={{ fontSize: BODY_FS }}>
                 Fréquence ménage : <strong className="text-[var(--ink)]">{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</strong>
-              </Box>
-            </Box>
+              </span>
+            </div>
           )}
-        </Box>
+        </div>
       )}
 
       {/* Performance sur fenêtre glissante — même représentation que la carte
           « Performance par logement » (score /100 + barre + lignes label/valeur). */}
       {perf && (
-        <Box sx={{ px: '14px', py: '10px', borderTop: '1px solid var(--line)' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: '8px' }}>
+        <div className="px-3.5 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
+          <div className="flex items-center gap-[4.5px] mb-2">
             <div className="inline-flex text-[var(--accent)]">
               <Speed size={STAT_ICON_SIZE} strokeWidth={1.75} />
             </div>
-            <Box component="span" sx={{ fontSize: LABEL_FS, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3, color: 'var(--muted)' }}>
+            <span className="font-bold uppercase tracking-[0.3px] text-[var(--muted)]" style={{ fontSize: LABEL_FS }}>
               Performance · {perf.windowDays} j
-            </Box>
-          </Box>
+            </span>
+          </div>
 
           {/* Score + barre de progression */}
           <div className="flex justify-between mb-0.5">
-            <Box component="span" sx={{ fontSize: LABEL_FS, color: 'var(--muted)' }}>Score</Box>
-            <Box component="span" sx={{ fontSize: BODY_FS, fontWeight: 700, color: scoreColor(perf.score), fontVariantNumeric: 'tabular-nums' }}>
+            <span className="text-[var(--muted)]" style={{ fontSize: LABEL_FS }}>Score</span>
+            <span className="font-bold tabular-nums" style={{ fontSize: BODY_FS, color: scoreColor(perf.score) }}>
               {perf.score}/100
-            </Box>
+            </span>
           </div>
           <LinearProgress
             variant="determinate"
@@ -264,11 +253,11 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
               valueColor={perf.netMargin >= 60 ? '#4A9B8E' : perf.netMargin >= 40 ? '#D4A574' : '#C97A7A'}
             />
           </div>
-        </Box>
+        </div>
       )}
 
       {/* Pied : Fermer (outlined neutre) + Voir la fiche (outlined accent) */}
-      <Box sx={{ display: 'flex', gap: 1, p: '10px 14px', borderTop: '1px solid var(--line)' }}>
+      <div className="flex gap-1.5 p-[10px 14px]" style={{ borderTop: '1px solid var(--line)' }}>
         <Button
           size="small"
           variant="outlined"
@@ -308,7 +297,7 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
         >
           Voir la fiche
         </Button>
-      </Box>
+      </div>
     </Popover>
   );
 };
@@ -327,10 +316,10 @@ function scoreColor(score: number): string {
 function PerfRow({ label, value, valueColor }: { label: string; value: React.ReactNode; valueColor?: string }) {
   return (
     <div className="flex justify-between items-baseline">
-      <Box component="span" sx={{ fontSize: LABEL_FS, color: 'var(--muted)' }}>{label}</Box>
-      <Box component="span" sx={{ fontSize: BODY_FS, fontWeight: 700, color: valueColor ?? 'var(--ink)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
+      <span className="text-[var(--muted)]" style={{ fontSize: LABEL_FS }}>{label}</span>
+      <span className="font-bold tabular-nums text-end" style={{ fontSize: BODY_FS, color: valueColor ?? 'var(--ink)' }}>
         {value}
-      </Box>
+      </span>
     </div>
   );
 }
@@ -347,26 +336,17 @@ function StatPill({
   highlight?: boolean;
 }) {
   return (
-    <Box
-      sx={{
-        p: 0.875,
-        borderRadius: 1,
-        bgcolor: highlight ? 'var(--ok-soft)' : 'color-mix(in srgb, var(--ink) 2.5%, transparent)',
-        border: '1px solid',
-        borderColor: highlight ? 'var(--ok)' : 'var(--line)',
-        minWidth: 0,
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, color: highlight ? 'var(--ok)' : 'var(--muted)', mb: 0.375 }}>
+    <div className={cn('p-[5.25px] rounded-[8px] border border-solid min-w-0', highlight ? 'bg-[var(--ok-soft)]' : 'bg-[color-mix(in_srgb,_var(--ink)_2.5%,_transparent)]', highlight ? 'border-[var(--ok)]' : 'border-[var(--line)]')}>
+      <div className={cn('flex items-center gap-[3.75px] mb-[2.25px]', highlight ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}>
         {icon}
-        <Box component="span" sx={{ fontSize: LABEL_FS, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3, color: 'inherit', lineHeight: 1 }}>
+        <span className="font-bold uppercase tracking-[0.3px] text-[inherit] leading-[1]" style={{ fontSize: LABEL_FS }}>
           {label}
-        </Box>
-      </Box>
+        </span>
+      </div>
       <Typography sx={{ fontSize: '11.5px', fontWeight: 600, color: highlight ? 'var(--ok)' : 'var(--ink)', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
         {value}
       </Typography>
-    </Box>
+    </div>
   );
 }
 

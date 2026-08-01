@@ -1,7 +1,8 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
-import { Box, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import { Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import {
   PhotoCamera as PhotoCameraIcon,
 } from '../../icons';
@@ -142,12 +143,12 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
       fullWidth
     >
       <DialogTitle>
-        <Box display="flex" alignItems="center" gap={1}>
-          <Box component="span" sx={{ display: 'inline-flex', color: photoType === 'before' ? 'var(--accent)' : 'var(--ok)' }}><PhotoCameraIcon size={20} strokeWidth={1.75} /></Box>
+        <div className="flex items-center gap-1.5">
+          <span className={cn('inline-flex', photoType === 'before' ? 'text-[var(--accent)]' : 'text-[var(--ok)]')}><PhotoCameraIcon size={20} strokeWidth={1.75} /></span>
           <h6 className="cn-text-h6">
             {photoType === 'before' ? t('interventions.dialogs.photosBeforeTitle') : t('interventions.dialogs.photosAfterTitle')}
           </h6>
-        </Box>
+        </div>
       </DialogTitle>
       <DialogContent>
         <div className="pt-3">

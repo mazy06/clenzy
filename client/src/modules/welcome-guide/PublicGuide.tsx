@@ -446,7 +446,7 @@ const PublicGuide: React.FC = () => {
     const swatch = WELCOME_BOOK_THEMES.find((t) => t.id === theme)?.swatch;
     const message = guide.unavailableReason === 'EXPIRED' ? L.unavailableExpired : L.unavailableNoReservation;
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', bgcolor: swatch?.bg || '#F2E9D9' }}>
+      <div className="min-h-[100vh] flex justify-center" style={{ backgroundColor: swatch?.bg || '#F2E9D9' }}>
         <div className="wb" data-theme={theme} style={{ width: '100%', maxWidth: 480, minHeight: '100vh', display: 'flex' }}>
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
             <div className="wb-card" style={{ maxWidth: 420, textAlign: 'center', padding: 28, background: 'var(--raised)' }}>
@@ -461,7 +461,7 @@ const PublicGuide: React.FC = () => {
             </div>
           </div>
         </div>
-      </Box>
+      </div>
     );
   }
 
@@ -504,7 +504,7 @@ const PublicGuide: React.FC = () => {
       return result.complete;
     };
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', bgcolor: swatch?.bg || '#F2E9D9' }}>
+      <div className="min-h-[100vh] flex justify-center" style={{ backgroundColor: swatch?.bg || '#F2E9D9' }}>
         <Box
           sx={{
             width: '100%',
@@ -521,7 +521,7 @@ const PublicGuide: React.FC = () => {
             onSubmit={handleDeclarationSubmit}
           />
         </Box>
-      </Box>
+      </div>
     );
   }
 
@@ -616,7 +616,7 @@ const PublicGuide: React.FC = () => {
 
   return (
     <>
-      <Box sx={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', bgcolor: swatch?.bg || '#F2E9D9' }}>
+      <div className="min-h-[100vh] flex justify-center" style={{ backgroundColor: swatch?.bg || '#F2E9D9' }}>
         <Box
           sx={{
             position: 'relative',
@@ -739,7 +739,7 @@ const PublicGuide: React.FC = () => {
             ) : null}
           </WelcomeBookView>
         </Box>
-      </Box>
+      </div>
 
       {/* Paiement d'un service additionnel (upsell) — Stripe embedded */}
       <Dialog open={!!payingUpsell} onClose={closePay} maxWidth="sm" fullWidth>

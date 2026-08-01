@@ -357,9 +357,9 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
           . Par exemple{' '}
           <Box component="code" sx={codeChipSx}>{'${client.nom}'}</Box>{' '}
           sera remplacé par le nom du client. Cliquez sur l&apos;icône{' '}
-          <Box component="span" sx={{ display: 'inline-flex', verticalAlign: 'middle', color: 'var(--info)', mx: 0.25 }}>
+          <span className="inline-flex align-[middle] text-[var(--info)] mx-[1.5px]">
             <ContentCopy size={13} strokeWidth={1.75} />
-          </Box>{' '}
+          </span>{' '}
           à droite de chaque ligne pour copier un tag prêt à coller.
         </p>
       </Alert>
@@ -397,26 +397,14 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
           >
             <div className="flex items-center gap-2 w-full min-w-0">
               {/* Badge icone Baitly (tile 26x26 tintee, icon 16px) */}
-              <Box
-                sx={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 1,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: category.tone.bg,
-                  color: category.tone.c,
-                  flexShrink: 0,
-                }}
-              >
+              <div className="w-[26px] h-[26px] rounded-[8px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: category.tone.bg, color: category.tone.c }}>
                 {React.isValidElement(category.icon)
                   ? React.cloneElement(category.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
                       size: 16,
                       strokeWidth: 1.75,
                     })
                   : category.icon}
-              </Box>
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="cn-text-body1 font-semibold text-[0.875rem] text-foreground">
                   {category.label}

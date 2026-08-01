@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { Warning as AlertIcon } from '../../../icons';
 import type { PendingToolConfirmation } from '../../../hooks/useAgent';
 
@@ -58,23 +58,14 @@ export const ToolConfirmationDialog: React.FC<ToolConfirmationDialogProps> = ({
         {parsedArgs && Object.keys(parsedArgs).length > 0 && (
           <div className="rounded-[10px] overflow-hidden border border-[var(--line)] bg-[var(--field)]">
             {Object.entries(parsedArgs).map(([key, value], index) => (
-              <Box
-                key={key}
-                sx={{
-                  display: 'flex',
-                  gap: 1.5,
-                  px: 1.5,
-                  py: 1,
-                  borderTop: index > 0 ? '1px solid var(--line)' : 'none',
-                }}
-              >
+              <div className="flex gap-[9px] px-[9px] py-1.5" style={{ borderTop: index > 0 ? '1px solid var(--line)' : 'none' }} key={key}>
                 <span className="min-w-[100px] font-mono text-[var(--muted)] text-[11.5px] leading-[1.6]">
                   {key}
                 </span>
                 <span className="text-[12.5px] font-medium text-[var(--body)] break-words flex-1">
                   {formatArgValue(value)}
                 </span>
-              </Box>
+              </div>
             ))}
           </div>
         )}

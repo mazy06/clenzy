@@ -19,12 +19,12 @@ const ConflictAlert: React.FC<{ form: UseReservationFormResult; fullWidth?: bool
         padding: '13px 16px',
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '13.5px', fontWeight: 700, color: 'var(--ink)' }}>
+      <div className="flex items-center gap-[9px] text-[13.5px] font-bold text-[var(--ink)]">
         <span className="inline-flex text-[var(--warn)]">
           <WarningIcon size={17} strokeWidth={1.75} />
         </span>
         {t('reservations.dialog.conflictTitle')}
-      </Box>
+      </div>
       {form.conflictWarnings.map((w, i) => (
         <Typography key={i} sx={{ fontSize: '12.5px', color: 'var(--body)', marginTop: '4px', paddingInlineStart: '26px' }}>
           {w}

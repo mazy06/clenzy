@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -107,7 +108,7 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
             component="label"
           >
             <input type="file" accept=".odt" hidden onChange={handleFileChange} aria-label="Sélectionner un fichier template ODT" />
-            <Box component="span" sx={{ display: 'inline-flex', color: file ? 'var(--ok)' : 'var(--faint)', mb: 1 }}><CloudUpload size={40} strokeWidth={1.75} /></Box>
+            <span className={cn('inline-flex mb-1.5', file ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}><CloudUpload size={40} strokeWidth={1.75} /></span>
             <p className="cn-text-body1 font-medium">
               {file ? file.name : 'Cliquez pour sélectionner un fichier .odt'}
             </p>

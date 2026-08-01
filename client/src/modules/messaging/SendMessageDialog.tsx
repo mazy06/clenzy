@@ -3,7 +3,7 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X, CircleCheck, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Box, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, Divider } from '@mui/material';
 import { Send } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -112,9 +112,9 @@ export default function SendMessageDialog({
         )}
 
         {loading ? (
-          <Box display="flex" justifyContent="center" py={4}>
+          <div className="flex justify-center py-6">
             <Spinner className="size-8" />
-          </Box>
+          </div>
         ) : (
           <>
             <TextField

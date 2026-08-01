@@ -260,7 +260,7 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
             </p>
           </Box>
           <Tooltip title="Estimation indicative basée sur les caractéristiques du logement. Le tarif définitif est soumis à l'acceptation du prestataire." arrow>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', cursor: 'help' }}><Info size={14} strokeWidth={1.75} /></Box>
+            <span className="inline-flex text-[var(--faint)] cursor-help"><Info size={14} strokeWidth={1.75} /></span>
           </Tooltip>
         </Box>
 

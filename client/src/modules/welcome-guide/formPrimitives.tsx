@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Switch } from '@mui/material';
+import { Switch } from '@mui/material';
 
 /**
  * Primitives de formulaire partagées par les onglets « Réservation & accueil »
@@ -26,23 +26,12 @@ export const SectionHeading: React.FC<{ icon: React.ReactNode; title: string; ac
 
 /** État vide compact d'une section : encart pointillé discret + icône + texte court. */
 export const EmptyHint: React.FC<{ icon: React.ReactNode; text: string }> = ({ icon, text }) => (
-  <Box
-    sx={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 1.25,
-      px: 1.75,
-      py: 1.5,
-      borderRadius: '10px',
-      border: '1px dashed var(--line-2)',
-      bgcolor: 'var(--hover)',
-    }}
-  >
+  <div className="flex items-center gap-[7.5px] px-[10.5px] py-[9px] rounded-[10px] border border-dashed border-[var(--line-2)] bg-[var(--hover)]">
     <div className="shrink-0 flex text-[var(--faint)]">{icon}</div>
     <p className="cn-text-body1 text-[12.5px] leading-[1.5] text-[var(--muted)]">
       {text}
     </p>
-  </Box>
+  </div>
 );
 
 /** Ligne de réglage (toggle) : icône + libellé + description + Switch à droite. */

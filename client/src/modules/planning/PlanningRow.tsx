@@ -465,45 +465,18 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   }, [quickCreateOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Box
-      onMouseDown={handleMouseDown}
-      sx={{
-        position: 'relative',
-        height: effectiveRowHeight,
-        width: totalGridWidth,
-        borderBottom: '1px solid var(--line)',
-        // Fond plat (pas de zebra). Les hairlines verticales entre jours ne sont
-        // PLUS peintes ici : le fond OPAQUE des cellules week-end (posé en overlay
-        // absolu) masquait le séparateur dessous → bordures week-end invisibles.
-        // Elles sont désormais dans une couche dédiée AU-DESSUS des fonds
-        // week-end/today (voir « .pl-gridlines » plus bas).
-        backgroundColor: 'transparent',
-      }}
-    >
+    <div className="relative bg-[transparent]" style={{ height: effectiveRowHeight, width: totalGridWidth, borderBottom: '1px solid var(--line)' }} onMouseDown={handleMouseDown}>
       {/* Day column backgrounds (weekends + today) */}
       {days.map((day, idx) => {
         const weekend = isWeekend(day);
         const today = isToday(day);
         if (!weekend && !today) return null;
         return (
-          <Box
-            key={day.getTime()}
-            sx={{
-              position: 'absolute',
-              left: idx * dayWidth,
-              top: 0,
-              width: dayWidth,
-              height: effectiveRowHeight,
-              // Aujourd'hui : colonne légèrement teintée accent (maquette).
-              // Week-end : spec .pl-cell.we (constante locale --pl-cell-we).
-              backgroundColor: today
+          <div className="absolute top-0 pointer-events-none" style={{ left: idx * dayWidth, width: dayWidth, height: effectiveRowHeight, backgroundColor: today
                 ? 'color-mix(in srgb, var(--accent) 6%, transparent)'
                 : weekend
                   ? WEEKEND_CELL_BG
-                  : 'transparent',
-              pointerEvents: 'none',
-            }}
-          />
+                  : 'transparent' }} key={day.getTime()} />
         );
       })}
 
@@ -640,24 +613,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
         if (dayWidth < 30) return null;
 
         return (
-          <Box
-            key={`cell-info-${dateStr}`}
-            sx={{
-              position: 'absolute',
-              left: idx * dayWidth,
-              top: 0,
-              width: dayWidth,
-              height: activeRowHeight,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              pointerEvents: 'none',
-              // z-index 0 : passe DERRIERE les bars (reservation z=3, intervention z=2)
-              zIndex: 0,
-              px: 0.25,
-              overflow: 'hidden',
-            }}
-          >
+          <div className="absolute top-0 flex items-center justify-center pointer-events-none z-[0] px-[1.5px] overflow-hidden" style={{ left: idx * dayWidth, width: dayWidth, height: activeRowHeight }} key={`cell-info-${dateStr}`}>
             {price != null && (
               <Box
                 component="span"
@@ -686,10 +642,10 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
                 </span>
               </div>
             )}
-          </Box>
+          </div>
         );
       })}
-    </Box>
+    </div>
   );
 });
 

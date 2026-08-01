@@ -49,12 +49,7 @@ const ChannelsGridView: React.FC<ChannelsGridViewProps> = ({
   onOtaDisconnectRequest,
   t,
 }) => (
-  <Box sx={{
-    display: 'grid',
-    gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' },
-    gap: 1.5,
-    mb: 1.5,
-  }}>
+  <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(3,_1fr)] gap-[9px] mb-[9px]">
     {channels.map((ota) => {
       const isAirbnb = ota.id === 'airbnb';
       const isOtaChannel = (ota.id as string) in CHANNEL_BACKEND_MAP;
@@ -75,7 +70,7 @@ const ChannelsGridView: React.FC<ChannelsGridViewProps> = ({
         />
       );
     })}
-  </Box>
+  </div>
 );
 
 export default ChannelsGridView;
@@ -88,18 +83,7 @@ export default ChannelsGridView;
  */
 function OtaLogo({ channel }: { channel: OtaChannel }) {
   return (
-    <Box
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: 44,
-        px: 1.5,
-        borderRadius: '10px',
-        bgcolor: channelSoftBg(channel.id),
-        flexShrink: 0,
-      }}
-    >
+    <div className="inline-flex items-center justify-center h-[44px] px-[9px] rounded-[10px] shrink-0" style={{ backgroundColor: channelSoftBg(channel.id) }}>
       {channel.logo ? (
         <img className="h-[24px] object-contain max-w-[120px]" src={channel.logo} alt={channel.name} />
       ) : (
@@ -116,7 +100,7 @@ function OtaLogo({ channel }: { channel: OtaChannel }) {
           {channel.name}
         </Typography>
       )}
-    </Box>
+    </div>
   );
 }
 

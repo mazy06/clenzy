@@ -3,7 +3,7 @@ import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Box, Paper, Typography, TextField, Button, IconButton, Switch, FormControlLabel, Stack, Tooltip, Divider } from '@mui/material';
+import { Paper, Typography, TextField, Button, IconButton, Switch, FormControlLabel, Stack, Tooltip, Divider } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { Plus, Pencil, Trash2, CalendarRange, X } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -163,7 +163,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
   }
 
   return (
-    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', flexWrap: { xs: 'wrap', lg: 'nowrap' } }}>
+    <div className="flex gap-[9px] items-start flex-wrap min-[1200px]:flex-nowrap">
       {/* ── Formulaire (création / édition) ── */}
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 5, minWidth: 300 }}>
         <div className="flex items-center justify-between mb-2">
@@ -324,7 +324,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
           </Stack>
         )}
       </Paper>
-    </Box>
+    </div>
   );
 };
 

@@ -43,15 +43,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   const grouped = useMemo(() => groupByPeriod(conversations), [conversations]);
 
   return (
-    <Box
-      sx={{
-        width: { xs: '100%', md: 280 },
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        py: 1.5,
-      }}
-    >
+    <div className="w-full min-[900px]:w-[280px] shrink-0 flex flex-col py-[9px]">
       <div className="px-2 pb-1.5">
         {/* Soft accent (réf .s-btn--soft) : fond accent-soft + texte accent */}
         <Button
@@ -125,7 +117,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
           </div>
         ))}
       </Box>
-    </Box>
+    </div>
   );
 };
 
@@ -234,14 +226,7 @@ const SkeletonList: React.FC = () => {
     <div className="px-0.5 pt-1.5">
       {[80, 65, 75].map((width) => (
         <div className="mx-0.5 mb-0.5 py-1.5 px-2" key={width}>
-          <Box
-            sx={{
-              width: `${width}%`,
-              height: 11,
-              borderRadius: '6px',
-              bgcolor: 'var(--hover)',
-            }}
-          />
+          <div className="h-[11px] rounded-[6px] bg-[var(--hover)]" style={{ width: `${width}%` }} />
         </div>
       ))}
     </div>

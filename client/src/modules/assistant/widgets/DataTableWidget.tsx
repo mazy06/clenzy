@@ -66,23 +66,13 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
       {/* Table hairline */}
       <div className="rounded-[12px] overflow-hidden border border-[var(--line)] bg-[var(--card)]">
         {/* Header row */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
-            gap: 1,
-            px: 1.5,
-            py: 0.75,
-            bgcolor: 'var(--surface-2)',
-            borderBottom: '1px solid var(--line)',
-          }}
-        >
+        <div className="grid gap-1.5 px-[9px] py-[4.5px] bg-[var(--surface-2)]" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`, borderBottom: '1px solid var(--line)' }}>
           {columns.map((col) => (
             <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)] whitespace-nowrap overflow-hidden text-ellipsis" key={col.key}>
               {col.label}
             </p>
           ))}
-        </Box>
+        </div>
 
         {/* Data rows */}
         {visibleItems.map((item, idx) => (

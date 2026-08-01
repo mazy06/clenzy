@@ -494,17 +494,7 @@ const AssistantWidget: React.FC = () => {
                 >
         {/* Header — L2 panel teinte, pas de border-bottom (le contraste bg-vs-flux
             de messages cree la separation visuelle) */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            px: 2,
-            py: 1.25,
-            bgcolor: alpha(theme.palette.text.primary, 0.025),
-            flexShrink: 0,
-          }}
-        >
+        <div className="flex items-center gap-1.5 px-3 py-[7.5px] shrink-0" style={{ backgroundColor: alpha(theme.palette.text.primary, 0.025) }}>
           <div className="w-[28px] h-[28px] flex items-center justify-center">
             {/* Header du drawer : pas de bg circulaire (le mark se suffit
                 a lui-meme). active={isWorking} declenche l'animation
@@ -544,27 +534,18 @@ const AssistantWidget: React.FC = () => {
               <CloseIcon size={16} />
             </IconButton>
           </Tooltip>
-        </Box>
+        </div>
 
         {/* Messages */}
         <MessageList
           messages={messages}
           emptyState={
             <div className="flex flex-col items-center justify-center gap-2 py-6 px-4 h-full text-center">
-              <Box sx={{
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                bgcolor: alpha(theme.palette.primary.main, 0.1),
-                color: theme.palette.primary.main,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
+              <div className="w-[48px] h-[48px] rounded-[50%] flex items-center justify-center" style={{ backgroundColor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}>
                 {/* Empty state du drawer : pas d'active (pas de conversation
                     en cours), mais animation idle gardee pour le wow d'arrivee. */}
                 <BaitlyMarkLogo variant="mark" size={26} />
-              </Box>
+              </div>
               <p className="cn-text-body2 font-semibold">
                 Pose ta question
               </p>
@@ -578,21 +559,9 @@ const AssistantWidget: React.FC = () => {
 
         {/* Error banner — bg solide, pas de border */}
         {error && (
-          <Box
-            sx={{
-              mx: 1.5,
-              mb: 1,
-              px: 1.5,
-              py: 1,
-              bgcolor: alpha(theme.palette.error.main, 0.10),
-              color: theme.palette.error.dark,
-              fontSize: '0.8125rem',
-              fontWeight: 500,
-              borderRadius: 2,
-            }}
-          >
+          <div className="mx-[9px] mb-1.5 px-[9px] py-1.5 text-[0.8125rem] font-medium rounded-[16px]" style={{ backgroundColor: alpha(theme.palette.error.main, 0.10), color: theme.palette.error.dark }}>
             {error}
-          </Box>
+          </div>
         )}
 
         {/* Input */}
@@ -606,15 +575,7 @@ const AssistantWidget: React.FC = () => {
         {/* Reset action visible only when there are messages — pas de border,
             le bg L2 + l'input panel L2 se touchent (pas besoin de separation) */}
         {messages.length > 0 && (
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              py: 0.5,
-              bgcolor: alpha(theme.palette.text.primary, 0.025),
-              flexShrink: 0,
-            }}
-          >
+          <div className="flex justify-center py-[3px] shrink-0" style={{ backgroundColor: alpha(theme.palette.text.primary, 0.025) }}>
             <Typography
               component="button"
               variant="caption"
@@ -637,7 +598,7 @@ const AssistantWidget: React.FC = () => {
             >
               Nouvelle conversation
             </Typography>
-          </Box>
+          </div>
         )}
                 </Paper>
               </ClickAwayListener>

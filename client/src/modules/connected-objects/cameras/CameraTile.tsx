@@ -53,13 +53,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
   }, []);
 
   return (
-    <Box
-      sx={{
-        borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--line)',
-        bgcolor: 'var(--card)', transition: 'border-color 200ms',
-        '&:hover': { borderColor: 'var(--line-2)' },
-      }}
-    >
+    <div className="rounded-[var(--radius-lg)] overflow-hidden border border-solid border-[var(--line)] bg-[var(--card)] hover:border-[var(--line-2)]" style={{ transition: 'border-color 200ms' }}>
       {/* ── Zone feed 16:9 ── */}
       <Box
         ref={feedRef}
@@ -82,12 +76,9 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
         {poster && (
           <img className="absolute inset-[0px] w-full h-full object-cover z-[0]" src={poster} alt="" loading="lazy" onError={() => setPosterOk(false)} />
         )}
-        <Box sx={{
-          position: 'absolute', inset: 0, zIndex: 1,
-          background: poster
+        <div className="absolute inset-0 z-[1]" style={{ background: poster
             ? alpha('#0C1216', 0.34)
-            : `radial-gradient(circle at 50% 38%, ${alpha('#2C3E48', 0.55)}, ${FEED_BG} 72%)`,
-        }} />
+            : `radial-gradient(circle at 50% 38%, ${alpha('#2C3E48', 0.55)}, ${FEED_BG} 72%)` }} />
 
         {/* Pills haut */}
         <div className="absolute top-[8px] start-[8px] end-[8px] flex items-center justify-between z-[2]">
@@ -98,7 +89,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
           )}
           {recording && (
             <Tooltip title="Enregistrement" arrow>
-              <Box component="span" sx={{ color: ACCENT, display: 'inline-flex' }}><FiberManualRecord size={12} /></Box>
+              <span className="inline-flex" style={{ color: ACCENT }}><FiberManualRecord size={12} /></span>
             </Tooltip>
           )}
         </div>
@@ -120,17 +111,15 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
               </div>
             )
           ) : (
-            <Box className="co-cam-play"
-              sx={{ position: 'relative', zIndex: 2, width: 46, height: 46, borderRadius: '50%', bgcolor: alpha('#fff', 0.14), color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background-color 150ms' }}>
+            <div className="co-cam-play relative z-[2] w-[46px] h-[46px] rounded-[50%] text-[#fff] flex items-center justify-center" style={{ backgroundColor: alpha('#fff', 0.14), transition: 'background-color 150ms' }}>
               <PlayArrow size={24} />
-            </Box>
+            </div>
           )
         ) : (
-          <Box sx={{ position: 'relative', zIndex: 2, color: alpha('#fff', 0.45), display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+          <div className="relative z-[2] flex flex-col items-center gap-[3px]" style={{ color: alpha('#fff', 0.45) }}>
             <WifiOff size={22} />
             <p className="cn-text-body1 text-[0.62rem]">Caméra injoignable</p>
-          </Box>
+          </div>
         )}
 
         {/* Bouton de sortie plein écran — overlay au-dessus de l'iframe (zIndex 4), visible
@@ -163,7 +152,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
 
       {/* ── Footer : marque + actions ── */}
       <div className="flex items-center gap-1 px-1.5 py-1">
-        <Box component="span" sx={{ color: ACCENT, display: 'inline-flex' }}><PhotoCamera size={14} strokeWidth={1.75} /></Box>
+        <span className="inline-flex" style={{ color: ACCENT }}><PhotoCamera size={14} strokeWidth={1.75} /></span>
         <span className="cn-text-caption text-muted-foreground font-semibold">{brand || 'Caméra'}</span>
         <div className="ms-auto flex gap-0.5">
           {/* Lecture/Arrêt — contrôle fiable au-dessus de l'iframe (le clic sur le feed est capté par l'iframe une fois lancée). */}
@@ -197,7 +186,7 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
           )}
         </div>
       </div>
-    </Box>
+    </div>
   );
 }
 

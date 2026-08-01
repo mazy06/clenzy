@@ -12,6 +12,7 @@
    ============================================================ */
 
 import { useEffect, useRef, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { Box, IconButton, Tooltip } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { Send, SmartToy } from '../../../icons';
@@ -165,13 +166,7 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
 function ConversationBubble({ turn }: { turn: ConversationTurn }) {
   const isOperator = turn.role === 'operator';
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: isOperator ? 'flex-end' : 'flex-start',
-      }}
-    >
+    <div className={cn('flex flex-col', isOperator ? 'items-end' : 'items-start')}>
       <Box
         sx={{
           maxWidth: '85%',
@@ -195,7 +190,7 @@ function ConversationBubble({ turn }: { turn: ConversationTurn }) {
           {formatTime(turn.at)}
         </div>
       )}
-    </Box>
+    </div>
   );
 }
 
@@ -218,7 +213,7 @@ function ThinkingRow({ label }: { label: string }) {
     >
       <SmartToy size={14} />
       <span>{label}</span>
-      <Box component="span" sx={{ display: 'inline-flex', gap: '3px', ml: 0.25 }}>
+      <span className="inline-flex gap-[3px] ms-[1.5px]">
         {[0, 1, 2].map((i) => (
           <Box
             key={i}
@@ -234,7 +229,7 @@ function ThinkingRow({ label }: { label: string }) {
             }}
           />
         ))}
-      </Box>
+      </span>
     </Box>
   );
 }

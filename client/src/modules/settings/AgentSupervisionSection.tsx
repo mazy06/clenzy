@@ -1,8 +1,9 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Box, Switch, Divider, Select, MenuItem, TextField, Snackbar, useTheme, alpha } from '@mui/material';
+import { Switch, Divider, Select, MenuItem, TextField, Snackbar, useTheme, alpha } from '@mui/material';
 import AiSettingsCard from './AiSettingsCard';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -26,10 +27,7 @@ const AUTONOMY_LABEL_KEY: Record<AutonomyLevel, string> = {
 function ModuleDot({ moduleKey }: { moduleKey: string }) {
   const color = AGENT_META[moduleKey as AgentId]?.color ?? 'var(--accent)';
   return (
-    <Box
-      sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: color, flexShrink: 0 }}
-      aria-hidden
-    />
+    <div className="w-[10px] h-[10px] rounded-[50%] shrink-0" style={{ backgroundColor: color }} aria-hidden />
   );
 }
 
@@ -96,9 +94,9 @@ export default function AgentSupervisionSection() {
       )}
     >
       {isLoading ? (
-        <Box display="flex" justifyContent="center" py={3}>
+        <div className="flex justify-center py-[18px]">
           <Spinner className="size-6" />
-        </Box>
+        </div>
       ) : error ? (
         <Alert variant="destructive">
           <TriangleAlert />
@@ -130,7 +128,7 @@ export default function AgentSupervisionSection() {
           <Divider />
 
           {/* ── Pause globale ── */}
-          <Box sx={{ display: 'flex', alignItems: 'center', py: 1.5, opacity: config.enabled ? 1 : 0.5 }}>
+          <div className={cn('flex items-center py-[9px]', config.enabled ? 'opacity-100' : 'opacity-50')}>
             <div className="flex-1 min-w-0">
               <p className="cn-text-body2 font-semibold">
                 {t('settings.ai.supervision.paused.label', 'Mettre en pause')}
@@ -148,12 +146,12 @@ export default function AgentSupervisionSection() {
               disabled={!canEdit || busy || !config.enabled}
               size="small"
             />
-          </Box>
+          </div>
 
           <Divider />
 
           {/* ── Budget (plafond de scans automatiques) ── */}
-          <Box sx={{ display: 'flex', alignItems: 'center', py: 1.5, opacity: config.enabled ? 1 : 0.5 }}>
+          <div className={cn('flex items-center py-[9px]', config.enabled ? 'opacity-100' : 'opacity-50')}>
             <div className="flex-1 min-w-0 pe-3">
               <p className="cn-text-body2 font-semibold">
                 {t('settings.ai.supervision.budget.label', 'Plafond de scans automatiques')}
@@ -175,7 +173,7 @@ export default function AgentSupervisionSection() {
               inputProps={{ min: 0, step: 1, style: { textAlign: 'right', width: 64 } }}
               sx={{ flexShrink: 0 }}
             />
-          </Box>
+          </div>
 
           <Divider sx={{ mb: 1 }} />
 
@@ -189,16 +187,7 @@ export default function AgentSupervisionSection() {
             return (
               <React.Fragment key={module.key}>
                 {index > 0 && <Divider sx={{ ml: 3 }} />}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    py: 1.25,
-                    opacity: config.enabled && module.enabled ? 1 : 0.55,
-                    transition: 'opacity 0.15s ease',
-                  }}
-                >
+                <div className={cn('flex items-center gap-[9px] py-[7.5px]', config.enabled && module.enabled ? 'opacity-100' : 'opacity-55')} style={{ transition: 'opacity 0.15s ease' }}>
                   <ModuleDot moduleKey={module.key} />
                   <div className="flex-1 min-w-0">
                     <p className="cn-text-body2 font-semibold leading-[1.3]">
@@ -232,7 +221,7 @@ export default function AgentSupervisionSection() {
                     disabled={disabled}
                     size="small"
                   />
-                </Box>
+                </div>
               </React.Fragment>
             );
           })}

@@ -539,10 +539,9 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
 
         {/* Les directions réutilisables se gèrent ici ; la SÉLECTION se fait à l'étape 1 de la génération. */}
         <div className="mb-2">
-          <Box component="button" type="button" onClick={() => navigate('/booking-engine/design-systems')}
-            sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, border: 0, bgcolor: 'transparent', cursor: 'pointer', color: 'var(--accent)', fontSize: 13, fontWeight: 500 }}>
+          <button className="inline-flex items-center gap-[3px] bg-[transparent] cursor-pointer text-[var(--accent)] text-[13px] font-medium" style={{ border: 0 }} type="button" onClick={() => navigate('/booking-engine/design-systems')}>
             <Sparkles size={14} strokeWidth={2} /> Gérer les systèmes de design
-          </Box>
+          </button>
         </div>
 
         {/* 2 · Champ IA */}
@@ -629,9 +628,9 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           ))}
           {optionAnchor?.id === 'template' && visibleTemplates.map((tpl) => (
             <MenuItem key={tpl.id} selected={tpl.id === templateId} onClick={() => applyTemplate(tpl.id)} sx={{ fontSize: 13, gap: 1.25, alignItems: 'center' }}>
-              <Box component="span" sx={{ width: 46, height: 32, flexShrink: 0, borderRadius: '5px', position: 'relative', overflow: 'hidden', bgcolor: 'var(--surface-2, rgba(255,255,255,0.06))', border: '1px solid var(--line, rgba(255,255,255,0.12))' }}>
+              <span className="w-[46px] h-[32px] shrink-0 rounded-[5px] relative overflow-hidden bg-[var(--surface-2,_rgba(255,255,255,0.06))] border border-solid border-[var(--line,_rgba(255,255,255,0.12))]">
                 <TemplateThumb tpl={tpl} />
-              </Box>
+              </span>
               {tpl.name}
             </MenuItem>
           ))}
@@ -639,7 +638,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
             <MenuItem key="auto" selected={!styleId} onClick={() => { setStyleId(null); setOptionAnchor(null); }} sx={{ fontSize: 13 }}>Automatique</MenuItem>,
             ...DESIGN_PRESETS.map((p) => (
               <MenuItem key={p.id} selected={p.id === styleId} onClick={() => { setStyleId(p.id); setOptionAnchor(null); }} sx={{ fontSize: 13, gap: 1 }}>
-                <Box component="span" sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: p.primaryColor, flexShrink: 0 }} />
+                <span className="w-[12px] h-[12px] rounded-[3px] shrink-0" style={{ backgroundColor: p.primaryColor }} />
                 {styleLabel(p.id)}
               </MenuItem>
             )),
@@ -731,14 +730,12 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
               sx={{ px: 1.25, py: 0.75, fontSize: 13, border: '1px solid var(--line)', borderRadius: 'var(--radius-md, 8px)', bgcolor: 'var(--field)' }}
             />
             <div className="flex justify-between items-center">
-              <Box component="button" type="button" onClick={() => removeOption('location')}
-                sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, border: 0, bgcolor: 'transparent', cursor: 'pointer', fontSize: 12.5, color: 'var(--err, #c0392b)' }}>
+              <button className="inline-flex items-center gap-[3px] bg-[transparent] cursor-pointer text-[12.5px] text-[var(--err,_#c0392b)]" style={{ border: 0 }} type="button" onClick={() => removeOption('location')}>
                 <X size={14} strokeWidth={2} /> Retirer
-              </Box>
-              <Box component="button" type="button" onClick={commitLocation}
-                sx={{ border: 0, bgcolor: 'transparent', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--accent)' }}>
+              </button>
+              <button className="bg-[transparent] cursor-pointer text-[12.5px] font-semibold text-[var(--accent)]" style={{ border: 0 }} type="button" onClick={commitLocation}>
                 OK
-              </Box>
+              </button>
             </div>
           </div>
         </Popover>
@@ -929,10 +926,10 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
   return (
     <>
       {embedded ? (
-        <Box sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>{content}</Box>
+        <div className="px-3 min-[900px]:px-[18px] py-3 min-[900px]:py-[18px]">{content}</div>
       ) : (
         <div className="min-h-[100vh] bg-[var(--bg)]">
-          <Box sx={{ px: { xs: 2, md: 4 }, py: { xs: 3, md: 5 } }}>{content}</Box>
+          <div className="px-3 min-[900px]:px-6 py-[18px] min-[900px]:py-[30px]">{content}</div>
         </div>
       )}
     </>

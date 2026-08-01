@@ -197,7 +197,7 @@ export default function WhatsAppProviderConfigSection() {
           NON sélectionné est verrouillé tant que les envois sont activés (un seul
           provider actif à la fois). Pour changer : désactiver les envois d'abord. */}
       <div className="flex flex-col gap-1.5">
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+        <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1fr] gap-3">
           <ProviderOptionCard
             selected={provider === 'META'}
             onClick={() => setProvider('META')}
@@ -233,7 +233,7 @@ export default function WhatsAppProviderConfigSection() {
               'Throughput limité (20 msg/min)',
             ]}
           />
-        </Box>
+        </div>
         {enabled && (
           <span className="cn-text-caption text-muted-foreground">
             {t('settings.whatsapp.providerLockHint',
@@ -551,24 +551,11 @@ function ProviderOptionCard({
       }}
     >
       {/* Indicateur radio */}
-      <Box
-        sx={{
-          width: 18,
-          height: 18,
-          borderRadius: '50%',
-          flexShrink: 0,
-          border: '2px solid',
-          borderColor: selected ? theme.palette.primary.main : alpha(theme.palette.text.primary, 0.3),
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'border-color 150ms ease-out',
-        }}
-      >
+      <div className="w-[18px] h-[18px] rounded-[50%] shrink-0 border-[2px] border-solid inline-flex items-center justify-center" style={{ borderColor: selected ? theme.palette.primary.main : alpha(theme.palette.text.primary, 0.3), transition: 'border-color 150ms ease-out' }}>
         {selected && (
-          <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: theme.palette.primary.main }} />
+          <div className="w-[9px] h-[9px] rounded-[50%]" style={{ backgroundColor: theme.palette.primary.main }} />
         )}
-      </Box>
+      </div>
 
       {/* Titre + badge + sous-titre */}
       <div className="flex-1 min-w-0">

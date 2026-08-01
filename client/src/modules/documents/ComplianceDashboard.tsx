@@ -282,14 +282,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
 
       {/* ─── KPIs (primitive StatTile) ───────────────────────────────── */}
       {stats && (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
-            gap: 1.5,
-            mb: 3,
-          }}
-        >
+        <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-[9px] mb-[18px]">
           <StatTile
             icon={<Description size={16} strokeWidth={1.75} />}
             label={t('documents.compliance.totalDocuments')}
@@ -314,7 +307,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
             value={`${stats.averageComplianceScore}%`}
             color={ACCENT_TEAL}
           />
-        </Box>
+        </div>
       )}
 
       {/* ─── Search result ────────────────────────────────────────────── */}

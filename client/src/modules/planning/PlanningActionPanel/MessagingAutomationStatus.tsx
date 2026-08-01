@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../../utils/cn';
 import { Box, IconButton, Tooltip } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -53,17 +54,17 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
     r.enabled && CHECK_OUT_TRIGGERS.includes(r.triggerType) && isMessagingAction(r.actionType)));
 
   const Row = ({ ok, label, detail }: { ok: boolean; label: string; detail: string }) => (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: '5px' }}>
-      <Box component="span" sx={{ display: 'inline-flex', color: ok ? 'var(--ok)' : 'var(--faint)', flexShrink: 0 }}>
+    <div className="flex items-center gap-[4.5px] py-[5px]">
+      <span className={cn('inline-flex shrink-0', ok ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}>
         {ok ? <CheckCircle size={13} strokeWidth={2} /> : <Close size={13} strokeWidth={2} />}
-      </Box>
+      </span>
       <span className="text-[0.75rem] font-semibold text-[var(--ink)] shrink-0">
         {label}
       </span>
       <span className="ms-auto text-[0.6875rem] text-[var(--muted)] text-end min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
         {detail}
       </span>
-    </Box>
+    </div>
   );
 
   return (
@@ -104,16 +105,16 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
           />
 
           {/* Destinataire */}
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, mt: 0.75, pt: 0.75, borderTop: '1px dashed var(--line)' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: hasEmail ? 'var(--ok)' : 'var(--warn)', mt: '1px' }}>
+          <div className="flex items-start gap-[4.5px] mt-[4.5px] pt-[4.5px]" style={{ borderTop: '1px dashed var(--line)' }}>
+            <span className={cn('inline-flex mt-px', hasEmail ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
               {hasEmail
                 ? <CheckCircle size={13} strokeWidth={2} />
                 : <Warning size={13} strokeWidth={2} />}
-            </Box>
+            </span>
             <div className="flex-1 min-w-0">
-              <Box component="span" sx={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: hasEmail ? 'var(--ok)' : 'var(--warn)' }}>
+              <span className={cn('block text-[0.6875rem] font-semibold', hasEmail ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
                 {hasEmail ? `Email guest disponible (${guestEmail})` : 'Pas d\'email guest'}
-              </Box>
+              </span>
               {!hasEmail && (
                 <span className="block text-[0.625rem] text-[var(--muted)] mt-0.5 leading-[1.35]">
                   {isAnonymizedIcal
@@ -127,7 +128,7 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
                 </span>
               )}
             </div>
-          </Box>
+          </div>
 
           {(checkInOk || checkOutOk) && (
             <div className="flex items-center gap-0.5 mt-1 text-[var(--faint)]">

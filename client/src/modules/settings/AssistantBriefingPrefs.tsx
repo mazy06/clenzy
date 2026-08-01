@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { cn } from '../../utils/cn';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -140,9 +141,9 @@ export const AssistantBriefingPrefs: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" py={4}>
+      <div className="flex justify-center py-6">
         <Spinner className="size-6" />
-      </Box>
+      </div>
     );
   }
   if (error || !prefs) {
@@ -174,13 +175,7 @@ export const AssistantBriefingPrefs: React.FC = () => {
         />
       }
     >
-      <Box
-        sx={{
-          opacity: prefs.enabled ? 1 : 0.5,
-          pointerEvents: prefs.enabled ? 'auto' : 'none',
-          transition: 'opacity 150ms ease',
-        }}
-      >
+      <div className={cn(prefs.enabled ? 'opacity-100' : 'opacity-50', prefs.enabled ? 'pointer-events-auto' : 'pointer-events-none')} style={{ transition: 'opacity 150ms ease' }}>
         {/* ── Ligne 1 : Frequence + Heure + Fuseau ─────────────────────── */}
         <Box
           sx={{
@@ -265,14 +260,7 @@ export const AssistantBriefingPrefs: React.FC = () => {
           >
             Canaux
           </Typography>
-          <Box
-            sx={{
-              mt: 0.75,
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' },
-              gap: 1.5,
-            }}
-          >
+          <div className="mt-[4.5px] grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
             {CHANNEL_OPTIONS.map((opt) => {
               const checked = prefs.channels.includes(opt.value);
               return (
@@ -315,9 +303,9 @@ export const AssistantBriefingPrefs: React.FC = () => {
                 </Box>
               );
             })}
-          </Box>
+          </div>
         </div>
-      </Box>
+      </div>
 
       {/* ── Actions ───────────────────────────────────────────────────── */}
       <Divider sx={{ my: 3 }} />

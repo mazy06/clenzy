@@ -323,7 +323,7 @@ export default function AmenityMappingPage() {
 
   // ─── Render ────────────────────────────────────────────────────────────
   return (
-    <Box sx={{ p: { xs: 0, md: 1 }, maxWidth: 1280, mx: 'auto' }}>
+    <div className="p-0 min-[900px]:p-1.5 max-w-[1280px] mx-auto">
       {/* Header (titre + actions) deporte dans le PageHeader Settings via portal */}
       {headerActionsPortal}
 
@@ -665,13 +665,7 @@ export default function AmenityMappingPage() {
                   </p>
                   <StatusChip size="sm" tokens={{ color: PRIMARY, bg: 'var(--info-soft)' }} label={items.length} className="text-[0.65rem]" />
                 </Stack>
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' },
-                    gap: 1,
-                  }}
-                >
+                <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(3,_1fr)] min-[1200px]:grid-cols-[repeat(4,_1fr)] gap-1.5">
                   {items.map((a) => {
                     const Icon = resolveAmenityIcon(a.code, iconOverrides);
                     const isOverridden = a.code in iconOverrides && iconOverrides[a.code] !== DEFAULT_AMENITY_ICONS[a.code];
@@ -787,7 +781,7 @@ export default function AmenityMappingPage() {
                       </Box>
                     );
                   })}
-                </Box>
+                </div>
               </div>
             );
           })}
@@ -872,7 +866,7 @@ export default function AmenityMappingPage() {
         message={toast}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
-    </Box>
+    </div>
   );
 }
 

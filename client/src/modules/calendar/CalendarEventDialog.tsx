@@ -1,6 +1,6 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Divider } from '@mui/material';
 import {
   LocationOn as LocationIcon,
   Person as PersonIcon,
@@ -108,16 +108,16 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
 
       <DialogContent sx={{ pt: '16px !important' }}>
         {/* Chips: Status, Priority, Type — pilules soft (jamais d'aplat plein) */}
-        <Box display="flex" gap={0.75} mb={2} flexWrap="wrap">
+        <div className="flex gap-[4.5px] mb-3 flex-wrap">
           <StatusChip pill tokens={chipColorTokens(getStatusChipColor(intervention.status))} label={getStatusLabel(intervention.status)} />
           <StatusChip pill tokens={chipColorTokens(getPriorityChipColor(intervention.priority))} label={getPriorityLabel(intervention.priority)} />
           <StatusChip pill tokens={chipColorTokens('primary')} label={getTypeLabel(intervention.type, t)} />
-        </Box>
+        </div>
 
         <Divider sx={{ mb: 2 }} />
 
         {/* Property */}
-        <Box display="flex" alignItems="center" mb={1.5}>
+        <div className="flex items-center mb-[9px]">
           <span className="inline-flex text-muted-foreground me-1.5"><LocationIcon size={18} strokeWidth={1.75} /></span>
           <div>
             <p className="cn-text-body2 font-medium">
@@ -129,39 +129,39 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
               </span>
             )}
           </div>
-        </Box>
+        </div>
 
         {/* Scheduled date */}
-        <Box display="flex" alignItems="center" mb={1.5}>
+        <div className="flex items-center mb-[9px]">
           <span className="inline-flex text-muted-foreground me-1.5"><CalendarIcon size={18} strokeWidth={1.75} /></span>
           <p className="cn-text-body2">
             {formatDate(intervention.scheduledDate)}
           </p>
-        </Box>
+        </div>
 
         {/* Duration */}
-        <Box display="flex" alignItems="center" mb={1.5}>
+        <div className="flex items-center mb-[9px]">
           <span className="inline-flex text-muted-foreground me-1.5"><ScheduleIcon size={18} strokeWidth={1.75} /></span>
           <p className="cn-text-body2">
             {formatDuration(intervention.estimatedDurationHours)}
           </p>
-        </Box>
+        </div>
 
         {/* Assigned to */}
         {intervention.assignedToName && (
-          <Box display="flex" alignItems="center" mb={1.5}>
+          <div className="flex items-center mb-[9px]">
             <span className="inline-flex text-muted-foreground me-1.5"><PersonIcon size={18} strokeWidth={1.75} /></span>
             <p className="cn-text-body2">
               {intervention.assignedToName}
             </p>
-          </Box>
+          </div>
         )}
 
         {/* Description */}
         {intervention.description && (
           <>
             <Divider sx={{ my: 1.5 }} />
-            <Box display="flex" alignItems="flex-start" mb={1}>
+            <div className="flex items-start mb-1.5">
               <span className="inline-flex text-muted-foreground me-1.5 mt-0.5"><AssignmentIcon size={18} strokeWidth={1.75} /></span>
               <Typography
                 variant="body2"
@@ -176,7 +176,7 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
               >
                 {intervention.description}
               </Typography>
-            </Box>
+            </div>
           </>
         )}
       </DialogContent>

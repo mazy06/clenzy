@@ -1,4 +1,4 @@
-import { Box } from '@mui/material';
+
 import StatusChip from '../../../components/StatusChip';
 import ServiceGridCard from './ServiceGridCard';
 import type { ProviderId } from './ProviderLogos';
@@ -34,26 +34,10 @@ const PROVIDERS: ProviderCardSpec[] = [
 
 /** Badge "QTSP 🇫🇷" (rendu dans le titre via titleAdornment, sans tooltip propre pour eviter l'imbrication). */
 const qtspBadge = (
-  <Box
-    component="span"
-    sx={{
-      fontSize: '0.56rem',
-      fontWeight: 700,
-      letterSpacing: '0.02em',
-      color: ACCENT,
-      backgroundColor: 'var(--ok-soft)',
-      border: '1px solid color-mix(in srgb, var(--ok) 20%, transparent)',
-      borderRadius: '3px',
-      px: 0.375,
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '2px',
-      flexShrink: 0,
-    }}
-  >
+  <span className="text-[0.56rem] font-bold tracking-[0.02em] bg-[var(--ok-soft)] border border-solid border-[color-mix(in_srgb,_var(--ok)_20%,_transparent)] rounded-[3px] px-[2.25px] inline-flex items-center gap-0.5 shrink-0" style={{ color: ACCENT }}>
     QTSP
     <span aria-hidden="true" style={{ fontSize: '0.85em' }}>🇫🇷</span>
-  </Box>
+  </span>
 );
 
 /** Provider implémenté côté code mais pas encore branché (config/clé manquante). */
@@ -84,16 +68,7 @@ export default function SignatureProviderCards({
     ? PROVIDERS.filter((p) => p.value === serviceFilter)
     : PROVIDERS;
   return (
-    <Box
-      role="radiogroup"
-      aria-label="Fournisseur de signature electronique"
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-        gap: 1.5,
-        mt: 1,
-      }}
-    >
+    <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5" role="radiogroup" aria-label="Fournisseur de signature electronique">
       {visibleProviders.map((p) => {
         const connected = connectedSet?.has(p.value) ?? false;
         return (
@@ -112,6 +87,6 @@ export default function SignatureProviderCards({
           />
         );
       })}
-    </Box>
+    </div>
   );
 }

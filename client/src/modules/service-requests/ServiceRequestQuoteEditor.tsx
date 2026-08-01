@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { Badge } from '../../components/ui';
-import { Box, Typography, TextField, IconButton } from '@mui/material';
+import { Typography, TextField, IconButton } from '@mui/material';
 import { Add, Close, Receipt } from '../../icons';
 import type { QuoteLine } from '../../schemas/serviceRequestSchema';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -98,14 +98,7 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
         {value.length > 0 && (
           <div className="flex flex-col gap-0.5 mb-1.5">
             {/* En-têtes de colonnes */}
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 56px 88px 84px 28px',
-                gap: 0.75,
-                px: 0.25,
-              }}
-            >
+            <div className="grid grid-cols-[1fr_56px_88px_84px_28px] gap-[4.5px] px-[1.5px]">
               {['Désignation', 'Qté', 'PU (€)', 'Total', ''].map((h, i) => (
                 <Typography
                   key={h || 'actions'}
@@ -121,18 +114,10 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
                   {h}
                 </Typography>
               ))}
-            </Box>
+            </div>
 
             {value.map((line, index) => (
-              <Box
-                key={index}
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 56px 88px 84px 28px',
-                  gap: 0.75,
-                  alignItems: 'center',
-                }}
-              >
+              <div className="grid grid-cols-[1fr_56px_88px_84px_28px] gap-[4.5px] items-center" key={index}>
                 <TextField
                   value={line.label}
                   onChange={(e) => updateLine(index, { label: e.target.value })}
@@ -171,7 +156,7 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
                 >
                   <Close size={14} strokeWidth={1.75} />
                 </IconButton>
-              </Box>
+              </div>
             ))}
           </div>
         )}

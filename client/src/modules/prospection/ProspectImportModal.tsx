@@ -98,12 +98,12 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
           borderColor: 'divider',
         }}
       >
-        <Box display="flex" alignItems="center" gap={1}>
+        <div className="flex items-center gap-1.5">
           <CloudUpload color="primary" />
           <div className="cn-text-h6">
             Importer des prospects
           </div>
-        </Box>
+        </div>
         <IconButton onClick={handleClose} size="small" sx={{ color: 'text.secondary' }}>
           <CloseIcon />
         </IconButton>
@@ -173,7 +173,7 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
             style={{ display: 'none' }}
           />
           {selectedFile ? (
-            <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
+            <div className="flex items-center justify-center gap-1.5">
               <InsertDriveFile color="primary" />
               <p className="cn-text-body1 text-foreground">
                 {selectedFile.name}
@@ -181,7 +181,7 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
               <p className="cn-text-body2 text-muted-foreground">
                 ({(selectedFile.size / 1024).toFixed(1)} Ko)
               </p>
-            </Box>
+            </div>
           ) : (
             <>
               <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><CloudUpload size={48} strokeWidth={1.75} /></span>

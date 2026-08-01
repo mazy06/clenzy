@@ -215,20 +215,9 @@ export default function ThreadView({
         ) : (
           grouped.map((group) => (
             <React.Fragment key={group.day}>
-              <Box
-                sx={{
-                  alignSelf: 'center',
-                  fontSize: '10.5px',
-                  fontWeight: 600,
-                  color: 'var(--faint)',
-                  bgcolor: 'var(--card)',
-                  border: '1px solid var(--line)',
-                  p: '4px 13px',
-                  borderRadius: '20px',
-                }}
-              >
+              <div className="self-center text-[10.5px] font-semibold text-[var(--faint)] bg-[var(--card)] border border-solid border-[var(--line)] p-[4px 13px] rounded-[20px]">
                 {group.day}
-              </Box>
+              </div>
               {group.msgs.map((msg) => (
                 <Box
                   key={msg.id}
@@ -288,19 +277,9 @@ export default function ThreadView({
       {/* ── Compose ─────────────────────────────────────────────────────── */}
       <div className="shrink-0 bg-[var(--card)] border-t border-[var(--line)]">
         {composeNotice}
-        <Box sx={{ p: '14px 20px' }}>
+        <div className="p-[14px 20px]">
           {composeExtra}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'flex-end',
-              gap: 1.25,
-              bgcolor: 'var(--field)',
-              border: '1px solid var(--field-line)',
-              borderRadius: '13px',
-              p: '8px 8px 8px 14px',
-            }}
-          >
+          <div className="flex items-end gap-[7.5px] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[13px] p-[8px 8px 8px 14px]">
             <InputBase
               multiline
               maxRows={4}
@@ -344,8 +323,8 @@ export default function ThreadView({
             >
               {sending ? <Spinner className="size-[15px] text-[#fff]" /> : <SendIcon size={15} strokeWidth={1.75} />}
             </Box>
-          </Box>
-        </Box>
+          </div>
+        </div>
       </div>
     </div>
   );

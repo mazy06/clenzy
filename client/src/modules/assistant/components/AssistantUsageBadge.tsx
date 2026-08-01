@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Tooltip, Typography } from '@mui/material';
+import { Tooltip, Typography } from '@mui/material';
 import type { AssistantUsage } from '../../../services/api/assistantApi';
 
 interface AssistantUsageBadgeProps {
@@ -40,34 +40,12 @@ export const AssistantUsageBadge: React.FC<AssistantUsageBadgeProps> = ({
       title={<UsageTooltipContent usage={usage} loading={loading} />}
       enterDelay={300}
     >
-      <Box
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 0.75,
-          px: 1.25,
-          height: 28,
-          borderRadius: 999,
-          fontSize: '11.5px',
-          fontWeight: 600,
-          color: 'var(--muted)',
-          bgcolor: 'var(--card)',
-          border: '1px solid var(--line)',
-          cursor: 'help',
-          transition: 'border-color .15s',
-          fontVariantNumeric: 'tabular-nums',
-          userSelect: 'none',
-          '&:hover': {
-            borderColor: 'var(--line-2)',
-          },
-        }}
-        aria-label={`Consommation assistant : ${costLabel} ${periodLabel}, ${tokensLabel} tokens`}
-      >
+      <div className="inline-flex items-center gap-[4.5px] px-[7.5px] h-[28px] rounded-[7992px] text-[11.5px] font-semibold text-[var(--muted)] bg-[var(--card)] border border-solid border-[var(--line)] cursor-help tabular-nums select-none hover:border-[var(--line-2)]" style={{ transition: 'border-color .15s' }} aria-label={`Consommation assistant : ${costLabel} ${periodLabel}, ${tokensLabel} tokens`}>
         <span className="font-semibold text-[var(--body)]">{costLabel}</span>
         <span className="text-[var(--faint)]">
           · {tokensLabel} tokens
         </span>
-      </Box>
+      </div>
     </Tooltip>
   );
 };
@@ -132,21 +110,14 @@ const UsageTooltipContent: React.FC<{
 
       {usage.byModel.length > 0 && (
         <>
-          <Box
-            sx={{
-              // Le tooltip global a un fond --ink (inverse) : filet teinte --bg.
-              borderTop: '1px solid color-mix(in srgb, var(--bg) 25%, transparent)',
-              mt: 1,
-              pt: 0.75,
-            }}
-          >
+          <div className="mt-1.5 pt-[4.5px]" style={{ borderTop: '1px solid color-mix(in srgb, var(--bg) 25%, transparent)' }}>
             <Typography
               variant="overline"
               sx={{ fontSize: '0.625rem', letterSpacing: 0.8, fontWeight: 700, opacity: 0.7 }}
             >
               Par modele
             </Typography>
-          </Box>
+          </div>
           {usage.byModel.map((m) => (
             <div className="flex justify-between items-baseline" key={m.model}>
               <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

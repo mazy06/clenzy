@@ -152,7 +152,7 @@ export default function DesignSystemCreatePage() {
   return (
     <div className="od-canvas min-h-[100vh] bg-[var(--bg)]">
       {/* Barre supérieure — sticky frostée, grille 1fr auto 1fr avec marque centrée (modèle .ds-setup-topbar). */}
-      <Box sx={{ position: 'sticky', top: 0, zIndex: 20, height: 64, display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 2, px: { xs: 2, md: '28px' }, borderBottom: '1px solid var(--line)', bgcolor: 'color-mix(in srgb, var(--bg) 88%, transparent)', backdropFilter: 'saturate(1.4) blur(10px)' }}>
+      <div className="sticky top-0 z-[20] h-[64px] grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 min-[900px]:px-7 bg-[color-mix(in_srgb,_var(--bg)_88%,_transparent)]" style={{ borderBottom: '1px solid var(--line)', backdropFilter: 'saturate(1.4) blur(10px)' }}>
         <Box sx={{ justifySelf: 'start' }}>
           <Button onClick={() => navigate(-1)} startIcon={<ArrowLeft size={16} strokeWidth={2} />} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Retour</Button>
         </Box>
@@ -164,29 +164,19 @@ export default function DesignSystemCreatePage() {
             {primaryLabel}
           </Button>
         </Box>
-      </Box>
+      </div>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(320px, 420px) minmax(0, 1fr)' }, gap: { xs: 3, md: '48px' }, alignItems: 'start', px: { xs: 2, md: 4 }, py: { xs: 3, md: 5 }, maxWidth: 1320, mx: 'auto' }}>
         {/* ─── Colonne gauche : cadrage + aperçu — épinglée au scroll (position: sticky, comme open-design) ─── */}
         <Box sx={{ position: { md: 'sticky' }, top: { md: 84 }, alignSelf: 'start' }}>
-          <Box sx={{
-            display: 'inline-flex', alignItems: 'center', gap: 0.75, mb: 2.5, pl: 0.5, pr: 1.5, py: 0.5,
-            borderRadius: 'var(--radius-pill, 999px)',
-            bgcolor: 'color-mix(in srgb, var(--accent) 7%, var(--surface))',
-            border: '1px solid', borderColor: 'color-mix(in srgb, var(--accent) 18%, var(--line))',
-            boxShadow: '0 1px 2px color-mix(in srgb, var(--accent) 8%, transparent)',
-          }}>
-            <Box aria-hidden sx={{
-              display: 'grid', placeItems: 'center', width: 22, height: 22, borderRadius: '50%',
-              bgcolor: 'var(--accent)', color: 'var(--on-accent)', flexShrink: 0,
-              boxShadow: '0 1px 4px color-mix(in srgb, var(--accent) 40%, transparent)',
-            }}>
+          <div className="inline-flex items-center gap-[4.5px] mb-[15px] ps-[3px] pe-[9px] py-[3px] rounded-[var(--radius-pill,_999px)] bg-[color-mix(in_srgb,_var(--accent)_7%,_var(--surface))] border border-solid border-[color-mix(in_srgb,_var(--accent)_18%,_var(--line))]" style={{ boxShadow: '0 1px 2px color-mix(in srgb, var(--accent) 8%, transparent)' }}>
+            <div className="grid place-items-[center] w-[22px] h-[22px] rounded-[50%] bg-[var(--accent)] text-[var(--on-accent)] shrink-0" style={{ boxShadow: '0 1px 4px color-mix(in srgb, var(--accent) 40%, transparent)' }} aria-hidden>
               <Sparkles size={12} strokeWidth={2.4} />
-            </Box>
+            </div>
             <span className="text-[10.5px] font-bold tracking-[0.09em] uppercase text-[var(--accent)]">
               Système de design
             </span>
-          </Box>
+          </div>
           <Box sx={{ fontFamily: 'var(--font-display)', fontSize: { xs: 30, md: 42 }, fontWeight: 700, lineHeight: 1.08, color: 'var(--ink)', letterSpacing: '-0.02em', textWrap: 'balance' }}>
             Concevez un système, en minutes
           </Box>
@@ -203,7 +193,7 @@ export default function DesignSystemCreatePage() {
               { n: 3, t: 'Générez', d: 'Extraction rapide d’abord ; l’IA affine ensuite' },
             ].map((s) => (
               <div className="flex gap-2 items-center" key={s.n}>
-                <Box sx={{ display: 'grid', placeItems: 'center', width: 26, height: 26, borderRadius: '50%', bgcolor: 'color-mix(in srgb, var(--accent) 12%, var(--surface))', border: '1px solid', borderColor: 'color-mix(in srgb, var(--accent) 22%, var(--line))', color: 'var(--accent)', fontSize: 12.5, fontWeight: 700, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{s.n}</Box>
+                <div className="grid place-items-[center] w-[26px] h-[26px] rounded-[50%] bg-[color-mix(in_srgb,_var(--accent)_12%,_var(--surface))] border border-solid border-[color-mix(in_srgb,_var(--accent)_22%,_var(--line))] text-[var(--accent)] text-[12.5px] font-bold shrink-0 tabular-nums">{s.n}</div>
                 <div>
                   <div className="text-[var(--text-sm)] font-bold text-[var(--ink)]">{s.t}</div>
                   <div className="text-[var(--text-2xs)] text-[var(--muted)]">{s.d}</div>
@@ -222,25 +212,25 @@ export default function DesignSystemCreatePage() {
             },
           }}>
             <div className="flex items-center gap-1 mb-3">
-              <div className="flex gap-0.5">{['#ff5f57', '#febc2e', '#28c840'].map((c) => <Box key={c} sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: c }} />)}</div>
+              <div className="flex gap-0.5">{['#ff5f57', '#febc2e', '#28c840'].map((c) => <div className="w-[9px] h-[9px] rounded-[50%]" style={{ backgroundColor: c }} key={c} />)}</div>
               <div className="text-[var(--text-2xs)] font-semibold text-[var(--muted)] ms-0.5">Votre système de design</div>
             </div>
             <Label>Palette</Label>
             <div className="flex gap-1.5 mb-3">
               {[preview.primary, preview.accent, '#2b2420', '#e8ddcb', '#faf6ef'].map((c, i) => (
-                <Box key={i} sx={{ flex: 1, height: 40, borderRadius: '8px', bgcolor: c, border: '1px solid var(--line)' }} />
+                <div className="flex-1 h-[40px] rounded-[8px] border border-solid border-[var(--line)]" style={{ backgroundColor: c }} key={i} />
               ))}
             </div>
             <Label>Échelle typographique</Label>
-            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mb: 2, fontFamily: preview.heading, color: 'var(--ink)' }}>
+            <div className="flex items-baseline gap-[9px] mb-3 text-[var(--ink)]" style={{ fontFamily: preview.heading }}>
               <div className="text-[40px] font-bold leading-[1]">Aa</div>
               <div className="text-[26px] font-semibold leading-[1]">Aa</div>
               <div className="text-[17px] text-[var(--muted)] leading-[1]">Aa</div>
-            </Box>
+            </div>
             <Label>Composants</Label>
             <div className="flex items-center gap-1.5">
-              <Box sx={{ px: 1.75, py: 0.75, borderRadius: '8px', bgcolor: preview.primary, color: '#fff', fontSize: 13, fontWeight: 600, fontFamily: preview.body }}>Primaire</Box>
-              <Box sx={{ px: 1.75, py: 0.75, borderRadius: '8px', border: '1px solid var(--line)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, fontFamily: preview.body }}>Ghost</Box>
+              <div className="px-[10.5px] py-[4.5px] rounded-[8px] text-[#fff] text-[13px] font-semibold" style={{ backgroundColor: preview.primary, fontFamily: preview.body }}>Primaire</div>
+              <div className="px-[10.5px] py-[4.5px] rounded-[8px] border border-solid border-[var(--line)] text-[var(--ink)] text-[13px] font-semibold" style={{ fontFamily: preview.body }}>Ghost</div>
               <div className="flex-1 h-[8px] rounded-[999px] bg-[var(--hover)]" />
             </div>
           </Box>
@@ -250,7 +240,7 @@ export default function DesignSystemCreatePage() {
         <div className="flex flex-col">
           {/* Flux « page vierge » : réutiliser une direction existante ou partir sans direction, sans rien créer. */}
           {isBlankFlow && (
-            <Box sx={{ border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', p: 2, mb: 3, display: 'flex', flexDirection: 'column', gap: 1.5, bgcolor: 'var(--surface, #fff)' }}>
+            <div className="border border-solid border-[var(--line)] rounded-[var(--radius-md)] p-3 mb-[18px] flex flex-col gap-[9px] bg-[var(--surface,_#fff)]">
               <div className="text-[var(--text-sm)] font-bold text-[var(--ink)]">Réutiliser une direction existante</div>
               <div className="flex gap-1.5 flex-wrap items-center">
                 <FormControl size="small" sx={{ minWidth: 240, flex: 1 }}>
@@ -272,7 +262,7 @@ export default function DesignSystemCreatePage() {
                 <div className="text-[var(--text-2xs)] text-[var(--muted)] uppercase tracking-[0.08em] font-bold">ou créez-en une</div>
                 <Divider sx={{ flex: 1, borderColor: 'var(--line)' }} />
               </div>
-            </Box>
+            </div>
           )}
 
           <div className="text-[var(--text-xl)] font-bold text-[var(--ink)]">Extraire depuis un site, un dépôt ou vos éléments sources</div>
@@ -339,11 +329,11 @@ export default function DesignSystemCreatePage() {
 
             {/* Sources à venir : présentes pour parité open-design, désactivées en attendant le backend. */}
             <Row label="Ajouter des fichiers" optional soon description="Images, logos, polices, PDF, HTML — jusqu'à 12 Mo chacun.">
-              <Box sx={{ border: '1px dashed var(--line)', borderRadius: 'var(--radius-md)', py: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, color: 'var(--muted)', bgcolor: 'var(--field)' }}>
+              <div className="border border-dashed border-[var(--line)] rounded-[var(--radius-md)] py-[18px] flex flex-col items-center gap-[3px] text-[var(--muted)] bg-[var(--field)]">
                 <Upload size={20} strokeWidth={2} />
                 <div className="text-[var(--text-sm)] font-semibold">Glisser-déposer, coller ou parcourir</div>
                 <div className="text-[var(--text-2xs)]">Extraction en tokens & assets — bientôt</div>
-              </Box>
+              </div>
             </Row>
 
             <Row label="Dépôt GitHub" optional soon description="Analyse d'un repo pour en extraire le système existant.">

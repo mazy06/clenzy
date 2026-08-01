@@ -408,9 +408,9 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
             <div className="flex items-center gap-2 mt-3">
               {adopted ? (
                 <div className="inline-flex items-center gap-1">
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok, var(--accent))' }}>
+                  <span className="inline-flex text-[var(--ok,_var(--accent))]">
                     <CheckCircle size={15} strokeWidth={1.75} />
-                  </Box>
+                  </span>
                   <p className="cn-text-body1 text-[12px] font-semibold text-[var(--body)]">
                     {t('properties.cleaningEstimator.adopted')}
                   </p>

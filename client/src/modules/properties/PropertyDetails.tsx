@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
@@ -738,7 +739,7 @@ const PropertyDetails: React.FC = () => {
           {/* ── Row 2: Map + Description | Instructions voyageur ────── */}
           <div className="flex gap-2 mb-2">
             {/* ── Left column: Map + Description ──────────────────── */}
-            <Box sx={{ flex: 6, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <div className="flex-[6] min-w-0 flex flex-col gap-[9px]">
               {/* Mini-carte Mapbox */}
               {property.latitude != null && property.longitude != null && (
                 <Paper sx={{ ...CARD_SX, p: 0, overflow: 'hidden' }}>
@@ -765,7 +766,7 @@ const PropertyDetails: React.FC = () => {
                   variant="cleaning"
                 />
               )}
-            </Box>
+            </div>
 
             {/* ── Right column: Instructions voyageur ─────────────── */}
             {property.checkInInstructions && (() => {
@@ -792,7 +793,7 @@ const PropertyDetails: React.FC = () => {
               if (compactFields.length === 0 && fullWidthFields.length === 0) return null;
 
               return (
-                <Box sx={{ flex: 6, minWidth: 0 }}>
+                <div className="flex-[6] min-w-0">
                   <Paper sx={CARD_SX}>
                     <div className="flex justify-between items-center mb-1.5">
                       <Typography sx={SECTION_TITLE_SX}>
@@ -811,7 +812,7 @@ const PropertyDetails: React.FC = () => {
 
                     {/* Compact fields: 2 columns */}
                     {compactFields.length > 0 && (
-                      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: fullWidthFields.length > 0 ? 1 : 0 }}>
+                      <div className={cn('grid grid-cols-[1fr_1fr] gap-1.5', fullWidthFields.length > 0 ? 'mb-1.5' : 'mb-0')}>
                         {compactFields.map((field) => (
                           <Box key={field.label} sx={INFO_ROW_SX}>
                             {field.icon}
@@ -821,7 +822,7 @@ const PropertyDetails: React.FC = () => {
                             </div>
                           </Box>
                         ))}
-                      </Box>
+                      </div>
                     )}
 
                     {/* Full-width fields */}
@@ -838,7 +839,7 @@ const PropertyDetails: React.FC = () => {
                       </React.Fragment>
                     ))}
                   </Paper>
-                </Box>
+                </div>
               );
             })()}
           </div>
@@ -855,7 +856,7 @@ const PropertyDetails: React.FC = () => {
       {/* ─── Tab 2: Channels ──────────────────────────────────────────── */}
       {tabValue === 2 && (
         <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-2" aria-labelledby="property-tab-2">
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 1.5 }}>
+          <div className="grid grid-cols-[repeat(auto-fill,_minmax(280px,_1fr))] gap-[9px]">
             {/* Airbnb — with real status */}
             <Paper sx={CARD_SX}>
               <div className="flex items-center gap-1.5 mb-1.5">
@@ -866,7 +867,7 @@ const PropertyDetails: React.FC = () => {
               {channelStatus?.airbnb?.linked ? (
                 <div className="flex flex-col gap-0.5">
                   <Box sx={INFO_ROW_SX}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: channelStatus.airbnb.syncEnabled ? 'var(--ok)' : 'var(--muted)' }}><Sync size={16} strokeWidth={1.75} /></Box>
+                    <span className={cn('inline-flex', channelStatus.airbnb.syncEnabled ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}><Sync size={16} strokeWidth={1.75} /></span>
                     <div className="flex-1">
                       <Typography sx={INFO_LABEL_SX}>{t('channels.syncStatus.title')}</Typography>
                       <Typography sx={INFO_VALUE_SX}>
@@ -911,7 +912,7 @@ const PropertyDetails: React.FC = () => {
                 </Button>
               </Paper>
             ))}
-          </Box>
+          </div>
         </div>
       )}
 

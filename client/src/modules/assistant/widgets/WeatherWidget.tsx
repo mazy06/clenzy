@@ -105,12 +105,9 @@ const WeatherDayTile: React.FC<{ item: WeatherItem }> = ({ item }) => {
       <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] tabular-nums">
         {formatDate(item.date)}
       </p>
-      <Box sx={{
-        color: iconColor(item.conditionCode),
-        display: 'inline-flex', my: 0.25,
-      }}>
+      <div className="inline-flex my-[1.5px]" style={{ color: iconColor(item.conditionCode) }}>
         <Icon size={22} />
-      </Box>
+      </div>
       {tMax !== undefined && tMax !== null && (
         <p className="cn-text-body1 font-[var(--font-display)] text-[0.95rem] font-semibold text-[var(--ink)] tabular-nums leading-[1]">
           {Math.round(tMax)}°

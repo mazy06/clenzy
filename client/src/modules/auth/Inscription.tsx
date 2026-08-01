@@ -485,7 +485,7 @@ export default function Inscription() {
         {/* Etape 1 : Informations */}
         {activeStep === 0 && (
           <Stack spacing={2}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+            <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-3">
               <TextField
                 fullWidth
                 size="small"
@@ -513,7 +513,7 @@ export default function Inscription() {
                 placeholder={t('auth.inscription.fields.phonePlaceholder', '07 66 72 91 09')}
                 helperText={t('auth.inscription.fields.phoneHelper', 'Optionnel')}
               />
-            </Box>
+            </div>
 
             {/* Selection du type d'organisation */}
             <div>
@@ -530,13 +530,7 @@ export default function Inscription() {
               >
                 {t('auth.inscription.you', 'Vous êtes')}
               </Typography>
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
-                  gap: 1.5,
-                }}
-              >
+              <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
                 {(['INDIVIDUAL', 'CONCIERGE', 'CLEANING_COMPANY'] as const).map((type) => (
                   <OptionCard
                     key={type}
@@ -549,7 +543,7 @@ export default function Inscription() {
                     description={getOrgTypeDescription(t, type)}
                   />
                 ))}
-              </Box>
+              </div>
             </div>
 
             {/* Nom de la societe (conditionnel, requis pour type pro) */}
@@ -582,13 +576,7 @@ export default function Inscription() {
                 >
                   {t('auth.inscription.choosePlan', 'Choisissez votre forfait *')}
                 </Typography>
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
-                    gap: 1.5,
-                  }}
-                >
+                <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
                   {(['essentiel', 'confort', 'premium'] as const).map((f) => (
                     <OptionCard
                       key={f}
@@ -603,7 +591,7 @@ export default function Inscription() {
                       }
                     />
                   ))}
-                </Box>
+                </div>
               </div>
             )}
 
@@ -677,13 +665,7 @@ export default function Inscription() {
 
             {/* Code promo + source d'acquisition (optionnels, collapsibles visuellement) */}
             <Divider sx={{ my: 1 }} />
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                gap: 2,
-              }}
-            >
+            <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-3">
               <TextField
                 fullWidth
                 size="small"
@@ -719,7 +701,7 @@ export default function Inscription() {
                   </MenuItem>
                 ))}
               </TextField>
-            </Box>
+            </div>
 
             {/* Consentements RGPD (CGU obligatoire + newsletter optionnel) */}
             <Divider sx={{ my: 1 }} />
@@ -789,13 +771,9 @@ export default function Inscription() {
 
         {/* Etape 2 : Paiement Stripe Embedded Checkout */}
         {activeStep === 1 && clientSecret && (
-          <Box sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            gap: 3,
-          }}>
+          <div className="flex flex-col min-[900px]:flex-row gap-[18px]">
             {/* Colonne gauche : Recapitulatif de la commande */}
-            <Box sx={{ flex: '0 0 320px', minWidth: 0 }}>
+            <div className="flex-[0_0_320px] min-w-0">
               <Card sx={{
                 border: '1px solid',
                 borderColor: 'divider',
@@ -873,7 +851,7 @@ export default function Inscription() {
                   </div>
                 </CardContent>
               </Card>
-            </Box>
+            </div>
 
             {/* Colonne droite : Stripe Embedded Checkout */}
             <div className="flex-1 min-w-0">
@@ -902,7 +880,7 @@ export default function Inscription() {
                 </CardContent>
               </Card>
             </div>
-          </Box>
+          </div>
         )}
 
         {/* Bouton de navigation (cache a l'etape Paiement) */}

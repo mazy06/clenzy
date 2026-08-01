@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import StatusChip from './StatusChip';
 import { Spinner } from './ui';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Card, CardContent, Grid, Alert, Button, IconButton, Tooltip, LinearProgress, List, ListItem, ListItemText, ListItemIcon, Collapse, Divider } from '@mui/material';
+import { Card, CardContent, Grid, Alert, Button, IconButton, Tooltip, LinearProgress, List, ListItem, ListItemText, ListItemIcon, Collapse, Divider } from '@mui/material';
 import {
   CheckCircle,
   Error as ErrorIcon,
@@ -130,14 +130,14 @@ const HealthChecks: React.FC = () => {
   // Register page-header actions + last-update timestamp.
   useEffect(() => {
     setHeaderActions(
-      <Box display="flex" alignItems="center" gap={1}>
+      <div className="flex items-center gap-1.5">
         {loading && <Spinner className="size-4" />}
         <Tooltip title="Actualiser les vérifications">
           <IconButton onClick={handleRefresh} size="small">
             <Refresh size={20} strokeWidth={1.75} />
           </IconButton>
         </Tooltip>
-      </Box>,
+      </div>,
     );
     return () => setHeaderActions(null);
   }, [setHeaderActions, loading]);
@@ -167,9 +167,9 @@ const HealthChecks: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
+      <div className="flex justify-center items-center min-h-[200px]">
         <Spinner className="size-10" />
-      </Box>
+      </div>
     );
   }
 
@@ -225,7 +225,7 @@ const HealthChecks: React.FC = () => {
                 const barColor = metric.value > 80 ? 'var(--err)' : metric.value > 60 ? 'var(--warn)' : 'var(--accent)';
                 return (
                   <Grid item xs={12} sm={6} md={2} key={metric.label}>
-                    <Box textAlign="center">
+                    <div className="text-center">
                       <h6 className="cn-text-h6 font-[var(--font-display)] tabular-nums text-[var(--ink)]">
                         {metric.value}{metric.suffix}
                       </h6>
@@ -243,19 +243,19 @@ const HealthChecks: React.FC = () => {
                           '& .MuiLinearProgress-bar': { bgcolor: barColor, borderRadius: 2 },
                         }}
                       />
-                    </Box>
+                    </div>
                   </Grid>
                 );
               })}
               <Grid item xs={12} sm={6} md={3}>
-                <Box textAlign="center">
+                <div className="text-center">
                   <h6 className="cn-text-h6 font-[var(--font-display)] tabular-nums text-[var(--ok)]">
                     {formatUptime(systemMetrics.uptimeSeconds)}
                   </h6>
                   <p className="cn-text-body2 text-[var(--muted)]">
                     Uptime JVM
                   </p>
-                </Box>
+                </div>
               </Grid>
             </Grid>
           </CardContent>
@@ -278,7 +278,7 @@ const HealthChecks: React.FC = () => {
                   </ListItemIcon>
                   <ListItemText
                     primary={
-                      <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="cn-text-subtitle1">
                           {check.name}
                         </span>
@@ -287,11 +287,11 @@ const HealthChecks: React.FC = () => {
                         {check.critical && (
                           <StatusChip tokens={{ color: 'var(--err)', bg: 'var(--err-soft)' }} label="CRITIQUE" />
                         )}
-                      </Box>
+                      </div>
                     }
                     secondary={
-                      <Box mt={1}>
-                        <Box display="flex" alignItems="center" gap={2} flexWrap="wrap" mb={1}>
+                      <div className="mt-1.5">
+                        <div className="flex items-center gap-3 flex-wrap mb-1.5">
                           <p className="cn-text-body2 text-muted-foreground">
                             <strong>Temps de réponse:</strong>
                             <StatusChip tokens={{ color: responseTimeToken(check.responseTimeMs).fg, bg: responseTimeToken(check.responseTimeMs).bg }} label={`${check.responseTimeMs}ms`} className="ms-1.5 tabular-nums" />
@@ -301,17 +301,17 @@ const HealthChecks: React.FC = () => {
                               <strong>Dernière vérification:</strong> {new Date(check.lastCheck).toLocaleTimeString()}
                             </p>
                           )}
-                        </Box>
+                        </div>
 
                         <Collapse in={expandedChecks.has(check.name)}>
                           {/* Détails techniques : mono compact sur fond --field */}
-                          <Box mt={1} px={1.5} py={1} sx={{ bgcolor: 'var(--field)', border: '1px solid var(--field-line)', borderRadius: '8px' }}>
+                          <div className="mt-1.5 px-[9px] py-1.5 bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[8px]">
                             <p className="cn-text-body1 font-mono text-[12px] text-[var(--body)] break-words">
                               {check.details}
                             </p>
-                          </Box>
+                          </div>
                         </Collapse>
-                      </Box>
+                      </div>
                     }
                   />
                   <IconButton

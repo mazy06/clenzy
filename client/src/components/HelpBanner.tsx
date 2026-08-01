@@ -78,23 +78,9 @@ export const HelpStepsGrid: React.FC<{ steps: HelpStep[]; columns?: number }> = 
         return (
           <div className="flex items-start gap-1.5 min-w-0" key={step.title}>
             {/* Small square icon — no big round badge over each heading */}
-            <Box
-              sx={{
-                width: 28,
-                height: 28,
-                borderRadius: '8px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: accent.soft,
-                color: accent.color,
-                flexShrink: 0,
-                mt: 0.125,
-              }}
-              aria-hidden
-            >
+            <div className="w-[28px] h-[28px] rounded-[8px] inline-flex items-center justify-center shrink-0 mt-[0.75px]" style={{ backgroundColor: accent.soft, color: accent.color }} aria-hidden>
               {step.icon}
-            </Box>
+            </div>
             <div className="min-w-0">
               <Typography
                 sx={{
@@ -226,26 +212,9 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
     >
       {/* Header row — accent chip + title + dismiss button */}
       <div className="flex items-start gap-1.5 mb-1">
-        <Box
-          sx={{
-            fontSize: '10.5px',
-            fontWeight: 700,
-            letterSpacing: '.06em',
-            textTransform: 'uppercase',
-            color: 'var(--accent)',
-            bgcolor: 'var(--accent-soft)',
-            border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
-            borderRadius: '8px',
-            px: 0.75,
-            py: 0.25,
-            mt: 0.25,
-            flexShrink: 0,
-            lineHeight: 1.2,
-          }}
-          aria-hidden
-        >
+        <div className="text-[10.5px] font-bold tracking-[.06em] uppercase text-[var(--accent)] bg-[var(--accent-soft)] border border-solid border-[color-mix(in_srgb,_var(--accent)_25%,_transparent)] rounded-[8px] px-[4.5px] py-[1.5px] mt-[1.5px] shrink-0 leading-[1.2]" aria-hidden>
           AIDE
-        </Box>
+        </div>
         <Typography
           sx={{
             fontFamily: 'var(--font-display)',

@@ -10,7 +10,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { Badge } from '../../../components/ui';
-import { Box, IconButton, Collapse, Stack, Skeleton, Tooltip, Button } from '@mui/material';
+import { IconButton, Collapse, Stack, Skeleton, Tooltip, Button } from '@mui/material';
 import {
   History,
   ChevronDown,
@@ -77,22 +77,10 @@ function LogRow({ log }: { log: ChannexSyncLogDto }) {
   const typeMeta = TYPE_LABELS[log.syncType] ?? { label: log.syncType, Icon: Upload };
   const TypeIcon = typeMeta.Icon;
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        gap: 1,
-        py: 0.65,
-        px: 0.85,
-        // Pattern -soft baseline (pas de side-stripe — interdit absolu) ;
-        // color-mix compatible var() ET hex.
-        bgcolor: `color-mix(in srgb, ${statusMeta.color} 10%, transparent)`,
-        borderRadius: '8px',
-        alignItems: 'flex-start',
-      }}
-    >
-      <Box sx={{ mt: 0.25, color: statusMeta.color, flexShrink: 0 }}>
+    <div className="flex gap-1.5 py-[3.9000000000000004px] px-[5.1px] rounded-[8px] items-start" style={{ backgroundColor: `color-mix(in srgb, ${statusMeta.color} 10%, transparent)` }}>
+      <div className="mt-[1.5px] shrink-0" style={{ color: statusMeta.color }}>
         <statusMeta.Icon size={14} strokeWidth={2.2} />
-      </Box>
+      </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-0.5 flex-wrap">
           <TypeIcon size={11} strokeWidth={2} color="var(--muted)" />
@@ -112,7 +100,7 @@ function LogRow({ log }: { log: ChannexSyncLogDto }) {
           </span>
         )}
       </div>
-    </Box>
+    </div>
   );
 }
 
@@ -153,19 +141,7 @@ export default function ChannexSyncLogsList({
   return (
     <div className="border border-[var(--line)] rounded-[1px] overflow-hidden">
       {/* Header cliquable pour collapse */}
-      <Box
-        onClick={() => setCollapsed((c) => !c)}
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          px: 1.25,
-          py: 1,
-          cursor: 'pointer',
-          userSelect: 'none',
-          '&:hover': { bgcolor: 'var(--hover)' },
-        }}
-      >
+      <div className="flex items-center gap-1.5 px-[7.5px] py-1.5 cursor-pointer select-none hover:bg-[var(--hover)]" onClick={() => setCollapsed((c) => !c)}>
         <History size={14} color="var(--accent)" strokeWidth={2.2} />
         <span className="cn-text-caption font-semibold flex-1">
           Historique de sync
@@ -192,7 +168,7 @@ export default function ChannexSyncLogsList({
         {collapsed
           ? <ChevronDown size={14} color="var(--accent)" />
           : <ChevronUp size={14} color="var(--accent)" />}
-      </Box>
+      </div>
 
       <Collapse in={!collapsed}>
         <div className="px-2 pb-2 pt-0.5">

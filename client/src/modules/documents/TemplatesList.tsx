@@ -92,13 +92,7 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
         />
       ) : (
         /* ── Cartes hairline r14 avec overline (type) ── */
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
-            gap: 1.5,
-          }}
-        >
+        <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] min-[1200px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
           {templates.map((t) => (
             <Box
               key={t.id}
@@ -150,19 +144,10 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
 
               {/* Pied : action accent + actions secondaires */}
               <div className="flex items-center justify-between mt-0.5" onClick={(e) => e.stopPropagation()}>
-                <Box
-                  component="span"
-                  onClick={() => navigate(`/documents/templates/${t.id}`)}
-                  sx={{
-                    display: 'inline-flex', alignItems: 'center', gap: '4px',
-                    fontSize: '12.5px', fontWeight: 600, color: 'var(--accent)',
-                    whiteSpace: 'nowrap', cursor: 'pointer',
-                    '&:hover': { color: 'var(--accent-deep)' },
-                  }}
-                >
+                <span className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-[var(--accent)] whitespace-nowrap cursor-pointer hover:text-[var(--accent-deep)]" onClick={() => navigate(`/documents/templates/${t.id}`)}>
                   Aperçu
                   <ArrowRightIcon size={14} strokeWidth={1.75} />
-                </Box>
+                </span>
                 <div className="flex gap-0.5">
                   {!t.active && (
                     <Tooltip title="Activer" arrow>
@@ -198,7 +183,7 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
               </div>
             </Box>
           ))}
-        </Box>
+        </div>
       )}
 
       <TemplateUpload open={uploadOpen} onClose={() => setUploadOpen(false)} onSuccess={handleUploadSuccess} />

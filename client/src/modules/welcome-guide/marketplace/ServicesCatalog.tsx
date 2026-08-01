@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Skeleton, Box } from '@mui/material';
+import { Skeleton } from '@mui/material';
 import {
   LayoutGrid, List, Star, Plus, Check, Clock, Users, Globe, Calendar,
   ShieldCheck, ArrowLeft, BookOpen, Boxes, MoreHorizontal,
@@ -303,13 +303,13 @@ export default function ServicesCatalog({
       )}
 
       {totalPages > 1 && (
-        <Box display="flex" justifyContent="center" mt={3}>
+        <div className="flex justify-center mt-[18px]">
           <PagePagination
             totalPages={totalPages}
             page={curPage - 1}
             onPageChange={(v) => setPage(v + 1)}
           />
-        </Box>
+        </div>
       )}
     </section>
   );

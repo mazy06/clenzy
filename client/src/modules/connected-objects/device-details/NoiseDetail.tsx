@@ -61,7 +61,7 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
   return (
     <div className="flex flex-col gap-3">
       {/* 1. Lecture live du capteur — remplace la tuile « Connexion » orpheline */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 1 }}>
+      <div className="grid grid-cols-[repeat(auto-fit,_minmax(150px,_1fr))] gap-1.5">
         <StatTile
           icon={device.online ? <Wifi /> : <WifiOff />}
           label="Connexion"
@@ -86,10 +86,10 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
           value={reading(sensor?.maxLevel ?? 0)}
           color={hasData ? levelAccent(sensor?.maxLevel ?? 0) : NEUTRAL}
         />
-      </Box>
+      </div>
 
       {/* 2. Monitoring — pleine largeur, hauteur fixe pour amorcer le graphique */}
-      <Box sx={{ width: '100%', height: { xs: 320, md: 380 } }}>
+      <div className="w-full h-[320px] min-[900px]:h-[380px]">
         <NoiseMonitorChart
           variant="device"
           data={data}
@@ -97,7 +97,7 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
           activeThresholds={activeThresholds}
           loading={loading}
         />
-      </Box>
+      </div>
 
       {/* 3. Configuration | Historique */}
       <div>

@@ -284,17 +284,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
           <Typography sx={SECTION_TITLE_SX}>
             {t('properties.photos.title')} ({photos.length})
           </Typography>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: 'repeat(2, 1fr)',
-                sm: 'repeat(3, 1fr)',
-                md: 'repeat(4, 1fr)',
-              },
-              gap: 1,
-            }}
-          >
+          <div className="grid grid-cols-[repeat(2,_1fr)] min-[600px]:grid-cols-[repeat(3,_1fr)] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-1.5">
             {photos.map((photo) => (
               <Box key={photo.id} sx={PHOTO_CARD_SX}>
                 <img className="w-full h-full object-cover block" src={photo.url} alt={photo.name} />
@@ -330,7 +320,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
             >
               <span className="inline-flex text-muted-foreground opacity-60"><AddPhotoAlternate size={28} strokeWidth={1.5} /></span>
             </Box>
-          </Box>
+          </div>
         </Paper>
       ) : !loading ? (
         <EmptyState

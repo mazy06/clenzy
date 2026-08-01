@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
-import { Box, Accordion, AccordionSummary, AccordionDetails, Button, Divider } from '@mui/material';
+import { Accordion, AccordionSummary, AccordionDetails, Button, Divider } from '@mui/material';
 import {
   ExpandMore,
   EventAvailable,
@@ -417,26 +417,14 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
           >
             <div className="flex items-center gap-2 w-full">
               {/* Badge icone Baitly (tile 26x26, accent color, contraste WCAG AA+) */}
-              <Box
-                sx={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 1,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: group.tone.bg,
-                  color: group.tone.color,
-                  flexShrink: 0,
-                }}
-              >
+              <div className="w-[26px] h-[26px] rounded-[8px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: group.tone.bg, color: group.tone.color }}>
                 {React.isValidElement(group.icon)
                   ? React.cloneElement(group.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
                       size: 16,
                       strokeWidth: 1.75,
                     })
                   : group.icon}
-              </Box>
+              </div>
               <p className="cn-text-body1 font-semibold text-[0.875rem] flex-1 text-foreground">
                 {group.label}
               </p>
@@ -486,25 +474,9 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                         </div>
                         <div className="flex flex-wrap gap-0.5">
                           {item.variables.map((v) => (
-                            <Box
-                              key={v}
-                              component="code"
-                              sx={{
-                                fontFamily: '"SF Mono", Menlo, Consolas, monospace',
-                                fontSize: '0.6875rem',
-                                color: 'var(--accent)',
-                                backgroundColor: 'var(--accent-soft)',
-                                border: '1px solid',
-                                borderColor: 'color-mix(in srgb, var(--accent) 24%, transparent)',
-                                borderRadius: '4px',
-                                px: 0.625,
-                                py: '2px',
-                                lineHeight: 1.5,
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
+                            <code className="text-[0.6875rem] text-[var(--accent)] bg-[var(--accent-soft)] border border-solid border-[color-mix(in_srgb,_var(--accent)_24%,_transparent)] rounded-[4px] px-[3.75px] py-0.5 leading-[1.5] whitespace-nowrap" style={{ fontFamily: '"SF Mono", Menlo, Consolas, monospace' }} key={v}>
                               {`{${v}}`}
-                            </Box>
+                            </code>
                           ))}
                         </div>
                       </div>
@@ -523,23 +495,10 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                           : { tone: STATUS_TONES.neutral, icon: <CheckCircle size={16} strokeWidth={1.75} /> };
 
                       return (
-                        <Box
-                          sx={{
-                            mt: 1.5,
-                            px: 1.25,
-                            py: 1,
-                            borderRadius: 1.25,
-                            backgroundColor: status.tone.bg,
-                            border: '1px solid',
-                            borderColor: `color-mix(in srgb, ${status.tone.color} 24%, transparent)`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                          }}
-                        >
-                          <Box component="span" sx={{ display: 'inline-flex', color: status.tone.color, flexShrink: 0 }}>
+                        <div className="mt-[9px] px-[7.5px] py-1.5 rounded-[10px] border border-solid flex items-center gap-1.5" style={{ backgroundColor: status.tone.bg, borderColor: `color-mix(in srgb, ${status.tone.color} 24%, transparent)` }}>
+                          <span className="inline-flex shrink-0" style={{ color: status.tone.color }}>
                             {status.icon}
-                          </Box>
+                          </span>
 
                           {item.templateKind === 'document' && linkedTemplate && (
                             <>
@@ -649,7 +608,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                               )}
                             </>
                           )}
-                        </Box>
+                        </div>
                       );
                     })()}
                   </div>

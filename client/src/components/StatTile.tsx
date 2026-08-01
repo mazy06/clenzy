@@ -69,7 +69,7 @@ export default function StatTile({
       }}
     >
       {/* Ligne 1 : icône inline + label */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+      <div className="flex items-center gap-[7px] min-w-0">
         <Box sx={{ display: 'inline-flex', color, flexShrink: 0 }}>
           {React.isValidElement(icon)
             ? React.cloneElement(icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
@@ -81,7 +81,7 @@ export default function StatTile({
         <span className="text-[11.5px] font-semibold text-[var(--muted)] overflow-hidden text-ellipsis whitespace-nowrap">
           {label}
         </span>
-      </Box>
+      </div>
 
       {/* Valeur */}
       {loading ? (
@@ -102,9 +102,9 @@ export default function StatTile({
         >
           {value}
           {unit && (
-            <Box component="span" sx={{ fontSize: '0.625em', color: 'var(--muted)', ml: '4px', fontWeight: 600 }}>
+            <span className="text-[0.625em] text-[var(--muted)] ms-1 font-semibold">
               {unit}
-            </Box>
+            </span>
           )}
         </Typography>
       )}

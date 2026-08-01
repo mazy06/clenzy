@@ -100,13 +100,7 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
       )}
 
       {/* Section 1 : 4 stat tiles */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
-          gap: 1,
-        }}
-      >
+      <div className="grid grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-1.5">
         <StatTile
           label="Proprietes"
           value={String(total)}
@@ -128,7 +122,7 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
           value={formatCurrency(adr)}
           hint="par nuit reservee"
         />
-      </Box>
+      </div>
 
       {/* Section 2 : Top performers */}
       {topPerformers.length > 0 && (
@@ -201,14 +195,7 @@ const StatTile: React.FC<{
     : 'var(--field)';
 
   return (
-    <Box
-      sx={{
-        px: 1.25,
-        py: 1,
-        borderRadius: '10px',
-        bgcolor: tileBg,
-      }}
-    >
+    <div className="px-[7.5px] py-1.5 rounded-[10px]" style={{ backgroundColor: tileBg }}>
       <p className="cn-text-body1 block text-[var(--faint)] text-[10.5px] font-bold uppercase tracking-[.05em] mb-0.5">
         {label}
       </p>
@@ -220,7 +207,7 @@ const StatTile: React.FC<{
           {hint}
         </p>
       )}
-    </Box>
+    </div>
   );
 };
 
@@ -318,21 +305,10 @@ const PatternRow: React.FC<{ pattern: Pattern }> = ({ pattern }) => {
   const Icon = patternIcon(pattern.type);
 
   return (
-    <Box
-      sx={{
-        px: 1.25, py: 1,
-        borderRadius: '10px',
-        bgcolor: sevSoft,
-        display: 'flex',
-        gap: 1,
-        alignItems: 'flex-start',
-      }}
-    >
-      <Box sx={{
-        display: 'inline-flex', color: sevColor, mt: 0.125,
-      }}>
+    <div className="px-[7.5px] py-1.5 rounded-[10px] flex gap-1.5 items-start" style={{ backgroundColor: sevSoft }}>
+      <div className="inline-flex mt-[0.75px]" style={{ color: sevColor }}>
         <Icon size={16} />
-      </Box>
+      </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 mb-0.5">
           <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)]">
@@ -349,7 +325,7 @@ const PatternRow: React.FC<{ pattern: Pattern }> = ({ pattern }) => {
           </p>
         )}
       </div>
-    </Box>
+    </div>
   );
 };
 

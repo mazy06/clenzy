@@ -1,6 +1,6 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Box, Paper, Tooltip, IconButton } from '@mui/material';
+import { Paper, Tooltip, IconButton } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Home, LocationOn, Visibility } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -39,7 +39,7 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
   const { t } = useTranslation();
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 140px)', minHeight: 500 }}>
+    <div className="flex flex-col h-[calc(100vh_-_140px)] min-h-[500px]">
       {/* Carte fixe en haut */}
       <Paper sx={{ ...LIST_PAPER_SX, p: 0, overflow: 'hidden', flexShrink: 0 }}>
         {mapMarkers.length > 0 ? (
@@ -161,7 +161,7 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
           )}
         </div>
       )}
-    </Box>
+    </div>
   );
 };
 

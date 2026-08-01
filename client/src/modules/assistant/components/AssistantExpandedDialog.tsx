@@ -112,17 +112,7 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
       }}
     >
       {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.25,
-          px: { xs: 1.5, md: 2.5 },
-          py: 1.25,
-          borderBottom: '1px solid var(--line)',
-          flexShrink: 0,
-        }}
-      >
+      <div className="flex items-center gap-[7.5px] px-[9px] min-[900px]:px-[15px] py-[7.5px] shrink-0" style={{ borderBottom: '1px solid var(--line)' }}>
         <BaitlyMarkLogo variant="mark" size={22} idleAnimation={false} active={isWorking} />
         <div className="flex-1 min-w-0">
           <h6 className="cn-text-subtitle1 font-semibold leading-[1.2]">
@@ -143,20 +133,10 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
             <CloseIcon size={18} />
           </IconButton>
         </Tooltip>
-      </Box>
+      </div>
 
       {/* Corps : sidebar historique + chat */}
-      <Box
-        sx={{
-          flex: 1,
-          minHeight: 0,
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          mx: { xs: 1, md: 2 },
-          my: { xs: 1, md: 1.5 },
-          gap: { xs: 1, md: 1.5 },
-        }}
-      >
+      <div className="flex-1 min-h-0 flex flex-col min-[900px]:flex-row mx-1.5 min-[900px]:mx-3 my-1.5 min-[900px]:my-[9px] gap-1.5 min-[900px]:gap-[9px]">
         {/* Historique — masque sur mobile pour ne pas voler l'espace */}
         <Paper
           elevation={0}
@@ -240,27 +220,16 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
           />
 
           {error && (
-            <Box sx={{ maxWidth: 760, mx: 'auto', width: '100%', px: { xs: 2, md: 3 }, mb: 1 }}>
-              <Box
-                sx={{
-                  px: 1.75,
-                  py: 1,
-                  bgcolor: 'var(--err-soft)',
-                  color: 'var(--err)',
-                  border: '1px solid color-mix(in srgb, var(--err) 30%, transparent)',
-                  fontSize: '12.5px',
-                  fontWeight: 600,
-                  borderRadius: '10px',
-                }}
-              >
+            <div className="max-w-[760px] mx-auto w-full px-3 min-[900px]:px-[18px] mb-1.5">
+              <div className="px-[10.5px] py-1.5 bg-[var(--err-soft)] text-[var(--err)] border border-solid border-[color-mix(in_srgb,_var(--err)_30%,_transparent)] text-[12.5px] font-semibold rounded-[10px]">
                 {error}
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
           <ChatInput status={status} onSend={sendMessage} onAbort={abort} autoFocus />
         </Card>
-      </Box>
+      </div>
     </Dialog>
   );
 };

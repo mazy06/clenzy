@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button, useTheme, alpha } from '@mui/material';
+import { Button, useTheme, alpha } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home as HomeIcon, ArrowBack as ArrowLeftIcon } from '../icons';
 
@@ -16,17 +16,9 @@ const NotFoundPage: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-12 px-4 min-h-[480px] text-center">
-      <Box
-        sx={{
-          fontSize: '5rem',
-          fontWeight: 600,
-          color: alpha(theme.palette.primary.main, 0.4),
-          fontVariantNumeric: 'tabular-nums',
-          lineHeight: 1,
-        }}
-      >
+      <div className="text-[5rem] font-semibold tabular-nums leading-[1]" style={{ color: alpha(theme.palette.primary.main, 0.4) }}>
         404
-      </Box>
+      </div>
 
       <div>
         <h6 className="cn-text-h6 mb-1.5 font-semibold">
@@ -34,16 +26,9 @@ const NotFoundPage: React.FC = () => {
         </h6>
         <p className="cn-text-body2 text-muted-foreground max-w-[480px]">
           L&apos;adresse{' '}
-          <Box component="code" sx={{
-            px: 0.75,
-            py: 0.25,
-            borderRadius: 0.5,
-            bgcolor: alpha(theme.palette.text.primary, 0.06),
-            fontFamily: 'monospace',
-            fontSize: '0.85em',
-          }}>
+          <code className="px-[4.5px] py-[1.5px] rounded-[4px] text-[0.85em]" style={{ backgroundColor: alpha(theme.palette.text.primary, 0.06), fontFamily: 'monospace' }}>
             {location.pathname}
-          </Box>{' '}
+          </code>{' '}
           ne correspond a aucune page. Verifie l&apos;orthographe ou retourne au dashboard.
         </p>
       </div>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -224,28 +225,28 @@ export default function SiteGenerationPage() {
   // ── États plein écran : génération en cours / indisponible ──
   if (generating) {
     return (
-      <Box className="od-canvas" sx={{ minHeight: '100vh', bgcolor: 'var(--bg)', display: 'grid', placeItems: 'center', p: 3 }}>
+      <div className="od-canvas min-h-[100vh] bg-[var(--bg)] grid place-items-[center] p-[18px]">
         <div className="w-full max-w-[560px]"><SiteGenerationProgress brandLabel={brandName.trim() || null} /></div>
-      </Box>
+      </div>
     );
   }
   if (unavailable) {
     return (
-      <Box className="od-canvas" sx={{ minHeight: '100vh', bgcolor: 'var(--bg)', display: 'grid', placeItems: 'center', p: 3 }}>
+      <div className="od-canvas min-h-[100vh] bg-[var(--bg)] grid place-items-[center] p-[18px]">
         <div className="max-w-[420px] text-center flex flex-col items-center gap-2">
-          <Box sx={{ width: 48, height: 48, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: 'var(--err-soft)', color: 'var(--err)' }}><AlertTriangle size={26} strokeWidth={2} /></Box>
+          <div className="w-[48px] h-[48px] rounded-[50%] grid place-items-[center] bg-[var(--err-soft)] text-[var(--err)]"><AlertTriangle size={26} strokeWidth={2} /></div>
           <div className="font-[var(--font-display)] text-[var(--text-xl)] font-bold text-[var(--ink)]">{k('unavailableTitle', 'Génération IA indisponible')}</div>
           <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.55]">{k('unavailableBody', "Aucun modèle IA n'est disponible pour la génération de site pour le moment. Les administrateurs ont été notifiés et vont rétablir le service. Réessayez plus tard.")}</div>
           <Button disableElevation onClick={() => navigate(-1)} sx={{ ...accentBtnSx, mt: 1 }}>{k('unavailableClose', 'Fermer')}</Button>
         </div>
-      </Box>
+      </div>
     );
   }
 
   return (
     <div className="od-canvas min-h-[100vh] bg-[var(--bg)]">
       {/* Barre supérieure — sticky frostée, grille 1fr auto 1fr, marque centrée (modèle .ds-setup-topbar). */}
-      <Box sx={{ position: 'sticky', top: 0, zIndex: 20, height: 64, display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 2, px: { xs: 2, md: '28px' }, borderBottom: '1px solid var(--line)', bgcolor: 'color-mix(in srgb, var(--bg) 88%, transparent)', backdropFilter: 'saturate(1.4) blur(10px)' }}>
+      <div className="sticky top-0 z-[20] h-[64px] grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 min-[900px]:px-7 bg-[color-mix(in_srgb,_var(--bg)_88%,_transparent)]" style={{ borderBottom: '1px solid var(--line)', backdropFilter: 'saturate(1.4) blur(10px)' }}>
         <Box sx={{ justifySelf: 'start' }}>
           <Button onClick={() => (step === 2 ? (setError(null), setStep(1)) : navigate(-1))} startIcon={<ArrowLeft size={16} strokeWidth={2} />} sx={{ textTransform: 'none', color: 'var(--muted)' }}>
             {step === 2 ? k('back', 'Direction') : 'Retour'}
@@ -261,29 +262,19 @@ export default function SiteGenerationPage() {
               startIcon={<Sparkles size={16} strokeWidth={2} />} sx={accentBtnSx}>{k('submit', 'Générer le site')}</Button>
           )}
         </Box>
-      </Box>
+      </div>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(320px, 420px) minmax(0, 1fr)' }, gap: { xs: 3, md: '48px' }, alignItems: 'start', px: { xs: 2, md: 4 }, py: { xs: 3, md: 5 }, maxWidth: 1320, mx: 'auto' }}>
         {/* ─── Colonne gauche : cadrage + étapes — épinglée au scroll (position: sticky, comme open-design) ─── */}
         <Box sx={{ position: { md: 'sticky' }, top: { md: 84 }, alignSelf: 'start' }}>
-          <Box sx={{
-            display: 'inline-flex', alignItems: 'center', gap: 0.75, mb: 2.5, pl: 0.5, pr: 1.5, py: 0.5,
-            borderRadius: 'var(--radius-pill, 999px)',
-            bgcolor: 'color-mix(in srgb, var(--accent) 7%, var(--surface))',
-            border: '1px solid', borderColor: 'color-mix(in srgb, var(--accent) 18%, var(--line))',
-            boxShadow: '0 1px 2px color-mix(in srgb, var(--accent) 8%, transparent)',
-          }}>
-            <Box aria-hidden sx={{
-              display: 'grid', placeItems: 'center', width: 22, height: 22, borderRadius: '50%',
-              bgcolor: 'var(--accent)', color: 'var(--on-accent)', flexShrink: 0,
-              boxShadow: '0 1px 4px color-mix(in srgb, var(--accent) 40%, transparent)',
-            }}>
+          <div className="inline-flex items-center gap-[4.5px] mb-[15px] ps-[3px] pe-[9px] py-[3px] rounded-[var(--radius-pill,_999px)] bg-[color-mix(in_srgb,_var(--accent)_7%,_var(--surface))] border border-solid border-[color-mix(in_srgb,_var(--accent)_18%,_var(--line))]" style={{ boxShadow: '0 1px 2px color-mix(in srgb, var(--accent) 8%, transparent)' }}>
+            <div className="grid place-items-[center] w-[22px] h-[22px] rounded-[50%] bg-[var(--accent)] text-[var(--on-accent)] shrink-0" style={{ boxShadow: '0 1px 4px color-mix(in srgb, var(--accent) 40%, transparent)' }} aria-hidden>
               <Sparkles size={12} strokeWidth={2.4} />
-            </Box>
+            </div>
             <span className="text-[10.5px] font-bold tracking-[0.09em] uppercase text-[var(--accent)]">
               Génération IA
             </span>
-          </Box>
+          </div>
           <Box sx={{ fontFamily: 'var(--font-display)', fontSize: { xs: 30, md: 42 }, fontWeight: 700, lineHeight: 1.08, color: 'var(--ink)', letterSpacing: '-0.02em', textWrap: 'balance' }}>
             Générez votre site, en minutes
           </Box>
@@ -298,9 +289,9 @@ export default function SiteGenerationPage() {
               const active = step === s.n;
               return (
                 <div className="flex gap-2 items-start" key={s.n}>
-                  <Box sx={{ display: 'grid', placeItems: 'center', width: 22, height: 22, borderRadius: '50%', flexShrink: 0, mt: 0.2, fontSize: 12, fontWeight: 700, fontVariantNumeric: 'tabular-nums', bgcolor: active ? 'var(--accent)' : 'var(--accent-soft)', color: active ? 'var(--on-accent)' : 'var(--accent)' }}>{s.n}</Box>
+                  <div className={cn('grid place-items-[center] w-[22px] h-[22px] rounded-[50%] shrink-0 mt-[1.2000000000000002px] text-[12px] font-bold tabular-nums', active ? 'bg-[var(--accent)]' : 'bg-[var(--accent-soft)]', active ? 'text-[var(--on-accent)]' : 'text-[var(--accent)]')}>{s.n}</div>
                   <div>
-                    <Box sx={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: active ? 'var(--ink)' : 'var(--body)' }}>{s.t}</Box>
+                    <div className={cn('text-[var(--text-sm)] font-bold', active ? 'text-[var(--ink)]' : 'text-[var(--body)]')}>{s.t}</div>
                     <div className="text-[var(--text-2xs)] text-[var(--muted)]">{s.d}</div>
                   </div>
                 </div>
@@ -327,7 +318,7 @@ export default function SiteGenerationPage() {
                   <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: briefScoreColor }}>{briefScore}%</span>
                 </div>
                 <div className="h-[6px] rounded-[999px] bg-[var(--line)] overflow-hidden">
-                  <Box sx={{ height: '100%', width: `${briefScore}%`, bgcolor: briefScoreColor, transition: 'width var(--duration-fast) var(--ease-out)' }} />
+                  <div className="h-full" style={{ width: `${briefScore}%`, backgroundColor: briefScoreColor, transition: 'width var(--duration-fast) var(--ease-out)' }} />
                 </div>
                 {briefScore < 100 && briefHints.length > 0 && (
                   <div className="mt-0.5 text-[var(--text-2xs)] text-[var(--muted)]">{k('completenessHint', 'Pour un meilleur résultat')} : {briefHints.join(' · ')}</div>

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
@@ -210,7 +211,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <Box component="span" sx={{ display: 'inline-flex', color: isSelected ? 'var(--accent)' : 'var(--muted)' }}><Home size={18} strokeWidth={1.75} /></Box>
+                      <span className={cn('inline-flex', isSelected ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}><Home size={18} strokeWidth={1.75} /></span>
                       <p className="cn-text-body2 font-bold text-[0.8125rem]">
                         {property.name}
                       </p>

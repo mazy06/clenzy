@@ -77,23 +77,9 @@ export const StatusChip: React.FC<{ label: string; tone?: 'ok' | 'warn' | 'err' 
     neutral: { fg: 'var(--muted)', bg: 'var(--field)' },
   }[tone];
   return (
-    <Box
-      component="span"
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        px: 0.75,
-        py: '2px',
-        borderRadius: '6px',
-        fontSize: '11px',
-        fontWeight: 600,
-        color: map.fg,
-        bgcolor: map.bg,
-        whiteSpace: 'nowrap',
-      }}
-    >
+    <span className="inline-flex items-center px-[4.5px] py-0.5 rounded-[6px] text-[11px] font-semibold whitespace-nowrap" style={{ color: map.fg, backgroundColor: map.bg }}>
       {label}
-    </Box>
+    </span>
   );
 };
 

@@ -9,6 +9,7 @@
    ============================================================ */
 
 import { Box, Typography } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSupervisionReport } from '../core/useSupervisionReport';
 
@@ -41,7 +42,7 @@ export function SupervisionReportStrip() {
       <Typography sx={{ p: '14px 16px 6px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
         {t('supervision.report.title', 'Bilan · 30 jours')}
       </Typography>
-      <Box sx={{ display: 'flex', p: '2px 8px 14px' }}>
+      <div className="flex p-[2px 8px 14px]">
         {stats.map((s) => (
           <div className="flex-1 text-center px-0.5 min-w-0" key={s.label}>
             <Box
@@ -59,14 +60,14 @@ export function SupervisionReportStrip() {
             >
               {s.value}
             </Box>
-            <Box sx={{ fontSize: 10.5, color: 'var(--muted, #6b7280)', mt: 0.5, fontWeight: 600 }}>{s.label}</Box>
+            <div className="text-[10.5px] text-[var(--muted,_#6b7280)] mt-[3px] font-semibold">{s.label}</div>
           </div>
         ))}
-      </Box>
+      </div>
 
       {/* Acceptation PAR TYPE (Vague 1) : lignes compactes type → décisions → taux. */}
       {byType.length > 0 && (
-        <Box sx={{ borderTop: '1px solid var(--line, #e6e8ef)', px: 1.5, pt: 1, pb: 1.25 }}>
+        <div className="px-[9px] pt-1.5 pb-[7.5px]" style={{ borderTop: '1px solid var(--line, #e6e8ef)' }}>
           <Typography
             sx={{
               fontSize: 10.5,
@@ -98,23 +99,13 @@ export function SupervisionReportStrip() {
                 >
                   {t('supervision.report.decisions', '{{count}} déc.', { count: decided })}
                 </Typography>
-                <Box
-                  component="span"
-                  sx={{
-                    minWidth: 40,
-                    textAlign: 'right',
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    fontVariantNumeric: 'tabular-nums',
-                    color: decided === 0 ? 'var(--muted, #6b7280)' : 'var(--accent)',
-                  }}
-                >
+                <span className={cn('min-w-[40px] text-end text-[11.5px] font-bold tabular-nums', decided === 0 ? 'text-[var(--muted,_#6b7280)]' : 'text-[var(--accent)]')}>
                   {decided === 0 ? '—' : `${Math.round(row.acceptanceRate * 100)} %`}
-                </Box>
+                </span>
               </div>
             );
           })}
-        </Box>
+        </div>
       )}
     </Box>
   );

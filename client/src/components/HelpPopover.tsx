@@ -1,5 +1,5 @@
 import React, { useCallback, useId, useState } from 'react';
-import { Box, Typography, IconButton, Popover, Tooltip } from '@mui/material';
+import { Typography, IconButton, Popover, Tooltip } from '@mui/material';
 import { Info as InfoIcon } from '../icons';
 import { HelpStepsGrid, type HelpStep } from './HelpBanner';
 
@@ -110,26 +110,9 @@ const HelpPopover: React.FC<HelpPopoverProps> = ({
       >
         {/* Header — chip AIDE + titre */}
         <div className="flex items-start gap-1.5 mb-1">
-          <Box
-            sx={{
-              fontSize: '10.5px',
-              fontWeight: 700,
-              letterSpacing: '.06em',
-              textTransform: 'uppercase',
-              color: 'var(--accent)',
-              bgcolor: 'var(--accent-soft)',
-              border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
-              borderRadius: '8px',
-              px: 0.75,
-              py: 0.25,
-              mt: 0.25,
-              flexShrink: 0,
-              lineHeight: 1.2,
-            }}
-            aria-hidden
-          >
+          <div className="text-[10.5px] font-bold tracking-[.06em] uppercase text-[var(--accent)] bg-[var(--accent-soft)] border border-solid border-[color-mix(in_srgb,_var(--accent)_25%,_transparent)] rounded-[8px] px-[4.5px] py-[1.5px] mt-[1.5px] shrink-0 leading-[1.2]" aria-hidden>
             AIDE
-          </Box>
+          </div>
           <Typography
             sx={{
               fontFamily: 'var(--font-display)',

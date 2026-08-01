@@ -563,9 +563,9 @@ export default function PayoutMethodEditDialog({
             <AlertDescription>{mode === 'self'
               ? "L'onboarding Stripe Connect se fait depuis la section dédiée plus bas dans Mes reversements."
               : "Le propriétaire doit compléter lui-même l'onboarding Stripe Connect via sa page Mes reversements."}{currentConfig?.stripeOnboardingComplete && (
-              <Box component="span" sx={{ display: 'block', mt: 0.5, color: ACCENT, fontWeight: 600 }}>
+              <span className="block mt-[3px] font-semibold" style={{ color: ACCENT }}>
                 ✓ Onboarding Stripe complété pour ce propriétaire.
-              </Box>
+              </span>
             )}</AlertDescription>
           </Alert>
         )}

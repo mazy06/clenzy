@@ -21,6 +21,7 @@
  * </ul>
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
 import { Dialog, DialogContent, DialogTitle, Box, Typography, Button, Alert, Stack, Skeleton } from '@mui/material';
@@ -158,21 +159,9 @@ function ActionButton({
         alignItems: 'flex-start',
       }}
     >
-      <Box
-        sx={{
-          width: 32,
-          height: 32,
-          borderRadius: 0.75,
-          bgcolor: isPrimary ? 'var(--accent-soft)' : 'var(--hover)',
-          color: isPrimary ? 'var(--accent)' : 'var(--muted)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
+      <div className={cn('w-[32px] h-[32px] rounded-[6px] flex items-center justify-center shrink-0', isPrimary ? 'bg-[var(--accent-soft)]' : 'bg-[var(--hover)]', isPrimary ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}>
         <Icon size={16} strokeWidth={2.2} />
-      </Box>
+      </div>
       <div className="flex-1 min-w-0">
         <p className="cn-text-body2 font-semibold leading-[1.3] mb-0.5">
           {action.label}
@@ -295,22 +284,9 @@ export default function ChannexDiagnoseDialog({
           pb: 1,
         }}
       >
-        <Box
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: 1,
-            bgcolor: `${accent}1A`,
-            color: accent,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            mt: 0.25,
-          }}
-        >
+        <div className="w-[36px] h-[36px] rounded-[8px] flex items-center justify-center shrink-0 mt-[1.5px]" style={{ backgroundColor: `${accent}1A`, color: accent }}>
           <StatusIcon size={20} />
-        </Box>
+        </div>
         <div className="min-w-0 flex-1">
           <h6 className="cn-text-h6 font-semibold leading-[1.3] text-[1.05rem]">
             Diagnostic Channex

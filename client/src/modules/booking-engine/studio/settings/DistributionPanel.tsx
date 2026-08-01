@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { cn } from '../../../../utils/cn';
 import { Box, ButtonBase, InputBase, Skeleton } from '@mui/material';
 import { Copy, Check, ExternalLink, Eye, EyeOff, RefreshCw, AlertTriangle, Globe, Code2, Terminal } from 'lucide-react';
 import type { StudioConfigState } from '../useStudioConfig';
@@ -154,11 +155,7 @@ function CodeBlock({ code, onCopy, copied, icon: Icon }: { code: string; onCopy:
   return (
     <div className="relative">
       {Icon && <div className="absolute top-[10px] start-[10px] text-[var(--faint)] inline-flex"><Icon size={15} strokeWidth={2} /></div>}
-      <Box component="pre" sx={{
-        m: 0, p: 1.5, pl: Icon ? 4.5 : 1.5, pr: 5.5, fontFamily: 'var(--font-mono, monospace)', fontSize: 13, lineHeight: 1.6,
-        color: 'var(--ink)', bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)',
-        overflowX: 'auto', whiteSpace: 'pre',
-      }}>{code}</Box>
+      <pre className={cn('m-0 p-[9px] pe-[33px] text-[13px] leading-[1.6] text-[var(--ink)] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[var(--radius-md)] overflow-x-auto whitespace-pre', Icon ? 'ps-[27px]' : 'ps-[9px]')} style={{ fontFamily: 'var(--font-mono, monospace)' }}>{code}</pre>
       <ButtonBase onClick={onCopy} aria-label="Copier" sx={{
         position: 'absolute', top: 8, right: 8, width: 30, height: 30, borderRadius: 'var(--radius-sm)',
         color: copied ? 'var(--ok)' : 'var(--muted)', bgcolor: 'var(--card)', border: '1px solid var(--line)', cursor: 'pointer',

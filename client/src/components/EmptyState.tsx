@@ -1,5 +1,5 @@
 import React from 'react';
-import { Paper, Box } from '@mui/material';
+import { Paper } from '@mui/material';
 import { Lightbulb } from '../icons';
 import { useIconSize } from '../hooks/useResponsiveSize';
 
@@ -104,28 +104,14 @@ export default function EmptyState({
         </div>
       )}
       {tip && (
-        <Box
-          sx={{
-            mt: 2,
-            px: 1.25,
-            py: 0.75,
-            borderRadius: 'var(--radius-sm)',
-            bgcolor: 'var(--warn-soft)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 0.75,
-            maxWidth: 480,
-            border: '1px solid',
-            borderColor: 'color-mix(in srgb, var(--warn) 30%, transparent)',
-          }}
-        >
+        <div className="mt-3 px-[7.5px] py-[4.5px] rounded-[var(--radius-sm)] bg-[var(--warn-soft)] inline-flex items-center gap-[4.5px] max-w-[480px] border border-solid border-[color-mix(in_srgb,_var(--warn)_30%,_transparent)]">
           <span className="inline-flex text-[var(--warn)] shrink-0">
             <Lightbulb size={12} strokeWidth={2} />
           </span>
           <span className="cn-text-caption text-[var(--warn)] text-start leading-[1.35]">
             {tip}
           </span>
-        </Box>
+        </div>
       )}
     </Paper>
   );

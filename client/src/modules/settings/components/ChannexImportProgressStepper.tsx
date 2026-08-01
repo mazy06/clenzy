@@ -163,14 +163,7 @@ function Connector({ next }: { next: StepStatus }) {
 export default function ChannexImportProgressStepper(props: ChannexImportProgressStepperProps) {
   const steps = computeSteps(props);
   return (
-    <Box
-      sx={{
-        border: `1px solid ${ACCENT}22`,
-        bgcolor: `${ACCENT}06`,
-        borderRadius: 1,
-        p: 1.25,
-      }}
-    >
+    <div className="rounded-[8px] p-[7.5px]" style={{ border: `1px solid ${ACCENT}22`, backgroundColor: `${ACCENT}06` }}>
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         spacing={{ xs: 1, sm: 1.25 }}
@@ -182,6 +175,6 @@ export default function ChannexImportProgressStepper(props: ChannexImportProgres
         <Connector next={steps[2].status} />
         <StepBubble step={steps[2]} />
       </Stack>
-    </Box>
+    </div>
   );
 }

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Button, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Alert, Snackbar, Stack } from '@mui/material';
+import { Paper, Button, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Alert, Snackbar, Stack } from '@mui/material';
 import {
   Add, Edit, CheckCircle, Pause, Cancel,
   Handshake, Home, Person, PictureAsPdf, Send,
@@ -398,21 +398,9 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
         <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
           {title}
         </p>
-        <Box
-          component="span"
-          sx={{
-            fontSize: '10.5px',
-            fontWeight: 700,
-            px: 0.75,
-            py: '1px',
-            borderRadius: '999px',
-            bgcolor: accentSoft,
-            color: accentColor,
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
+        <span className="text-[10.5px] font-bold px-[4.5px] py-px rounded-[999px] tabular-nums" style={{ backgroundColor: accentSoft, color: accentColor }}>
           {contracts.length}
-        </Box>
+        </span>
       </div>
       <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', opacity: muted ? 0.85 : 1 }}>
         <Table size="small">

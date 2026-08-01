@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { cn } from '../../utils/cn';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Button, IconButton, Switch, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Divider } from '@mui/material';
+import { Paper, Button, IconButton, Switch, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Divider } from '@mui/material';
 import StatusChip from '../../components/StatusChip';
 import { Add as AddIcon } from '../../icons';
 import { Edit as EditIcon } from '../../icons';
@@ -97,16 +98,7 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
       {!loading && ratePlans.map((plan, idx) => (
         <React.Fragment key={plan.id}>
           {idx > 0 && <Divider sx={{ my: 0.75 }} />}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              py: 0.75,
-              opacity: plan.isActive ? 1 : 0.5,
-              transition: 'opacity 0.15s',
-            }}
-          >
+          <div className={cn('flex items-center gap-1.5 py-[4.5px]', plan.isActive ? 'opacity-100' : 'opacity-50')} style={{ transition: 'opacity 0.15s' }}>
             {/* Type badge */}
             {(() => { const c = TYPE_COLORS[plan.type] ?? '#8BA0B3'; return (
             <StatusChip
@@ -149,7 +141,7 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
             <IconButton size="small" onClick={() => setDeleteConfirmId(plan.id)} color="error" sx={{ p: 0.5 }}>
               <DeleteIcon size={16} strokeWidth={1.75} />
             </IconButton>
-          </Box>
+          </div>
         </React.Fragment>
       ))}
 

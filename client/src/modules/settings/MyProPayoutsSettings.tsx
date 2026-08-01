@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
@@ -168,10 +169,7 @@ export default function MyProPayoutsSettings() {
         )}
 
         {/* Conteneur du composant Stripe embarqué — le pro reste dans Baitly. */}
-        <Box
-          ref={containerRef}
-          sx={{ mt: onboardingOpen ? 2 : 0, minHeight: onboardingOpen ? 420 : 0, transition: 'min-height .2s' }}
-        />
+        <div className={cn(onboardingOpen ? 'mt-3' : 'mt-0', onboardingOpen ? 'min-h-[420px]' : 'min-h-0')} style={{ transition: 'min-height .2s' }} ref={containerRef} />
       </Card>
 
       {/* ── Historique des versements ─────────────────────────────────────── */}
@@ -238,17 +236,9 @@ export default function MyProPayoutsSettings() {
                       )}
                       {record.status === 'BLOCKED' && record.failureReason === 'ONBOARDING_INCOMPLETE' && (
                         <div className="mt-0.5">
-                          <Box
-                            component="button"
-                            type="button"
-                            onClick={() => document.getElementById('pro-onboarding')?.scrollIntoView({ behavior: 'smooth' })}
-                            sx={{
-                              background: 'none', border: 'none', p: 0, cursor: 'pointer',
-                              fontSize: '11.5px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'inherit',
-                            }}
-                          >
+                          <button className="border-none p-0 cursor-pointer text-[11.5px] text-[var(--accent)] font-semibold" style={{ background: 'none', fontFamily: 'inherit' }} type="button" onClick={() => document.getElementById('pro-onboarding')?.scrollIntoView({ behavior: 'smooth' })}>
                             {t('settings.myProPayouts.finishOnboarding')}
-                          </Box>
+                          </button>
                         </div>
                       )}
                     </TableCell>

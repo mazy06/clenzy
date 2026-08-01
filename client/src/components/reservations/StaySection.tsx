@@ -19,7 +19,7 @@ const StaySection: React.FC<Props> = ({ form }) => {
       <Typography sx={SEC_SX}>{t('reservations.dialog.stayDates')}</Typography>
 
       {form.fieldsLocked ? (
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div className="grid grid-cols-[1fr_1fr] gap-3">
           {[
             { label: t('reservations.fields.checkIn'), value: form.startDate },
             { label: t('reservations.fields.checkOut'), value: form.endDate },
@@ -29,7 +29,7 @@ const StaySection: React.FC<Props> = ({ form }) => {
               <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] tabular-nums">{f.value || '—'}</p>
             </Box>
           ))}
-        </Box>
+        </div>
       ) : (
         <ReservationRangeCalendar
           startDate={form.startDate}
@@ -49,7 +49,7 @@ const StaySection: React.FC<Props> = ({ form }) => {
       )}
 
       {/* Heures arrivée / départ */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      <div className="grid grid-cols-[1fr_1fr] gap-3">
         <TextField
           label={t('reservations.fields.checkIn')}
           type="time"
@@ -72,7 +72,7 @@ const StaySection: React.FC<Props> = ({ form }) => {
           InputLabelProps={{ shrink: true }}
           sx={FIELD_SX}
         />
-      </Box>
+      </div>
     </>
   );
 };

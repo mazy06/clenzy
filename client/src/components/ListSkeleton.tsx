@@ -1,4 +1,4 @@
-import { Box, Skeleton, Paper, TableRow, TableCell } from '@mui/material';
+import { Skeleton, Paper, TableRow, TableCell } from '@mui/material';
 import { Card } from '../components/ui';
 
 interface ListSkeletonProps {
@@ -49,13 +49,7 @@ export default function ListSkeleton({
 
   if (variant === 'card') {
     return (
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' },
-          gap: 1.5,
-        }}
-      >
+      <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(3,_1fr)] min-[1200px]:grid-cols-[repeat(4,_1fr)] gap-[9px]">
         {Array.from({ length: rows }).map((_, idx) => (
           <Card className="gap-0 py-0 p-2" key={idx}>
             <div className="flex items-center gap-1.5 mb-1.5">
@@ -66,7 +60,7 @@ export default function ListSkeleton({
             <Skeleton variant="text" width="65%" height={12} sx={{ mt: 0.5 }} />
           </Card>
         ))}
-      </Box>
+      </div>
     );
   }
 

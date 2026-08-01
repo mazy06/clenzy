@@ -159,16 +159,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
           )}
           {displayedFeatures.slice(0, 5).map((feature) => (
             <div className="flex items-start gap-1 py-0.5" key={feature}>
-              <Box
-                sx={{
-                  display: 'inline-flex',
-                  color: tint,
-                  flexShrink: 0,
-                  mt: '2px',
-                }}
-              >
+              <div className="inline-flex shrink-0 mt-0.5" style={{ color: tint }}>
                 <CheckCircleOutline size={13} strokeWidth={1.75} />
-              </Box>
+              </div>
               <p className="cn-text-body1 text-[0.74rem] text-muted-foreground leading-[1.4]">
                 {feature}
               </p>
@@ -195,18 +188,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </Button>
         ) : (
           /* Compteur — pattern .rm-count : conteneur --field r10 p3, boutons --card r8, valeur display */
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 0.5,
-              p: '3px',
-              borderRadius: '10px',
-              backgroundColor: 'var(--field)',
-              border: '1px solid var(--field-line)',
-            }}
-          >
+          <div className="flex items-center justify-between gap-[3px] p-[3px] rounded-[10px] bg-[var(--field)] border border-solid border-[var(--field-line)]">
             <IconButton
               size="small"
               onClick={onRemoveFromCart}
@@ -240,7 +222,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             >
               <Add size={14} strokeWidth={2} />
             </IconButton>
-          </Box>
+          </div>
         )}
       </div>
     </Card>

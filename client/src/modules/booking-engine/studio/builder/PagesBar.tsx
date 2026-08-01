@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Box, ButtonBase, InputBase, Tooltip } from '@mui/material';
+import { cn } from '../../../../utils/cn';
+import { ButtonBase, InputBase, Tooltip } from '@mui/material';
 import { Plus, Pencil, X, House, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import type { SitePage } from '../../../../services/api/sitesApi';
 
@@ -45,16 +46,7 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
         const canLeft = index >= 2; // garde la page d'accueil (index 0) en tête
         const canRight = index >= 1 && index < pages.length - 1;
         return (
-          <Box
-            key={p.id}
-            sx={{
-              display: 'inline-flex', alignItems: 'center', gap: 0.25, height: 28, pl: 1, pr: 0.5, flexShrink: 0,
-              borderRadius: 'var(--radius-md)',
-              bgcolor: active ? 'var(--card)' : 'transparent',
-              border: active ? '1px solid var(--line)' : '1px solid transparent',
-              boxShadow: active ? 'var(--shadow-card)' : 'none',
-            }}
-          >
+          <div className={cn('inline-flex items-center gap-[1.5px] h-[28px] ps-1.5 pe-[3px] shrink-0 rounded-[var(--radius-md)]', active ? 'bg-[var(--card)]' : 'bg-[transparent]', active ? 'border border-solid border-[var(--line)]' : 'border border-solid border-[transparent]')} style={{ boxShadow: active ? 'var(--shadow-card)' : 'none' }} key={p.id}>
             {isHome && <House size={13} strokeWidth={2} style={{ color: 'var(--muted)', marginRight: 2 }} />}
             {editing ? (
               <InputBase
@@ -110,7 +102,7 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
                 )}
               </>
             )}
-          </Box>
+          </div>
         );
       })}
       <Tooltip title="Ajouter une page">

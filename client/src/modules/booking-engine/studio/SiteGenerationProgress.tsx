@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { useTranslation } from 'react-i18next';
 import { Box } from '@mui/material';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -71,18 +72,8 @@ export default function SiteGenerationProgress({ brandLabel }: { brandLabel?: st
           const active = i === step;
           const Icon = s.icon;
           return (
-            <Box
-              key={s.label}
-              sx={{ display: 'flex', alignItems: 'center', gap: 1.25, opacity: done || active ? 1 : 0.4, transition: 'opacity .3s var(--ease-out)' }}
-            >
-              <Box
-                sx={{
-                  width: 26, height: 26, borderRadius: '50%', display: 'grid', placeItems: 'center', flexShrink: 0,
-                  bgcolor: done || active ? 'var(--accent-soft)' : 'var(--line)',
-                  color: done || active ? 'var(--accent)' : 'var(--muted)',
-                  transition: 'background .3s var(--ease-out), color .3s var(--ease-out)',
-                }}
-              >
+            <div className={cn('flex items-center gap-[7.5px]', done || active ? 'opacity-100' : 'opacity-40')} style={{ transition: 'opacity .3s var(--ease-out)' }} key={s.label}>
+              <div className={cn('w-[26px] h-[26px] rounded-[50%] grid place-items-[center] shrink-0', done || active ? 'bg-[var(--accent-soft)]' : 'bg-[var(--line)]', done || active ? 'text-[var(--accent)]' : 'text-[var(--muted)]')} style={{ transition: 'background .3s var(--ease-out), color .3s var(--ease-out)' }}>
                 {done ? (
                   <Check size={14} strokeWidth={2.6} />
                 ) : active && !reduce ? (
@@ -96,11 +87,11 @@ export default function SiteGenerationProgress({ brandLabel }: { brandLabel?: st
                 ) : (
                   <Icon size={14} strokeWidth={2} />
                 )}
-              </Box>
-              <Box sx={{ fontSize: 'var(--text-sm)', color: active ? 'var(--ink)' : 'var(--body)', fontWeight: active ? 'var(--fw-semibold)' : undefined }}>
+              </div>
+              <div className={cn('text-[var(--text-sm)]', active ? 'text-[var(--ink)]' : 'text-[var(--body)]')} style={{ fontWeight: active ? 'var(--fw-semibold)' : undefined }}>
                 {s.label}
-              </Box>
-            </Box>
+              </div>
+            </div>
           );
         })}
       </div>
@@ -137,13 +128,7 @@ function PageAssemblyMotif({ reduce }: { reduce: boolean }) {
     />
   );
   return (
-    <Box
-      sx={{
-        width: 132, p: 1.25, borderRadius: 'var(--radius-lg)', bgcolor: 'var(--card)',
-        border: '1px solid var(--line)', boxShadow: '0 12px 32px -20px rgba(0,0,0,0.3)',
-        display: 'flex', flexDirection: 'column', gap: 0.75,
-      }}
-    >
+    <div className="w-[132px] p-[7.5px] rounded-[var(--radius-lg)] bg-[var(--card)] border border-solid border-[var(--line)] flex flex-col gap-[4.5px]" style={{ boxShadow: '0 12px 32px -20px rgba(0,0,0,0.3)' }}>
       {block(0, { height: 8, width: '45%', background: 'var(--muted)' })}
       {block(0.2, { height: 30, width: '100%', background: 'var(--accent)' })}
       {block(0.4, { height: 6, width: '80%', background: 'var(--line)' })}
@@ -155,7 +140,7 @@ function PageAssemblyMotif({ reduce }: { reduce: boolean }) {
           </div>
         ))}
       </div>
-    </Box>
+    </div>
   );
 }
 

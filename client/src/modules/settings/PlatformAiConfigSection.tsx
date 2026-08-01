@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, TriangleAlert, X } from 'lucide-react';
@@ -377,7 +378,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
             {PROVIDER_IDS.map((pid) => (
               <MenuItem key={pid} value={pid}>
                 <div className="flex items-center gap-1.5">
-                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: PROVIDER_COLORS[pid], flexShrink: 0 }} />
+                  <div className="w-[8px] h-[8px] rounded-[50%] shrink-0" style={{ backgroundColor: PROVIDER_COLORS[pid] }} />
                   <p className="cn-text-body2 font-semibold">{PROVIDER_LABELS[pid]}</p>
                 </div>
               </MenuItem>
@@ -657,7 +658,7 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
       }}
     >
       {/* Color dot */}
-      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: providerColor, flexShrink: 0 }} />
+      <div className="w-[8px] h-[8px] rounded-[50%] shrink-0" style={{ backgroundColor: providerColor }} />
 
       {/* Name */}
       <Typography variant="body2" fontWeight={600} sx={{ minWidth: 120, flex: '0 0 auto' }}>
@@ -696,7 +697,7 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
       {/* Validated indicator */}
       {model.lastValidatedAt && (
         <Tooltip title={`Valide le ${new Date(model.lastValidatedAt).toLocaleDateString()}`}>
-          <Box component="span" sx={{ display: 'inline-flex', color: providerColor, flexShrink: 0 }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
+          <span className="inline-flex shrink-0" style={{ color: providerColor }}><CheckCircle size={16} strokeWidth={1.75} /></span>
         </Tooltip>
       )}
 
@@ -781,7 +782,7 @@ function UsageBreakdownTooltip({
             const totalTokens = m.tokensIn + m.tokensOut;
             return (
               <div className="flex items-center gap-1.5 py-0.5" key={`${m.provider}-${m.model}`}>
-                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: PROVIDER_COLORS[m.provider] || '#888', flexShrink: 0 }} />
+                <div className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ backgroundColor: PROVIDER_COLORS[m.provider] || '#888' }} />
                 <div className="flex-1 min-w-0">
                   <span className="cn-text-caption block font-semibold text-[0.72rem] overflow-hidden text-ellipsis whitespace-nowrap">
                     {m.model}
@@ -922,14 +923,14 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
       />
 
       {/* Feature name + desc */}
-      <Box sx={{ flex: 1, minWidth: 0, opacity: enabled ? 1 : 0.5 }}>
+      <div className={cn('flex-1 min-w-0', enabled ? 'opacity-100' : 'opacity-50')}>
         <p className="cn-text-body2 font-semibold leading-[1.3]">
           {feature.label}
         </p>
         <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
           {feature.desc}
         </span>
-      </Box>
+      </div>
 
       {/* Model / connected-provider selector */}
       <TextField
@@ -960,7 +961,7 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
         {providerOptions.map((p) => (
           <MenuItem key={`${PROVIDER_VALUE_PREFIX}${p.provider}`} value={`${PROVIDER_VALUE_PREFIX}${p.provider}`}>
             <div className="flex items-center gap-1.5 min-w-0 w-full">
-              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: PROVIDER_COLORS[p.provider] || '#888', flexShrink: 0 }} />
+              <div className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ backgroundColor: PROVIDER_COLORS[p.provider] || '#888' }} />
               <p className="cn-text-body2 text-[0.8125rem]">{p.label}</p>
               <span className="cn-text-caption text-muted-foreground text-[0.65rem] ms-auto ps-1.5 shrink-0">
                 {p.source === 'ORGANIZATION' ? t('settings.ai.platform.providerOwnKey') : t('settings.ai.platform.providerSharedKey')}
@@ -977,7 +978,7 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
         {models.map((m) => (
           <MenuItem key={`${MODEL_VALUE_PREFIX}${m.id}`} value={`${MODEL_VALUE_PREFIX}${m.id}`}>
             <div className="flex items-center gap-1.5">
-              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: PROVIDER_COLORS[m.provider] || '#888', flexShrink: 0 }} />
+              <div className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ backgroundColor: PROVIDER_COLORS[m.provider] || '#888' }} />
               <p className="cn-text-body2 text-[0.8125rem]">{m.name}</p>
             </div>
           </MenuItem>
@@ -992,20 +993,10 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
         const totalCost = usageBreakdown.reduce((sum, m) => sum + (m.costUsd ?? 0), 0);
         return (
           <UsageBreakdownTooltip breakdown={usageBreakdown} totalCost={totalCost} feature={feature}>
-            <Box sx={{ position: 'relative', width: 170, flexShrink: 0, cursor: usageBreakdown.length > 0 ? 'help' : 'default' }}>
+            <div className={cn('relative w-[170px] shrink-0', usageBreakdown.length > 0 ? 'cursor-help' : 'cursor-default')}>
               {/* Progress bar background */}
               <div className="absolute inset-[0px] rounded-[1px] overflow-hidden border border-[var(--line)]">
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: `${pct}%`,
-                    bgcolor: `color-mix(in srgb, ${barColor} 15%, transparent)`,
-                    transition: 'width 0.3s ease, background-color 0.3s ease',
-                  }}
-                />
+                <div className="absolute start-0 top-0 bottom-0" style={{ width: `${pct}%`, backgroundColor: `color-mix(in srgb, ${barColor} 15%, transparent)`, transition: 'width 0.3s ease, background-color 0.3s ease' }} />
               </div>
               {/* Input on top */}
               <TextField
@@ -1041,7 +1032,7 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
                   '& .MuiInputBase-input': { position: 'relative', zIndex: 1 },
                 }}
               />
-            </Box>
+            </div>
           </UsageBreakdownTooltip>
         );
       })()}
@@ -1096,9 +1087,9 @@ export default function PlatformAiConfigSection() {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" py={4}>
+      <div className="flex justify-center py-6">
         <Spinner className="size-10" />
-      </Box>
+      </div>
     );
   }
 

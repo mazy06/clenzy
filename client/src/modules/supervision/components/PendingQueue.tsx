@@ -28,15 +28,12 @@ export function PendingQueue({ actions, onValidate, onEdit, onAdjustPrice, varia
 
   if (actions.length === 0) {
     return (
-      <Box
-        data-pending-empty
-        sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: '14px 8px', color: 'var(--muted)' }}
-      >
+      <div className="flex items-center gap-[9px] p-[14px 8px] text-[var(--muted)]" data-pending-empty>
         <CheckCircle size={28} style={{ color: 'var(--ok)', flexShrink: 0 }} />
         <div>
-          <Box sx={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink, #1b2240)' }}>{t('supervision.hitl.empty')}</Box>
+          <div className="text-[13.5px] font-extrabold text-[var(--ink,_#1b2240)]">{t('supervision.hitl.empty')}</div>
         </div>
-      </Box>
+      </div>
     );
   }
 

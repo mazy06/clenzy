@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Box } from '@mui/material';
+import { Alert } from '@mui/material';
 import {
   complianceConnectionApi,
   COMPLIANCE_PROVIDER_META,
@@ -26,26 +26,10 @@ const ComplianceProviderCard: React.FC<Props> = ({ provider, onStatusChange }) =
     meta.countryCode === 'FR' ? '🇫🇷' : meta.countryCode === 'MA' ? '🇲🇦' : '🇸🇦';
 
   const headerChip = (
-    <Box
-      component="span"
-      sx={{
-        fontSize: '0.6rem',
-        fontWeight: 700,
-        letterSpacing: '0.02em',
-        color: NEUTRAL,
-        backgroundColor: `color-mix(in srgb, ${NEUTRAL} 8%, transparent)`,
-        border: `1px solid color-mix(in srgb, ${NEUTRAL} 20%, transparent)`,
-        borderRadius: '4px',
-        px: 0.5,
-        py: 0.125,
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '3px',
-      }}
-    >
+    <span className="text-[0.6rem] font-bold tracking-[0.02em] rounded-[4px] px-[3px] py-[0.75px] inline-flex items-center gap-[3px]" style={{ color: NEUTRAL, backgroundColor: `color-mix(in srgb, ${NEUTRAL} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${NEUTRAL} 20%, transparent)` }}>
       {meta.countryCode}
       <span aria-hidden="true" style={{ fontSize: '0.85em' }}>{countryFlag}</span>
-    </Box>
+    </span>
   );
 
   const bodyAlert = (

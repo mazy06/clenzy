@@ -61,21 +61,9 @@ function ChoiceCard({ icon, iconBg, iconColor, title, description, onSelect }: C
         '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
       }}
     >
-      <Box
-        sx={{
-          width: 40,
-          height: 40,
-          borderRadius: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: iconBg,
-          color: iconColor,
-          flexShrink: 0,
-        }}
-      >
+      <div className="w-[40px] h-[40px] rounded-[12px] flex items-center justify-center shrink-0" style={{ backgroundColor: iconBg, color: iconColor }}>
         {icon}
-      </Box>
+      </div>
       <div>
         <Typography sx={{ fontWeight: 700, fontSize: 14.5, color: 'var(--ink)', textWrap: 'balance' }}>
           {title}
@@ -104,7 +92,7 @@ export default function ImportSourceChooserDialog({
         </p>
       </DialogTitle>
       <DialogContent sx={{ pb: 3 }}>
-        <Box sx={{ display: 'flex', gap: 1.5, flexDirection: { xs: 'column', sm: 'row' } }}>
+        <div className="flex gap-[9px] flex-col min-[600px]:flex-row">
           <ChoiceCard
             icon={<CalendarMonth size={20} strokeWidth={1.75} />}
             iconBg="var(--accent-soft)"
@@ -133,7 +121,7 @@ export default function ImportSourceChooserDialog({
               onChooseChannelManager();
             }}
           />
-        </Box>
+        </div>
       </DialogContent>
     </Dialog>
   );

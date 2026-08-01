@@ -208,9 +208,9 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <div className="flex items-center gap-1.5 px-4 pt-3.5 pb-1.5">
-        <Box sx={{ width: 32, height: 32, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: `${BRAND}1A`, color: BRAND }}>
+        <div className="w-[32px] h-[32px] rounded-[12px] flex items-center justify-center" style={{ backgroundColor: `${BRAND}1A`, color: BRAND }}>
           <KeyIcon size={17} strokeWidth={1.8} />
-        </Box>
+        </div>
         <p className="cn-text-body1 flex-1 font-bold text-[1.05rem]">{t('channels.checkIn.generator.title', "Générer un code d'accès")}</p>
         <IconButton size="small" onClick={onClose} aria-label={t('channels.checkIn.generator.close', 'Fermer')}><CloseIcon size={18} strokeWidth={1.8} /></IconButton>
       </div>
@@ -269,7 +269,7 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
           <div className="flex gap-3 flex-wrap mb-2">
             {TYPE_ORDER.map((tp) => (
               <div className="flex items-center gap-0.5" key={tp}>
-                <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: TYPE_META[tp].color }} />
+                <div className="w-[9px] h-[9px] rounded-[50%]" style={{ backgroundColor: TYPE_META[tp].color }} />
                 <span className="cn-text-caption font-semibold tabular-nums">
                   {counts[tp]} {t(`channels.checkIn.generator.${TYPE_META[tp].labelKey}`, TYPE_META[tp].defaultLabel)}
                 </span>

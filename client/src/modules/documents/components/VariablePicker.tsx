@@ -1,13 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Box,
-  Divider,
-  InputAdornment,
-  Stack,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Divider, InputAdornment, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import { Search } from '../../../icons';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import type { TemplateVariable } from '../../../services/api/guestMessagingApi';
@@ -262,7 +254,7 @@ interface SectionHeadingProps {
 
 const SectionHeading: React.FC<SectionHeadingProps> = ({ label, tone }) => (
   <div className="flex items-center gap-1 mb-1">
-    <Box sx={{ width: 12, height: 2, bgcolor: tone.c, borderRadius: 1 }} />
+    <div className="w-[12px] h-[2px] rounded-[8px]" style={{ backgroundColor: tone.c }} />
     <div className="cn-text-caption text-[0.65rem] font-semibold tracking-[0.08em] text-muted-foreground">
       {label}
     </div>

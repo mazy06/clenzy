@@ -1,7 +1,8 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import StatusChip, { STATUS_TONES } from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-import { Box, Paper, Typography, Button } from '@mui/material';
+import { Paper, Typography, Button } from '@mui/material';
 import {
   LinkOff as LinkOffIcon,
   Link as LinkIcon,
@@ -53,16 +54,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
 }) => (
   <Paper sx={{ ...CARD_SX, mb: 1.5, p: 0, overflow: 'hidden' }}>
     {/* Table header */}
-    <Box sx={{
-      display: 'grid',
-      gridTemplateColumns: '110px 1.6fr 0.8fr 1fr 1.4fr',
-      gap: 2,
-      px: 2,
-      py: 1.25,
-      borderBottom: '1px solid',
-      borderColor: 'var(--line)',
-      bgcolor: 'var(--surface-2)',
-    }}>
+    <div className="grid grid-cols-[110px_1.6fr_0.8fr_1fr_1.4fr] gap-3 px-3 py-[7.5px] border-[var(--line)] bg-[var(--surface-2)]" style={{ borderBottom: '1px solid' }}>
       <Typography sx={OVERLINE_SX}>
         Logo
       </Typography>
@@ -78,7 +70,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
       <Typography sx={{ ...OVERLINE_SX, textAlign: 'right' }}>
         Action
       </Typography>
-    </Box>
+    </div>
 
     {/* Rows */}
     {channels.map((ota, idx) => {
@@ -89,34 +81,9 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
       const loading = isAirbnb ? connectionLoading : isOtaChannel ? otaConnectionsLoading : false;
 
       return (
-        <Box
-          key={ota.id}
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: '110px 1.6fr 0.8fr 1fr 1.4fr',
-            gap: 2,
-            px: 2,
-            py: 1.5,
-            alignItems: 'center',
-            borderBottom: idx < channels.length - 1 ? '1px solid' : 'none',
-            borderColor: 'var(--line)',
-            opacity: ota.available ? 1 : 0.6,
-            transition: 'background 0.15s',
-            '&:hover': { bgcolor: 'var(--hover)' },
-          }}
-        >
+        <div className={cn('grid grid-cols-[110px_1.6fr_0.8fr_1fr_1.4fr] gap-3 px-3 py-[9px] items-center border-[var(--line)] hover:bg-[var(--hover)]', ota.available ? 'opacity-100' : 'opacity-60')} style={{ borderBottom: idx < channels.length - 1 ? '1px solid' : 'none', transition: 'background 0.15s' }} key={ota.id}>
           {/* Pastille logo — surface douce tokenisée, marque conservée sur le logo */}
-          <Box
-            sx={{
-              height: 40,
-              width: 96,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '10px',
-              bgcolor: channelSoftBg(ota.id),
-            }}
-          >
+          <div className="h-[40px] w-[96px] flex items-center justify-center rounded-[10px]" style={{ backgroundColor: channelSoftBg(ota.id) }}>
             {ota.logo ? (
               <img className="h-[22px] max-w-[76px] object-contain" src={ota.logo} alt={ota.name} />
             ) : (
@@ -124,7 +91,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
                 {ota.name}
               </Typography>
             )}
-          </Box>
+          </div>
 
           {/* Channel name */}
           <div className="min-w-0">
@@ -215,7 +182,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
               </p>
             )}
           </div>
-        </Box>
+        </div>
       );
     })}
   </Paper>

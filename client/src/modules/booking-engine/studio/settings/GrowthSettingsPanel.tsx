@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Box, Skeleton } from '@mui/material';
+import { Skeleton } from '@mui/material';
 import { AlertTriangle, Users, ShoppingCart, Info } from 'lucide-react';
 import { growthSettingsApi, type GrowthSettings } from '../../../../services/api/growthSettingsApi';
 import { SettingsPage, SettingCard, SettingRow, SaveBar, ToggleControl, NumberControl } from './settingsControls';
@@ -126,10 +126,10 @@ export default function GrowthSettingsPanel() {
       </SettingCard>
 
       <SettingCard title="Impact" description="Mesures cumulées sur votre organisation.">
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, py: 1.5 }}>
+        <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-3 py-[9px]">
           <StatTile icon={Users} label="Contacts captés" value={loaded.contactsCaptured} />
           <StatTile icon={ShoppingCart} label="Paniers relancés" value={loaded.cartsRecovered} />
-        </Box>
+        </div>
       </SettingCard>
     </SettingsPage>
   );

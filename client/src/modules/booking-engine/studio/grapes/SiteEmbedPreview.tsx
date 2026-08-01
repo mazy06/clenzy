@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { cn } from '../../../../utils/cn';
 import { Spinner } from '../../../../components/ui';
 import { Box, ButtonBase } from '@mui/material';
 import { AlertTriangle, Wand2 } from 'lucide-react';
@@ -137,7 +138,7 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
     );
   } else {
     body = (
-      <Box sx={{ flex: 1, minWidth: 0, height: '100%', overflow: 'auto', bgcolor: 'var(--bg-2, var(--bg))', display: 'flex', justifyContent: 'center', p: breakpoint === 'desktop' ? 0 : 3 }}>
+      <div className={cn('flex-1 min-w-0 h-full overflow-auto bg-[var(--bg-2,_var(--bg))] flex justify-center', breakpoint === 'desktop' ? 'p-0' : 'p-[18px]')}>
         <Box
           component="iframe"
           key={html.length}
@@ -151,7 +152,7 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
             ...(breakpoint !== 'desktop' && { my: 'auto', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-card)', height: '90%' }),
           }}
         />
-      </Box>
+      </div>
     );
   }
 

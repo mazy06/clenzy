@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info } from 'lucide-react';
-import { Box, Typography, Accordion, AccordionSummary, AccordionDetails, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
+import { Typography, Accordion, AccordionSummary, AccordionDetails, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
 import {
   ExpandMore,
   Notes,
@@ -216,7 +216,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
             <div className="p-2 border border-[var(--line)] rounded-[10px] flex items-start gap-1.5" key={i}>
               {(() => { const t = SEVERITY_TOKENS[s.severity] || SEVERITY_TOKENS.moyenne; return (
               <>
-              <Box component="span" sx={{ display: 'inline-flex', color: t.color, mt: 0.25 }}><Warning size={16} strokeWidth={1.75} /></Box>
+              <span className="inline-flex mt-[1.5px]" style={{ color: t.color }}><Warning size={16} strokeWidth={1.75} /></span>
               <div className="flex-1 min-w-0">
                 <StatusChip pill tokens={{ color: t.color, bg: t.bg }} label={s.severity.charAt(0).toUpperCase() + s.severity.slice(1)} className="mb-0.5" />
                 <p className="cn-text-body1 text-[0.6875rem] text-[var(--body)]">{s.description}</p>

@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Button, Skeleton } from '@mui/material';
+import { Button, Skeleton } from '@mui/material';
 import { MonitorHeart, BatteryAlert, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
@@ -77,7 +77,7 @@ export default function DeviceDetail() {
           leur propre bandeau de lecture live (Niveau actuel / Moyenne / Pic) dans
           NoiseDetail — on évite ainsi une rangée générique « Connexion » orpheline. */}
       {device.kind !== 'noise' && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 1, mb: 2 }}>
+        <div className="grid grid-cols-[repeat(auto-fit,_minmax(140px,_1fr))] gap-1.5 mb-3">
           <StatTile
             icon={<MonitorHeart />}
             label="Connexion"
@@ -90,7 +90,7 @@ export default function DeviceDetail() {
           {device.primaryMetric && (
             <StatTile icon={meta.icon()} label={device.primaryMetric.label} value={device.primaryMetric.value} color={meta.color} />
           )}
-        </Box>
+        </div>
       )}
 
       {/* Corps spécifique au type */}

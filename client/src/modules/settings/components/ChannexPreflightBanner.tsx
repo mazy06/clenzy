@@ -21,6 +21,7 @@
  * existe.</p>
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Box, Typography, IconButton, CircularProgress, Collapse, Stack, Skeleton, Tooltip } from '@mui/material';
@@ -62,21 +63,7 @@ function SeverityIcon({ severity }: { severity: ChannexPreflightCheck['severity'
 function CheckRow({ check }: { check: ChannexPreflightCheck }) {
   const isIssue = check.severity !== 'OK';
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        gap: 1.25,
-        py: 0.65,
-        px: 1,
-        borderRadius: 0.75,
-        alignItems: 'flex-start',
-        bgcolor: isIssue
-          ? check.severity === 'BLOCKER'
-            ? 'color-mix(in srgb, var(--err) 5%, transparent)'
-            : 'color-mix(in srgb, var(--warn) 5%, transparent)'
-          : 'transparent',
-      }}
-    >
+    <div className={cn('flex gap-[7.5px] py-[3.9000000000000004px] px-1.5 rounded-[6px] items-start', isIssue ? '[object Object]' : 'bg-[transparent]')}>
       <div className="mt-0.5 shrink-0">
         <SeverityIcon severity={check.severity} />
       </div>
@@ -106,7 +93,7 @@ function CheckRow({ check }: { check: ChannexPreflightCheck }) {
           </Typography>
         )}
       </div>
-    </Box>
+    </div>
   );
 }
 
@@ -160,14 +147,7 @@ export default function ChannexPreflightBanner({
         : 'var(--ok)';
 
   return (
-    <Box
-      sx={{
-        border: `1px solid ${accent}33`,
-        bgcolor: `${accent}08`,
-        borderRadius: 1,
-        overflow: 'hidden',
-      }}
-    >
+    <div className="rounded-[8px] overflow-hidden" style={{ border: `1px solid ${accent}33`, backgroundColor: `${accent}08` }}>
       {/* Header (toujours visible) */}
       <Box
         sx={{
@@ -183,21 +163,9 @@ export default function ChannexPreflightBanner({
         }}
         onClick={() => setCollapsed((c) => !c)}
       >
-        <Box
-          sx={{
-            width: 28,
-            height: 28,
-            borderRadius: 0.75,
-            bgcolor: `${accent}1A`,
-            color: accent,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
+        <div className="w-[28px] h-[28px] rounded-[6px] flex items-center justify-center shrink-0" style={{ backgroundColor: `${accent}1A`, color: accent }}>
           <Stethoscope size={16} strokeWidth={2.2} />
-        </Box>
+        </div>
         <div className="flex-1 min-w-0">
           <p className="cn-text-body2 font-semibold leading-[1.3]">
             Diagnostic Channex
@@ -286,6 +254,6 @@ export default function ChannexPreflightBanner({
           )}
         </div>
       </Collapse>
-    </Box>
+    </div>
   );
 }

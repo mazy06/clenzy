@@ -1,15 +1,6 @@
 import React from 'react';
-import {
-  Box,
-  Grid,
-  Typography,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Grid, Typography, TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
 import { Description } from '../../icons';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
@@ -92,18 +83,7 @@ const PropertyFormBasicInfo: React.FC<PropertyFormBasicInfoProps> = React.memo(
               name="description"
               control={control}
               render={({ field, fieldState }) => (
-                <Box sx={{
-                  display: 'flex',
-                  gap: 1,
-                  py: 1.25,
-                  px: 1.5,
-                  borderRadius: '11px',
-                  bgcolor: 'var(--field)',
-                  border: '1px solid',
-                  borderColor: fieldState.error ? 'var(--err)' : 'var(--field-line)',
-                  minHeight: 80,
-                  transition: 'border-color 0.15s ease',
-                }}>
+                <div className={cn('flex gap-1.5 py-[7.5px] px-[9px] rounded-[11px] bg-[var(--field)] border border-solid min-h-[80px]', fieldState.error ? 'border-[var(--err)]' : 'border-[var(--field-line)]')} style={{ transition: 'border-color 0.15s ease' }}>
                   <span className="inline-flex text-muted-foreground opacity-60 mt-0 shrink-0"><Description size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
                     <p className="cn-text-body1 text-[0.625rem] font-bold uppercase tracking-[0.05em] text-muted-foreground opacity-60 mb-0.5">
@@ -129,7 +109,7 @@ const PropertyFormBasicInfo: React.FC<PropertyFormBasicInfoProps> = React.memo(
                       <FormHelperText error sx={{ mx: 0, mt: 0.5 }}>{fieldState.error.message}</FormHelperText>
                     )}
                   </div>
-                </Box>
+                </div>
               )}
             />
           </Grid>

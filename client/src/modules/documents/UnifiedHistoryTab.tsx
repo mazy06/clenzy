@@ -408,7 +408,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
       ) : (
         <>
           {/* ── Lignes .fr-doc : pastille type + nom fw600 + méta muted + statut -soft + actions ── */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="flex flex-col gap-2">
             {unifiedRows.map((row) => {
               const isFailed = row.statusTone === TONES.err && (row.status === 'Echoue' || row.status === 'Rebondi');
               const pastille = row.kind === 'document'
@@ -443,16 +443,11 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                 >
                   {/* Pastille type 34 r9 — PDF = --err, canaux mappés sémantiquement */}
                   <Tooltip title={row.kind === 'message' ? t('documents.history.typeMessage') : t('documents.history.typeDocument')} arrow>
-                    <Box sx={{
-                      width: 34, height: 34, borderRadius: '9px',
-                      bgcolor: isFailed ? 'var(--err)' : pastille.bg, color: 'var(--on-accent)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                      fontSize: '9px', fontWeight: 800,
-                    }}>
+                    <div className="w-[34px] h-[34px] rounded-[9px] text-[var(--on-accent)] flex items-center justify-center shrink-0 text-[9px] font-extrabold" style={{ backgroundColor: isFailed ? 'var(--err)' : pastille.bg }}>
                       {isFailed
                         ? <AlertTriangleIcon size={15} strokeWidth={1.75} />
                         : row.kind === 'document' ? 'PDF' : pastille.icon}
-                    </Box>
+                    </div>
                   </Tooltip>
 
                   {/* Nom + méta */}
@@ -602,7 +597,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                 </Box>
               );
             })}
-          </Box>
+          </div>
 
           {/* Pagination only for documents view */}
           {filter !== 'messages' && docTotalElements > docSize && (

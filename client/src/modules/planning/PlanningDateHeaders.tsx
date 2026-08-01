@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import { Box, Tooltip, Typography } from '@mui/material';
 import { isToday, isWeekend, formatDayNumber, formatDayShort, formatFullDate } from './utils/dateUtils';
 import { DATE_HEADER_HEIGHT, WEEKEND_HEADER_BG } from './constants';
@@ -22,17 +23,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
   propertyCount,
 }) => {
   return (
-    <Box
-      sx={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 12,
-        display: 'flex',
-        backgroundColor: 'var(--surface-2)',
-        borderBottom: '1px solid var(--line)',
-        minHeight: DATE_HEADER_HEIGHT,
-      }}
-    >
+    <div className="sticky top-0 z-[12] flex bg-[var(--surface-2)]" style={{ borderBottom: '1px solid var(--line)', minHeight: DATE_HEADER_HEIGHT }}>
       {/* Coin « LOGEMENT » (spec .pl-corner) : cellule unique sur toute la
           hauteur de l'entête — padding 10px 16px, overline 10.5px fw700. */}
       <Box
@@ -60,7 +51,7 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
           Le mois/année vit dans la toolbar (sélecteur ‹ Mois Année ›, suivi du
           scroll) — plus de rangée mois dans la grille. Le nom complet
           (jour + numero + mois + annee) reste au hover via Tooltip. */}
-      <Box sx={{ display: 'flex', height: DATE_HEADER_HEIGHT, width: totalGridWidth }}>
+      <div className="flex" style={{ height: DATE_HEADER_HEIGHT, width: totalGridWidth }}>
           {days.map((day) => {
             const today = isToday(day);
             const weekend = isWeekend(day);
@@ -78,41 +69,12 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                   },
                 }}
               >
-                <Box
-                  sx={{
-                    width: dayWidth,
-                    minWidth: dayWidth,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '1px',
-                    py: '8px',
-                    borderRight: '1px solid var(--line)',
-                    // Spec .pl-day:last-child : pas de séparateur sur le dernier
-                    '&:last-child': { borderRight: 0 },
-                    // Spec .pl-day.we (constante locale --pl-day-we) —
-                    // la référence ne teinte PAS la cellule « aujourd'hui »
-                    backgroundColor: weekend ? WEEKEND_HEADER_BG : 'transparent',
-                    cursor: 'default',
-                    userSelect: 'none',
-                  }}
-                >
+                <div className="flex flex-col items-center justify-center gap-px py-2 border-e-[1px_solid_var(--line)] last:border-e-0 cursor-default select-none" style={{ width: dayWidth, minWidth: dayWidth, backgroundColor: weekend ? WEEKEND_HEADER_BG : 'transparent' }}>
                   {/* Jour abrégé (spec .wd : 9.5px fw700 .04em uppercase) */}
                   {dayWidth >= 34 && (
-                    <Box
-                      component="span"
-                      sx={{
-                        fontSize: '9.5px',
-                        fontWeight: 700,
-                        letterSpacing: '0.04em',
-                        textTransform: 'uppercase',
-                        lineHeight: 1,
-                        color: today ? 'var(--accent)' : 'var(--faint)',
-                      }}
-                    >
+                    <span className={cn('text-[9.5px] font-bold tracking-[0.04em] uppercase leading-[1]', today ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}>
                       {formatDayShort(day).replace('.', '')}
-                    </Box>
+                    </span>
                   )}
                   {/* Numéro (spec .dn : Space Grotesk 14px fw600) —
                       aujourd'hui dans un carré accent 24×24 radius 8 */}
@@ -142,12 +104,12 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                   >
                     {formatDayNumber(day)}
                   </Typography>
-                </Box>
+                </div>
               </Tooltip>
             );
           })}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 });
 
