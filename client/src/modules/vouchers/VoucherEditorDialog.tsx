@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import TagChip from '../../components/TagChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, Grid, InputAdornment, InputLabel, MenuItem, Select, Stack, Switch, TextField, Autocomplete, Chip, FormHelperText } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, Grid, InputAdornment, InputLabel, MenuItem, Select, Stack, Switch, TextField, Autocomplete, FormHelperText } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import {
@@ -400,13 +401,7 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
                   value.map((option, index) => {
                     const { key, ...tagProps } = getTagProps({ index });
                     return (
-                      <Chip
-                        key={key}
-                        variant="outlined"
-                        label={option.name}
-                        size="small"
-                        {...tagProps}
-                      />
+                      <TagChip key={key} label={option.name} {...tagProps} />
                     );
                   })
                 }

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
+import TagChip from '../../../components/TagChip';
 import { Spinner } from '../../../components/ui';
-import { Autocomplete, Box, Chip, TextField } from '@mui/material';
+import { Autocomplete, Box, TextField } from '@mui/material';
 import { AlertTriangle, BellRing } from 'lucide-react';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -78,14 +79,7 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
             const isSelf = option.trim().toLowerCase() === SENDER;
             const { key, ...tagProps } = getTagProps({ index });
             return (
-              <Chip
-                key={key}
-                {...tagProps}
-                label={option}
-                size="small"
-                color={isSelf ? 'warning' : 'default'}
-                variant={isSelf ? 'outlined' : 'filled'}
-              />
+              <TagChip key={key} {...tagProps} label={option} tone={isSelf ? 'warn' : 'neutral'} />
             );
           })
         }

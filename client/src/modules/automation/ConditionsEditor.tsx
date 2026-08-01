@@ -1,5 +1,6 @@
 import React from 'react';
-import { Autocomplete, Chip, MenuItem, Stack, TextField } from '@mui/material';
+import TagChip from '../../components/TagChip';
+import { Autocomplete, MenuItem, Stack, TextField } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import {
@@ -61,13 +62,7 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
             val.map((option, index) => {
               const { key, ...tagProps } = getTagProps({ index });
               return (
-                <Chip
-                  key={key}
-                  variant="outlined"
-                  size="small"
-                  label={option.name}
-                  {...tagProps}
-                />
+                <TagChip key={key} label={option.name} {...tagProps} />
               );
             })
           }
