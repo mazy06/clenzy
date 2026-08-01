@@ -4886,7 +4886,15 @@
       "draft": "Brouillons",
       "issued": "Emises",
       "paid": "Payees",
-      "totalTtc": "Total TTC"
+      "totalTtc": "Total TTC",
+      "issuedTotal": "Émis",
+      "collected": "Encaissé",
+      "overdue": "En retard",
+      "count_one": "{{count}} facture",
+      "count_other": "{{count}} factures",
+      "collectedShare": "{{rate}} % du montant émis",
+      "overdueCount_one": "{{count}} facture",
+      "overdueCount_other": "{{count}} factures"
     },
     "columns": {
       "number": "N°",
@@ -4908,7 +4916,8 @@
       "PAID": "Payee",
       "CANCELLED": "Annulee",
       "CREDIT_NOTE": "Avoir"
-    }
+    },
+    "totalPeriod": "Total période"
   },
   "notifications": {
     "title": "Notifications",

@@ -15,8 +15,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../components/ui';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
-import { Field, FieldLabel, Input, NativeSelect, NativeSelectOption } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Field, FieldLabel, NativeSelect, NativeSelectOption } from '../../components/ui';
 import {
   Receipt as ReceiptIcon,
   Download as DownloadIcon,
@@ -24,7 +24,6 @@ import {
   CheckCircle as PaidIcon,
   Cancel as CancelIcon,
   Clear as ClearIcon,
-  HourglassEmpty as DraftIcon,
   AttachMoney as MoneyIcon,
   PictureAsPdf as PdfIcon,
   ContentCopy as DuplicateIcon,
@@ -33,7 +32,11 @@ import {
   Build as BuildIcon,
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
-import StatTile from '../../components/StatTile';
+import StatTile from '../../components/baitly/StatTile';
+import FilterChipRow from '../../components/baitly/FilterChipRow';
+import DateRangePicker from '../../components/baitly/DateRangePicker';
+import ExportButton from '../../components/baitly/ExportButton';
+import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -52,17 +55,6 @@ import { getAccessToken } from '../../keycloak';
 import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
-
-const STATUS_OPTIONS: { value: InvoiceStatus | ''; label: string }[] = [
-  { value: '', label: 'Tous' },
-  { value: 'DRAFT', label: 'Brouillon' },
-  { value: 'SENT', label: 'Envoyee' },
-  { value: 'ISSUED', label: 'Emise' },
-  { value: 'PAID', label: 'Payee' },
-  { value: 'OVERDUE', label: 'En retard' },
-  { value: 'CANCELLED', label: 'Annulee' },
-  { value: 'CREDIT_NOTE', label: 'Avoir' },
-];
 
 const STATUS_LABELS: Record<InvoiceStatus, string> = {
   DRAFT: 'Brouillon',
@@ -93,6 +85,17 @@ const STATUS_TOKEN: Record<InvoiceStatus, { fg: string; bg: string }> = {
   OVERDUE: { fg: 'var(--err)', bg: 'var(--err-soft)' },
   CANCELLED: { fg: 'var(--muted)', bg: 'var(--hover)' },
   CREDIT_NOTE: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+};
+
+/** Statut → ton semantique du chip a point (dessin de la projection). */
+const STATUS_TONE: Record<InvoiceStatus, 'ok' | 'warn' | 'err' | 'info' | 'neutral'> = {
+  DRAFT: 'neutral',
+  SENT: 'info',
+  ISSUED: 'warn',
+  PAID: 'ok',
+  OVERDUE: 'err',
+  CANCELLED: 'neutral',
+  CREDIT_NOTE: 'info',
 };
 
 /** Montants : display tabular-nums (jamais proportional) */
@@ -173,17 +176,24 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
 
+  // Seule la periode reste un filtre serveur. Le statut passe cote client :
+  // la rangee de chips de la projection affiche le compte de CHAQUE statut,
+  // ce qu'un filtre serveur rendrait faux (il ne rapporterait que le statut
+  // demande). Meme logique que le filtre par nature, deja client.
   const filters = useMemo(() => ({
-    ...(statusFilter ? { status: statusFilter } : {}),
     ...(dateFrom ? { from: dateFrom } : {}),
     ...(dateTo ? { to: dateTo } : {}),
-  }), [statusFilter, dateFrom, dateTo]);
+  }), [dateFrom, dateTo]);
 
   const { data: invoices, isLoading, error } = useInvoices(filters);
-  // Filtre par nature (séjour / commission) appliqué côté client sur la liste déjà chargée.
-  const displayedInvoices = useMemo(
+  // Liste par nature (sejour / commission) — assiette des comptes de chips.
+  const typedInvoices = useMemo(
     () => (invoices ?? []).filter((i) => !typeFilter || i.invoiceType === typeFilter),
     [invoices, typeFilter],
+  );
+  const displayedInvoices = useMemo(
+    () => typedInvoices.filter((i) => !statusFilter || i.status === statusFilter),
+    [typedInvoices, statusFilter],
   );
   // Deep-link notification (?highlight=<invoiceId>) — surligne la ligne ciblee.
   const highlightId = useHighlightParam();
@@ -234,29 +244,60 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
 
   const hasActiveFilters = statusFilter || typeFilter || dateFrom || dateTo;
 
-  // ─── Stats ──────────────────────────────────────────────────────────────
+  // L'export de la projection, portale dans l'en-tete du hub Facturation
+  // (pattern PageHeaderActionsContext). Exporte les lignes AFFICHEES.
+  const headerActions = usePageHeaderActions(
+    <ExportButton
+      data={displayedInvoices.map((i) => ({
+        number: i.invoiceNumber,
+        date: fmtDate(i.invoiceDate),
+        client: i.buyerName,
+        ht: i.totalHt,
+        tax: i.totalTax,
+        ttc: i.totalTtc,
+        status: STATUS_LABELS[i.status],
+      }))}
+      columns={[
+        { key: 'number', label: t('invoices.columns.number', 'N°') },
+        { key: 'date', label: t('invoices.columns.date', 'Date') },
+        { key: 'client', label: t('invoices.columns.buyer', 'Client') },
+        { key: 'ht', label: t('invoices.columns.ht', 'HT') },
+        { key: 'tax', label: t('invoices.columns.tax', 'TVA') },
+        { key: 'ttc', label: t('invoices.columns.ttc', 'TTC') },
+        { key: 'status', label: t('common.status', 'Statut') },
+      ]}
+      fileName="factures"
+      variant="menu"
+    />,
+  );
+
+  // ─── Stats — les trois tuiles monetaires de la projection ────────────────
+  // L'assiette est la liste par nature AVANT filtre de statut : cliquer un chip
+  // filtre le tableau sans faire mentir les tuiles. Les comptes par statut
+  // (brouillons, emises…) vivent desormais sur les chips, plus en tuiles.
   const stats = useMemo(() => {
     if (!invoices) return null;
-    const list = displayedInvoices;
-    const total = list.length;
-    const draft = list.filter(i => i.status === 'DRAFT').length;
-    const issued = list.filter(i => i.status === 'ISSUED').length;
-    const paid = list.filter(i => i.status === 'PAID').length;
-    const totalTtc = list.reduce((sum, i) => sum + i.totalTtc, 0);
+    const list = typedInvoices;
+    const somme = (pred: (i: Invoice) => boolean) =>
+      list.filter(pred).reduce((sum, i) => sum + i.totalTtc, 0);
+    const emis = somme(() => true);
+    const encaisse = somme((i) => i.status === 'PAID');
+    const enRetard = list.filter((i) => i.status === 'OVERDUE');
+    const parStatut = Object.fromEntries(
+      (Object.keys(STATUS_LABELS) as InvoiceStatus[]).map((st) => [st, list.filter((i) => i.status === st).length]),
+    ) as Record<InvoiceStatus, number>;
     const currency = list[0]?.currency ?? 'EUR';
-    return { total, draft, issued, paid, totalTtc, currency };
-  }, [invoices, displayedInvoices]);
-
-  // KPI StatTile — couleurs = palette accents Clenzy validée
-  const summaryCards = stats
-    ? [
-        { label: t('invoices.stats.total', 'Total'), value: String(stats.total), color: '#6B8A9A', icon: <ReceiptIcon /> },
-        { label: t('invoices.stats.draft', 'Brouillons'), value: String(stats.draft), color: '#D4A574', icon: <DraftIcon /> },
-        { label: t('invoices.stats.issued', 'Emises'), value: String(stats.issued), color: '#7BA3C2', icon: <SendIcon /> },
-        { label: t('invoices.stats.paid', 'Payees'), value: String(stats.paid), color: '#4A9B8E', icon: <PaidIcon /> },
-        { label: t('invoices.stats.totalTtc', 'Total TTC'), value: <Money value={stats.totalTtc} from={stats.currency} />, color: '#6B8A9A', icon: <MoneyIcon /> },
-      ]
-    : [];
+    return {
+      total: list.length,
+      emis,
+      encaisse,
+      tauxEncaisse: emis > 0 ? Math.round((encaisse / emis) * 100) : 0,
+      retardMontant: enRetard.reduce((sum, i) => sum + i.totalTtc, 0),
+      retardNb: enRetard.length,
+      parStatut,
+      currency,
+    };
+  }, [invoices, typedInvoices]);
 
   return (
     <div>
@@ -285,39 +326,62 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
         </Alert>
       )}
 
-      {/* ─── KPIs (StatTile baseline) ──────────────────────────────────── */}
+      {headerActions}
+
+      {/* ─── KPIs — les trois tuiles monetaires de la projection ─────────── */}
       {stats && (
-        <div className="grid grid-cols-[repeat(auto-fit,_minmax(160px,_1fr))] gap-1.5 mb-3">
-          {summaryCards.map((card) => (
-            <StatTile
-              key={card.label}
-              icon={card.icon}
-              label={card.label}
-              value={card.value}
-              color={card.color}
-              loading={isLoading}
-            />
-          ))}
+        <div className="grid grid-cols-1 gap-3 mb-3 sm:grid-cols-3">
+          <StatTile
+            icon={<ReceiptIcon />}
+            label={t('invoices.stats.issuedTotal', 'Émis')}
+            value={<Money value={stats.emis} from={stats.currency} />}
+            hint={t('invoices.stats.count', { count: stats.total, defaultValue: '{{count}} factures' })}
+            loading={isLoading}
+          />
+          <StatTile
+            icon={<PaidIcon />}
+            label={t('invoices.stats.collected', 'Encaissé')}
+            value={<Money value={stats.encaisse} from={stats.currency} />}
+            iconClassName="text-success"
+            hint={t('invoices.stats.collectedShare', { rate: stats.tauxEncaisse, defaultValue: '{{rate}} % du montant émis' })}
+            loading={isLoading}
+          />
+          <StatTile
+            icon={<WarningIcon />}
+            label={t('invoices.stats.overdue', 'En retard')}
+            value={<Money value={stats.retardMontant} from={stats.currency} />}
+            iconClassName="text-destructive"
+            hint={t('invoices.stats.overdueCount', { count: stats.retardNb, defaultValue: '{{count}} factures' })}
+            loading={isLoading}
+          />
         </div>
       )}
 
+      {/* ─── Chips de statut — comptes par statut, couleurs semantiques ──── */}
+      {stats && (
+        <FilterChipRow
+          className="mb-3"
+          allLabel={t('common.all', 'Toutes')}
+          allCount={stats.total}
+          value={statusFilter}
+          onChange={(v) => setStatusFilter(v as InvoiceStatus | '')}
+          options={(Object.keys(STATUS_LABELS) as InvoiceStatus[])
+            .filter((st) => stats.parStatut[st] > 0)
+            .map((st) => ({
+              value: st,
+              label: STATUS_LABELS[st],
+              color: STATUS_TOKEN[st].fg,
+              count: stats.parStatut[st],
+            }))}
+        />
+      )}
+
       {/* ─── Filters (panneau hairline plat) ─────────────────────────────── */}
-      <Card className="gap-0 py-0 p-2 mb-3 flex gap-2 flex-wrap items-center border-[var(--line)] bg-[var(--card)]">
-        <Field className="w-auto min-w-[150px]">
-          <FieldLabel htmlFor="invoices-filter-status">{t('common.status', 'Statut')}</FieldLabel>
-          <NativeSelect
-            id="invoices-filter-status"
-            className="w-full"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as InvoiceStatus | '')}
-          >
-            {STATUS_OPTIONS.map((opt) => (
-              <NativeSelectOption key={opt.value} value={opt.value}>
-                {opt.label}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </Field>
+      {/* Le statut vit desormais dans la rangee de chips ci-dessus : ne
+          restent ici que la nature et la periode. */}
+      {/* `flex-row` explicite : la base du Card est flex-col, ou `items-center`
+          devient un centrage horizontal des champs. */}
+      <Card className="gap-0 py-0 p-2 mb-3 flex flex-row gap-2 flex-wrap items-end border-[var(--line)] bg-[var(--card)]">
         <Field className="w-auto min-w-[150px]">
           <FieldLabel htmlFor="invoices-filter-type">{t('invoices.type.label', 'Type')}</FieldLabel>
           <NativeSelect
@@ -333,26 +397,13 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
             ))}
           </NativeSelect>
         </Field>
-        <Field className="w-auto min-w-[140px]">
-          <FieldLabel htmlFor="invoices-filter-from">{t('invoices.from', 'Du')}</FieldLabel>
-          <Input
-            id="invoices-filter-from"
-            className="w-full"
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-          />
-        </Field>
-        <Field className="w-auto min-w-[140px]">
-          <FieldLabel htmlFor="invoices-filter-to">{t('invoices.to', 'Au')}</FieldLabel>
-          <Input
-            id="invoices-filter-to"
-            className="w-full"
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-          />
-        </Field>
+        <DateRangePicker
+          startDate={dateFrom}
+          endDate={dateTo}
+          onChangeStart={setDateFrom}
+          onChangeEnd={setDateTo}
+          isFrench
+        />
         {hasActiveFilters && (
           <Button variant="outline" size="sm" onClick={handleClearFilters}>
             <ClearIcon size={16} strokeWidth={1.75} />
@@ -445,9 +496,9 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                     <TableCell className={`text-end ${MONEY_CLASS}`}><Money value={inv.totalTax} from={inv.currency} /></TableCell>
                     <TableCell className={`text-end ${MONEY_CLASS} font-semibold text-[var(--ink)]`}><Money value={inv.totalTtc} from={inv.currency} /></TableCell>
 
-                    {/* ─── Statut (chip -soft sémantique) ─── */}
+                    {/* ─── Statut — ton semantique a point (projection) ─── */}
                     <TableCell>
-                      <StatusChip tokens={{ color: statusToken.fg, bg: statusToken.bg }} label={STATUS_LABELS[inv.status]} />
+                      <StatusChip tone={STATUS_TONE[inv.status]} label={STATUS_LABELS[inv.status]} dot size="sm" />
                     </TableCell>
 
                     {/* ─── Actions ─── */}
@@ -525,6 +576,15 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                 );
               })}
             </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={6}>{t('invoices.totalPeriod', 'Total période')}</TableCell>
+                <TableCell className={`text-end font-semibold ${MONEY_CLASS}`}>
+                  <Money value={displayedInvoices.reduce((sum, i) => sum + i.totalTtc, 0)} from={stats?.currency ?? 'EUR'} />
+                </TableCell>
+                <TableCell colSpan={2} />
+              </TableRow>
+            </TableFooter>
           </Table>
         </div>
       )}

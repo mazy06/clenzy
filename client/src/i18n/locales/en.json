@@ -4864,7 +4864,15 @@
       "draft": "Drafts",
       "issued": "Issued",
       "paid": "Paid",
-      "totalTtc": "Total incl. tax"
+      "totalTtc": "Total incl. tax",
+      "issuedTotal": "Issued",
+      "collected": "Collected",
+      "overdue": "Overdue",
+      "count_one": "{{count}} invoice",
+      "count_other": "{{count}} invoices",
+      "collectedShare": "{{rate}}% of issued amount",
+      "overdueCount_one": "{{count}} invoice",
+      "overdueCount_other": "{{count}} invoices"
     },
     "columns": {
       "number": "No.",
@@ -4886,7 +4894,8 @@
       "PAID": "Paid",
       "CANCELLED": "Cancelled",
       "CREDIT_NOTE": "Credit note"
-    }
+    },
+    "totalPeriod": "Period total"
   },
   "notifications": {
     "title": "Notifications",

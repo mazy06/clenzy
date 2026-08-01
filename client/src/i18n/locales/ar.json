@@ -4851,7 +4851,23 @@
       "draft": "مسودات",
       "issued": "صادرة",
       "paid": "مدفوعة",
-      "totalTtc": "إجمالي شامل الضريبة"
+      "totalTtc": "إجمالي شامل الضريبة",
+      "issuedTotal": "الصادر",
+      "collected": "المحصَّل",
+      "overdue": "متأخرة",
+      "count_zero": "لا فواتير",
+      "count_one": "فاتورة واحدة",
+      "count_two": "فاتورتان",
+      "count_few": "{{count}} فواتير",
+      "count_many": "{{count}} فاتورة",
+      "count_other": "{{count}} فاتورة",
+      "collectedShare": "{{rate}}٪ من المبلغ الصادر",
+      "overdueCount_zero": "لا فواتير",
+      "overdueCount_one": "فاتورة واحدة",
+      "overdueCount_two": "فاتورتان",
+      "overdueCount_few": "{{count}} فواتير",
+      "overdueCount_many": "{{count}} فاتورة",
+      "overdueCount_other": "{{count}} فاتورة"
     },
     "columns": {
       "number": "الرقم",
@@ -4873,7 +4889,8 @@
       "PAID": "مدفوعة",
       "CANCELLED": "ملغاة",
       "CREDIT_NOTE": "إشعار دائن"
-    }
+    },
+    "totalPeriod": "إجمالي الفترة"
   },
   "notifications": {
     "title": "الإشعارات",
