@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 import { Badge } from './ui';
 import { cn } from '../utils/cn';
 
@@ -142,6 +143,16 @@ export interface StatusChipProps {
   /** Libelle accessible quand le contenu visible ne suffit pas. */
   ariaLabel?: string;
   /**
+   * Rend la puce SUPPRIMABLE : une croix apparait a droite.
+   *
+   * <p>Combinee a `onClick`, elle impose une structure a deux boutons freres
+   * dans un conteneur neutre : imbriquer un bouton dans un bouton est invalide
+   * en HTML, et le navigateur y reagit de facon imprevisible.</p>
+   */
+  onDelete?: React.MouseEventHandler<HTMLButtonElement>;
+  /** Libelle accessible du bouton de suppression. */
+  deleteLabel?: string;
+  /**
    * Puce de SELECTION : bordure au repos, teinte pleine une fois choisie.
    * A combiner avec `onClick` — une puce qu'on choisit est un controle.
    */
@@ -172,6 +183,8 @@ export default function StatusChip({
   outlined,
   selected,
   onClick,
+  onDelete,
+  deleteLabel = 'Retirer',
   pressed,
   disabled,
   ariaLabel,
@@ -205,6 +218,40 @@ export default function StatusChip({
   );
   const style = { ...gabarit.style, ...sx };
 
+  const croix = onDelete ? (
+    <button
+      type="button"
+      onClick={onDelete}
+      disabled={disabled}
+      aria-label={deleteLabel}
+      className="-me-0.5 inline-flex cursor-pointer items-center rounded-full text-current opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <X className="size-3" />
+    </button>
+  ) : null;
+
+  // Deux actions dans une puce = deux boutons FRERES. Un bouton imbrique dans
+  // un bouton est invalide, et le clic sur la croix declencherait aussi celui
+  // du corps.
+  if (onClick && onDelete) {
+    return (
+      <Badge variant="secondary" className={classes} style={style}>
+        <button
+          type="button"
+          onClick={onClick}
+          disabled={disabled}
+          aria-pressed={pressed}
+          aria-label={ariaLabel}
+          className="inline-flex cursor-pointer items-center gap-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {marque}
+          {label}
+        </button>
+        {croix}
+      </Badge>
+    );
+  }
+
   // Une puce actionnable est un BOUTON, pas un span decore d'un onClick : sans
   // cela elle sort de l'ordre de tabulation, ne repond ni a Entree ni a Espace,
   // et n'est pas annoncee comme actionnable.
@@ -236,6 +283,7 @@ export default function StatusChip({
     >
       {marque}
       {label}
+      {croix}
     </Badge>
   );
 }

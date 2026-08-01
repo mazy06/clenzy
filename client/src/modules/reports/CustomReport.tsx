@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -99,14 +100,14 @@ const CustomReport: React.FC = () => {
           </span>
           <div className="flex gap-1 flex-wrap mt-0.5">
             {DIMENSIONS.map((d) => (
-              <Chip
+              <StatusChip
                 key={d}
+                outlined
+                selected={dimensions.includes(d)}
+                pressed={dimensions.includes(d)}
+                tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
                 label={dimensionLabel(d)}
-                size="small"
-                color={dimensions.includes(d) ? 'primary' : 'default'}
-                variant={dimensions.includes(d) ? 'filled' : 'outlined'}
                 onClick={() => toggle(dimensions, d, setDimensions)}
-                sx={{ cursor: 'pointer' }}
               />
             ))}
           </div>
@@ -117,14 +118,14 @@ const CustomReport: React.FC = () => {
           </span>
           <div className="flex gap-1 flex-wrap mt-0.5">
             {METRICS.map((m) => (
-              <Chip
+              <StatusChip
                 key={m}
+                outlined
+                selected={metrics.includes(m)}
+                pressed={metrics.includes(m)}
+                tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
                 label={metricLabel(m)}
-                size="small"
-                color={metrics.includes(m) ? 'primary' : 'default'}
-                variant={metrics.includes(m) ? 'filled' : 'outlined'}
                 onClick={() => toggle(metrics, m, setMetrics)}
-                sx={{ cursor: 'pointer' }}
               />
             ))}
           </div>
@@ -183,15 +184,14 @@ const CustomReport: React.FC = () => {
               {t('reports.custom.savedViews', 'Vues sauvegardées :')}
             </span>
             {viewsQuery.data?.map((v) => (
-              <Chip
+              <StatusChip
                 key={v.id}
+                outlined
+                tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
                 label={v.name}
-                size="small"
-                variant="outlined"
                 onClick={() => loadView(v.id)}
                 onDelete={() => deleteMutation.mutate(v.id)}
-                deleteIcon={<DeleteIcon size={14} />}
-                sx={{ cursor: 'pointer' }}
+                deleteLabel={t('reports.custom.deleteView', 'Supprimer la vue')}
               />
             ))}
           </div>
