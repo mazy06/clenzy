@@ -165,7 +165,7 @@ export default function Login() {
         {/* md = 900 px cote MUI (breakpoints non configures), pas les 768 px de
             Tailwind : d'ou la variante exacte `min-[900px]:`. */}
         <h4 className="cn-text-h4 font-semibold text-[var(--ink)] mb-1.5 text-[1.75rem] min-[900px]:text-[2rem] text-balance">
-          {t('auth.login.title', 'Bon retour parmi nous')}
+          {t('auth.login.title', 'Connexion')}
         </h4>
         <p className="cn-text-body1 text-muted-foreground text-[0.95rem] leading-[1.5]">
           {t('auth.login.subtitle', 'Connecte-toi pour accéder à ton tableau de bord.')}

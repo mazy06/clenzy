@@ -497,7 +497,13 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                   // elles passent par des custom properties, les classes qui les
                   // consomment (dont hover / focus-visible) restent statiques.
                   <button
-                    key={slide.tagline}
+                    // L'index, et non `slide.tagline` : deux slides ouvrent
+                    // directement sur leur phrase mise en exergue et ont donc
+                    // une accroche vide — leurs deux pastilles se retrouvaient
+                    // avec la meme cle `""`. `SLIDES` est une constante de
+                    // module, jamais reordonnee ni filtree : l'index y est
+                    // stable.
+                    key={i}
                     type="button"
                     role="tab"
                     aria-selected={isActive}

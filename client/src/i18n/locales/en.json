@@ -6150,7 +6150,7 @@
       "trustSupport": "Support 7 days a week"
     },
     "login": {
-      "title": "Welcome back",
+      "title": "Sign in",
       "subtitle": "Sign in to access your dashboard.",
       "inscriptionSuccess": "Your account was created successfully. Sign in to access your workspace.",
       "emailLabel": "Email or username",

@@ -6174,7 +6174,7 @@
       "trustSupport": "Support 7j/7"
     },
     "login": {
-      "title": "Bon retour parmi nous",
+      "title": "Connexion",
       "subtitle": "Connecte-toi pour accéder à ton tableau de bord.",
       "inscriptionSuccess": "Votre compte a été créé avec succès. Connectez-vous pour accéder à votre espace.",
       "emailLabel": "Email ou nom d'utilisateur",
