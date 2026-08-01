@@ -1,6 +1,6 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Avatar, Card, CardContent, Typography } from '@mui/material';
+import { Avatar, Card, CardContent } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import { Mail as MailIcon, Phone as PhoneIcon, Business } from '../../../icons';
 import { semanticToHex } from '../../../utils/statusUtils';
@@ -88,19 +88,9 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
               )}
             </div>
             <div className="min-w-0">
-              <Typography
-                variant="h5"
-                sx={{
-                  fontSize: { xs: '1.125rem', md: '1.375rem' },
-                  fontWeight: 700,
-                  letterSpacing: '-0.01em',
-                  color: 'text.primary',
-                  textWrap: 'balance',
-                  lineHeight: 1.2,
-                }}
-              >
+              <h5 className="cn-text-h5 text-[1.125rem] min-[900px]:text-[1.375rem] font-bold tracking-[-0.01em] text-[var(--ink)] text-balance leading-[1.2]">
                 {user.firstName} {user.lastName}
-              </Typography>
+              </h5>
               <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap">
                 {user.email}
               </p>

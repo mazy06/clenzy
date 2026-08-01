@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip, { STATUS_TONES } from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
-import { Paper, Typography, Button } from '@mui/material';
+import { Paper, Button } from '@mui/material';
 import {
   LinkOff as LinkOffIcon,
   Link as LinkIcon,
@@ -14,7 +14,10 @@ import type { AirbnbConnectionStatus } from '../../services/api/airbnbApi';
 import { CHANNEL_BACKEND_MAP } from '../../services/api/channelConnectionApi';
 import type { ChannelId, ChannelConnectionStatus } from '../../services/api/channelConnectionApi';
 import { type OtaChannel } from '../../services/channels/otaChannels';
-import { CARD_SX, STATUS_CHIP_TOKENS, STATUS_CHIP_CLASS, OVERLINE_SX, channelSoftBg } from './channelsPageConstants';
+import { CARD_SX, STATUS_CHIP_TOKENS, STATUS_CHIP_CLASS, channelSoftBg } from './channelsPageConstants';
+
+/** Report en classes de `OVERLINE_SX` (la constante vit dans un .ts partage). */
+const OVERLINE_CLASS = 'text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em]';
 
 interface ChannelsListViewProps {
   isConnected: boolean;
@@ -55,21 +58,21 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
   <Paper sx={{ ...CARD_SX, mb: 1.5, p: 0, overflow: 'hidden' }}>
     {/* Table header */}
     <div className="grid grid-cols-[110px_1.6fr_0.8fr_1fr_1.4fr] gap-3 px-3 py-[7.5px] border-[var(--line)] bg-[var(--surface-2)]" style={{ borderBottom: '1px solid' }}>
-      <Typography sx={OVERLINE_SX}>
+      <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>
         Logo
-      </Typography>
-      <Typography sx={OVERLINE_SX}>
+      </p>
+      <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>
         Nom
-      </Typography>
-      <Typography sx={OVERLINE_SX}>
+      </p>
+      <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>
         Segment
-      </Typography>
-      <Typography sx={OVERLINE_SX}>
+      </p>
+      <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>
         Statut
-      </Typography>
-      <Typography sx={{ ...OVERLINE_SX, textAlign: 'right' }}>
+      </p>
+      <p className={cn(OVERLINE_CLASS, 'cn-text-body1 text-right')}>
         Action
-      </Typography>
+      </p>
     </div>
 
     {/* Rows */}
@@ -95,7 +98,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
 
           {/* Channel name */}
           <div className="min-w-0">
-            <p className="cn-text-body1 font-[var(--font-display)] text-[0.875rem] font-semibold text-[var(--ink)]">
+            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.875rem] font-semibold text-[var(--ink)]">
               {ota.name}
             </p>
           </div>

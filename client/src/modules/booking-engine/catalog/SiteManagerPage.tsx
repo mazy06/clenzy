@@ -264,7 +264,7 @@ export default function SiteManagerPage() {
               </div>
             )}
             {turns.map((turn, i) => (
-              <div className={cn('max-w-[88%] px-[9px] py-1.5 rounded-[var(--radius-md)] text-[13px] leading-[1.5] flex gap-[4.5px] items-start', turn.role === 'user' ? 'self-end' : 'self-start', turn.role === 'user' ? 'bg-[var(--accent)]' : '[object Object]', turn.role === 'user' ? 'text-[#fff]' : '[object Object]')} key={i}>
+              <div className={cn('max-w-[88%] px-[9px] py-1.5 rounded-[var(--radius-md)] text-[13px] leading-[1.5] flex gap-[4.5px] items-start', turn.role === 'user' ? 'self-end' : 'self-start', turn.role === 'user' ? 'bg-[var(--accent)]' : turn.error ? 'bg-[var(--err-soft)]' : 'bg-[var(--hover)]', turn.role === 'user' ? 'text-[#fff]' : turn.error ? 'text-[var(--err)]' : 'text-[var(--ink)]')} key={i}>
                 {turn.role === 'assistant' && !turn.error && <Check size={15} strokeWidth={2.4} style={{ flexShrink: 0, marginTop: 1 }} />}
                 {turn.role === 'assistant' && turn.error && <AlertTriangle size={15} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />}
                 <span>{turn.text}</span>

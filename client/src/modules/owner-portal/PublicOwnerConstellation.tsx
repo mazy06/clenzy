@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Spinner } from '../../components/ui';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Container, Divider, Stack, Typography } from '@mui/material';
+import { Container, Divider, Stack } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { API_CONFIG } from '../../config/api';
 
@@ -140,9 +140,9 @@ export default function PublicOwnerConstellation() {
           {brandingLogoUrl && (
             <img className="max-h-[44px] max-w-[220px] block mb-1.5" src={brandingLogoUrl} alt={conciergerieName} />
           )}
-          <Typography variant="h5" sx={{ textWrap: 'balance' }}>
+          <h5 className="cn-text-h5 text-balance">
             {conciergerieName}
-          </Typography>
+          </h5>
           <p className="cn-text-body2 text-muted-foreground">
             {t('ownerConstellation.subtitle', 'Espace propriétaire')}
             {ownerDisplayName ? ` — ${ownerDisplayName}` : ''}

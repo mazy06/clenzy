@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Box, IconButton, Paper, Grow, ClickAwayListener, Typography, useTheme, alpha, Tooltip } from '@mui/material';
+import { Box, IconButton, Paper, Grow, ClickAwayListener, useTheme, alpha, Tooltip } from '@mui/material';
 import { useLocation } from 'react-router-dom';
 import { cn } from '../utils/cn';
 import { Close as CloseIcon, Fullscreen as FullscreenIcon, ChevronUp } from '../icons';
@@ -216,28 +216,15 @@ const AssistantDockTab: React.FC = () => {
 
               {messages.length > 0 && (
                 <div className="flex justify-center py-[3px] shrink-0" style={{ backgroundColor: alpha(theme.palette.text.primary, 0.025) }}>
-                  <Typography
-                    component="button"
-                    variant="caption"
+                  {/* color-mix(... 6%, transparent) est l'exact equivalent CSS de
+                      alpha(primary.main, 0.06) : un survol ne peut pas vivre en
+                      style inline. */}
+                  <button
                     onClick={reset}
-                    sx={{
-                      background: 'none',
-                      border: 'none',
-                      color: theme.palette.text.secondary,
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      fontSize: '0.75rem',
-                      py: 0.5,
-                      px: 1.5,
-                      borderRadius: 1,
-                      '&:hover': {
-                        color: theme.palette.primary.main,
-                        bgcolor: alpha(theme.palette.primary.main, 0.06),
-                      },
-                    }}
+                    className="cn-text-caption bg-transparent border-none [font-family:inherit] text-[0.75rem] text-[var(--muted)] cursor-pointer py-[3px] px-[9px] rounded-[8px] hover:text-[var(--mui-primary)] hover:bg-[color-mix(in_srgb,var(--mui-primary)_6%,transparent)]"
                   >
                     Nouvelle conversation
-                  </Typography>
+                  </button>
                 </div>
               )}
             </Paper>
@@ -317,19 +304,14 @@ const AssistantDockTab: React.FC = () => {
                 },
               }}
             >
-              <Typography
+              {/* Les keyframes dockPhraseIn restent declarees par le sx du Box
+                  parent, qui n'est pas touche. */}
+              <p
                 key={open ? 'open' : phraseIndex}
-                noWrap
-                sx={{
-                  fontSize: '0.8125rem',
-                  fontWeight: 500,
-                  color: theme.palette.text.secondary,
-                  animation: 'dockPhraseIn 420ms cubic-bezier(0.22, 1, 0.36, 1)',
-                  '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-                }}
+                className="cn-text-body1 truncate text-[0.8125rem] font-medium text-[var(--muted)] animate-[dockPhraseIn_420ms_cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none"
               >
                 {open ? 'Assistant Baitly' : DOCK_PHRASES[phraseIndex]}
-              </Typography>
+              </p>
             </Box>
 
             {/* Chevron : pointe vers le haut (deplier), pivote a l'ouverture.

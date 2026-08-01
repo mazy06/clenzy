@@ -4,7 +4,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Autocomplete, Paper, Typography, TextField, Button, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider, MenuItem, ListSubheader, Switch, Tooltip, useTheme, alpha } from '@mui/material';
+import { Autocomplete, Paper, TextField, Button, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Divider, MenuItem, ListSubheader, Switch, Tooltip, useTheme, alpha } from '@mui/material';
 import {
   Add,
   Edit,
@@ -514,11 +514,11 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
           />
 
           {keyOptional && !apiKey.trim() && (
-            <Typography variant="caption" color="text.secondary" sx={{ mt: -1.25, mb: -0.5 }}>
+            <span className="cn-text-caption text-[var(--muted)] mt-[-7.5px] mb-[-3px]">
               {reusableMasked
                 ? t('settings.ai.platform.keyReuse', 'Laisse vide pour réutiliser la clé déjà configurée pour ce provider.')
                 : t('settings.ai.platform.keyKeep', 'Laisse vide pour conserver la clé actuelle.')}
-            </Typography>
+            </span>
           )}
 
           {/* Lien contextuel "Ou trouver ma cle ?" — adapte au provider selectionne */}

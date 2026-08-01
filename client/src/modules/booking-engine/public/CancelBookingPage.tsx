@@ -71,7 +71,7 @@ export default function CancelBookingPage() {
   return (
     <div className="min-h-[100vh] bg-[var(--bg)] text-[var(--ink)] flex items-start justify-center px-3 py-6 min-[900px]:py-12">
       <div className="w-full max-w-[460px] bg-[var(--card)] border border-solid border-[var(--line)] rounded-[var(--radius-lg)] p-[15px] min-[900px]:p-[21px]" style={{ boxShadow: 'var(--shadow-card)' }}>
-        <div className="font-[var(--font-display)] text-[var(--text-2xl)] font-[var(--fw-bold)] mb-0.5">
+        <div className="font-[family-name:var(--font-display)] text-[var(--text-2xl)] font-[family-name:var(--fw-bold)] mb-0.5">
           Annuler ma réservation
         </div>
         <div className="text-[var(--text-md)] text-[var(--muted)] mb-4">
@@ -96,8 +96,8 @@ export default function CancelBookingPage() {
           <>
             <div className="p-3 rounded-[var(--radius-md)] bg-[var(--accent-soft)] mb-3">
               <div className="text-[var(--text-sm)] text-[var(--muted)]">Remboursement applicable</div>
-              <div className="font-[var(--font-display)] text-[var(--text-2xl)] font-[var(--fw-bold)] text-[var(--accent)]">
-                {fmt(preview.refundAmount, preview.currency)} <span className="text-[var(--text-md)] text-[var(--muted)] font-[var(--fw-medium)]">({preview.refundPercentage}%)</span>
+              <div className="font-[family-name:var(--font-display)] text-[var(--text-2xl)] font-[family-name:var(--fw-bold)] text-[var(--accent)]">
+                {fmt(preview.refundAmount, preview.currency)} <span className="text-[var(--text-md)] text-[var(--muted)] font-[family-name:var(--fw-medium)]">({preview.refundPercentage}%)</span>
               </div>
               <div className="text-[var(--text-sm)] text-[var(--body)] mt-0.5">{preview.explanation}</div>
             </div>
@@ -109,7 +109,7 @@ export default function CancelBookingPage() {
         {step === 'done' && result && (
           <div className="text-center py-3">
             <div className="text-[var(--ok)] flex justify-center mb-2"><CheckCircle2 size={40} strokeWidth={1.75} /></div>
-            <div className="text-[var(--text-lg)] font-[var(--fw-semibold)] mb-0.5">
+            <div className="text-[var(--text-lg)] font-[family-name:var(--fw-semibold)] mb-0.5">
               {result.status === 'already_cancelled' ? 'Réservation déjà annulée' : 'Réservation annulée'}
             </div>
             {result.refundAmount > 0 && (
@@ -129,7 +129,7 @@ function Field({ label, value, onChange, placeholder, type = 'text' }: {
 }) {
   return (
     <div className="mb-3">
-      <label className="block text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--body)] mb-1">{label}</label>
+      <label className="block text-[var(--text-sm)] font-[family-name:var(--fw-medium)] text-[var(--body)] mb-1">{label}</label>
       <InputBase
         value={value} type={type} placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}

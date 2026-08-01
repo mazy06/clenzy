@@ -547,7 +547,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                   </TableCell>
                   <TableCell align="right">
                     {/* Montant : display tabular-nums, encre \u2014 jamais proportional */}
-                    <p className="cn-text-body2 font-[var(--font-display)] tabular-nums font-semibold text-[0.8125rem] text-[var(--ink)]">
+                    <p className="cn-text-body2 font-[family-name:var(--font-display)] tabular-nums font-semibold text-[0.8125rem] text-[var(--ink)]">
                       <Money value={payment.amount} from={payment.currency ?? 'EUR'} />
                     </p>
                   </TableCell>

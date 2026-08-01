@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography, Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent, Grid } from '@mui/material';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -26,15 +26,9 @@ const CHART_CONTENT_SX = {
   '&:last-child': { pb: 1.25 },
 } as const;
 
-const SECTION_LABEL_SX = {
-  fontSize: '0.6875rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.04em',
-  color: 'text.secondary',
-  mb: 0.5,
-  flexShrink: 0,
-} as const;
+// `mb: 0.5` avec theme.spacing = 6 vaut 3 px, pas un pas nomme de Tailwind.
+const SECTION_LABEL_CLS =
+  'cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.04em] text-[var(--muted)] mb-[3px] shrink-0';
 
 // Heatmap color scale
 function getHeatmapColor(rate: number): string {
@@ -63,9 +57,9 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
         <Grid item xs={12} sm={6}>
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
-              <Typography sx={SECTION_LABEL_SX}>
+              <p className={SECTION_LABEL_CLS}>
                 {t('dashboard.analytics.occupancyByMonth')}
-              </Typography>
+              </p>
               {loading || !data ? (
                 <div className="flex-1 flex items-center justify-center">
                   <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
@@ -92,9 +86,9 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
         <Grid item xs={12} sm={6}>
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
-              <Typography sx={SECTION_LABEL_SX}>
+              <p className={SECTION_LABEL_CLS}>
                 {t('dashboard.analytics.occupancyByProperty')}
-              </Typography>
+              </p>
               {loading || !data ? (
                 <div className="flex-1 flex items-center justify-center">
                   <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
@@ -131,9 +125,9 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
         <Grid item xs={12} sm={6} md={9}>
           <Card sx={{ width: '100%' }}>
             <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-              <Typography sx={SECTION_LABEL_SX}>
+              <p className={SECTION_LABEL_CLS}>
                 {t('dashboard.analytics.heatmap')}
-              </Typography>
+              </p>
               {loading || !data ? (
                 <div className="h-[100px] flex items-center justify-center">
                   <span className="cn-text-caption text-muted-foreground opacity-60">...</span>

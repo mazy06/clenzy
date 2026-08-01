@@ -5,7 +5,7 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Paper, Snackbar, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material';
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Paper, Snackbar, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
 import { Add, Edit, Pause, PlayArrow as Play, Refresh, Delete as Trash, LocalOffer } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
@@ -38,19 +38,10 @@ const STATUS_TOKENS: Record<VoucherStatus, ToneTokens> = {
  * Code voucher — pattern .fr-dip (IP mono de la messagerie) :
  * mono display, fond --field, r6.
  */
-const CODE_SX = {
-  display: 'inline-block',
-  fontFamily: 'var(--font-display)',
-  fontSize: '11.5px',
-  letterSpacing: '0.04em',
-  fontVariantNumeric: 'tabular-nums',
-  color: 'var(--body)',
-  bgcolor: 'var(--field)',
-  border: '1px solid var(--field-line)',
-  borderRadius: '6px',
-  px: '8px',
-  py: '3px',
-} as const;
+const CODE_CLASS =
+  'inline-block font-[family-name:var(--font-display)] text-[11.5px] tracking-[0.04em] tabular-nums ' +
+  'text-[var(--body)] bg-[var(--field)] border border-solid border-[var(--field-line)] ' +
+  'rounded-[6px] px-2 py-[3px]';
 
 type FilterMode = 'all' | VoucherStatus;
 
@@ -353,9 +344,9 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
       </TableCell>
       <TableCell>
         {v.code ? (
-          <Typography variant="body2" component="span" sx={CODE_SX}>
+          <span className={`cn-text-body2 ${CODE_CLASS}`}>
             {v.code}
-          </Typography>
+          </span>
         ) : (
           <StatusChip label={t('vouchers.autoCampaign')} tokens={STATUS_TONES.info} className="text-[10.5px] font-bold" />
         )}

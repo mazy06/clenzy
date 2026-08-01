@@ -69,7 +69,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
         <div className="grid place-items-[center] w-[34px] h-[34px] rounded-[10px] bg-[var(--accent-soft)] text-[var(--accent)] shrink-0">
           <Wallet size={18} strokeWidth={2} />
         </div>
-        <div className="flex-1 font-[var(--font-display)] text-[var(--text-lg)] font-[var(--fw-bold)] text-[var(--ink)]">
+        <div className="flex-1 font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">
           {title ?? 'Crédits IA insuffisants'}
         </div>
         <IconButton onClick={handleClose} size="small" aria-label="Fermer" disabled={busy} sx={{ color: 'var(--muted)' }}><X size={18} /></IconButton>

@@ -403,7 +403,7 @@ function Row({ label, required, optional, soon, description, children }: {
 function TextField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <div className="flex-1 min-w-[200px]">
-      <label className="block mb-0.5 text-[var(--text-2xs)] font-[var(--fw-medium)] text-[var(--muted)]">{label}</label>
+      <label className="block mb-0.5 text-[var(--text-2xs)] font-[family-name:var(--fw-medium)] text-[var(--muted)]">{label}</label>
       <InputBase value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} sx={inputSx} />
     </div>
   );
@@ -412,7 +412,7 @@ function TextField({ label, value, onChange, placeholder }: { label: string; val
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div className="flex-1 min-w-[200px]">
-      <label className="block mb-0.5 text-[var(--text-2xs)] font-[var(--fw-medium)] text-[var(--muted)]">{label}</label>
+      <label className="block mb-0.5 text-[var(--text-2xs)] font-[family-name:var(--fw-medium)] text-[var(--muted)]">{label}</label>
       <div className="flex items-center gap-1">
         <input className="w-[40px] h-[40px] p-0 border border-[var(--line)] rounded-[var(--radius-md)] bg-[var(--field)] cursor-pointer shrink-0" type="color" value={HEX.test(value) ? value : '#6B8A9A'} onChange={(e) => onChange((e.target as HTMLInputElement).value)} aria-label={label} />
         <InputBase value={value} onChange={(e) => onChange(e.target.value)} placeholder="#……" sx={{ ...inputSx, flex: 1 }} />

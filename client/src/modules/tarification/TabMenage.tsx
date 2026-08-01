@@ -561,7 +561,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
 
           {estimateQuery.data && (
             <div className="flex items-baseline gap-2 mb-2 flex-wrap">
-              <p className="cn-text-body1 font-[var(--font-display)] text-[22px] font-semibold text-[var(--accent)] tabular-nums">
+              <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[22px] font-semibold text-[var(--accent)] tabular-nums">
                 {estimateQuery.data.estimate} {currencySymbol}
               </p>
               <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
@@ -589,7 +589,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
                       <p className="cn-text-body1 text-[11px] font-bold text-[var(--faint)] uppercase tracking-[.05em] mb-0.5">
                         {t(`properties.priceEstimation.cleaningTypes.${type}`)}
                       </p>
-                      <p className="cn-text-body1 font-[var(--font-display)] text-[18px] font-semibold text-[var(--ink)] tabular-nums">
+                      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[18px] font-semibold text-[var(--ink)] tabular-nums">
                         {q.recommended} {currencySymbol}
                       </p>
                       <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums">

@@ -24,7 +24,7 @@ export default function DesignAnalysisModal({ open, onClose, configId, initialUr
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
       PaperProps={{ sx: { borderRadius: 'var(--radius-lg)' } }}>
       <div className="flex items-center justify-between px-3.5 pt-3 pb-1.5">
-        <div className="font-[var(--font-display)] text-[var(--text-lg)] font-[var(--fw-bold)] text-[var(--ink)]">
+        <div className="font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">
           Analyse du design
         </div>
         <IconButton onClick={onClose} size="small" aria-label="Fermer"><X size={18} /></IconButton>

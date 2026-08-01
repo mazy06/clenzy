@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
-import { Box, Typography, useTheme, alpha, useMediaQuery, CssBaseline, ThemeProvider } from '@mui/material';
+import { Box, useTheme, alpha, useMediaQuery, CssBaseline, ThemeProvider } from '@mui/material';
 import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
@@ -399,21 +399,15 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                     ratio ~3x). letterSpacing negatif pour un feel modern SaaS
                     (Linear, Vercel, Stripe Dashboard). Responsive : 2rem sur md,
                     2.375rem sur lg (au-dela de 1200px). */}
-                <Typography
-                  component="h2"
-                  sx={{
-                    fontSize: { md: '2rem', lg: '2.375rem' },
-                    fontWeight: 600,
-                    lineHeight: 1.15,
-                    letterSpacing: '-0.02em',
+                <h2
+                  className="cn-text-body1 min-[900px]:text-[2rem] min-[1200px]:text-[2.375rem] font-semibold leading-[1.15] tracking-[-0.02em] text-balance mb-[15px]"
+                  style={{
                     // Texte titre : blanc en photo mode (sur fond fonce),
                     // text.primary en sober mode (sur fond clair)
-                    color: ENABLE_PHOTO_HERO ? '#FFFFFF' : 'text.primary',
+                    color: ENABLE_PHOTO_HERO ? '#FFFFFF' : 'var(--ink)',
                     // text-shadow subtil en photo mode : renforce la lisibilite
                     // sur photo+overlay (sans tomber dans le "drop-shadow lourd")
                     textShadow: ENABLE_PHOTO_HERO ? '0 1px 12px rgba(0, 0, 0, 0.4)' : 'none',
-                    textWrap: 'balance',
-                    mb: 2.5,
                   }}
                 >
                   {current.tagline && (
@@ -437,25 +431,22 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                   {slideIndex === 0
                     ? t('auth.layout.taglineEnd', current.end)
                     : current.end}
-                </Typography>
+                </h2>
                 {/* Subtitle — reduit de 0.95rem a 0.8125rem (13px) pour
                     creer une hierarchie nette avec le titre. Lineheight 1.7
                     pour donner de l'air entre les lignes, color un peu plus
                     muted (0.75 au lieu de 0.92) pour que le titre domine. */}
-                <Typography
-                  component="p"
-                  sx={{
-                    color: ENABLE_PHOTO_HERO ? alpha('#FFFFFF', 0.78) : 'text.secondary',
+                <p
+                  className="cn-text-body1 text-[0.8125rem] font-normal leading-[1.7]"
+                  style={{
+                    color: ENABLE_PHOTO_HERO ? alpha('#FFFFFF', 0.78) : 'var(--muted)',
                     textShadow: ENABLE_PHOTO_HERO ? '0 1px 6px rgba(0, 0, 0, 0.25)' : 'none',
-                    lineHeight: 1.7,
-                    fontSize: '0.8125rem',
-                    fontWeight: 400,
                   }}
                 >
                   {slideIndex === 0
                     ? t('auth.layout.subtitle', current.subtitle)
                     : current.subtitle}
-                </Typography>
+                </p>
 
                 {/* Services chips — affichees uniquement si le slide a des
                     integrations specifiques (slides 5-11). Wrappe en flex
@@ -639,19 +630,12 @@ function ServiceChip({
           className={cn('w-[11px] h-[11px] object-contain shrink-0', onDark ? 'opacity-[0.88]' : 'opacity-75')}
         />
       )}
-      <Typography
-        component="span"
-        sx={{
-          color: onDark ? alpha('#FFFFFF', 0.88) : 'text.primary',
-          fontSize: '0.7rem',
-          fontWeight: 500,
-          letterSpacing: 0.2,
-          whiteSpace: 'nowrap',
-          lineHeight: 1.1,
-        }}
+      <span
+        className="cn-text-body1 text-[0.7rem] font-medium tracking-[0.2px] whitespace-nowrap leading-[1.1]"
+        style={{ color: onDark ? alpha('#FFFFFF', 0.88) : 'var(--ink)' }}
       >
         {service.name}
-      </Typography>
+      </span>
     </div>
   );
 }
@@ -663,16 +647,12 @@ function TrustItem({ dot, label, onDark = false }: { dot: string; label: string;
   return (
     <div className="flex items-center gap-1">
       <div className={cn('w-[5px] h-[5px] rounded-[50%]', onDark ? 'opacity-85' : 'opacity-60')} style={{ backgroundColor: dot }} />
-      <Typography
-        variant="caption"
-        sx={{
-          color: onDark ? alpha('#FFFFFF', 0.75) : 'text.secondary',
-          fontSize: '0.75rem',
-          fontWeight: 500,
-        }}
+      <span
+        className="cn-text-caption text-[0.75rem] font-medium"
+        style={{ color: onDark ? alpha('#FFFFFF', 0.75) : 'var(--muted)' }}
       >
         {label}
-      </Typography>
+      </span>
     </div>
   );
 }

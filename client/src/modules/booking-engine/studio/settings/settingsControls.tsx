@@ -22,7 +22,7 @@ export function SettingsPage({ title, description, children, footer, intro }: {
             latéraux du Studio sur écran large. */}
         <div className="max-w-[1120px] mx-auto px-[15px] min-[900px]:px-6 py-[18px] min-[900px]:py-6">
           <div className="mb-4">
-            <div className="font-[var(--font-display)] text-[var(--text-2xl)] font-[var(--fw-bold)] text-[var(--ink)]">{title}</div>
+            <div className="font-[family-name:var(--font-display)] text-[var(--text-2xl)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">{title}</div>
             {description && <div className="text-[var(--text-md)] text-[var(--muted)] mt-0.5">{description}</div>}
           </div>
           {intro}
@@ -45,7 +45,7 @@ export function SettingCard({ title, description, children }: { title: string; d
   return (
     <div className="border border-[var(--line)] rounded-[var(--radius-lg)] bg-[var(--card)] mb-3.5 overflow-hidden">
       <div className="px-3.5 pt-3 pb-2 border-b border-[var(--line)]">
-        <div className="text-[var(--text-md)] font-[var(--fw-semibold)] text-[var(--ink)]">{title}</div>
+        <div className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">{title}</div>
         {description && <div className="text-[var(--text-sm)] text-[var(--muted)] mt-0.5">{description}</div>}
       </div>
       <div className="px-3.5 py-0.5">{children}</div>
@@ -59,7 +59,7 @@ export function SettingRow({ label, helper, htmlFor, control }: {
   return (
     <div className="flex items-start gap-3 py-[10.5px] flex-wrap min-[600px]:flex-nowrap border-b border-solid border-[var(--line)] last-of-type:border-b-0">
       <div className="flex-1 min-w-[180px]">
-        <label className="text-[var(--text-md)] font-[var(--fw-medium)] text-[var(--ink)] block" htmlFor={htmlFor}>{label}</label>
+        <label className="text-[var(--text-md)] font-[family-name:var(--fw-medium)] text-[var(--ink)] block" htmlFor={htmlFor}>{label}</label>
         {helper && <div className="text-[var(--text-sm)] text-[var(--muted)] mt-0.5 leading-[1.45]">{helper}</div>}
       </div>
       <div className="shrink-0 w-full min-[600px]:w-[260px] flex justify-end">{control}</div>

@@ -130,7 +130,7 @@ const ReviewsPage: React.FC = () => {
           </p>
           <div className="flex items-center justify-center gap-0.5 mt-0.5">
             <StarIcon size={'1.25rem'} strokeWidth={1.75} color='var(--warn)' />
-            <p className="cn-text-body1 font-[var(--font-display)] tabular-nums text-[1.375rem] font-semibold text-[var(--ink)]">
+            <p className="cn-text-body1 font-[family-name:var(--font-display)] tabular-nums text-[1.375rem] font-semibold text-[var(--ink)]">
               {avgRating > 0 ? avgRating.toFixed(1) : '—'}
             </p>
           </div>
@@ -139,7 +139,7 @@ const ReviewsPage: React.FC = () => {
           <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] uppercase font-bold tracking-[0.06em]">
             {t('channels.reviews.totalReviews')}
           </p>
-          <p className="cn-text-body1 font-[var(--font-display)] tabular-nums text-[1.375rem] font-semibold mt-0.5 text-[var(--ink)]">{reviews.length}</p>
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] tabular-nums text-[1.375rem] font-semibold mt-0.5 text-[var(--ink)]">{reviews.length}</p>
         </Paper>
         {Object.entries(reviewsByRating).map(([cat, count]) => (
           <Paper key={cat} sx={{ ...CARD_SX, flex: 1, minWidth: 100, textAlign: 'center', p: 1.5 }}>

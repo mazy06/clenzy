@@ -1,6 +1,6 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Typography, Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent, Grid } from '@mui/material';
 import {
   PriceChange, CalendarMonth, Savings, Warning,
 } from '../../../icons';
@@ -90,40 +90,18 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
                       {TYPE_ICONS[rec.type]}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <Typography
-                        sx={{
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          color: 'text.primary',
-                          lineHeight: 1.3,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                        }}
-                      >
+                      {/* line-clamp-N porte deja overflow/display/-webkit-box-orient */}
+                      <p className="cn-text-body1 text-[0.75rem] font-bold text-[var(--ink)] leading-[1.3] text-ellipsis line-clamp-2">
                         {rec.title}
-                      </Typography>
+                      </p>
                     </div>
                   </div>
 
                   {/* Description */}
-                  <Typography
-                    sx={{
-                      fontSize: '0.625rem',
-                      color: 'text.secondary',
-                      lineHeight: 1.4,
-                      mb: 0.75,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: 'vertical',
-                    }}
-                  >
+                  {/* mb: 0.75 avec theme.spacing = 6 -> 4.5px, hors echelle Tailwind */}
+                  <p className="cn-text-body1 text-[0.625rem] text-[var(--muted)] leading-[1.4] mb-[4.5px] text-ellipsis line-clamp-3">
                     {rec.description}
-                  </Typography>
+                  </p>
 
                   {/* Bottom row: impact + confidence + priority */}
                   <div className="flex items-center gap-0.5 flex-wrap">

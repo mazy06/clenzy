@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { Box, Card, CardContent, Grid, Typography, Skeleton } from '@mui/material';
+import { Box, Card, CardContent, Grid, Skeleton } from '@mui/material';
 import {
   Euro, Hotel, TrendingUp as TrendIcon, Percent,
   CalendarMonth, ShowChart, AccountBalance, Home,
@@ -51,6 +51,10 @@ const SECTION_LABEL_SX = {
   mb: 1,
 } as const;
 
+/** Report en classes de `SECTION_LABEL_SX` (mb: 1 = 6 px, theme.spacing vaut 6). */
+const SECTION_LABEL_CLASS =
+  'cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-1.5';
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
@@ -58,15 +62,18 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
   const isDown = value < 0;
   const Icon = isUp ? TrendingUp : isDown ? TrendingDown : Remove;
   const color = isUp ? 'success.main' : isDown ? 'error.main' : 'text.disabled';
+  // Les jetons du `sx` ci-dessus, ecrits en classes : Tailwind ne peut pas les
+  // fabriquer depuis la variable `color`.
+  const colorClass = isUp ? 'text-[var(--ok)]' : isDown ? 'text-[var(--err)]' : 'text-[var(--faint)]';
 
   return (
     <div className="inline-flex items-center gap-0.5 mt-0.5">
       <Box component="span" sx={{ display: 'inline-flex', color }}>
         <Icon size={12} strokeWidth={1.75} />
       </Box>
-      <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color, fontVariantNumeric: 'tabular-nums' }}>
+      <p className={cn('cn-text-body1 text-[0.625rem] font-semibold tabular-nums', colorClass)}>
         {isUp ? '+' : ''}{value}%
-      </Typography>
+      </p>
     </div>
   );
 };
@@ -258,9 +265,9 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
         <Grid item xs={12} md={6}>
           <Card sx={SECONDARY_CARD_SX}>
             <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-              <Typography sx={SECTION_LABEL_SX}>
+              <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.financialMetrics', 'Indicateurs financiers')}
-              </Typography>
+              </p>
               {financialKpis.map((kpi, i) => (
                 <React.Fragment key={kpi.key}>
                   {i > 0 && <div className="border-t border-[var(--line)]" />}
@@ -275,9 +282,9 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
         <Grid item xs={12} md={6}>
           <Card sx={SECONDARY_CARD_SX}>
             <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-              <Typography sx={SECTION_LABEL_SX}>
+              <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.operationalMetrics', 'Activite operationnelle')}
-              </Typography>
+              </p>
               {operationalKpis.map((kpi, i) => (
                 <React.Fragment key={kpi.key}>
                   {i > 0 && <div className="border-t border-[var(--line)]" />}

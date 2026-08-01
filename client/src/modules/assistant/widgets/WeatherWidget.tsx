@@ -100,7 +100,7 @@ const WeatherDayTile: React.FC<{ item: WeatherItem }> = ({ item }) => {
         <Icon size={22} />
       </div>
       {tMax !== undefined && tMax !== null && (
-        <p className="cn-text-body1 font-[var(--font-display)] text-[0.95rem] font-semibold text-[var(--ink)] tabular-nums leading-[1]">
+        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.95rem] font-semibold text-[var(--ink)] tabular-nums leading-[1]">
           {Math.round(tMax)}°
         </p>
       )}

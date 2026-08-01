@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { Typography } from '@mui/material';
 import { cn } from '../../../utils/cn';
 
 type DataItem = Record<string, unknown>;
@@ -88,19 +87,15 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
             )}
           >
             {columns.map((col) => (
-              <Typography
+              <p
                 key={col.key}
-                sx={{
-                  fontSize: '12.5px',
-                  color: 'var(--body)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  ...(col.numeric && { fontVariantNumeric: 'tabular-nums', fontWeight: 500 }),
-                }}
+                className={cn(
+                  'cn-text-body1 text-[12.5px] text-[var(--body)] whitespace-nowrap overflow-hidden text-ellipsis',
+                  col.numeric && 'tabular-nums font-medium',
+                )}
               >
                 {formatCell(item[col.key], col)}
-              </Typography>
+              </p>
             ))}
           </div>
         ))}

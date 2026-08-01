@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
-import { Box, Typography, Tooltip, IconButton, alpha } from '@mui/material';
+import { Box, Tooltip, IconButton, alpha } from '@mui/material';
 import { PlayArrow, StopCircle, FiberManualRecord, Fullscreen, FullscreenExit, WifiOff, PhotoCamera, Delete } from '../../../icons';
 import type { CameraDto } from '../../../services/api/camerasApi';
 
@@ -141,9 +141,9 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
 
         {/* Overlay bas : nom + pièce */}
         <div className="absolute start-[10px] end-[10px] bottom-[8px] z-[2]">
-          <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.8rem', lineHeight: 1.2, textShadow: '0 1px 4px rgba(12,18,22,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <p className="cn-text-body1 text-[#fff] font-bold text-[0.8rem] leading-[1.2] overflow-hidden text-ellipsis whitespace-nowrap" style={{ textShadow: '0 1px 4px rgba(12,18,22,0.7)' }}>
             {name}
-          </Typography>
+          </p>
           {roomName && (
             <p className="cn-text-body1 text-[0.65rem]" style={{ color: alpha('#fff', 0.78), textShadow: '0 1px 3px rgba(12,18,22,0.7)' }}>{roomName}</p>
           )}

@@ -94,7 +94,7 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
         <div className="h-px my-[2px] bg-[var(--line)]" />
         <div className="flex items-baseline justify-between gap-3">
           <p className="cn-text-body1 text-[12px] font-bold text-[var(--ink)]">{t('reservations.dialog.recapTotal')}</p>
-          <p className="cn-text-body1 font-[var(--font-display)] text-[18px] font-semibold text-[var(--accent-deep)] tabular-nums">
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[18px] font-semibold text-[var(--accent-deep)] tabular-nums">
             {form.totalPrice.toFixed(2)} €
           </p>
         </div>

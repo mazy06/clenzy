@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../utils/cn';
 import { Spinner } from './ui';
-import { Typography, Button } from '@mui/material';
+import { Button } from '@mui/material';
 import { Refresh, Warning as WarningIcon } from '../icons';
 
 interface LoadingStatesProps {
@@ -100,9 +100,10 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
           <p className="cn-text-body1 text-center text-[16px] font-semibold tracking-[-.01em] text-[var(--ink)]" style={{ fontFamily: 'var(--font-display)' }}>
             {title}
           </p>
-          <Typography textAlign="center" sx={{ fontSize: '12.5px', color: 'var(--muted)', mt: -1 }}>
+          {/* mt: -1 avec theme.spacing = 6 -> -6px, soit -mt-1.5 sur l'echelle Tailwind */}
+          <p className="cn-text-body1 text-center text-[12.5px] text-[var(--muted)] -mt-1.5">
             {description}
-          </Typography>
+          </p>
         </>
       )}
     </div>

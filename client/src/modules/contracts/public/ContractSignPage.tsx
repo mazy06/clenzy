@@ -4,7 +4,8 @@ import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
-import { Typography, Paper, Button, TextField, Checkbox, FormControlLabel, CircularProgress } from '@mui/material';
+import { Paper, Button, TextField, Checkbox, FormControlLabel, CircularProgress } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import { Handshake, CheckCircle, Download, Warning } from '../../../icons';
 import { API_CONFIG } from '../../../config/api';
 import { SIGN_LABELS, detectSignLang, type SignLabels } from './signLabels';
@@ -151,7 +152,7 @@ const ContractSignPage: React.FC = () => {
             <Handshake size={20} strokeWidth={1.75} />
           </span>
           <div>
-            <p className="cn-text-body1 font-[var(--font-display)] text-[1rem] font-semibold leading-[1.2] text-[var(--ink)]">
+            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1rem] font-semibold leading-[1.2] text-[var(--ink)]">
               Clenzy
             </p>
             <p className="cn-text-body1 text-[0.75rem] text-[var(--muted)]">
@@ -206,9 +207,9 @@ const ContractSignPage: React.FC = () => {
 
             {/* ── Titre + récapitulatif (toujours visibles si contrat lisible) ── */}
             <div>
-              <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.375rem', fontWeight: 600, color: 'var(--ink)', textWrap: 'balance' }}>
+              <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.375rem] font-semibold text-[var(--ink)] text-balance">
                 {L.title} <span className="text-[1.05rem]" style={{ fontFamily: 'monospace', color: BRAND }}>{view.contractNumber}</span>
-              </Typography>
+              </p>
               {view.status === 'PENDING' && (
                 <p className="cn-text-body1 mt-0.5 text-[0.875rem] text-[var(--muted)]">
                   {L.subtitle}
@@ -246,7 +247,7 @@ const ContractSignPage: React.FC = () => {
             {(view.status === 'PENDING' || view.status === 'SIGNED') && (
               <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: { xs: 2, md: 3 } }}>
                 <div className="flex items-center justify-between mb-2">
-                  <SectionLabel sx={{ mb: 0 }}>{L.documentTitle}</SectionLabel>
+                  <SectionLabel className="mb-0">{L.documentTitle}</SectionLabel>
                   {pdfUrl && (
                     <Button
                       size="small"
@@ -354,28 +355,20 @@ const ContractSignPage: React.FC = () => {
 
 // ─── Sous-composants ──────────────────────────────────────────────────────────
 
-const SectionLabel: React.FC<{ children: React.ReactNode; sx?: object }> = ({ children, sx }) => (
-  <Typography
-    sx={{
-      fontSize: '10.5px',
-      fontWeight: 700,
-      textTransform: 'uppercase',
-      letterSpacing: '0.06em',
-      color: 'var(--faint)',
-      mb: 1.5,
-      ...sx,
-    }}
-  >
+// L'ancien surcharge par `sx` devient une surcharge par `className` : le seul
+// appelant passait `mb: 0`, que tailwind-merge resout contre le mb-[9px] de base.
+const SectionLabel: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
+  <p className={cn('cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.06em] text-[var(--faint)] mb-[9px]', className)}>
     {children}
-  </Typography>
+  </p>
 );
 
 const SummaryRow: React.FC<{ label: string; value: string; tabular?: boolean }> = ({ label, value, tabular }) => (
   <div className="flex justify-between gap-3 py-1.5 border-b border-[var(--line)]">
     <p className="cn-text-body1 text-[0.8125rem] text-[var(--muted)] shrink-0">{label}</p>
-    <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink)', textAlign: 'end', ...(tabular ? { fontVariantNumeric: 'tabular-nums' } : {}) }}>
+    <p className={cn('cn-text-body1 text-[0.8125rem] font-semibold text-[var(--ink)] text-end', tabular && 'tabular-nums')}>
       {value}
-    </Typography>
+    </p>
   </div>
 );
 
@@ -387,7 +380,7 @@ const StatusCard: React.FC<{ icon: React.ReactNode; iconColor: string; iconSoft:
       {icon}
     </span>
     <div>
-      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 600, color: 'var(--ink)', textWrap: 'balance' }}>{title}</Typography>
+      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1rem] font-semibold text-[var(--ink)] text-balance">{title}</p>
       <p className="cn-text-body1 mt-0.5 text-[0.85rem] text-[var(--muted)] leading-[1.55]">{text}</p>
     </div>
   </Paper>

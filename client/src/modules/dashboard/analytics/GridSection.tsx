@@ -1,6 +1,5 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { Typography } from '@mui/material';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -21,6 +20,10 @@ const SECTION_TITLE_SX = {
   color: 'var(--faint)',
   lineHeight: 1.2,
 } as const;
+
+/** Report en classes de `SECTION_TITLE_SX`. */
+const SECTION_TITLE_CLASS =
+  'text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] leading-[1.2]';
 
 const SUBTITLE_SX = {
   fontSize: '0.625rem',
@@ -43,7 +46,7 @@ const GridSection: React.FC<GridSectionProps> = React.memo(({
   <div className="mb-3">
     {/* Header */}
     <div className="flex items-center mb-1">
-      <Typography sx={SECTION_TITLE_SX}>{title}</Typography>
+      <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{title}</p>
       {badge !== undefined && badge > 0 && (
         <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-[var(--radius-pill)] bg-[var(--err)] text-[var(--on-accent)] text-[9px] font-bold tabular-nums ml-[4.5px] px-[3px]">{badge}</span>
       )}

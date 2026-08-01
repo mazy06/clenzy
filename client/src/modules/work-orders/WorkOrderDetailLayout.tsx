@@ -3,7 +3,6 @@ import { Badge } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
 import {
-  Typography,
   Grid,
   Paper,
   Divider,
@@ -119,6 +118,10 @@ const METRIC_VALUE_SX = {
   fontVariantNumeric: 'tabular-nums',
 } as const;
 
+/** Report en classes de `METRIC_VALUE_SX`. */
+const METRIC_VALUE_CLASS =
+  'text-[15px] font-semibold text-[var(--ink)] leading-[1.2] font-[family-name:var(--font-display)] tabular-nums';
+
 const METRIC_LABEL_SX = {
   fontSize: '10.5px',
   fontWeight: 700,
@@ -195,6 +198,19 @@ function getStatusProgressColor(status: string): 'primary' | 'success' | 'error'
   if (upper === 'IN_PROGRESS') return 'info';
   return 'primary';
 }
+
+/**
+ * La palette `LinearProgress color=...` reste un nom MUI, mais le texte l'a
+ * besoin en VRAIE valeur CSS : hors de `sx`, `'success.main'` n'est plus resolu
+ * par le theme et la declaration serait jetee sans erreur. Les ponts `--mui-*`
+ * suivent deja le mode clair/sombre.
+ */
+const PROGRESS_TONE_VAR: Record<'primary' | 'success' | 'error' | 'info', string> = {
+  primary: 'var(--mui-primary)',
+  success: 'var(--ok)',
+  error: 'var(--err)',
+  info: 'var(--info)',
+};
 
 // ─── View-model ──────────────────────────────────────────────────────────────
 
@@ -332,6 +348,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
   const statusProgress = getStatusProgress(vm.status);
   const statusProgressColor = getStatusProgressColor(vm.status);
+  const statusToneColor = PROGRESS_TONE_VAR[statusProgressColor];
   const consigneVariant = getConsigneVariant(vm.type);
 
   const progressSteps = [
@@ -367,9 +384,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
           <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0')}>
             {t('serviceRequests.details.progression')}
           </p>
-          <Typography sx={{ fontSize: '12px', fontWeight: 700, color: `${statusProgressColor}.main` }}>
+          <p className="cn-text-body1 text-[12px] font-bold" style={{ color: statusToneColor }}>
             {vm.statusLabel}
-          </Typography>
+          </p>
         </div>
         <LinearProgress
           variant="determinate"
@@ -379,7 +396,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
         />
         <div className="flex justify-between mt-0.5">
           {progressSteps.map((label, i) => (
-            <p className={cn('cn-text-body1 text-[10px]', statusProgress >= PROGRESS_VALUES[i] ? 'font-semibold' : 'font-normal')} style={{ color: statusProgress >= PROGRESS_VALUES[i] ? `${statusProgressColor}.main` : 'var(--faint)' }} key={label}>
+            <p className={cn('cn-text-body1 text-[10px]', statusProgress >= PROGRESS_VALUES[i] ? 'font-semibold' : 'font-normal')} style={{ color: statusProgress >= PROGRESS_VALUES[i] ? statusToneColor : 'var(--faint)' }} key={label}>
               {label}
             </p>
           ))}
@@ -391,9 +408,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
         <Grid item xs={6} sm={4} md={2}>
           <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
             {getTypeIcon(vm.type)}
-            <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px' }}>
+            <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1 text-[12px]')}>
               {getInterventionTypeLabel(vm.type, t)}
-            </Typography>
+            </p>
             <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('common.type')}</p>
           </div>
         </Grid>
@@ -401,9 +418,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
           <Grid item xs={6} sm={4} md={2}>
             <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
               <span className="inline-flex text-[var(--accent)] mb-0.5"><AccessTime size={18} strokeWidth={1.75} /></span>
-              <Typography sx={METRIC_VALUE_SX}>
+              <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1')}>
                 {formatDuration(vm.estimatedDurationHours)}
-              </Typography>
+              </p>
               <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.estimatedDurationLabel')}</p>
             </div>
           </Grid>
@@ -411,9 +428,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
         <Grid item xs={6} sm={4} md={2}>
           <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
             <span className="inline-flex text-[var(--accent)] mb-0.5"><CalendarToday size={18} strokeWidth={1.75} /></span>
-            <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px' }}>
+            <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1 text-[12px]')}>
               {formatDateTime(vm.dueDate) || '—'}
-            </Typography>
+            </p>
             <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.dueDateShort')}</p>
           </div>
         </Grid>
@@ -421,9 +438,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
           <Grid item xs={6} sm={4} md={2}>
             <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
               <span className="inline-flex text-[var(--accent)] mb-0.5"><Euro size={18} strokeWidth={1.75} /></span>
-              <Typography sx={METRIC_VALUE_SX}>
+              <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1')}>
                 <Money value={vm.estimatedCost} from="EUR" />
-              </Typography>
+              </p>
               <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.details.estimatedCost')}</p>
               {/* Moteur Ménage 2A : écart vs barème conseil (snapshot recommended_cost). */}
               {vm.recommendedCost != null && vm.recommendedCost > 0 && (() => {
@@ -455,9 +472,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
           <Grid item xs={6} sm={4} md={2}>
             <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
               <span className="inline-flex text-[var(--ok)] mb-0.5"><AttachMoney size={18} strokeWidth={1.75} /></span>
-              <Typography sx={{ ...METRIC_VALUE_SX, color: 'var(--ok)' }}>
+              <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1 text-[var(--ok)]')}>
                 <Money value={vm.actualCost} from="EUR" />
-              </Typography>
+              </p>
               <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.details.actualCost')}</p>
             </div>
           </Grid>
@@ -466,9 +483,9 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
           <Grid item xs={6} sm={4} md={2}>
             <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
               <span className="inline-flex text-[var(--accent)] mb-0.5"><Schedule size={18} strokeWidth={1.75} /></span>
-              <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px' }}>
+              <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1 text-[12px]')}>
                 {formatDateTime(vm.createdAt)}
-              </Typography>
+              </p>
               <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.createdDateShort')}</p>
             </div>
           </Grid>
@@ -477,9 +494,11 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
           <Grid item xs={6} sm={4} md={2} key={`extra-metric-${m.label}`}>
             <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
               <span className="inline-flex mb-[1.5px]" style={{ color: m.tone ?? 'var(--accent)' }}>{m.icon}</span>
-              <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px', ...(m.tone ? { color: m.tone } : {}) }}>
+              {/* `m.tone` est une valeur d'execution : elle ne peut pas donner
+                  naissance a une classe Tailwind, d'ou le style inline. */}
+              <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1 text-[12px]')} style={m.tone ? { color: m.tone } : undefined}>
                 {m.value}
-              </Typography>
+              </p>
               <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{m.label}</p>
             </div>
           </Grid>

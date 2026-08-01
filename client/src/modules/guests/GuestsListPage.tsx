@@ -286,11 +286,11 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                       <StatusChip
                         tone="accent"
                         label={guest.totalStays ?? 0}
-                        className="min-w-[28px] justify-center font-[var(--font-display)] tabular-nums"
+                        className="min-w-[28px] justify-center font-[family-name:var(--font-display)] tabular-nums"
                       />
                     </TableCell>
                     <TableCell align="right">
-                      <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] font-[var(--font-display)] tabular-nums">
+                      <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] font-[family-name:var(--font-display)] tabular-nums">
                         {guest.totalSpent ? <Money value={guest.totalSpent} from="EUR" /> : '-'}
                       </p>
                     </TableCell>

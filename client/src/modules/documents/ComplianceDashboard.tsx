@@ -4,7 +4,7 @@ import { Badge } from '../../components/ui';
 import { Alert as UiAlert, AlertDescription, AlertAction, Button } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Typography, Card, CardContent, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, LinearProgress } from '@mui/material';
+import { Card, CardContent, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tooltip, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, LinearProgress } from '@mui/material';
 import { cn } from '../../utils/cn';
 import {
   Lock,
@@ -342,7 +342,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
       <Card>
         <CardContent>
           <div className="flex items-center justify-between mb-3">
-            <p className="cn-text-body1 font-[var(--font-display)] text-[16px] font-semibold text-[var(--ink)]">
+            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[16px] font-semibold text-[var(--ink)]">
               {t('documents.compliance.templateVerification')}
             </p>
             <Tooltip title="Relancer la verification" arrow>
@@ -368,7 +368,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                 <span className="cn-text-caption text-muted-foreground">
                   Verification en cours... {autoCheckProgress}/{autoCheckTotal}
                 </span>
-                <span className="cn-text-caption font-semibold text-[var(--accent)] tabular-nums font-[var(--font-display)]">
+                <span className="cn-text-caption font-semibold text-[var(--accent)] tabular-nums font-[family-name:var(--font-display)]">
                   {autoCheckTotal > 0 ? Math.round((autoCheckProgress / autoCheckTotal) * 100) : 0}%
                 </span>
               </div>
@@ -484,19 +484,14 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                           {isChecking ? (
                             <Spinner className="size-4 text-[var(--accent)]" />
                           ) : report ? (
-                            <Typography
-                              variant="body2"
-                              fontWeight={600}
-                              sx={{
-                                fontVariantNumeric: 'tabular-nums',
-                                fontFamily: 'var(--font-display)',
-                                color: report.score >= 80 ? 'var(--ok)' : report.score >= 50 ? 'var(--warn)' : 'var(--err)',
-                                animation: 'fadeIn 0.4s ease',
-                                '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-                              }}
+                            <p
+                              className={cn(
+                                'cn-text-body2 font-semibold tabular-nums [font-family:var(--font-display)] animate-[fadeIn_0.4s_ease] motion-reduce:animate-none',
+                                report.score >= 80 ? 'text-[var(--ok)]' : report.score >= 50 ? 'text-[var(--warn)]' : 'text-[var(--err)]',
+                              )}
                             >
                               {report.score}%
-                            </Typography>
+                            </p>
                           ) : '\u2014'}
                         </TableCell>
                         <TableCell align="right">

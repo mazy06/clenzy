@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '../../utils/cn';
-import { Dialog, Typography, useMediaQuery } from '@mui/material';
+import { Dialog, useMediaQuery } from '@mui/material';
 import { Check, ArrowBack, ArrowForward } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useReservationForm } from './useReservationForm';
@@ -61,9 +61,9 @@ const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }
 
         <ConflictAlert form={form} fullWidth />
         {form.error && (
-          <Typography sx={{ gridColumn: '1 / -1', margin: '0 22px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--err)' }}>
+          <p className="cn-text-body1 col-span-full mt-0 mx-[22px] mb-5 text-[12.5px] font-semibold text-[var(--err)]">
             {form.error}
-          </Typography>
+          </p>
         )}
       </div>
 

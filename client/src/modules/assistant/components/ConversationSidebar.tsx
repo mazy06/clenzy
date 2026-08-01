@@ -3,7 +3,6 @@ import {
   Button,
   IconButton,
   Tooltip,
-  Typography,
 } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import { Add, Delete, Message as MessageIcon } from '../../../icons';
@@ -157,19 +156,14 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
       )}
     >
       <div className="flex-1 min-w-0">
-        <Typography
-          sx={{
-            fontSize: '12.5px',
-            fontWeight: active ? 600 : 500,
-            color: active ? 'var(--accent)' : 'var(--body)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            lineHeight: 1.35,
-          }}
+        <p
+          className={cn(
+            'cn-text-body1 text-[12.5px] truncate leading-[1.35]',
+            active ? 'font-semibold text-[var(--accent)]' : 'font-medium text-[var(--body)]',
+          )}
         >
           {title}
-        </Typography>
+        </p>
       </div>
 
       <Tooltip title="Archiver" placement="right" enterDelay={400}>

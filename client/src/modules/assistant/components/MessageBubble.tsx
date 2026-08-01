@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Spinner } from '../../../components/ui';
-import { Typography, Dialog, DialogContent } from '@mui/material';
+import { Dialog, DialogContent } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import BaitlyMarkLogo from '../../../components/BaitlyMarkLogo';
 import type { DisplayMessage } from '../../../hooks/useAgent';
@@ -36,6 +36,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   // ── USER : bulle .mg-b out (accent plein), alignée droite, max 74% ───────
   if (isUser) {
     const attachments = message.attachments ?? [];
+    // arabicTextSx (taille +30 %, interligne, pile de polices arabes) reste une
+    // constante partagee de utils/textDirection : posee en style inline, elle bat
+    // les classes exactement comme le spread la faisait gagner dans le sx.
+    const arabicHeavy = isArabicHeavy(message.content);
     return (
       <>
         <div className="flex justify-end mb-3">
@@ -59,24 +63,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
               </div>
             )}
 
+            {/* Si le message user est en arabe : agrandit + line-height adapte +
+                font-family arabe-friendly. Sinon styles latins. */}
             {message.content && (
-              <Typography
+              <p
                 dir={arabicDirProp(message.content)}
-                sx={{
-                  fontSize: 13,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  lineHeight: 1.5,
-                  // Si le message user est en arabe : agrandit + line-height
-                  // adapte + font-family arabe-friendly. Sinon styles latins.
-                  ...(isArabicHeavy(message.content) ? {
-                    ...arabicTextSx,
-                    textAlign: 'right',
-                  } : {}),
-                }}
+                className={cn(
+                  'cn-text-body1 text-[13px] whitespace-pre-wrap [word-break:break-word] leading-[1.5]',
+                  arabicHeavy && 'text-right',
+                )}
+                style={arabicHeavy ? arabicTextSx : undefined}
               >
                 {message.content}
-              </Typography>
+              </p>
             )}
           </div>
         </div>

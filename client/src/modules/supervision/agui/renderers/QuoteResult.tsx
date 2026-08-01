@@ -48,7 +48,7 @@ export const QuoteResult: React.FC<{ data: QuoteData }> = ({ data }) => {
             {nights > 0 && ` · ${nights} nuit${nights > 1 ? 's' : ''}`}
           </p>
         </div>
-        <p className="cn-text-body1 font-[var(--font-display)] text-[1.5rem] font-semibold leading-[1] tracking-[-0.02em] text-[var(--ink)] tabular-nums whitespace-nowrap">
+        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.5rem] font-semibold leading-[1] tracking-[-0.02em] text-[var(--ink)] tabular-nums whitespace-nowrap">
           {formatMoney(data.total, data.currency)}
         </p>
       </div>

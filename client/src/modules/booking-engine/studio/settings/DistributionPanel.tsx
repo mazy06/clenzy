@@ -101,7 +101,7 @@ const properties = await booking.getProperties();`;
             href={hostedUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-[3px] h-[34px] px-[9px] rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-[var(--card)] text-[var(--body)] font-[var(--fw-medium)] text-[var(--text-sm)] cursor-pointer no-underline transition-[border-color,color] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:border-[var(--accent)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2"
+            className="inline-flex items-center gap-[3px] h-[34px] px-[9px] rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-[var(--card)] text-[var(--body)] font-[family-name:var(--fw-medium)] text-[var(--text-sm)] cursor-pointer no-underline transition-[border-color,color] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:border-[var(--accent)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2"
           >
             <ExternalLink size={14} strokeWidth={2} /> Ouvrir
           </a>

@@ -69,7 +69,7 @@ export default function ImportPanel({ open, onClose, editor, onImportTemplate }:
         {/* En-tête */}
         <div className="flex items-center px-3.5 h-[64px] border-b border-[var(--line)]">
           <div>
-            <div className="font-[var(--font-display)] text-[var(--text-lg)] font-[var(--fw-semibold)]">
+            <div className="font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-semibold)]">
               Importer un design
             </div>
             <div className="text-[var(--text-sm)] text-[var(--muted)]">

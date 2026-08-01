@@ -126,7 +126,7 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
                   {t('settings.myRates.scoreSection', 'Score qualité (30 jours)')}
                 </p>
                 <div className="flex items-baseline gap-2 flex-wrap">
-                  <p className="cn-text-body1 font-[var(--font-display)] text-[24px] font-semibold text-[var(--accent)] tabular-nums">
+                  <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[24px] font-semibold text-[var(--accent)] tabular-nums">
                     {score.score}
                     <span className="text-[13px] text-[var(--muted)] font-medium">/100</span>
                   </p>

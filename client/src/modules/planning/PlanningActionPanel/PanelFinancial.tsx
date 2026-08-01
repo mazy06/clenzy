@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
 import { serviceRequestsApi, type ServiceRequest } from '../../../services/api/serviceRequestsApi';
 import { reservationsApi } from '../../../services/api/reservationsApi';
-import { Typography, Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, Tooltip } from '@mui/material';
+import { Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, Tooltip } from '@mui/material';
 import {
   Payment,
   Add,
@@ -98,6 +98,9 @@ const OVERLINE_SX = {
   color: 'var(--faint)',
 };
 
+/** Report en classes de `OVERLINE_SX`. */
+const OVERLINE_CLASS = 'text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]';
+
 /** ✕ de modale — pattern validé (34px r10 hairline, hover --err). */
 const CLOSE_BTN_SX = {
   width: 34,
@@ -158,9 +161,9 @@ const SectionCard: React.FC<{
   <div className="border border-[var(--line)] bg-[var(--card)] rounded-[12px] p-2">
     <div className="flex items-center gap-1.5 mb-2">
       {icon}
-      <Typography variant="body2" sx={{ ...OVERLINE_SX, flex: 1 }}>
+      <p className={cn(OVERLINE_CLASS, 'cn-text-body2 flex-1')}>
         {title}
-      </Typography>
+      </p>
       <StatusChip pill tokens={{ color: badgeTokens.color, bg: badgeTokens.bg }} label={badge} />
     </div>
     {children}
@@ -192,26 +195,21 @@ const FinRow: React.FC<{
   children?: React.ReactNode;
 }> = ({ label, value, bold, color, secondary, children }) => (
   <div className="flex justify-between items-center mb-0.5">
-    <Typography
-      variant="body2"
-      color={secondary !== false ? 'text.secondary' : undefined}
-      sx={{ fontSize: '0.8125rem' }}
-    >
+    <p className={cn('cn-text-body2 text-[0.8125rem]', secondary !== false && 'text-[var(--muted)]')}>
       {label}
-    </Typography>
+    </p>
     <div className="flex items-center gap-1.5">
-      <Typography
-        variant="body2"
-        sx={{
-          fontWeight: 600,
-          fontSize: '0.8125rem',
+      {/* `color` et `bold` sont des props : leur valeur n'existe qu'a
+          l'execution, donc style inline et non classes Tailwind. */}
+      <p
+        className="cn-text-body2 font-semibold text-[0.8125rem] tabular-nums"
+        style={{
           color: color || 'var(--ink)',
-          fontVariantNumeric: 'tabular-nums',
           ...(bold && { fontFamily: 'var(--font-display)' }),
         }}
       >
         {value}
-      </Typography>
+      </p>
       {children}
     </div>
   </div>
@@ -695,7 +693,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             Montant
           </span>
           <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="font-[var(--font-display)] text-[1.75rem] font-bold text-[var(--ink)] leading-[1.1] tabular-nums">
+            <span className="font-[family-name:var(--font-display)] text-[1.75rem] font-bold text-[var(--ink)] leading-[1.1] tabular-nums">
               {isICalImport && !hasTotalPrice ? 'Non communiqué' : fmtCurrency(grandTotal)}
             </span>
             {(hasTotalPrice || isOTABooking) && (

@@ -91,7 +91,7 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
 
       {/* Zone HTML (requise). */}
       <div className="flex flex-col gap-0.5">
-        <label className="text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--ink)]" htmlFor="paste-html">
+        <label className="text-[var(--text-sm)] font-[family-name:var(--fw-medium)] text-[var(--ink)]" htmlFor="paste-html">
           HTML
         </label>
         <textarea
@@ -106,7 +106,7 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
 
       {/* Zone CSS (optionnelle). */}
       <div className="flex flex-col gap-0.5">
-        <label className="text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--ink)]" htmlFor="paste-css">
+        <label className="text-[var(--text-sm)] font-[family-name:var(--fw-medium)] text-[var(--ink)]" htmlFor="paste-css">
           CSS <span className="text-[var(--faint)]" style={{ fontWeight: 'var(--fw-regular, 400)' }}>(optionnel)</span>
         </label>
         <textarea
@@ -127,7 +127,7 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
 
       {warnings.length > 0 ? (
         <div className="flex flex-col gap-0.5 p-2 bg-[var(--hover)] border border-[var(--line)] rounded-[var(--radius-md)]" role="status">
-          <div className="inline-flex items-center gap-1 text-[var(--text-sm)] font-[var(--fw-semibold)] text-[var(--ink)]">
+          <div className="inline-flex items-center gap-1 text-[var(--text-sm)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">
             <AlertTriangle size={15} strokeWidth={2} style={{ color: 'var(--err, #c0392b)' }} />
             Contenu importé avec des avertissements
           </div>

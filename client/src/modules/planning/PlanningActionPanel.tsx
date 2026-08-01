@@ -362,7 +362,7 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
       {/* ─── Entête : titre display + sous-titre séjour + ✕ pastille ──── */}
       <div className="flex items-center justify-between gap-1.5 px-3 py-2 border-b border-[var(--line)]">
         <div className="min-w-0 flex-1">
-          <span className="block font-[var(--font-display)] text-[0.9375rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
+          <span className="block font-[family-name:var(--font-display)] text-[0.9375rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
             {headerTitle}
           </span>
           <span className="block text-[0.75rem] text-[var(--muted)] mt-0.5 tabular-nums">

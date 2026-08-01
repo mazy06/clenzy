@@ -61,7 +61,7 @@ export const DetailsResult: React.FC<{ data: Details }> = ({ data }) => {
 
   return (
     <SurfaceCard>
-      <p className="cn-text-body1 font-[var(--font-display)] text-[15px] font-semibold text-[var(--ink)] mb-1.5 tracking-[-0.01em]">
+      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] mb-1.5 tracking-[-0.01em]">
         {title}
       </p>
 

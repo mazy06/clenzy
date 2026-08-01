@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Card } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
-import { Paper, Typography, IconButton, Tooltip, Button, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Paper, IconButton, Tooltip, Button, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import {
   ChevronLeft,
   ChevronRight,
@@ -111,7 +111,7 @@ function StatCard({ icon, label, value, fg, bg }: StatCardProps) {
         <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] font-bold uppercase tracking-[.04em] leading-[1.2]">
           {label}
         </p>
-        <p className="cn-text-body1 font-[var(--font-display)] text-[18px] font-semibold leading-[1.2] text-[var(--ink)] tabular-nums tracking-[-.01em]">
+        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[18px] font-semibold leading-[1.2] text-[var(--ink)] tabular-nums tracking-[-.01em]">
           {value}
         </p>
       </div>
@@ -416,20 +416,10 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                         <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={getInterventionStatusLabel(iv.status, t)} icon={statusIcon(iv.status, 12, tk.fg)} className="h-[20px]" />
                       </div>
                       {iv.description && (
-                        <Typography
-                          sx={{
-                            fontSize: '0.75rem',
-                            color: 'text.secondary',
-                            mb: 0.5,
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            lineHeight: 1.4,
-                          }}
-                        >
+                        // line-clamp-2 pose display/-webkit-box-orient/overflow d'un bloc
+                        <p className="cn-text-body1 text-[0.75rem] text-[var(--muted)] mb-[3px] line-clamp-2 leading-[1.4]">
                           {iv.description}
-                        </Typography>
+                        </p>
                       )}
                       <div className="flex justify-between items-center">
                         {iv.cost != null && iv.cost > 0 ? (
@@ -437,7 +427,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                             <span className="inline-flex text-[var(--accent)]">
                               <Euro size={12} strokeWidth={1.75} />
                             </span>
-                            <p className="cn-text-body1 font-[var(--font-display)] text-[12.5px] font-semibold text-[var(--ink)] tabular-nums">
+                            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[12.5px] font-semibold text-[var(--ink)] tabular-nums">
                               <Money value={iv.cost} from="EUR" decimals={0} />
                             </p>
                           </div>
@@ -497,7 +487,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                         className="grid grid-cols-[70px_1fr_auto] min-[600px]:grid-cols-[80px_1fr_130px_90px_20px] gap-[9px] items-center px-3 py-[7.5px] cursor-pointer border-b border-solid border-[var(--line)] last:border-b-0 hover:bg-[var(--hover)] transition-[background-color] duration-[140ms]"
                       >
                         <div className="text-center">
-                          <p className="cn-text-body1 font-[var(--font-display)] text-[17px] font-semibold leading-[1] text-[var(--ink)] tabular-nums">
+                          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[17px] font-semibold leading-[1] text-[var(--ink)] tabular-nums">
                             {new Date(iv.scheduledDate).getDate()}
                           </p>
                           <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[.06em]">

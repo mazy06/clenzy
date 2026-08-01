@@ -8,7 +8,6 @@
    Aucun tool backend n'émet ce hint aujourd'hui — renderer forward-compatible.
    ============================================================ */
 import React from 'react';
-import { Typography } from '@mui/material';
 import { cn } from '../../../../utils/cn';
 import { Overline, humanizeKey } from './shared';
 
@@ -89,21 +88,15 @@ export const DataTableResult: React.FC<{ data: DataTableData }> = ({ data }) => 
             {columns.map((col, colIdx) => {
               const v = cellValue(row, col, colIdx);
               return (
-                <Typography
+                <p
                   key={col.key}
-                  sx={{
-                    fontSize: '12.5px',
-                    color: 'var(--body)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    textAlign: col.numeric ? 'right' : 'left',
-                    fontVariantNumeric: 'tabular-nums',
-                    ...(col.numeric && { fontWeight: 500 }),
-                  }}
+                  className={cn(
+                    'cn-text-body1 text-[12.5px] text-[var(--body)] whitespace-nowrap overflow-hidden text-ellipsis tabular-nums',
+                    col.numeric ? 'text-right font-medium' : 'text-left',
+                  )}
                 >
                   {v === null || v === undefined || v === '' ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v)}
-                </Typography>
+                </p>
               );
             })}
           </div>

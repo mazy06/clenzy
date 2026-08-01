@@ -34,7 +34,7 @@ function PeriodSegmentedInner<T extends string>({
       {options.map((opt) => {
         const selected = opt.value === value;
         return (
-          // `font-[var(--font-sans)]` serait ambigu (famille vs graisse) : propriete explicite.
+          // `font-[family-name:var(--font-sans)]` serait ambigu (famille vs graisse) : propriete explicite.
           <button
             key={opt.value}
             type="button"

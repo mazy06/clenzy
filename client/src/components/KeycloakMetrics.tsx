@@ -3,7 +3,8 @@ import StatusChip from './StatusChip';
 import { Alert as UiAlert, AlertDescription } from './ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from './ui';
-import { Card, CardContent, Typography, Grid, Alert, Button, IconButton, Tooltip, LinearProgress } from '@mui/material';
+import { Card, CardContent, Grid, Alert, Button, IconButton, Tooltip, LinearProgress } from '@mui/material';
+import { cn } from '../utils/cn';
 import {
   TrendingUp,
   Refresh,
@@ -29,11 +30,7 @@ const SEM_TOKEN: Record<'success' | 'warning' | 'error', { fg: string; bg: strin
 };
 
 /** Grosse valeur de carte : display + tabular-nums (pattern StatTile) */
-const displayValueSx = (color: string) => ({
-  fontFamily: 'var(--font-display)',
-  fontVariantNumeric: 'tabular-nums',
-  color,
-});
+const DISPLAY_VALUE_CLASS = 'font-[family-name:var(--font-display)] tabular-nums';
 
 const getStatusColor = (value: number, threshold: number) => {
   if (value <= threshold * 0.7) return 'success';
@@ -148,9 +145,9 @@ const KeycloakMetrics: React.FC = () => {
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <div className="text-center">
-                    <Typography variant="h4" sx={displayValueSx('var(--ink)')}>
+                    <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS, 'text-[var(--ink)]')}>
                       {metrics.users.total}
-                    </Typography>
+                    </h4>
                     <p className="cn-text-body2 text-muted-foreground">
                       Total
                     </p>
@@ -158,9 +155,9 @@ const KeycloakMetrics: React.FC = () => {
                 </Grid>
                 <Grid item xs={6}>
                   <div className="text-center">
-                    <Typography variant="h4" sx={displayValueSx('var(--ok)')}>
+                    <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS, 'text-[var(--ok)]')}>
                       {metrics.users.active}
-                    </Typography>
+                    </h4>
                     <p className="cn-text-body2 text-muted-foreground">
                       Actifs
                     </p>
@@ -188,9 +185,9 @@ const KeycloakMetrics: React.FC = () => {
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <div className="text-center">
-                    <Typography variant="h4" sx={displayValueSx('var(--ink)')}>
+                    <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS, 'text-[var(--ink)]')}>
                       {metrics.sessions.totalTokens}
-                    </Typography>
+                    </h4>
                     <p className="cn-text-body2 text-muted-foreground">
                       Total traités
                     </p>
@@ -198,9 +195,9 @@ const KeycloakMetrics: React.FC = () => {
                 </Grid>
                 <Grid item xs={6}>
                   <div className="text-center">
-                    <Typography variant="h4" sx={displayValueSx('var(--ok)')}>
+                    <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS, 'text-[var(--ok)]')}>
                       {metrics.sessions.validTokens}
-                    </Typography>
+                    </h4>
                     <p className="cn-text-body2 text-muted-foreground">
                       Valides
                     </p>
@@ -228,9 +225,10 @@ const KeycloakMetrics: React.FC = () => {
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <div className="text-center">
-                    <Typography variant="h6" sx={displayValueSx(SEM_TOKEN[getPerformanceColor(metrics.performance.avgResponseTimeMs, true)].fg)}>
+                    {/* Couleur calculee a l'execution : style inline, une classe Tailwind ne peut pas naitre d'une variable */}
+                    <h6 className={cn('cn-text-h6', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getPerformanceColor(metrics.performance.avgResponseTimeMs, true)].fg }}>
                       {metrics.performance.avgResponseTimeMs}ms
-                    </Typography>
+                    </h6>
                     <p className="cn-text-body2 text-muted-foreground">
                       Temps de réponse moy.
                     </p>
@@ -238,9 +236,9 @@ const KeycloakMetrics: React.FC = () => {
                 </Grid>
                 <Grid item xs={6}>
                   <div className="text-center">
-                    <Typography variant="h6" sx={displayValueSx(SEM_TOKEN[getPerformanceColor(metrics.performance.uptimePercent)].fg)}>
+                    <h6 className={cn('cn-text-h6', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getPerformanceColor(metrics.performance.uptimePercent)].fg }}>
                       {metrics.performance.uptimePercent}%
-                    </Typography>
+                    </h6>
                     <p className="cn-text-body2 text-muted-foreground">
                       Uptime
                     </p>
@@ -268,9 +266,9 @@ const KeycloakMetrics: React.FC = () => {
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <div className="text-center">
-                    <Typography variant="h6" sx={displayValueSx(SEM_TOKEN[getStatusColor(metrics.security.failedLogins, 20)].fg)}>
+                    <h6 className={cn('cn-text-h6', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getStatusColor(metrics.security.failedLogins, 20)].fg }}>
                       {metrics.security.failedLogins}
-                    </Typography>
+                    </h6>
                     <p className="cn-text-body2 text-muted-foreground">
                       Échecs de connexion
                     </p>
@@ -278,9 +276,9 @@ const KeycloakMetrics: React.FC = () => {
                 </Grid>
                 <Grid item xs={6}>
                   <div className="text-center">
-                    <Typography variant="h6" sx={displayValueSx(SEM_TOKEN[getStatusColor(metrics.security.permissionDenied, 10)].fg)}>
+                    <h6 className={cn('cn-text-h6', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getStatusColor(metrics.security.permissionDenied, 10)].fg }}>
                       {metrics.security.permissionDenied}
-                    </Typography>
+                    </h6>
                     <p className="cn-text-body2 text-muted-foreground">
                       Accès refusés
                     </p>
@@ -315,9 +313,9 @@ const KeycloakMetrics: React.FC = () => {
                   {coverage.linePercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
                       <div className="text-center">
-                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.linePercent)].fg)}>
+                        <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.linePercent)].fg }}>
                           {coverage.linePercent}%
-                        </Typography>
+                        </h4>
                         <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Lignes
                         </p>
@@ -337,9 +335,9 @@ const KeycloakMetrics: React.FC = () => {
                   {coverage.branchPercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
                       <div className="text-center">
-                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.branchPercent)].fg)}>
+                        <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.branchPercent)].fg }}>
                           {coverage.branchPercent}%
-                        </Typography>
+                        </h4>
                         <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Branches
                         </p>
@@ -359,9 +357,9 @@ const KeycloakMetrics: React.FC = () => {
                   {coverage.instructionPercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
                       <div className="text-center">
-                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.instructionPercent)].fg)}>
+                        <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.instructionPercent)].fg }}>
                           {coverage.instructionPercent}%
-                        </Typography>
+                        </h4>
                         <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Instructions
                         </p>
@@ -381,9 +379,9 @@ const KeycloakMetrics: React.FC = () => {
                   {coverage.methodPercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
                       <div className="text-center">
-                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.methodPercent)].fg)}>
+                        <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.methodPercent)].fg }}>
                           {coverage.methodPercent}%
-                        </Typography>
+                        </h4>
                         <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Méthodes
                         </p>
@@ -403,9 +401,9 @@ const KeycloakMetrics: React.FC = () => {
                   {coverage.classPercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
                       <div className="text-center">
-                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.classPercent)].fg)}>
+                        <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.classPercent)].fg }}>
                           {coverage.classPercent}%
-                        </Typography>
+                        </h4>
                         <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Classes
                         </p>
@@ -425,9 +423,9 @@ const KeycloakMetrics: React.FC = () => {
                   {coverage.complexityPercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
                       <div className="text-center">
-                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.complexityPercent)].fg)}>
+                        <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.complexityPercent)].fg }}>
                           {coverage.complexityPercent}%
-                        </Typography>
+                        </h4>
                         <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Complexité
                         </p>

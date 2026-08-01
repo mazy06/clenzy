@@ -1,5 +1,4 @@
 import React from 'react';
-import { Typography } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import {
   Home as HomeIcon,
@@ -43,13 +42,9 @@ function Tile({ icon, label, value }: { icon: React.ReactNode; label: string; va
       <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.04em] uppercase text-[var(--faint)]">
         {label}
       </p>
-      <Typography sx={{
-        fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 600, color: 'var(--ink)',
-        mt: '4px', letterSpacing: '-.01em', fontVariantNumeric: 'tabular-nums',
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-      }}>
+      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[20px] font-semibold text-[var(--ink)] mt-[4px] tracking-[-.01em] tabular-nums truncate">
         {value}
-      </Typography>
+      </p>
     </div>
   );
 }

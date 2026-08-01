@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Grid, Typography, TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, FormControlLabel, Checkbox, Divider, Switch } from '@mui/material';
+import { Grid, TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, FormControlLabel, Checkbox, Divider, Switch } from '@mui/material';
 import {
   Person,
   Schedule,
@@ -34,6 +34,9 @@ const SECTION_TITLE_ICON_SX = {
   alignItems: 'center',
   gap: 0.5,
 } as const;
+
+/** Report en classes de `SECTION_TITLE_ICON_SX` (gap 0.5 = 3 px, spacing 6). */
+const SECTION_TITLE_ICON_CLASS = `${SECTION_TITLE_CLASS} flex items-center gap-[3px]`;
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -230,10 +233,10 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
 
         {/* ── Tarification ménage ──────────────────────────────────────── */}
         <div>
-          <Typography sx={SECTION_TITLE_ICON_SX}>
+          <p className={cn(SECTION_TITLE_ICON_CLASS, 'cn-text-body1')}>
             <CleaningServices size={14} strokeWidth={1.75} />
             {t('properties.cleaningPricing')}
-          </Typography>
+          </p>
 
           <Grid container spacing={1.5}>
             <Grid item xs={12}>
@@ -392,10 +395,10 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
 
         {/* ── Prestations à la carte ─────────────────────────────────────── */}
         <div>
-          <Typography sx={SECTION_TITLE_ICON_SX}>
+          <p className={cn(SECTION_TITLE_ICON_CLASS, 'cn-text-body1')}>
             <Window width={14} />
             {t('properties.addOnServices.title')}
-          </Typography>
+          </p>
 
           <Grid container spacing={1.5}>
             {/* Vitres */}

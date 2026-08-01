@@ -302,7 +302,7 @@ const InterventionsPendingPayment: React.FC = () => {
                     </p>
                   </TableCell>
                   <TableCell align="right" onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <p className="cn-text-body2 font-semibold text-[0.875rem] text-[var(--warn)] font-[var(--font-display)] tabular-nums">
+                    <p className="cn-text-body2 font-semibold text-[0.875rem] text-[var(--warn)] font-[family-name:var(--font-display)] tabular-nums">
                       <Money value={intervention.estimatedCost} from="EUR" />
                     </p>
                   </TableCell>

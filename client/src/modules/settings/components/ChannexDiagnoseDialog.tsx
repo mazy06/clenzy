@@ -24,7 +24,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
-import { Dialog, DialogContent, DialogTitle, Typography, Button, Alert, Stack, Skeleton } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, Button, Alert, Stack, Skeleton } from '@mui/material';
 import {
   CheckCircle2,
   AlertCircle,
@@ -109,16 +109,13 @@ function SyncSnapshotPanel({ snapshot }: { snapshot: ChannexSyncSnapshot }) {
           <span className="cn-text-caption text-muted-foreground min-w-[110px] font-medium">
             OTAs actifs
           </span>
-          <Typography
-            variant="body2"
-            color={snapshot.otaCountKnown ? undefined : 'text.secondary'}
-          >
+          <p className={cn('cn-text-body2', !snapshot.otaCountKnown && 'text-[var(--muted)]')}>
             {!snapshot.otaCountKnown
               ? 'inconnu — hub injoignable'
               : snapshot.activeOtaCount > 0
                 ? `${snapshot.activeOtaCount} OTA${snapshot.activeOtaCount > 1 ? 's' : ''} actif${snapshot.activeOtaCount > 1 ? 's' : ''}`
                 : 'aucun'}
-          </Typography>
+          </p>
         </div>
         {snapshot.lastSyncError && snapshot.status === 'ERROR' && (
           <div className="pt-[3px] mt-[1.5px] border-t border-dashed border-t-[var(--line)]">

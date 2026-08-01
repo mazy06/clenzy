@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { cn } from '../utils/cn';
-import { Typography, IconButton } from '@mui/material';
+import { IconButton } from '@mui/material';
 import { Close as CloseIcon } from '../icons';
 import { useUserPreference } from '../hooks/useUserPreference';
 
@@ -80,22 +80,15 @@ export const HelpStepsGrid: React.FC<{ steps: HelpStep[]; columns?: number }> = 
               {step.icon}
             </div>
             <div className="min-w-0">
-              <Typography
-                sx={{
-                  fontSize: '12.5px',
-                  fontWeight: 700,
-                  color: 'var(--ink)',
-                  lineHeight: 1.25,
-                  mb: 0.25,
-                  textWrap: 'balance',
-                  // Thin colored underline keeps each step's identity without a side-stripe.
-                  display: 'inline-block',
-                  borderBottom: `2px solid color-mix(in srgb, ${accent.color} 45%, transparent)`,
-                  pb: 0.125,
-                }}
+              {/* Thin colored underline keeps each step's identity without a side-stripe.
+                  Le filet depend de l'accent resolu a l'execution : une classe Tailwind ne
+                  peut pas en naitre, il reste donc en style inline. */}
+              <p
+                className="cn-text-body1 text-[12.5px] font-bold text-[var(--ink)] leading-[1.25] mb-[1.5px] [text-wrap:balance] inline-block pb-[0.75px]"
+                style={{ borderBottom: `2px solid color-mix(in srgb, ${accent.color} 45%, transparent)` }}
               >
                 {step.title}
-              </Typography>
+              </p>
               <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] leading-[1.45] mt-0.5">
                 {step.description}
               </p>
@@ -197,20 +190,9 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
         <div className="text-[10.5px] font-bold tracking-[.06em] uppercase text-[var(--accent)] bg-[var(--accent-soft)] border border-solid border-[color-mix(in_srgb,_var(--accent)_25%,_transparent)] rounded-[8px] px-[4.5px] py-[1.5px] mt-[1.5px] shrink-0 leading-[1.2]" aria-hidden>
           AIDE
         </div>
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 15,
-            fontWeight: 600,
-            color: 'var(--ink)',
-            lineHeight: 1.3,
-            letterSpacing: '-.01em',
-            flex: 1,
-            textWrap: 'balance',
-          }}
-        >
+        <p className="cn-text-body1 [font-family:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] leading-[1.3] tracking-[-.01em] flex-1 [text-wrap:balance]">
           {title}
-        </Typography>
+        </p>
         <IconButton
           size="small"
           onClick={handleDismiss}

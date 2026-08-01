@@ -226,7 +226,7 @@ const HealthChecks: React.FC = () => {
                 return (
                   <Grid item xs={12} sm={6} md={2} key={metric.label}>
                     <div className="text-center">
-                      <h6 className="cn-text-h6 font-[var(--font-display)] tabular-nums text-[var(--ink)]">
+                      <h6 className="cn-text-h6 font-[family-name:var(--font-display)] tabular-nums text-[var(--ink)]">
                         {metric.value}{metric.suffix}
                       </h6>
                       <p className="cn-text-body2 text-[var(--muted)]">
@@ -249,7 +249,7 @@ const HealthChecks: React.FC = () => {
               })}
               <Grid item xs={12} sm={6} md={3}>
                 <div className="text-center">
-                  <h6 className="cn-text-h6 font-[var(--font-display)] tabular-nums text-[var(--ok)]">
+                  <h6 className="cn-text-h6 font-[family-name:var(--font-display)] tabular-nums text-[var(--ok)]">
                     {formatUptime(systemMetrics.uptimeSeconds)}
                   </h6>
                   <p className="cn-text-body2 text-[var(--muted)]">

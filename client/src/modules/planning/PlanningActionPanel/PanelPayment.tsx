@@ -3,7 +3,7 @@ import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Typography, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import {
   Payment,
   CheckCircle,
@@ -43,13 +43,9 @@ const NEUTRAL_TOKENS = STATUS_TONES.neutral;
 
 /** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
 
-const OVERLINE_SX = {
-  fontSize: '0.625rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.08em',
-  color: 'var(--faint)',
-};
+/** Report en classes de l'ancien `OVERLINE_SX` (variante body1 par defaut de Typography). */
+const OVERLINE_CLASS =
+  'cn-text-body1 text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -119,7 +115,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
       {/* Payment status */}
       <div className="flex items-center gap-1.5 mb-3">
         <span className="inline-flex text-[var(--accent)]"><Payment size={18} strokeWidth={1.75} /></span>
-        <Typography sx={OVERLINE_SX}>Statut paiement</Typography>
+        <p className={OVERLINE_CLASS}>Statut paiement</p>
         {(() => { const t = STATUS_TOKENS[(intervention.paymentStatus || intervention.status)?.toUpperCase()] || NEUTRAL_TOKENS; return (
         <StatusChip pill tokens={{ color: t.color, bg: t.bg }} label={intervention.paymentStatus || intervention.status} className="ms-auto" />
         ); })()}
@@ -141,7 +137,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
             <span className="inline-flex text-[var(--muted)]"><AttachMoney size={14} strokeWidth={1.75} /></span>
             <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)]">Coût estimé</p>
           </div>
-          <p className="cn-text-body1 text-[0.9375rem] font-semibold text-[var(--ink)] font-[var(--font-display)] tabular-nums">
+          <p className="cn-text-body1 text-[0.9375rem] font-semibold text-[var(--ink)] font-[family-name:var(--font-display)] tabular-nums">
             <Money value={estimatedCost} from="EUR" />
           </p>
         </div>
@@ -160,9 +156,9 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
         <>
           <div className="flex items-center gap-0.5 mb-1.5">
             <span className="inline-flex text-[var(--warn)]"><Gavel size={16} strokeWidth={1.75} /></span>
-            <Typography sx={OVERLINE_SX}>
+            <p className={OVERLINE_CLASS}>
               Validation manager
-            </Typography>
+            </p>
           </div>
           <Alert variant="warning" className="text-[0.6875rem] mb-1.5">
             <TriangleAlert />
@@ -189,9 +185,9 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
       {/* Payment history */}
       <div className="flex items-center gap-0.5 mb-1.5">
         <span className="inline-flex text-[var(--muted)]"><Receipt size={16} strokeWidth={1.75} /></span>
-        <Typography sx={OVERLINE_SX}>
+        <p className={OVERLINE_CLASS}>
           Historique paiements
-        </Typography>
+        </p>
       </div>
 
       {payment.loadingHistory ? (

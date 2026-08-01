@@ -192,7 +192,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
-          <h6 className="cn-text-subtitle2 font-[var(--font-display)] font-semibold text-[0.8125rem] text-[var(--ink)]">
+          <h6 className="cn-text-subtitle2 font-[family-name:var(--font-display)] font-semibold text-[0.8125rem] text-[var(--ink)]">
             Filtres
           </h6>
           <IconButton size="small" onClick={() => setFilterAnchor(null)} sx={{ p: 0.25, color: 'var(--faint)', '&:hover': { color: 'var(--ink)', backgroundColor: 'var(--hover)' } }}>

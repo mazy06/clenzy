@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography, Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent, Grid } from '@mui/material';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar,
@@ -29,15 +29,9 @@ const CHART_CONTENT_SX = {
   '&:last-child': { pb: 1.25 },
 } as const;
 
-const SECTION_LABEL_SX = {
-  fontSize: '0.6875rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.04em',
-  color: 'text.secondary',
-  mb: 0.5,
-  flexShrink: 0,
-} as const;
+/** Report en classes de l'ancien `SECTION_LABEL_SX` (variante body1 par defaut). */
+const SECTION_LABEL_CLASS =
+  'cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.04em] text-[var(--muted)] mb-[3px] shrink-0';
 
 interface Props {
   data: PricingMetrics | null;
@@ -58,9 +52,9 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
         <Grid item xs={12} sm={6}>
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
-              <Typography sx={SECTION_LABEL_SX}>
+              <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.priceVsRevPAN')}
-              </Typography>
+              </p>
               {loading || !data ? (
                 <div className="flex-1 flex items-center justify-center">
                   <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
@@ -87,9 +81,9 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
         <Grid item xs={12} sm={6}>
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
-              <Typography sx={SECTION_LABEL_SX}>
+              <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.priceByType')}
-              </Typography>
+              </p>
               {loading || !data ? (
                 <div className="flex-1 flex items-center justify-center">
                   <span className="cn-text-caption text-muted-foreground opacity-60">...</span>

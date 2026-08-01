@@ -70,7 +70,7 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
 
       {/* Températures : mesurée → consigne — chiffres en display (Space Grotesk) */}
       <div className="flex items-baseline gap-1">
-        <p className="cn-text-body1 font-[var(--font-display)] text-[1.75rem] font-semibold leading-[1] text-[var(--ink)] tabular-nums">{fmt(currentTempC)}°</p>
+        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.75rem] font-semibold leading-[1] text-[var(--ink)] tabular-nums">{fmt(currentTempC)}°</p>
         <p className="cn-text-body1 text-[0.95rem] text-muted-foreground opacity-60">→</p>
         <p className="cn-text-body1 text-[1.05rem] font-semibold tabular-nums" style={{ fontFamily: 'var(--font-display)', color: ACCENT }}>{fmt(targetTempC)}°</p>
       </div>

@@ -75,7 +75,7 @@ export default function StudioShell({
             <ChevronLeft size={20} strokeWidth={2} />
           </ButtonBase>
         )}
-        <div className="font-[var(--fw-semibold)] text-[var(--text-lg)] me-1.5 whitespace-nowrap">
+        <div className="font-[family-name:var(--fw-semibold)] text-[var(--text-lg)] me-1.5 whitespace-nowrap">
           {projectName}
         </div>
 

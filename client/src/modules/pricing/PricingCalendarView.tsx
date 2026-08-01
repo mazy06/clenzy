@@ -324,7 +324,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
                 >
                   {/* Pastille « aujourd'hui » — pattern planning (carré accent r8) */}
                   {isToday ? (
-                    <span className="inline-flex items-center justify-center w-[20px] h-[20px] rounded-[7px] bg-[var(--accent)] text-[var(--on-accent)] font-[var(--font-display)] font-semibold text-[0.6875rem] leading-[1] self-start">
+                    <span className="inline-flex items-center justify-center w-[20px] h-[20px] rounded-[7px] bg-[var(--accent)] text-[var(--on-accent)] font-[family-name:var(--font-display)] font-semibold text-[0.6875rem] leading-[1] self-start">
                       {cell.date.getDate()}
                     </span>
                   ) : (

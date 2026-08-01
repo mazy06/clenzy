@@ -71,7 +71,7 @@ export const SummaryResult: React.FC<{ data: Summary }> = ({ data }) => {
           )}
         </div>
         {hasTotal && (
-          <p className="cn-text-body1 font-[var(--font-display)] text-[16px] font-semibold text-[var(--ink)] tabular-nums whitespace-nowrap">
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[16px] font-semibold text-[var(--ink)] tabular-nums whitespace-nowrap">
             {formatMoney(data.total, typeof data.currency === 'string' ? data.currency : undefined)}
           </p>
         )}

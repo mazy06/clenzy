@@ -103,7 +103,7 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
                   <StatusChip pill tokens={srPriorityTokens(request.priority)} label={getServiceRequestPriorityLabel(request.priority, t)} />
                 </TableCell>
                 <TableCell align="right">
-                  <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] font-[var(--font-display)] tabular-nums">
+                  <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] font-[family-name:var(--font-display)] tabular-nums">
                     {request.estimatedCost != null ? <Money value={request.estimatedCost} from="EUR" /> : '—'}
                   </p>
                   {request.estimatedDuration > 0 && (

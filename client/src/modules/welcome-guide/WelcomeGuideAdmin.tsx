@@ -4,7 +4,7 @@ import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, CardContent, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, IconButton, Menu, MenuItem, Snackbar, Alert, Stack, Switch, TextField, Tooltip, Typography } from '@mui/material';
+import { Button, Card, CardContent, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, IconButton, Menu, MenuItem, Snackbar, Alert, Stack, Switch, TextField, Tooltip } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 import { Add, Save, Edit, Delete, ContentCopy, Link as LinkIcon, OpenInNew } from '../../icons';
 import {
@@ -1176,21 +1176,19 @@ const WelcomeGuideAdmin: React.FC = () => {
             icon={<Check size={17} strokeWidth={1.75} />}
             title={t('welcomeGuide.wizard.recapTitle', 'Vérifiez votre livret')}
           />
-          <Typography variant="body2" color="text.secondary" sx={{ mt: -0.5, mb: 1.5 }}>
+          {/* theme.spacing = 6 : mt -0.5 -> -3px, mb 1.5 -> 9px */}
+          <p className="cn-text-body2 text-[var(--muted)] mt-[-3px] mb-[9px]">
             {t('welcomeGuide.wizard.recapSubtitle', "Un dernier coup d'œil avant d'enregistrer.")}
-          </Typography>
+          </p>
           <Stack divider={<Divider />} spacing={0}>
             {rows.map((r) => (
               <div className="flex items-baseline justify-between gap-3 py-1.5" key={r.label}>
                 <p className="cn-text-body2 text-muted-foreground">
                   {r.label}
                 </p>
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 600, textAlign: 'right', minWidth: 0, ...(r.num ? { fontVariantNumeric: 'tabular-nums' } : {}) }}
-                >
+                <p className={cn('cn-text-body2 font-semibold text-right min-w-0', r.num && 'tabular-nums')}>
                   {r.value}
-                </Typography>
+                </p>
               </div>
             ))}
           </Stack>

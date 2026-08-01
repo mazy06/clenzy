@@ -24,7 +24,7 @@ export default function ImportGallery({ onImportTemplate, onDone }: ImportGaller
     return (
       <div className="flex flex-col items-center gap-1.5 py-9 text-center text-[var(--muted)]">
         <LayoutTemplate size={28} strokeWidth={1.75} style={{ color: 'var(--faint)' }} />
-        <div className="text-[var(--text-md)] font-[var(--fw-semibold)] text-[var(--ink)]">Galerie de templates</div>
+        <div className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">Galerie de templates</div>
         <div className="text-[var(--text-sm)] text-[var(--faint)]">Catalogue en cours de constitution.</div>
       </div>
     );
@@ -54,7 +54,7 @@ export default function ImportGallery({ onImportTemplate, onDone }: ImportGaller
               style={{ backgroundImage: tpl.thumbnail ? `url("${tpl.thumbnail}")` : 'none' }}
             />
             <div className="p-2 flex flex-col gap-0.5">
-              <div className="text-[var(--text-sm)] font-[var(--fw-semibold)] text-[var(--ink)]">{tpl.name}</div>
+              <div className="text-[var(--text-sm)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">{tpl.name}</div>
               {tpl.description ? <div className="text-[var(--text-2xs)] text-[var(--muted)]">{tpl.description}</div> : null}
             </div>
           </ButtonBase>

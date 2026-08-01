@@ -2,10 +2,10 @@ import React from 'react';
 import {
   Card,
   CardContent,
-  Typography,
   Button,
   IconButton,
 } from '@mui/material';
+import { cn } from '../utils/cn';
 import StatusChip from './StatusChip';
 import {
   Visibility,
@@ -126,47 +126,18 @@ const styles = {
     p: 1.75,
     pb: '12px !important',
   },
-  // Nom d'entité en display.
-  nameText: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    fontFamily: 'var(--font-display)',
-    fontSize: '15px',
-    fontWeight: 600,
-    letterSpacing: '-.01em',
-    color: 'var(--ink)',
-  },
-  locationText: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    flex: 1,
-    fontSize: '11.5px',
-    color: 'var(--muted)',
-  },
-  // Bande de KPI (valeurs display tabular-nums).
-  statValue: {
-    fontFamily: 'var(--font-display)',
-    fontSize: '15px',
-    fontWeight: 600,
-    color: 'var(--ink)',
-    fontVariantNumeric: 'tabular-nums',
-    lineHeight: 1.2,
-  },
-  statLabel: {
-    fontSize: '9.5px',
-    fontWeight: 700,
-    letterSpacing: '.04em',
-    textTransform: 'uppercase',
-    color: 'var(--faint)',
-    mt: '1px',
-  },
   detailsButton: {
     fontSize: '0.72rem',
     py: 0.5,
   },
 } as const;
+
+// Nom d'entité en display.
+const NAME_TEXT_CLASS = 'cn-text-body1 truncate font-[family-name:var(--font-display)] text-[15px] font-semibold tracking-[-.01em] text-[var(--ink)]';
+const LOCATION_TEXT_CLASS = 'cn-text-body1 truncate flex-1 text-[11.5px] text-[var(--muted)]';
+// Bande de KPI (valeurs display tabular-nums).
+const STAT_VALUE_CLASS = 'cn-text-body1 font-[family-name:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] tabular-nums leading-[1.2]';
+const STAT_LABEL_CLASS = 'cn-text-body1 text-[9.5px] font-bold tracking-[.04em] uppercase text-[var(--faint)] mt-px';
 
 const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
   request,
@@ -237,9 +208,9 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
       <CardContent sx={styles.infoContent}>
         {/* Titre + chip type */}
         <div className="flex items-center gap-1 min-w-0 mb-0.5">
-          <Typography sx={{ ...styles.nameText, flex: 1 }} title={request.title}>
+          <p className={cn(NAME_TEXT_CLASS, 'flex-1')} title={request.title}>
             {request.title}
-          </Typography>
+          </p>
           {/* Bordure teintee a l'execution : une classe Tailwind ne peut pas
               naitre d'une variable. Le raccourci `border` inline porte aussi le
               border-style, il l'emporte donc sur le `border-none` du gabarit. */}
@@ -256,12 +227,12 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
           <span className="inline-flex text-[var(--muted)] shrink-0">
             <LocationOn size={14} strokeWidth={1.75} />
           </span>
-          <Typography
-            sx={styles.locationText}
+          <p
+            className={LOCATION_TEXT_CLASS}
             title={`${request.propertyName} — ${request.propertyAddress}, ${request.propertyCity}`}
           >
             {request.propertyName}
-          </Typography>
+          </p>
         </div>
 
         {/* Bande de KPI : échéance / coût est. / durée */}
@@ -271,10 +242,11 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
               key={cell.label}
               className="min-w-0 flex-1 border-e border-solid border-[var(--line)] py-[9px] text-center last:border-e-0"
             >
-              <Typography sx={{ ...styles.statValue, ...(cell.color ? { color: cell.color } : {}) }}>
+              {/* La teinte d'echeance est calculee a l'execution : style inline obligatoire. */}
+              <p className={STAT_VALUE_CLASS} style={cell.color ? { color: cell.color } : undefined}>
                 {cell.value}
-              </Typography>
-              <Typography sx={styles.statLabel}>{cell.label}</Typography>
+              </p>
+              <p className={STAT_LABEL_CLASS}>{cell.label}</p>
             </div>
           ))}
         </div>

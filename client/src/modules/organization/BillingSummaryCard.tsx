@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Typography, Divider, Skeleton } from '@mui/material';
+import { Divider, Skeleton } from '@mui/material';
 import {
   Receipt as ReceiptIcon,
 } from '../../icons';
@@ -111,18 +111,14 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
         <p className="cn-text-body1 text-[0.85rem] font-bold text-foreground">
           {t('billing.monthlyTotal')}
         </p>
-        <Typography
-          sx={{
-            fontSize: '0.95rem',
-            fontWeight: 700,
-            fontVariantNumeric: 'tabular-nums',
-            letterSpacing: '-0.01em',
-            color: hasDiscount ? 'text.disabled' : 'var(--ok)',
-            ...(hasDiscount && { textDecoration: 'line-through' }),
-          }}
+        <p
+          className={cn(
+            'cn-text-body1 text-[0.95rem] font-bold tabular-nums tracking-[-0.01em]',
+            hasDiscount ? 'text-[var(--faint)] line-through' : 'text-[var(--ok)]',
+          )}
         >
           <Money value={summary.totalMonthlyCents / 100} />
-        </Typography>
+        </p>
       </div>
 
       {/* Effective with discount */}

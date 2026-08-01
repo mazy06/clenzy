@@ -54,7 +54,7 @@ const ReservationWizardSteps: React.FC<Props> = ({ steps, current, reachable, on
             >
               {state === 'done' ? <Check size={12} strokeWidth={2.5} /> : n}
             </div>
-            <span className={cn('cn-text-body1 text-[12px] whitespace-nowrap', state === 'current' ? 'font-semibold' : 'font-medium', state === 'current' ? 'text-[var(--ink)]' : '[object Object]')}>
+            <span className={cn('cn-text-body1 text-[12px] whitespace-nowrap', state === 'current' ? 'font-semibold' : 'font-medium', state === 'current' ? 'text-[var(--ink)]' : state === 'done' ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}>
               {label}
             </span>
           </button>

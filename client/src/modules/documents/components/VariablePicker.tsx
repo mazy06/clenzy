@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Divider, InputAdornment, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { Divider, InputAdornment, Stack, TextField, Tooltip } from '@mui/material';
 import { Search } from '../../../icons';
 import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import type { TemplateVariable } from '../../../services/api/guestMessagingApi';
@@ -225,14 +225,13 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
           <div className="max-h-[200px] overflow-y-auto">
             {variables.map((v) => (
               <div className="mb-0.5" key={v.key}>
-                <Typography
-                  variant="caption"
-                  component="span"
-                  fontFamily="monospace"
-                  sx={{ color: CATEGORIES[CATEGORY_OF[v.key] ?? 'uncategorized'].tone.c, fontWeight: 600 }}
+                {/* Teinte de la categorie connue seulement a l'execution : style inline. */}
+                <span
+                  className="cn-text-caption font-mono font-semibold"
+                  style={{ color: CATEGORIES[CATEGORY_OF[v.key] ?? 'uncategorized'].tone.c }}
                 >
                   {`{${v.key}}`}
-                </Typography>
+                </span>
                 <span className="cn-text-caption text-muted-foreground">
                   {' — '}{v.description}
                 </span>

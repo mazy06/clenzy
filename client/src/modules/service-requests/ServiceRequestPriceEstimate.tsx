@@ -226,7 +226,7 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
           <div className={cn(DURATION_BANNER_CLASS, !hasRichData && 'mt-[9px]')}>
             <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
             <div className="flex items-baseline gap-0.5">
-              <p className="cn-text-body1 text-[16px] font-semibold text-[var(--accent)] leading-[1.2] font-[var(--font-display)] tabular-nums">
+              <p className="cn-text-body1 text-[16px] font-semibold text-[var(--accent)] leading-[1.2] font-[family-name:var(--font-display)] tabular-nums">
                 {formatDuration(estimatedDuration)}
               </p>
               <p className="cn-text-body1 text-[10.5px] font-medium text-[var(--muted)]">

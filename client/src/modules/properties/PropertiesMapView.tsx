@@ -136,7 +136,7 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
                       {/* Prix + Action */}
                       <div className="flex items-center gap-2 shrink-0">
                         {property.nightlyPrice > 0 && (
-                          <p className="cn-text-body2 font-[var(--font-display)] font-semibold text-[13.5px] whitespace-nowrap text-[var(--ink)] tabular-nums">
+                          <p className="cn-text-body2 font-[family-name:var(--font-display)] font-semibold text-[13.5px] whitespace-nowrap text-[var(--ink)] tabular-nums">
                             <Money value={property.nightlyPrice} from="EUR" decimals={0} />
                             <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
                               /nuit

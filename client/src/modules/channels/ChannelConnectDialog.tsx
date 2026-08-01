@@ -118,7 +118,7 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
               <img className="h-[20px] object-contain" src={channel.logo} alt={channel.name} />
             </div>
           )}
-          <p className="cn-text-body1 font-[var(--font-display)] text-[1rem] font-semibold text-[var(--ink)]">
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1rem] font-semibold text-[var(--ink)]">
             {t('channels.connect.title', { channel: channel.name })}
           </p>
         </div>

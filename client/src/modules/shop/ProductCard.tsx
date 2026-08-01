@@ -2,7 +2,7 @@ import React from 'react';
 import StatusChip from '../../components/StatusChip';
 import { cn } from '../../utils/cn';
 import { Card } from '../../components/ui';
-import { Typography, Button, IconButton, Divider } from '@mui/material';
+import { Button, IconButton, Divider } from '@mui/material';
 import {
   Add,
   Remove,
@@ -86,17 +86,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
       {/* Body */}
       <div className="p-3 pb-2 flex flex-col flex-1">
         {/* Title + SKU */}
-        <Typography
-          fontWeight={700}
-          sx={{
-            fontSize: '0.95rem',
-            lineHeight: 1.25,
-            color: 'text.primary',
-            textWrap: 'balance',
-          }}
-        >
+        <p className="cn-text-body1 font-bold text-[0.95rem] leading-[1.25] text-[var(--ink)] text-balance">
           {product.name}
-        </Typography>
+        </p>
         <p className="cn-text-body1 text-muted-foreground opacity-60 text-[0.6875rem] font-medium tracking-[0.04em] mt-0.5 mb-1.5 tabular-nums uppercase">
           {product.sku}
         </p>
@@ -108,7 +100,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Price row */}
         <div className="flex items-baseline gap-1.5 mb-2">
-          <p className="cn-text-body1 font-[var(--font-display)] text-[1.15rem] font-semibold text-[var(--ink)] tabular-nums tracking-[-0.01em]">
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.15rem] font-semibold text-[var(--ink)] tabular-nums tracking-[-0.01em]">
             {formatPrice(product.price)}
           </p>
           {product.originalPrice && (
@@ -188,7 +180,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             >
               <Remove size={14} strokeWidth={2} />
             </IconButton>
-            <p className="cn-text-body1 font-[var(--font-display)] font-semibold text-[15px] text-[var(--ink)] tabular-nums min-w-[24px] text-center">
+            <p className="cn-text-body1 font-[family-name:var(--font-display)] font-semibold text-[15px] text-[var(--ink)] tabular-nums min-w-[24px] text-center">
               {quantity}
             </p>
             <IconButton

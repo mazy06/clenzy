@@ -122,7 +122,7 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
             </div>
 
             {/* Price — display tabular-nums */}
-            <p className="cn-text-body2 font-semibold min-w-[60px] text-end text-[0.8125rem] font-[var(--font-display)] tabular-nums text-[var(--ink)]">
+            <p className="cn-text-body2 font-semibold min-w-[60px] text-end text-[0.8125rem] font-[family-name:var(--font-display)] tabular-nums text-[var(--ink)]">
               <Money value={plan.nightlyPrice} from={plan.currency || 'EUR'} />
             </p>
 

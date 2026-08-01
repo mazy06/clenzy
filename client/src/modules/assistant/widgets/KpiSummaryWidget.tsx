@@ -87,7 +87,7 @@ const KpiTile: React.FC<{ kpi: NonNullable<KpiSummaryData['kpis']>[number] }> = 
       <p className="cn-text-body1 block text-[var(--faint)] text-[10.5px] font-bold uppercase tracking-[.05em] mb-0.5 pe-2 whitespace-nowrap overflow-hidden text-ellipsis">
         {kpi.name}
       </p>
-      <p className="cn-text-body1 font-[var(--font-display)] text-[1.05rem] font-semibold leading-[1.2] tabular-nums text-[var(--ink)]">
+      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.05rem] font-semibold leading-[1.2] tabular-nums text-[var(--ink)]">
         {kpi.value}
       </p>
       {kpi.target && (

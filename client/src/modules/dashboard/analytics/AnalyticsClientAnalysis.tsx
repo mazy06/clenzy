@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography, Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent, Grid } from '@mui/material';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -37,6 +37,10 @@ const SECTION_LABEL_SX = {
   flexShrink: 0,
 } as const;
 
+/** Report en classes de `SECTION_LABEL_SX` (mb 0.5 = 3 px avec spacing 6). */
+const SECTION_LABEL_CLASS =
+  'cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.04em] text-[var(--muted)] mb-[3px] shrink-0';
+
 interface Props {
   data: ClientMetrics | null;
   loading: boolean;
@@ -55,9 +59,9 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
         <Grid item xs={12} sm={6}>
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
-              <Typography sx={SECTION_LABEL_SX}>
+              <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.bookingsBySource')}
-              </Typography>
+              </p>
               {loading || !data ? (
                 <div className="flex-1 flex items-center justify-center">
                   <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
@@ -102,9 +106,9 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
         <Grid item xs={12} sm={6}>
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
-              <Typography sx={SECTION_LABEL_SX}>
+              <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.topByPopularity')}
-              </Typography>
+              </p>
               {loading || !data ? (
                 <div className="flex-1 flex items-center justify-center">
                   <span className="cn-text-caption text-muted-foreground opacity-60">...</span>

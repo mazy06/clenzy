@@ -101,7 +101,7 @@ export default function ContentAiPanel() {
         <div className="w-[56px] h-[56px] mx-auto mb-3 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--accent-soft)] text-[var(--accent)]">
           <Sparkles size={26} strokeWidth={1.85} />
         </div>
-        <div className="text-[var(--text-lg)] font-[var(--fw-semibold)] mb-0.5">Aucune propriété</div>
+        <div className="text-[var(--text-lg)] font-[family-name:var(--fw-semibold)] mb-0.5">Aucune propriété</div>
         <div className="text-[var(--text-md)] text-[var(--muted)]">Ajoutez une propriété pour générer son contenu avec l'IA.</div>
       </div>
     );
@@ -139,11 +139,11 @@ export default function ContentAiPanel() {
           <div className="py-2">
             {result.title && (
               <div className="mb-2">
-                <div className="text-[var(--text-2xs)] font-[var(--fw-bold)] tracking-[.06em] uppercase text-[var(--faint)] mb-0.5">Titre</div>
-                <div className="text-[var(--text-md)] font-[var(--fw-semibold)] text-[var(--ink)]">{result.title}</div>
+                <div className="text-[var(--text-2xs)] font-[family-name:var(--fw-bold)] tracking-[.06em] uppercase text-[var(--faint)] mb-0.5">Titre</div>
+                <div className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">{result.title}</div>
               </div>
             )}
-            <div className="text-[var(--text-2xs)] font-[var(--fw-bold)] tracking-[.06em] uppercase text-[var(--faint)] mb-0.5">
+            <div className="text-[var(--text-2xs)] font-[family-name:var(--fw-bold)] tracking-[.06em] uppercase text-[var(--faint)] mb-0.5">
               {result.kind === 'SEO_META' ? 'Meta description' : 'Contenu'}
             </div>
             <div className="text-[var(--text-md)] text-[var(--body)] leading-[1.6] whitespace-pre-wrap">{result.content}</div>

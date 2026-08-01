@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import {
-  Paper, Typography, Tooltip, IconButton,
+  Paper, Tooltip, IconButton,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, Edit, BroomFill, Power, Delete, Business } from '../../icons';
@@ -132,7 +132,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center min-w-0 gap-1">
-                          <p className="cn-text-body2 font-[var(--font-display)] font-semibold text-[14px] text-[var(--ink)] tracking-[-.01em] min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                          <p className="cn-text-body2 font-[family-name:var(--font-display)] font-semibold text-[14px] text-[var(--ink)] tracking-[-.01em] min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                             {property.name}
                           </p>
                           {/* Quick Win #4 : badge sante Channex (visible si mapping present) */}
@@ -151,18 +151,9 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                           )}
                         </div>
                         {/* .pr-lci — localisation (ville) sous le nom */}
-                        <Typography
-                          sx={{
-                            fontSize: '11.5px',
-                            color: 'var(--muted)',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            mt: '1px',
-                          }}
-                        >
+                        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] overflow-hidden text-ellipsis whitespace-nowrap mt-[1px]">
                           {property.city}
-                        </Typography>
+                        </p>
                       </div>
                     </div>
                   </TableCell>
@@ -223,7 +214,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                       ); })()}
                       {price != null ? (
                         <div className="min-w-0">
-                          <p className="cn-text-body2 font-[var(--font-display)] font-semibold text-[13px] leading-[1.2] text-[var(--ink)] tabular-nums">
+                          <p className="cn-text-body2 font-[family-name:var(--font-display)] font-semibold text-[13px] leading-[1.2] text-[var(--ink)] tabular-nums">
                             <Money value={price} from="EUR" decimals={0} />
                           </p>
                           {duration != null && (

@@ -53,7 +53,7 @@ export default function SiteGenerationProgress({ brandLabel }: { brandLabel?: st
       <PageAssemblyMotif reduce={reduce} />
 
       <div>
-        <div className="font-[var(--font-display)] text-[var(--text-lg)] font-[var(--fw-bold)] text-[var(--ink)]">
+        <div className="font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">
           {k('title', 'Construction de votre site…')}
         </div>
         {brandLabel ? (

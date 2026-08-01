@@ -4,7 +4,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Paper, Typography, Button, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Tab, Card, CardContent, Grid } from '@mui/material';
+import { Paper, Button, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Tab, Card, CardContent, Grid } from '@mui/material';
 import {
   Add as AddIcon,
   CheckCircle as ApproveIcon,
@@ -111,6 +111,9 @@ const KPI_VALUE_SX = {
   fontVariantNumeric: 'tabular-nums',
   color: 'var(--ink)',
 } as const;
+
+/** Report en classes de `KPI_VALUE_SX`. */
+const KPI_VALUE_CLASS = 'cn-text-body1 [font-family:var(--font-display)] text-[1.125rem] font-semibold tracking-[-0.025em] tabular-nums text-[var(--ink)]';
 
 /** Chip statut — pattern baseline §2 : pilule r999, 10.5px fw700 h22, texte couleur + fond soft (hex ou var(--…)). */
 const softChipSx = (color: string) => ({
@@ -881,25 +884,27 @@ export const ExpensesTab: React.FC = () => {
           <p className={cn(KPI_LABEL_CLASS, 'cn-text-body1')}>
             {t('accounting.expenses.totalExpenses', 'Total depenses')}
           </p>
-          <Typography sx={KPI_VALUE_SX}>
+          <p className={KPI_VALUE_CLASS}>
             {fmtCurrency(stats.total)}
-          </Typography>
+          </p>
         </Paper>
         <Paper sx={{ ...CARD_SX, p: 1.5, flex: 1 }}>
           <p className={cn(KPI_LABEL_CLASS, 'cn-text-body1')}>
             {t('accounting.expenses.pendingCount', 'En attente')}
           </p>
-          <Typography sx={{ ...KPI_VALUE_SX, color: EXPENSE_STATUS_COLORS.DRAFT }}>
+          {/* Couleur issue d'une map importee (valeurs hex) : resolue a l'execution,
+              donc en style inline — une classe Tailwind ne peut pas en naitre. */}
+          <p className={KPI_VALUE_CLASS} style={{ color: EXPENSE_STATUS_COLORS.DRAFT }}>
             {stats.pending}
-          </Typography>
+          </p>
         </Paper>
         <Paper sx={{ ...CARD_SX, p: 1.5, flex: 1 }}>
           <p className={cn(KPI_LABEL_CLASS, 'cn-text-body1')}>
             {t('accounting.expenses.approvedCount', 'Approuvees')}
           </p>
-          <Typography sx={{ ...KPI_VALUE_SX, color: EXPENSE_STATUS_COLORS.APPROVED }}>
+          <p className={KPI_VALUE_CLASS} style={{ color: EXPENSE_STATUS_COLORS.APPROVED }}>
             {stats.approved}
-          </Typography>
+          </p>
         </Paper>
       </div>
 

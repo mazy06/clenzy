@@ -142,7 +142,7 @@ const StepperHeader: React.FC<{
                 </span>
               )}
             </div>
-            <span className={cn('cn-text-caption text-[0.7rem] text-center leading-[1.2] px-[1.5px]', isActive ? 'font-bold' : 'font-medium', isActive ? 'text-[var(--accent)]' : '[object Object]')}>
+            <span className={cn('cn-text-caption text-[0.7rem] text-center leading-[1.2] px-[1.5px]', isActive ? 'font-bold' : 'font-medium', isActive ? 'text-[var(--accent)]' : step.completed ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}>
               {step.label}
             </span>
           </div>

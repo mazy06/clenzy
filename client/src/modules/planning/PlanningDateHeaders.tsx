@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Tooltip, Typography } from '@mui/material';
+import { Tooltip } from '@mui/material';
 import { isToday, isWeekend, formatDayNumber, formatDayShort, formatFullDate } from './utils/dateUtils';
 import { DATE_HEADER_HEIGHT, WEEKEND_HEADER_BG } from './constants';
 import type { ZoomLevel } from './types';
@@ -69,32 +69,19 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
                   )}
                   {/* Numéro (spec .dn : Space Grotesk 14px fw600) —
                       aujourd'hui dans un carré accent 24×24 radius 8 */}
-                  <Typography
-                    sx={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      lineHeight: 1,
-                      fontVariantNumeric: 'tabular-nums',
-                      ...(today
-                        ? {
-                            backgroundColor: 'var(--accent)',
-                            color: 'var(--on-accent)',
-                            width: 24,
-                            height: 24,
-                            borderRadius: '8px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }
-                        : {
-                            // Spec .dn : var(--body), week-end inclus
-                            color: 'var(--body)',
-                          }),
-                    }}
+                  {/* rounded-[8px] et non rounded-lg : l'echelle de rayons du
+                      projet redefinit lg a 0.625rem (10px). */}
+                  <p
+                    className={cn(
+                      'cn-text-body1 [font-family:var(--font-display)] text-[14px] font-semibold leading-none tabular-nums',
+                      today
+                        ? 'inline-flex h-6 w-6 items-center justify-center rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)]'
+                        // Spec .dn : var(--body), week-end inclus
+                        : 'text-[var(--body)]',
+                    )}
                   >
                     {formatDayNumber(day)}
-                  </Typography>
+                  </p>
                 </div>
               </Tooltip>
             );

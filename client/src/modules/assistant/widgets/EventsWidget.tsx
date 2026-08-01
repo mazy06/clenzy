@@ -79,7 +79,7 @@ const EventRow: React.FC<{ item: EventItem }> = ({ item }) => {
   return (
     <div className="px-2 py-1.5 rounded-[10px] bg-[var(--card)] border border-[var(--line)] flex gap-1.5 items-start">
       <div className="min-w-[64px] flex flex-col items-center pt-0.5">
-        <p className="cn-text-body1 font-[var(--font-display)] text-[1rem] font-semibold leading-[1.1] text-[var(--ink)] tabular-nums">
+        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1rem] font-semibold leading-[1.1] text-[var(--ink)] tabular-nums">
           {formatDay(item.date)}
         </p>
         <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">

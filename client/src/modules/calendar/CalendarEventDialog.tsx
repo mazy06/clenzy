@@ -1,6 +1,6 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Divider } from '@mui/material';
 import {
   LocationOn as LocationIcon,
   Person as PersonIcon,
@@ -163,19 +163,9 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
             <Divider sx={{ my: 1.5 }} />
             <div className="flex items-start mb-1.5">
               <span className="inline-flex text-muted-foreground me-1.5 mt-0.5"><AssignmentIcon size={18} strokeWidth={1.75} /></span>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 3,
-                  WebkitBoxOrient: 'vertical',
-                }}
-              >
+              <p className="cn-text-body2 line-clamp-3 text-[var(--muted)]">
                 {intervention.description}
-              </Typography>
+              </p>
             </div>
           </>
         )}

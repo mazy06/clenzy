@@ -3,7 +3,8 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Grid, MenuItem, Paper, TextField, Typography } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Grid, MenuItem, Paper, TextField } from '@mui/material';
+import { cn } from '../../utils/cn';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -305,16 +306,14 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                     {t('messaging.templates.editor.previewSubject')}: {getPreviewText(subject) || '—'}
                   </h6>
                   <Divider sx={{ my: 1 }} />
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      whiteSpace: 'pre-wrap',
-                      fontFamily: 'inherit',
-                      direction: language === 'ar' ? 'rtl' : 'ltr',
-                    }}
+                  <p
+                    className={cn(
+                      'cn-text-body2 whitespace-pre-wrap font-[inherit]',
+                      language === 'ar' ? '[direction:rtl]' : '[direction:ltr]',
+                    )}
                   >
                     {getPreviewText(body) || '—'}
-                  </Typography>
+                  </p>
                 </Card>
                 <span className="cn-text-caption text-muted-foreground opacity-60 block mt-0.5">
                   {t('systemEmailTemplates.dialog.previewNote')}

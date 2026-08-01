@@ -4,7 +4,7 @@ import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
-import { Typography, Paper, CircularProgress, Skeleton, Tooltip, Button } from '@mui/material';
+import { Paper, CircularProgress, Skeleton, Tooltip, Button } from '@mui/material';
 import {
   AutoAwesome,
   TrendingUp,
@@ -178,14 +178,9 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
               </Tooltip>
 
               {/* Explanation */}
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                fontSize="0.7rem"
-                sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-              >
+              <span className="cn-text-caption flex-1 truncate text-[0.7rem] text-[var(--muted)]">
                 {rec.explanation}
-              </Typography>
+              </span>
             </div>
           ))}
         </div>

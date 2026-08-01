@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Spinner } from '../ui';
-import { Typography, TextField, MenuItem } from '@mui/material';
+import { TextField, MenuItem } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { Lock, Build } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -10,7 +10,7 @@ import { reservationsKeys } from '../../hooks/useReservations';
 import { INTERVENTION_TYPE_TOKEN_COLORS } from '../../modules/planning/constants';
 import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-import { SEC_SX, FIELD_SX, TEXTAREA_SX } from './reservationDialogStyles';
+import { FIELD_SX, TEXTAREA_SX } from './reservationDialogStyles';
 import PropertySelectField from './PropertySelectField';
 import ReservationRangeCalendar from './ReservationRangeCalendar';
 import ConflictAlert from './ConflictAlert';
@@ -22,6 +22,10 @@ const BTN_BASE_CLS =
   + '[font-family:inherit] text-[12.5px] font-semibold '
   + '[transition:transform_.12s,background_.14s,border-color_.14s,color_.14s] enabled:active:scale-[.97] '
   + 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
+
+// Transposition en classes de SEC_SX (.rm-sec) — la constante reste exportee
+// dans reservationDialogStyles pour les consommateurs sx eventuels.
+const SEC_CLS = 'cn-text-body1 text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)]';
 
 type BlockType = 'BLOCKED' | 'MAINTENANCE';
 
@@ -79,7 +83,7 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
         {form.showPropertySelector && <PropertySelectField form={form} />}
 
         <div className="flex flex-col gap-2.5">
-          <Typography sx={SEC_SX}>{t('reservations.dialog.stayDates')}</Typography>
+          <p className={SEC_CLS}>{t('reservations.dialog.stayDates')}</p>
           <ReservationRangeCalendar
             startDate={form.startDate}
             endDate={form.endDate}

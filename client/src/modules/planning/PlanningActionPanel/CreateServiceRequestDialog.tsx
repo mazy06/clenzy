@@ -933,7 +933,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                           <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
                           <div>
                             <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] leading-[1]">Durée estimée</p>
-                            <p className="cn-text-body1 font-[var(--font-display)] text-[0.9375rem] font-semibold text-[var(--accent)] leading-[1.3] tabular-nums">{formatDuration(estimatedDuration)}</p>
+                            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.9375rem] font-semibold text-[var(--accent)] leading-[1.3] tabular-nums">{formatDuration(estimatedDuration)}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
@@ -941,7 +941,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                           <div>
                             <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] leading-[1]">Prix estimé</p>
                             {priceRange ? (
-                              <p className="cn-text-body1 font-[var(--font-display)] text-[0.9375rem] font-semibold text-[var(--accent)] leading-[1.3] tabular-nums">
+                              <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.9375rem] font-semibold text-[var(--accent)] leading-[1.3] tabular-nums">
                                 {priceRange.min === priceRange.max ? <Money value={priceRange.min} from="EUR" /> : `${convertAndFormat(priceRange.min, 'EUR')} – ${convertAndFormat(priceRange.max, 'EUR')}`}
                               </p>
                             ) : (

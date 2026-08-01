@@ -157,7 +157,7 @@ function OtaChannelCard({
       {/* Card content */}
       <div className="flex flex-col flex-1 gap-[9px] p-[15px]">
         {/* Channel name */}
-        <p className="cn-text-body1 font-[var(--font-display)] text-[0.875rem] font-semibold text-[var(--ink)]">
+        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.875rem] font-semibold text-[var(--ink)]">
           {channel.name}
         </p>
 

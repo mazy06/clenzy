@@ -266,7 +266,7 @@ export default function PublicBookingPage() {
           HOME GrapesJS embarque déjà ses propres marqueurs hydratés (évite le doublon bookable). */}
       {!homeHasWidgets && (
         <div className="max-w-[1040px] mx-auto px-3 min-[900px]:px-6 py-6 min-[900px]:py-9" id="reserver">
-          <div className="font-[var(--font-display)] text-[var(--text-2xl)] font-[var(--fw-bold)] text-center mb-4">
+          <div className="font-[family-name:var(--font-display)] text-[var(--text-2xl)] font-[family-name:var(--fw-bold)] text-center mb-4">
             Réservez votre séjour
           </div>
           <div ref={widgetHostRef} />
@@ -284,7 +284,7 @@ function ReviewsSection({ data }: { data: PublicReviews }) {
     <div className="max-w-[1040px] mx-auto px-3 min-[900px]:px-6 py-6 min-[900px]:py-9">
       <div className="flex items-center justify-center gap-1.5 mb-4">
         <Star size={22} fill="var(--accent)" color="var(--accent)" />
-        <div className="font-[var(--font-display)] text-[var(--text-2xl)] font-[var(--fw-bold)] text-[var(--ink)]">
+        <div className="font-[family-name:var(--font-display)] text-[var(--text-2xl)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">
           {data.stats.averageRating.toFixed(1)}
         </div>
         <div className="text-[var(--muted)] text-[var(--text-md)]">· {data.stats.totalCount} avis</div>
@@ -300,7 +300,7 @@ function ReviewsSection({ data }: { data: PublicReviews }) {
             {r.reviewText && (
               <div className="text-[var(--text-md)] text-[var(--body)] leading-[1.5] mb-1.5">{r.reviewText}</div>
             )}
-            <div className="text-[var(--text-sm)] font-[var(--fw-semibold)] text-[var(--ink)]">{r.guestName}</div>
+            <div className="text-[var(--text-sm)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">{r.guestName}</div>
           </div>
         ))}
       </div>

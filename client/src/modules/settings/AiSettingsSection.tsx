@@ -5,7 +5,7 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useTabValueParam } from '../../components/tabKeyParam';
-import { Typography, Button, TextField, Grid, Alert, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Switch, Divider, useTheme, alpha } from '@mui/material';
+import { Button, TextField, Grid, Alert, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Switch, Divider, useTheme, alpha } from '@mui/material';
 import { Card } from '../../components/ui';
 import {
   CheckCircle,
@@ -140,15 +140,12 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
         {/* ── Clé masquée + état (clé perso uniquement) — une seule ligne compacte ── */}
         {isOrgKey && (
           <div className="flex items-center gap-1.5 mb-2 min-w-0">
-            <Typography
-              variant="caption"
-              fontFamily="monospace"
-              color="text.primary"
+            <span
               title={status.maskedApiKey ?? undefined}
-              sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.72rem' }}
+              className="cn-text-caption font-mono text-[var(--ink)] text-[0.72rem] flex-1 min-w-0 truncate"
             >
               {status.maskedApiKey}
-            </Typography>
+            </span>
             <StatusChip tokens={{ color: status.valid ? ok : theme.palette.error.main, bg: alpha(status.valid ? ok : theme.palette.error.main, isDark ? 0.18 : 0.1) }} label={status.valid
                 ? t('bookingEngine.ai.settings.validated')
                 : t('bookingEngine.ai.settings.notValidated')} icon={status.valid ? <CheckCircle size={13} strokeWidth={2} /> : <ErrorIcon size={13} strokeWidth={2} />} className="shrink-0 text-[0.66rem]" />

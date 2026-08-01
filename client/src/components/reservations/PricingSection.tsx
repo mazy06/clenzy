@@ -1,11 +1,11 @@
 import React from 'react';
 import { Spinner } from '../ui';
-import { Typography, TextField, Tooltip } from '@mui/material';
+import { TextField, Tooltip } from '@mui/material';
 import { Edit as EditIcon, RemoveCircleOutline as MinusCircleIcon, Percent } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-import { SEC_SX, FIELD_SX } from './reservationDialogStyles';
+import { FIELD_SX } from './reservationDialogStyles';
 
 interface Props {
   form: UseReservationFormResult;
@@ -23,6 +23,13 @@ const segTabCls = (on: boolean) =>
       ? 'bg-[var(--card)] text-[var(--accent)] shadow-[0_1px_3px_rgba(21,36,45,.12)]'
       : 'bg-transparent text-[var(--muted)] shadow-none',
   );
+
+// Transposition en classes de SEC_SX (.rm-sec) — la constante reste exportee
+// dans reservationDialogStyles pour les consommateurs sx eventuels.
+const SEC_CLS = 'cn-text-body1 text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)]';
+
+// Ligne de detail du recap (override / menage / taxe de sejour).
+const RECAP_LINE_CLS = 'cn-text-body1 text-[12.5px] text-[var(--muted)] mt-[2px] tabular-nums';
 
 /**
  * Tarification : base /nuit DYNAMIQUE (PriceEngine, lecture seule) + override
@@ -72,7 +79,7 @@ const PricingSection: React.FC<Props> = ({ form }) => {
 
   return (
     <>
-      <Typography sx={SEC_SX}>{t('reservations.dialog.pricingSection')}</Typography>
+      <p className={SEC_CLS}>{t('reservations.dialog.pricingSection')}</p>
 
       {/* Base /nuit (dynamique, lecture seule) + override */}
       <div className="grid grid-cols-[1fr_1fr] gap-3">
@@ -129,32 +136,23 @@ const PricingSection: React.FC<Props> = ({ form }) => {
             )}
           </p>
           {overrideActive && (
-            <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
+            <p className={RECAP_LINE_CLS}>
               {form.pricingLabel} → {t('reservations.dialog.accommodation')} : {form.accommodationTotal.toFixed(2)} €
-            </Typography>
+            </p>
           )}
           {form.cleaningFeeAmount > 0 && (
-            <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
+            <p className={RECAP_LINE_CLS}>
               + {t('reservations.dialog.cleaningLine')} : {form.cleaningFeeAmount.toFixed(2)} €
-            </Typography>
+            </p>
           )}
           {form.touristTaxAmount > 0 && (
-            <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
+            <p className={RECAP_LINE_CLS}>
               + {t('reservations.dialog.touristTaxLine')} : {form.touristTaxAmount.toFixed(2)} €
-            </Typography>
+            </p>
           )}
-          <Typography
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '17px',
-              fontWeight: 600,
-              color: 'var(--accent-deep)',
-              marginTop: '6px',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
+          <p className="cn-text-body1 [font-family:var(--font-display)] text-[17px] font-semibold text-[var(--accent-deep)] mt-[6px] tabular-nums">
             {t('reservations.dialog.total')} : {form.totalPrice.toFixed(2)} €
-          </Typography>
+          </p>
         </div>
       )}
     </>

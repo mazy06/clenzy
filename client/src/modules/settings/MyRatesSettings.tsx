@@ -136,7 +136,7 @@ export default function MyRatesSettings() {
         <Card className="gap-0 py-0 p-3.5">
           <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('settings.myRates.scoreSection')}</p>
           <div className="flex items-baseline gap-2 flex-wrap">
-            <p className="cn-text-body1 font-[var(--font-display)] text-[26px] font-semibold text-[var(--accent)] tabular-nums">
+            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[26px] font-semibold text-[var(--accent)] tabular-nums">
               {score.score}<span className="text-[14px] text-[var(--muted)] font-medium">/100</span>
             </p>
             <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">

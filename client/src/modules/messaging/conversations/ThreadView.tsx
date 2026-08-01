@@ -161,7 +161,7 @@ export default function ThreadView({
           </button>
         )}
         <div className="min-w-0">
-          <p className="cn-text-body1 font-[var(--font-display)] text-[16px] font-semibold text-[var(--ink)] leading-[1.25] whitespace-nowrap overflow-hidden text-ellipsis">
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[16px] font-semibold text-[var(--ink)] leading-[1.25] whitespace-nowrap overflow-hidden text-ellipsis">
             {title}
           </p>
           <div className="text-[11.5px] text-[var(--muted)] flex items-center gap-1">

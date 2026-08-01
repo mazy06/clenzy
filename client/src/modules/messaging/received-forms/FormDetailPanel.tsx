@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField, Tooltip, Typography } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField, Tooltip } from '@mui/material';
 import {
   Archive as ArchiveIcon,
   ArrowBack as ArrowBackIcon,
@@ -191,11 +191,11 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
 
       {/* .fr-dhead : entête identité + statut */}
       <div className="flex items-start gap-3.5 pb-[18px]" style={{ borderBottom: '1px solid var(--line)' }}>
-        <div className="w-[60px] h-[60px] rounded-[50%] shrink-0 flex items-center justify-center font-[var(--font-display)] font-semibold text-[20px] text-[var(--on-accent)] bg-[var(--accent)]">
+        <div className="w-[60px] h-[60px] rounded-[50%] shrink-0 flex items-center justify-center font-[family-name:var(--font-display)] font-semibold text-[20px] text-[var(--on-accent)] bg-[var(--accent)]">
           {initialsOf(form.fullName)}
         </div>
         <div className="min-w-0">
-          <p className="cn-text-body1 font-[var(--font-display)] text-[20px] font-semibold text-[var(--ink)] tracking-[-.01em]">
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[20px] font-semibold text-[var(--ink)] tracking-[-.01em]">
             {form.fullName || 'Anonyme'}
           </p>
           <p className="cn-text-body1 text-[13px] text-[var(--muted)] mt-0.5">
@@ -340,22 +340,19 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
                     {isFailed ? <AlertTriangleIcon size={15} strokeWidth={1.75} /> : 'PDF'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <Typography sx={{
-                      fontSize: '13px', fontWeight: 600, color: isFailed ? 'var(--err)' : 'var(--ink)',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
+                    <p className={cn(
+                      'cn-text-body1 text-[13px] font-semibold truncate',
+                      isFailed ? 'text-[var(--err)]' : 'text-[var(--ink)]',
+                    )}>
                       {isFailed ? 'Échec de génération' : (gen.fileName || `document-${gen.id}.pdf`)}
-                    </Typography>
+                    </p>
                     {/* Erreur : 1re ligne uniquement (tronquée) — détail complet dans la modale au clic. */}
-                    <Typography sx={{
-                      fontSize: '11.5px', color: 'var(--muted)', mt: '1px',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
+                    <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mt-[1px] truncate">
                       {isFailed
                         ? `${gen.errorMessage || 'Cause inconnue'}${gen.createdAt ? ` · ${formatFormDate(gen.createdAt)}` : ''}`
                         : [gen.legalNumber, gen.createdAt ? formatFormDate(gen.createdAt) : '']
                             .filter(Boolean).join(' · ')}
-                    </Typography>
+                    </p>
                   </div>
                   <span className={cn('ms-auto inline-flex items-center gap-1 text-[12.5px] font-semibold whitespace-nowrap shrink-0', isFailed ? 'text-[var(--err)]' : 'text-[var(--accent)]')}>
                     {isFailed ? 'Détail' : 'Aperçu'}

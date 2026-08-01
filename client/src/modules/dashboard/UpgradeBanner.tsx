@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Spinner } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
-import { Typography, Button, useTheme } from '@mui/material';
+import { Button, useTheme } from '@mui/material';
 import { cn } from '../../utils/cn';
 import {
   CalendarMonth as CalendarIcon,
@@ -137,14 +137,12 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                     className="absolute -top-2.5 right-2 h-5 border-[1.5px] border-solid border-[var(--accent)] px-1.5 text-[0.65rem] font-bold"
                   />
                 )}
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    fontWeight: 700,
-                    fontSize: '0.813rem',
-                    color: highlight ? C.primary : isCurrent ? 'text.secondary' : 'text.primary',
-                    mb: 0.75,
-                  }}
+                {/* Couleur calculee a l'execution (highlight/isCurrent) : elle passe par
+                    style, ou les jetons MUI 'text.*' seraient inertes — d'ou les
+                    variables CSS. mb: 0.75 = 4,5 px (theme.spacing vaut 6). */}
+                <h6
+                  className="cn-text-subtitle2 font-bold text-[0.813rem] mb-[4.5px]"
+                  style={{ color: highlight ? C.primary : isCurrent ? 'var(--muted)' : 'var(--ink)' }}
                 >
                   {label}
                   {isCurrent && (
@@ -152,24 +150,21 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                       (actuel)
                     </span>
                   )}
-                </Typography>
+                </h6>
                 {features.map((f) => (
                   <div className="flex items-center gap-1 mb-0.5" key={f}>
                     {/* 'text.disabled' etait un jeton MUI inerte en style inline : jeton CSS du projet */}
                     <span className="inline-flex shrink-0" style={{ color: highlight ? C.primary : isCurrent ? 'var(--faint)' : C.primaryLight }}>
                       <CheckIcon size={13} strokeWidth={1.75} />
                     </span>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: isCurrent ? 'text.secondary' : 'text.primary',
-                        lineHeight: 1.35,
-                        fontSize: '0.7rem',
-                        ...(isCurrent && { textDecoration: 'line-through', opacity: 0.6 }),
-                      }}
+                    <span
+                      className={cn(
+                        'cn-text-caption text-[0.7rem] leading-[1.35]',
+                        isCurrent ? 'text-[var(--muted)] line-through opacity-60' : 'text-[var(--ink)]',
+                      )}
                     >
                       {f}
-                    </Typography>
+                    </span>
                   </div>
                 ))}
               </div>

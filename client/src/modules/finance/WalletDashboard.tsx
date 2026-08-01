@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Card } from '../../components/ui';
-import { Typography, Paper, Grid, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, alpha } from '@mui/material';
+import { Paper, Grid, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, alpha } from '@mui/material';
+import { cn } from '../../utils/cn';
 import {
   AccountBalanceWallet,
   TrendingUp,
@@ -47,6 +48,9 @@ const moneySx = {
   fontFamily: 'var(--font-display)',
   fontVariantNumeric: 'tabular-nums',
 };
+
+/** Equivalent Tailwind de `moneySx` (les cibles MUI restantes gardent l'objet). */
+const MONEY_CLASS = 'font-[family-name:var(--font-display)] tabular-nums';
 
 const ENTRY_TYPE_TOKENS: Record<string, string> = {
   CREDIT: 'var(--ok)',
@@ -197,18 +201,9 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                         {typeInfo.label}
                       </p>
                     </div>
-                    <Typography
-                      sx={{
-                        ...moneySx,
-                        fontSize: '1.1875rem',
-                        fontWeight: 600,
-                        letterSpacing: '-0.025em',
-                        color: 'var(--ink)',
-                        lineHeight: 1.1,
-                      }}
-                    >
+                    <p className={cn(MONEY_CLASS, 'cn-text-body1 text-[1.1875rem] font-semibold tracking-[-0.025em] text-[var(--ink)] leading-[1.1]')}>
                       <Money value={wallet.balance} from={wallet.currency} />
-                    </Typography>
+                    </p>
                     <span className="cn-text-caption text-[var(--muted)]">
                       {wallet.currency}
                     </span>
@@ -222,7 +217,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
           {selectedWallet && (
             <Card className="gap-0 py-0 mt-4 border-[var(--line)] overflow-hidden">
               <div className="p-3 flex justify-between items-center">
-                <p className="cn-text-body1 font-[var(--font-display)] text-[16px] font-semibold tracking-[-0.01em] text-[var(--ink)]">
+                <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[16px] font-semibold tracking-[-0.01em] text-[var(--ink)]">
                   Historique — {WALLET_TYPE_LABELS[selectedWallet.walletType]?.label}
                 </p>
               </div>
@@ -273,17 +268,16 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                             </TableCell>
                             <TableCell align="right">
                               {/* Montant signé : display tabular-nums, ok/err */}
-                              <Typography
-                                sx={{
-                                  ...moneySx,
-                                  fontWeight: 600,
-                                  fontSize: '12.5px',
-                                  color: entry.entryType === 'CREDIT' ? 'var(--ok)' : 'var(--err)',
-                                }}
+                              <p
+                                className={cn(
+                                  MONEY_CLASS,
+                                  'cn-text-body1 font-semibold text-[12.5px]',
+                                  entry.entryType === 'CREDIT' ? 'text-[var(--ok)]' : 'text-[var(--err)]',
+                                )}
                               >
                                 {entry.entryType === 'CREDIT' ? '+' : '-'}
                                 <Money value={entry.amount} from={entry.currency} />
-                              </Typography>
+                              </p>
                             </TableCell>
                             <TableCell align="right" sx={{ ...moneySx, color: 'var(--ink)' }}>
                               <Money value={entry.balanceAfter} from={entry.currency} />

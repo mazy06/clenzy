@@ -120,7 +120,7 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
     <div className="max-w-[1080px] mx-auto px-3 min-[900px]:px-[18px] py-[18px]">
       <div className="flex items-end gap-3 mb-4">
         <div>
-          <div className="font-[var(--font-display)] text-[var(--text-xl)] font-[var(--fw-bold)]">Articles de blog</div>
+          <div className="font-[family-name:var(--font-display)] text-[var(--text-xl)] font-[family-name:var(--fw-bold)]">Articles de blog</div>
           <div className="text-[var(--text-sm)] text-[var(--muted)] mt-0.5">Rédige ou génère des articles ; les articles publiés apparaissent sur ton site.</div>
         </div>
         <div className="flex-1" />
@@ -145,7 +145,7 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
           <div className="w-[52px] h-[52px] mx-auto mb-2 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--accent-soft)] text-[var(--accent)]">
             <FileText size={24} strokeWidth={1.8} />
           </div>
-          <div className="text-[var(--text-md)] font-[var(--fw-semibold)] text-[var(--ink)] mb-0.5">Aucun article</div>
+          <div className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)] text-[var(--ink)] mb-0.5">Aucun article</div>
           <div className="text-[var(--text-sm)]">Crée ton premier article ou laisse l'IA t'en proposer un.</div>
         </div>
       )}
@@ -159,7 +159,7 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
               <div className="flex items-center gap-1.5 p-2 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--card)]" key={p.id}>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1 min-w-0">
-                    <div className="text-[var(--text-md)] font-[var(--fw-semibold)] whitespace-nowrap overflow-hidden text-ellipsis">{p.title || '(sans titre)'}</div>
+                    <div className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)] whitespace-nowrap overflow-hidden text-ellipsis">{p.title || '(sans titre)'}</div>
                     {p.aiGenerated && <span className="shrink-0 inline-flex items-center px-[4.5px] h-[17px] rounded-full bg-[var(--accent-soft)] text-[var(--accent)] text-[var(--text-2xs)] font-bold tracking-[.04em]">IA</span>}
                   </div>
                   <div className="flex items-center gap-[3px] mt-[1.5px] text-[var(--text-2xs)]" style={{ color: meta.color }}>
@@ -269,7 +269,7 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
         <ButtonBase onClick={onClose} aria-label="Retour" sx={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', color: 'var(--muted)', cursor: 'pointer', '&:hover': { bgcolor: 'var(--hover)', color: 'var(--ink)' } }}>
           <ArrowLeft size={17} strokeWidth={2} />
         </ButtonBase>
-        <div className="flex-1 font-[var(--font-display)] text-[var(--text-lg)] font-[var(--fw-bold)]">{post ? "Éditer l'article" : 'Nouvel article'}</div>
+        <div className="flex-1 font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)]">{post ? "Éditer l'article" : 'Nouvel article'}</div>
         <ButtonBase onClick={save} disabled={saving || !draft.title.trim()} sx={primaryBtnSx}>
           <Check size={15} strokeWidth={2.4} /> {saving ? 'Enregistrement…' : 'Enregistrer'}
         </ButtonBase>
@@ -321,7 +321,7 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex-1 min-w-0">
-      <label className="block mb-0.5 text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--body)]">{label}</label>
+      <label className="block mb-0.5 text-[var(--text-sm)] font-[family-name:var(--fw-medium)] text-[var(--body)]">{label}</label>
       {children}
     </div>
   );

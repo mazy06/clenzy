@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { Card } from '../../../components/ui';
-import { Dialog, Typography, IconButton, Tooltip, Paper, useTheme } from '@mui/material';
+import { Dialog, IconButton, Tooltip, Paper, useTheme } from '@mui/material';
 import { Close as CloseIcon, FullscreenExit as MinimizeIcon } from '../../../icons';
 import BaitlyMarkLogo from '../../../components/BaitlyMarkLogo';
 import { MessageList } from './MessageList';
@@ -169,18 +169,9 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
                   <BaitlyMarkLogo variant="mark" size={52} />
                 </div>
                 <div>
-                  <Typography
-                    sx={{
-                      mb: 0.5,
-                      fontFamily: 'var(--font-display)',
-                      fontSize: 18,
-                      fontWeight: 600,
-                      color: 'var(--ink)',
-                      textWrap: 'balance',
-                    }}
-                  >
+                  <p className="cn-text-body1 mb-[3px] [font-family:var(--font-display)] text-[18px] font-semibold text-[var(--ink)] [text-wrap:balance]">
                     Comment puis-je t&apos;aider ?
-                  </Typography>
+                  </p>
                   <p className="cn-text-body1 max-w-[480px] text-[13px] leading-[1.55] text-[var(--muted)]">
                     Pose-moi une question sur tes proprietes, reservations, menages ou KPIs.
                     J&apos;utilise tes donnees Baitly en temps reel.

@@ -1,6 +1,6 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Typography, LinearProgress } from '@mui/material';
+import { LinearProgress } from '@mui/material';
 import { cn } from '../../../utils/cn';
 import {
   TrendingUp as TrendUpIcon,
@@ -205,7 +205,7 @@ const StatTile: React.FC<{
       <p className="cn-text-body1 block text-[var(--faint)] text-[10.5px] font-bold uppercase tracking-[.05em] mb-0.5">
         {label}
       </p>
-      <p className="cn-text-body1 font-[var(--font-display)] text-[1.15rem] font-semibold leading-[1.2] tabular-nums text-[var(--ink)] tracking-[-0.01em]">
+      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.15rem] font-semibold leading-[1.2] tabular-nums text-[var(--ink)] tracking-[-0.01em]">
         {value}
       </p>
       {hint && (
@@ -224,15 +224,14 @@ const SectionHeader: React.FC<{
 }> = ({ label, icon, color }) => (
   <div className="flex items-center gap-0.5 mb-1">
     <div className="inline-flex" style={{ color }}>{icon}</div>
-    <Typography
-      sx={{
-        fontSize: '10.5px', fontWeight: 700,
-        textTransform: 'uppercase', letterSpacing: '.05em',
-        color,
-      }}
+    {/* `color` est une prop : sa valeur n'existe qu'a l'execution, donc style
+        inline (comme l'icone au-dessus) et non classe Tailwind. */}
+    <p
+      className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em]"
+      style={{ color }}
     >
       {label}
-    </Typography>
+    </p>
   </div>
 );
 
@@ -250,7 +249,7 @@ const TopPerformerCard: React.FC<{ performer: TopPerformer }> = ({ performer }) 
         </p>
       )}
       <div className="flex items-baseline gap-1 mt-0.5">
-        <p className="cn-text-body1 font-[var(--font-display)] text-[1rem] font-semibold tabular-nums text-[var(--ok)]">
+        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1rem] font-semibold tabular-nums text-[var(--ok)]">
           {formatCurrency(performer.revenue)}
         </p>
         <p className="cn-text-body1 text-[var(--faint)] text-[11.5px]">
@@ -299,7 +298,7 @@ const UnderPerformerRow: React.FC<{ performer: UnderPerformer }> = ({ performer 
           → {performer.recommendation}
         </p>
       </div>
-      <p className="cn-text-body1 font-[var(--font-display)] text-[0.85rem] font-semibold tabular-nums text-[var(--warn)] whitespace-nowrap">
+      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.85rem] font-semibold tabular-nums text-[var(--warn)] whitespace-nowrap">
         {Math.round(performer.occupancy * 100)}%
       </p>
     </div>

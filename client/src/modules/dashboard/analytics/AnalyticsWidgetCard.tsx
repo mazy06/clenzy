@@ -3,7 +3,6 @@ import { cn } from '../../../utils/cn';
 import {
   Card,
   CardContent,
-  Typography,
   Skeleton,
   Tooltip,
 } from '@mui/material';
@@ -65,18 +64,26 @@ const VALUE_SX = {
   maxWidth: '100%',
 } as const;
 
+/** Report en classes de `VALUE_SX`. */
+const VALUE_CLASS =
+  'cn-text-h6 [font-family:var(--font-display)] font-semibold leading-[1.15] tracking-[-0.025em] text-[var(--ink)] tabular-nums mt-[1.5px] truncate max-w-full';
+
 /**
  * Taille du chiffre adaptée à sa longueur (responsive) — un montant comme
  * « 120.00 € » doit tenir sur une ligne dans une carte étroite, alors qu'un
  * « 1 » ou « 46.7% » peut être affiché en grand.
+ *
+ * Les classes sont ecrites en toutes lettres : Tailwind ne peut pas les
+ * fabriquer depuis une valeur calculee a l'execution. Le palier `md` du theme
+ * vaut 900 px (breakpoints MUI par defaut), pas le `md` de Tailwind.
  */
-function valueFontSize(value?: string): { xs: string; md: string } {
-  if (value == null) return { xs: '1.05rem', md: '1.2rem' }; // nœud sans hint → taille moyenne sûre
+function valueFontSizeClass(value?: string): string {
+  if (value == null) return 'text-[1.05rem] min-[900px]:text-[1.2rem]'; // nœud sans hint → taille moyenne sûre
   const len = value.length;
-  if (len <= 5) return { xs: '1.5rem', md: '1.75rem' };
-  if (len <= 8) return { xs: '1.25rem', md: '1.45rem' };
-  if (len <= 12) return { xs: '1.05rem', md: '1.2rem' };
-  return { xs: '0.9rem', md: '1rem' };
+  if (len <= 5) return 'text-[1.5rem] min-[900px]:text-[1.75rem]';
+  if (len <= 8) return 'text-[1.25rem] min-[900px]:text-[1.45rem]';
+  if (len <= 12) return 'text-[1.05rem] min-[900px]:text-[1.2rem]';
+  return 'text-[0.9rem] min-[900px]:text-[1rem]';
 }
 
 const TITLE_SX = {
@@ -90,6 +97,10 @@ const TITLE_SX = {
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
 } as const;
+
+/** Report en classes de `TITLE_SX` (la couleur du `sx` bat le prop `color`). */
+const TITLE_CLASS =
+  'cn-text-body2 text-[10.5px] font-bold leading-[1.2] tracking-[0.05em] uppercase text-[var(--faint)] truncate';
 
 const GROWTH_SX = {
   fontSize: '0.5625rem',
@@ -154,16 +165,18 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
                   {icon}
                 </div>
               )}
-              <Typography variant="body2" color="text.secondary" sx={TITLE_SX}>
+              <p className={TITLE_CLASS}>
                 {title}
-              </Typography>
+              </p>
             </div>
 
-            {/* Value */}
+            {/* Value — la taille passe AVANT VALUE_CLASS : tailwind-merge
+                considere qu'une classe `text-[taille]` porte aussi la hauteur
+                de ligne et supprimerait un `leading-*` qui la precede. */}
             {value != null && value !== '' && (
-              <Typography variant="h6" component="div" sx={{ ...VALUE_SX, fontSize: valueFontSize(sizingText) }} title={sizingText}>
+              <div className={cn(valueFontSizeClass(sizingText), VALUE_CLASS)} title={sizingText}>
                 {value}
-              </Typography>
+              </div>
             )}
 
             {/* La description (subtitle) n'est plus affichée dans la carte :
@@ -180,7 +193,7 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
                 ) : (
                   <span className="inline-flex text-muted-foreground opacity-60"><Remove size={11} strokeWidth={1.75} /></span>
                 )}
-                <span className={cn(GROWTH_CLASS, 'cn-text-caption', trend.value > 0 ? 'text-[var(--ok)]' : '[object Object]')}>
+                <span className={cn(GROWTH_CLASS, 'cn-text-caption', trend.value > 0 ? 'text-[var(--ok)]' : trend.value < 0 ? 'text-[var(--err)]' : 'text-[var(--faint)]')}>
                   {trend.value > 0 ? '+' : ''}{trend.value}%
                   {trend.label ? ` ${trend.label}` : ''}
                 </span>

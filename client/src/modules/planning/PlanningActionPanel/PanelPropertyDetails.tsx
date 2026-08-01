@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
-import { Typography, Divider, Button, Accordion, AccordionSummary, AccordionDetails, Alert } from '@mui/material';
+import { Divider, Button, Accordion, AccordionSummary, AccordionDetails, Alert } from '@mui/material';
 import {
   Apartment,
   Bed,
@@ -56,6 +56,14 @@ const SECTION_TITLE_SX = {
   color: 'text.secondary',
   mb: 0.75,
 };
+
+/**
+ * Report en classes de `SECTION_TITLE_SX` (mb 0.75 = 4.5 px avec spacing 6).
+ * La taille est ecrite en litteral : une classe Tailwind ne peut pas naitre
+ * de la constante `LABEL_FS`, qui n'existe qu'a l'execution.
+ */
+const SECTION_TITLE_CLASS =
+  'text-[0.625rem] font-bold uppercase tracking-[0.06em] text-[var(--muted)] mb-[4.5px]';
 
 // ─── Amenity categorization & color palette ──────────────────────────────────
 //
@@ -281,7 +289,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
       {/* ─── ACCÈS : Digicode / Étage / Wi-Fi (si données) ───────────── */}
       {accessRows.length > 0 && (
         <div className="mb-2">
-          <Typography sx={SECTION_TITLE_SX}>Accès</Typography>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>Accès</p>
           <div className="[&>*+*]:[border-top:1px_solid_var(--line)]">
             {accessRows.map((row) => (
               <div className="flex items-center gap-1.5 py-[7px]" key={row.label}>
@@ -291,21 +299,12 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                 <p className="cn-text-body1 text-[var(--muted)] shrink-0" style={{ fontSize: BODY_FS }}>
                   {row.label}
                 </p>
-                <Typography
-                  sx={{
-                    ml: 'auto',
-                    fontSize: BODY_FS,
-                    fontWeight: 600,
-                    color: 'var(--ink)',
-                    fontVariantNumeric: 'tabular-nums',
-                    minWidth: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
+                <p
+                  className="cn-text-body1 ml-auto font-semibold text-[var(--ink)] tabular-nums min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
+                  style={{ fontSize: BODY_FS }}
                 >
                   {row.value}
-                </Typography>
+                </p>
               </div>
             ))}
           </div>
@@ -344,7 +343,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             par categorie sans surcharge "rainbow". */}
       {property.amenities.length > 0 && (
         <div className="mb-2">
-          <Typography sx={SECTION_TITLE_SX}>Équipements</Typography>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>Équipements</p>
           <div className="flex flex-wrap gap-0.5">
             {property.amenities.map((a) => {
               const palette = getAmenityChipStyle(a);
@@ -650,32 +649,18 @@ function ListItemCard({
         {icon}
       </span>
       <div className="flex-1 min-w-0">
-        <Typography
-          sx={{
-            fontSize: BODY_FS,
-            fontWeight: 600,
-            color: 'text.primary',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            lineHeight: 1.3,
-          }}
+        <p
+          className="cn-text-body1 font-semibold text-[var(--ink)] overflow-hidden text-ellipsis whitespace-nowrap leading-[1.3]"
+          style={{ fontSize: BODY_FS }}
         >
           {title}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: MICRO_FS,
-            color: 'text.secondary',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            lineHeight: 1.3,
-            textTransform: 'capitalize',
-          }}
+        </p>
+        <p
+          className="cn-text-body1 text-[var(--muted)] overflow-hidden text-ellipsis whitespace-nowrap leading-[1.3] capitalize"
+          style={{ fontSize: MICRO_FS }}
         >
           {meta}
-        </Typography>
+        </p>
       </div>
       <StatusChip
         size="sm"

@@ -88,7 +88,7 @@ export default function PropertySelectionPanel({ cfg }: PropertySelectionPanelPr
         <div className="w-[56px] h-[56px] mx-auto mb-3 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--accent-soft)] text-[var(--accent)]">
           <Home size={26} strokeWidth={1.85} />
         </div>
-        <div className="text-[var(--text-lg)] font-[var(--fw-semibold)] mb-0.5">Aucune propriété</div>
+        <div className="text-[var(--text-lg)] font-[family-name:var(--fw-semibold)] mb-0.5">Aucune propriété</div>
         <div className="text-[var(--text-md)] text-[var(--muted)]">Ajoutez des propriétés pour les proposer à la réservation.</div>
       </div>
     );

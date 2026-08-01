@@ -1,6 +1,6 @@
 import React, { useCallback, useId, useState } from 'react';
 import { cn } from '../utils/cn';
-import { Typography, IconButton, Popover, Tooltip } from '@mui/material';
+import { IconButton, Popover, Tooltip } from '@mui/material';
 import { Info as InfoIcon } from '../icons';
 import { HelpStepsGrid, type HelpStep } from './HelpBanner';
 
@@ -114,20 +114,9 @@ const HelpPopover: React.FC<HelpPopoverProps> = ({
           <div className="text-[10.5px] font-bold tracking-[.06em] uppercase text-[var(--accent)] bg-[var(--accent-soft)] border border-solid border-[color-mix(in_srgb,_var(--accent)_25%,_transparent)] rounded-[8px] px-[4.5px] py-[1.5px] mt-[1.5px] shrink-0 leading-[1.2]" aria-hidden>
             AIDE
           </div>
-          <Typography
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 15,
-              fontWeight: 600,
-              color: 'var(--ink)',
-              lineHeight: 1.3,
-              letterSpacing: '-.01em',
-              flex: 1,
-              textWrap: 'balance',
-            }}
-          >
+          <p className="cn-text-body1 [font-family:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] leading-[1.3] tracking-[-.01em] flex-1 text-balance">
             {title}
-          </Typography>
+          </p>
         </div>
 
         {/* Description */}

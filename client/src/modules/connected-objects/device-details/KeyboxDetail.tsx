@@ -155,7 +155,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                         <TableRow key={c.id}>
                           <TableCell>
                             {/* Code PIN : display (Space Grotesk) tabular-nums sur fond --field */}
-                            <span className="font-[var(--font-display)] tabular-nums font-semibold tracking-[0.06em] text-[var(--ink)] bg-[var(--field)] rounded-[9px] px-1.5 py-0.5 inline-block">
+                            <span className="font-[family-name:var(--font-display)] tabular-nums font-semibold tracking-[0.06em] text-[var(--ink)] bg-[var(--field)] rounded-[9px] px-1.5 py-0.5 inline-block">
                               {c.code}
                             </span>
                           </TableCell>

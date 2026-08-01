@@ -332,7 +332,7 @@ const ReservationsList: React.FC = () => {
                     </TableCell>
                     <TableCell align="right">
                       {/* Montant : display (Space Grotesk) + tabular-nums (baseline §1 typo) */}
-                      <p className="cn-text-body2 text-[0.82rem] font-semibold font-[var(--font-display)] tabular-nums text-[var(--ink)]">
+                      <p className="cn-text-body2 text-[0.82rem] font-semibold font-[family-name:var(--font-display)] tabular-nums text-[var(--ink)]">
                         {formatPrice(r.totalPrice)}
                       </p>
                     </TableCell>

@@ -48,7 +48,7 @@ const ReservationDialogHeader: React.FC<Props> = ({ form, onClose, entryMode, on
     // `rowGap: '10px'` precedait `gap: '12px'` dans le sx : la shorthand `gap`,
     // serialisee apres, ecrasait deja le row-gap. On garde le rendu reel (12px).
     <div className="flex items-center flex-wrap gap-[12px] py-[18px] px-[22px] border-b border-solid border-[var(--line)] shrink-0">
-      <span className="font-[var(--font-display)] text-[18px] font-semibold text-[var(--ink)] tracking-[-0.01em] whitespace-nowrap">
+      <span className="font-[family-name:var(--font-display)] text-[18px] font-semibold text-[var(--ink)] tracking-[-0.01em] whitespace-nowrap">
         {isBlock ? t('reservations.dialog.blockTitle') : form.headerTitle}
       </span>
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { IconButton, Tooltip, Typography } from '@mui/material';
+import { IconButton, Tooltip } from '@mui/material';
 import { ContentCopy, Check } from '../../../icons';
+import { cn } from '../../../utils/cn';
 
 interface DetailFieldProps {
   /** Small uppercase label rendered above the value (Baitly product register). */
@@ -55,11 +56,23 @@ const DetailField: React.FC<DetailFieldProps> = ({
     }
   };
 
-  const valueColor = isEmpty
-    ? 'text.disabled'
+  // Couleur portee par une CLASSE et non par `style` : le lien a un hover, et un
+  // style inline battrait la regle de survol.
+  const valueColorClass = isEmpty
+    ? 'text-[var(--faint)]'
     : tone === 'muted'
-      ? 'text.secondary'
-      : 'text.primary';
+      ? 'text-[var(--muted)]'
+      : 'text-[var(--ink)]';
+
+  const isLink = !!href && !isEmpty;
+
+  const valueClass = cn(
+    'cn-text-body1 min-w-0 truncate text-[0.875rem] font-medium',
+    '[transition:color_150ms_ease] motion-reduce:transition-none',
+    valueColorClass,
+    monospace && 'tabular-nums',
+    isLink && 'no-underline hover:text-[var(--accent)] hover:underline',
+  );
 
   return (
     <div className="min-w-0">
@@ -74,28 +87,13 @@ const DetailField: React.FC<DetailFieldProps> = ({
         </span>
       </div>
       <div className="flex items-center gap-0.5 min-w-0">
-        <Typography
-          component={href && !isEmpty ? 'a' : 'span'}
-          href={href && !isEmpty ? href : undefined}
-          sx={{
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            color: valueColor,
-            minWidth: 0,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            fontVariantNumeric: monospace ? 'tabular-nums' : undefined,
-            textDecoration: href && !isEmpty ? 'none' : undefined,
-            transition: 'color 150ms ease',
-            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            ...(href && !isEmpty && {
-              '&:hover': { color: 'var(--accent)', textDecoration: 'underline' },
-            }),
-          }}
-        >
-          {isEmpty ? '—' : value}
-        </Typography>
+        {isLink ? (
+          <a href={href} className={valueClass}>
+            {value}
+          </a>
+        ) : (
+          <span className={valueClass}>{isEmpty ? '—' : value}</span>
+        )}
         {canCopy && (
           <Tooltip title={copied ? 'Copié' : 'Copier'} arrow>
             <IconButton

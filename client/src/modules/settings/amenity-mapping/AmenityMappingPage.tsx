@@ -20,7 +20,7 @@ import { cn } from '../../../utils/cn';
 import { Badge } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
-import { Box, Typography, Stack, TextField, InputAdornment, Button, IconButton, Tooltip, Skeleton, Select, MenuItem, FormControl, Checkbox, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Stack, TextField, InputAdornment, Button, IconButton, Tooltip, Skeleton, Select, MenuItem, FormControl, Checkbox, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Search,
   Plus,
@@ -702,21 +702,12 @@ export default function AmenityMappingPage() {
                           <p className="cn-text-body1 text-[0.82rem] font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                             {label}
                           </p>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              display: 'block',
-                              fontFamily: '"SF Mono", Menlo, Consolas, monospace',
-                              fontSize: '0.65rem',
-                              color: 'text.disabled',
-                              lineHeight: 1.3,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
+                          <span
+                            className="cn-text-caption block text-[0.65rem] text-[var(--faint)] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap"
+                            style={{ fontFamily: '"SF Mono", Menlo, Consolas, monospace' }}
                           >
                             {a.code}
-                          </Typography>
+                          </span>
                         </div>
 
                         {/* Edit pencil (visible au hover) + badge override si actif */}
@@ -870,11 +861,11 @@ function KpiTile({ label, value, color, loading }: {
       {loading ? (
         <Skeleton width={40} height={32} />
       ) : (
-        <Typography sx={{
-          fontSize: '1.5rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color,
-        }}>
+        // `color` vient des props : une classe Tailwind ne peut pas naitre
+        // d'une variable, la teinte passe donc par le style inline.
+        <p className="cn-text-body1 text-[1.5rem] font-bold tabular-nums" style={{ color }}>
           {value}
-        </Typography>
+        </p>
       )}
     </div>
   );

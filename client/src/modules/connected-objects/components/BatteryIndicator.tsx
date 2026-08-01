@@ -1,4 +1,4 @@
-import { Typography, Tooltip, LinearProgress } from '@mui/material';
+import { Tooltip, LinearProgress } from '@mui/material';
 
 const LOW = 20;
 const CRITICAL = 10;
@@ -33,18 +33,13 @@ export default function BatteryIndicator({ level }: BatteryIndicatorProps) {
             '& .MuiLinearProgress-bar': { backgroundColor: color },
           }}
         />
-        <Typography
-          variant="caption"
-          sx={{
-            color,
-            fontWeight: 600,
-            lineHeight: 1,
-            fontFamily: 'var(--font-display)',
-            fontVariantNumeric: 'tabular-nums',
-          }}
+        {/* Couleur derivee du niveau a l'execution : style inline obligatoire */}
+        <span
+          className="cn-text-caption font-[family-name:var(--font-display)] font-semibold leading-none tabular-nums"
+          style={{ color }}
         >
           {level}%
-        </Typography>
+        </span>
       </span>
     </Tooltip>
   );

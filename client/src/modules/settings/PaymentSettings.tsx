@@ -3,7 +3,6 @@ import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
-  Typography,
   Chip,
   Alert,
   Snackbar,
@@ -929,6 +928,9 @@ interface ChannelProjectionTableProps {
  * « 80 % proprietaire » se lit comme 80 € sur 100 € verses par le voyageur,
  * alors qu'il en reste 67,60 € apres la commission d'un canal a 15,5 %.</p>
  */
+/** Montants projetes du tableau : meme taille et chiffres tabulaires partout. */
+const PROJECTION_NUMBER_CLASS = "cn-text-body1 text-[0.78rem] tabular-nums";
+
 function ChannelProjectionTable({
   rows,
   shares,
@@ -992,10 +994,6 @@ function ChannelProjectionTable({
               row.observedRate !== null &&
               Math.abs(row.observedRate - row.referenceRate) >=
                 RATE_DRIFT_THRESHOLD;
-            const numberSx = {
-              fontSize: "0.78rem",
-              fontVariantNumeric: "tabular-nums" as const,
-            };
             return (
               <TableRow
                 key={row.channel}
@@ -1023,37 +1021,39 @@ function ChannelProjectionTable({
                         : ""
                     }
                   >
-                    <Typography
-                      component="span"
-                      sx={{
-                        ...numberSx,
-                        color: fee > 0 ? "var(--err)" : "text.disabled",
-                        borderBottom: drifts
-                          ? "1px dotted var(--warn)"
-                          : "none",
-                        cursor: drifts ? "help" : "default",
-                      }}
+                    <span
+                      className={cn(
+                        PROJECTION_NUMBER_CLASS,
+                        fee > 0 ? "text-[var(--err)]" : "text-[var(--faint)]",
+                        // Propriete arbitraire plutot que border-b + border-dotted :
+                        // sans preflight, border-dotted poserait un style pointille
+                        // sur les quatre cotes, a la largeur `medium` par defaut.
+                        drifts
+                          ? "[border-bottom:1px_dotted_var(--warn)] cursor-help"
+                          : "cursor-default",
+                      )}
                     >
                       {fee > 0 ? `−${formatMoney(fee)}` : formatMoney(0)}
-                    </Typography>
+                    </span>
                   </Tooltip>
                 </TableCell>
                 <TableCell align="right">
-                  <Typography sx={{ ...numberSx, color: "text.secondary" }}>
+                  <p className={cn(PROJECTION_NUMBER_CLASS, "text-[var(--muted)]")}>
                     {formatMoney(net)}
-                  </Typography>
+                  </p>
                 </TableCell>
                 {shares.map((share) => (
                   <TableCell key={share.key} align="right">
-                    <Typography
-                      sx={{
-                        ...numberSx,
-                        fontWeight: share.primary ? 700 : 400,
-                        color: share.primary ? "text.primary" : "text.secondary",
-                      }}
+                    <p
+                      className={cn(
+                        PROJECTION_NUMBER_CLASS,
+                        share.primary
+                          ? "font-bold text-[var(--ink)]"
+                          : "font-normal text-[var(--muted)]",
+                      )}
                     >
                       {formatMoney((net * share.pct) / 100)}
-                    </Typography>
+                    </p>
                   </TableCell>
                 ))}
                 <TableCell>

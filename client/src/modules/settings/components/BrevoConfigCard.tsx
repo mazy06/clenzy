@@ -4,7 +4,7 @@ import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Typography, TextField, Button, Switch, FormControlLabel, MenuItem, Alert, Divider } from '@mui/material';
+import { TextField, Button, Switch, FormControlLabel, MenuItem, Alert, Divider } from '@mui/material';
 import { CheckCircle as CheckCircleIcon, ErrorOutline, Link as LinkIcon } from '../../../icons';
 import {
   useMarketingIntegration,
@@ -29,6 +29,9 @@ const labelSx = {
   textTransform: 'uppercase' as const,
   letterSpacing: '0.04em',
 };
+
+/** Report en classes de `labelSx`. */
+const labelClass = 'cn-text-body1 text-[0.72rem] font-semibold text-[var(--muted)] uppercase tracking-[0.04em]';
 
 
 interface BrevoConfigCardProps {
@@ -146,7 +149,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
       <div className="p-3 flex flex-col gap-3">
         {/* Clé API */}
         <div>
-          <Typography sx={labelSx}>Clé API Brevo (v3)</Typography>
+          <p className={labelClass}>Clé API Brevo (v3)</p>
           <div className="flex gap-1.5 mt-0.5">
             <TextField
               type="password"
@@ -209,7 +212,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
 
         {/* Mapping des listes */}
         <div>
-          <Typography sx={labelSx}>Listes Brevo</Typography>
+          <p className={labelClass}>Listes Brevo</p>
           {!data.configured ? (
             <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-0.5">
               Enregistre une clé API valide pour charger tes listes Brevo.
@@ -228,7 +231,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
 
         {/* Toggles de synchro */}
         <div className="flex flex-col gap-2">
-          <Typography sx={labelSx}>Synchronisations</Typography>
+          <p className={labelClass}>Synchronisations</p>
           {toggleRow('Waitlist → Brevo', 'Pousse les inscrits de la liste d’attente.', data.syncWaitlistEnabled, 'syncWaitlist')}
           {toggleRow('Newsletter → Brevo', 'Pousse les opt-in newsletter (inscription).', data.syncNewsletterEnabled, 'syncNewsletter')}
           {toggleRow('Leads devis → Brevo', 'Pousse les demandes de devis de la landing.', data.syncProspectsEnabled, 'syncProspects')}

@@ -3,7 +3,7 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, IconButton, Tooltip } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, Tooltip } from '@mui/material';
 import { Handshake, Check, Close } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -144,11 +144,11 @@ const ManagementContractFormModal: React.FC<ManagementContractFormModalProps> = 
           <Handshake size={18} strokeWidth={1.75} />
         </span>
         <div className="flex-1 min-w-0">
-          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 600, lineHeight: 1.25, textWrap: 'balance', color: 'var(--ink)' }}>
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[16px] font-semibold leading-[1.25] text-balance text-[var(--ink)]">
             {isEdit
               ? t('contracts.editTitle', 'Modifier le contrat')
               : t('contracts.createTitle', 'Créer un contrat de gestion')}
-          </Typography>
+          </p>
           <p className="cn-text-body1 text-[0.78rem] text-[var(--muted)] mt-0.5">
             {isEdit && contract
               ? contract.contractNumber

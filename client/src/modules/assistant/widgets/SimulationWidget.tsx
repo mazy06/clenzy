@@ -93,7 +93,7 @@ const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) =
       )}
 
       {/* Bandeau verdict — couleur selon delta */}
-      <div className={cn('px-[9px] py-[7.5px] rounded-[12px]', positive ? 'bg-[var(--ok-soft)]' : '[object Object]')}>
+      <div className={cn('px-[9px] py-[7.5px] rounded-[12px]', positive ? 'bg-[var(--ok-soft)]' : negative ? 'bg-[var(--err-soft)]' : 'bg-[var(--field)]')}>
         <div className="flex items-baseline gap-2 flex-wrap">
           <p className="cn-text-body1 text-[1.5rem] font-semibold tabular-nums leading-[1]" style={{ fontFamily: 'var(--font-display)', color: deltaColor(data.pctRevenueChange) }}>
             {formatPctSigned(data.pctRevenueChange)}
@@ -162,7 +162,7 @@ const ScenarioCard: React.FC<{
       <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-0.5">
         {label}
       </p>
-      <p className="cn-text-body1 font-[var(--font-display)] text-[1.35rem] font-semibold text-[var(--ink)] tabular-nums tracking-[-0.01em] leading-[1.1]">
+      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.35rem] font-semibold text-[var(--ink)] tabular-nums tracking-[-0.01em] leading-[1.1]">
         {formatCurrency(scenario.revenue)}
       </p>
       <div className="flex gap-2 mt-0.5 flex-wrap text-[var(--muted)]">
@@ -200,7 +200,7 @@ const CalendarBlockView: React.FC<{ data: CalendarBlockPayload }> = ({ data }) =
         <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--warn)]">
           Perte estimee de revenue
         </p>
-        <p className="cn-text-body1 font-[var(--font-display)] text-[1.75rem] font-semibold text-[var(--warn)] tabular-nums tracking-[-0.02em] leading-[1]">
+        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.75rem] font-semibold text-[var(--warn)] tabular-nums tracking-[-0.02em] leading-[1]">
           {formatCurrency(data.estimatedLostRevenue)}
         </p>
         <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mt-0.5">
@@ -238,7 +238,7 @@ const KpiTile: React.FC<{ label: string; value: string }> = ({ label, value }) =
     <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-0.5">
       {label}
     </p>
-    <p className="cn-text-body1 font-[var(--font-display)] text-[1rem] font-semibold text-[var(--ink)] tabular-nums">
+    <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1rem] font-semibold text-[var(--ink)] tabular-nums">
       {value}
     </p>
   </div>

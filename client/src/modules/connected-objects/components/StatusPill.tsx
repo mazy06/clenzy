@@ -1,4 +1,4 @@
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import { STATUS_TOKENS } from '../deviceRegistry';
 import type { DeviceStatusLevel } from '../types';
 
@@ -38,19 +38,10 @@ export default function StatusPill({ level, label, pulse = false }: StatusPillPr
           }),
         }}
       />
-      <Typography
-        variant="caption"
-        sx={{
-          color,
-          fontWeight: 600,
-          lineHeight: 1.2,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
+      {/* couleur resolue a l'execution depuis STATUS_TOKENS : passe par style, pas par une classe */}
+      <span className="cn-text-caption font-semibold leading-[1.2] truncate" style={{ color }}>
         {label}
-      </Typography>
+      </span>
     </div>
   );
 }

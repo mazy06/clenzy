@@ -346,7 +346,7 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
                 </div>
 
                 {/* Label */}
-                <p className={cn('cn-text-body1 text-[0.75rem] leading-[1.3] flex-1 min-w-0 truncate', isActive ? 'font-bold' : 'font-semibold', step.completed ? 'text-[var(--faint)]' : '[object Object]', step.completed ? 'decoration-[line-through]' : 'decoration-[none]')}>
+                <p className={cn('cn-text-body1 text-[0.75rem] leading-[1.3] flex-1 min-w-0 truncate', isActive ? 'font-bold' : 'font-semibold', step.completed ? 'text-[var(--faint)]' : isActive ? 'text-[var(--ink)]' : 'text-[var(--muted)]', step.completed ? 'decoration-[line-through]' : 'decoration-[none]')}>
                   {t(step.labelKey)}
                 </p>
 

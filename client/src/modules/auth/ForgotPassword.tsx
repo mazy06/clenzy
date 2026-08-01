@@ -4,7 +4,7 @@ import { CircleCheck, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { TextField, Button, Typography, Stack, Link } from '@mui/material';
+import { TextField, Button, Stack, Link } from '@mui/material';
 import apiClient, { ApiError } from '../../services/apiClient';
 import AuthLayout from './AuthLayout';
 
@@ -51,18 +51,9 @@ export default function ForgotPassword() {
     <AuthLayout>
       {/* ── Header form ── */}
       <div className="mb-6">
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 600,
-            color: 'text.primary',
-            mb: 1,
-            fontSize: { xs: '1.75rem', md: '2rem' },
-            textWrap: 'balance',
-          }}
-        >
+        <h4 className="cn-text-h4 font-semibold text-[var(--ink)] mb-1.5 text-[1.75rem] min-[900px]:text-[2rem] text-balance">
           {t('auth.forgotPassword.title', 'Mot de passe oublié ?')}
-        </Typography>
+        </h4>
         <p className="cn-text-body1 text-muted-foreground text-[0.95rem] leading-[1.5]">
           {t(
             'auth.forgotPassword.subtitle',

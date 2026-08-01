@@ -1,5 +1,4 @@
 import React from 'react';
-import { Typography } from '@mui/material';
 import { Warning as WarningIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
@@ -24,9 +23,9 @@ const ConflictAlert: React.FC<{ form: UseReservationFormResult; fullWidth?: bool
         {t('reservations.dialog.conflictTitle')}
       </div>
       {form.conflictWarnings.map((w, i) => (
-        <Typography key={i} sx={{ fontSize: '12.5px', color: 'var(--body)', marginTop: '4px', paddingInlineStart: '26px' }}>
+        <p key={i} className="cn-text-body1 text-[12.5px] text-[var(--body)] mt-1 ps-[26px]">
           {w}
-        </Typography>
+        </p>
       ))}
     </div>
   );

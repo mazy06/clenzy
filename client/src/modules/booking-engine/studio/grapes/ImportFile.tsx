@@ -166,7 +166,7 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
         ) : (
           <FileUp size={28} strokeWidth={1.75} style={{ color: 'var(--faint)' }} />
         )}
-        <div className="text-[var(--text-md)] font-[var(--fw-semibold)] text-[var(--ink)]">
+        <div className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">
           {loading
             ? 'Lecture du fichier…'
             : fileName
@@ -188,7 +188,7 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
 
       {warnings.length ? (
         <div className="text-[var(--text-sm)] text-[var(--muted)] bg-[var(--field)] border border-[var(--line)] rounded-[var(--radius-md)] px-2 py-2">
-          <div className="font-[var(--fw-semibold)] text-[var(--ink)] mb-0.5">
+          <div className="font-[family-name:var(--fw-semibold)] text-[var(--ink)] mb-0.5">
             Conversion partielle — relecture conseillée
           </div>
           <ul className="m-0 ps-3.5 flex flex-col gap-0.5">

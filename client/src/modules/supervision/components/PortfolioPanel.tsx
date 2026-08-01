@@ -93,7 +93,7 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
               <div className="px-2 pb-2 flex flex-col gap-2">
                 {portfolio.orgAlerts!.map((a, i) => (
                   <div className="flex gap-1.5 items-start" key={i}>
-                    <div className={cn('w-[8px] h-[8px] rounded-[50%] mt-[5px] shrink-0', a.severity === 'critical' ? 'bg-[var(--err,_#c0392b)]' : '[object Object]')} />
+                    <div className={cn('w-[8px] h-[8px] rounded-[50%] mt-[5px] shrink-0', a.severity === 'critical' ? 'bg-[var(--err,_#c0392b)]' : a.severity === 'warning' ? 'bg-[var(--warn,_#d4a017)]' : 'bg-[var(--info,_#4a90a4)]')} />
                     <div className="min-w-0">
                       <p className="cn-text-body1 text-[12.5px] font-bold text-[var(--ink,_#1b2240)] leading-[1.3]">
                         {a.title}

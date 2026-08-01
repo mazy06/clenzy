@@ -3,7 +3,6 @@ import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Container,
-  Typography,
   Link,
   ThemeProvider,
   CssBaseline,
@@ -72,20 +71,9 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
 
         {/* Corps */}
         <Container maxWidth="md" sx={{ flex: 1, py: { xs: 4, md: 6 } }}>
-          <Typography
-            variant="h4"
-            component="h1"
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontWeight: 600,
-              color: 'text.primary',
-              mb: 1,
-              fontSize: { xs: '1.75rem', md: '2.25rem' },
-              textWrap: 'balance',
-            }}
-          >
+          <h1 className="cn-text-h4 [font-family:var(--font-display)] text-[1.75rem] min-[900px]:text-[2.25rem] font-semibold text-[var(--ink)] text-balance mb-[6px]">
             {title}
-          </Typography>
+          </h1>
           <span className="cn-text-caption text-muted-foreground block mb-6">
             {t('auth.legal.lastUpdated', `Dernière mise à jour : ${lastUpdated}`, { date: lastUpdated })}
           </span>

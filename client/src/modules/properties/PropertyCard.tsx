@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Card,
   CardContent,
-  Typography,
   Button,
   IconButton,
   Dialog,
@@ -36,6 +35,7 @@ import {
 } from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
+import { cn } from '../../utils/cn';
 import { getPropertyTypeBannerUrl } from '../../utils/propertyTypeBanner';
 import {
   getPropertyStatusLabel,
@@ -137,60 +137,27 @@ const styles = {
     p: 1.75,
     pb: '12px !important',
   },
-  // .pr-nm — nom d'entité en display
-  nameText: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    fontFamily: 'var(--font-display)',
-    fontSize: '15px',
-    fontWeight: 600,
-    letterSpacing: '-.01em',
-    mb: 0.5,
-    color: 'var(--ink)',
-  },
-  addressText: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    flex: 1,
-    fontSize: '11.5px',
-    color: 'var(--muted)',
-  },
-  // .pr-stats — bande de stats hairline (valeurs display tabular-nums)
-  statValue: {
-    fontFamily: 'var(--font-display)',
-    fontSize: '15px',
-    fontWeight: 600,
-    color: 'var(--ink)',
-    fontVariantNumeric: 'tabular-nums',
-    lineHeight: 1.2,
-  },
-  statLabel: {
-    fontSize: '9.5px',
-    fontWeight: 700,
-    letterSpacing: '.04em',
-    textTransform: 'uppercase',
-    color: 'var(--faint)',
-    mt: '1px',
-  },
-  // ── Dialog ── (skin global MuiDialog ; surfaces internes en tokens)
-  dialogSectionTitle: {
-    fontSize: '10.5px',
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '.06em',
-    color: 'var(--faint)',
-    mb: 0.75,
-  },
-  dialogDescription: {
-    overflow: 'hidden',
-    display: '-webkit-box',
-    WebkitLineClamp: 4,
-    WebkitBoxOrient: 'vertical',
-    lineHeight: 1.4,
-  },
 } as const;
+
+// Typographie de la carte et du dialogue, transcrite en classes.
+// `font-[family-name:var(...)]` et non `font-[var(...)]` : sur une valeur `var()`,
+// Tailwind ne peut pas trancher entre famille et graisse et emettrait un
+// `font-weight` invalide, silencieusement ignore par le navigateur.
+
+/** .pr-nm — nom d'entité en display (la graisse du `sx` primait sur la prop 700). */
+const NAME_CLASS =
+  'cn-text-subtitle1 mb-[3px] min-w-0 flex-1 truncate font-[family-name:var(--font-display)] text-[15px] font-semibold tracking-[-.01em] text-[var(--ink)]';
+const ADDRESS_CLASS = 'cn-text-caption flex-1 truncate text-[11.5px] text-[var(--muted)]';
+/** .pr-stats — bande de stats hairline (valeurs display tabular-nums) */
+const STAT_VALUE_CLASS =
+  'cn-text-body1 font-[family-name:var(--font-display)] text-[15px] font-semibold leading-[1.2] text-[var(--ink)] tabular-nums';
+const STAT_LABEL_CLASS =
+  'cn-text-body1 mt-px text-[9.5px] font-bold uppercase tracking-[.04em] text-[var(--faint)]';
+// ── Dialog ── (skin global MuiDialog ; surfaces internes en tokens)
+const DIALOG_SECTION_TITLE_CLASS =
+  'cn-text-body1 mb-[4.5px] text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]';
+const DIALOG_DESCRIPTION_CLASS =
+  'cn-text-body2 line-clamp-4 leading-[1.4] text-[var(--muted)]';
 
 // ─── Duration estimation (lightweight version for cards) ─────────────────────
 
@@ -389,14 +356,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
         <CardContent sx={styles.infoContent}>
           {/* Nom + prix/nuit (si renseigné) */}
           <div className="flex items-center gap-1 min-w-0">
-            <Typography
-              variant="subtitle1"
-              fontWeight={700}
-              sx={{ ...styles.nameText, minWidth: 0, flex: 1 }}
-              title={property.name}
-            >
+            <h6 className={NAME_CLASS} title={property.name}>
               {property.name}
-            </Typography>
+            </h6>
             {property.nightlyPrice > 0 && (
               <StatusChip
                 tokens={{ color: 'var(--body)', bg: 'var(--card)' }}
@@ -409,22 +371,20 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
           {/* Adresse */}
           <div className="flex items-center gap-0.5 mb-2">
             <span className="inline-flex text-muted-foreground shrink-0"><LocationOn size={14} strokeWidth={1.75} /></span>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={styles.addressText}
+            <span
+              className={ADDRESS_CLASS}
               title={`${property.address}, ${property.postalCode} ${property.city}, ${property.country}`}
             >
               {property.address}, {property.postalCode} {property.city}
-            </Typography>
+            </span>
           </div>
 
           {/* Bande de KPI opérationnels (.pr-stats) — occupation / ADR / revenu */}
           <div className="flex border-t border-b border-solid border-[var(--line)] mb-[7.5px]">
             {kpiCells.map((metric) => (
               <div key={metric.label} className="flex-1 py-[9px] text-center border-r border-solid border-[var(--line)] min-w-0 last:border-r-0">
-                <Typography sx={styles.statValue}>{metric.value}</Typography>
-                <Typography sx={styles.statLabel}>{metric.label}</Typography>
+                <p className={STAT_VALUE_CLASS}>{metric.value}</p>
+                <p className={STAT_LABEL_CLASS}>{metric.label}</p>
               </div>
             ))}
           </div>
@@ -504,9 +464,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
           <Grid container spacing={2}>
             {/* Adresse */}
             <Grid item xs={12}>
-              <Typography sx={styles.dialogSectionTitle}>
+              <p className={DIALOG_SECTION_TITLE_CLASS}>
                 Adresse
-              </Typography>
+              </p>
               <p className="cn-text-body2">
                 {property.address}, {property.postalCode} {property.city}, {property.country}
               </p>
@@ -518,9 +478,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
 
             {/* Caractéristiques */}
             <Grid item xs={12}>
-              <Typography sx={{ ...styles.dialogSectionTitle, mb: 1 }}>
+              <p className={cn(DIALOG_SECTION_TITLE_CLASS, 'mb-[6px]')}>
                 Caractéristiques
-              </Typography>
+              </p>
               <div className="flex gap-3 flex-wrap">
                 {[
                   { icon: <BedIcon size={18} strokeWidth={1.75} />, value: property.bedrooms, label: 'Chambres' },
@@ -534,7 +494,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                   >
                     <div className="text-[var(--accent)] flex">{item.icon}</div>
                     <div>
-                      <p className="cn-text-body1 font-[var(--font-display)] text-[15px] font-semibold text-[var(--ink)] tabular-nums">{item.value}</p>
+                      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] tabular-nums">{item.value}</p>
                       <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.04em] uppercase text-[var(--faint)]">{item.label}</p>
                     </div>
                   </div>
@@ -548,11 +508,11 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
 
             {/* Estimation ménage + prix nuit */}
             <Grid item xs={12} md={6}>
-              <Typography sx={styles.dialogSectionTitle}>
+              <p className={DIALOG_SECTION_TITLE_CLASS}>
                 {t('properties.cleaningEstimate')}
-              </Typography>
+              </p>
               {cleaningPrice != null ? (
-                <p className="cn-text-body1 font-[var(--font-display)] text-[22px] font-semibold text-[var(--ink)] tabular-nums tracking-[-.01em]">
+                <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[22px] font-semibold text-[var(--ink)] tabular-nums tracking-[-.01em]">
                   <Money value={cleaningPrice} from="EUR" decimals={0} /> <span className="cn-text-caption text-muted-foreground">{t('properties.priceEstimation.perIntervention')}</span>
                 </p>
               ) : (
@@ -565,9 +525,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               )}
             </Grid>
             <Grid item xs={12} md={6}>
-              <Typography sx={styles.dialogSectionTitle}>
+              <p className={DIALOG_SECTION_TITLE_CLASS}>
                 Nettoyage
-              </Typography>
+              </p>
               <div className="flex items-center gap-1">
                 <span className="inline-flex text-muted-foreground"><BroomFill size={18} /></span>
                 <p className="cn-text-body2">{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</p>
@@ -581,9 +541,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                   <Divider />
                 </Grid>
                 <Grid item xs={12}>
-                  <Typography sx={{ ...styles.dialogSectionTitle, mb: 1 }}>
+                  <p className={cn(DIALOG_SECTION_TITLE_CLASS, 'mb-[6px]')}>
                     Commodités
-                  </Typography>
+                  </p>
                   <div className="flex flex-wrap gap-1">
                     {property.amenities.map((amenity) => (
                       <StatusChip
@@ -603,9 +563,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               <Divider />
             </Grid>
             <Grid item xs={12} md={6}>
-              <Typography sx={styles.dialogSectionTitle}>
+              <p className={DIALOG_SECTION_TITLE_CLASS}>
                 Contact
-              </Typography>
+              </p>
               <p className="cn-text-body2 mb-0.5">
                 {property.contactPhone || 'Téléphone non renseigné'}
               </p>
@@ -617,16 +577,12 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             {/* Description */}
             {property.description && (
               <Grid item xs={12} md={6}>
-                <Typography sx={styles.dialogSectionTitle}>
+                <p className={DIALOG_SECTION_TITLE_CLASS}>
                   Description
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={styles.dialogDescription}
-                >
+                </p>
+                <p className={DIALOG_DESCRIPTION_CLASS}>
                   {property.description}
-                </Typography>
+                </p>
               </Grid>
             )}
           </Grid>

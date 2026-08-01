@@ -3,7 +3,7 @@ import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Typography, Grid, Card, CardContent, Skeleton, Divider } from '@mui/material';
+import { Grid, Card, CardContent, Skeleton, Divider } from '@mui/material';
 import {
   Euro as EuroIcon,
   Schedule as ScheduleIcon,
@@ -49,6 +49,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { cn } from '../../utils/cn';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -98,7 +99,9 @@ const EMPTY_INTERVENTIONS: Array<{ estimatedCost?: number; actualCost?: number; 
 // Couleurs SVG (séries/grilles/ticks) : tokens résolus via useChartTokens().
 const MINI_CHART_CARD_SX = { width: '100%', height: 220 } as const;
 const MINI_CHART_CONTENT_SX = { p: 1.25, height: '100%', display: 'flex', flexDirection: 'column', '&:last-child': { pb: 1.25 } } as const;
-const MINI_CHART_LABEL_SX = { fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: 'var(--faint)', mb: 0.5, flexShrink: 0 } as const;
+// Libelle overline des mini-cartes (ex-MINI_CHART_LABEL_SX : mb 0.5 = 3 px avec spacing 6).
+const MINI_CHART_LABEL_CLASS =
+  'cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-[3px] shrink-0';
 const MINI_CHART_MARGIN = { top: 4, right: 6, left: -18, bottom: 4 } as const;
 
 // ─── Shared sx constants ────────────────────────────────────────────────────
@@ -109,14 +112,9 @@ const HERO_CARD_SX = { height: '100%' } as const;
 
 const SECONDARY_CARD_SX = { height: '100%' } as const;
 
-const SECTION_LABEL_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.05em',
-  color: 'var(--faint)',
-  mb: 1,
-} as const;
+// Libelle de section overline (ex-SECTION_LABEL_SX : mb 1 = 6 px avec spacing 6).
+const SECTION_LABEL_CLASS =
+  'cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-1.5';
 
 // ─── Shared KPI types ───────────────────────────────────────────────────────
 
@@ -142,9 +140,11 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
       <span className="inline-flex" style={{ color }}>
         <Icon size={12} strokeWidth={1.75} />
       </span>
-      <Typography sx={{ fontSize: '10.5px', fontWeight: 600, color, fontVariantNumeric: 'tabular-nums' }}>
+      {/* Couleur choisie a l'execution (haut/bas/plat) : style inline, une classe
+          Tailwind ne peut pas naitre d'une variable. */}
+      <p className="cn-text-body1 text-[10.5px] font-semibold tabular-nums" style={{ color }}>
         {isUp ? '+' : ''}{value}%
-      </Typography>
+      </p>
     </div>
   );
 };
@@ -171,7 +171,7 @@ const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, load
               {item.title}
             </p>
           </div>
-          <p className="cn-text-body1 font-[var(--font-display)] text-[1.25rem] font-semibold leading-[1.1] tracking-[-0.025em] text-[var(--ink)] tabular-nums">
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.25rem] font-semibold leading-[1.1] tracking-[-0.025em] text-[var(--ink)] tabular-nums">
             {item.value}
           </p>
           {item.subtitle && (
@@ -204,7 +204,7 @@ const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, 
         <Skeleton variant="text" width={48} height={18} />
       ) : (
         <>
-          <p className="cn-text-body1 font-[var(--font-display)] text-[0.875rem] font-semibold leading-[1.2] text-[var(--ink)] tabular-nums">
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.875rem] font-semibold leading-[1.2] text-[var(--ink)] tabular-nums">
             {item.value}
           </p>
           {item.trend !== undefined && <TrendBadge value={item.trend} />}
@@ -351,9 +351,9 @@ const InterventionsReport: React.FC = () => {
             <Grid item xs={12} md={6}>
               <Card sx={SECONDARY_CARD_SX}>
                 <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                  <Typography sx={SECTION_LABEL_SX}>
+                  <p className={SECTION_LABEL_CLASS}>
                     {t('reports.kpi.statusBreakdown', 'Repartition par statut')}
-                  </Typography>
+                  </p>
                   {data.byStatus.map((item, i) => (
                     <React.Fragment key={item.name}>
                       {i > 0 && <div className="border-t border-[var(--line)]" />}
@@ -372,9 +372,9 @@ const InterventionsReport: React.FC = () => {
             <Grid item xs={12} md={6}>
               <Card sx={SECONDARY_CARD_SX}>
                 <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                  <Typography sx={SECTION_LABEL_SX}>
+                  <p className={SECTION_LABEL_CLASS}>
                     {t('reports.kpi.typeBreakdown', 'Repartition par type')}
-                  </Typography>
+                  </p>
                   {data.byType.map((item, i) => (
                     <React.Fragment key={item.name}>
                       {i > 0 && <div className="border-t border-[var(--line)]" />}
@@ -588,9 +588,9 @@ const TeamsReport: React.FC = () => {
             <Grid item xs={12} md={6}>
               <Card sx={SECONDARY_CARD_SX}>
                 <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                  <Typography sx={SECTION_LABEL_SX}>
+                  <p className={SECTION_LABEL_CLASS}>
                     {t('reports.kpi.taskStatus', 'Statut des taches')}
-                  </Typography>
+                  </p>
                   {([
                     { key: 'completed', title: t('reports.charts.completed'), value: `${kpis?.totalCompleted ?? 0}`, icon: <CheckCircle />, iconColor: 'var(--ok)' },
                     { key: 'inProgress', title: t('reports.charts.inProgress'), value: `${kpis?.totalInProgress ?? 0}`, icon: <Engineering />, iconColor: 'var(--info)' },
@@ -607,12 +607,12 @@ const TeamsReport: React.FC = () => {
             <Grid item xs={12} md={6}>
               <Card sx={SECONDARY_CARD_SX}>
                 <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                  <Typography sx={SECTION_LABEL_SX}>
+                  <p className={SECTION_LABEL_CLASS}>
                     {t('reports.kpi.topPerformer', 'Meilleure equipe')}
-                  </Typography>
+                  </p>
                   {kpis?.topPerformer ? (
                     <div className="py-2 text-center">
-                      <p className="cn-text-body1 font-[var(--font-display)] text-[1.25rem] font-semibold tracking-[-0.015em] text-[var(--accent)] mb-0.5">
+                      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.25rem] font-semibold tracking-[-0.015em] text-[var(--accent)] mb-0.5">
                         {kpis.topPerformer.name}
                       </p>
                       <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums">
@@ -765,9 +765,9 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
               <Grid item xs={12} md={6}>
                 <Card sx={SECONDARY_CARD_SX}>
                   <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                    <Typography sx={SECTION_LABEL_SX}>
+                    <p className={SECTION_LABEL_CLASS}>
                       {t('reports.kpi.operationalMetrics', 'Indicateurs operationnels')}
-                    </Typography>
+                    </p>
                     {([
                       { key: 'avgInt', title: t('reports.kpi.avgInterventions', 'Moy. interventions / bien'), value: `${kpis?.avgInterventionsPerProperty ?? 0}`, icon: <Speed />, iconColor: 'var(--info)' },
                       { key: 'topProp', title: t('reports.kpi.mostActive', 'Bien le plus actif'), value: kpis?.topProperty?.name ?? '-', icon: <PriorityHigh />, iconColor: 'var(--err)' },
@@ -813,9 +813,9 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
 
       {/* ─── Analytics widgets ─── */}
       <Divider sx={{ my: 2.5 }} />
-      <Typography sx={{ ...SECTION_LABEL_SX, mb: 2 }}>
+      <p className={cn(SECTION_LABEL_CLASS, 'mb-3')}>
         {t('reports.charts.analyticsInsights', 'Analyses avancees')}
-      </Typography>
+      </p>
 
       <Grid container spacing={1.5} sx={{ mb: 2 }}>
         <Grid item xs={12} md={6}>
@@ -902,9 +902,9 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
 
       {/* ─── Pricing + Forecasts combined: 3 charts + 6 KPIs ─── */}
       <div className="mb-3">
-        <Typography sx={{ ...SECTION_LABEL_SX, mb: 1.5 }}>
+        <p className={cn(SECTION_LABEL_CLASS, 'mb-[9px]')}>
           {t('reports.charts.pricingAndForecasts', 'Tarifs & Prévisions')}
-        </Typography>
+        </p>
         <Grid container spacing={1.5}>
           {/* Left: 3 charts on same line */}
           <Grid item xs={12} md={8}>
@@ -913,9 +913,9 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
               <Grid item xs={12} sm={4}>
                 <Card sx={MINI_CHART_CARD_SX}>
                   <CardContent sx={MINI_CHART_CONTENT_SX}>
-                    <Typography sx={MINI_CHART_LABEL_SX}>
+                    <p className={MINI_CHART_LABEL_CLASS}>
                       {t('dashboard.analytics.priceVsRevPAN')}
-                    </Typography>
+                    </p>
                     {analyticsLoading || !analytics?.pricing ? (
                       <Skeleton variant="rounded" sx={{ flex: 1, borderRadius: 'var(--radius-sm)' }} />
                     ) : (
@@ -940,9 +940,9 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
               <Grid item xs={12} sm={4}>
                 <Card sx={MINI_CHART_CARD_SX}>
                   <CardContent sx={MINI_CHART_CONTENT_SX}>
-                    <Typography sx={MINI_CHART_LABEL_SX}>
+                    <p className={MINI_CHART_LABEL_CLASS}>
                       {t('dashboard.analytics.priceByType')}
-                    </Typography>
+                    </p>
                     {analyticsLoading || !analytics?.pricing ? (
                       <Skeleton variant="rounded" sx={{ flex: 1, borderRadius: 'var(--radius-sm)' }} />
                     ) : (
@@ -966,9 +966,9 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
               <Grid item xs={12} sm={4}>
                 <Card sx={MINI_CHART_CARD_SX}>
                   <CardContent sx={MINI_CHART_CONTENT_SX}>
-                    <Typography sx={MINI_CHART_LABEL_SX}>
+                    <p className={MINI_CHART_LABEL_CLASS}>
                       {t('dashboard.analytics.forecastChart')}
-                    </Typography>
+                    </p>
                     {analyticsLoading || !analytics?.forecast ? (
                       <Skeleton variant="rounded" sx={{ flex: 1, borderRadius: 'var(--radius-sm)' }} />
                     ) : (
@@ -997,9 +997,9 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
             {analytics?.forecast && !analyticsLoading && (
               <Card sx={{ width: '100%', mt: 1.5 }}>
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-                  <Typography sx={MINI_CHART_LABEL_SX}>
+                  <p className={MINI_CHART_LABEL_CLASS}>
                     {t('dashboard.analytics.scenarios')}
-                  </Typography>
+                  </p>
                   <div className="flex gap-4 mt-0.5">
                     {[analytics.forecast.scenarios.optimistic, analytics.forecast.scenarios.realistic, analytics.forecast.scenarios.pessimistic].map((s, i) => {
                       // Réf. SCEN (widget-board) : optimiste --ok, réaliste --info, pessimiste --warn
@@ -1088,9 +1088,9 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
 
       {/* ─── Donnees operationnelles ─── */}
       <Divider sx={{ my: 2.5 }} />
-      <Typography sx={{ ...SECTION_LABEL_SX, mb: 2 }}>
+      <p className={cn(SECTION_LABEL_CLASS, 'mb-3')}>
         {t('reports.charts.operationalData', 'Donnees operationnelles')}
-      </Typography>
+      </p>
 
       <DataFetchWrapper
         loading={loading}

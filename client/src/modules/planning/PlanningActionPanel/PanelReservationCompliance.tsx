@@ -183,7 +183,7 @@ const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({
 
               {/* Retour après action (succès / pending / erreur) */}
               {row?.message && (
-                <div className={cn('flex items-center gap-[3px] mt-[3.75px] text-[0.6875rem]', row.tone === 'ok' ? 'text-[var(--ok)]' : '[object Object]')}>
+                <div className={cn('flex items-center gap-[3px] mt-[3.75px] text-[0.6875rem]', row.tone === 'ok' ? 'text-[var(--ok)]' : row.tone === 'err' ? 'text-[var(--err)]' : 'text-[var(--warn)]')}>
                   {row.tone === 'warn' && (
                     <span className="inline-flex">
                       <HourglassEmpty size={12} strokeWidth={1.75} />

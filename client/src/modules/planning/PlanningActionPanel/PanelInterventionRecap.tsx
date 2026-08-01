@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info } from 'lucide-react';
-import { Typography, Accordion, AccordionSummary, AccordionDetails, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
+import { Accordion, AccordionSummary, AccordionDetails, Divider, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
 import {
   ExpandMore,
   Notes,
@@ -68,6 +69,9 @@ const OVERLINE_SX = {
   letterSpacing: '0.08em',
   color: 'var(--faint)',
 };
+
+/** Report en classes de `OVERLINE_SX`. */
+const OVERLINE_CLASS = 'text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -141,9 +145,10 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
       <Divider sx={{ my: 1.5 }} />
 
       {/* Notes per step */}
-      <Typography sx={{ ...OVERLINE_SX, mb: 1 }}>
+      {/* mb: 1 = 6 px (theme.spacing vaut 6). */}
+      <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-[6px]')}>
         Notes
-      </Typography>
+      </p>
 
       {!hasNotes && !intervention.notes ? (
         <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] italic mb-2">
@@ -193,9 +198,9 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
 
       {/* Signalements */}
       <div className="flex items-center justify-between mb-1.5">
-        <Typography sx={OVERLINE_SX}>
+        <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>
           Signalements ({signalements.length})
-        </Typography>
+        </p>
         <Button
           size="small"
           startIcon={<Add size={14} strokeWidth={1.75} />}

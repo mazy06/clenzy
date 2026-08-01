@@ -1,6 +1,7 @@
 import React from 'react';
 import StatusChip from '../../../components/StatusChip';
-import { Typography, Card, CardContent, Grid } from '@mui/material';
+import { cn } from '../../../utils/cn';
+import { Card, CardContent, Grid } from '@mui/material';
 import {
   ErrorOutline, WarningAmber, InfoOutlined,
 } from '../../../icons';
@@ -117,17 +118,16 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
 
                   {/* Action */}
                   <div className="flex items-center gap-0.5 mt-0.5">
-                    <Typography
-                      sx={{
-                        fontSize: '0.5625rem',
-                        fontWeight: 600,
-                        color: SEVERITY_COLORS[alert.severity],
-                        cursor: alert.route ? 'pointer' : 'default',
-                        '&:hover': alert.route ? { textDecoration: 'underline' } : {},
-                      }}
+                    {/* couleur dependante de la severite a l'execution : style inline obligatoire */}
+                    <p
+                      className={cn(
+                        'cn-text-body1 text-[0.5625rem] font-semibold',
+                        alert.route ? 'cursor-pointer hover:underline' : 'cursor-default',
+                      )}
+                      style={{ color: SEVERITY_COLORS[alert.severity] }}
                     >
                       {alert.action}
-                    </Typography>
+                    </p>
                   </div>
                 </CardContent>
               </Card>

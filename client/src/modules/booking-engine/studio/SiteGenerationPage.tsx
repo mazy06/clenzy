@@ -235,7 +235,7 @@ export default function SiteGenerationPage() {
       <div className="od-canvas min-h-[100vh] bg-[var(--bg)] grid place-items-[center] p-[18px]">
         <div className="max-w-[420px] text-center flex flex-col items-center gap-2">
           <div className="w-[48px] h-[48px] rounded-[50%] grid place-items-[center] bg-[var(--err-soft)] text-[var(--err)]"><AlertTriangle size={26} strokeWidth={2} /></div>
-          <div className="font-[var(--font-display)] text-[var(--text-xl)] font-bold text-[var(--ink)]">{k('unavailableTitle', 'Génération IA indisponible')}</div>
+          <div className="font-[family-name:var(--font-display)] text-[var(--text-xl)] font-bold text-[var(--ink)]">{k('unavailableTitle', 'Génération IA indisponible')}</div>
           <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.55]">{k('unavailableBody', "Aucun modèle IA n'est disponible pour la génération de site pour le moment. Les administrateurs ont été notifiés et vont rétablir le service. Réessayez plus tard.")}</div>
           <Button disableElevation onClick={() => navigate(-1)} sx={{ ...accentBtnSx, mt: 1 }}>{k('unavailableClose', 'Fermer')}</Button>
         </div>
@@ -454,7 +454,7 @@ function DirectionRow({ selected, onClick, title, subtitle }: { selected: boolea
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="flex-1 min-w-[200px]">
-      <label className="block mb-0.5 text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--body)]">
+      <label className="block mb-0.5 text-[var(--text-sm)] font-[family-name:var(--fw-medium)] text-[var(--body)]">
         {label}{required && <span className="text-[var(--accent)] ms-0.5">*</span>}
       </label>
       {children}

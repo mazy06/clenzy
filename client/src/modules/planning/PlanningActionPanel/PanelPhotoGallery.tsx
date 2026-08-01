@@ -57,7 +57,7 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
             {/* "+N" overlay on last visible */}
             {i === maxVisible - 1 && extra > 0 && (
               <div className="absolute inset-[0px] flex items-center justify-center bg-[rgba(21,36,45,.55)]">
-                <p className="cn-text-body1 text-[var(--on-accent)] font-semibold text-[1rem] font-[var(--font-display)] tabular-nums">
+                <p className="cn-text-body1 text-[var(--on-accent)] font-semibold text-[1rem] font-[family-name:var(--font-display)] tabular-nums">
                   +{extra}
                 </p>
               </div>

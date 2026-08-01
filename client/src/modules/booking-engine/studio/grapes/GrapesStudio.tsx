@@ -705,10 +705,10 @@ function CompositesPanel({ composites, canEditGlobal, onInsert, onEdit, onDelete
         <div className="flex items-center gap-1.5 px-1.5 py-[5.4px] rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-[var(--card)] hover:border-[var(--accent)]" style={{ transition: 'border-color var(--duration-fast) var(--ease-out)' }} key={c.id}>
           <div className="shrink-0 inline-flex text-[var(--muted)]"><Boxes size={20} strokeWidth={1.8} /></div>
         <ButtonBase onClick={() => onInsert(c)} sx={{ flex: 1, minWidth: 0, display: 'block', textAlign: 'left', cursor: 'pointer' }}>
-            <span className="flex items-center gap-0.5 text-[var(--text-sm)] font-[var(--fw-medium)] text-[var(--ink)]">
+            <span className="flex items-center gap-0.5 text-[var(--text-sm)] font-[family-name:var(--fw-medium)] text-[var(--ink)]">
               {c.name}
               {c.global && (
-                <span className="text-[var(--text-2xs)] font-[var(--fw-semibold)] text-[var(--accent)] bg-[var(--accent-soft)] px-1 py-0 rounded-[var(--radius-sm)] uppercase tracking-[.04em]">Global</span>
+                <span className="text-[var(--text-2xs)] font-[family-name:var(--fw-semibold)] text-[var(--accent)] bg-[var(--accent-soft)] px-1 py-0 rounded-[var(--radius-sm)] uppercase tracking-[.04em]">Global</span>
               )}
             </span>
             <span className="block text-[var(--text-2xs)] text-[var(--muted)]">{compositeSummary(c)}</span>

@@ -4,7 +4,7 @@ import StatusChip from './StatusChip';
 import { Alert as UiAlert, AlertDescription } from './ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from './ui';
-import { Box, Typography, Card, CardContent, Grid, Button, Alert, Snackbar, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Box, Card, CardContent, Grid, Button, Alert, Snackbar, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import {
   Settings as SettingsIcon,
   Refresh as RefreshIcon,
@@ -603,13 +603,14 @@ const PermissionConfig: React.FC = () => {
                                     ) : (
                                       <span className="inline-flex text-muted-foreground"><ErrorIcon size={16} strokeWidth={1.75} /></span>
                                     )}
-                                    <Typography
-                                      variant="caption"
-                                      color={isActive ? 'success.main' : 'text.secondary'}
-                                      sx={{ fontWeight: 500, fontSize: '0.7rem' }}
+                                    <span
+                                      className={cn(
+                                        'cn-text-caption font-medium text-[0.7rem]',
+                                        isActive ? 'text-[var(--ok)]' : 'text-[var(--muted)]',
+                                      )}
                                     >
                                       {isActive ? 'Actif' : 'Inactif'}
-                                    </Typography>
+                                    </span>
                                   </div>
                                 </Box>
                               );

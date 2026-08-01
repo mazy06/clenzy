@@ -89,7 +89,7 @@ export default function EmptyState({
             })
           : icon}
       </span>
-      <h6 className="cn-text-h6 font-[var(--font-display)] text-[var(--ink)]">
+      <h6 className="cn-text-h6 font-[family-name:var(--font-display)] text-[var(--ink)]">
         {title}
       </h6>
       {description && (

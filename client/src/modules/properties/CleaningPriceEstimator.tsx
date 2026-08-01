@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Typography, Skeleton } from '@mui/material';
+import { Skeleton } from '@mui/material';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { CleaningServices, TrendingUp, Timer, CheckCircle } from '../../icons';
@@ -58,6 +58,19 @@ const RECOMMENDED_SECONDARY_SX = {
   color: 'var(--ink)',
 } as const;
 
+/**
+ * Report en classes de `RECOMMENDED_SX` / `RECOMMENDED_SECONDARY_SX`.
+ * `[font-family:…]` (propriete arbitraire) et non `font-[…]` : ce dernier se
+ * lit comme une graisse et non comme une famille.
+ */
+const RECOMMENDED_CLASS =
+  '[font-family:var(--font-display)] text-[22px] font-semibold text-[var(--accent)] '
+  + 'whitespace-nowrap leading-[1.2] tabular-nums tracking-[-.01em]';
+
+const RECOMMENDED_SECONDARY_CLASS =
+  '[font-family:var(--font-display)] text-[19px] font-semibold text-[var(--ink)] '
+  + 'whitespace-nowrap leading-[1.2] tabular-nums tracking-[-.01em]';
+
 /** Fourchette min–max : discrète, sous la médiane. */
 const RANGE_SX = {
   fontSize: '11.5px',
@@ -102,6 +115,10 @@ const DURATION_VALUE_SX = {
   lineHeight: 1.2,
   fontVariantNumeric: 'tabular-nums',
 } as const;
+
+/** Report en classes de `DURATION_VALUE_SX`. */
+const DURATION_VALUE_CLASS =
+  '[font-family:var(--font-display)] text-[17px] font-semibold text-[var(--accent)] leading-[1.2] tabular-nums';
 
 const DURATION_LABEL_SX = {
   fontSize: '11.5px',
@@ -261,9 +278,9 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
         <div className={DURATION_BANNER_CLASS}>
           <span className="inline-flex text-[var(--accent)]"><Timer size={20} strokeWidth={1.75} /></span>
           <div className="flex items-baseline gap-1">
-            <Typography sx={DURATION_VALUE_SX}>
+            <p className={cn(DURATION_VALUE_CLASS, 'cn-text-body1')}>
               {formatDuration(selectedQuote.durationMinutes)}
-            </Typography>
+            </p>
             <p className={cn(DURATION_LABEL_CLASS, 'cn-text-body1')}>
               {t('properties.durationEstimation.title')}
             </p>
@@ -322,9 +339,9 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
                     sx={{ borderColor: isSelected ? 'var(--accent)' : 'var(--field-line)' }}
                   />
                   {/* Médiane = ancre visuelle */}
-                  <Typography sx={isSelected ? RECOMMENDED_SX : RECOMMENDED_SECONDARY_SX}>
+                  <p className={cn(isSelected ? RECOMMENDED_CLASS : RECOMMENDED_SECONDARY_CLASS, 'cn-text-body1')}>
                     <Money value={quote.recommended} from="EUR" decimals={0} />
-                  </Typography>
+                  </p>
                   {/* Fourchette discrète */}
                   <p className={cn(RANGE_CLASS, 'cn-text-body1')}>
                     <Money value={quote.min} from="EUR" decimals={0} /> – <Money value={quote.max} from="EUR" decimals={0} />

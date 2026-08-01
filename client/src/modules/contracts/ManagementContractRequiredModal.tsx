@@ -97,7 +97,7 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
           <Handshake size={16} strokeWidth={2} />
         </span>
         <div>
-          <p className="cn-text-body1 font-[var(--font-display)] text-[16px] font-semibold leading-[1.2] text-[var(--ink)]">
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[16px] font-semibold leading-[1.2] text-[var(--ink)]">
             {t('contracts.required.title', 'Contrat de gestion requis')}
           </p>
           {property && (

@@ -9,8 +9,8 @@ import {
   DialogContent,
   DialogTitle,
   Stack,
-  Typography,
 } from "@mui/material";
+import { cn } from "../../../utils/cn";
 import { activitiesApi } from "../../../services/api/activitiesApi";
 import type {
   ActivityProvider,
@@ -184,16 +184,16 @@ export default function AffiliateImportDialog({
                       <p className="cn-text-body1 text-[0.78rem] text-muted-foreground">
                         {line.label}
                       </p>
-                      <Typography
-                        sx={{
-                          fontSize: "0.78rem",
-                          fontVariantNumeric: "tabular-nums",
-                          fontWeight: line.strong ? 700 : 500,
-                          color: line.strong ? "text.primary" : "text.secondary",
-                        }}
+                      <p
+                        className={cn(
+                          "cn-text-body1 text-[0.78rem] tabular-nums",
+                          line.strong
+                            ? "font-bold text-[var(--ink)]"
+                            : "font-medium text-[var(--muted)]",
+                        )}
                       >
                         {formatMoney(line.value)}
-                      </Typography>
+                      </p>
                     </div>
                   ))}
                 </Stack>

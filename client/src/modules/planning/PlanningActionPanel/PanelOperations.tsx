@@ -5,7 +5,7 @@ import { Badge } from '../../../components/ui';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Typography, Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, List, ListItem, ListItemText, Checkbox, Switch, FormControlLabel, Tooltip, LinearProgress, ListSubheader } from '@mui/material';
+import { Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, IconButton, Snackbar, List, ListItem, ListItemText, Checkbox, Switch, FormControlLabel, Tooltip, LinearProgress, ListSubheader } from '@mui/material';
 import {
   Handyman,
   BroomFill,
@@ -1260,9 +1260,9 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             <span className={cn('inline-flex', isAssigned ? 'text-[var(--muted)]' : 'text-[var(--warn)]')}>
                               {isAssigned ? <Groups size={11} strokeWidth={1.75} /> : <HourglassEmpty size={11} strokeWidth={1.75} />}
                             </span>
-                            <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: isAssigned ? 'var(--muted)' : 'var(--warn)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <p className={cn('cn-text-body1 text-[0.625rem] font-medium overflow-hidden text-ellipsis whitespace-nowrap', isAssigned ? 'text-[var(--muted)]' : 'text-[var(--warn)]')}>
                               {isAssigned ? li.assigneeName : 'Non assigné'}
-                            </Typography>
+                            </p>
                           </div>
                         </div>
                         <span className="drill-arrow inline-flex mt-[2px] text-[var(--muted)] opacity-40 transition-all duration-150 ease-[ease]">

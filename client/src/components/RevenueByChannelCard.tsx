@@ -37,7 +37,7 @@ export default function RevenueByChannelCard({
   return (
     <Card className="gap-0 py-0 bg-[var(--card)] border-[var(--line)] overflow-hidden">
       <div className={cn('flex items-center justify-between gap-1.5 px-[17px] pt-[15px]', headerAction ? 'pb-[11px]' : 'pb-1')}>
-        <p className="cn-text-body1 font-[var(--font-display)] text-[15px] font-semibold text-[var(--ink)] tracking-[-0.01em]">
+        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] tracking-[-0.01em]">
           {title}
         </p>
         {headerAction}
@@ -68,7 +68,7 @@ export default function RevenueByChannelCard({
               </div>
               <div className="shrink-0 text-end min-w-[66px]">
                 {/* Montant (devise) en tête, % + delta en sous-ligne. */}
-                <p className="cn-text-body1 font-[var(--font-display)] text-[13px] font-semibold text-[var(--ink)] leading-[1.2] tabular-nums">
+                <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[13px] font-semibold text-[var(--ink)] leading-[1.2] tabular-nums">
                   {c.amount != null ? <Money value={c.amount} decimals={0} /> : `${c.pct}%`}
                 </p>
                 {(c.amount != null || (delta != null && delta !== 0)) && (

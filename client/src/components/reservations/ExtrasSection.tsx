@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Typography, TextField, Switch } from '@mui/material';
+import { TextField, Switch } from '@mui/material';
 import { CleaningServices, Receipt as ReceiptIcon, Numbers as HashIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { UseReservationFormResult } from './useReservationForm';
@@ -71,9 +71,9 @@ const ExtrasSection: React.FC<Props> = ({ form }) => {
         />
       </div>
       {form.createCleaning && form.estimatedCleaningPrice != null && form.estimatedCleaningPrice > 0 && (
-        <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontStyle: 'italic', marginTop: '-12px' }}>
+        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] italic -mt-3">
           {t('reservations.dialog.estimatedCleaning', { amount: form.estimatedCleaningPrice.toFixed(2) })}
-        </Typography>
+        </p>
       )}
 
       {/* Code de confirmation */}

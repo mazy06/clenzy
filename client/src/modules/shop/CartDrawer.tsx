@@ -57,7 +57,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-3.5 py-3 border-b border-[var(--line)]">
           <div className="flex items-center gap-1.5">
-            <h6 className="cn-text-h6 font-semibold font-[var(--font-display)] text-[1.05rem] tracking-[-0.01em] text-[var(--ink)]">
+            <h6 className="cn-text-h6 font-semibold font-[family-name:var(--font-display)] text-[1.05rem] tracking-[-0.01em] text-[var(--ink)]">
               {t('shop.cart')}
             </h6>
             {totalItems > 0 && (
@@ -213,7 +213,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
               <p className="cn-text-body1 font-bold text-[0.95rem]">
                 {t('shop.total')}
               </p>
-              <p className="cn-text-body1 font-semibold font-[var(--font-display)] text-[1.15rem] text-[var(--ink)] tabular-nums tracking-[-0.01em]">
+              <p className="cn-text-body1 font-semibold font-[family-name:var(--font-display)] text-[1.15rem] text-[var(--ink)] tabular-nums tracking-[-0.01em]">
                 {formatPrice(subtotal)}
               </p>
             </div>

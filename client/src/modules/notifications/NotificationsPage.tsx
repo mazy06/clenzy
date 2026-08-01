@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
+import { cn } from '../../utils/cn';
 import {
   Box,
-  Typography,
   Button,
   IconButton,
   Tooltip,
@@ -294,21 +294,16 @@ export default function NotificationsPage() {
                   {!notification.read && (
                     <span className="inline-flex text-primary shrink-0"><Circle size={7} strokeWidth={1.75} /></span>
                   )}
-                  <Typography
-                    variant="body2"
-                    fontWeight={notification.read ? 400 : 600}
-                    sx={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      fontSize: '0.84rem',
-                      color: notification.read ? 'text.secondary' : 'text.primary',
-                    }}
+                  <p
+                    className={cn(
+                      'cn-text-body2 overflow-hidden text-ellipsis whitespace-nowrap text-[0.84rem]',
+                      notification.read ? 'font-normal text-[var(--muted)]' : 'font-semibold text-[var(--ink)]',
+                    )}
                   >
                     {notification.notificationKey
                       ? t(`notifications.keys.${notification.notificationKey}`, { defaultValue: notification.title })
                       : notification.title}
-                  </Typography>
+                  </p>
                 </div>
                 <p className="cn-text-body2 text-muted-foreground opacity-60 text-[0.78rem] overflow-hidden text-ellipsis whitespace-nowrap mt-0">
                   {notification.message}

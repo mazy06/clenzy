@@ -275,7 +275,7 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
       <div className="flex items-center gap-2 px-3.5 py-2 border-b border-[var(--line)] bg-[var(--card)] shrink-0">
         <div className="inline-flex items-center gap-1.5 text-[var(--ink)]">
           <Boxes size={18} strokeWidth={2} />
-          <span className="text-[var(--text-md)] font-[var(--fw-semibold)]">{initial ? 'Modifier le composite' : 'Constructeur de composite'}</span>
+          <span className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)]">{initial ? 'Modifier le composite' : 'Constructeur de composite'}</span>
         </div>
         <div className="flex-1" />
         <ButtonBase onClick={toggleInteractive} aria-pressed={interactive}
@@ -321,7 +321,7 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
           <div className={cn('flex-col gap-[7.5px] flex-1 min-h-0 px-3 pb-3 overflow-y-auto', rightTab === 'blocks' ? 'flex' : 'hidden')}>
             <div className="text-[var(--text-2xs)] text-[var(--muted)] leading-[1.4]">
               Glisse les blocs sur le canvas (ou dans une « Ligne » pour les aligner). L'agencement que tu crées EST le composite.
-              Sélectionne le widget « Filtre » puis l'icône <span className="text-[var(--body)] font-[var(--fw-medium)]">⧉ Ouvrir le groupe</span> : le filtre est <span className="text-[var(--body)] font-[var(--fw-medium)]">conservé</span> et ses sous-filtres deviennent de vrais widgets éditables (déplacer, aligner, styler). L'icône <span className="text-[var(--body)] font-[var(--fw-medium)]">⮂ compact/déplié</span> bascule entre filtre compact (icône → menu) et critères en ligne.
+              Sélectionne le widget « Filtre » puis l'icône <span className="text-[var(--body)] font-[family-name:var(--fw-medium)]">⧉ Ouvrir le groupe</span> : le filtre est <span className="text-[var(--body)] font-[family-name:var(--fw-medium)]">conservé</span> et ses sous-filtres deviennent de vrais widgets éditables (déplacer, aligner, styler). L'icône <span className="text-[var(--body)] font-[family-name:var(--fw-medium)]">⮂ compact/déplié</span> bascule entre filtre compact (icône → menu) et critères en ligne.
             </div>
             <div className="flex-1 min-h-0" ref={blocksElRef} />
           </div>
@@ -329,7 +329,7 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
           {/* Onglet STYLE : sélecteurs (classes) + Style Manager. Toujours montés (cibles `appendTo`). */}
           <div className={cn('flex-col flex-1 min-h-0 overflow-y-auto', rightTab === 'style' ? 'flex' : 'hidden')}>
             <div className="px-3 pb-1.5 text-[var(--text-2xs)] text-[var(--muted)] leading-[1.4]">
-              Sélectionne un élément (groupe, champ…) puis édite layout & style. Les règles s'appliquent <span className="text-[var(--body)] font-[var(--fw-medium)]">par classe</span> → elles rejoignent le CSS du template à l'enregistrement.
+              Sélectionne un élément (groupe, champ…) puis édite layout & style. Les règles s'appliquent <span className="text-[var(--body)] font-[family-name:var(--fw-medium)]">par classe</span> → elles rejoignent le CSS du template à l'enregistrement.
             </div>
             <div className="shrink-0" ref={selectorElRef} />
             <div className="flex-1 min-h-0" ref={styleElRef} />

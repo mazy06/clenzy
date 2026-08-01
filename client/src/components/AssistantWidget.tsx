@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { IconButton, Popper, Paper, Grow, ClickAwayListener, Typography, useTheme, alpha, Tooltip } from '@mui/material';
+import { IconButton, Popper, Paper, Grow, ClickAwayListener, useTheme, alpha, Tooltip } from '@mui/material';
 import { cn } from '../utils/cn';
 import type { PopperPlacementType } from '@mui/material';
 import type { Instance as PopperInstance } from '@popperjs/core';
@@ -575,28 +575,15 @@ const AssistantWidget: React.FC = () => {
             le bg L2 + l'input panel L2 se touchent (pas besoin de separation) */}
         {messages.length > 0 && (
           <div className="flex justify-center py-[3px] shrink-0" style={{ backgroundColor: alpha(theme.palette.text.primary, 0.025) }}>
-            <Typography
-              component="button"
-              variant="caption"
+            {/* color-mix(... 6%, transparent) est l'exact equivalent CSS de
+                alpha(primary.main, 0.06) : un survol ne peut pas vivre en
+                style inline. */}
+            <button
               onClick={reset}
-              sx={{
-                background: 'none',
-                border: 'none',
-                color: theme.palette.text.secondary,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                fontSize: '0.75rem',
-                py: 0.5,
-                px: 1.5,
-                borderRadius: 1,
-                '&:hover': {
-                  color: theme.palette.primary.main,
-                  bgcolor: alpha(theme.palette.primary.main, 0.06),
-                },
-              }}
+              className="cn-text-caption bg-transparent border-none [font-family:inherit] text-[0.75rem] text-[var(--muted)] cursor-pointer py-[3px] px-[9px] rounded-[8px] hover:text-[var(--mui-primary)] hover:bg-[color-mix(in_srgb,var(--mui-primary)_6%,transparent)]"
             >
               Nouvelle conversation
-            </Typography>
+            </button>
           </div>
         )}
                 </Paper>

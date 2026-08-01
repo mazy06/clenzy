@@ -214,7 +214,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                     >
                       <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
                       <div className="flex items-baseline gap-0.5">
-                        <p className="cn-text-body1 text-[16px] font-semibold text-[var(--accent)] leading-[1.2] font-[var(--font-display)] tabular-nums">
+                        <p className="cn-text-body1 text-[16px] font-semibold text-[var(--accent)] leading-[1.2] font-[family-name:var(--font-display)] tabular-nums">
                           {displayLabel}
                         </p>
                         <p className="cn-text-body1 text-[10.5px] font-medium text-[var(--muted)]">

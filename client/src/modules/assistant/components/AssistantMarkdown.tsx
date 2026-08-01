@@ -101,10 +101,10 @@ export const AssistantMarkdown: React.FC<AssistantMarkdownProps> = ({ text }) =>
 
     // Headings : display, poids et taille adaptes au flow inline
     h1: ({ children }) => (
-      <h2 className="font-[var(--font-display)] text-[16px] font-semibold mt-2 mb-0.5 text-[var(--ink)]">{children}</h2>
+      <h2 className="font-[family-name:var(--font-display)] text-[16px] font-semibold mt-2 mb-0.5 text-[var(--ink)]">{children}</h2>
     ),
     h2: ({ children }) => (
-      <h3 className="font-[var(--font-display)] text-[14.5px] font-semibold mt-2 mb-0.5 text-[var(--ink)]">{children}</h3>
+      <h3 className="font-[family-name:var(--font-display)] text-[14.5px] font-semibold mt-2 mb-0.5 text-[var(--ink)]">{children}</h3>
     ),
     h3: ({ children }) => (
       <h4 className="text-[13.5px] font-semibold mt-2 mb-0.5 text-[var(--ink)]">{children}</h4>

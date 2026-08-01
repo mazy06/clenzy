@@ -169,7 +169,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
           <div className="flex items-start gap-3">
             {/* Avatar initiales : pattern messagerie (carré arrondi r13, accent,
                 initiales display) — pas de rond plein */}
-            <div className="w-[52px] h-[52px] rounded-[13px] bg-[var(--accent)] flex items-center justify-center text-[var(--on-accent)] font-[var(--font-display)] text-[1.125rem] font-semibold shrink-0 mt-0.5">
+            <div className="w-[52px] h-[52px] rounded-[13px] bg-[var(--accent)] flex items-center justify-center text-[var(--on-accent)] font-[family-name:var(--font-display)] text-[1.125rem] font-semibold shrink-0 mt-0.5">
               {initials}
             </div>
             <div className="min-w-0 flex-1">
@@ -449,7 +449,7 @@ function StatBox({ label, value }: { label: string; value: React.ReactNode }) {
       <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] uppercase tracking-[0.05em] font-bold">
         {label}
       </p>
-      <p className="cn-text-body1 font-[var(--font-display)] text-[0.875rem] font-semibold mt-0.5 tabular-nums">
+      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.875rem] font-semibold mt-0.5 tabular-nums">
         {value}
       </p>
     </div>

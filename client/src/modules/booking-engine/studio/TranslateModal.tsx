@@ -68,7 +68,7 @@ export default function TranslateModal({ open, onClose, targetName, availableTar
         <div className="flex items-center justify-center w-[32px] h-[32px] rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--accent)] shrink-0">
           <Languages size={18} strokeWidth={2} />
         </div>
-        <div className="flex-1 font-[var(--font-display)] text-[var(--text-lg)] font-[var(--fw-bold)] text-[var(--ink)]">
+        <div className="flex-1 font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">
           {k('title', 'Traduire par IA')}
         </div>
         <IconButton onClick={onClose} size="small" aria-label={t('common.close', 'Fermer')} disabled={translating}><X size={18} /></IconButton>

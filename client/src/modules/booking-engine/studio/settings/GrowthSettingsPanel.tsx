@@ -142,7 +142,7 @@ function StatTile({ icon: Icon, label, value }: { icon: typeof Users; label: str
         <Icon size={19} strokeWidth={1.9} />
       </div>
       <div>
-        <div className="font-[var(--font-display)] text-[var(--text-2xl)] font-[var(--fw-bold)] text-[var(--ink)] tabular-nums leading-[1.1]">{value}</div>
+        <div className="font-[family-name:var(--font-display)] text-[var(--text-2xl)] font-[family-name:var(--fw-bold)] text-[var(--ink)] tabular-nums leading-[1.1]">{value}</div>
         <div className="text-[var(--text-sm)] text-[var(--muted)]">{label}</div>
       </div>
     </div>

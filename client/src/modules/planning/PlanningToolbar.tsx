@@ -90,7 +90,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
           </IconButton>
 
           {/* Month title : info principale (display, encre) */}
-          <h6 className="cn-text-subtitle2 font-[var(--font-display)] text-[0.9375rem] font-semibold capitalize text-[var(--ink)] tracking-[-0.01em] min-w-[110px] text-center">
+          <h6 className="cn-text-subtitle2 font-[family-name:var(--font-display)] text-[0.9375rem] font-semibold capitalize text-[var(--ink)] tracking-[-0.01em] min-w-[110px] text-center">
             {formatMonthYear(currentDate)}
           </h6>
 

@@ -158,7 +158,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
             <span className="inline-flex text-[var(--ok)]">
               <CheckCircleIcon size={64} strokeWidth={1.5} />
             </span>
-            <h5 className="cn-text-h5 font-[var(--font-display)] font-semibold text-[20px] tracking-[-.01em] text-[var(--ink)] text-center">
+            <h5 className="cn-text-h5 font-[family-name:var(--font-display)] font-semibold text-[20px] tracking-[-.01em] text-[var(--ink)] text-center">
               Paiement reussi !
             </h5>
             <p className="cn-text-body2 text-[var(--muted)] text-[13px] text-center max-w-[360px]">
@@ -195,14 +195,14 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
                   Paiement securise
                 </span>
                 {interventionTitle && (
-                  <p className="cn-text-body2 font-[var(--font-sans)] text-[11.5px] font-normal text-[var(--muted)]">
+                  <p className="cn-text-body2 font-[family-name:var(--font-sans)] text-[11.5px] font-normal text-[var(--muted)]">
                     {interventionTitle}
                   </p>
                 )}
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <h6 className="cn-text-h6 font-[var(--font-display)] text-[1.125rem] font-semibold tabular-nums text-[var(--accent)]">
+              <h6 className="cn-text-h6 font-[family-name:var(--font-display)] text-[1.125rem] font-semibold tabular-nums text-[var(--accent)]">
                 <Money value={amount} from="EUR" />
               </h6>
               {/* ✕ — pattern .rm-x : 34px r10 hairline, hover --err */}

@@ -60,7 +60,7 @@ const KpiTile: React.FC<{ kpi: Kpi; idx: number }> = ({ kpi, idx }) => (
     >
       {kpi.name ?? kpi.id ?? `KPI ${idx + 1}`}
     </Overline>
-    <p className="cn-text-body1 font-[var(--font-display)] text-[1.05rem] font-semibold leading-[1.2] tabular-nums text-[var(--ink)]">
+    <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.05rem] font-semibold leading-[1.2] tabular-nums text-[var(--ink)]">
       {kpi.value ?? '—'}
     </p>
     {kpi.target && (

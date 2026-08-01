@@ -7,7 +7,7 @@
    « Channel Manager » du Dashboard.
    ============================================================ */
 
-import { Dialog, DialogContent, DialogTitle, Typography } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle } from '@mui/material';
 import { CalendarMonth, Hub } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -56,9 +56,9 @@ function ChoiceCard({ icon, iconBg, iconColor, title, description, onSelect }: C
         {icon}
       </div>
       <div>
-        <Typography sx={{ fontWeight: 700, fontSize: 14.5, color: 'var(--ink)', textWrap: 'balance' }}>
+        <p className="cn-text-body1 font-bold text-[14.5px] text-[var(--ink)] text-balance">
           {title}
-        </Typography>
+        </p>
         <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] leading-[1.45] mt-0.5">
           {description}
         </p>

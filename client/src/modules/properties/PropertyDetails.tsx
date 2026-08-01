@@ -5,7 +5,7 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useTabKeyParam } from '../../components/tabKeyParam';
-import { Typography, Alert, Button, Card, CardContent, Grid, Paper, Divider, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar } from '@mui/material';
+import { Alert, Button, Card, CardContent, Grid, Paper, Divider, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar } from '@mui/material';
 import {  Edit,
   Home,
   LocationOn,
@@ -102,6 +102,10 @@ const METRIC_VALUE_SX = {
   fontVariantNumeric: 'tabular-nums',
   letterSpacing: '-.01em',
 } as const;
+
+/** Report en classes de `METRIC_VALUE_SX`. */
+const METRIC_VALUE_CLASS =
+  'cn-text-body1 [font-family:var(--font-display)] text-[18px] font-semibold text-[var(--ink)] leading-[1.2] tabular-nums tracking-[-0.01em]';
 
 const METRIC_LABEL_SX = {
   fontSize: '10px',
@@ -448,9 +452,9 @@ const PropertyDetails: React.FC = () => {
               <Tooltip title={t('properties.cleaningEstimateTooltip')} arrow placement="top">
                 <div className={cn(METRIC_CARD_CLASS, 'cursor-help')}>
                   <div className={METRIC_ICON_BADGE_CLASS}><Payments size={16} strokeWidth={1.75} /></div>
-                  <Typography sx={METRIC_VALUE_SX}>
+                  <p className={METRIC_VALUE_CLASS}>
                     {cleaningEstimate ? <Money value={cleaningEstimate.min} from="EUR" decimals={0} /> : '—'}
-                  </Typography>
+                  </p>
                   <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningEstimate')}</p>
                 </div>
               </Tooltip>
@@ -458,37 +462,39 @@ const PropertyDetails: React.FC = () => {
             <Grid item xs={6} sm={4} md={2}>
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><Bed size={16} strokeWidth={1.75} /></div>
-                <Typography sx={METRIC_VALUE_SX}>{property.bedrooms}</Typography>
+                <p className={METRIC_VALUE_CLASS}>{property.bedrooms}</p>
                 <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.bedrooms')}</p>
               </div>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><Bathroom size={16} strokeWidth={1.75} /></div>
-                <Typography sx={METRIC_VALUE_SX}>{property.bathrooms}</Typography>
+                <p className={METRIC_VALUE_CLASS}>{property.bathrooms}</p>
                 <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.bathroomCount')}</p>
               </div>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><SquareFoot size={16} strokeWidth={1.75} /></div>
-                <Typography sx={METRIC_VALUE_SX}>{property.surfaceArea} m²</Typography>
+                <p className={METRIC_VALUE_CLASS}>{property.surfaceArea} m²</p>
                 <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.surface')}</p>
               </div>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><Group size={16} strokeWidth={1.75} /></div>
-                <Typography sx={METRIC_VALUE_SX}>{property.maxGuests}</Typography>
+                <p className={METRIC_VALUE_CLASS}>{property.maxGuests}</p>
                 <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.maxCapacity')}</p>
               </div>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><CleaningServices size={16} strokeWidth={1.75} /></div>
-                <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12.5px' }}>
+                {/* leading-[1.2] repose apres la taille : tailwind-merge
+                    supprime un `leading-*` place avant une classe `text-[taille]`. */}
+                <p className={cn(METRIC_VALUE_CLASS, 'text-[12.5px] leading-[1.2]')}>
                   {getCleaningFrequencyLabel(property.cleaningFrequency, t)}
-                </Typography>
+                </p>
                 <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningFrequency')}</p>
               </div>
             </Grid>

@@ -89,7 +89,7 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
             <p className="cn-text-body1 text-[10px] font-semibold text-[var(--faint)] uppercase tracking-[.04em]">
               Total estimé
             </p>
-            <p className="cn-text-body1 font-[var(--font-display)] text-[0.9375rem] font-bold text-[var(--ink)] tabular-nums">
+            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.9375rem] font-bold text-[var(--ink)] tabular-nums">
               {convertAndFormat(total, 'EUR')}
             </p>
           </div>
@@ -101,7 +101,7 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
             {/* En-têtes de colonnes */}
             <div className="grid grid-cols-[1fr_56px_88px_84px_28px] gap-[4.5px] px-[1.5px]">
               {['Désignation', 'Qté', 'PU (€)', 'Total', ''].map((h, i) => (
-                <p className={cn('cn-text-body1 text-[9.5px] font-bold uppercase tracking-[.04em] text-[var(--faint)]', i === 0 ? 'text-start' : '[object Object]')} key={h || 'actions'}>
+                <p className={cn('cn-text-body1 text-[9.5px] font-bold uppercase tracking-[.04em] text-[var(--faint)]', i === 0 ? 'text-start' : i === 4 ? 'text-center' : 'text-end')} key={h || 'actions'}>
                   {h}
                 </p>
               ))}

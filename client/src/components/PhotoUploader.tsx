@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { Alert, AlertDescription } from './ui';
 import { TriangleAlert } from 'lucide-react';
-import { Typography, IconButton, ImageList, ImageListItem, ImageListItemBar } from '@mui/material';
+import { IconButton, ImageList, ImageListItem, ImageListItemBar } from '@mui/material';
 import {
   CloudUpload as CloudUploadIcon,
   Close as CloseIcon,
@@ -249,14 +249,15 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         </span>
       )}
 
-      {/* Compteur */}
-      <Typography
-        variant="caption"
-        color={totalCount >= maxFiles ? 'error.main' : 'text.secondary'}
-        sx={{ mt: 0.5, display: 'block' }}
+      {/* Compteur — `mt: 0.5` avec theme.spacing = 6 vaut 3 px. */}
+      <span
+        className={cn(
+          'cn-text-caption mt-[3px] block',
+          totalCount >= maxFiles ? 'text-[var(--err)]' : 'text-[var(--muted)]',
+        )}
       >
         {totalCount}/{maxFiles} photos
-      </Typography>
+      </span>
 
       {/* Erreur de validation */}
       {(validationError || error) && (

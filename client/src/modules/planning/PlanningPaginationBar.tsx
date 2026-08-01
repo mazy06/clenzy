@@ -40,7 +40,7 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
       </IconButton>
 
       {/* Page indicator */}
-      <p className="cn-text-body2 font-[var(--font-display)] text-[11.5px] font-semibold text-[var(--ink)] tabular-nums select-none">
+      <p className="cn-text-body2 font-[family-name:var(--font-display)] text-[11.5px] font-semibold text-[var(--ink)] tabular-nums select-none">
         Page {currentPage + 1} / {totalPages}
       </p>
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../utils/cn';
-import { Paper, Typography, Skeleton } from '@mui/material';
+import { Paper, Skeleton } from '@mui/material';
 
 interface StatTileProps {
   /** Icône inline (accent par défaut, ou la couleur passée) à gauche du label. */
@@ -102,18 +102,9 @@ export default function StatTile({
 
       {/* Delta / contexte */}
       {hint && !loading && (
-        <Typography
-          component="div"
-          sx={{
-            fontSize: '11px',
-            fontWeight: 600,
-            color: 'var(--muted)',
-            mt: '5px',
-            '& b': { color: 'var(--ok)', fontWeight: 600 },
-          }}
-        >
+        <div className="cn-text-body1 text-[11px] font-semibold text-[var(--muted)] mt-[5px] [&_b]:text-[var(--ok)] [&_b]:font-semibold">
           {hint}
-        </Typography>
+        </div>
       )}
     </Paper>
   );

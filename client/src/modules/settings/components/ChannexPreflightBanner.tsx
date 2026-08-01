@@ -63,7 +63,7 @@ function SeverityIcon({ severity }: { severity: ChannexPreflightCheck['severity'
 function CheckRow({ check }: { check: ChannexPreflightCheck }) {
   const isIssue = check.severity !== 'OK';
   return (
-    <div className={cn('flex gap-[7.5px] py-[3.9000000000000004px] px-1.5 rounded-[6px] items-start', isIssue ? '[object Object]' : 'bg-[transparent]')}>
+    <div className={cn('flex gap-[7.5px] py-[3.9000000000000004px] px-1.5 rounded-[6px] items-start', isIssue ? (check.severity === 'BLOCKER' ? 'bg-[color-mix(in_srgb,var(--err)_5%,transparent)]' : 'bg-[color-mix(in_srgb,var(--warn)_5%,transparent)]') : 'bg-[transparent]')}>
       <div className="mt-0.5 shrink-0">
         <SeverityIcon severity={check.severity} />
       </div>

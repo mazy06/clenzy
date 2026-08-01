@@ -177,7 +177,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
                     : 'cursor-default',
                 )}
               >
-                <span className="font-[var(--font-display)] text-[1.0625rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
+                <span className="font-[family-name:var(--font-display)] text-[1.0625rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
                   {reservation.guestName}
                 </span>
                 {onUpdateGuestInfo && (
@@ -295,7 +295,7 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
     // text-start/text-end pour que les deux restent coherents en RTL.
     <div className={cn('min-w-0', align === 'right' ? 'text-end' : 'text-start')}>
       <span className={cn(OVERLINE_CLASS, 'block mb-[2.25px]')}>{label}</span>
-      <span className="block font-[var(--font-display)] text-[1.25rem] font-bold text-[var(--ink)] leading-[1.15] tabular-nums whitespace-nowrap">
+      <span className="block font-[family-name:var(--font-display)] text-[1.25rem] font-bold text-[var(--ink)] leading-[1.15] tabular-nums whitespace-nowrap">
         {fmtBigDate(date)}
       </span>
       {time && (

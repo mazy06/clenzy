@@ -100,7 +100,7 @@ export default function PWAInstallBanner() {
           <GetAppIcon size={26} strokeWidth={1.75} />
         </span>
         <div className="flex-1 min-w-0">
-          <p className="cn-text-body1 truncate font-[var(--font-display)] text-[13.5px] font-semibold text-[var(--ink)]">
+          <p className="cn-text-body1 truncate font-[family-name:var(--font-display)] text-[13.5px] font-semibold text-[var(--ink)]">
             Installer Baitly PMS
           </p>
           <p className="cn-text-body1 text-[12px] text-[var(--muted)]">

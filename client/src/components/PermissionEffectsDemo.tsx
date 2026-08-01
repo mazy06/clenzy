@@ -2,6 +2,7 @@ import React from 'react';
 import { Alert, AlertDescription } from './ui';
 import { Info } from 'lucide-react';
 import { Box, Card, CardContent, Typography, Grid } from '@mui/material';
+import { cn } from '../utils/cn';
 import StatusChip from './StatusChip';
 import {
   Dashboard as DashboardIcon,
@@ -231,9 +232,14 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
                 borderWidth: 1.5
               }}
             >
-              <Typography variant="h4" color={rolePermissions.isDefault ? 'success.main' : 'warning.main'} sx={{ fontWeight: 700, mb: 1 }}>
+              <h4
+                className={cn(
+                  'cn-text-h4 font-bold mb-1.5',
+                  rolePermissions.isDefault ? 'text-[var(--ok)]' : 'text-[var(--warn)]',
+                )}
+              >
                 {rolePermissions.isDefault ? '✅' : '⚠️'}
-              </Typography>
+              </h4>
               <p className="cn-text-body2 text-muted-foreground font-medium">
                 {rolePermissions.isDefault ? 'Par défaut' : 'Modifié'}
               </p>

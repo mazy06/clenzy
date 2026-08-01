@@ -3,8 +3,9 @@ import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/Stat
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from '@mui/material';
+import { IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip } from '@mui/material';
 import { Edit } from '../../icons';
+import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useWhatsAppTemplatesList } from '../../hooks/useWhatsAppTemplates';
 import type { WhatsAppTemplateGroup } from '../../services/api/whatsappTemplatesApi';
@@ -202,20 +203,18 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
         />
       </TableCell>
       <TableCell>
-        <Typography
-          variant="body2"
-          noWrap
-          sx={{
-            maxWidth: 280,
-            fontSize: '0.8125rem',
-            // RTL pour l'apercu si la langue active est l'arabe — sinon le
-            // texte arabe s'affiche en LTR et est cassé visuellement.
-            direction: previewLangCode === 'ar_AR' ? 'rtl' : 'ltr',
-            textAlign: previewLangCode === 'ar_AR' ? 'right' : 'left',
-          }}
+        {/* RTL pour l'apercu si la langue active est l'arabe — sinon le
+            texte arabe s'affiche en LTR et est cassé visuellement. */}
+        <p
+          className={cn(
+            'cn-text-body2 max-w-[280px] truncate text-[0.8125rem]',
+            previewLangCode === 'ar_AR'
+              ? '[direction:rtl] text-right'
+              : '[direction:ltr] text-left',
+          )}
         >
           {previewExcerpt}
-        </Typography>
+        </p>
       </TableCell>
       <TableCell>
         <StatusChip tokens={TONE.muted} label={langChipLabel} />

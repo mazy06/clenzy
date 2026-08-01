@@ -1,14 +1,18 @@
 import React from 'react';
-import { Typography, TextField } from '@mui/material';
+import { TextField } from '@mui/material';
 import { AccessTime } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { UseReservationFormResult } from './useReservationForm';
-import { SEC_SX, FIELD_SX, AdornIcon } from './reservationDialogStyles';
+import { FIELD_SX, AdornIcon } from './reservationDialogStyles';
 import ReservationRangeCalendar from './ReservationRangeCalendar';
 
 interface Props {
   form: UseReservationFormResult;
 }
+
+// Transposition en classes de SEC_SX (.rm-sec) — la constante reste exportee
+// dans reservationDialogStyles pour les consommateurs sx eventuels.
+const SEC_CLS = 'cn-text-body1 text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)]';
 
 /** Dates du séjour : calendrier range (ou dates read-only si source externe) + heures. */
 const StaySection: React.FC<Props> = ({ form }) => {
@@ -16,7 +20,7 @@ const StaySection: React.FC<Props> = ({ form }) => {
 
   return (
     <>
-      <Typography sx={SEC_SX}>{t('reservations.dialog.stayDates')}</Typography>
+      <p className={SEC_CLS}>{t('reservations.dialog.stayDates')}</p>
 
       {form.fieldsLocked ? (
         <div className="grid grid-cols-[1fr_1fr] gap-3">

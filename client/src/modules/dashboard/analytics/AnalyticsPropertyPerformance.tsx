@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { Typography, Card, CardContent, LinearProgress, Grid } from '@mui/material';
+import { Card, CardContent, LinearProgress, Grid } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import GridSection from './GridSection';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -39,6 +39,9 @@ const VALUE_SX = {
   fontVariantNumeric: 'tabular-nums',
   textAlign: 'right' as const,
 } as const;
+
+/** Report en classes de `VALUE_SX`. */
+const VALUE_CLASS = 'cn-text-body1 text-[0.6875rem] font-bold text-[var(--ink)] tabular-nums text-right';
 
 interface Props {
   /** Fenêtre d'analyse dérivée de la période sélectionnée (défaut « mois »). */
@@ -127,21 +130,26 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
                   <div className="flex flex-col gap-0.5">
                     <div className="flex justify-between">
                       <p className={cn(LABEL_CLASS, 'cn-text-body1')}>RevPAN</p>
-                      <Typography sx={VALUE_SX}><Money value={prop.revPan} from="EUR" decimals={2} /></Typography>
+                      <p className={VALUE_CLASS}><Money value={prop.revPan} from="EUR" decimals={2} /></p>
                     </div>
                     <div className="flex justify-between">
                       <p className={cn(LABEL_CLASS, 'cn-text-body1')}>{t('dashboard.analytics.occupancyRate')}</p>
-                      <Typography sx={VALUE_SX}>{Math.round(prop.occupancyRate)}%</Typography>
+                      <p className={VALUE_CLASS}>{Math.round(prop.occupancyRate)}%</p>
                     </div>
                     <div className="flex justify-between">
                       <p className={cn(LABEL_CLASS, 'cn-text-body1')}>{t('dashboard.analytics.totalRevenue')}</p>
-                      <Typography sx={VALUE_SX}><Money value={prop.revenue} from="EUR" decimals={0} /></Typography>
+                      <p className={VALUE_CLASS}><Money value={prop.revenue} from="EUR" decimals={0} /></p>
                     </div>
                     <div className="flex justify-between">
                       <p className={cn(LABEL_CLASS, 'cn-text-body1')}>{t('dashboard.analytics.netMargin')}</p>
-                      <Typography sx={{ ...VALUE_SX, color: prop.netMargin >= 60 ? 'success.main' : prop.netMargin >= 40 ? 'warning.main' : 'error.main' }}>
+                      {/* Couleur decidee a l'execution selon la marge : elle ne peut pas naitre
+                          d'une classe Tailwind, d'ou le style inline (qui prime sur la classe). */}
+                      <p
+                        className={VALUE_CLASS}
+                        style={{ color: prop.netMargin >= 60 ? 'var(--ok)' : prop.netMargin >= 40 ? 'var(--warn)' : 'var(--err)' }}
+                      >
                         {Math.round(prop.netMargin)}%
-                      </Typography>
+                      </p>
                     </div>
                   </div>
                 </CardContent>

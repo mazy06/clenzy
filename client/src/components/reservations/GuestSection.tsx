@@ -1,11 +1,16 @@
 import React from 'react';
 import { Spinner } from '../ui';
-import { Typography, TextField, MenuItem, Autocomplete } from '@mui/material';
+import { TextField, MenuItem, Autocomplete } from '@mui/material';
 import StatusChip from '../StatusChip';
 import { Person, PersonOutline, Search as SearchIcon, Group as GroupIcon, Remove as RemoveIcon, Add as AddIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-import { SEC_SX, COMPACT_FIELD_SX, COMPACT_TEXTAREA_SX, AdornIcon } from './reservationDialogStyles';
+import { COMPACT_FIELD_SX, COMPACT_TEXTAREA_SX, AdornIcon } from './reservationDialogStyles';
+
+// Transposition en classes de SEC_SX (.rm-sec) — meme motif que STEP_BTN_CLS :
+// la constante sx reste exportee dans reservationDialogStyles.
+const SEC_CLS = 'cn-text-body1 text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)]';
 
 // Transposition en classes de STEP_BTN_SX (.rm-count) — la constante reste
 // exportee dans reservationDialogStyles pour les consommateurs sx eventuels.
@@ -37,7 +42,7 @@ const renderStepper = (
     <button type="button" aria-label={`${ariaLabel} −`} onClick={onDec} disabled={decDisabled} className={STEP_BTN_CLS}>
       <RemoveIcon size={15} strokeWidth={1.75} />
     </button>
-    <div className="font-[var(--font-display)] text-[15px] font-semibold text-[var(--ink)] min-w-[28px] text-center select-none tabular-nums">
+    <div className="font-[family-name:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] min-w-[28px] text-center select-none tabular-nums">
       {value}
     </div>
     <button type="button" aria-label={`${ariaLabel} +`} onClick={onInc} disabled={incDisabled} className={STEP_BTN_CLS}>
@@ -145,9 +150,9 @@ const GuestSection: React.FC<Props> = ({ form }) => {
   const editableGuestForm = (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center gap-[10px] mt-[2px]">
-        <Typography sx={{ ...SEC_SX, whiteSpace: 'nowrap' }}>
+        <p className={cn(SEC_CLS, 'whitespace-nowrap')}>
           {form.selectedGuest ? t('reservations.dialog.editGuest') : t('reservations.dialog.newGuest')}
-        </Typography>
+        </p>
         <div className="flex-1 h-[1px] bg-[var(--line)]" />
       </div>
 
@@ -230,7 +235,7 @@ const GuestSection: React.FC<Props> = ({ form }) => {
 
   return (
     <>
-      <Typography sx={{ ...SEC_SX, marginTop: '4px' }}>{t('reservations.dialog.traveler')}</Typography>
+      <p className={cn(SEC_CLS, 'mt-[4px]')}>{t('reservations.dialog.traveler')}</p>
 
       {form.isEdit ? (
         // ── ÉDITION : comportement inchangé — voyageur en lecture seule ──

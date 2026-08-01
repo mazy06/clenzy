@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
 import { Card } from '../../components/ui';
-import { Paper, Typography, Button, IconButton, Tooltip, MenuItem, Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Paper, Button, IconButton, Tooltip, MenuItem, Alert, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import {
   Receipt as ReceiptIcon,
   Download as DownloadIcon,
@@ -86,6 +86,9 @@ const moneySx = {
   fontFamily: 'var(--font-display)',
   fontVariantNumeric: 'tabular-nums',
 };
+
+/** Equivalent Tailwind de `moneySx`, pour les elements passes en HTML natif. */
+const MONEY_CLASS = 'font-[family-name:var(--font-display)] tabular-nums';
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('fr-FR') : '\u2014';
@@ -395,9 +398,11 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                     {/* ─── N° + DUPLICATA badge ─── */}
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '12.5px', color: 'var(--ink)', ...moneySx }}>
+                        {/* Litteral et non `cn()` : tailwind-merge considere `font-[...]` et
+                            `font-semibold` comme un meme groupe et supprimerait la police display. */}
+                        <p className={`cn-text-body2 ${MONEY_CLASS} text-[12.5px] font-semibold text-[var(--ink)]`}>
                           {inv.invoiceNumber}
-                        </Typography>
+                        </p>
                         {inv.duplicateOfId && (
                           <StatusChip tone="info" size="sm" label="DUP" />
                         )}

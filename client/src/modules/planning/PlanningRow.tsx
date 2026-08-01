@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import PlanningBar from './PlanningBar';
 import PlanningBlockedBand from './PlanningBlockedBand';
 import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, RowDragState } from './types';
@@ -536,19 +536,14 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
               '@media (prefers-reduced-motion: reduce)': { animation: 'none', transition: 'none' },
             }}
           >
-            <Typography
-              sx={{
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                color: selColor,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                lineHeight: 1.2,
-              }}
+            {/* `selColor` est calcule au rendu : une classe Tailwind ne pouvant
+                pas naitre d'une variable, la couleur passe en style inline. */}
+            <p
+              className="cn-text-body1 text-[0.6875rem] font-semibold truncate leading-[1.2]"
+              style={{ color: selColor }}
             >
               {isError ? 'Pas de place' : `${nightCount}${nightCount === 1 ? ' nuit' : ' nuits'}`}
-            </Typography>
+            </p>
           </Box>
         );
       })()}
@@ -608,7 +603,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
             {price != null && (
               <span
                 className={cn(
-                  'font-[var(--font-display)] font-medium text-[var(--muted)] opacity-80 leading-none whitespace-nowrap overflow-hidden text-ellipsis max-w-full tabular-nums',
+                  'font-[family-name:var(--font-display)] font-medium text-[var(--muted)] opacity-80 leading-none whitespace-nowrap overflow-hidden text-ellipsis max-w-full tabular-nums',
                   dayWidth < 60 ? 'text-[0.625rem]' : 'text-[0.6875rem]',
                 )}
               >

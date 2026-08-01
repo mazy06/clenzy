@@ -2,10 +2,10 @@ import React from 'react';
 import {
   Card,
   CardContent,
-  Typography,
   Button,
   IconButton,
 } from '@mui/material';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import {
   Visibility,
@@ -112,48 +112,19 @@ const styles = {
     p: 1.75,
     pb: '12px !important',
   },
-  // Nom d'entité en display.
-  nameText: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    fontFamily: 'var(--font-display)',
-    fontSize: '15px',
-    fontWeight: 600,
-    letterSpacing: '-.01em',
-    color: 'var(--ink)',
-  },
-  // Ligne localisation (propriété).
-  locationText: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    flex: 1,
-    fontSize: '11.5px',
-    color: 'var(--muted)',
-  },
-  // Bande de KPI (valeurs display tabular-nums).
-  statValue: {
-    fontFamily: 'var(--font-display)',
-    fontSize: '15px',
-    fontWeight: 600,
-    color: 'var(--ink)',
-    fontVariantNumeric: 'tabular-nums',
-    lineHeight: 1.2,
-  },
-  statLabel: {
-    fontSize: '9.5px',
-    fontWeight: 700,
-    letterSpacing: '.04em',
-    textTransform: 'uppercase',
-    color: 'var(--faint)',
-    mt: '1px',
-  },
   detailsButton: {
     fontSize: '0.72rem',
     py: 0.5,
   },
 } as const;
+
+// Nom d'entité en display.
+const NAME_TEXT_CLASS = 'cn-text-body1 truncate font-[family-name:var(--font-display)] text-[15px] font-semibold tracking-[-.01em] text-[var(--ink)]';
+// Ligne localisation (propriété).
+const LOCATION_TEXT_CLASS = 'cn-text-body1 truncate flex-1 text-[11.5px] text-[var(--muted)]';
+// Bande de KPI (valeurs display tabular-nums).
+const STAT_VALUE_CLASS = 'cn-text-body1 font-[family-name:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] tabular-nums leading-[1.2]';
+const STAT_LABEL_CLASS = 'cn-text-body1 text-[9.5px] font-bold tracking-[.04em] uppercase text-[var(--faint)] mt-px';
 
 const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
   intervention,
@@ -216,9 +187,9 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
       <CardContent sx={styles.infoContent}>
         {/* Titre + chip type */}
         <div className="flex items-center gap-1 min-w-0 mb-0.5">
-          <Typography sx={{ ...styles.nameText, flex: 1 }} title={intervention.title}>
+          <p className={cn(NAME_TEXT_CLASS, 'flex-1')} title={intervention.title}>
             {intervention.title}
-          </Typography>
+          </p>
           <StatusChip
             tokens={{ color: typeHex, bg: `${typeHex}18` }}
             label={getInterventionTypeLabel(intervention.type, t)}
@@ -233,12 +204,12 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
           <span className="inline-flex text-[var(--muted)] shrink-0">
             <LocationOn size={14} strokeWidth={1.75} />
           </span>
-          <Typography
-            sx={styles.locationText}
+          <p
+            className={LOCATION_TEXT_CLASS}
             title={`${intervention.propertyName} - ${intervention.propertyAddress}`}
           >
             {intervention.propertyName}
-          </Typography>
+          </p>
         </div>
 
         {/* Bande de KPI : échéance / avancement / durée */}
@@ -248,10 +219,11 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
               key={cell.label}
               className="flex-1 py-[9px] text-center min-w-0 border-r border-solid border-[var(--line)] last:border-r-0"
             >
-              <Typography sx={{ ...styles.statValue, ...(cell.color ? { color: cell.color } : {}) }}>
+              {/* La teinte d'echeance est calculee a l'execution : style inline obligatoire. */}
+              <p className={STAT_VALUE_CLASS} style={cell.color ? { color: cell.color } : undefined}>
                 {cell.value}
-              </Typography>
-              <Typography sx={styles.statLabel}>{cell.label}</Typography>
+              </p>
+              <p className={STAT_LABEL_CLASS}>{cell.label}</p>
             </div>
           ))}
         </div>

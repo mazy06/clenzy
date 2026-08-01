@@ -3,7 +3,7 @@ import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton }
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
-import { Typography, Button, Tooltip, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, alpha, useTheme } from '@mui/material';
+import { Button, Tooltip, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, alpha, useTheme } from '@mui/material';
 import { Wifi, WifiOff, ChevronRight, Lock, LockOpen, MoreVert, Delete } from '../../../icons';
 import { cn } from '../../../utils/cn';
 import { useIconSize } from '../../../hooks/useResponsiveSize';
@@ -87,12 +87,12 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <Typography
+          <p
             onClick={() => onAction?.(device.uid, 'view')}
-            sx={{ fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.25, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer', '&:hover': { color: 'var(--accent)' } }}
+            className="cn-text-body1 text-[0.875rem] font-semibold leading-[1.25] text-[var(--ink)] truncate cursor-pointer hover:text-[var(--accent)]"
           >
             {device.name}
-          </Typography>
+          </p>
           <span className="cn-text-caption text-muted-foreground block overflow-hidden text-ellipsis whitespace-nowrap">
             {device.roomName ? `${device.roomName} · ` : ''}{meta.singular}
           </span>
